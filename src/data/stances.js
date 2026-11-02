@@ -91,7 +91,7 @@ export const STANCES = {
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
             // clearly the SLOWEST swing (well under medium's 1.0) — heavy, deliberate, weighty — but the big LUNGE
             // and high damage make each committed stroke land hard, so it reads as power, not sluggishness.
-            dmg: 2.93, heavyDmg: 1.95, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
+            dmg: 2.55, heavyDmg: 2.24, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
             radiusMult: 0.8, postureMul: 1.5, forceRegen: 0.7, comboGap: 0.7, fovKick: -4,
             atkDR: 0.15,          // PASSIVE: armored commitment — soak 15% damage WHILE mid-swing
             finisherLunge: 1.6,   // the 3rd hit lunges harder, carrying the heavy blade through
@@ -106,7 +106,7 @@ export const STANCES = {
      Every bolt it deflects flies straight back at the shooter and hits half again as hard; its cuts are strong but it
      gives up Djem So's raw power against armour. G swaps between the two Form V variants. */
   shien:  { name: 'SHIEN — REDIRECT', form: 'shien', formNo: 'V', blade: 0x2ee6c8,
-            dmg: 1.9, heavyDmg: 1.45, speed: 0.6, knock: 1.3, stamina: 12, lunge: 1.25, move: 0.98, accel: 0.95, twist: 0.8, bladeLen: 1.0,
+            dmg: 2.05, heavyDmg: 1.35, speed: 0.6, knock: 1.3, stamina: 12, lunge: 1.25, move: 0.98, accel: 0.95, twist: 0.8, bladeLen: 1.0,
             radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.04,
             deflectScatter: 0,    // ROLE: every deflect goes home, dead on the shooter…
             deflectDmg: 1.5,      // …and lands half again as hard (enemies/bolts.js)

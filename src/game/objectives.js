@@ -9,6 +9,7 @@ import { enemies } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { players, targetable } from '../player/players.js';
 import { pad, padKeys } from '../engine/gamepad.js';
+import { dropCard } from '../ui/hud-stage.js';
 
 /* ============================================================
    THE VOICE PANEL — the plain task with its keys and a count up top, the line in character under it as a quiet aside
@@ -22,6 +23,7 @@ function keycaps(keys){
 }
 // opts.drill drops the panel low on the screen, out of the fight's way · opts.step: where you are (the lesson and step)
 export function showPanel(who, say, keys, task, opts = {}){
+  if (!opts.staged) dropCard();   // another card takes the spot: a closing card's turn is over (ui/hud-stage.js)
   el('.tt-who').textContent = who;
   el('.tt-step').textContent = opts.step || '';
   el('.tt-say').textContent = say;
@@ -36,7 +38,7 @@ export function setPanelCount(text, done){
   el('.tt-count').textContent = text;
   panel.classList.toggle('done', !!done);
 }
-export function hidePanel(){ panel.classList.remove('on', 'done', 'drill'); }
+export function hidePanel(){ panel.classList.remove('on', 'done', 'drill'); dropCard(); }
 
 /* ============================================================
    MARKERS — a column of light over a spot to reach (r widens the ring into a zone), and a console to slice

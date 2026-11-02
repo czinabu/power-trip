@@ -16,7 +16,7 @@ import { applySaberGrip } from '../model/weapons.js';
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
 
 /* ---------- the HUD: one chip per loadout slot ---------- */
-let _synT = 0;
+let _synT = 0, _synSeen = null;   // (the hint last set: it shows again only when it changes)
 export function setStanceHud(){
   const st = stance();
   for (let i = 0; i < LOADOUT_SLOTS; i++){
@@ -30,10 +30,16 @@ export function setStanceHud(){
     chip.classList.toggle('active', !!f && id === G.stance);
     chip.classList.toggle('locked', !!f && !stanceUnlocked(id));   // dim the forms you haven't earned yet
   }
-  // the form's strengths read for a few seconds after a change, then fade so they don't crowd the action
+  // the form's strengths read for a few seconds after a change, then fade so they don't crowd the action. Only a change:
+  // the HUD is refreshed at a run's start and at a chapter's close too (game/flow.js checkUnlocks), where the hint would
+  // only pile onto the closing card and the briefing's words (ui/hud-stage.js)
   const syn = document.getElementById('stancesyn');
-  syn.textContent = st.syn; syn.classList.add('show');
-  clearTimeout(_synT); _synT = setTimeout(() => syn.classList.remove('show'), 4000);
+  syn.textContent = st.syn;
+  if (_synSeen !== null && _synSeen !== st.syn){
+    syn.classList.add('show');
+    clearTimeout(_synT); _synT = setTimeout(() => syn.classList.remove('show'), 4000);
+  }
+  _synSeen = st.syn;
 }
 
 /* ---------- the loadout: which forms sit on 1 / 2 / 3 ---------- */

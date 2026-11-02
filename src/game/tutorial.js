@@ -23,6 +23,7 @@ import { startLevel, queueSpawn, syncMandoChips, syncJediChips } from './flow.js
 import { applyJetTier } from './progression.js';
 import { upToast } from './upgrades.js';
 import { storyReached, refreshSandboxScope } from './sandbox-unlocks.js';
+import { commsBusy } from './story.js';
 import { renderer } from '../engine/renderer.js';
 import { showBanner } from '../ui/banners.js';
 import { setTutListener } from './tutor-bus.js';
@@ -483,7 +484,9 @@ function updateDrills(dt){
   for (const k of now) if (!D.owned.has(k) && heroKey(DRILLS)[k]) D.queue.push(k);
   D.owned = now;
   if (G.skillSelect || dt <= 0) return;
-  if (!D.cur && D.queue.length && !(G.chapter >= 0 && G.chapterClosed === G.chapter)){   // (a power a chapter hands over at its close: tried once the next chapter's fight is on)
+  // (a power a chapter hands over at its close: tried once the next chapter's fight is on. One voice at a time: the drill's tip
+  // waits for the comms strip to finish what it's saying, so the two don't talk over each other: ui/hud-stage.js)
+  if (!D.cur && D.queue.length && !(G.chapter >= 0 && G.chapterClosed === G.chapter) && !commsBusy()){
     const k = D.queue.shift(), d = heroKey(DRILLS)[k];
     // already in use (e.g. dual blasters equip themselves): count it as tried from the next use, not this one
     D.cur = { d, t: d.use ? 14 : 6, was: used(d.use), ok: false, okT: 0 };

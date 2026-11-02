@@ -11,9 +11,10 @@ import { playerPos } from '../player/helpers.js';
 import { storyVoice, forHero } from '../data/campaign.js';
 import { hooks } from '../net/run.js';
 import { chapterAt } from './campaign.js';
+import { stageHolds } from '../ui/hud-stage.js';
 
 const box = document.getElementById('comms');
-const who = box.querySelector('.cm-who'), say = box.querySelector('.cm-say'), tutor = document.getElementById('tutor');
+const who = box.querySelector('.cm-who'), say = box.querySelector('.cm-say');
 const queue = [];
 let cur = null, left = 0;
 
@@ -63,26 +64,19 @@ export function clearComms(){ queue.length = 0; cur = null; left = 0; box.classL
 // runs on the sim's time (held while paused or on the upgrade screen: main.js)
 export function updateComms(dt){
   if (G.mode !== 'play'){ if (cur || queue.length) clearComms(); return; }
-  if (cur && (left -= dt) > 0){ if ((placeT -= dt) <= 0) place(); return; }
+  if (cur && (left -= dt) > 0) return;
   if (cur){ cur = null; box.classList.remove('on'); left = 0.35; return; }   // a breath between lines
   if (left > 0){ left -= dt; return; }
   if (!queue.length) return;
+  if (!queue[0].urgent && stageHolds()) return;   // a closing card is the chapter's words: the next line waits until it's read (ui/hud-stage.js)
   if (waits(queue[0]) && fightHot()){ queue[0].held = (queue[0].held || 0) + dt; return; }   // a story line: wait for a lull (QUIET)
   cur = queue.shift();
   who.textContent = cur.who; say.textContent = cur.say;
   box.classList.toggle('rival', cur.rival);
-  place();
   box.classList.add('on');
   left = holdFor(cur.say);
 }
-// a mission's briefing panel low on the screen: sit just above it rather than on top of it (checked again while a line is
-// up: the panel can come up under a line already on screen, as an objective begins under its hand-off line)
-let placeT = 0;
-function place(){
-  placeT = 0.25;
-  const r = tutor.classList.contains('on') && tutor.getBoundingClientRect();
-  box.style.bottom = r && r.bottom > innerHeight * 0.5 ? (innerHeight - r.top + 10) + 'px' : '';
-}
+// where the strip sits (above a mission card low on the screen, when one is up) is the HUD stage's call (ui/hud-stage.js)
 export const commsBusy = () => !!cur || queue.length > 0;
 export const commsShowing = () => !!cur;
 export const commsTalking = () => !!(cur && cur.talk);   // the line up is a walk-up line (game/talk.js)

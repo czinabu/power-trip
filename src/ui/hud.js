@@ -34,11 +34,31 @@ import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { cutHeight, pickCut } from '../player/jedi/cutaim.js';
-import { crosshairPoint, lastAim } from '../player/aim.js';
-import { swingMarkerOn } from '../fx/swingmark.js';
+import { aimPoint, lastAim } from '../player/aim.js';
 
 // give every power slot its icon once (key badge top-left, icon centre, name below)
 for (const id in SLOT_ICON){ const el = document.getElementById(id); if (el) el.querySelector('.key').insertAdjacentHTML('afterend', svgIcon(SLOT_ICON[id])); }
+
+/* THE JEDI'S CROSSHAIR, Jedi Academy style (player/aim.js heroCrosshair): cast from the hero along the view, drawn where
+   it lands on screen, so it sits on the foe, the floor or the wall your aim really meets and rides along with the hero
+   through a roll or a flip. Locked on, it sits on the locked foe. Returns its screen offset from the centre (as a CSS
+   transform) and whether it is on a foe. */
+const _sp = new THREE.Vector3();
+let _jx = { tf: 'none', foe: false };
+function jediReticle(){
+  if (isGunner() || G.mode !== 'play'){ _jx = { tf: 'none', foe: false }; return _jx; }
+  const pt = aimPoint();
+  const foe = !!lastAim.target;
+  _sp.copy(pt).project(camera);
+  let x = 0, y = 0;
+  if (_sp.z < 1){   // (behind the lens: leave it centred)
+    x = Math.max(-0.45, Math.min(0.45, _sp.x * 0.5)) * innerWidth;
+    y = Math.max(-0.45, Math.min(0.45, -_sp.y * 0.5)) * innerHeight;
+  }
+  _jx = { tf: 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)', foe, x, y };
+  return _jx;
+}
+export const jediReticleAt = () => _jx;
 
 // write text/HTML only when it changed — the HUD refreshes every frame
 function setText(el, v){ if (el._t !== v){ el._t = v; el.textContent = v; } }
@@ -155,11 +175,12 @@ export function updateHud(){
       setText($('fylabel'), fk === 'juyo' ? 'FURY' : 'CONTROL');
       setText($('fyval'), full ? 'FULL' : '');
     } }
+  const jx = jediReticle();   // where the Jedi's crosshair sits this frame (its gauges ride along with it)
   // JET FUEL now reads on the JETPACK itself (diegetic LED gauge); JEDI stamina lives by the crosshair — bar unused
   document.getElementById('smwrap').style.display = 'none';
   // Crosshair-side gauge — sits right beside the reticle/crosshair so your swing fuel reads without glancing away.
   //  JEDI: violet SABER STAMINA.  MANDO: energy/HEAT (blasters, blue) or stamina (DARKSABER, violet). The Mando
-  //  version tracks the free-aim reticle drift; the Jedi crosshair is fixed-centre, so its gauge stays put.
+  //  version tracks the free-aim reticle drift; the Jedi's follows his crosshair, wherever it lands (jediReticle).
   { const em = document.getElementById('energymeter'), ef = document.getElementById('energyfill');
     const showE = G.mode === 'play' && (G.hero === 'jedi' || isGunner());
     em.style.display = showE ? 'block' : 'none';
@@ -179,7 +200,7 @@ export function updateHud(){
         em.classList.remove('saberbar');
         em.classList.toggle('over', player.overheat);
       }
-      em.style.transform = (isGunner()) ? 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)' : 'none';
+      em.style.transform = (isGunner()) ? 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)' : jx.tf;
     } }
   // bottom XP meter — fills toward the next skill point in the story (game/upgrades.js), else the next affordable ability
   { const goal = nextStoreGoal(), xm = document.getElementById('xpmeter');
@@ -243,10 +264,11 @@ export function updateHud(){
     renderChecklist(c); }
   // CUT HEIGHT (player/jedi/cutaim.js): three ticks beside the crosshair, the lit one is where your next cut goes
   { const ch = $('cuth'), on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
-    if (ch){ ch.style.display = on ? '' : 'none'; if (on) ch.dataset.h = cutHeight(); }
+    if (ch){ ch.style.display = on ? '' : 'none'; if (on) ch.dataset.h = cutHeight(); ch.style.transform = isGunner() ? '' : jx.tf; }
     // and the dial: the angle the next cut comes from (hidden for a keyed cut: the thrust, the back strike)
     const cd = $('cutdial');
     if (cd){
+      cd.style.transform = isGunner() ? '' : jx.tf;
       const nx = on && player.atkT <= 0 ? pickCut(0, false) : null, ang = nx && nx.pat.ang;
       cd.style.display = ang != null ? '' : 'none';
       if (ang != null){ cd.firstChild.style.transform = 'rotate(' + (90 - ang).toFixed(0) + 'deg)'; cd.classList.toggle('live', !!nx.flick); }
@@ -254,12 +276,9 @@ export function updateHud(){
   if (!isGunner()){   // holstered (4): LMB is a Force strike and RMB a ward instead of saber and block
     setText($('ab-atk').querySelector('.an'), player.holstered ? 'FORCE STRIKE' : 'SABER');
     setText($('ab-block').querySelector('.an'), player.holstered ? 'WARD' : 'BLOCK');
-    // the centre dot turns gold over a foe: that's who a power aimed now would reach, in the air or on the ground (player/aim.js)
+    // the crosshair turns red on a foe: that's who a cut or a power aimed now would land on (jediReticle)
     const xh = $('xh');
-    if (xh){ const on = G.mode === 'play' && !player.lockTarget && (crosshairPoint(0, 0), !!lastAim.target); xh.classList.toggle('on', on);
-      // with the SWING MARKER up a foe shows the cut (fx/swingmark.js): the free-aim dot steps back to a faint point,
-      // and comes up for what it aims (a foe under it for a power, RMB held for the throw, the saber on the belt)
-      xh.classList.toggle('quiet', !on && swingMarkerOn() && !player.blockHeld && !player.holstered); }
+    if (xh){ xh.style.transform = jx.tf; xh.classList.toggle('on', G.mode === 'play' && jx.foe && G.aimHint !== false); }   // (Settings · AIM HINT)
   }
   if (isGunner()){
     // weapon + ammo readout

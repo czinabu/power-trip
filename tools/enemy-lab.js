@@ -19,6 +19,8 @@ import { DETAIL } from '../src/player/model/shapes.js';
 import { surfaceDetail } from '../src/player/model/styles.js';
 import { solveHolds } from '../src/enemies/holds.js';
 import { GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS } from '../src/data/duel.js';
+import { CAST_IDS, ACOLYTES } from '../src/data/saber-cast.js';
+import { STANCES } from '../src/data/stances.js';
 
 const q = new URLSearchParams(location.search);
 { const d = new URLSearchParams(location.search); if (d.has('rings')) DETAIL.rings = +d.get('rings'); if (d.has('round')) DETAIL.round = +d.get('round'); if (d.has('detail')) surfaceDetail.value = +d.get('detail'); }   // detail dial (player/model/shapes.js DETAIL)
@@ -65,6 +67,29 @@ if (SET === 'bosses'){
     const g = buildEnemyMesh(t);
     figs.push({ g, label: m.name, w: 2.1 });
   }
+} else if (SET === 'saber'){
+  /* the saber cast (data/saber-cast.js): every named look, then the rank-and-file acolytes. &nolook=1 builds them the
+     way they were before the cast, a tinted acolyte each (the before shot); &who=a,b picks some by id; &acolytes=0 hides those */
+  const OLD = { 'ILSA VENN': [0x4a7ad2, 1, 'djemso'], 'THE WALL': [0x3a7ad2, 1.12, 'soresu'], 'SERA QUILL': [0x3ad28a, 1, 'ataru'], 'THE ACROBAT': [0x3ad28a, 1, 'ataru'],
+    'THE KNIGHT': [0xd2b23a, 1.15, 'djemso'], 'THE INQUISITOR': [0xa01a22, 1.18], 'THE SEVENTH BLADE': [0xa01a22, 1.15], 'THE WARDEN': [0x8a2a30, 1.12, 'djemso'],
+    'THE GRAND INQUISITOR': [0x8a1a22, 1.22, 'djemso'], 'THE ECHO': [0x6a4ad2, 1.1, 'djemso'], 'strike:THE WARDEN': [0x8a2a1a, 1.2] };
+  const WHO = q.get('who') ? q.get('who').split(',') : CAST_IDS.filter(id => id !== 'THE ACROBAT');
+  const NO = q.get('nolook') === '1';
+  for (const id of WHO){
+    const [tint, sc, form] = OLD[id] || [0xa01a22, 1];
+    const g = buildEnemyMesh(ENEMY_TYPES.acolyte, NO ? {} : { look: id });
+    if (NO) g.userData.bodyMat.color.lerp(new THREE.Color(tint), 0.5);
+    if (form && g.userData.bladeGlow && (NO || !g.userData.look || g.userData.look.side === 'jedi')) g.userData.bladeGlow.material.color.setHex(STANCES[form].blade);
+    g.scale.multiplyScalar(sc);
+    if (q.get('talk')) g.userData.talk = true;
+    pose(g, false);
+    figs.push({ g, label: (id.includes(':') ? id.split(':')[0] + ' · ' : '') + id.replace(/^[^:]*:/, '').replace('THE ', ''), w: 1.6 });
+  }
+  if (q.get('acolytes') !== '0') ACOLYTES.forEach((_, i) => {
+    const g = buildEnemyMesh(ENEMY_TYPES.acolyte, NO ? {} : { face: i });
+    pose(g, false);
+    figs.push({ g, label: 'acolyte ' + (i + 1), w: 1.4 });
+  });
 } else {
   const ONLY = q.get('only');   // &only=grunt,brute — a subset, for close-ups
   for (const [name, t] of Object.entries(ENEMY_TYPES)){
@@ -108,7 +133,7 @@ function placeLabels(){
 }
 const btn = (on, label, params) => `<button class="${on ? 'on' : ''}" onclick="location.search='${new URLSearchParams({ set: SET, pose: POSE, elite: ELITE, view: VIEW, ...params })}'">${label}</button>`;
 document.getElementById('bar').innerHTML =
-  btn(SET === 'troops', 'Troops', { set: 'troops' }) + btn(SET === 'bosses', 'Bosses', { set: 'bosses' }) + btn(SET === 'squad', 'Squad', { set: 'squad' })
+  btn(SET === 'troops', 'Troops', { set: 'troops' }) + btn(SET === 'bosses', 'Bosses', { set: 'bosses' }) + btn(SET === 'squad', 'Squad', { set: 'squad' }) + btn(SET === 'saber', 'Saber cast', { set: 'saber' })
   + btn(POSE === 'idle', 'Idle', { pose: 'idle' }) + btn(POSE === 'windup', 'Windup', { pose: 'windup' })
   + ['', ...Object.keys(ELITES)].map(n => btn(n === ELITE, n || 'no elite', { elite: n })).join('')
   + btn(false, VIEW === 'back' ? 'Front view' : 'Back view', { view: VIEW === 'back' ? 'front' : 'back' });

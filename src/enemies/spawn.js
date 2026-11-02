@@ -45,15 +45,16 @@ function maybeTip(typeName){
   if (tip && G.mode === 'play' && !G.training) foeTipToast(tip[0], tip[1]);   // in training the teacher explains it
 }
 let nextNid = 0;   // every foe's number, the same on both screens in co-op (net/foes.js)
-export function spawnEnemy(typeName, pos){
+// opts.look: a saber wielder's look (data/saber-cast.js castId: a named duel foe), sent on to co-op guests (net/foes.js)
+export function spawnEnemy(typeName, pos, opts = {}){
   const t = ENEMY_TYPES[typeName];
   const nid = ++nextNid;
-  const g = buildEnemyMesh(foeType(typeName), { seed: nid });   // (dressed as the mission has it: enemies/look.js) (its marking and face follow its number: the same on both co-op screens)
+  const g = buildEnemyMesh(foeType(typeName), { seed: nid, look: opts.look });   // (dressed as the mission has it: enemies/look.js) (its marking and face follow its number: the same on both co-op screens)
   g.position.copy(pos);
   scene.add(g);
   const hp = Math.round(t.hp * enemyHpScale());
   const e = {
-    nid, type: typeName, t, group: g, hp, maxHp: hp, state: 'spawn', st: 0.5,
+    nid, type: typeName, t, group: g, hp, maxHp: hp, look: g.userData.look && opts.look || '', state: 'spawn', st: 0.5,
     vel: V3(0,0,0), flash: 0, hitCd: 0, dead: false,
     converted: false, convT: 0, struck: false, stumble: 0, burn: 0, flinch: 0,
     spd: t.speed * rand(0.88, 1.14),   // per-unit variance so crowds move organically
@@ -66,5 +67,5 @@ export function spawnEnemy(typeName, pos){
   attachHitboxDebug(e);   // ?hitbox draws it
   initDuel(e);   // sword-armed foes fight back: guards, feints, strings (duel.js)
   enemies.push(e);
-  maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run
+  if (!(g.userData.look && g.userData.look.side === 'jedi')) maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run (never 'SITH ACOLYTE' over a Jedi master)
 }

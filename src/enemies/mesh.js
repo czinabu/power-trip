@@ -15,6 +15,8 @@ import { loft, limb, plate, block, shard, chamfer, ngon, gripHand, KEEL, SHIELD,
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bakeDesign, instantiate } from './kit.js';
 import { rounded } from '../player/model/skin.js';
+import { buildSaberist, lookPalette } from './saberist.js';
+import { ACOLYTES, lookById, lookBlade } from '../data/saber-cast.js';
 import { face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling } from './detail.js';
 
 const PI = Math.PI;
@@ -114,15 +116,29 @@ export function pauldrons(k, w, key = 'armor', size = 1){
    grip group (radius o.gr: a hilt, a haft); 'open' → the cuff only, the hand placed by holdArm on what it holds.
    o.elbow: name the elbow as a bone (a hold the game re-aims each frame: enemies/holds.js) */
 export function arm(k, parent, w, o = {}){
-  k.add(limb(0.4, [[-0.06,0.15*w,0.15],[0.1,0.15*w,0.15],[1,0.115*w,0.115]], SOFT_LIMB), 'suit', parent);
-  const el = o.elbow ? k.bone(o.elbow, parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]) : k.group(parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
-  k.add(loft([{ y:-0.05, w:0.125*w, d:0.13 }, { y:0.0, w:0.135*w, d:0.145 }, { y:0.05, w:0.12*w, d:0.13 }], SOFT_LIMB), 'armor2', el, [0, 0, 0.01]);   // elbow cop
-  k.add(limb(0.3, [[0,0.13*w,0.13],[0.6,0.135*w,0.13],[1,0.105*w,0.1]], KEEL), o.fore || 'armor', el, [0, -0.02, 0.005]);
+  /* a robed saber wielder's arms are sleeves (k.sleeve, enemies/saberist.js): one soft tube from the shoulder that runs
+     on past the elbow, a round elbow that fills the joint at any bend, and a forearm sleeve that bells at the wrist
+     (k.bell). Everyone else: an upper arm, an elbow cop and a forearm plate */
+  let el;
+  if (k.sleeve){
+    k.add(loft([{ y:-UPPER - 0.02, w:0.14*w, d:0.14 }, { y:-0.3, w:0.15*w, d:0.15 }, { y:-0.08, w:0.165*w, d:0.165 }, { y:0.06, w:0.17*w, d:0.17 }], ngon(12)), k.sleeve, parent);
+    el = o.elbow ? k.bone(o.elbow, parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]) : k.group(parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
+    k.add(loft([{ y:-0.075, w:0.1*w, d:0.1 }, { y:-0.05, w:0.135*w, d:0.135 }, { y:0, w:0.148*w, d:0.148 }, { y:0.05, w:0.135*w, d:0.135 }, { y:0.075, w:0.1*w, d:0.1 }], ngon(12)), k.sleeve, el);
+    const bell = k.bell ? 1 : 0;
+    k.add(loft([{ y:-0.35, w:(0.15 + 0.06*bell)*w, d:0.15 + 0.055*bell }, { y:-0.28, w:(0.145 + 0.035*bell)*w, d:0.145 + 0.035*bell },
+                { y:-0.14, w:(0.14 + 0.01*bell)*w, d:0.14 + 0.01*bell }, { y:0.02, w:0.14*w, d:0.14 }], ngon(12)), o.fore || 'armor', el);
+  } else {
+    k.add(limb(0.4, [[-0.06,0.15*w,0.15],[0.1,0.15*w,0.15],[1,0.115*w,0.115]], SOFT_LIMB), 'suit', parent);
+    el = o.elbow ? k.bone(o.elbow, parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]) : k.group(parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
+    k.add(loft([{ y:-0.05, w:0.125*w, d:0.13 }, { y:0.0, w:0.135*w, d:0.145 }, { y:0.05, w:0.12*w, d:0.13 }], SOFT_LIMB), 'armor2', el, [0, 0, 0.01]);   // elbow cop
+    k.add(limb(0.3, [[0,0.13*w,0.13],[0.6,0.135*w,0.13],[1,0.105*w,0.1]], KEEL), o.fore || 'armor', el, [0, -0.02, 0.005]);
+  }
   // the glove's cuff, then the hand: a rounded fist, or fingers closed round what it holds
+  const hand = k.sleeve ? 'glove' : 'suit';
   k.add(loft([{ y:0.06, w:0.115*w, d:0.115 }, { y:0.035, w:0.12*w, d:0.12 }], SOFT_LIMB), 'black', el, [0, -0.38, 0.02], [0,0,0], { outline: false });
-  if (!o.hand) k.add(loft([{ y:-0.075, w:0.1*w, d:0.11 }, { y:-0.02, w:0.122*w, d:0.13 }, { y:0.04, w:0.112*w, d:0.12 }], SOFT_LIMB), 'suit', el, [0, -0.38, 0.02]);
+  if (!o.hand) k.add(loft([{ y:-0.075, w:0.1*w, d:0.11 }, { y:-0.02, w:0.122*w, d:0.13 }, { y:0.04, w:0.112*w, d:0.12 }], SOFT_LIMB), hand, el, [0, -0.38, 0.02]);
   const grip = k.group(el, [0, -0.38, 0.03]);
-  if (o.hand === 'grip') k.add(gripHand({ rx: o.gr || 0.025, rz: o.gr || 0.025 }), 'suit', grip, [0, -0.01, 0], o.gripRot || [0, 0, 0], { outline: false });   // gripRot: a haft that leaves the fist at an angle (the pike)
+  if (o.hand === 'grip') k.add(gripHand({ rx: o.gr || 0.025, rz: o.gr || 0.025 }), hand, grip, [0, -0.01, 0], o.gripRot || [0, 0, 0], { outline: false });   // gripRot: a haft that leaves the fist at an angle (the pike)
   return grip;
 }
 // a static arm from the left (-x) or right (+x) shoulder; rot = [forward lift (negative = forward), twist, outward splay
@@ -347,7 +363,7 @@ const BARE = { storm: 'storm', grenadier: 'storm', clone: 'clone' };   // model 
 const IMPERIAL = new Set(['storm', 'purge', 'heavy', 'jet', 'riot', 'grenadier', 'lancer', 'scout', 'officer']);   // wear the roundel
 export const variantsOf = t => MARKED.has(t.model) ? (BARE[t.model] ? [0, 1, 2, 3, 4] : [0, 1, 2, 3]) : [0];
 // the faces a variant can wear (an index into detail.js FACES; clones share one), -1 for none
-export const facesOf = (t, v) => t.model === 'clone' ? (v === 4 ? [0] : [-1]) : (v === 4 || t.model === 'officer') ? FACES.map((_, i) => i) : [-1];
+export const facesOf = (t, v) => t.model === 'acolyte' ? ACOLYTES.map((_, i) => i) : t.model === 'clone' ? (v === 4 ? [0] : [-1]) : (v === 4 || t.model === 'officer') ? FACES.map((_, i) => i) : [-1];
 function pickVariant(t, rnd){
   if (!MARKED.has(t.model)) return 0;
   if (BARE[t.model] && rnd() < 0.12) return 4;
@@ -372,7 +388,7 @@ function cheekMarks(k, h){
 /* ---------------- weapons ---------------- */
 
 // melee weapon arm: pivots at the +x shoulder, carried at the ready (rotation.x = -0.35)
-function weaponArm(k, t, w){
+export function weaponArm(k, t, w){
   const a = k.slot('weaponArm', k.root, [0.42*w, 1.74, 0.04], [-0.35, 0, 0]);
   const GR = { sword: 0.024, saber: 0.028, pistol: 0.026, pike: 0.026 };   // the handle each fist closes round (a maul's haft: 0.034)
   const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' ? [-1.1, 0, 0] : null }) });
@@ -499,16 +515,10 @@ export const MODELS = {
     for (const s of [-0.3, 0.3]) k.add(block(0.08, 0.08, 0.08, 0.35), 'leather', staff, [0, s, 0], [0,0,0], { outline: false });
     helmet(k, 'magna', t, 1.97);
   },
-  // SITH ACOLYTE — a hooded saber duellist in a dark tunic and long cloak (acolyte)
+  // SITH ACOLYTE — a saber duellist in Sith robes, its own face under the hood or bare (enemies/saberist.js). A named
+  // duel foe (data/saber-cast.js CAST) is built on this same body in its own look: Ilsa, the Inquisitor, the masters
   acolyte(k, t){
-    const w = 0.96;
-    legs(k, w); hips(k, w); k = upper(k); torso(k, w, { pack: false });
-    cape(k, [[-0.32,0],[0.32,0],[0.4,-1.45],[0.14,-1.6],[-0.14,-1.6],[-0.4,-1.45]], [0, 1.86, -0.22], 0.08);
-    k.add(loft([{ y:1.6, w:0.64, d:0.44 }, { y:1.82, w:0.5, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
-    k.add(plate([[-0.22,0],[0.22,0],[0.26,-0.62],[-0.26,-0.62]], 0.014, 0.004), 'cloth', k.root, [0, 1.12, 0.17], [-0.05, 0, 0], { outline: false });   // tabard
-    sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5 });
-    weaponArm(k, t, w);
-    helmet(k, 'purge', t);
+    buildSaberist(k, t, k.look, { legBones, upper, cape, sideArm, weaponArm, NECK });   // (every acolyte has a look: buildEnemyMesh)
   },
   // JET TROOPER — rocket pack, T-visor, carbine (flyer)
   jet(k, t){
@@ -671,13 +681,24 @@ const HOLDS = {
    face, so a bare-headed trooper is bare-headed for both players */
 const seeded = n => { let x = (n * 2654435761) >>> 0; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; }; };
 export function buildEnemyMesh(t, o = {}){
+  if (o.look == null && t.look) o = { ...o, look: t.look };   // (a squadmate's def can name its look: allies/squad.js)
   const rnd = o.seed != null ? seeded(o.seed + 1) : Math.random;
   const v = o.variant ?? pickVariant(t, rnd);
   const faces = facesOf(t, v), fi = o.face ?? faces[Math.floor(rnd() * faces.length)];
-  const F = fi < 0 ? null : t.model === 'clone' ? CLONE_FACE : FACES[fi % FACES.length];
-  const id = t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + ':v' + v + (F ? ':f' + fi : '');
+  /* THE SABER CAST (data/saber-cast.js): a named look (o.look: its id, as data/saber-cast.js castId gives it) or, for
+     an acolyte, one of the rank and file's faces (the face index) */
+  const look = t.model === 'acolyte' ? (o.look && lookById(o.look)) || ACOLYTES[(fi < 0 ? 0 : fi) % ACOLYTES.length] : null;
+  const F = look || fi < 0 ? null : t.model === 'clone' ? CLONE_FACE : FACES[fi % FACES.length];
+  const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
+    : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + ':v' + v + (F ? ':f' + fi : '');
+  const pal = look ? lookPalette(look) : null;
+  if (pal && !(o.look && lookById(o.look))){   // the rank and file keep their type's colours (deeper: black robes, not grey plate), unless their face's look names its own
+    const own = look.colors || {};
+    if (own.tunic == null) pal.armor = { ...pal.armor, c: shade(t.color, 0.6) };
+    if (own.cloak == null) pal.cloth = t.cloth ?? pal.cloth;
+  }
   const baked = bakeDesign(id, k => {
-    k.v = v; k.face = F; k.badge = IMPERIAL.has(t.model);
+    k.v = v; k.face = F; k.badge = IMPERIAL.has(t.model); k.look = look;
     if (v === 4 && BARE[t.model]){
       // the helmet it took off, hung on its belt: the same helmet design without its lit lenses
       k.bare = true;
@@ -687,12 +708,14 @@ export function buildEnemyMesh(t, o = {}){
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
     ...(F ? { skin: F.skin, hair: F.hair } : {}),
+    ...(pal || {}),
   });
   // the unit's group carries its place, heading and the AI's poses; inside it `vis` takes the gait's bob, sway and
-  // lean (enemies/gait.js), so the two never fight over one transform. No two of a squad are quite alike: each is a
+  // lean (enemies/gait.js), so the two never fight over one transform. (A saber wielder's robes take no chips or
+  // grime: wear below 0, enemies/kit.js) No two of a squad are quite alike: each is a
   // touch taller or shorter (vis only: hitboxes keep the type's size), its armour a shade off and worn its own way
-  const vis = instantiate(baked, { seed: Math.random() * 97, wear: o.wear ?? 0.1 + Math.random() * 0.45 }), g = new THREE.Group();
-  vis.scale.setScalar(0.96 + Math.random() * 0.08);
+  const vis = instantiate(baked, { seed: Math.random() * 97, wear: o.wear ?? (look ? -2 : 0.1 + Math.random() * 0.45) }), g = new THREE.Group();
+  vis.scale.setScalar((0.96 + Math.random() * 0.08) * (look ? (look.build === 'f' ? 0.95 : 1) * (look.height || 1) : 1));
   const tone = 0.93 + Math.random() * 0.1;
   vis.userData.bodyMat.color.multiplyScalar(tone);
   if (vis.userData.plateMat) vis.userData.plateMat.color.multiplyScalar(tone);
@@ -703,6 +726,8 @@ export function buildEnemyMesh(t, o = {}){
   const u = g.userData = vis.userData;
   u.armSwing = ARM_SWING[t.model] || null;
   u.model = t.model;   // its stance (enemies/upper.js STANCE)
+  u.look = look;       // a saber wielder's look (data/saber-cast.js): its blade colour, its side
+  if (look && u.bladeGlow) u.bladeGlow.material.color.setHex(lookBlade(look));
   if (u.lids) u.lids.scale.y = LID_OPEN;   // a face's eyes rest open (enemies/upper.js faceLife blinks them)
   u.holds = HOLDS[t.model] || null;
   u.vis = vis;

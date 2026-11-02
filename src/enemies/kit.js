@@ -37,6 +37,18 @@ export const NPC_MATERIALS = {
   lip:     { c: 0x6a4434, r: 0.7 },
   cloth:   { c: 0x4a3f33, r: 0.95, side: THREE.DoubleSide },
   mark:    { c: 0xc8601c, r: 0.6, m: 0.3 },   // rank and field paint (enemies/mesh.js markings)
+  // a face's extras (enemies/detail.js face: the saber cast)
+  socket:  { c: 0x6a4c3a, r: 0.85 },          // the soft shade round a fine face's eyes (skin, darker)
+  iris:    { c: 0x3a2a1c, r: 0.4 },
+  beard:   { c: 0x2a2018, r: 0.9 },
+  stubble: { c: 0x2a2018, r: 0.9, o: 0.45 },  // see-through, over the jaw
+  tattoo:  { c: 0x1a1414, r: 0.8 },
+  scar:    { c: 0xd8b4a0, r: 0.7 },
+  horn:    { c: 0xd8c8a8, r: 0.55 },
+  trim:    { c: 0x8e1a20, r: 0.7, m: 0.1 },   // a robe's sash and piping (enemies/saberist.js)
+  glove:   { c: 0x0e0d10, r: 0.7 },
+  boot:    { c: 0x1a120c, r: 0.65 },
+  steel:   { c: 0x4a4c50, r: 0.7, m: 0.2 },   // a Jedi general's field plate: dull, not polished
 };
 
 const _inv = new THREE.Matrix4();
@@ -48,7 +60,8 @@ function makeBuilder(colors){
   const S = style();
   const root = new THREE.Group(); root.userData.slot = 'body';
   const mat = key => {
-    const d = { ...NPC_MATERIALS[key] || {}, ...(colors[key] != null ? { c: colors[key] } : {}) };
+    const o = colors[key];   // a colour, or { c, r, m } (cloth robes on the 'armor' key: enemies/saberist.js)
+    const d = { ...NPC_MATERIALS[key] || {}, ...(o != null ? (typeof o === 'object' ? o : { c: o }) : {}) };
     return S.mat('npc:' + key, d);
   };
   // methods default their parent to this.root, so k.within(group) gives a builder that dresses that group instead

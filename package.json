@@ -17,6 +17,7 @@
     "smoke:coop-mission": "node tools/smoke/coop-mission.mjs",
     "smoke:cutscenes": "node tools/smoke/cutscenes.mjs",
     "smoke:training": "node tools/smoke/training.mjs",
+    "smoke:saber-cast": "node tools/smoke/saber-cast.mjs",
     "perf": "node tools/smoke/perf.mjs",
     "smoke:coop-four": "node tools/smoke/coop-four.mjs",
     "perf:hitch": "node tools/smoke/hitch.mjs",

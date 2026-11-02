@@ -136,11 +136,16 @@ export function closeCard(quiet){
   releaseUnlockBanners();
 }
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
-// the act's chapters: ticked, the one you're on, and what's ahead
+// the act's chapters: ticked, the one you're on, and what's ahead. Folded to one line (a pip per chapter, and what's next);
+// the full list opens under it
 function roster(act, pos){
-  return '<ol class="cc-roster">' + chapters().map((c, i) => c.act !== act ? '' :
+  const list = chapters(), mine = list.map((c, i) => [c, i]).filter(([c]) => c.act === act), next = mine.find(([, i]) => i > pos);
+  const pips = mine.map(([, i]) => '<i class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"></i>').join('');
+  return '<details class="cc-more cc-chapters"><summary><span class="pips">' + pips + '</span>' +
+    (next ? 'NEXT · ' + esc(chapterTitle(next[0])) : 'LAST CHAPTER OF THE ACT') + '</summary>' +
+    '<ol class="cc-roster">' + mine.map(([c, i]) =>
     '<li class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"><span class="n">' + (c.prologue ? '·' : chapterNo(i).replace('CHAPTER ', '')) + '</span>' + esc(chapterTitle(c)) +
-    (c.trial ? '<span class="tag">TRIAL</span>' : c.prologue ? '<span class="tag">PROLOGUE</span>' : '') + '<span class="w">' + esc(c.world) + '</span></li>').join('') + '</ol>';
+    (c.trial ? '<span class="tag">TRIAL</span>' : c.prologue ? '<span class="tag">PROLOGUE</span>' : '') + '<span class="w">' + esc(c.world) + '</span></li>').join('') + '</ol></details>';
 }
 function head(c, pos){
   return '<div class="cc-act">ACT ' + ROMAN[c.act] + ' · ' + esc(actTitle(c.act)) + '</div>' +
@@ -157,7 +162,7 @@ function goals(c){
   const list = def ? def.objectives.map(o => said(o.title) || said(o.task)).filter(Boolean)
     : c.waves ? ['HOLD OUT FOR ' + (c.waves[1] - c.waves[0]) + ' WAVES'] : [];
   if (!list.length) return '';
-  return '<div class="cc-goals"><div class="cc-k">OBJECTIVES</div><ol>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
+  return '<div class="cc-goals"><div class="cc-k">' + (list.length > 1 ? 'OBJECTIVES' : 'OBJECTIVE') + '</div><ol>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
 }
 // THE STORY, kept light: one line of it in view (keep: which), the rest of the voice's words and the scene between chapters
 // (a chapter's `talk`: where, then who says what) folded under "MORE STORY" for whoever wants it. A chapter's talk that

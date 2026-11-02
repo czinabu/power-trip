@@ -540,20 +540,28 @@ body.pad .bs-aim{display:block}
 #chapcard .cc-brief{width:min(760px,100%)}
 #chapcard .cc-goals{margin:22px 0 0}
 #chapcard .cc-k{font:600 11px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink-dim);margin-bottom:8px}
-#chapcard .cc-goals ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;counter-reset:g}
-#chapcard .cc-goals li{counter-increment:g;display:flex;align-items:center;gap:9px;padding:8px 12px;font:700 15px/1.1 var(--font-ui);letter-spacing:1.4px;color:var(--ink);
-  border:1px solid color-mix(in srgb,var(--cc) 55%,transparent);border-radius:var(--r);background:color-mix(in srgb,var(--cc) 10%,rgba(4,8,16,.6))}
-#chapcard .cc-goals li::before{content:counter(g);font-size:13px;color:var(--cc)}
-#chapcard .cc-goals ol:has(li:only-child) li::before{content:'▸'}
+#chapcard .cc-goals ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 0;counter-reset:g}
+#chapcard .cc-goals li{counter-increment:g;display:flex;align-items:baseline;gap:8px;font:700 19px/1.25 var(--font-ui);letter-spacing:1.4px;color:var(--ink)}
+#chapcard .cc-goals li::before{content:counter(g);font-size:14px;color:var(--cc)}
+#chapcard .cc-goals li:not(:last-child){margin-right:10px}
+#chapcard .cc-goals li:not(:last-child)::after{content:'›';margin-left:10px;color:var(--ink-faint)}
+#chapcard .cc-goals ol:has(li:only-child) li::before{content:none}
 #chapcard .cc-scene{margin:18px 0 0;padding:12px 18px 14px;border-left:2px solid var(--cc);background:var(--panel)}
 #chapcard .cc-scene .cc-who{font-size:12px;letter-spacing:2.2px;color:var(--cc);margin-bottom:2px}
 #chapcard .cc-scene p.nar{margin:6px 0 0;font:500 20px/1.4 var(--font-body);color:var(--ink)}
 #chapcard .cc-more{margin-top:8px}
-#chapcard .cc-more summary{cursor:pointer;list-style:none;display:inline-block;font:600 11px/1 var(--font-ui);letter-spacing:2.2px;color:var(--ink-dim);padding:6px 0}
+#chapcard .cc-more summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft);padding:7px 0}
 #chapcard .cc-more summary::-webkit-details-marker{display:none}
 #chapcard .cc-more summary::before{content:'▸ '}
 #chapcard .cc-more[open] summary::before{content:'▾ '}
 #chapcard .cc-more summary:hover{color:var(--ink)}
+#chapcard .cc-chapters{margin-top:16px}
+#chapcard .cc-chapters summary{font-size:12px;color:var(--ink-dim)}
+#chapcard .cc-chapters .pips{display:inline-flex;gap:4px;margin-right:4px}
+#chapcard .cc-chapters .pips i{width:18px;height:4px;border-radius:2px;background:var(--edge-mid)}
+#chapcard .cc-chapters .pips i.done{background:var(--xp)}
+#chapcard .cc-chapters .pips i.now{background:var(--cc)}
+#chapcard .cc-chapters .cc-roster{margin-top:6px}
 #chapcard .cc-more p.nar{font-size:17px;color:var(--ink-soft)}
 #chapcard .cc-talk{margin:12px 0 0;padding:10px 0 0;border-top:1px solid var(--edge)}
 #chapcard .cc-where{font-size:11px;letter-spacing:2.4px;color:var(--ink-faint)}
@@ -564,7 +572,8 @@ body.pad .bs-aim{display:block}
 /* the chapter you're on already names its place under the title */
 #chapcard .cc-brief .cc-roster li.now .w{display:none}
 @media (max-width:640px){
-  #chapcard .cc-goals li{font-size:15px;padding:8px 12px}
+  #chapcard .cc-goals li{font-size:16px}
+  #chapcard .cc-goals li:not(:last-child)::after{content:none}
   #chapcard .cc-scene p.nar{font-size:18px}
   #chapcard .cc-talk p{display:block}
   #chapcard .cc-talk p b{display:block;text-align:left;margin-bottom:2px}

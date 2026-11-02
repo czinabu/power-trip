@@ -13,20 +13,23 @@
      bare   helmet OFF (clipped to the belt) and a face: skin, hair, style, beard (enemies/detail.js face)
      hat    on a bare head: 'goggles' pushed up on the brow, or a cloth 'band'
      cap    the officer's peaked cap (false: bare-headed, hair combed back)
+     hv     the helm's pattern (enemies/mesh.js HELM_VARIANTS: fins, a rebreather, a sun visor, a desert wrap, horns,
+            a face cage, a face shield, a hood, macrobinoculars…)
+     kit    armour kit (enemies/mesh.js armourKit: 1 a shoulder cloak · 2 a bedroll and chest pouches · 3 a kama)
    }
 
    Per model below: n, the pool size; fem, the share of women; bare, the share with the helmet off (only where it fits
    the troops: purge troopers, lancers and jet troopers keep their helmets on); carry, the helmet hung on the belt;
    hats, what a bare head may wear. Clones (the squad, the turned company) all wear one face, and keep theirs. */
 export const FOE_LOOKS = {
-  storm:     { n: 10, fem: 0.4, bare: 0.3, carry: 'storm' },                          // blaster trooper
-  purge:     { n: 8,  fem: 0.4 },                                                     // grunt
-  heavy:     { n: 8,  fem: 0.25, bare: 0.25, carry: 'heavy', rough: true },          // brute
-  jet:       { n: 8,  fem: 0.4 },                                                     // flyer
-  riot:      { n: 8,  fem: 0.4, bare: 0.25, carry: 'riot' },                          // phalanx
-  scout:     { n: 8,  fem: 0.4, bare: 0.25, carry: 'scout', hats: ['goggles'] },      // sniper
-  grenadier: { n: 10, fem: 0.4, bare: 0.3, carry: 'storm', hats: ['goggles', 'band', null] },
-  lancer:    { n: 8,  fem: 0.4 },
+  storm:     { n: 10, fem: 0.4, bare: 0.3, carry: 'storm', helms: [0, 1, 2], kits: [0, 1, 2, 3] },        // blaster trooper
+  purge:     { n: 8,  fem: 0.4, helms: [0, 1, 2], kits: [0, 2, 3] },                                     // grunt
+  heavy:     { n: 8,  fem: 0.25, bare: 0.25, carry: 'heavy', rough: true, helms: [0, 1, 2], kits: [0, 1, 2] },   // brute
+  jet:       { n: 8,  fem: 0.4, helms: [0, 1, 2], kits: [0, 3] },                                        // flyer
+  riot:      { n: 8,  fem: 0.4, bare: 0.25, carry: 'riot', helms: [0, 1, 2], kits: [0, 1, 2] },          // phalanx
+  scout:     { n: 8,  fem: 0.4, bare: 0.25, carry: 'scout', hats: ['goggles'], helms: [0, 1, 2], kits: [0, 2] },   // sniper
+  grenadier: { n: 10, fem: 0.4, bare: 0.3, carry: 'storm', hats: ['goggles', 'band', null], helms: [0, 1, 2], kits: [0, 1, 2, 3] },
+  lancer:    { n: 8,  fem: 0.4, helms: [0, 2], kits: [0, 3] },
   officer:   { n: 10, fem: 0.45, face: true, cap: 0.7 },                              // always a face
   b1:        { n: 3,  droid: true },                                                  // bomber
   magna:     { n: 3,  droid: true },                                                  // duelist
@@ -61,6 +64,9 @@ export function lookPool(model){
     // helmeted: the women spread through the pool; bare-headed: every other face is a woman's, so both show unmasked
     const fem = faced && !P.face ? nb++ % 2 === 1 : women.has(i), L = { v: 0, fem };
     if (!faced) L.v = [0, 1, 0, 2, 3][mark++ % 5];   // helmeted: the markings, plain most often
+    // the helm's pattern (it's also the one on the belt of a bare head) and the armour kit, mixed so few pairs repeat
+    if (P.helms) L.hv = P.helms[i % P.helms.length];
+    if (P.kits) L.kit = P.kits[(i + Math.floor(i / (P.helms || [0]).length)) % P.kits.length];
     if (faced){
       const skin = SKINS[(i * 3 + Math.floor(r() * 3)) % SKINS.length];
       const old = P.rough && r() < 0.4;
@@ -82,6 +88,6 @@ export function lookPool(model){
 export function lookKey(L){
   if (!L) return '';
   const F = L.face;
-  return ':v' + (L.v || 0) + (L.dv ? 'd' + L.dv : '') + (L.fem ? 'f' : '') + (L.bare ? 'b' : '') + (L.cap === false ? 'n' : '') + (L.hat ? ':' + L.hat : '')
+  return ':v' + (L.v || 0) + (L.dv ? 'd' + L.dv : '') + (L.hv ? 'h' + L.hv : '') + (L.kit ? 'k' + L.kit : '') + (L.fem ? 'f' : '') + (L.bare ? 'b' : '') + (L.cap === false ? 'n' : '') + (L.hat ? ':' + L.hat : '')
     + (F ? ':' + [F.skin.toString(16), F.hair.toString(16), F.style, F.beard || '', F.scar ? 's' : ''].join('.') : '');
 }

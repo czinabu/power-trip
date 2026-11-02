@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Darth Vexis: build, spawn, damage, stagger, AI, shockwave rings.
 
-import { bossForm, updateFormTag } from '../enemies/foeform.js';
+import { bossForm, updateFormTag, updateFormSwitch } from '../enemies/foeform.js';
 import { blastAllies, ringAllies } from '../allies/squad.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
@@ -203,13 +203,14 @@ function bossHero(b){
   return b.hero;
 }
 // his form and rank over his head while you're near him (enemies/foeform.js)
-function bossTag(){
+function bossTag(dt){
   const b = shared.boss, p = playerPos(), g = b.group;
+  if (b.state !== 'intro' && b.state !== 'dying' && b.hp > 0) updateFormSwitch(b, dt);   // he changes form on you too
   updateFormTag(b, b.hp > 0 && b.state !== 'dying' && b.state !== 'intro' && Math.hypot(p.x - g.position.x, p.z - g.position.z) < 16, 3.4);
 }
 export function updateBoss(dt){
   if (!shared.boss) return;
-  bossTag();
+  bossTag(dt);
   if (shared.boss.net){ updateBossPuppet(dt); return; }
   const hero = bossHero(shared.boss), remote = !hero.local;
   const g = shared.boss.group, pp = hero.pos;

@@ -15,6 +15,7 @@ import { G, shared, enemies } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { makeBeacon, removeMarker, pulseMarker, heroIn } from './objectives.js';
 import { comms, commsBusy } from './story.js';
+import { stageHolds } from '../ui/hud-stage.js';
 import { onSetFigures, meetAt } from './onset.js';
 import { CALM, CALM_CFG } from '../data/calm.js';
 import { chapterOrder, storyHero, storyVoice } from '../data/campaign.js';
@@ -146,7 +147,7 @@ function updateGuest(dt){
     const p = playerPos();
     if (Math.hypot(p.x - A.at.x, p.z - A.at.z) < CALM_CFG.reach){ A.reached = true; A.sent = true; if (connected()) send({ t: 'afr' }); }
   }
-  if (A.then && !A.on && (A.seen || (A.wait -= dt) <= 0)){ const f = A.then; A.then = null; f(); }   // (no calm came, or it ended)
+  if (A.then && !A.on && !stageHolds() && (A.seen || (A.wait -= dt) <= 0)){ const f = A.then; A.then = null; f(); }   // (no calm came, or it ended)
   if (!G.coopGuest && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); A.guest = false; }   // (left the host's run)
 }
 // the host: a guest reached the rally point (it counts as there once the exchange has had its say)

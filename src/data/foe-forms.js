@@ -23,7 +23,8 @@ export const FORM_FAMILY = {
 export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
 
 /* WHAT A COUNTER DOES — the edge goes to whoever's form beats the other's. `win`: your form counters its form; `lose`:
-   its form counters yours. Kicks, Force powers and the Mando's kit ignore it.
+   its form counters yours, and only while a form in your loadout could counter it (with no answer to hand, it's even).
+   Kicks, Force powers and the Mando's kit ignore it.
      seal     the chance its sealed guard (a cut inside the glowing crescent: data/duel.js decide) still holds
      block    × its odds of turning a cut off its guarded line
      parry    × its odds of reading a mash and throwing your blade off
@@ -119,9 +120,10 @@ export function foeProfile(form, rank){
    A foe type's `pool` picks its form by how deep the run is (waves cleared, as data/duel.js eliteRamp counts them):
    the first acolytes all fight in Shii-Cho, the form every initiate starts on; later waves bring the other forms in, so
    switching form starts to matter once you have more than one. The sandbox draws from the whole pool. An ELITE
-   (enemies/elites.js) fights one rank higher. */
+   (enemies/elites.js) fights one rank higher. A type's `ranks` raises its rank the same way as the run deepens. */
 export const FOE_FORMS = {
-  acolyte: { rank: 'adept', pool: [
+  // `ranks`: the rank by depth (as the pool): adepts early, knights from wave 8 (an elite still one higher)
+  acolyte: { rank: 'adept', ranks: [{ from: 0, rank: 'adept' }, { from: 8, rank: 'knight' }], pool: [
     { from: 0, forms: ['shiicho'] },
     { from: 4, forms: ['shiicho', 'makashi', 'ataru', 'soresu'] },
     { from: 8, forms: ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo'] },
@@ -144,3 +146,17 @@ export const NAMED_FORMS = {
 };
 // the bosses: Darth Vexis fights in Juyo as a master (a guard form outlasts him); the Mandalorian boss has no form
 export const BOSS_FORM = { sith: { form: 'juyo', rank: 'master' } };
+
+/* MASTERS CHANGE FORM — the fight becomes a real back and forth: sit in a form that counters a master's for `after` s and
+   it changes to one of its forms that counters yours (at most once every `cd` s). It twirls, calls the change out, and
+   now you have to answer again. Knights and below hold one form. Who switches, and between which forms:
+     a wave's master (a late elite): its acolyte pool at that depth · the named below: their own repertoire · the boss.
+   A trial's form master and anyone not listed keeps the form it teaches. */
+export const FORM_SWITCH = {
+  after: 6, cd: 15,
+  named: {
+    'THE GRAND INQUISITOR': ['djemso', 'makashi', 'ataru'],
+    'THE ECHO':             ['djemso', 'soresu', 'ataru'],
+  },
+  boss: { sith: ['juyo', 'djemso', 'makashi'] },
+};

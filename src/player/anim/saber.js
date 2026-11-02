@@ -339,6 +339,8 @@ const _pick = { side: 1, cyc: 0, last: {} };
 function pickDeflect(grip, d, form){
   const ps = SWING_STYLE[form] && SWING_STYLE[form].set;
   const set = (ps && DEFLECTS[ps]) || DEFLECTS[grip] || DEFLECTS.regular;   // (the saber staff has its own catches)
+  // a saber lock (enemies/duel.js) always takes the same cover for its kind of bind: the bind looks the same every time
+  if (d.fixed && set[d.fixed]) return set[d.fixed][0];
   // a bolt clearly off to one side is caught on that side; a bolt down the middle alternates forehand / cross-body
   const side = Math.abs(d.side) > 0.25 ? Math.sign(d.side) : -_pick.side;
   _pick.side = side;
@@ -390,13 +392,14 @@ function fitContact(R, P, world, staff = false){
   P.flickBlade.copy(blade).addScaledVector(P.flick, 2.4).normalize();
 }
 
+const staffIn = (held) => !!(held.root && held.root.userData.staff);   // the saber staff is in this hand
 export function deflectPose(dt, R, held, grip, form, d){
   if (!saberPose.live) seed(R, held);
   const G0 = (GUARDS[grip] && (GUARDS[grip][form] || GUARDS[grip].niman)) || GUARDS.regular.niman;
   const bg = G0.block;
   if (!d.pose){
     const p = pickDeflect(grip, d, form);
-    const j = () => (Math.random() - 0.5) * 0.06;
+    const j = () => d.fixed ? 0 : (Math.random() - 0.5) * 0.06;
     const hand = p.hand.clone().add(_t.set(j(), j(), j()));
     const blade = p.blade.clone().add(_t.set(j() * 2, j() * 2, j() * 2)).normalize();
     d.pose = {
@@ -406,17 +409,23 @@ export function deflectPose(dt, R, held, grip, form, d){
       from: { hand: saberPose.hand.clone(), blade: saberPose.blade.clone(), twist: saberPose.twist },
       flick: p.flick.clone(),
     };
-    if (d.contact) fitContact(R, d.pose, d.contact, !!(held.root && held.root.userData.staff));
+    if (d.lock) d.pose.base = { hand: d.pose.hand.clone(), blade: d.pose.blade.clone() };
+    if (d.contact) fitContact(R, d.pose, d.contact, staffIn(held));
+  } else if (d.lock && d.contact){
+    // A SABER LOCK tracks the bind every frame: the cover is fitted afresh (from its own unfitted shape, so it never
+    // drifts) to where the foe's blade is now, so the two blades stay crossed at the one point as the bind sways
+    d.pose.hand.copy(d.pose.base.hand); d.pose.blade.copy(d.pose.base.blade);
+    fitContact(R, d.pose, d.contact, staffIn(held));
   } else if (d.refit){   // a held guard on a duellist's line turned into the real catch: re-aim the held cover at the blade
     d.refit = false;
     d.pose.from.hand.copy(saberPose.hand); d.pose.from.blade.copy(saberPose.blade); d.pose.from.twist = saberPose.twist;
-    if (d.contact) fitContact(R, d.pose, d.contact, !!(held.root && held.root.userData.staff));
+    if (d.contact) fitContact(R, d.pose, d.contact, staffIn(held));
   }
   // an anticipated twirl (jedi/combat.js anticipateDeflect) leads the catch by d.lead seconds: until the bolt lands the
   // blade stays on its guard and wheels toward the bottom; the catch itself runs from the landing on
   const lead = d.lead || 0, tp = Math.max(0, d.t - lead);
   // a HELD catch (jedi/guardline.js: the guard waiting on a duellist's line) gets there fast and stays, no flick
-  const P = d.pose, k = d.hold ? Math.min(0.3, d.t / 0.1 * 0.3) : Math.min(1, tp / (d.dur - lead));
+  const P = d.pose, k = d.hold || d.lock ? Math.min(0.3, d.t / 0.1 * 0.3) : Math.min(1, tp / (d.dur - lead));
   if (k < 0.3){
     const t = easeOut(k / 0.3);
     arcLerp(P.from.hand, P.hand, t, PIVOT, saberPose.hand);

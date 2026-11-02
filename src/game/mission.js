@@ -34,7 +34,8 @@ import { makeEvacuee } from '../world/arenas/refuge.js';
 import { startLevel, queueSpawn, checkUnlocks } from './flow.js';
 import { endRun } from './summary.js';
 import { showBanner, bannerTap } from '../ui/banners.js';
-import { storyBeat, comms } from './story.js';
+import { storyBeat, comms, commsBusy } from './story.js';
+import { stageCard } from '../ui/hud-stage.js';
 import { glanceAt, cancelGlance } from './glance.js';
 import { hooks } from '../net/run.js';
 import { overlay, setOverlayState } from '../ui/menus.js';
@@ -146,8 +147,14 @@ function sayLine(o){
 }
 // a hold's evacuees, as the campaign chapter's story has them (the Jedi's Lothal: the pens' children, not prisoners)
 const evac = (o) => M.chapter && M.chapter.evacuees ? { ...o.evacuees, ...M.chapter.evacuees } : o.evacuees;
-// opts.told: the line was already said over comms as the objective was handed off (handOff), so the panel shows just the task
-function say(o, opts = {}){ showPanel(missionVoice(), opts.told ? '' : sayLine(o), '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7; }
+// opts.told: the line was already said over comms as the objective was handed off (handOff), so the panel shows just the task.
+// One voice at a time (ui/hud-stage.js): with the strip already talking (a chapter's opening lines), the line joins the strip
+// after them rather than sitting in the card under it at the same time
+function say(o, opts = {}){
+  let line = opts.told ? '' : sayLine(o);
+  if (line && commsBusy()){ comms({ who: missionVoice(), say: line }, { remote: true }); line = ''; }   // (each screen queues its own: a co-op guest runs say too)
+  showPanel(missionVoice(), line, '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7;
+}
 function fieldSpawn(type, x, z, opts){
   const s = findClearSpawn(x, z, 1.0);
   spawnEnemy(type, V3(s.x, 0, s.z), opts);
@@ -1102,7 +1109,7 @@ function spawnInquisitor(o, at = o.at, opts = {}){
   // every named duellist fights in a form at a rank (data/foe-forms.js NAMED_FORMS): its mission's form (a trial's FORM MASTER, its blade in that form's colour), else its name's
   if (e.dp && e.ff){
     const N = namedForm(o, o.foe);
-    setFoeForm(e, N.form, N.rank);
+    setFoeForm(e, N.form, N.rank, N.repertoire);
     initDuel(e, { ...N.profile, ...(e.t.weapon === 'saber' ? {} : { deflect: 0 }), ...o.duel });
   } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
   if (o.form && e.dp && STANCES[o.form]){
@@ -1238,14 +1245,18 @@ function missionComplete(){
   const said = (M.chapter && M.chapter.clear) || [], own = said.filter(x => typeof x === 'string'), cast = said.filter(x => x && x.who);
   const by = own.length || !cast.length ? null : cast[cast.length - 1].who;
   const clearText = own.length ? own.join(' ') : by ? cast.filter(x => x.who === by).map(x => x.say).join(' ') : heroKey(def.done);
-  showPanel(by || missionVoice(), clearText, '', M.chapter ? 'Chapter complete' : 'Mission complete', { drill: true, done: true });
+  const card = (staged) => showPanel(by || missionVoice(), clearText, '', M.chapter ? 'Chapter complete' : 'Mission complete', { drill: true, done: true, staged });
   if (!M.guest && hooks.missionDone) hooks.missionDone();   // co-op: the guest's mission ends with it
   if (M.chapter){   // a campaign chapter: no victory screen, the run carries on into the next chapter (game/campaign.js)
-    M.panelT = 6; M.o = null;
+    // the card takes its turn on the HUD stage (ui/hud-stage.js): after a line already on the strip, up for as long as it
+    // takes to read, and the calm's exchange and the upgrade screen wait for it
+    stageCard(() => card(true), hidePanel, clearText);
+    M.panelT = 0; M.o = null;
     showBanner('CHAPTER COMPLETE', M.title, 2.4);
     M.chapter.done();
     return;
   }
+  card(false);
   endTwist(true);   // (the sim stops on the victory screen: a twist still easing off would stay half done behind it)
   endRun(true);
   G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;

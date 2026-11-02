@@ -52,6 +52,7 @@ import { resetReadout, beginWave } from './readout.js';
 import { nextChapter, retryChapter } from './campaign.js';
 import { startCalm } from './aftermath.js';
 import { storyBeat, clearComms, commsBusy } from './story.js';
+import { stageHolds } from '../ui/hud-stage.js';
 import { setFoeLook } from '../enemies/look.js';
 
 /* ============================================================
@@ -458,7 +459,7 @@ export function updateFlow(dt){
   if (holdForPicks && (shared.levelPhase === 'between' || shared.levelPhase === 'travel')) shared.phaseT = Math.max(shared.phaseT, 1.4);   // a beat after the last screen closes
   if (shared.levelPhase === 'between' && shared.phaseT <= 0 && !holdForPicks){
     if (G.endless) startEndlessWave(); else startWave();
-  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !holdForPicks && (!commsBusy() || shared.phaseT < -8)){   // a chapter's close (game/campaign.js): its last line said, then the upgrade screen
+  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !holdForPicks && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said and its card read (ui/hud-stage.js), then the upgrade screen
     shared.levelPhase = 'travel'; shared.phaseT = 1.6;
     openSkillTree();
   } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdForPicks){

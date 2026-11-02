@@ -24,7 +24,9 @@ import { dropToken } from './director.js';
 import { tellFx } from '../fx/tells.js';
 import { heroesHere } from '../player/players.js';
 import { hooks } from '../net/run.js';
-import { matchup, sealOf, updateFormTag } from './foeform.js';
+import { matchup, sealOf, updateFormTag, updateFormSwitch } from './foeform.js';
+import { pushKnock } from '../player/jedi/force.js';
+import { foeBlade } from '../player/jedi/clash.js';
 
 const LINES = ['L', 'R', 'H', 'Lo'];   // the lines a guard covers (Lo: the legs)
 const SIDES = ['L', 'R', 'H'];         // the lines a foe strikes from
@@ -252,6 +254,7 @@ export function updateDuel(e, dt, dist){
     }
   } else if (e.postBar) e.postBar.visible = false;
   // its form and rank, and whether your form counters it (enemies/foeform.js)
+  updateFormSwitch(e, dt);   // a master changes form on you (enemies/foeform.js)
   updateFormTag(e, !e.dead && !e.converted && dist < DUEL.guardRange * 1.6);
 }
 
@@ -763,6 +766,9 @@ export function deflectPlayerBolt(e, b){
    ============================================================ */
 export const LOCK = { foe: null, bal: 0, t: 0, fx: 0, buzz: 0, kind: 'mid', next: 0, tell: 0, surge: 0, met: 0 };
 const lockKind = () => DUEL.lockKinds[LOCK.kind] || DUEL.lockKinds.mid;
+// how far apart you stand in the bind: a blade held out on the arm (not a staff held in the middle) stands a little
+// further off, so its length can cross yours out in front of you instead of reaching through you (not hilt to hilt)
+const lockDist = (e, K) => K.dist + (e && !e.group.userData.staff && K !== DUEL.lockKinds.body ? DUEL.lock.armDist : 0);
 // the kind of bind a clash at `at` makes (no contact point: the height of your cut)
 export function lockKindAt(at){
   const A = DUEL.lockKinds.at, sw = player.swing;
@@ -781,15 +787,17 @@ export function startLock(e, kind){
   LOCK.foe = e; LOCK.bal = 0; LOCK.t = 0; LOCK.fx = 0; LOCK.buzz = 0; LOCK.kind = DUEL.lockKinds[kind] ? kind : 'mid';
   LOCK.next = rand(DUEL.lock.surge.first[0], DUEL.lock.surge.first[1]); LOCK.tell = LOCK.surge = 0; LOCK.met = 0;
   const K = lockKind();
-  e.flourishT = 0; e.fl0 = null;
+  e.flourishT = 0; e.fl0 = null; e.lockA = null;
   e.state = 'lock'; e.st = 99; e.plan = null;
   player.saberLock = true; player.atkT = 0; player.swing = null; player.queuedAtk = false; player.parryT = 0;
   const pp = playerPos(), g = e.group;
   TMP.subVectors(g.position, pp); TMP.y = 0; const d = TMP.length() || 1; TMP.divideScalar(d);
-  g.position.x = pp.x + TMP.x * K.dist; g.position.z = pp.z + TMP.z * K.dist;   // close in, blade to blade (body to body)
+  const D = lockDist(e, K);
+  g.position.x = pp.x + TMP.x * D; g.position.z = pp.z + TMP.z * D;   // close in, blade to blade (body to body)
   g.rotation.y = Math.atan2(-TMP.x, -TMP.z);
   player.lockFace = player.faceYaw = Math.atan2(TMP.x, TMP.z);   // squared to it for the whole bind (player/animation.js)
-  const cp = lockPoint();
+  if (!isGunner()) player.deflectAnim = lockCatch(K);   // (whatever catch or swing the blade was in, the bind takes it over from here)
+  const cp = lockContact();
   clashFlash(cp, stance().blade, true);
   clashSparks(cp, 0xffe9b0, 6);
   S.clash(cp, true, e.form);
@@ -801,12 +809,86 @@ export function startLock(e, kind){
   if (G.stats) G.stats.locks = (G.stats.locks || 0) + 1;
   return true;
 }
-// where the blades cross: between you, slid toward whoever is giving ground
+// where the blades should cross: just in front of you at the bind's height, slid toward whoever is giving ground
 function lockPoint(){
-  const pp = playerPos(), q = LOCK.foe ? LOCK.foe.group.position : pp;
-  const k = 0.5 + clamp(LOCK.bal, -1, 1) * DUEL.lock.press3d.slide;
-  return V3(pp.x + (q.x - pp.x) * k, pp.y + lockKind().y, pp.z + (q.z - pp.z) * k);
+  const pp = playerPos(), q = LOCK.foe ? LOCK.foe.group.position : pp, K = lockKind();
+  const d = Math.hypot(q.x - pp.x, q.z - pp.z) || 1;
+  const k = Math.min(DUEL.lock.reach, lockDist(LOCK.foe, K) * 0.55) / d + clamp(LOCK.bal, -1, 1) * DUEL.lock.press3d.slide;
+  return V3(pp.x + (q.x - pp.x) * k, pp.y + K.y, pp.z + (q.z - pp.z) * k);
 }
+/* where they DO cross: the point on the foe's weapon nearest that spot. Your saber is fitted onto it every frame
+   (anim/saber.js deflectPose), and the sparks, flashes and the shove's burst all come off it, so the two blades meet at
+   one point for the whole bind however the struggle sways it. */
+const LB = new THREE.Vector3(), LT = new THREE.Vector3();
+function lockContact(){
+  const want = lockPoint(), e = LOCK.foe;
+  if (!e || !foeBlade(e, LB, LT)) return want;
+  const abx = LT.x - LB.x, aby = LT.y - LB.y, abz = LT.z - LB.z, L = abx * abx + aby * aby + abz * abz || 1;
+  const k = clamp(((want.x - LB.x) * abx + (want.y - LB.y) * aby + (want.z - LB.z) * abz) / L, 0.12, 0.95);   // on the blade, off the hilt
+  return want.set(LB.x + abx * k, LB.y + aby * k, LB.z + abz * k);
+}
+/* ITS WEAPON AT THE BIND — its blade runs on from its arm (or its staff turns about its hands), so where the arm points
+   is where the blade goes. Its pose at the bind is the one that lays its blade across the spot just in front of you
+   where your own blade meets it (lockPoint: bind height, DUEL.lock.reach out from you), keeps its whole length clear
+   of your body (no point run through you), and leans it the kind's `aim` way (DUEL.lockKinds: in its own frame, toward
+   its weapon arm, up, toward you). Found once per model, weapon and kind of bind by a sweep over the joint's two angles
+   (cached), then kept on the spot every frame by a small step search, as its body sways, leans and gives ground. */
+const ARM_POSE = new Map(), LA = new THREE.Vector3(), LP = new THREE.Vector3(), LON = new THREE.Vector3();
+const LC = { at: new THREE.Vector3(), hero: new THREE.Vector3(), want: new THREE.Vector3(), clear: 0, staff: false };
+function armCtx(e, K, staff){
+  const g = e.group, pp = playerPos();
+  LC.at.copy(lockPoint()); LC.hero.copy(pp); LC.staff = staff; LC.clear = K.clear ?? DUEL.lock.clear;
+  const fx = pp.x - g.position.x, fz = pp.z - g.position.z, fl = Math.hypot(fx, fz) || 1;
+  // its weapon side: the side of it its weapon arm's shoulder is on
+  const u = g.userData, sh = (u.weaponArm || u.staff).getWorldPosition(LP);
+  const sd = Math.sign((sh.x - g.position.x) * (fz / fl) - (sh.z - g.position.z) * (fx / fl)) || 1;
+  LC.want.set(fz / fl * sd * K.aim[0] + fx / fl * K.aim[2], K.aim[1], -fx / fl * sd * K.aim[0] + fz / fl * K.aim[2]).normalize();
+}
+function armScore(e, node, a, b){
+  if (LC.staff){ node.rotation.z = a; node.rotation.x = b; } else { node.rotation.x = a; node.rotation.z = b; }
+  if (!foeBlade(e, LB, LT)) return -Infinity;
+  const L = LA.subVectors(LT, LB).length() || 1, dir = LA.divideScalar(L);
+  // across the meeting spot (on the blade, off the hilt)...
+  const k = clamp(LON.subVectors(LC.at, LB).dot(dir) / L, 0.12, 0.95);
+  const miss = LON.copy(LB).addScaledVector(dir, k * L).distanceTo(LC.at);
+  // ...with none of it inside your body
+  let near = Infinity;
+  for (let i = 0; i <= 10; i++){
+    LP.copy(LB).addScaledVector(dir, L * i / 10);
+    if (LP.y - LC.hero.y > 0.1 && LP.y - LC.hero.y < 2) near = Math.min(near, Math.hypot(LP.x - LC.hero.x, LP.z - LC.hero.z));
+  }
+  return 0.6 * dir.dot(LC.want) - 3 * miss - 4 * Math.max(0, LC.clear - near);
+}
+function lockArm(e, K){
+  const u = e.group.userData, staff = !!u.staff, node = staff ? u.staff : u.weaponArm;
+  if (!node || !K.aim) return staff ? K.staff : K.arm;
+  const r0x = node.rotation.x, r0z = node.rotation.z;
+  armCtx(e, K, staff);
+  if (!e.lockA){
+    const key = (e.type || '') + ':' + (staff ? 'staff' : e.t.weapon || 'maul') + ':' + LOCK.kind;
+    if (!ARM_POSE.has(key)){
+      let best = -Infinity, pose = staff ? K.staff : K.arm;
+      for (let a = -3.2; a <= 1.6; a += 0.08) for (let b = -1.6; b <= 1.6; b += 0.08){
+        const sc = armScore(e, node, a, b);
+        if (sc > best){ best = sc; pose = [a, b]; }
+      }
+      ARM_POSE.set(key, pose);
+    }
+    e.lockA = ARM_POSE.get(key).slice();
+  }
+  // keep it on the spot: a step each way on each angle, take the best (a few evaluations a frame)
+  const A = e.lockA, st = 0.03;
+  let best = armScore(e, node, A[0], A[1]), ba = A[0], bb = A[1];
+  for (const [da, db] of [[st, 0], [-st, 0], [0, st], [0, -st]]){
+    const sc = armScore(e, node, A[0] + da, A[1] + db);
+    if (sc > best){ best = sc; ba = A[0] + da; bb = A[1] + db; }
+  }
+  A[0] = ba; A[1] = bb;
+  node.rotation.x = r0x; node.rotation.z = r0z;
+  return A;
+}
+// your blade's part in the bind: the kind's own cover (DUEL.lockKinds cover), held on the contact, no flick
+const lockCatch = K => ({ t: 0, dur: 99, pose: null, lock: true, fixed: K.cover || 'midR', contact: lockContact() });
 export function updateSaberLock(dt){
   const e = LOCK.foe;
   if (!e) return;
@@ -837,25 +919,26 @@ export function updateSaberLock(dt){
   g.rotation.y = Math.atan2(-ax, -az);
   player.lockFace = Math.atan2(ax, az);
   const b = clamp(LOCK.bal, -1, 1);
-  const want = K.dist + b * P3.give;   // driven back as you win, crowding you as it does
+  const want = lockDist(e, K) + b * P3.give;   // driven back as you win, crowding you as it does
   g.position.x = pp.x + ax / ad * dampToward(ad, want, dt, 6); g.position.z = pp.z + az / ad * dampToward(ad, want, dt, 6);
   g.rotation.x = dampToward(g.rotation.x, (LOCK.kind === 'body' ? 0.24 : 0.14) - b * P3.lean + (surging ? 0.1 : 0), dt, 10);
   const tr = Math.sin(G.gt * 31) * (0.04 + (surging ? 0.05 : 0));   // the blades tremble against each other, worse in a surge
-  if (u.weaponArm){ u.weaponArm.rotation.x = dampToward(u.weaponArm.rotation.x, K.arm[0] + tr - b * P3.arm, dt, 14); u.weaponArm.rotation.z = dampToward(u.weaponArm.rotation.z, K.arm[1], dt, 14); }
-  if (u.staff){ u.staff.rotation.z = dampToward(u.staff.rotation.z, K.staff[0] - b * P3.arm, dt, 14); u.staff.rotation.x = dampToward(u.staff.rotation.x, K.staff[1], dt, 14); }
+  if (player.lockPush > 0) player.lockPush -= dt;
+  const jolt = Math.max(0, player.lockPush || 0) * 1.2;   // each press of yours heaves its blade up a touch (yours rides with it)
+  const A = lockArm(e, K);
+  if (u.staff){ u.staff.rotation.z = dampToward(u.staff.rotation.z, A[0] + tr - b * P3.arm - jolt, dt, 14); u.staff.rotation.x = dampToward(u.staff.rotation.x, A[1], dt, 14); }
+  if (u.staff && u.weaponArm){ u.weaponArm.rotation.x = dampToward(u.weaponArm.rotation.x, K.arm[0] + tr - b * P3.arm, dt, 14); u.weaponArm.rotation.z = dampToward(u.weaponArm.rotation.z, K.arm[1], dt, 14); }
+  else if (u.weaponArm){ u.weaponArm.rotation.x = dampToward(u.weaponArm.rotation.x, A[0] + tr - b * P3.arm - jolt, dt, 14); u.weaponArm.rotation.z = dampToward(u.weaponArm.rotation.z, A[1], dt, 14); }
   const flare = LOCK.tell > 0 ? 0.6 + Math.sin(G.gt * 40) * 0.4 : 0;
   g.userData.bodyMat.emissive.setHex(flare ? 0xffd0a0 : 0xff3a1a); g.userData.bodyMat.emissiveIntensity = 0.3 + Math.max(0, -b) * 0.8 + flare + (surging ? 0.5 : 0);
-  // your blade braced against it (the catch pose, held at the bind): pressed down toward you as you lose, up and over it
-  // as you win
-  if (!isGunner() || player.weapon === 'darksaber'){
-    const fy = player.faceYaw;
-    if (!player.deflectAnim) player.deflectAnim = { t: 0, dur: 0.3, pose: null, side: (ax * -Math.cos(fy) + az * Math.sin(fy)) / ad * 0.3, h: K.h };
-    player.deflectAnim.t = Math.min(player.deflectAnim.t, 0.07);
-    if (player.lockPush > 0) player.lockPush -= dt;
-    player.deflectAnim.h = K.h + (b < 0 ? b * P3.sink : b * P3.rise) + tr * 0.5 + Math.max(0, player.lockPush || 0) * 0.8;
+  // your blade braced against it: the bind's cover, fitted every frame onto the point where its blade is (anim/saber.js),
+  // so it rides the struggle (driven down as you lose, up over it as you win) without ever coming off the contact
+  const cp = lockContact();
+  if (!isGunner()){
+    if (!player.deflectAnim || !player.deflectAnim.lock) player.deflectAnim = lockCatch(K);   // (a bolt's catch took the blade: back on the bind)
+    player.deflectAnim.contact = cp;
   }
   // the bind sizzles: sparks spit from the contact, a crackling buzz, the lens trembles (all of it harder in a surge)
-  const cp = lockPoint();
   if ((LOCK.fx -= dt) <= 0){ LOCK.fx = surging ? 0.025 : 0.05; sparks(cp, Math.random() < 0.5 ? 0xffe9b0 : stance().blade, surging ? 3 : 2, surging ? 8 : 6, { life: 0.16, size: 0.34 }); }
   if ((LOCK.buzz -= dt) <= 0){ LOCK.buzz = surging ? 0.07 : 0.11; sfx(rand(90, 120), 0.12, 'sawtooth', 0.03, rand(140, 180)); }
   G.shake = Math.max(G.shake, 0.1 + Math.abs(LOCK.bal) * 0.15 + (surging ? 0.15 : 0));
@@ -876,7 +959,7 @@ export function lockPress(){
   LOCK.bal += L.press * formMul * (dry ? 0.35 : 1) * meet;
   if (meet > 1 && ++LOCK.met === 3) floater(V3(LOCK.foe.group.position.x, LOCK.foe.group.position.y + 1.9, LOCK.foe.group.position.z), 'MET IT', '#ffe9a8');
   player.lockPush = 0.12;   // each shove jolts your blade up into its (updateSaberLock)
-  sparks(lockPoint(), 0xffffff, 3, 9, { life: 0.18, size: 0.4 });
+  sparks(lockContact(), 0xffffff, 3, 9, { life: 0.18, size: 0.4 });
   sfx(rand(150, 190), 0.06, 'square', 0.03, 90);
 }
 // E in a lock: a boot to the gut ends it — if you have the stamina
@@ -895,12 +978,16 @@ export function lockPush(){
   player.force -= DUEL.lock.pushCost;
   player.castT = player.castMax = 0.3; player.castKind = 'push';
   S.push();
-  winLock('FORCE SHOVE', 30);
+  // thrown exactly as hard as a Force push at this range throws it (player/jedi/force.js pushKnock): same knock, same
+  // ranks, no extra stumble or bind bonus on top, so the shove out of a lock carries it no further than a push would
+  const g = LOCK.foe.group, pp = playerPos();
+  winLock('FORCE SHOVE', pushKnock(Math.hypot(g.position.x - pp.x, g.position.z - pp.z)), true);
   return true;
 }
-function winLock(label, knock){
+function winLock(label, knock, exact){
   const e = LOCK.foe, pp = playerPos(), g = e.group, K = lockKind();
   const dx = g.position.x - pp.x, dz = g.position.z - pp.z, dl = Math.hypot(dx, dz) || 1;
+  const cp = lockContact();   // (taken before the bind is let go: the burst comes off the blades, not your feet)
   endLock();
   if (e.net && hooks.guard) hooks.guard(e, 'lockwin', 0, '');   // co-op guest: the host's foe loses its wind (net/foefire.js)
   e.state = 'recover';
@@ -908,19 +995,19 @@ function winLock(label, knock){
   const sd = K.side ? (Math.random() < 0.5 ? 1 : -1) : 0;
   const sx = dx / dl - dz / dl * sd * 0.9, sz = dz / dl + dx / dl * sd * 0.9, sl = Math.hypot(sx, sz) || 1;
   staggerEnemy(e, sx / sl, sz / sl, label);
+  if (exact) e.stumble = 0;   // (the stagger's own stumble back would carry it past where the push leaves it)
   if (K.side && !e.t.heavy) e.buckle = 0.4;
-  knock = Math.max(knock || 0, K.knock || 0);
+  if (!exact) knock = Math.max(knock || 0, K.knock || 0);
   e.st += 0.4 + (K.open || 0); e.posture = 0;
   drainBreath(e, DUEL.breath.lock);   // a bind lost takes the wind out of it
   tutEvent('guardBreak', e);   // winning the bind breaks its guard too
   if (knock) damageEnemy(e, 8, V3(dx / dl, 0, dz / dl), knock);
   player.riposteT = CFG.player.riposteTime + 0.3; player.ripLine = null;
-  const cp = lockPoint();
   clashFlash(cp, 0xffd24a, true);
   clashSparks(cp, 0xffe27a, 6, { dir: V3(dx / dl, 0.2, dz / dl), cone: 0.8 });
   screenFlash('radial-gradient(ellipse at center, rgba(255,240,180,.22), transparent 45%)', 0.5, 0.2);
   G.hitstop = Math.max(G.hitstop, 0.16); G.slowmo = Math.min(G.slowmo, 0.3); G.slowmoT = Math.max(G.slowmoT, 0.3);
-  S.parry(cp, LOCK.foe && LOCK.foe.form);
+  S.parry(cp, e.form);
   if (G.stats) G.stats.locksWon = (G.stats.locksWon || 0) + 1;
 }
 function loseLock(){
@@ -936,11 +1023,12 @@ function loseLock(){
 function splitLock(){
   const e = LOCK.foe, pp = playerPos(), g = e.group;
   const dx = g.position.x - pp.x, dz = g.position.z - pp.z, dl = Math.hypot(dx, dz) || 1;
+  const cp = lockContact();
   endLock();
   e.state = 'recover'; e.st = 0.5;
   flinchEnemy(e, V3(dx / dl, 0, dz / dl), 1.2);
   player.vel.x -= dx / dl * 6; player.vel.z -= dz / dl * 6;
-  S.clash(lockPoint(), false, LOCK.foe && LOCK.foe.form);
+  S.clash(cp, false, e.form);
 }
 export function endLock(){
   const e = LOCK.foe;
@@ -1100,5 +1188,6 @@ export function updatePuppetDuel(e, dt){
       br.position.x = -(1 - kb) * 0.55;
       br.material.color.setHex(n[NG.winded] ? 0x3a5a8a : 0x9fd8ff);
     }
-  } else if (e.postBar) e.postBar.visible = false;  updateFormTag(e, !e.dead && dist < DUEL.guardRange * 1.6);   // its form and rank (the host's, from the snapshot)
+  } else if (e.postBar) e.postBar.visible = false;
+  updateFormTag(e, !e.dead && dist < DUEL.guardRange * 1.6);   // its form and rank (the host's, from the snapshot)
 }

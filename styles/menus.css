@@ -79,12 +79,32 @@
 .mp-head .mp-back{padding:8px 14px;font-size:13px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .mp-head .cz-tabs{margin-left:auto}
 .mp-head .cz-tabs span{padding:7px 12px;font-size:13px}
-/* the shelves scroll inside the page, so BEGIN and the picked mission's details stay in view */
-#mplist{display:flex;flex-direction:column;gap:14px;max-height:max(230px,calc(100vh - 470px));overflow-y:auto;pointer-events:auto;
+/* the shelves scroll inside a box of fixed height, so BEGIN and the picked mission's details stay put in view (folding a section never moves them) */
+#mplist{display:flex;flex-direction:column;gap:8px;height:max(230px,calc(100vh - 470px));flex:none;overflow-y:auto;pointer-events:auto;
   padding-right:4px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--edge-mid) transparent}
-.mp-story{display:flex;flex-direction:column;gap:10px}
-.mp-acth{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font:700 12px/1.2 var(--font-ui);letter-spacing:2.5px;color:var(--ink-soft)}
-.mp-acth .mp-n{color:var(--ink-dim);letter-spacing:1.5px}
+.mp-story{display:flex;flex-direction:column;gap:8px}
+/* the story's own heading: a clear break between the arcade above and the campaign's acts */
+.mp-storyh{margin:14px 0 2px;color:var(--gold);letter-spacing:3px}
+.mp-story.solo{margin-top:8px;padding-top:12px;border-top:1px solid var(--edge)}
+.mp-storyh::after{background:linear-gradient(90deg,rgba(255,210,74,.45),var(--edge))}
+/* folding sections: ARCADE and each act, a header with an arrow and its progress, the cards under it while open */
+.mp-sec{display:flex;flex-direction:column}
+.mp-fold{--bc:var(--gold);display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--edge);border-left:3px solid rgba(255,210,74,.55);
+  border-radius:var(--r);background:rgba(8,18,33,.6);cursor:pointer;pointer-events:auto;user-select:none;-webkit-user-select:none;
+  font:700 12.5px/1.2 var(--font-ui);letter-spacing:2.5px;color:var(--ink-soft);transition:border-color .15s,color .15s,background .15s}
+.mp-fold:hover{color:var(--ink);border-color:var(--edge-mid);border-left-color:var(--gold);background:rgba(12,24,42,.75)}
+.mp-sec.open>.mp-fold{color:var(--ink);background:rgba(12,24,42,.75)}
+.mp-arcade>.mp-fold{--bc:var(--accent);border-left-color:rgba(90,210,255,.55)}
+.mp-arcade>.mp-fold:hover{border-left-color:var(--accent)}
+.mp-arrow{flex:none;width:6px;height:6px;margin:0 3px 0 1px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .18s var(--ease)}
+.mp-sec.open>.mp-fold .mp-arrow{transform:rotate(45deg) translate(-2px,-2px)}
+.mp-ft{flex:1;min-width:0}
+.mp-fold .mp-sub{margin-left:10px;font-weight:600;letter-spacing:1.5px;color:var(--ink-dim);text-transform:none}
+.mp-fold .mp-n{flex:none;color:var(--ink-dim);letter-spacing:1.5px}
+.mp-sec.done>.mp-fold .mp-n{color:var(--xp)}
+.mp-sec.shut>.mp-fold{opacity:.55}
+.mp-body{display:none;flex-direction:column;gap:6px;padding:6px 0 4px}
+.mp-sec.open>.mp-body{display:flex;animation:rise .2s var(--ease)}
 .mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .msn{--bc:var(--gold);position:relative;padding:8px 11px 9px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);cursor:pointer;
   pointer-events:auto;text-align:left;opacity:.78;transition:opacity .15s,border-color .15s,background .15s;scroll-margin:70px 0}
@@ -108,7 +128,6 @@
 #mpinfo .mpi-won{margin-left:auto;font:500 12.5px/1 var(--font-body);letter-spacing:.3px;color:var(--ink-soft)}
 #mpinfo .ok{color:var(--xp)} #mpinfo .no{color:var(--ink-dim)}
 /* the ARCADE shelf (ui/missions-ui.js): random contracts, SHUFFLE and SURPRISE ME */
-.mp-arcade .sec-label .mp-sub{margin-left:8px;font-weight:600;letter-spacing:1.5px;color:var(--ink-dim);text-transform:none}
 .mp-arcbtns{display:flex;gap:6px}
 .mp-arcbtns .btn{flex:1 1 0;padding:7px 10px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.6);pointer-events:auto}
 .msn.arc{--bc:var(--accent)}
@@ -134,7 +153,7 @@
 .ov-actions{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:28px}
 #overlay.st-menu .ov-actions{justify-content:flex-start}
 /* menu column: BEGIN gets the full width; settings / help / co-op / roadmap share one quiet row under it (fullscreen
-   lives in SETTINGS on the menu, and keeps its button on the pause screen) */
+   is a small icon in the hint row on the menu, see .fsmini, and keeps its button on the pause screen) */
 #overlay.st-menu .ov-actions{gap:6px;margin-top:22px}
 #overlay.st-menu .ov-actions .btn{box-sizing:border-box}
 #overlay.st-menu .ov-actions .go{flex:1 0 100%;margin-bottom:4px}
@@ -181,6 +200,20 @@
   background:var(--accent);box-shadow:0 0 6px rgba(92,198,255,.8);cursor:pointer}
 .ov-foot{margin-top:18px;font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .ov-foot kbd{color:var(--ink-soft)}
+/* the main menu's quiet fullscreen toggle: an icon + word at the end of the hint row (the pause screen has its own button,
+   SETTINGS keeps its pill). fullscreen.js hides it where the browser can't go fullscreen (iPhone Safari) */
+.fsmini{display:none;align-items:center;gap:5px;float:right;margin:-3px -6px 0 12px;padding:3px 6px;border-radius:var(--r-chip);
+  color:var(--ink-faint);cursor:pointer;pointer-events:auto;transition:color .15s,background .15s}
+#overlay.st-menu .fsmini{display:inline-flex}
+.fsmini:hover{color:var(--ink-soft);background:rgba(92,198,255,.08)}
+.fsmini svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.fsmini .fs-out{display:none}
+html.is-fs .fsmini .fs-in{display:none}
+html.is-fs .fsmini .fs-out{display:inline}
+html.is-fs .fsmini .fsmini-t::before{content:'exit '}
+.fsmini.fs-nudge{color:var(--accent)}
+.fsmini.fs-nudge .fsmini-t{font-size:0} .fsmini.fs-nudge .fsmini-t::before{content:'click or press a key';font-size:13px}
+@media (pointer:coarse){.fsmini{padding:8px 10px;margin:-8px -10px 0 8px}}   /* a finger-sized target on phones */
 
 /* ---------- CONTROLS: a panel over the menu, never pushes the layout around ---------- */
 #howto{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
@@ -330,6 +363,16 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
   padding:8px 13px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);transition:color .15s,border-color .15s,background .15s}
 .cz-chip:hover{color:var(--ink-soft);border-color:var(--edge-mid)}
 .cz-chip.sel{color:var(--ink);border-color:rgba(255,210,74,.7);background:linear-gradient(90deg,rgba(54,42,10,.8),rgba(24,20,8,.7))}
+/* a LOCKED option (game/wardrobe.js): dimmed, with a lock, and the chapter that opens it in its tooltip and below the rows */
+.cz-chip.locked{color:var(--ink-faint);border-style:dashed;background:rgba(8,18,33,.45);display:inline-flex;align-items:center;gap:5px}
+.cz-chip.locked:hover{color:var(--ink-dim)}
+.cz-chip .lk{width:12px;height:12px;opacity:.8}
+.cz-sw.locked{position:relative;filter:saturate(.35) brightness(.55);border-style:dashed;display:inline-flex;align-items:center;justify-content:center}
+.cz-sw.locked:hover{transform:none}
+.cz-sw .lk{width:13px;height:13px;color:#fff;opacity:.9}
+.cz-lock{font:500 13px/1.5 var(--font-body);color:var(--ink-dim);display:flex;align-items:center;gap:6px;min-height:20px}
+.cz-lock .lk{width:14px;height:14px;flex:none}
+.cz-lock b{color:var(--ink-soft);font-weight:600;letter-spacing:.5px}
 .cz-actions{display:flex;gap:10px;margin-top:6px}
 .cz-actions .btn{flex:1;box-sizing:border-box}
 .cz-actions .btn.primary{flex:1.6}
@@ -477,7 +520,7 @@ body.pad .bs-aim{display:block}
 #overlay.st-pause #homeconfirm{align-items:flex-start;margin-top:26px}
 #overlay.st-pause .ov-foot{text-align:left;margin-top:22px;font-size:12px}
 #overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:rise .3s var(--ease) both}
-@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay.st-menu .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0}}
+@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay.st-menu .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
 
 /* ---------- SAVE / LOAD: same panel as CONTROLS, one row per slot (ui/saves-ui.js) ---------- */
 #saves{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
@@ -538,6 +581,10 @@ body.pad .bs-aim{display:block}
 /* a chapter's briefing, its choices and Act II's pick (game/campaign.js): what to do first and plain (the objectives), then one
    line of story, large. The rest of the story (the voice's other lines, the scene's dialogue) folds under MORE STORY */
 #chapcard .cc-brief{width:min(760px,100%)}
+/* the briefing's column: as wide as its widest heading, objective or button row (never past the card), and the story's line
+   wraps inside it instead of widening it (contain: it adds nothing to the column's width) */
+#chapcard .cc-brief{display:grid;grid-template-columns:fit-content(100%);align-content:start}
+#chapcard .cc-brief .cc-scene{contain:inline-size;min-width:min(420px,100%);box-sizing:border-box}
 #chapcard .cc-goals{margin:22px 0 0}
 #chapcard .cc-k{font:600 11px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink-dim);margin-bottom:8px}
 #chapcard .cc-goals ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 0;counter-reset:g}
@@ -559,10 +606,10 @@ body.pad .bs-aim{display:block}
 #chapcard .cc-more summary::before{content:'▸ '}
 #chapcard .cc-more[open] summary::before{content:'▾ '}
 #chapcard .cc-more summary:hover{color:var(--ink)}
-#chapcard .cc-chapters{margin-top:16px}
-#chapcard .cc-chapters summary{font-size:12px;color:var(--ink-dim)}
-#chapcard .cc-chapters summary::before,#chapcard .cc-chapters[open] summary::before{content:none}
-#chapcard .cc-chapters .pips{display:inline-flex;gap:4px;margin-right:4px}
+#chapcard .cc-chapters{margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font:600 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim)}
+#chapcard .cc-chapters .at{color:var(--ink-soft)}
+#chapcard .cc-chapters .nx::before{content:'·';margin-right:10px;color:var(--ink-faint)}
+#chapcard .cc-chapters .pips{display:inline-flex;gap:4px}
 #chapcard .cc-chapters .pips i{width:18px;height:4px;border-radius:2px;background:var(--edge-mid)}
 #chapcard .cc-chapters .pips i.done{background:var(--xp)}
 #chapcard .cc-chapters .pips i.now{background:var(--cc)}
@@ -603,6 +650,9 @@ body.pad .bs-aim{display:block}
 #meditate .md-slot .n{font-size:13px;color:var(--ink-faint)}
 #meditate .md-slot.empty{color:var(--ink-faint)}
 #meditate .md-slot.sel{border-color:var(--cc);background:var(--panel-hi);box-shadow:0 0 0 1px var(--cc)}
+#meditate .md-slotw{position:relative;min-width:0;display:flex}
+#meditate .md-slotw>.md-slot{flex:1 1 auto;min-width:0}
+#meditate .md-slot.has-x{padding-right:44px}
 #meditate .md-forms{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 #meditate .md-form{cursor:pointer;padding:10px 12px;border:1px solid var(--edge-mid);border-radius:var(--r);background:var(--panel);border-left:3px solid var(--c)}
 #meditate .md-form:hover{background:var(--panel-hi);border-color:var(--c)}
@@ -665,6 +715,13 @@ body.pad .kbonly{display:none}
 .fm-slot .n{font-size:13px;color:var(--ink-faint)}
 .fm-slot.empty{color:var(--ink-faint)}
 .fm-slot.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:var(--panel-hi)}
+.fm-slotw{position:relative;min-width:0;display:flex}
+.fm-slotw>.fm-slot{flex:1 1 auto;min-width:0}
+.fm-slot.has-x{padding-right:44px}
+.fm-slot.edit.empty{border-style:dashed;border-left-style:solid}
+.fm-clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);z-index:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border:1px solid transparent;border-radius:var(--r);font:700 13px/1 var(--font-ui);color:var(--ink-faint);cursor:pointer}
+.fm-clear:hover{color:var(--ink);border-color:var(--edge-lit);background:rgba(255,255,255,.05)}
 .fm-note{margin-top:8px;font-size:13px;line-height:1.4;color:var(--ink-dim)}
 .fm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 .fm-card{padding:11px 13px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);background:var(--panel)}

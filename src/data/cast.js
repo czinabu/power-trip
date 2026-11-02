@@ -8,6 +8,7 @@
 //   boss   the campaign boss's own model (boss/mesh.js): `kind` 'sith' or 'mando'
 // `scale` sizes it (a child is about 0.62), `saber` hangs a hilt at its belt (a Jedi), `bound` looks for a squadmate
 // already on the field by that name first (the trooper's band, the Mandalorian on Jakku) instead of building a stand-in.
+// `foe`: they're against you (their name in the cutscene subtitles reads red, not a friend's gold: game/cutscene.js).
 // `stays`: once the opening is over they stay on the field, hanging back behind the hero, and can be walked up to for a
 // line in a lull (game/onset.js; their words: data/talk.js). Someone on set as a hologram never stays.
 // Names the lines use that aren't here (the hero's 'YOU', a stranger) stay off screen: their lines play over comms.
@@ -28,8 +29,8 @@ export const CAST = {
   'GENERAL KAST': jedi({ parts: { hair: 'short' }, palette: { skin: 0x8a5536, hair: 0x85817c, robe: 0x4a4b50, tabard: 0x6b6c72, tunic: 0x2e2a28 } }),
   'CAPTAIN DACE': jedi({ parts: { hair: 'short', beard: 'moustache' }, palette: { skin: 0xf1c9a5, hair: 0xb89656, robe: 0x1e2a4a, tabard: 0x34466e } }),
   'THE MANDALORIAN': mando({ parts: { helmet: 'clean', cape: 'full' }, palette: { beskar: 0x8c8f94, beskar2: 0x4a4f58, cloth: 0x3a3a3a, accent: 0x1f2126 } }, { bound: true }),
-  'THE INQUISITOR': { kind: 'foe', t: { model: 'acolyte', color: 0x2a1418, eye: 0xff3a2a, cloth: 0x5a0e14 }, scale: 1.18 },
-  'DARTH VEXIS': { kind: 'boss', boss: 'sith' },
+  'THE INQUISITOR': { kind: 'foe', t: { model: 'acolyte', color: 0x2a1418, eye: 0xff3a2a, cloth: 0x5a0e14 }, scale: 1.18, foe: true },
+  'DARTH VEXIS': { kind: 'boss', boss: 'sith', foe: true },
 
   // ---------------- the Mandalorian's story ----------------
   'THE ARMORER': mando({ parts: { helmet: 'crest', arms: 'heavy', cape: 'full' }, palette: { beskar: 0xc9a24a, beskar2: 0x76664a, suit: 0x4a3a2a, cloth: 0x6a1d1a, accent: 0x1f2126 } }, { stays: true }),
@@ -38,14 +39,14 @@ export const CAST = {
   'BRAKKA': mando({ parts: { helmet: 'crest', arms: 'heavy', cape: 'half' }, palette: { beskar: 0x8a2a26, beskar2: 0x4a4f58, suit: 0x16171a, cloth: 0x1e1d20 }, build: { bulk: 1.12, shoulders: 1.08 } }, { scale: 1.06 }),
   'ROOK': civ({ parts: { hair: 'short', waist: 'panels' }, palette: { skin: 0xa86b45, hair: 0x3a2414, robe: 0x7b6b52, tabard: 0x8c7656, tunic: 0x9c7d58 }, build: { head: 1.12 } }, { scale: 0.62 }),
   'OSSIK VANE': civ({ parts: { hair: 'short', beard: 'goatee' }, palette: { skin: 0xc58c64, hair: 0x85817c, robe: 0x4a3a2a, tabard: 0x7a5c3e, tunic: 0x6e6a66 }, build: { bulk: 1.08 } }),
-  'VX-7': { kind: 'foe', t: { model: 'magna', color: 0x4a5a6a, eye: 0xff4a2a, cloth: 0x2a2e34 }, scale: 1.12 },
-  'THE IRON MAGISTRATE': { kind: 'boss', boss: 'mando' },
+  'VX-7': { kind: 'foe', t: { model: 'magna', color: 0x4a5a6a, eye: 0xff4a2a, cloth: 0x2a2e34 }, scale: 1.12, foe: true },
+  'THE IRON MAGISTRATE': { kind: 'boss', boss: 'mando', foe: true },
 
   // ---------------- the ARC trooper's story ----------------
   'THE CAPTAIN': clone(0x7a6a3a, { variant: 4, stays: true }),
   'SGT. VANT': clone(0x2f7fd6, { bound: true }),
   'BRISK': clone(0x2f7fd6, { bound: true, variant: 4 }),
   'HAMMER': clone(0x2f7fd6, { bound: true, scale: 1.06 }),
-  'THE MARSHAL': { kind: 'foe', t: { ...MARSHAL }, scale: 1.12 },   // his own black-and-gold commander's armour (enemies/mesh.js marshal)
-  'CAPTAIN VORN': { kind: 'foe', t: { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x8a1a1a }, variant: 4 },
+  'THE MARSHAL': { kind: 'foe', t: { ...MARSHAL }, scale: 1.12, foe: true },   // his own black-and-gold commander's armour (enemies/mesh.js marshal)
+  'CAPTAIN VORN': { kind: 'foe', t: { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x8a1a1a }, variant: 4, foe: true },
 };

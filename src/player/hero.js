@@ -13,12 +13,7 @@ import { TROOPER_WEAPONS } from '../data/trooper.js';
 export function setHero(hero){
   G.hero = hero;
   const gunner = isGunner(hero), mando = hero === 'mando', trooper = hero === 'trooper';
-  if (player.saberHand) player.saberHand.visible = !gunner;
-  if (player.mandoParts) for (const m of player.mandoParts) m.visible = mando;
-  if (player.trooperParts) for (const m of player.trooperParts) m.visible = trooper;
-  if (player.headBare)  for (const m of player.headBare) m.visible = !gunner;
-  // the long Jedi ROBE skirt is hidden for the gunners — armoured legs trail straight (no dangling cone in flight)
-  if (player.rig && player.rig.skirt) player.rig.skirt.visible = !gunner;
+  dressHeroParts(hero);
   document.body.classList.toggle('mando', gunner);
   document.body.classList.toggle('trooper', trooper);
   const xh = document.getElementById('xh'), rt = document.getElementById('reticle');
@@ -33,4 +28,16 @@ export function setHero(hero){
   else if (mando && TROOPER_WEAPONS[player.weapon]) player.weapon = 'single';   // back from the trooper: the Mando's own blaster
   syncWeaponMesh();              // show the equipped weapon mesh (or none, off-hero)
   if (gunner) syncMandoChips();   // hide ability chips not yet earned
+}
+// show just this hero's outfit on the player model (also after a rebuild mid-run: ui/customizer.js refreshWornLook,
+// which keeps the kit in hand as it is)
+export function dressHeroParts(hero = G.hero){
+  const gunner = isGunner(hero), mando = hero === 'mando', trooper = hero === 'trooper';
+  if (player.saberHand) player.saberHand.visible = !gunner;
+  if (player.mandoParts) for (const m of player.mandoParts) m.visible = mando;
+  if (player.trooperParts) for (const m of player.trooperParts) m.visible = trooper;
+  if (player.headBare)  for (const m of player.headBare) m.visible = !gunner;
+  // the long Jedi ROBE skirt is hidden for the gunners — armoured legs trail straight (no dangling cone in flight)
+  if (player.rig && player.rig.skirt) player.rig.skirt.visible = !gunner;
+  syncWeaponMesh();
 }

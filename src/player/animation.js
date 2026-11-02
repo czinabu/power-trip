@@ -26,6 +26,7 @@ import { saberPose, guardPose, swingPose, deflectPose, applySaberPose, releaseSa
 import { advanceGait, gaitLegs, gaitHipOffset, releaseGait } from './anim/gait.js';
 import { MOCAP_ON, MOCAP_LAND_T, mocapLand, mocapAirLegs, airPhase, mocapCut } from './anim/mocap.js';
 import { footingLegs, releaseFooting } from './anim/footing.js';
+import { easePose, atEase } from './anim/ease.js';
 import { stepCloth } from './model/cloth.js';
 import { blink, gripHands, express } from './model/life.js';
 import { jediAirLegs, jediAgilityArms, jediAgilityPost, mandoAgilityPost, gunnerAgilityLegs, landingStyle, slamPitch, headToReticle } from './anim/agility.js';
@@ -51,6 +52,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   if (!isGunner()) jediAgilityPost(dt, dr, vis, R, { ph, inten, planted });
   if (isGunner()){ animateMandoPose(dt, dr, vis, R, pp, f, r); mandoAgilityPost(dt, dr, vis, R, f, r); }
   mocapUpper(R, player._gait);
+  easePose(dt, vis, R);   // in a cutscene every hero stands up straight, arms at their sides (anim/ease.js)
   secondaryMotion(dt, vis, R);
   stepCloth(player, dt, player.group.position.y + 0.02);   // the robe panels and cape hem (model/cloth.js), after the pose
   blink(player, dt); gripHands(player, dt, handGrip());   // the eyes blink, the fingers close on what they hold (model/life.js)
@@ -610,6 +612,7 @@ function heldBlade(){
   return null;
 }
 export function footwork(){
+  if (atEase()) return FOOTWORK.atEase;   // a cutscene: stood up straight until the fight starts (anim/ease.js)
   if (isGunner() && player.weapon === 'fists') return FOOTWORK.brawler;
   if (isGunner() && player.weapon === 'darksaber') return FOOTWORK.darksaber;
   if (!isGunner() && player.holstered) return FOOTWORK.forceReady;   // saber on the belt: the wide, low Force-ready base

@@ -186,3 +186,37 @@ function mergeAll(gs){
   g.setIndex(idx);
   return g;
 }
+
+/* ---------- hoods ----------
+   A raised hood's cross-section: a thick C, open at the front by ±`open` radians either side of the face, its walls
+   rippled by `fold` into soft vertical folds (deep in the cowl, barely any round the face, fading out at the face's
+   edges). `wall` is how far in the inner wall sits (1: none, so a hem ends in one edge). Every ring has the same point
+   count, so a hood can change section from the shoulders to the crown as one surface (a loft ring's own `p`) */
+const HOOD_N = 14;
+export function hoodRing(open, fold = 0, wall = 0.86){
+  const outer = [], inner = [];
+  for (let i = 0; i <= HOOD_N; i++){
+    const a = Math.PI/2 + open + (i / HOOD_N) * (Math.PI*2 - open*2), off = a - Math.PI/2;
+    const r = 1 + fold * Math.cos(off * 5) * Math.min(1, Math.abs(Math.sin(off / 2)) * 3);
+    outer.push([Math.cos(a) * r, Math.sin(a) * r]);
+    inner.push([Math.cos(a) * r * wall, Math.sin(a) * r * wall]);
+  }
+  return outer.concat(inner.reverse());
+}
+/* how a hood's cowl falls (a vertex warp, v a THREE.Vector3): below the gathered `neck` it drops further toward the
+   hem `len` below, most at the back (a point between the shoulder blades, hugging the back), a little at the chest and
+   over the shoulders' slope. zc is the cowl's centre front-to-back */
+export function cowlDrape({ neck, len, zc = 0, back = 0.17, front = 0.05, side = 0.015, width = 0.3, depth = 0.21 }){
+  return v => {
+    const s = Math.min(1, Math.max(0, (neck - v.y) / len)), nz = Math.max(-1, Math.min(1, (v.z - zc) / depth)), s2 = s * s;
+    v.y -= s2 * (back * Math.max(0, -nz) ** 1.6 + front * Math.max(0, nz) ** 2 + side * Math.min(1, Math.abs(v.x) / width) ** 2);
+    v.z += s2 * 0.18 * back * Math.max(0, -nz) ** 1.6;
+  };
+}
+// run a vertex warp over a geometry's positions
+export function warpGeo(geo, fn){
+  const p = geo.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++){ fn(v.fromBufferAttribute(p, i)); p.setXYZ(i, v.x, v.y, v.z); }
+  geo.computeVertexNormals();
+  return geo;
+}

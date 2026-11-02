@@ -8,7 +8,7 @@ import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
 import { shared, G, player, isGunner, isTrooper } from '../state.js';
 import { playerPos } from '../player/helpers.js';
-import { syncMandoChips, syncJediChips, chapterClosed } from '../game/flow.js';
+import { syncMandoChips, syncJediChips, chapterJustClosed } from '../game/flow.js';
 import {
   skillSet, tierName, skillRank, skillEligible, storeSet, storeAvail, storeRemaining, powerLv, powerCost,
   buyPower, RANK_NUM, storeCost, grantStoryPowers, tierStoryOpen
@@ -122,12 +122,12 @@ export function renderProgress(){
     tree.querySelector('h1').textContent = place + ' CLEARED';
   }
   // the Jedi sits in meditation (and sees the forms carried); the Mando works at the forge
-  // the forms known, and the ones this chapter has just taught (learned as the next chapter opens: game/meditation.js)
+  // the forms known, and the ones this chapter has just taught (learned at its close, game/flow.js checkUnlocks: game/meditation.js)
   const sub = tree.querySelector('.sub');
   if (mando) sub.textContent = isTrooper() ? 'BACK AT THE LINE' : 'AT THE FORGE';
   else {
-    const known = Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id));
-    const fresh = G.chapter >= 0 ? FORM_PATH.filter(p => !FORMS[p.form].fork && !known.includes(p.form) && chapterClosed(p.chapter)).map(p => p.form) : [];
+    const fresh = G.chapter >= 0 ? FORM_PATH.filter(p => stanceUnlocked(p.form) && chapterJustClosed(p.chapter)).map(p => p.form) : [];
+    const known = Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id) && !fresh.includes(id));
     sub.innerHTML = 'MEDITATION' + (known.length ? ' · FORMS: ' + known.map(id => FORMS[id].name).join(' · ') : '') +
       fresh.map(id => ' · <b class="newform">NEW: ' + FORMS[id].name + '</b>').join('');
   }

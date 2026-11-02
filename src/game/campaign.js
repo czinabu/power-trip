@@ -4,6 +4,7 @@
 // a chapter card: where you are in the story, the voice's briefing and the act's chapters so far. Between Act I and
 // Act II the card asks which pair of chapters comes first.
 
+import { refreshWorn } from './wardrobe.js';
 import { autosave } from './autosave.js';
 import { G, shared, heroKey } from '../state.js';
 import { MISSIONS } from '../data/missions.js';
@@ -25,6 +26,8 @@ import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
 import { resetSet } from './onset.js';
 import { startCalm, guestCalm, endCalm } from './aftermath.js';
+import { pad } from '../engine/gamepad.js';
+import { PAD_GLYPHS } from '../data/gamepad.js';
 
 const ROMAN = ['I', 'II', 'III'];
 export const chapters = () => chapterOrder(G.actTwo);
@@ -51,6 +54,7 @@ export function startChapter(pos, opts = {}){
   const c = chapterAt(pos);
   if (!c) return;
   G.chapter = pos; G.chapterClosed = null;   // (set again when it closes: game/flow.js chapterClosed)
+  refreshWorn();   // the looks the last chapter unlocked go on as this one starts (the trooper's ARC kit: game/look-unlocks.js)
   endCalm(true);   // (a calm still running from the last chapter, or a retry from inside one: game/aftermath.js)
   resetSet(pos, !!opts.retry);   // the story's voice that stayed on set (game/onset.js): back behind the hero on a retry of this chapter
   if (!opts.guest) recordChapters(pos);   // the sandbox follows the story (a co-op guest's is followChapter's)
@@ -97,18 +101,18 @@ function chapterCleared(){
   const c = chapterAt(G.chapter);
   G.waveTotal += c?.steps ?? 1;   // a mission counts as a step deeper into the run (foes, store tiers and the Mando's gear follow it); `steps` when it stands for a level's waves
   // a mission standing in for a level's waves (Mustafar): the run is as far into that level as its waves would have taken it
-  if (c && c.level != null && c.waves){ G.levelIdx = c.level; G.wave = c.waves[1]; checkUnlocks(1600); }
-  G.chapterClosed = G.chapter;   // its closing page offers the powers it hands out (game/flow.js chapterClosed)
+  if (c && c.level != null && c.waves){ G.levelIdx = c.level; G.wave = c.waves[1]; }
+  G.chapterClosed = G.chapter;   // what it hands out is shown at its close, and its closing page offers its powers (game/flow.js chapterClosed)
   chapterRewards();
   earnWavePoint();   // a mission chapter's skill point (game/upgrades.js), spent on the page that opens next
   storyBeat('clear', { quiet: !!G.mission });   // a mission's clear lines are already on its Chapter complete card (game/mission.js)
   // a story whose last chapter is a mission (the trooper's broadcast): clearing it ends the campaign, as the last boss does
   if (c && !chapterAt(G.chapter + 1)){ victory(); return; }
-  if (G.coopGuest){ guestCalm(openSkillTree); return; }   // (after the host's calm, if it has one: game/aftermath.js)
+  if (G.coopGuest){ checkUnlocks(1600, true); guestCalm(openSkillTree); return; }   // (after the host's calm, if it has one: game/aftermath.js; a guest's new powers show at the close too)
   // after a duel or a hold: a calm walk back to the rally point first (game/aftermath.js), then the voice's last word, the
   // upgrade screen and the road on (game/flow.js)
-  if (startCalm()) return;
-  shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6;
+  if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6; }
+  checkUnlocks(1600, true);   // the powers and forms this chapter hands over: their screens now, at its end (not as the next chapter opens)
 }
 // the 'travel' beat ran out (game/flow.js): the next chapter, or Act II's pick when it's due
 export function nextChapter(){
@@ -130,6 +134,7 @@ function openCard(html, go){
   card.classList.add('open');
   G.skillSelect = true;   // freezes the sim and keeps the pause screen away while the cursor is free (see ui/menus.js)
   G.cardUp = true;
+  document.body.classList.add('chapcard-up');   // the fight's HUD stays hidden behind the card until it closes (styles/hud.css)
   onGo = go;
   document.getElementById('banner').style.opacity = '0';
   document.exitPointerLock();
@@ -140,22 +145,26 @@ export function closeCard(quiet){
   if (!cardUp()) return;
   card.classList.remove('open');
   G.cardUp = false; onGo = null;
+  document.body.classList.remove('chapcard-up');
   if (G.skillSelect && !document.getElementById('skilltree').style.display.includes('flex')) G.skillSelect = false;
   if (quiet) return;
   if (!shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
   releaseUnlockBanners();
 }
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
-// the act's chapters: ticked, the one you're on, and what's ahead. Folded to one line (a pip per chapter, and what's next);
-// the full list opens under it
+// where this chapter sits in its act: a pip per chapter (cleared, this one, ahead), how far in ('2 OF 5 IN THIS ACT') and
+// what's next
 function roster(act, pos){
   const list = chapters(), mine = list.map((c, i) => [c, i]).filter(([c]) => c.act === act), next = mine.find(([, i]) => i > pos);
   const pips = mine.map(([, i]) => '<i class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"></i>').join('');
-  return '<details class="cc-more cc-chapters"><summary><span class="pips">' + pips + '</span>' +
-    (next ? 'NEXT · ' + esc(chapterTitle(next[0])) : 'LAST CHAPTER OF THE ACT') + '</summary>' +
-    '<ol class="cc-roster">' + mine.map(([c, i]) =>
-    '<li class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"><span class="n">' + (c.prologue ? '·' : chapterNo(i).replace('CHAPTER ', '')) + '</span>' + esc(chapterTitle(c)) +
-    (c.trial ? '<span class="tag">TRIAL</span>' : c.prologue ? '<span class="tag">PROLOGUE</span>' : '') + '<span class="w">' + esc(c.world) + '</span></li>').join('') + '</ol></details>';
+  const at = mine.findIndex(([, i]) => i === pos) + 1;
+  return '<div class="cc-chapters"><span class="pips">' + pips + '</span><span class="at">' + at + ' OF ' + mine.length + ' IN THIS ACT</span>' +
+    '<span class="nx">' + (next ? 'NEXT · ' + esc(chapterTitle(next[0])) : 'LAST CHAPTER OF THE ACT') + '</span></div>';
+}
+// the card's key line: Space (or Enter) or a click on the keyboard; the pad's A (or MENU: engine/gamepad.js)
+function beginHint(what){
+  return '<div class="cc-hint"><span class="kbonly">Press Space or click ' + what + '</span><span class="padonly">Press ' +
+    '<kbd class="pg" data-b="A">' + PAD_GLYPHS[pad.family].A + '</kbd> ' + what + '</span></div>';
 }
 function head(c, pos){
   return '<div class="cc-act">ACT ' + ROMAN[c.act] + ' · ' + esc(actTitle(c.act)) + '</div>' +
@@ -175,8 +184,8 @@ function goals(c){
   return '<div class="cc-goals"><div class="cc-k">' + (list.length > 1 ? 'OBJECTIVES' : 'OBJECTIVE') + '</div><ol' + (list.length > 3 ? ' class="many"' : '') + '>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
 }
 // THE STORY, kept light: one line of it in view (keep: which), the rest of the voice's words and the scene between chapters
-// (a chapter's `talk`: where, then who says what) folded under "MORE STORY" for whoever wants it. A chapter's talk that
-// stays folded is heard on the comms strip once the fight starts instead (showCard)
+// (a `talk`: where, then who says what) folded under "MORE STORY" for whoever wants it. Act II's pick and a story's choice
+// use it; a chapter's briefing shows its one line only (showCard)
 function lore(lines, who, opts = {}){
   const keep = opts.keep === 'last' ? lines.length - 1 : opts.keep || 0, t = opts.talk, said = t && t.lines && t.lines.length;
   const rest = lines.filter((l, i) => i !== keep);
@@ -186,20 +195,22 @@ function lore(lines, who, opts = {}){
         t.lines.map(([w, say]) => '<p' + (w === 'YOU' ? ' class="you"' : '') + '><b>' + esc(w) + '</b><span>' + esc(say) + '</span></p>').join('') + '</div>' : '') +
       '</details>' : '') + '</div>';
 }
+// THE BRIEFING: where you are, what to do and one line of the story. The rest of the story isn't on the card (it would give
+// away the opening scene's words): the chapter's talk is heard as it starts
 export function showCard(pos){
   const c = chapterAt(pos), list = chapters();
   const opensAct = !c.prologue && (pos === 0 || list[pos - 1].act !== c.act || list[pos - 1].prologue);   // (a prologue is before the act: its opening line waits for chapter 1)
   const lines = [...(opensAct && pos !== actTwoAt() ? [actOpen(c.act)] : []), ...forHero(c.brief, G.hero)];   // (Act II's opening line was on its pick)
-  openCard('<div class="cc-inner cc-brief hero-' + G.hero + '">' + head(c, pos) + goals(c) + lore(lines, storyVoice(undefined, c), { talk: c.talk, world: c.world, keep: lines.length > 1 && opensAct && pos !== actTwoAt() ? 1 : 0 }) + roster(c.act, pos) +
+  const line = lines[lines.length > 1 && opensAct && pos !== actTwoAt() ? 1 : 0];
+  openCard('<div class="cc-inner cc-brief hero-' + G.hero + '">' + head(c, pos) + goals(c) + (line ? lore([line], storyVoice(undefined, c)) : '') + roster(c.act, pos) +
     '<div class="cc-btns"><div class="btn primary go" data-go="1">' + (G.coopGuest ? 'READY' : 'BEGIN') + '</div></div>' +
-    '<div class="cc-hint">Enter or click to begin</div></div>', () => {
-      const read = card.querySelector('.cc-more[open]');
+    beginHint(G.coopGuest ? 'when ready' : 'to begin') + '</div>', () => {
       closeCard(); S.reward(1);
       playOpening(c.id, { k: c.prologue ? 'PROLOGUE' : chapterNo(pos) + ' · ACT ' + ROMAN[c.act], h: chapterTitle(c), p: c.world }, c.opening);   // the chapter's opening scene (game/cutscene.js)
       storyBeat('chapter');
-      // the scene's talk, unread on the card and not staged by the opening scene (G.talkStaged: game/cutscene.js): it plays on the
-      // comms strip as the chapter gets going (the host's goes to a co-op guest too)
-      if (!read && !G.coopGuest && G.talkStaged !== c.id && c.talk && c.talk.lines) comms(c.talk.lines.map(([who, say]) => ({ who, say })));
+      // the scene's talk, when the opening scene didn't stage it (G.talkStaged: game/cutscene.js): it plays on the comms strip as
+      // the chapter gets going (the host's goes to a co-op guest too)
+      if (!G.coopGuest && G.talkStaged !== c.id && c.talk && c.talk.lines) comms(c.talk.lines.map(([who, say]) => ({ who, say })));
     });
   resetScenes();   // a new visit to the chapter: its scenes play again
   MUSIC.unlockSting();

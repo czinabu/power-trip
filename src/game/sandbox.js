@@ -63,8 +63,8 @@ function applyForms(list){
   for (const id of sandboxForms()) G.stanceUnlocked[id] = true;
   setLoadout(list);
 }
-// a click on a slot steps it to the next ready form not already slotted (then empty, then round again); the slot
-// holding the form in hand can't be emptied
+// a click on a slot steps it to the next ready form not already slotted (then empty, then round again); the last form
+// left can't be emptied (an emptied slot that held the form in hand hands the blade to the next form along)
 export function cycleSandboxSlot(i){
   if (i < 0 || i >= LOADOUT_SLOTS) return;
   const cur = G.loadout.slice(), opts = [...sandboxForms(), null];
@@ -73,11 +73,14 @@ export function cycleSandboxSlot(i){
     at = (at + 1) % opts.length;
     const id = opts[at];
     if (id && cur.some((c, j) => j !== i && c && (c === id || (FORMS[id].variant && FORMS[c].variant === FORMS[id].variant)))) continue;   // (one Form V at a time: G swaps it)
-    if (!id && (cur[i] === G.stance || cur.filter(Boolean).length <= 1)) continue;
+    if (!id && cur.filter(Boolean).length <= 1) continue;
     cur[i] = id; break;
   }
+  let was = [];
+  try { const v = JSON.parse(localStorage.getItem('sw_sandbox_forms')); if (Array.isArray(v)) was = v; } catch(e){}
   applyForms(cur);
-  try { localStorage.setItem('sw_sandbox_forms', JSON.stringify(G.loadout)); } catch(e){}
+  // '' = emptied on purpose, so BEFORE THE FIGHT keeps it empty next time (ui/forms-ui.js savedPick)
+  try { localStorage.setItem('sw_sandbox_forms', JSON.stringify(G.loadout.map((id, j) => id || ((j === i || was[j] === '') ? '' : null)))); } catch(e){}
 }
 
 /* ---------- the arena ---------- */

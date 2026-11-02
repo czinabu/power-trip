@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Main menu: hero, mode and difficulty pickers (the mission list has its own page: ui/missions-ui.js), pause, restart, return to menu and fullscreen.
 
+import { heroName, refreshWorn } from '../game/wardrobe.js';
 import { renderer } from '../engine/renderer.js';
 import { cycleQuality } from '../engine/quality.js';
 import { audioInit, setMasterVol, setMusicVol, setSfxVol, S } from '../audio/sfx.js';
@@ -54,6 +55,7 @@ export function setOverlayState(state){
   document.body.classList.toggle('in-menu', state === 'menu');
   document.getElementById('banner').style.opacity = '0';   // the overlay carries the message; don't let a banner ghost through it
   overlay.classList.remove('asktrain');
+  if (state === 'menu') refreshWorn();   // back on the menu: dressed in whatever the campaign has unlocked since (ui/customizer.js)
   if (state !== 'pause') document.getElementById('ovctx').textContent = '';
   document.getElementById('restartBtn').style.display = state === 'menu' ? 'none' : 'inline-flex';
   document.getElementById('restartBtn').textContent = G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
@@ -70,7 +72,7 @@ export function setOverlayState(state){
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
     const where = G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
-    document.getElementById('ovctx').textContent = where + ' · ' + (isGunner() ? 'MANDALORIAN' : 'JEDI');
+    document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
     sub.textContent = '';   // the run summary's own title carries the moment
@@ -204,6 +206,13 @@ function setSwingMirror(on){
 }
 setSwingMirror(localStorage.getItem('sw_swingmirror') === '1');
 document.getElementById('swingctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSwingMirror(!G.swingMirror); });
+// SWING MARKER — the arc on the floor where the Jedi's next cut lands (fx/swingmark.js); on by default, off for a challenge
+function setSwingMarker(on){
+  G.swingMarker = on; try { localStorage.setItem('sw_swingmarker', on ? '1' : '0'); } catch(e){}
+  const v = document.getElementById('swingmarkval'); if (v) v.textContent = on ? 'ON' : 'OFF';
+}
+{ let v; try { v = localStorage.getItem('sw_swingmarker'); } catch(e){} setSwingMarker(v !== '0'); }
+document.getElementById('swingmarkctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSwingMarker(!G.swingMarker); });
 // STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
 setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');
 document.getElementById('strafectl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setStrafeMode(G.strafeMode === 'hold' ? 'toggle' : 'hold'); });
@@ -448,7 +457,7 @@ document.addEventListener('pointerlockerror', () => {
 // Chrome / Edge, see fullscreen.js) a quick Esc pauses and resumes too, so closing the pause screen with Esc no longer
 // drops you out of fullscreen. Runs in the capture phase so it sees the screen before Esc closes a panel on top of it.
 export const panelOpen = () => howto.classList.contains('open') || settings.classList.contains('open') || document.getElementById('saves').classList.contains('open') || overlay.classList.contains('newconfirming') ||
-  document.getElementById('roadmap').classList.contains('open') || document.getElementById('forms').classList.contains('open') || document.getElementById('coop').classList.contains('open') || overlay.classList.contains('confirming') || overlay.classList.contains('asktrain');
+  document.getElementById('roadmap').classList.contains('open') || document.getElementById('codex').classList.contains('open') || document.getElementById('forms').classList.contains('open') || document.getElementById('coop').classList.contains('open') || overlay.classList.contains('confirming') || overlay.classList.contains('asktrain');
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.key !== 'Escape' && e.key !== 'Enter' && e.key !== 'Tab')) return;
   const tab = e.key === 'Tab', esc = e.key === 'Escape' || tab;   // Tab pauses exactly as a quick Esc does

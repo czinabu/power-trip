@@ -14,7 +14,7 @@
 export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu', ataru: 'ataru', niman: 'niman', djemso: 'djemso', shien: 'shien', juyo: 'juyo', vaapad: 'vaapad', darksaber: 'darksaber' };
 
 /* FOOTWORK per form — crouch (hip drop), splay (feet apart), lead (staggered feet), lean (forward pitch),
-   width (robe flare). Read when the hero is settled and planted. */
+   width (robe flare). Read when the hero is settled and planted. (atEase is the cutscene stand: anim/ease.js) */
 export const FOOTWORK = {
   shiicho:   { crouch: -0.16, splay: 0.36, lead: 0.2,  lean: 0.08, width: 1.1 },    // square and athletic, feet under the shoulders
   makashi:   { crouch: -0.1,  splay: 0.1,  lead: 0.3,  lean: 0.0,  width: 0.9 },    // a fencer's line: feet narrow and close, upright
@@ -28,6 +28,7 @@ export const FOOTWORK = {
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
+  atEase:    { crouch: -0.015, splay: 0.08, lead: 0.07, lean: 0,   width: 1 },      // every hero in a cutscene: stood up straight, feet under the hips (anim/ease.js)
 };
 
 /* a grip can stand on another form's feet: reverse-grip Niman takes Djem So's wide stance */

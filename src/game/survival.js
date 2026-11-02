@@ -30,6 +30,7 @@ import { showBanner } from '../ui/banners.js';
 import { squadSize, regroupSquad } from '../allies/squad.js';
 import { beginWave } from './readout.js';
 import { coopRun } from '../net/run.js';
+import { meetWarbringer } from './codex.js';
 
 /* ============================================================
    SURVIVAL / ENDLESS MODE — escalating waves, mutators, milestone spikes, arena rotation, repeatable power-ups.
@@ -108,6 +109,7 @@ export function spawnChampion(){
   const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 2.2, 28), ringMat);
   ring.rotation.x = -Math.PI/2; ring.position.y = 0.08; e.group.add(ring); e.group.userData.eliteRing = ring;
   makeBossBar(e);
+  meetWarbringer();   // its codex entry (game/codex.js)
   G.shake = Math.max(G.shake, 0.9);
   showBanner('', 'A WARBRINGER RISES', 2.2);
   S.roar(e.group.position); S.slam(e.group.position);

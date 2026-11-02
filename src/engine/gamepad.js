@@ -312,6 +312,7 @@ function menu(btn, down, lx, ly, ry, dt){
     const list = candidates(); ensureFocus(list);
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }
   }
+  if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — the sandbox panel's tabs (ui/sandbox-ui.js)
   if (down(1)){   // B — back: close what's on top, or resume from the pause screen
     if (panelUp() || (ovUp() && /\bst-menu\b/.test(overlay.className) && /\bmpage\b/.test(overlay.className))){ sendKey('escape', true); sendKey('escape', false); }   // (the Missions page: back to the menu, ui/missions-ui.js)
     else if (ovUp() && overlay.classList.contains('st-pause')){ sendKey('tab', true); sendKey('tab', false); }

@@ -59,7 +59,7 @@ for (const run of RUNS){
     if (mode === 'sandbox'){
       await page.keyboard.press('b');
       await page.click('[data-n="3"]').catch(() => {}); await page.click('[data-foe="grunt"]').catch(() => {});
-      await page.click('#sbsquadadd').catch(() => {});
+      await page.click('[data-sbtab="squad"]').catch(() => {}); await page.click('#sbsquadadd').catch(() => {});
       await page.click('#sbdone').catch(() => {});
     }
     await page.evaluate(breach => { const { G } = GAME;

@@ -10,7 +10,7 @@
 
 import { G, player, heroKey } from '../state.js';
 import { playerPos, fwd } from '../player/helpers.js';
-import { allies } from '../allies/squad.js';
+import { allies, squadOrderName } from '../allies/squad.js';
 import { TALK, MISSION_TALK, CHAPTER_TALK } from '../data/talk.js';
 import { onSetFigures } from './onset.js';
 import { chapterOrder, storyHero } from '../data/campaign.js';
@@ -20,7 +20,8 @@ import { hostilesIn } from './objectives.js';
 import { pad, padKeys } from '../engine/gamepad.js';
 import { S } from '../audio/sfx.js';
 
-export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2 };   // m · how squarely you face them (cos) · no foe this close · s between lines
+export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2,   // m · how squarely you face them (cos) · no foe this close · s between lines
+  allyReach: 2.4, allyFacing: 0.93 };   // a squadmate (whose H is also the squad's order): closer, and right in your sights
 
 const prompt = document.getElementById('talkp');
 const said = new Map();   // name → how many of its lines it has said (this visit; the count wraps)
@@ -49,7 +50,7 @@ function figures(){
   for (const a of allies){
     const name = a.name || (a.def && a.def.name);
     if (!name || a.state === 'down' || !a.group) continue;
-    out.push({ key: 'ally:' + name, name, pos: a.group.position, h: 2.3 * ((a.t && a.t.scale) || 1) });
+    out.push({ key: 'ally:' + name, name, pos: a.group.position, h: 2.3 * ((a.t && a.t.scale) || 1), ally: true });
   }
   for (const f of missionFigures()) out.push(f);
   for (const f of onSetFigures()) out.push(f);   // the story's voice, staying on after the chapter's opening (game/onset.js)
@@ -61,11 +62,14 @@ function pickNear(){
   const p = playerPos(), f = fwd();
   if (hostilesIn(p.x, p.z, TALKCFG.calm) || fightHot()) return null;   // a lull only
   let best = null, bs = -Infinity;
+  const squadAway = allies.length && squadOrderName() !== 'follow';   // H calls them back first: no talking over an order
   for (const c of figures()){
+    if (c.ally && squadAway) continue;
     const dx = c.pos.x - p.x, dz = c.pos.z - p.z, d = Math.hypot(dx, dz);
     if (d > TALKCFG.reach) continue;
     const face = d < 0.8 ? 1 : (dx * f.x + dz * f.z) / d;   // (the view's heading: whoever you're looking toward)
     if (face < TALKCFG.facing) continue;
+    if (c.ally && (d > TALKCFG.allyReach || face < TALKCFG.allyFacing)) continue;   // tap H by your squad and you give an order
     const score = face * 2 - d;
     if (score > bs){ bs = score; best = c; }
   }

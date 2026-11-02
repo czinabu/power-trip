@@ -59,6 +59,7 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mousedown', (e) => {
   if (!inputActive()) return;
   if (player.downed) return;   // down: nothing to fight with until you're back up (game/revive.js)
+  if (e.button === 1){ e.preventDefault(); wheelKeyDown(); return; }   // middle mouse: SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
   if (e.button === 2 && (player.judgeT > 0 || player.flaming || player.mendT > 0)) return;   // mid-channel (lightning / flame / mend): no bracing
@@ -87,7 +88,6 @@ document.addEventListener('mousedown', (e) => {
     }
     return;
   }
-  if (e.button === 1){ e.preventDefault(); toggleLock(); return; }   // middle mouse: soft lock-on (Jedi)
   // LMB while guarding (RMB held) hurls the saber; otherwise it's a normal swing (holstered: a Force strike)
   if (e.button === 0){
     if (player.holstered) strikePress();   // tap: the strike string · hold: a charged palm, let go on release (jedi/palm.js)
@@ -136,6 +136,7 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0){ player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
   if (e.button === 2){ player.blockHeld = false; player.zoom = false; }
+  if (e.button === 1) wheelKeyUp();   // middle mouse let go: the order (allies/wheel.js)
 });
 document.addEventListener('wheel', (e) => {
   if (!inputActive()) return;

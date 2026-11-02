@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { CAST } from '../data/cast.js';
+// the cast's own base look: a field-worn Mando in the Hunter helmet (the player's starting basics differ: data/customize.js)
+const CAST_BASE = { jedi: { wear: 'field' }, mando: { helmet: 'tvisor', wear: 'field' }, trooper: { wear: 'field' } };
 import { buildHeroModel } from '../player/model/index.js';
 import { MIRROR } from '../player/model/rig.js';
 import { stepCloth, settleCloth } from '../player/model/cloth.js';
@@ -70,7 +72,7 @@ function boundAlly(name, x, z){
 }
 function heroFigure(def){
   const target = { group: new THREE.Group() };
-  target.group.add(buildHeroModel(target, mergeLook(lookOf({}), def.look)));
+  target.group.add(buildHeroModel(target, mergeLook(lookOf(CAST_BASE), def.look)));
   const mando = def.as === 'mando';
   for (const m of target.mandoParts) m.visible = mando;
   for (const m of target.trooperParts || []) m.visible = false;

@@ -51,6 +51,7 @@ import { players, targetable } from '../player/players.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
+import { beginTwist, updateTwist, endTwist } from './twists.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -116,6 +117,7 @@ function clearMission(){
   M.markers = [];
   for (const p of M.props) scene.remove(p);
   M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1;
+  endTwist(true);
   stopBattleFx();
   if (M.on) hidePanel();
   M.on = false;
@@ -187,11 +189,13 @@ const KINDS = {
     cue: 'defend',
     music: (o, s) => ({ urgency: s.prog / o.time, danger: s.rate === 0, focus: s.inZone }),
     begin(o, s){
-      s.prog = 0; s.pulse = 0; s.pulseT = 2.5;
+      s.prog = 0; s.pulse = 0; s.pulseT = 2.5; s.stage = 0;
+      if (o.twist && o.twist.zones) o.at = o.twist.zones[0];   // a hold that falls back (the heat twist): its first stand (o is this run's copy)
       M.markers.push(s.zone = makeBeacon(o.at[0], o.at[1], 0, heroKey(MISSION_COLOR), o.r / 0.9));
       if (o.evacuees) beginEvacuees(evac(o), s);
     },
     update(o, s, dt){
+      if (o.twist && o.twist.zones) fallBack(o, s);
       const officers = enemies.some(e => !e.dead && !e.converted && e.type === 'officer');
       const alive = hostilesAlive() + G.spawnQueue.length;
       if ((s.pulseT -= dt) <= 0){
@@ -956,8 +960,32 @@ function beginObjective(){
     if (allies.length < o.squad) spawnSquad(o.squad - allies.length, o.start);
   }
   KINDS[o.kind].begin(o, M.s);
+  if (o.twist) beginTwist(o);   // its signature hook (game/twists.js)
 }
+// a hold that falls back as its twist presses in (the forge's heat): the zone steps to its next stand at each step of
+// the clock, and the troops marching on it turn for the new spot
+function fallBack(o, s){
+  const tw = o.twist, f = s.prog / o.time;
+  let k = 0; while (k < tw.steps.length && f >= tw.steps[k]) k++;
+  k = Math.min(k, tw.zones.length - 1);
+  if (k === s.stage) return;
+  s.stage = k; o.at = tw.zones[k];
+  s.zone.position.set(o.at[0], 0, o.at[1]);
+  for (const e of enemies) if (e.goal && e.goal.pos) e.goal.pos.set(o.at[0], 0, o.at[1]);
+  showBanner('FALL BACK', (tw.fallLine && heroKey(tw.fallLine)) || 'The heat is coming up. Take the next stand.', 2.2);
+  sfx(520, 0.12, 'square', 0.04, 260);
+}
+// what a twist needs to know of the objective each frame (host): how far along it is, and the duel's foe
+const twistCtx = { guest: false, frac: 0, foe: () => M.s && M.s.foe && !M.s.foe.dead ? M.s.foe : null };
+// a guest's: the host's progress, and the duel's foe among the foes it's shown
+const guestCtx = { guest: true, frac: 0, foe: () => {   // (the toughest of its type: the duel's foe stands alone, but be sure)
+  const t = M.o && M.o.kind === 'duel' && M.o.foe;
+  let best = null;
+  if (t) for (const e of enemies) if (!e.dead && e.type === t && (!best || e.maxHp > best.maxHp)) best = e;
+  return best;
+} };
 function completeObjective(){
+  endTwist();   // (it eases off over the breather)
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
   MUSIC.objectiveSting();
@@ -986,6 +1014,7 @@ function missionComplete(){
     M.chapter.done();
     return;
   }
+  endTwist(true);   // (the sim stops on the victory screen: a twist still easing off would stay half done behind it)
   endRun(true);
   G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;
   showBanner('MISSION COMPLETE', M.title, 999);
@@ -1009,6 +1038,8 @@ export function updateMission(dt){
 function updateMissionHost(dt){
   M.fx = M.fx.filter(f => f(dt));
   updateBattleFx(dt);
+  twistCtx.frac = M.o && M.o.kind === 'hold' && M.s ? M.s.prog / M.o.time : 0;
+  updateTwist(dt, twistCtx);
   if (M.panelT > 0 && (M.panelT -= dt) <= 0) hidePanel();
   if (M.failT > 0){ if ((M.failT -= dt) <= 0) startMission(M.def.id, M.i, false, { chapter: M.chapter, retry: true }); return; }   // it got away: this leg again
   if (M.quarry && !(M.o && M.o.kind === 'pursuit')) faceHero(M.quarry, dt);   // between legs it stops and looks back
@@ -1108,15 +1139,17 @@ export function coopMissionSync(ms){
     M.markers = [];
     for (const p of M.props) scene.remove(p);
     M.props = []; M.quarry = null; M.vip = null; M.begun = -1; M.i = -1; M.run = ms.run;
+    endTwist(true);
   }
   if (ms.i !== M.i){
-    if (M.i >= 0){ MUSIC.objectiveSting(); patchUp(); }   // the last objective is done: this hero's own breather too
+    if (M.i >= 0){ MUSIC.objectiveSting(); patchUp(); endTwist(); }   // the last objective is done: this hero's own breather too
     M.i = ms.i;
   }
   if (ms.b && M.begun !== ms.i){
     M.begun = ms.i;
     M.o = forHero(M.def.objectives[ms.i]);
     say(M.o);
+    if (M.o.twist) beginTwist(M.o, true);   // the host's twist, on this screen too
   }
   M.net = ms;
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached
@@ -1140,6 +1173,8 @@ function updateMissionGuest(dt){
   updateBattleFx(dt);
   if (M.panelT > 0 && (M.panelT -= dt) <= 0) hidePanel();
   const ms = M.net;
+  guestCtx.frac = ms && ms.hud && ms.hud[1] >= 0 ? ms.hud[1] : guestCtx.frac;
+  updateTwist(dt, guestCtx);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);
   const k = 1 - Math.exp(-14 * dt), ang = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));

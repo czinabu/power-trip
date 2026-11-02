@@ -46,7 +46,7 @@ export const TROOPER_ACT_TWO_LABEL = { lothal: 'KAMINO FIRST' };
 export const TROOPER_CHAPTERS = {
   // ---------------- PROLOGUE: THE NIGHT OF THE ORDER (the trooper's own chapter: data/campaign.js, `story: 'trooper'`) ----------------
   order: {
-    brief: ['Eight years ago. A jungle firebase on the edge of the war, and a General we would have followed anywhere.',
+    brief: ['A firebase on the edge of the war, and a General we would have followed anywhere.',
             'At midnight the order came, and the company turned its rifles on the General. Vant, Brisk and you did not.'],
     lines: {
       duel: [rival(MARSHAL, 'You heard the order, brother. Same as I did. Step aside.')],

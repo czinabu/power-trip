@@ -52,7 +52,7 @@ export const ACT_TWO = {
 
 export const CHAPTERS = [
   // ---------------- PROLOGUE (the ARC trooper's story's own, testing: data/campaign-trooper.js has its words) ----------------
-  { id: 'order', act: 0, kind: 'mission', mission: 'order66', world: 'THE NIGHT OF THE ORDER, EIGHT YEARS AGO', story: 'trooper', prologue: true, steps: 0,
+  { id: 'order', act: 0, kind: 'mission', mission: 'order66', world: 'THE JUNGLE, EIGHT YEARS AGO', story: 'trooper', prologue: true, steps: 0,
     title: 'THE NIGHT OF THE ORDER',
     brief: { jedi: ['Eight years ago, in a jungle on the edge of the war, the order came.', 'Get the General out.'],
              mando: ['Eight years ago, in a jungle on the edge of the war, the order came.', 'Get the General out.'] },
@@ -62,7 +62,7 @@ export const CHAPTERS = [
   // ---------------- PROLOGUE (the Jedi's: data/campaign-jedi.js has its words) ----------------
   { id: 'last-lesson', act: 0, kind: 'mission', mission: 'last-lesson', world: 'JEDHA, THE NIGHT BEFORE', story: 'jedi', prologue: true, steps: 0,
     title: 'THE LAST LESSON',
-    brief: { jedi: ['Jedha, the night before the siege.', 'One more round with Ilsa before lights out.'], mando: ['Jedha, the night before the siege.', 'One more round with Ilsa before lights out.'] },
+    brief: { jedi: ['The temple is asleep, except for the dojo.', 'One more round with Ilsa before lights out.'], mando: ['The temple is asleep, except for the dojo.', 'One more round with Ilsa before lights out.'] },
     lines: { clear: { jedi: ['Lights out.'], mando: ['Lights out.'] } } },
   // ---------------- ACT I ----------------
   { id: 'siege', act: 0, kind: 'waves', level: 0, waves: [0, 2], world: 'JEDHA',

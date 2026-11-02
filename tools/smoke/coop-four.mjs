@@ -25,8 +25,10 @@ async function open(name){
           localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_camp_mando', '1'); } catch(e){}   // Survival unlocked
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
   });
-  await page.goto(url);
-  await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);
+  // four pages share the runner's CPU, and the three already open keep rendering their menus: the last one can take well
+  // over the default 30 s to load the 5 MB game, so give each its own longer allowance
+  await page.goto(url, { timeout: 120000 });
+  await page.waitForFunction(() => window.GAME && window.GAME.G, null, { ...poll, timeout: 120000 });
   return page;
 }
 const connected = (page) => page.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);

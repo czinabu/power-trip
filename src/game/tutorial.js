@@ -483,7 +483,7 @@ function updateDrills(dt){
   for (const k of now) if (!D.owned.has(k) && heroKey(DRILLS)[k]) D.queue.push(k);
   D.owned = now;
   if (G.skillSelect || dt <= 0) return;
-  if (!D.cur && D.queue.length){
+  if (!D.cur && D.queue.length && !(G.chapter >= 0 && G.chapterClosed === G.chapter)){   // (a power a chapter hands over at its close: tried once the next chapter's fight is on)
     const k = D.queue.shift(), d = heroKey(DRILLS)[k];
     // already in use (e.g. dual blasters equip themselves): count it as tried from the next use, not this one
     D.cur = { d, t: d.use ? 14 : 6, was: used(d.use), ok: false, okT: 0 };

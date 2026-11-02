@@ -15,11 +15,17 @@
 //              zones: [[x, z]…] the hold's zone, stage by stage · steps: [frac…] the hold's progress each stage ends at ·
 //              fronts: [z…] where the front stands at the start, at each step and at the end (it moves along z; from
 //              the lower end) · dps: hp a second it takes off a hero · foeDps: off a foe · line: { jedi, mando }
-// Nothing here changes how an objective is won: a twist is the weather it's won in.
+// …and the signature twists, one file each in game/twists/ (each file's header says what it does and what it takes):
+//   barrage (sabotage) · gap, stragglers, list, standard, pulse, vael, decompress, signal (hold) · stalker, cage,
+//   gunship (duel) · minefield, marked (escort) · searchlight, tide, stamp (sabotage) · rockslide, guns (capture)
+// A twist is mostly the weather an objective is won in, but a few lean on it: one can hold up its progress for a
+// while (twistGate: a ramp under rubble, a console under the sea, a searchlight's beam) or point the HUD's arrow
+// somewhere else (twistTarget: a child frozen off the path). The kit they're built from (props, telegraphs, events a
+// co-op guest is sent) is game/twists/kit.js.
 
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
-import { G, player, enemies, shared, isGunner, heroKey } from '../state.js';
+import { G, player, enemies, shared, isGunner } from '../state.js';
 import { V3, rand, clamp } from '../utils.js';
 import { playerPos } from '../player/helpers.js';
 import { hurtPlayer } from '../player/damage.js';
@@ -33,20 +39,19 @@ import { MOOD, setMood } from '../world/atmosphere.js';
 import { gust } from '../audio/director.js';
 import { sfx } from '../audio/sfx.js';
 
-const TW = { tw: null, o: null, t: 0, k: 0, fade: false, guest: false, lights: [], props: [], said: false, spot: 0 };
-const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
-const line = (tw) => tw.line ? heroKey(tw.line) : '';
+import { TW, smooth, line, updateEvents, clearEvents, eventsSnap, eventsSync, dispose } from './twists/kit.js';
+import { MORE } from './twists/index.js';
 
 /* ---------- the twists ---------- */
 const KINDS = {
   blackout: {
     mood: { fill: 0.15, sun: 0.04, rim: 0.6, sky: 0.2, near: 0.45, far: 0.6, blade: 1.8, fog: 0x080506 },
-    begin(){ TW.seen = -1; },
+    begin(){ TW.lit = -1; },
     update(tw, dt, ctx){
       const foe = ctx.foe && ctx.foe();
       if (!foe){ TW.k = 0; return; }
-      if (TW.seen < 0){ TW.seen = TW.t; }
-      const s = TW.t - TW.seen;
+      if (TW.lit < 0){ TW.lit = TW.t; }
+      const s = TW.t - TW.lit;
       // a beat in full light to see what it is, a flicker as the power fails, then dark for the rest of the fight
       if (s < 1.6) TW.k = 0;
       else if (s < 4.2){
@@ -98,6 +103,7 @@ const KINDS = {
   },
 
   heat: {
+    fadeOwn: true,   // (it drains away on its own as the objective ends: update keeps running)
     mood: { fill: 1.12, sun: 0.85, sky: 1.15, fog: 0x6a2a12 },
     begin(tw){
       // the flood: a glowing sheet over the floor up to the front, a bright lip at it and a warning band before it
@@ -157,36 +163,69 @@ const KINDS = {
   },
 };
 
+Object.assign(KINDS, MORE);   // the rest, one file each (game/twists/)
+
 /* ---------- the life of one ---------- */
-// an objective with a twist begins (host and guest alike)
-export function beginTwist(o, guest = false){
+// an objective with a twist begins (host and guest alike). ctx: what it can see of the mission (see updateTwist)
+export function beginTwist(o, guest = false, ctx = {}){
   endTwist(true);
   const tw = o && o.twist, K = tw && KINDS[tw.kind];
   if (!K) return;
-  Object.assign(TW, { tw, o, t: 0, k: 0, fade: false, guest, lights: [], props: [], said: false, spot: 0, seen: -1, flickT: 0, tinted: false });
-  setMood(typeof K.mood === 'function' ? K.mood(tw) : K.mood);
-  K.begin(tw);
+  Object.assign(TW, { tw, o, t: 0, k: 0, fade: false, guest, lights: [], props: [], said: false, spot: 0, lit: -1, flickT: 0, tinted: false, s: {} });
+  clearEvents();
+  setMood(typeof K.mood === 'function' ? K.mood(tw) : K.mood || null);
+  K.begin(tw, ctx);
 }
-// every frame of the mission. ctx: { guest, frac: the objective's progress 0..1, foe: () => the duel's foe (or null) }
+// every frame of the mission. ctx: { guest, frac: the objective's progress 0..1, foe: () => the duel's foe (or null),
+// o: the objective as this run plays it, s: its state (host), vip: the escort, mark(m) / unmark(m): put a marker of the
+// twist's on the mission's list (the HUD arrow points at it, and a co-op guest is sent it) }
 export function updateTwist(dt, ctx = {}){
   const tw = TW.tw;
   if (!tw) return;
   TW.t += dt;
   const K = KINDS[tw.kind];
-  if (TW.fade && tw.kind !== 'heat') TW.k = Math.max(0, TW.k - dt * 0.6);
+  if (TW.fade && !K.fadeOwn) TW.k = Math.max(0, TW.k - dt * 0.6);
   else K.update(tw, dt, ctx);
+  updateEvents(dt);
   MOOD.k = TW.k;
   for (const L of TW.lights) if (L && TW.fade) L.intensity *= Math.max(0, 1 - dt * 3);
-  if (TW.fade && TW.k <= 0) endTwist(true);
+  if (TW.fade && TW.k <= 0 && !TW.ev.length) endTwist(true);
 }
 // the objective is done: the twist eases off (hard: gone at once, when the mission ends or starts over)
 export function endTwist(hard = false){
   if (!TW.tw) return;
-  if (!hard){ TW.fade = true; return; }
+  const K = KINDS[TW.tw.kind];
+  if (!hard){ TW.fade = true; if (K.done) K.done(TW.tw); return; }
+  if (K.end) K.end(TW.tw);
+  clearEvents();
   for (const L of TW.lights) releasePoolLight(L);
-  for (const m of TW.props){ scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
-  Object.assign(TW, { tw: null, o: null, lights: [], props: [], k: 0, fade: false });
+  for (const m of TW.props){ scene.remove(m); dispose(m); }
+  Object.assign(TW, { tw: null, o: null, lights: [], props: [], k: 0, fade: false, s: {} });
   setMood(null);
 }
+// does the twist hold up the objective at (x, z) right now (a ramp under rubble, a console shorted by the sea)?
+// { rate: × its progress, status: the HUD's line instead, warn } or null. The objective kinds ask it (game/mission.js)
+export function twistGate(x, z, ctx){
+  const K = TW.tw && !TW.fade && KINDS[TW.tw.kind];
+  return K && K.gate ? K.gate(TW.tw, x, z, ctx) : null;
+}
+// somewhere the twist needs you more than the objective's own marker (a child frozen off the path): the HUD arrow's
+export function twistTarget(){
+  const K = TW.tw && !TW.fade && KINDS[TW.tw.kind];
+  return K && K.target ? K.target(TW.tw) : null;
+}
+// co-op: what a guest needs of it (the host's clock, the kind's own state, the live events), and the guest taking it
+export function twistSnap(){
+  if (!TW.tw) return null;
+  const K = KINDS[TW.tw.kind];
+  return { t: Math.round(TW.t * 100) / 100, f: TW.fade ? 1 : 0, s: K.snap ? K.snap(TW.tw) : null, e: eventsSnap() };
+}
+export function twistSync(w){
+  if (!TW.tw || !TW.guest || !w) return;
+  if (Math.abs(TW.t - w.t) > 0.4) TW.t = w.t;
+  const K = KINDS[TW.tw.kind];
+  if (K.sync && w.s != null) K.sync(TW.tw, w.s);
+  eventsSync(w.e);
+}
 // dev console / tests: what's running
-export const twistState = () => ({ kind: TW.tw ? TW.tw.kind : null, k: TW.k, t: TW.t, front: TW.front ?? null, fade: TW.fade });
+export const twistState = () => ({ kind: TW.tw ? TW.tw.kind : null, k: TW.k, t: TW.t, front: TW.front ?? null, fade: TW.fade, events: TW.evId, props: TW.props.length, s: TW.s });

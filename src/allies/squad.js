@@ -58,7 +58,7 @@ export const isFodder = e => !!FODDER[e.type] && !e.champion && !e.warbringer;
 export const squadSize = () => allies.length;
 export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
-export const squadIn = (x, z, r) => allies.filter(a => standing(a) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
+export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
 
 /* ============================================================
    CALLING THEM IN
@@ -697,6 +697,13 @@ function updateAlly(a, dt, medic, pp){
     return;
   }
   if (g.rotation.x !== 0) g.rotation.x += (0 - g.rotation.x) * Math.min(1, dt * 8);
+  // dazed (a mission twist's signal got into their heads): they stand where they are and sway till it passes
+  if (a.dazeT > G.gt){
+    g.rotation.z = Math.sin(G.gt * 2.6 + a.slot) * 0.12;
+    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    return;
+  }
+  if (g.rotation.z) g.rotation.z = 0;
   // recover out of the fight
   if (G.gt - a.hitAt > SQUAD.regenDelay) a.hp = Math.min(a.maxHp, a.hp + SQUAD.regen * dt);
   if (a.role.heal) medicTend(a, dt, pp);   // the ARC trooper's MEDIC patches whoever is near

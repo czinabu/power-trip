@@ -85,11 +85,17 @@ export function updateOnSet(dt){
   }
   if (!S.figs.length || dt <= 0) return;
   const pp = playerPos(), who = commsShowing() ? commsSpeaker() : null;
+  // (a figure nobody can see doesn't spend the frame: its idle, face and cloth wait until it's back in view, then catch up
+  // in one short step. A slow machine shouldn't pay for scenery behind the camera)
   for (const F of S.figs){
+    F.idle = (F.idle || 0) + dt;
     if (Math.hypot(F.g.position.x - pp.x, F.g.position.z - pp.z) > STAY.far) continue;
+    _v.set(F.g.position.x, F.g.position.y + 1.2, F.g.position.z).project(camera);
+    if (!(_v.z < 1 && Math.abs(_v.x) < 1.2 && Math.abs(_v.y) < 1.3)) continue;
     F.look = pp;
     F.talk = who === F.name;   // their own line on the strip (a walk-up line, or the voice's word): they say it with their hands
-    stepFigure(F, dt);
+    stepFigure(F, Math.min(F.idle, 0.1));
+    F.idle = 0;
   }
 }
 

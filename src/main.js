@@ -94,6 +94,7 @@ import './data/difficulty.js';
 import './engine/input.js';
 import './engine/gamepad.js';
 import { updateCamera } from './engine/camera.js';
+import { updateCharFade, charFadeState, CHAR_SEE } from './world/charfade.js';
 import { updateCutscene } from './game/cutscene.js';
 import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist } from './enemies/nav.js';
@@ -180,6 +181,8 @@ function tick(){
   updateVFX(dt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
+  // squadmates, foes, a boss or a partner standing between the lens and the hero turn see-through (world/charfade.js)
+  { const pp = player.group.position; updateCharFade(camera.position, pp.x, pp.y, pp.z, rawDt, G.mode === 'play' && !G.cutscene && !G.paused && !G.sbPlan && !G.sbMenu); }
   MUSIC.updateState();   // adaptive score follows the fight (menu → combat → boss surge → victory/death)
   updateAudio(rawDt);    // saber hum, jetpack, flamethrower, ambience, muffle
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
@@ -191,7 +194,7 @@ tick();
 /* expose configs + API for live tweaking and future edits (dev console) */
 window.GAME = { shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
-  openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE,
+  openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,
   spawnBoss, updateBoss, bossStagger, BOSS_CFG, BOSS_MANDO, rings,
   BOONS, BOON_BY_ID, rollBoons, pickBoon, hurtPlayer, abil, MASTERY_JEDI, MASTERY_MANDO, trainAbility, masteryNext, earnWavePoint,

@@ -2,6 +2,7 @@
 // THE CODEX: one entry for every foe the hero can meet (ui/codex-ui.js shows them, game/codex.js unlocks them).
 
 import { PURGE, DRILL, MARSHAL, SQUAD } from './allies.js';
+import { FAMILIES, FORM_FAMILY, NAMED_FORMS, FOE_FORMS, BOSS_FORM } from './foe-forms.js';
 
 /* Every entry is short on purpose: a lore line, what it carries, two things to watch for and two ways to beat it.
    Counters name actions (PARRY, KICK, PUSH, DASH, BRACE), never keys, so they read the same on a keyboard, a pad or a phone.
@@ -75,7 +76,7 @@ const TROOPS = [
     lore: 'An old war droid with a spinning electrostaff.',
     weapons: ['Electrostaff'],
     watch: ['The pale arc shows the side it guards', 'Mash and it parries you'],
-    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike'] },
+    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', 'Its staff is a SPEED form: a GUARD form (Soresu, Makashi, Vaapad) counters it'] },
   { id: 'brute', name: 'BRUTE', kicker: 'HEAVY', threat: 3,
     lore: 'A wall of muscle and plate behind a vibro-maul.',
     weapons: ['Vibro-maul'],
@@ -84,11 +85,19 @@ const TROOPS = [
   { id: 'acolyte', name: 'SITH ACOLYTE', kicker: 'SABER DUELIST', threat: 4,
     lore: 'Trained in the dark side\'s blade. No two wear the same face.',
     weapons: ['Lightsaber'],
-    watch: ['Feints, strings cuts and binds blades in a lock', 'Bats blaster fire back at you'],
-    beat: ['Read its guard and cut the open line', 'Space your cuts: mashing gets parried'] },
+    watch: ['Feints, strings cuts and binds blades in a lock', 'Bats blaster fire back at you', 'Fights in one of the forms (the tag over its head): Shii-Cho early, any form later'],
+    beat: ['Read its guard and cut the open line', 'Space your cuts: mashing gets parried', 'Switch to the form that counters its own: the tag shows ▲ when you have it'] },
 ].map(e => ({ ...e, tab: 'troops', kind: 'type' }));
 
-// how a form master fights (data/duel.js FORM_DUEL)
+/* the form counter (data/foe-forms.js): which family of forms beats a duellist's form, as a codex line */
+const FAMILY_FORMS = { power: 'Djem So, Shien', guard: 'Soresu, Makashi, Vaapad', speed: 'Shii-Cho, Ataru, Juyo' };
+function counterLine(form){
+  const fam = FORM_FAMILY[form];
+  if (!fam) return null;
+  const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam);
+  return `Its form is ${FAMILIES[fam].name}: a ${FAMILIES[by].name} form counters it (${FAMILY_FORMS[by]})`;
+}
+// how a form master fights (data/foe-forms.js FORM_STYLE)
 const FORM = {
   soresu: { watch: ['Turns nearly every cut and sends every bolt home', 'Each cut it blocks costs you stamina'],
             beat: ['Do not trade into its guard: wait for an opening', 'Break the guard, then punish hard'] },
@@ -160,7 +169,9 @@ const DUELISTS = [
     lore: 'Beskar to beskar, for the clan\'s honour.' },
 ].map(e => {
   const base = TROOPS.find(t => t.id === e.foe), F = e.form && FORM[e.form];
-  return { weapons: base.weapons, watch: (F || base).watch, beat: (F || base).beat, ...e, tab: 'duelists', kind: 'named' };
+  const ff = e.form || (NAMED_FORMS[e.name] && NAMED_FORMS[e.name].form) || (FOE_FORMS[e.foe] && FOE_FORMS[e.foe].form), c = counterLine(ff);
+  const beat = (F || base).beat;
+  return { weapons: base.weapons, watch: (F || base).watch, ...e, beat: c ? [...beat, c] : beat, tab: 'duelists', kind: 'named' };
 });
 
 const BOSSES = [
@@ -173,7 +184,7 @@ const BOSSES = [
     lore: 'The Sith lord waiting at the end of the Jedi\'s road.',
     weapons: ['Lightsaber', 'Force lightning'],
     watch: ['Chains of three cuts, the last always an overhead', 'Lightning, shockwave rings, and a dark blink if you run'],
-    beat: ['PARRY the last cut of a chain to break him open', 'Guard to catch the lightning, or PUSH it back for a huge hit'] },
+    beat: ['PARRY the last cut of a chain to break him open', 'Guard to catch the lightning, or PUSH it back for a huge hit', counterLine(BOSS_FORM.sith.form)] },
   { id: 'magistrate', kind: 'boss', boss: 'mando', name: 'THE IRON MAGISTRATE', kicker: 'WARLORD OF THE OUTER RIM', threat: 5,
     lore: 'A beskar warlord built to beat a hunter at the hunter\'s game.',
     weapons: ['Blaster barrage', 'Jetpack', 'Beskar armour'],

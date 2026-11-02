@@ -9,8 +9,8 @@ import { scene } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
 import { V3 } from '../utils.js';
-import { FORM_DUEL } from '../data/duel.js';
 import { initDuel } from '../enemies/duel.js';
+import { namedForm, setFoeForm } from '../enemies/foeform.js';
 import { STANCES } from '../data/stances.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
@@ -1099,14 +1099,17 @@ function spawnInquisitor(o, at = o.at, opts = {}){
   const look = e.group.userData.look;
   e.hp = e.maxHp = Math.round(e.hp * o.hp * heroScale(SCALE.bossHp, heroesHere()));
   e.t = { ...e.t, dmg: e.t.dmg * o.dmg, score: 20 };   // a copy: never mutate the shared type
-  // a FORM MASTER (the trials): it fights in the form it teaches (data/duel.js FORM_DUEL), its blade in that form's colour
-  const F = o.form && e.dp && FORM_DUEL[o.form];
-  if (F){
+  // every named duellist fights in a form at a rank (data/foe-forms.js NAMED_FORMS): its mission's form (a trial's FORM MASTER, its blade in that form's colour), else its name's
+  if (e.dp && e.ff){
+    const N = namedForm(o, o.foe);
+    setFoeForm(e, N.form, N.rank);
+    initDuel(e, { ...N.profile, ...(e.t.weapon === 'saber' ? {} : { deflect: 0 }), ...o.duel });
+  } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
+  if (o.form && e.dp && STANCES[o.form]){
     e.form = o.form;
-    initDuel(e, { ...F, ...o.duel });
     const glow = e.group.userData.bladeGlow;
     if (glow) glow.material.color.setHex(masterBlade(look, STANCES[o.form].blade));   // (an enemy master still burns red)
-  } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
+  }
   e.group.scale.multiplyScalar(o.scale);
   if (!look && !o.dress) e.group.userData.bodyMat.color.lerp(new THREE.Color(o.tint), 0.5);   // (a cast look, or a dress, wears its own colours)
   makeBossBar(e);

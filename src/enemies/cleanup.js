@@ -11,6 +11,7 @@ import { cleanupTactics, dropLungeLine } from './tactics.js';
 export function hideIndicators(e){
   if (e.hpBar) e.hpBar.visible = false;
   if (e.postBar) e.postBar.visible = false;
+  if (e.formTag) e.formTag.visible = false;
   if (e.aimLine) e.aimLine.visible = false;
   dropLungeLine(e);
 }

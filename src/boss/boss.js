@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Darth Vexis: build, spawn, damage, stagger, AI, shockwave rings.
 
+import { bossForm, updateFormTag } from '../enemies/foeform.js';
 import { blastAllies, ringAllies } from '../allies/squad.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
@@ -62,6 +63,7 @@ export function spawnBoss(){
     lightT: 0, lightCatch: 0, lightTick: 0,
     staggerImmuneT: 0, staggerCount: 0, blinked: false, volleyLeft: 0, enraged: false,   // anti-cheese + new-attack bookkeeping
   };
+  bossForm(shared.boss);   // Darth Vexis fights in a form (data/foe-forms.js BOSS_FORM): the form counter applies to him too
   const name = mando ? BOSS_MANDO.name : BOSS_CFG.name;
   document.getElementById('bossname').textContent = name;
   document.getElementById('bosswrap').style.display = 'block';
@@ -200,8 +202,14 @@ function bossHero(b){
   b.hero = best || localPlayer;
   return b.hero;
 }
+// his form and rank over his head while you're near him (enemies/foeform.js)
+function bossTag(){
+  const b = shared.boss, p = playerPos(), g = b.group;
+  updateFormTag(b, b.hp > 0 && b.state !== 'dying' && b.state !== 'intro' && Math.hypot(p.x - g.position.x, p.z - g.position.z) < 16, 3.4);
+}
 export function updateBoss(dt){
   if (!shared.boss) return;
+  bossTag();
   if (shared.boss.net){ updateBossPuppet(dt); return; }
   const hero = bossHero(shared.boss), remote = !hero.local;
   const g = shared.boss.group, pp = hero.pos;
@@ -648,6 +656,7 @@ export function makeBossPuppet(kind, hp, maxHp){
   scene.add(g);
   shared.boss = { net: true, nid: 'B', group: g, hp, maxHp, phase: 1, kind, state: 'intro', st: 0, flash: 0, enraged: false,
     want: { pos: V3(0, 0, 0), rx: 0, ry: 0, rz: 0 }, hand: 0, eyes: 1, em: 0, ei: 0, tp: null };
+  bossForm(shared.boss);
   document.getElementById('bossname').textContent = kind === 'mando' ? BOSS_MANDO.name : BOSS_CFG.name;
   document.getElementById('bosswrap').style.display = 'block';
   showBanner(kind === 'mando' ? 'THE IRON MAGISTRATE' : 'DARTH VEXIS', 'Fighting alongside the host.', 3);

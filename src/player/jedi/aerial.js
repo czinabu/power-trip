@@ -6,6 +6,7 @@
 import { CFG } from '../../data/config.js';
 import { stamDelay } from '../stamina.js';
 import { SWING_PATTERNS, backLineMul, swordMul } from '../../data/stances.js';
+import { edgeMul } from '../../enemies/foeform.js';
 import { furyMul } from './fury.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3, clamp, TMP } from '../../utils.js';
@@ -102,10 +103,10 @@ function strike(pp, tgt){
   const dmg = CFG.player.comboDamage[2] * st.dmg * player.up.dmg * focusDmgMul() * AIR_CUT.dmgMul * (st.airCutDmg || 1) * furyMul();   // (Ataru's air cuts land harder)
   const knock = AIR_CUT.knock * st.knock * player.up.knock;
   let hit = false;
-  if (tgt && tgt === shared.boss){ damageBoss(dmg * st.heavyDmg); scarBody(tgt.group, dir, 'neutral', true); hit = true; }
+  if (tgt && tgt === shared.boss){ damageBoss(dmg * st.heavyDmg * edgeMul(tgt)); scarBody(tgt.group, dir, 'neutral', true); hit = true; }
   else if (tgt){
     if (isGuarding(tgt)) guardImpact(tgt, DUEL.posture.charge);   // the weight of the fall cracks a guard
-    damageEnemy(tgt, dmg * (tgt.t.heavy ? st.heavyDmg : 1) * backLineMul(st, tgt) * swordMul(st, tgt), dir.clone(), knock, true, false, { shove: CFG.player.saberShove.max, blade: true });   // (a blade's short shove: config saberShove)
+    damageEnemy(tgt, dmg * (tgt.t.heavy ? st.heavyDmg : 1) * backLineMul(st, tgt) * swordMul(st, tgt) * edgeMul(tgt), dir.clone(), knock, true, false, { shove: CFG.player.saberShove.max, blade: true });   // (a blade's short shove: config saberShove)
     scarBody(tgt.group, dir, 'neutral', true);   // the falling cut burns its line in (enemies/scars.js)
     if (tgt.dead) severLimbs(tgt, dir, 0.7);
     if (!tgt.dead) flinchEnemy(tgt, dir, 0.7);   // rocked back, not floored: you still have to finish it

@@ -195,13 +195,14 @@ let focus = null;
 const stack = [];   // where the ring was before a panel opened over it, to come back to when it closes
 const navHold = { dir: null, t: 0 };
 let checkT = 0;
+let focusAt = null;   // where the ring sat on screen: a panel that redraws itself (a pick re-renders it) keeps the ring in place
 
 function clearFocus(){ if (focus) focus.classList.remove('padfocus'); focus = null; }
 function setFocus(el){
   if (focus === el) return;
   if (focus) focus.classList.remove('padfocus');
   focus = el;
-  if (el){ el.classList.add('padfocus'); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+  if (el){ el.classList.add('padfocus'); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = el.getBoundingClientRect(); focusAt = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
 }
 function navReset(){ navHold.dir = null; }
 
@@ -254,6 +255,15 @@ function defaultFocus(list){
 }
 function ensureFocus(list){
   if (valid(focus, list)) return;
+  if (focus && !focus.isConnected && focusAt){   // redrawn under the ring: whatever now stands where it was
+    let best = null, bd = 48;   // the nearest within a step, or one now covering that spot (an emptied slot under its ✕)
+    for (const el of list){
+      const r = el.getBoundingClientRect(), on = focusAt.x >= r.left && focusAt.x <= r.right && focusAt.y >= r.top && focusAt.y <= r.bottom;
+      const d = on ? 0 : Math.hypot(r.left + r.width / 2 - focusAt.x, r.top + r.height / 2 - focusAt.y);
+      if (d < bd){ bd = d; best = el; }
+    }
+    if (best){ focus = null; setFocus(best); return; }
+  }
   while (stack.length){ const el = stack.pop(); if (valid(el, list)){ setFocus(el); return; } }
   if (focus && focus.isConnected) stack.push(focus);   // a panel opened over it: come back here when it closes
   setFocus(defaultFocus(list));
@@ -286,7 +296,7 @@ function slide(dir){
   sl.dispatchEvent(new Event('change', { bubbles: true }));
   return true;
 }
-const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms'].some(id => document.getElementById(id).classList.contains('open')) ||
+const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex'].some(id => document.getElementById(id).classList.contains('open')) ||
   sandboxOpen() || /\b(confirming|newconfirming|asktrain|customizing)\b/.test(overlay.className);
 
 function menu(btn, down, lx, ly, ry, dt){
@@ -297,7 +307,7 @@ function menu(btn, down, lx, ly, ry, dt){
   if (dir !== navHold.dir){ navHold.dir = dir; navHold.t = PAD_TUNE.navRepeat[0]; if (dir) step(dir); }
   else if (dir && (navHold.t -= dt) <= 0){ navHold.t = PAD_TUNE.navRepeat[1]; step(dir); }
 
-  if (G.cutscene) holdSkip(!!btn[0]);   // A — HOLD to skip a cutscene (game/cutscene.js: it's jump too, so a tap won't)
+  if (G.cutscene){ if (down(0)) holdSkip(true); else if (!btn[0]) holdSkip(false); }   // A — tap: the next line of a cutscene; hold: skip it (game/cutscene.js)
   else if (down(0)){   // A — pick
     const list = candidates(); ensureFocus(list);
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }

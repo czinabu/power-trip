@@ -3,13 +3,19 @@
 // the AUTO save slot (game/saves.js) and blinks a small SAVING note. Same in every mode and in co-op (a guest keeps its progress, not the host's run).
 
 import { writeSlot, AUTO } from './saves.js';
+import { G } from '../state.js';
 
 const note = document.getElementById('autosave');
 let lastAt = -1e9, hideT = 0;
 
 // reason names the trigger for whoever reads the call site; opts.finished drops the saved run (the campaign was won)
 // (a beat late, so the level or chapter that is starting has finished setting itself up)
-export function autosave(reason, opts = {}){ setTimeout(() => write(opts), 300); }
+// opts.notAtClose: skip it while a chapter has just been won (a form or gun it hands over, shown at its close): a save there would
+// load back into the chapter just cleared; the next chapter's own checkpoint saves it all a moment later
+export function autosave(reason, opts = {}){
+  if (opts.notAtClose && G.chapter >= 0 && G.chapterClosed === G.chapter) return;
+  setTimeout(() => write(opts), 300);
+}
 function write(opts){
   const now = performance.now();
   if (now - lastAt < 1500 && !opts.finished) return;   // a checkpoint and an unlock landing together save once

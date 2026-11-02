@@ -27,13 +27,16 @@ export const TROOPER_WEAPONS = {
    TROOPER_AUTO: `unlock` is the G.unlocked key). The heat stays with the gun through a swap.
      burst     the stock rifle (above): a three-bolt burst a click
      auto      AUTO BARREL: hold LMB to fire, lighter bolts, more heat and a wider cone: the crowd and suppression module
-     marksman  MARKSMAN SCOPE: one heavy bolt a click with a long reach; RMB raises the scope (zoomed, dead steady) */
+     marksman  MARKSMAN SCOPE: one heavy bolt a click with a long reach; RMB raises the scope (zoomed, dead steady)
+   Each also changes the gun you see (model/weapons.js dc15: its module parts) and the shot you feel:
+     size  the bolt's thickness · kick  the recoil · chatter  a light, quick report · heavy  a deep crack and more shake */
 export const RIFLE_MODS = {
   burst:    { label: 'BURST' },
   auto:     { label: 'AUTO BARREL', unlock: 'modAuto', fire: 'auto', fireCd: 0.1, dmg: 11, heat: 0.036, cool: 0.55, overCool: 0.42,
-              hipSpread: 0.022, braceSpread: 0.009, foStart: 16, foEnd: 38 },
+              hipSpread: 0.022, braceSpread: 0.009, foStart: 16, foEnd: 38, size: 1.15, kick: 0.14, chatter: true },
   marksman: { label: 'MARKSMAN SCOPE', unlock: 'modScope', fire: 'semi', fireCd: 0.8, dmg: 58, heat: 0.2, cool: 0.55, overCool: 0.42,
-              hipSpread: 0.012, braceSpread: 0, braceDmg: 1.25, foStart: 40, foEnd: 80, foMin: 0.8, scope: true, vent: 0.6 },
+              hipSpread: 0.012, braceSpread: 0, braceDmg: 1.25, foStart: 40, foEnd: 80, foMin: 0.8, scope: true, vent: 0.6,
+              size: 2.4, kick: 0.6, heavy: true, col: 0xa8ecff },
 };
 export const RIFLE_MOD_ORDER = ['burst', 'auto', 'marksman'];
 { const R = TROOPER_WEAPONS.rifle;   // each module as a whole weapon (mando/weapons.js mandoWeapon returns it while it's fitted)

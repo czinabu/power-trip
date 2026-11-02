@@ -2,8 +2,9 @@
 // CUTSCENES: short in-engine scenes in the campaign and the missions (their words: data/cutscenes.js). A scene is a run of
 // shots: the lens eases from one spot to another around the hero, a spot on the field or an actor (a stand-in figure that
 // walks on, or a foe already there), with a line of dialogue or a title under a letterbox. The fight holds still while one
-// plays (in co-op, the host's foes hold for both heroes), the hero idles, and Enter (or holding Space, a pad's A or MENU)
-// skips. In co-op a skip is a vote: the scene ends once everyone watching it has pressed skip (skipping below).
+// plays (in co-op, the host's foes hold for both heroes), the hero idles. A tap of Space (or Enter, or a pad's A) moves on
+// to the next line; holding it (or a pad's MENU) skips the whole scene. In co-op a skip is a vote: the scene ends once
+// everyone watching it has asked to skip (skipping below).
 //
 // Who calls what: game/campaign.js plays a chapter's opening when its card closes, game/mission.js a duel's entrance
 // before its foe steps in, game/flow.js the boss's arrival on Exegol. Anything else plays a SCENES entry by id.
@@ -37,6 +38,7 @@ import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
 import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
+import { meetNamed } from './codex.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -50,7 +52,8 @@ el.innerHTML = '<div class="cs-bar top"></div><div class="cs-bar bot"></div>' +
   '<div class="cs-title"><div class="cs-k"></div><div class="cs-h"></div><div class="cs-p"></div></div>' +
   '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div>' +
   '<div class="cs-where"></div><div class="cs-goal"><div class="cs-gk">OBJECTIVE</div><div class="cs-gh"></div></div>' +
-  '<div class="cs-skip"><span class="cs-sk"></span><i class="cs-fill"></i><div class="cs-vote"></div></div>';
+  '<div class="cs-skip"><svg class="cs-ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="8"/>' +
+  '<circle class="fg" cx="10" cy="10" r="8"/></svg><span class="cs-sk"></span><div class="cs-vote"></div></div>';
 document.body.appendChild(el);
 el.style.setProperty('--bars', (CUT.bars * 100) + 'vh');
 const $ = (c) => el.querySelector(c);
@@ -197,7 +200,8 @@ const shot = (on, from, to, t, look, extra = {}) => ({ on, from, to, t, look, ..
 function heroLines(lines, side = 1){
   return lines.map((ln, k) => {
     const s = (k % 2 ? -1 : 1) * side;
-    return shot('hero', [0.6 * s, 3.4, 1.55], [0.42 * s, 2.9, 1.6], lineTime(ln), { on: 'hero', h: 1.45 }, { line: ln, mirror: true });
+    // (framed off the hero's eyes, not a fixed height: a hero standing at ease would put the head under the letterbox)
+    return shot('hero', [0.6 * s, 3.4, -0.12], [0.42 * s, 2.9, -0.08], lineTime(ln), { on: 'hero', h: -0.22, eye: true }, { line: ln, mirror: true, eye: true });
   });
 }
 function actorLines(lines, who){
@@ -285,7 +289,7 @@ function start(opts){
   if (opts.face === 'actor'){ const g = opts.actors[0].g.position; opts.face = [g.x, g.z]; }   // (where it stands now: makeRoom)
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
-                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null });
+                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null, at: performance.now() });
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
   G.cutscene = true;
@@ -298,7 +302,7 @@ function start(opts){
   el.classList.add('on'); el.classList.toggle('mando', isGunner()); el.classList.toggle('one', !!C.one);
   el.style.setProperty('--bars', C.one ? '0vh' : (CUT.bars * 100) + 'vh');   // (no letterbox on a scene without cuts)
   skipHint();
-  holdSkip(false);
+  holdSkip(false, true);
   voted = false; lastTally = null; showVote(null);
   if (net.role === 'host' && connected()) tally();   // (a guest may already be asking to skip what they're watching)
   if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share });
@@ -335,7 +339,7 @@ export function skipScene(){
   if (C.on) showVote(lastTally);
 }
 const padUsed = () => document.body.classList.contains('pad');
-const skipHint = () => { $('.cs-sk').innerHTML = padUsed() ? 'hold <b>A</b> to skip' : '<b>ENTER</b> skip · hold <b>SPACE</b>'; };
+const skipHint = () => { $('.cs-sk').innerHTML = padUsed() ? '<b>A</b> next · hold <b>A</b> to skip' : '<b>SPACE</b> next · hold to skip'; };
 
 /* ---------- the subtitle and the title ---------- */
 function setLine(ln, comms = false){
@@ -474,7 +478,7 @@ export function updateCutscene(){
   lastAt = now;
   if (!C.on) return;
   if (G.mode !== 'play'){ finish(false); return; }
-  if (G.paused){ holdSkip(false); return; }   // the pause screen's own cuts take the lens until it closes
+  if (G.paused){ holdSkip(false, true); return; }   // the pause screen's own cuts take the lens until it closes
   stepHold(dt);
   if (!C.on) return;
   const s = C.shots[C.i];
@@ -693,17 +697,19 @@ function setShots(lines, plan, who2i, sideOf, where){
 }
 // the end of a chapter's opening: the lens rises behind the hero and looks out over the field, and the objective comes up
 // (from wherever behind the hero has a clear line: a shop wall or a crate stack behind them swings the lens round, or in)
+// where the goal shot's lens comes down to: never under the head of a hero standing at ease, or a close one crops it
+const goalLow = (d) => Math.max(2.45, d * 0.36);
 function goalShot(goal, yaw){
   const pp = playerPos();
   const clear = (a, d, h) => lensView(pp.x, pp.y + 1.5, pp.z, pp.x + Math.sin(yaw + a) * d, pp.y + h, pp.z + Math.cos(yaw + a) * d);
   let best = null, bestK = -1;
   search: for (const d of [7.2, 5.6, 4.4]) for (const a of [0.55, -0.55, 0.3, -0.3, 0.85, -0.85, 0]){
-    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, d * 0.36), clear(Math.PI + a * 0.6, d * 0.87, d * 0.43));
+    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, goalLow(d)), clear(Math.PI + a * 0.6, d * 0.87, (d * 0.5 + goalLow(d)) / 2));
     if (k > bestK){ bestK = k; best = [a, d]; }
     if (k > 0.98) break search;
   }
   const [a, d] = best;
-  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, d * 0.36], Math.max(3.6, goal.length / CUT.readRate + 1.6),
+  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, goalLow(d)], Math.max(3.6, goal.length / CUT.readRate + 1.6),
     { on: 'hero', ahead: 12, h: 1.0 }, { goal, dropCast: true, kind: 'goal', faceYaw: yaw });
 }
 
@@ -871,35 +877,62 @@ export function playScene(id, opts = {}){
 }
 
 /* ---------- skipping ---------- */
-// Enter (and a pad's MENU) skips at once: nobody presses it by accident. Space (and a pad's A) is jump too, and mashing
-// jump as a fight ends shouldn't throw away a scene nobody has seen: it has to be HELD (SKIP_HOLD seconds, the hint fills).
-// Esc doesn't skip: it pauses, and the scene waits under the pause screen.
-const SKIP_HOLD = 0.6;
-const hold = { on: false, t: 0 };
-export function holdSkip(on){
+// One key does both: a TAP of Space (or Enter, or a pad's A) moves on to the next line; HOLDING it for SKIP_HOLD seconds
+// (the ring fills) skips the whole scene. A pad's MENU skips at once. A press let go after TAP_MAX seconds was the start
+// of a hold that changed its mind: it does nothing. Space and A are jump too, so taps in the scene's first FIRST_GUARD
+// seconds don't count (mashing jump as a fight ends shouldn't eat the first line), and a press that began before the
+// scene did is never read. Esc doesn't skip: it pauses, and the scene waits under the pause screen.
+// In co-op a tap only moves this player's own copy of the scene on; the hold is the skip vote (skipping below).
+const SKIP_HOLD = 0.7, TAP_MAX = 0.3, FIRST_GUARD = 0.35, RING = 2 * Math.PI * 8;
+const hold = { on: false, at: 0, t: 0 };   // t: the ring's fill (0..1), which drains back when the key is let go early
+// (both timed on the wall clock, not by frames: a slow frame can't stretch a hold or turn a tap into one)
+const since = (at) => (performance.now() - at) / 1000;
+// on: the key (or A) is down. quiet: let go without counting it as a tap (a pause, a new scene)
+export function holdSkip(on, quiet){
   if (!C.on){ hold.on = false; hold.t = 0; return; }
-  if (on && !hold.on) hold.t = 0;
+  if (on && !hold.on){ hold.at = performance.now(); hold.t = 0; }
+  if (!on && hold.on && !quiet){
+    const held = since(hold.at);
+    if (held >= SKIP_HOLD){ hold.on = false; hold.t = 0; el.classList.remove('holding'); skipScene(); return; }   // (held long enough between two frames)
+    if (held < TAP_MAX && since(C.at) >= FIRST_GUARD) nextLine();
+  }
   hold.on = !!on;
-  el.classList.toggle('holding', hold.on);
+  if (!hold.on) el.classList.remove('holding');
 }
 function stepHold(dt){
-  if (!hold.on){ hold.t = Math.max(0, hold.t - dt * 3); }
-  else if ((hold.t += dt) >= SKIP_HOLD){ hold.on = false; hold.t = 0; el.classList.remove('holding'); skipScene(); return; }
-  $('.cs-fill').style.transform = 'scaleX(' + (hold.t / SKIP_HOLD).toFixed(3) + ')';
+  if (!hold.on){ hold.t = Math.max(0, hold.t - dt * 3 / SKIP_HOLD); }
+  else {
+    const held = since(hold.at);
+    hold.t = Math.min(1, held / SKIP_HOLD);
+    if (held >= TAP_MAX * 0.5) el.classList.add('holding');   // (a tap never flashes the ring)
+    if (held >= SKIP_HOLD){ hold.on = false; hold.t = 0; el.classList.remove('holding'); skipScene(); return; }
+  }
+  $('.cs-ring .fg').style.strokeDashoffset = (RING * (1 - hold.t)).toFixed(2);
+}
+// a tap: on to the next beat (the next shot with a different line, a title or the objective). The shots in between still
+// play their cues (who stands where, who the hero faces, the cast leaving), just without their time on screen.
+// Past the last beat the scene ends as if it had played out (not a skip: in co-op nobody else's copy is cut short).
+export function nextLine(){
+  if (!C.on) return;
+  const cur = C.shots[C.i];
+  let j = C.i + 1;
+  while (j < C.shots.length && cur.line && C.shots[j].line === cur.line && !C.shots[j].title && !C.shots[j].goal) j++;
+  if (j >= C.shots.length){ finish(false); return; }
+  while (C.i < j){ C.i++; C.t = 0; showShot(); }
 }
 window.addEventListener('keydown', (e) => {
   if (!C.on || (e.key !== 'Enter' && e.key !== ' ')) return;
   e.preventDefault(); e.stopPropagation();
   if (e.repeat) return;
-  if (e.key === 'Enter') skipScene(); else holdSkip(true);
+  holdSkip(true);
 }, true);
-window.addEventListener('keyup', (e) => { if (e.key === ' ') holdSkip(false); }, true);
+window.addEventListener('keyup', (e) => { if (e.key === 'Enter' || e.key === ' ') holdSkip(false); }, true);   // (the key's own release still reaches the game)
 
 /* ---------- co-op: the host's scenes play for the guest too; either side's skip ends both; foes hold while either watches ---------- */
 on('csp', (m) => {
   if (net.role !== 'guest' || !m.s || C.on || G.cardUp || G.mode !== 'play') return;
   const s = m.s;
-  if (s.k === 'duel') playDuelIntro(s.spec, false);
+  if (s.k === 'duel'){ playDuelIntro(s.spec, false); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
   else if (s.k === 'boss') setTimeout(() => playBossIntro(false), 120);   // (the boss's puppet lands with the host's next snapshot)
   else if (s.k === 'scene') playScene(s.id, { mark: s.mark, share: false });
 });
@@ -962,6 +995,6 @@ function showVote(t){
   box.innerHTML = html;
   box.classList.add('on');
   el.classList.toggle('voted', voted);
-  $('.cs-sk').innerHTML = voted ? 'skip asked' : padUsed() ? 'hold <b>A</b> to agree' : '<b>ENTER</b> to agree';
+  $('.cs-sk').innerHTML = voted ? 'skip asked' : padUsed() ? 'hold <b>A</b> to agree' : 'hold <b>SPACE</b> to agree';
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

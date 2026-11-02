@@ -121,7 +121,7 @@ const pending = [];
 setArmoryPickHook((id) => { if (!pending.includes(id)) pending.push(id); });
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickArmory(){
-  if (!pending.length || armoryPickUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
+  if (!pending.length || armoryPickUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   const id = pending.shift();
   const known = ARMORY_ORDER.filter(w => weaponOwned(w));
   ctx = { mode: 'pick', panel: runPanel, edit: true, known, kit: { ...kitOf() }, fresh: id, focus: id,
@@ -142,7 +142,7 @@ function closeRun(quiet){
 }
 function carry(){
   setKit(ctx.kit);
-  autosave('armory');
+  autosave('armory', { notAtClose: true });
   closeRun();
   if (pending.length) tickArmory();
 }

@@ -6,8 +6,14 @@
 //   kind 'color' draws round swatches (`sw` is the swatch colour, or the first palette colour when left out)
 //   kind 'part'  draws named chips
 // Add an option: append it to a row. Add an outfit piece: write the variant in jedi.js / mando.js, then name it here.
+// `unlock: '<chapter id>'` (data/campaign.js) keeps an option locked until that chapter of the hero's own campaign is
+// cleared, and it is announced at that chapter's close; `unlock: 'won'` until the hero's campaign is beaten. An option
+// with no `unlock` is open from the start (the body: skin, hair, face, eyes, build; and each row's basics). A row's
+// first OPEN option is what a hero wears when nothing open is picked, so a row's first option, once earned, goes on by
+// itself (the trooper's ARC kit at his promotion, the Mando's cape and pauldrons). game/wardrobe.js keeps the ledger.
 
 import { mergeLook } from '../player/model/appearance.js';
+import { optionOpen } from '../game/wardrobe.js';
 
 const pal = (palette) => ({ palette });
 const parts = (p) => ({ parts: p });
@@ -55,39 +61,39 @@ export const CUSTOMIZE = {
       { id: 'green', name: 'Green', set: pal({ eyes: 0x2f5a34 }) },
       { id: 'blue',  name: 'Blue',  set: pal({ eyes: 0x2c5a8a }) },
       { id: 'grey',  name: 'Grey',  set: pal({ eyes: 0x5e6670 }) },
-      { id: 'sith',  name: 'Sith gold', set: pal({ eyes: 0xd8a020 }) },
+      { id: 'sith',  name: 'Sith gold', set: pal({ eyes: 0xd8a020 }), unlock: 'won' },
     ] },
     { id: 'hood', label: 'HOOD', kind: 'part', options: [
       { id: 'down', name: 'Down', set: parts({ head: 'bald' }) },
-      { id: 'up',   name: 'Up',   set: parts({ head: 'hood' }) },
+      { id: 'up',   name: 'Up',   set: parts({ head: 'hood' }), unlock: 'archive' },
     ] },
     // robe + the tabard panels over it, as one pair so they always go together
     { id: 'robe', label: 'ROBES', kind: 'color', options: [
       { id: 'earth',   name: 'Earth brown', set: pal({ robe: 0x3b2a1e, tabard: 0x6b4f37 }) },
-      { id: 'umbra',   name: 'Umbra black', set: pal({ robe: 0x17161b, tabard: 0x2c2a31 }) },
-      { id: 'ash',     name: 'Ash grey',    set: pal({ robe: 0x4a4b50, tabard: 0x6b6c72 }) },
-      { id: 'sand',    name: 'Desert sand', set: pal({ robe: 0x8c7656, tabard: 0xb39d78 }) },
-      { id: 'temple',  name: 'Temple blue', set: pal({ robe: 0x1e2a4a, tabard: 0x34466e }) },
-      { id: 'forest',  name: 'Forest',      set: pal({ robe: 0x24331f, tabard: 0x3e5236 }) },
-      { id: 'crimson', name: 'Crimson',     set: pal({ robe: 0x4a1414, tabard: 0x6e2424 }) },
+      { id: 'umbra',   name: 'Umbra black', set: pal({ robe: 0x17161b, tabard: 0x2c2a31 }), unlock: 'jakku' },
+      { id: 'ash',     name: 'Ash grey',    set: pal({ robe: 0x4a4b50, tabard: 0x6b6c72 }), unlock: 'siege' },
+      { id: 'sand',    name: 'Desert sand', set: pal({ robe: 0x8c7656, tabard: 0xb39d78 }), unlock: 'refuge' },
+      { id: 'temple',  name: 'Temple blue', set: pal({ robe: 0x1e2a4a, tabard: 0x34466e }), unlock: 'trial-first' },
+      { id: 'forest',  name: 'Forest',      set: pal({ robe: 0x24331f, tabard: 0x3e5236 }), unlock: 'lothal' },
+      { id: 'crimson', name: 'Crimson',     set: pal({ robe: 0x4a1414, tabard: 0x6e2424 }), unlock: 'mustafar' },
     ] },
     { id: 'tunic', label: 'TUNIC', kind: 'color', options: [
       { id: 'tan',   name: 'Tan',      set: pal({ tunic: 0x9c7d58 }) },
       { id: 'cream', name: 'Cream',    set: pal({ tunic: 0xd2c4a2 }) },
-      { id: 'white', name: 'White',    set: pal({ tunic: 0xe6e2d8 }) },
-      { id: 'brown', name: 'Brown',    set: pal({ tunic: 0x7a5c3e }) },
-      { id: 'grey',  name: 'Grey',     set: pal({ tunic: 0x6e6a66 }) },
-      { id: 'black', name: 'Black',    set: pal({ tunic: 0x2e2a28 }) },
+      { id: 'white', name: 'White',    set: pal({ tunic: 0xe6e2d8 }), unlock: 'siege' },
+      { id: 'brown', name: 'Brown',    set: pal({ tunic: 0x7a5c3e }), unlock: 'refuge' },
+      { id: 'grey',  name: 'Grey',     set: pal({ tunic: 0x6e6a66 }), unlock: 'hoth' },
+      { id: 'black', name: 'Black',    set: pal({ tunic: 0x2e2a28 }), unlock: 'chase' },
     ] },
     // the blade's colour: the form's own (blue / green / violet, so the colour tells the stance), or a crystal of
     // the player's in a hue no form uses; the stance HUD and the form's effects keep their colour either way
     { id: 'saber', label: 'LIGHTSABER', kind: 'color', options: [
       { id: 'form',   name: 'Form colour', sw: 0x35c8ff, set: { saber: null } },
-      { id: 'yellow', name: 'Yellow',      set: { saber: 0xffd23a } },
-      { id: 'orange', name: 'Orange',      set: { saber: 0xff8a2a } },
-      { id: 'white',  name: 'White',       set: { saber: 0xf0f4ff } },
-      { id: 'red',    name: 'Red',         set: { saber: 0xff3a30 } },
-      { id: 'cyan',   name: 'Teal',        set: { saber: 0x2affe0 } },
+      { id: 'yellow', name: 'Yellow',      set: { saber: 0xffd23a }, unlock: 'trial-knight' },
+      { id: 'orange', name: 'Orange',      set: { saber: 0xff8a2a }, unlock: 'spearhead' },
+      { id: 'white',  name: 'White',       set: { saber: 0xf0f4ff }, unlock: 'trial-first' },
+      { id: 'red',    name: 'Red',         set: { saber: 0xff3a30 }, unlock: 'won' },
+      { id: 'cyan',   name: 'Teal',        set: { saber: 0x2affe0 }, unlock: 'trial-acrobat' },
     ] },
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
@@ -96,61 +102,61 @@ export const CUSTOMIZE = {
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
       { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
-      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'archive' },
+      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'hoth' },
     ] },
   ],
 
   mando: [
     { id: 'helmet', label: 'HELMET', kind: 'part', options: [
-      { id: 'tvisor', name: 'Hunter',  set: parts({ helmet: 'tvisor' }) },
       { id: 'clean',  name: 'Classic', set: parts({ helmet: 'clean' }) },
-      { id: 'crest',  name: 'Crested', set: parts({ helmet: 'crest' }) },
+      { id: 'tvisor', name: 'Hunter',  set: parts({ helmet: 'tvisor' }), unlock: 'trial-first' },
+      { id: 'crest',  name: 'Crested', set: parts({ helmet: 'crest' }), unlock: 'mustafar' },
     ] },
     { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
-      { id: 'pauldrons', name: 'Pauldrons', set: parts({ arms: 'pauldrons' }) },
-      { id: 'heavy',     name: 'Heavy',     set: parts({ arms: 'heavy' }) },
+      { id: 'pauldrons', name: 'Pauldrons', set: parts({ arms: 'pauldrons' }), unlock: 'refuge' },
+      { id: 'heavy',     name: 'Heavy',     set: parts({ arms: 'heavy' }), unlock: 'trial-knight' },
       { id: 'bare',      name: 'Scout',     set: parts({ arms: 'bare' }) },
     ] },
     { id: 'cape', label: 'CAPE', kind: 'part', options: [
-      { id: 'half', name: 'Half',  set: parts({ cape: 'half' }) },
-      { id: 'full', name: 'Full',  set: parts({ cape: 'full' }) },
+      { id: 'half', name: 'Half',  set: parts({ cape: 'half' }), unlock: 'siege' },
+      { id: 'full', name: 'Full',  set: parts({ cape: 'full' }), unlock: 'hoth' },
       { id: 'none', name: 'None',  set: parts({ cape: 'none' }) },
     ] },
     // main plates + the darker secondary plates, as one scheme
     { id: 'armor', label: 'ARMOUR', kind: 'color', options: [
       { id: 'beskar',  name: 'Beskar',      set: pal({ beskar: 0x9aa7b5, beskar2: 0x667381 }) },
-      { id: 'gunmetal',name: 'Gunmetal',    set: pal({ beskar: 0x5c636c, beskar2: 0x3b4048 }) },
-      { id: 'fett',    name: 'Hunter green',set: pal({ beskar: 0x5f6e45, beskar2: 0x7e4428 }) },
-      { id: 'watch',   name: 'Death Watch', set: pal({ beskar: 0x3e5f8a, beskar2: 0xaab4c0 }) },
-      { id: 'clan',    name: 'Clan red',    set: pal({ beskar: 0x8a2a26, beskar2: 0x4a4f58 }) },
-      { id: 'gold',    name: 'Gold',        set: pal({ beskar: 0xc9a24a, beskar2: 0x76664a }) },
-      { id: 'white',   name: 'Ivory',       set: pal({ beskar: 0xd6dbe0, beskar2: 0x8a929b }) },
-      { id: 'shadow',  name: 'Shadow',      set: pal({ beskar: 0x2c2f35, beskar2: 0x1b1d21 }) },
+      { id: 'gunmetal',name: 'Gunmetal',    set: pal({ beskar: 0x5c636c, beskar2: 0x3b4048 }), unlock: 'archive' },
+      { id: 'fett',    name: 'Hunter green',set: pal({ beskar: 0x5f6e45, beskar2: 0x7e4428 }), unlock: 'trial-acrobat' },
+      { id: 'watch',   name: 'Death Watch', set: pal({ beskar: 0x3e5f8a, beskar2: 0xaab4c0 }), unlock: 'mustafar' },
+      { id: 'clan',    name: 'Clan red',    set: pal({ beskar: 0x8a2a26, beskar2: 0x4a4f58 }), unlock: 'jakku' },
+      { id: 'gold',    name: 'Gold',        set: pal({ beskar: 0xc9a24a, beskar2: 0x76664a }), unlock: 'won' },
+      { id: 'white',   name: 'Ivory',       set: pal({ beskar: 0xd6dbe0, beskar2: 0x8a929b }), unlock: 'hoth' },
+      { id: 'shadow',  name: 'Shadow',      set: pal({ beskar: 0x2c2f35, beskar2: 0x1b1d21 }), unlock: 'chase' },
     ] },
     { id: 'accent', label: 'ACCENT', kind: 'color', options: [
       { id: 'rust',   name: 'Rust',   set: pal({ accent: 0xb84327 }) },
-      { id: 'blue',   name: 'Blue',   set: pal({ accent: 0x2f6b8a }) },
-      { id: 'gold',   name: 'Gold',   set: pal({ accent: 0xc9a24a }) },
-      { id: 'green',  name: 'Green',  set: pal({ accent: 0x4f7a3a }) },
-      { id: 'violet', name: 'Violet', set: pal({ accent: 0x6a3a8a }) },
-      { id: 'white',  name: 'White',  set: pal({ accent: 0xd8dde2 }) },
-      { id: 'black',  name: 'Black',  set: pal({ accent: 0x1f2126 }) },
+      { id: 'blue',   name: 'Blue',   set: pal({ accent: 0x2f6b8a }), unlock: 'siege' },
+      { id: 'gold',   name: 'Gold',   set: pal({ accent: 0xc9a24a }), unlock: 'lothal' },
+      { id: 'green',  name: 'Green',  set: pal({ accent: 0x4f7a3a }), unlock: 'lothal' },
+      { id: 'violet', name: 'Violet', set: pal({ accent: 0x6a3a8a }), unlock: 'mustafar' },
+      { id: 'white',  name: 'White',  set: pal({ accent: 0xd8dde2 }), unlock: 'trial-knight' },
+      { id: 'black',  name: 'Black',  set: pal({ accent: 0x1f2126 }), unlock: 'chase' },
     ] },
     { id: 'suit', label: 'FLIGHT SUIT', kind: 'color', options: [
       { id: 'charcoal', name: 'Charcoal', set: pal({ suit: 0x2e343d }) },
       { id: 'brown',    name: 'Brown',    set: pal({ suit: 0x4a3a2a }) },
-      { id: 'olive',    name: 'Olive',    set: pal({ suit: 0x3c4230 }) },
-      { id: 'navy',     name: 'Navy',     set: pal({ suit: 0x222b40 }) },
-      { id: 'black',    name: 'Black',    set: pal({ suit: 0x16171a }) },
+      { id: 'olive',    name: 'Olive',    set: pal({ suit: 0x3c4230 }), unlock: 'archive' },
+      { id: 'navy',     name: 'Navy',     set: pal({ suit: 0x222b40 }), unlock: 'lothal' },
+      { id: 'black',    name: 'Black',    set: pal({ suit: 0x16171a }), unlock: 'jakku' },
     ] },
     { id: 'cloth', label: 'CAPE COLOUR', kind: 'color', options: [
       { id: 'sand',  name: 'Sand',     set: pal({ cloth: 0x7b6b52 }) },
-      { id: 'black', name: 'Black',    set: pal({ cloth: 0x1e1d20 }) },
-      { id: 'red',   name: 'Red',      set: pal({ cloth: 0x6a1d1a }) },
-      { id: 'grey',  name: 'Grey',     set: pal({ cloth: 0x5a5a5e }) },
-      { id: 'blue',  name: 'Blue',     set: pal({ cloth: 0x27385a }) },
+      { id: 'black', name: 'Black',    set: pal({ cloth: 0x1e1d20 }), unlock: 'refuge' },
+      { id: 'red',   name: 'Red',      set: pal({ cloth: 0x6a1d1a }), unlock: 'trial-acrobat' },
+      { id: 'grey',  name: 'Grey',     set: pal({ cloth: 0x5a5a5e }), unlock: 'hoth' },
+      { id: 'blue',  name: 'Blue',     set: pal({ cloth: 0x27385a }), unlock: 'mustafar' },
     ] },
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
@@ -159,55 +165,56 @@ export const CUSTOMIZE = {
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
       { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
-      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'trial-first' },
+      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'jakku' },
     ] },
   ],
-  // the clone ARC trooper (player/model/trooper.js): the gear, the legion and its colours, the kama
+  // the clone trooper (player/model/trooper.js): the gear, the legion and its colours, the kama. He starts a plain
+  // trooper in Phase II plates and earns the ARC kit at his promotion (game/wardrobe.js PROMOTION), the Captain's later
   trooper: [
     { id: 'helmet', label: 'HELMET', kind: 'part', options: [
-      { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }) },
-      { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }) },
+      { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'trial-first' },
+      { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'mustafar' },
       { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
     ] },
     { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
-      { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }) },
-      { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }) },
+      { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }), unlock: 'trial-first' },
+      { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }), unlock: 'mustafar' },
       { id: 'phase2',  name: 'Bare',         set: parts({ arms: 'phase2' }) },
     ] },
     // the ARC's black collar yoke and pouches, and the legion paint on the legs: on, or plain Phase II plates
     { id: 'gear', label: 'GEAR', kind: 'part', options: [
-      { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }) },
+      { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }), unlock: 'trial-first' },
       { id: 'phase2', name: 'Phase II', set: parts({ torso: 'phase2', legs: 'phase2' }) },
     ] },
     { id: 'kama', label: 'KAMA', kind: 'part', options: [
-      { id: 'long', name: 'Kama', set: parts({ kama: 'long' }) },
+      { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'trial-first' },
       { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
     ] },
     // the legion's colour: the pauldron, the visor paint, the knees and the bands
     { id: 'legion', label: 'LEGION', kind: 'color', options: [
       { id: 'blue',   name: 'Legion blue',  set: pal({ mark: 0x2f7fd6 }) },
-      { id: 'orange', name: 'Gold-orange',  set: pal({ mark: 0xd8822a }) },
-      { id: 'red',    name: 'Guard red',    set: pal({ mark: 0xb0302a }) },
-      { id: 'yellow', name: 'Yellow',       set: pal({ mark: 0xd6b23a }) },
-      { id: 'green',  name: 'Jungle green', set: pal({ mark: 0x4a7a3a }) },
+      { id: 'orange', name: 'Gold-orange',  set: pal({ mark: 0xd8822a }), unlock: 'siege' },
+      { id: 'red',    name: 'Guard red',    set: pal({ mark: 0xb0302a }), unlock: 'archive' },
+      { id: 'yellow', name: 'Yellow',       set: pal({ mark: 0xd6b23a }), unlock: 'lothal' },
+      { id: 'green',  name: 'Jungle green', set: pal({ mark: 0x4a7a3a }), unlock: 'refuge' },
       { id: 'grey',   name: 'Wolf grey',    set: pal({ mark: 0x8a949e }) },
-      { id: 'violet', name: 'Violet',       set: pal({ mark: 0x6a4a9a }) },
-      { id: 'black',  name: 'Black',        set: pal({ mark: 0x1f2126 }) },
+      { id: 'violet', name: 'Violet',       set: pal({ mark: 0x6a4a9a }), unlock: 'hoth' },
+      { id: 'black',  name: 'Black',        set: pal({ mark: 0x1f2126 }), unlock: 'chase' },
     ] },
     { id: 'plate', label: 'PLATES', kind: 'color', options: [
       { id: 'white',  name: 'White',   set: pal({ plate: 0xe8e8e3 }) },
-      { id: 'ivory',  name: 'Ivory',   set: pal({ plate: 0xd8d0b8 }) },
-      { id: 'grey',   name: 'Grey',    set: pal({ plate: 0xa8adb2 }) },
-      { id: 'shadow', name: 'Shadow',  set: pal({ plate: 0x34373c, grey: 0x16171a }) },
+      { id: 'ivory',  name: 'Ivory',   set: pal({ plate: 0xd8d0b8 }), unlock: 'lothal' },
+      { id: 'grey',   name: 'Grey',    set: pal({ plate: 0xa8adb2 }), unlock: 'jakku' },
+      { id: 'shadow', name: 'Shadow',  set: pal({ plate: 0x34373c, grey: 0x16171a }), unlock: 'spearhead' },
     ] },
     { id: 'cloth', label: 'KAMA COLOUR', kind: 'color', options: [
       { id: 'black', name: 'Black', set: pal({ cloth: 0x141518 }) },
-      { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }) },
-      { id: 'red',   name: 'Red',   set: pal({ cloth: 0x6a1d1a }) },
-      { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }) },
-      { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }) },
+      { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }), unlock: 'trial-first' },
+      { id: 'red',   name: 'Red',   set: pal({ cloth: 0x6a1d1a }), unlock: 'trial-knight' },
+      { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }), unlock: 'trial-acrobat' },
+      { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }), unlock: 'mustafar' },
     ] },
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
@@ -215,9 +222,9 @@ export const CUSTOMIZE = {
       { id: 'heavy',    name: 'Heavy',    set: { build: { bulk: 1.12, shoulders: 1.08 } } },
     ] },
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
       { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
-      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'siege' },
+      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'hoth' },
     ] },
   ],
 };
@@ -236,6 +243,22 @@ export function lookFromPicks(picks = {}){
     look[hero] = h;
   }
   return look;
+}
+
+// the option a hero WEARS for a row: the one picked if it is open (game/wardrobe.js), else the row's first open one
+export function wornOption(hero, row, picks = {}){
+  const o = pickedOption(row, picks);
+  return optionOpen(hero, row, o) ? o : (row.options.find(x => optionOpen(hero, row, x)) || row.options[0]);
+}
+// picks → the picks actually worn: every row of every hero, a locked pick swapped for the row's first open option.
+// What dresses the player, the showcase and what a co-op partner is sent (they build it as it comes)
+export function wornPicks(picks = {}){
+  const out = {};
+  for (const hero in CUSTOMIZE){
+    out[hero] = {};
+    for (const row of CUSTOMIZE[hero]) out[hero][row.id] = wornOption(hero, row, picks[hero]).id;
+  }
+  return out;
 }
 
 // the swatch colour for a colour option

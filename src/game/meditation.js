@@ -42,7 +42,7 @@ export function queueMeditation(ids){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickMeditation(){
-  if (!pending.length || meditationUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
+  if (!pending.length || meditationUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open();
 }
 // a new run, a load or the main menu: forget anything still waiting
@@ -133,29 +133,37 @@ function renderSlots(learned = learnedNow){
   el.innerHTML = '<div class="cc-inner hero-jedi">' + head +
     '<div class="cc-voice"><div class="cc-who">MEDITATION</div><p>Choose the three forms you carry into the fight. You can change them again when you next learn a form.</p></div>' +
     '<div class="md-slots">' + Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
-      const id = draft[i];
-      return '<div class="md-slot' + (i === slot ? ' sel' : '') + (id ? '' : ' empty') + '" data-slot="' + i + '"' + (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '>' +
-        '<span class="n">' + (i + 1) + '</span>' + (id ? esc(FORMS[id].name) : 'EMPTY') + '</div>';
+      const id = draft[i], x = id && draft.filter(Boolean).length > 1;   // ✕ empties a slot (the last form stays)
+      return '<div class="md-slotw"><div class="md-slot' + (i === slot ? ' sel' : '') + (id ? '' : ' empty') + (x ? ' has-x' : '') + '" data-slot="' + i + '"' + (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '>' +
+        '<span class="n">' + (i + 1) + '</span>' + (id ? esc(FORMS[id].name) : 'EMPTY') + '</div>' +
+        (x ? '<div class="fm-clear" data-clear="' + i + '" title="Empty this slot" aria-label="Empty slot ' + (i + 1) + '">✕</div>' : '') + '</div>';
     }).join('') + '</div>' +
     '<div class="md-forms">' + k.map(id => '<div class="md-form' + (draft.includes(id) ? ' in' : '') + (learned.includes(id) ? ' new' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
       '<b>' + esc(FORMS[id].name) + '</b><i>FORM ' + FORMS[id].no + ' · ' + esc(FORMS[id].tag) + '</i></div>').join('') + '</div>' +
     '<div class="cc-btns"><div class="btn primary go" data-go="1">RISE</div></div>' +
-    '<div class="cc-hint">Pick a slot, then a form for it · Enter to rise</div></div>';
+    '<div class="cc-hint">Pick a slot, then a form for it · ✕ leaves a slot empty · Enter to rise</div></div>';
 }
 // put a form in the selected slot (one already slotted swaps places with it, and Form V / VII keep to one variant)
 function pick(id){
   const at = draft.indexOf(id);
+  if (at === slot){ clearSlot(at); return; }   // the form already in the picked slot: picking it again empties the slot
   if (at >= 0) draft[at] = draft[slot];   // a form already slotted swaps places with what was there
   draft[slot] = id;
   draft = cleanLoadout(draft.map((d, i) => i === slot ? d : (d && FORMS[d].variant && FORMS[d].variant === FORMS[id].variant && d !== id ? null : d)));
   slot = draft.indexOf(null) >= 0 ? draft.indexOf(null) : (slot + 1) % LOADOUT_SLOTS;
   renderSlots();
 }
+// empty a slot (the fight skips it); the last form left can't go
+function clearSlot(i){
+  if (!draft[i] || draft.filter(Boolean).length <= 1) return;
+  draft[i] = null; slot = i;
+  renderSlots();
+}
 function rise(){
   if (!draft) return;
   if (!draft.some(Boolean)) draft[0] = STARTING_FORMS[0];
   setLoadout(draft); draft = null; phase = null; learnedNow = [];
-  autosave('form');
+  autosave('form', { notAtClose: true });
   setStanceHud();
   close();
   if (pending.length) tickMeditation();
@@ -168,11 +176,13 @@ el.addEventListener('click', (e) => {
   if (f){
     G.formFork = f.dataset.fork;
     (G.stanceUnlocked = G.stanceUnlocked || {})[G.formFork] = true;
-    startCards([...learnedNow, G.formFork]); S.reward(1); autosave('form fork'); return;
+    startCards([...learnedNow, G.formFork]); S.reward(1); autosave('form fork', { notAtClose: true }); return;
   }
   if (t.closest('[data-next]')){ if (phase === 'unlock') nextCard(); return; }
   const tr = t.closest('[data-train]');
   if (tr){ if (phase === 'unlock') train(tr.dataset.train); return; }
+  const c = t.closest('[data-clear]');
+  if (c){ if (phase === 'slots') clearSlot(+c.dataset.clear); return; }
   if (s){ slot = +s.dataset.slot; renderSlots(); return; }
   if (m){ pick(m.dataset.form); return; }
   if (t.closest('[data-go]')) rise();

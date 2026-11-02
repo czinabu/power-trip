@@ -2,12 +2,18 @@
 // CHARACTER CUSTOMIZER: from the main menu, CUSTOMIZE swaps the menu column for the hero's options (data/customize.js).
 // Each pick restyles the figure on the showcase turntable at once; DONE saves the picks and rebuilds the player, so
 // the next run plays in the new look. Picks are saved per hero in localStorage (player/mesh.js).
+// LOCKED options (data/customize.js `unlock`, game/wardrobe.js) show dimmed with a lock and the chapter that unlocks them;
+// a hero wears the row's first open option until one is picked, so new gear goes on by itself as the campaign hands it out.
 
 import { G, player } from '../state.js';
-import { CUSTOMIZE, pickedOption, swatchOf } from '../data/customize.js';
+import { CUSTOMIZE, wornOption, wornPicks, swatchOf } from '../data/customize.js';
 import { STANCES } from '../data/stances.js';
+import { chapterOrder, forHero } from '../data/campaign.js';
+import { optionOpen, heroName, wardrobeHooks } from '../game/wardrobe.js';
+import { svgIcon } from './icons.js';
+import { S } from '../audio/sfx.js';
 import { loadPicks, savePicks, rebuildPlayerModel } from '../player/mesh.js';
-import { setHero } from '../player/hero.js';
+import { setHero, dressHeroParts } from '../player/hero.js';
 import { bladeColor, heldGrip } from '../player/helpers.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
@@ -16,26 +22,59 @@ import { audioInit } from '../audio/sfx.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
-let saved = JSON.stringify(picks);   // what the player model is built from
+const wornKey = (p) => JSON.stringify(wornPicks(p));
+let saved = wornKey(picks);   // what the player model is built from (the picks as worn: game/wardrobe.js)
 
 const hex = c => '#' + c.toString(16).padStart(6, '0');
+const ROMAN = ['I', 'II', 'III'];
+// where an option unlocks, in words: 'ACT I · THE KILL HOUSE', or 'BEAT THE CAMPAIGN'
+function unlockWhere(hero, id){
+  if (id === 'won') return 'BEAT THE CAMPAIGN';
+  const c = chapterOrder(null, hero).find(ch => ch.id === id);
+  return c ? 'ACT ' + ROMAN[c.act] + ' · ' + forHero(c.title, hero) : 'THE CAMPAIGN';
+}
+const hintEl = document.getElementById('czlock');
+// a row's options as shown: the ones open from the start first, then by the chapter that unlocks them, the campaign's
+// end last (the data's own order still decides what a hero wears by default: data/customize.js)
+function shownOrder(hero, row){
+  const list = chapterOrder(null, hero).map(c => c.id);
+  const at = (o) => !o.unlock ? -1 : o.unlock === 'won' ? 1e3 : (list.indexOf(o.unlock) + 1 || 999);
+  return row.options.map((o, i) => [o, i]).sort((a, b) => at(a[0]) - at(b[0]) || a[1] - b[1]).map(([o]) => o);
+}
 
 function render(){
   const hero = G.hero, mine = picks[hero] || {};
+  syncHeroNames();
   const tabs = document.getElementById('czhero');
   for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
+  let open = 0, all = 0;
   rowsEl.innerHTML = CUSTOMIZE[hero].map(row => {
-    const cur = pickedOption(row, mine);
-    const opts = row.options.map(o => row.kind === 'color'
-      ? `<span class="cz-sw${o === cur ? ' sel' : ''}" data-row="${row.id}" data-opt="${o.id}" title="${o.name}" style="--c:${hex(swatchOf(o))}"></span>`
-      : `<span class="cz-chip${o === cur ? ' sel' : ''}" data-row="${row.id}" data-opt="${o.id}">${o.name}</span>`).join('');
+    const cur = wornOption(hero, row, mine);
+    const opts = shownOrder(hero, row).map(o => {
+      const shut = !optionOpen(hero, row, o); all++; if (!shut) open++;
+      const cls = (o === cur ? ' sel' : '') + (shut ? ' locked' : '');
+      const tip = shut ? o.name + ' · unlocks in ' + unlockWhere(hero, o.unlock) : o.name;
+      return row.kind === 'color'
+        ? `<span class="cz-sw${cls}" data-row="${row.id}" data-opt="${o.id}" title="${tip}" style="--c:${hex(swatchOf(o))}">${shut ? svgIcon('lock', 'lk') : ''}</span>`
+        : `<span class="cz-chip${cls}" data-row="${row.id}" data-opt="${o.id}" title="${tip}">${shut ? svgIcon('lock', 'lk') : ''}${o.name}</span>`;
+    }).join('');
     return `<div class="cz-row"><div class="sec-label">${row.label}<span class="cz-val">${cur.name}</span></div>`
       + `<div class="cz-opts ${row.kind}">${opts}</div></div>`;
   }).join('');
+  if (hintEl) hintEl.innerHTML = open < all
+    ? svgIcon('lock', 'lk') + ' <b>' + open + ' / ' + all + '</b> unlocked · the campaign hands out the rest, chapter by chapter'
+    : '<b>Everything unlocked</b>';
+}
+// a locked option: say where it opens, instead of wearing it
+function denied(row, o){
+  S.uiDeny();
+  if (hintEl) hintEl.innerHTML = svgIcon('lock', 'lk') + ' <b>' + o.name.toUpperCase() + '</b> unlocks in ' + unlockWhere(G.hero, o.unlock);
 }
 
 function pick(rowId, optId){
-  const hero = G.hero;
+  const hero = G.hero, row = CUSTOMIZE[hero].find(r => r.id === rowId), o = row && row.options.find(x => x.id === optId);
+  if (!o) return;
+  if (!optionOpen(hero, row, o)) return denied(row, o);
   picks = { ...picks, [hero]: { ...(picks[hero] || {}), [rowId]: optId } };
   restyleShowcase(picks);
   render();
@@ -43,7 +82,10 @@ function pick(rowId, optId){
 
 function randomize(){
   const hero = G.hero, mine = {};
-  for (const row of CUSTOMIZE[hero]) mine[row.id] = row.options[Math.floor(Math.random() * row.options.length)].id;
+  for (const row of CUSTOMIZE[hero]){
+    const open = row.options.filter(o => optionOpen(hero, row, o));   // (only what is unlocked)
+    mine[row.id] = open[Math.floor(Math.random() * open.length)].id;
+  }
   picks = { ...picks, [hero]: mine };
   restyleShowcase(picks);
   render();
@@ -68,26 +110,46 @@ export function closeCustomizer(){
   overlay.classList.remove('customizing');
   focusShowcase(false);
   setOverlayState('menu');   // restores the headline
-  const now = JSON.stringify(picks);
-  if (now === saved) return;
   savePicks(picks);
-  dressPlayer();
+  if (wornKey(picks) !== saved) dressPlayer();
 }
 // a loaded save brings its own look (ui/saves-ui.js): pick it up and dress the player in it
 export function reloadLook(){
   picks = loadPicks();
   restyleShowcase(picks);
-  if (JSON.stringify(picks) !== saved) dressPlayer();
+  syncHeroNames();
+  if (wornKey(picks) !== saved) dressPlayer();
+}
+// the campaign unlocked something the hero now wears (a row's first option, the trooper's ARC kit): dress the player in
+// it. game/campaign.js calls this as the next chapter starts, so the new gear is on when the hero walks in
+export function refreshWornLook(){
+  if (!czReady) return false;   // (the menu can ask while the modules are still loading)
+  picks = loadPicks();
+  syncHeroNames();
+  if (wornKey(picks) === saved) return false;
+  dressPlayer();
+  restyleShowcase(picks);
+  return true;
+}
+// the trooper goes by TROOPER until his promotion, then ARC TROOPER (game/wardrobe.js): every place the menu names him
+export function syncHeroNames(){
+  const n = heroName('trooper');
+  for (const el of document.querySelectorAll('.cz-tabs span[data-h="trooper"], #hero-trooper .hn')) el.textContent = n;
 }
 function dressPlayer(){
-  saved = JSON.stringify(picks);
+  saved = wornKey(picks);
   // the player wears the new look from the next run: rebuild it, then put back what the old model carried
   rebuildPlayerModel(picks);
   applySaberGrip(player, heldGrip(), G.mode !== 'play');
   const st = STANCES[G.stance];
   if (st){ player.blade.glow.material.color.setHex(bladeColor(st)); player.blade.light.color.setHex(bladeColor(st)); }
-  setHero(G.hero);
+  if (G.mode === 'play') dressHeroParts();   // mid-run (refreshWornLook): the outfit only, the kit in hand stays as it is
+  else setHero(G.hero);
 }
+
+syncHeroNames();
+var czReady = true;   // (a var, hoisted: refreshWornLook can be called before this module has run)
+wardrobeHooks.refresh = refreshWornLook;
 
 /* ---------- input ---------- */
 document.getElementById('cztoggle').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openCustomizer(); });

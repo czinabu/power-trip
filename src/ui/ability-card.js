@@ -24,7 +24,7 @@ export function queueAbilityCards(list){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickAbilityCards(){
-  if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
+  if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open(pending.shift());
 }
 // a new run, a load or the main menu: forget anything still waiting
@@ -34,7 +34,7 @@ function open(u){
   const C = ABILITY_CARDS[u.key], name = u.name || C.name, hud = u.hud != null ? u.hud : C.hud;
   el.innerHTML = '<div class="ac-inner hero-' + (isGunner() ? 'mando' : 'jedi') + '">' +
     (C.clip ? '<div class="ac-clip"><img src="' + C.clip + '" alt="" onerror="this.parentNode.remove()"></div>' : '') +   // (a card with no clip yet, or the page opened without its files: its words alone)
-    '<div class="ac-body"><div class="cc-act">ABILITY UNLOCKED</div><h2 class="ac-title">' + esc(name) + '</h2>' +
+    '<div class="ac-body"><div class="cc-act">' + esc(C.kicker || 'ABILITY UNLOCKED') + '</div><h2 class="ac-title">' + esc(name) + '</h2>' +
     (hud ? '<div class="ac-key">' + esc(hud) + '</div>' : '') +
     C.lines.map(t => '<p>' + esc(t) + '</p>').join('') +
     '<div class="cc-btns"><div class="btn primary go" data-next="1">CONTINUE</div></div></div></div>';

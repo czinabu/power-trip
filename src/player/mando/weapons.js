@@ -10,7 +10,7 @@ import { acquireParticle, burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, bolts, vfx, keys, player, isGunner, isMando, isTrooper } from '../../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, BESKAR_PARRY } from '../../data/mando.js';
-import { setLongGun, longMuzzle, OWN_MODEL } from '../model/weapons.js';
+import { setLongGun, setRifleMod, longMuzzle, OWN_MODEL } from '../model/weapons.js';
 import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
 import { fwd, rightV, playerPos, maxStam } from '../helpers.js';
@@ -59,7 +59,8 @@ export function syncWeaponMesh(){   // show only the equipped weapon's mesh (or 
   const m = isGunner(), raw = player.weapon === 'fists' ? player.drawnWeapon : player.weapon, w = gunLook(raw);   // (the trooper's guns are held like the Mando's: data/trooper.js GUN_LOOK)
   if (player.pistols){ player.pistols.R.visible = m && (w === 'single' || w === 'dual'); player.pistols.L.visible = m && w === 'dual'; }
   const LW = MANDO_WEAPONS[w];
-  if (player.rifleMesh){ player.rifleMesh.visible = m && !!(LW && LW.twoHand); if (LW && LW.twoHand) setLongGun(player, OWN_MODEL[raw] || w); }   // one long-gun mount, the drawn gun's model on it (the DC-15 its own)
+  if (player.rifleMesh){ player.rifleMesh.visible = m && !!(LW && LW.twoHand); if (LW && LW.twoHand) setLongGun(player, OWN_MODEL[raw] || w); }
+  setRifleMod(player, player.rifleMod || 'burst');   // the DC-15's fitted module shows on it (model/weapons.js)   // one long-gun mount, the drawn gun's model on it (the DC-15 its own)
   if (player.darksaberMesh) player.darksaberMesh.visible = (m && w === 'darksaber') || !!shared.darkProj;   // a thrown blade stays seen until it's caught
   syncHolster();   // in the hand, or on the belt / thighs / pack (player/holster.js)
 }
@@ -274,7 +275,7 @@ export function fireTrigger(){
     return;
   }
   if (player.fireCd > 0 || player.burstLeft > 0){   // not ready yet (or a burst still firing)
-    if (W.fire === 'burst' && player.ventT <= 0 && player.fireCd + player.burstLeft * (W.burstGap || 0) < 0.16) player.burstQ = true;   // a click just early queues the next burst
+    if ((W.fire === 'burst' || W.scope) && player.ventT <= 0 && player.fireCd + player.burstLeft * (W.burstGap || 0) < 0.16) player.burstQ = true;   // a click just early queues the next burst (or the DC-15 marksman's next shot)
     return;
   }
   player.burstQ = false;
@@ -361,8 +362,10 @@ function fireBlaster(W, hand){
   // CLIMB: each shot walks the reticle (and so the next bolt) up; it settles back on its own (updateMandoCombat),
   // so a burst lands high unless you pull it down. Bracing halves it.
   if (W.climb) player.aimOff.y -= W.climb * (steadyAim ? 0.5 : 1) * (1 + inacc);
-  G.shake = Math.max(G.shake, W.dual ? 0.06 : W.slow ? 0.08 : 0.15);
-  if (W.dual) S.blasterDual();
+  G.shake = Math.max(G.shake, W.dual ? 0.06 : W.slow ? 0.08 : W.heavy ? 0.3 : W.chatter ? 0.07 : 0.15);
+  if (W.heavy){ S.blaster(); sfx(90, 0.14, 'sawtooth', 0.07, 45); sfx(1400, 0.05, 'square', 0.03, 600); }   // the DC-15's marksman module: a deep crack
+  else if (W.chatter) S.blasterDual();   // its auto barrel: a lighter, quicker report
+  else if (W.dual) S.blasterDual();
   else if (W.slow){ S.blasterDual(); sfx(70, 0.07, 'square', 0.05, 40); }   // the repeater: a heavier chug under each shot
   else S.blaster();
   if (!hand) player.fireCd = shotGap(W);   // (a named pistol keeps its own cooldown: firePistol)
@@ -505,7 +508,7 @@ export function updateMandoCombat(dt, f, r){
     if (CW.fire !== 'burst' || G.mode !== 'play' || player.flaming || player.overheat) player.burstLeft = 0;
     else if (player.burstT <= 0) burstRound(CW);
   }
-  if (player.burstQ && player.burstLeft <= 0 && player.fireCd <= 0){ player.burstQ = false; if (CW.fire === 'burst') fireTrigger(); }
+  if (player.burstQ && player.burstLeft <= 0 && player.fireCd <= 0){ player.burstQ = false; if (CW.fire === 'burst' || CW.scope) fireTrigger(); }
   // the REPEATER's spin: winds up while the trigger is held (and the gun can fire), winds down once it's let go; the
   // barrels turn with it, and he walks slower while it's firing
   if (CW.spin){

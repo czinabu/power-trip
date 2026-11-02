@@ -12,6 +12,7 @@ import { attachHitboxDebug } from './bodyshape.js';
 import { foeTipToast } from '../game/upgrades.js';
 import { initDuel } from './duel.js';
 import { foeType } from './look.js';
+import { meetFoe } from '../game/codex.js';
 
 // a floating boss-style health bar for elite/mid-boss units, billboarded toward the camera each frame
 export function makeBossBar(e){
@@ -68,5 +69,6 @@ export function spawnEnemy(typeName, pos, opts = {}){
   attachHitboxDebug(e);   // ?hitbox draws it
   initDuel(e);   // sword-armed foes fight back: guards, feints, strings (duel.js)
   enemies.push(e);
+  meetFoe(typeName, g);   // its codex entry opens (game/codex.js)
   if (!(g.userData.look && g.userData.look.side === 'jedi')) maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run (never 'SITH ACOLYTE' over a Jedi master)
 }

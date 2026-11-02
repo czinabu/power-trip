@@ -90,6 +90,9 @@ export const TURNED = { blaster: TURNED_CLONE, grenadier: TURNED_CLONE, sniper: 
 // missions it plays). Clone armour painted black, visors lit red; the baton troopers are the purge model already.
 const PURGE_CLONE = { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x5a1a1a };
 export const PURGE = { blaster: PURGE_CLONE, grenadier: PURGE_CLONE, sniper: PURGE_CLONE, officer: { ...PURGE_CLONE, cloth: 0x8a1a1a } };
+// THE MARSHAL: the trooper story's rival, a clone commander in black-and-gold purge armour (enemies/mesh.js marshal).
+// Dress the officer type in it ({ ...ENEMY_TYPES.officer, ...MARSHAL }); only the look changes, the officer's numbers stay
+export const MARSHAL = { model: 'marshal', color: 0x1f2026, eye: 0xff3a2a, cloth: 0xc9a040 };
 // THE CAPTAIN'S DRILL (BROTHERS IN ARMS): the band's old training droids, on stun settings
 const DRILL_DROID = { model: 'b1', color: 0x9a9284, eye: 0x7ad8ff };
 export const DRILL = { blaster: DRILL_DROID, grenadier: DRILL_DROID, sniper: DRILL_DROID, officer: { ...DRILL_DROID, color: 0xb0a070 } };

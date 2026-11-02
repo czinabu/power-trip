@@ -7,8 +7,9 @@
 
    A look: {
      v      the unit's markings (0 plain · 1 a sergeant's pauldron · 2 veteran cheek flashes and chest bars · 3 a comms rig)
-     dv     a droid's kit (B1: 1 a commander's antenna and paint · 2 a salvaged, mismatched arm; magnaguard: 1 a torn
-            cloak · 2 no cowl, a painted skull)
+     dv     a droid's kit (B1: 1 a commander's antenna and paint · 2 a salvaged arm, the other shot off · 3 a security
+            visor and collar · 4 unit paint bands; magnaguard: 1 a torn cloak · 2 no cowl, a painted skull · 3 a sash of
+            rank · 4 torn cloak and no cowl)
      fem    a woman's build: narrower shoulders and waist, a contoured cuirass, a touch shorter
      bare   helmet OFF (clipped to the belt) and a face: skin, hair, style, beard (enemies/detail.js face)
      hat    on a bare head: 'goggles' pushed up on the brow, or a cloth 'band'
@@ -31,8 +32,8 @@ export const FOE_LOOKS = {
   grenadier: { n: 10, fem: 0.4, bare: 0.3, carry: 'storm', hats: ['goggles', 'band', null], helms: [0, 1, 2], kits: [0, 1, 2, 3] },
   lancer:    { n: 8,  fem: 0.4, helms: [0, 2], kits: [0, 3] },
   officer:   { n: 10, fem: 0.45, face: true, cap: 0.7 },                              // always a face
-  b1:        { n: 3,  droid: true },                                                  // bomber
-  magna:     { n: 3,  droid: true },                                                  // duelist
+  b1:        { n: 5,  droid: true },                                                  // bomber
+  magna:     { n: 5,  droid: true },                                                  // duelist
 };
 
 // skin tones, light to dark, and hair colours (black, browns, auburn, blond, grey)

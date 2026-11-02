@@ -265,7 +265,7 @@ const HELMETS = {
   magna(k, h, t){
     k.add(dome([{ y:0.0, w:0.17, d:0.19 }, { y:0.18, w:0.21, d:0.24 }, { y:0.3, w:0.18, d:0.22 }, { y:0.36, w:0.1, d:0.14 }]), 'armor', h);
     k.add(block(0.14, 0.08, 0.06, 0.3), 'black', h, [0, 0.07, 0.1], [0,0,0], { outline: false });
-    if (k.dv === 2){
+    if (k.dv === 2 || k.dv === 4){
       // no cowl: the bare skull, a stripe of paint down its crown and a scarf at the neck
       k.add(block(0.05, 0.03, 0.26, 0.3), 'mark', h, [0, 0.355, 0.0], [0,0,0], { outline: false });
       k.add(loft([{ y:-0.1, w:0.34, d:0.3 }, { y:0.02, w:0.24, d:0.22 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.01]);
@@ -398,12 +398,12 @@ const HELM_VARIANTS = {
   storm(k, h, t, hv){
     if (hv === 1){
       // a field helm: a sun visor peaked over the lenses and a rangefinder off the right side
-      k.add(loft([{ y:0, w:0.3, d:0.12, z:0.15 }, { y:0.03, w:0.28, d:0.1, z:0.15 }], chamfer(0.4)), 'armor2', h, [0, 0.255, 0], [-0.25, 0, 0]);
+      k.add(loft([{ y:0, w:0.32, d:0.14, z:0.15 }, { y:0.035, w:0.3, d:0.12, z:0.16 }], chamfer(0.4)), 'black', h, [0, 0.255, 0], [-0.25, 0, 0]);
       k.add(block(0.022, 0.2, 0.022, 0.3), 'metal', h, [0.17, 0.3, 0.02], [0.3, 0, -0.1]);
       k.add(block(0.05, 0.035, 0.06, 0.3), 'armor2', h, [0.17, 0.39, 0.06]);
     } else {
       // a desert wrap: cloth over the crown, falling to the shoulders behind
-      k.add(loft([{ y:-0.12, w:0.36, d:0.3, z:-0.06 }, { y:0.1, w:0.33, d:0.3, z:-0.03 }, { y:0.3, w:0.3, d:0.3, z:-0.02 }, { y:0.4, w:0.18, d:0.2, z:-0.02 }], SOFT_HEAD), 'cloth', h, [0, 0, -0.012]);
+      k.add(loft([{ y:-0.12, w:0.36, d:0.3, z:-0.06 }, { y:0.1, w:0.33, d:0.3, z:-0.03 }, { y:0.3, w:0.3, d:0.3, z:-0.02 }, { y:0.4, w:0.18, d:0.2, z:-0.02 }], SOFT_HEAD), 'kitcloth', h, [0, 0, -0.012]);
     }
   },
   heavy(k, h, t, hv){
@@ -442,16 +442,23 @@ const HELM_VARIANTS = {
    1 a cloak off the left shoulder · 2 a bedroll on the pack and chest pouches · 3 a cloth kama at the hips */
 function armourKit(k, w, kit){
   if (kit === 1){
-    k.add(plate([[-0.16,0],[0.16,0],[0.22,-0.82],[0.02,-0.9],[-0.2,-0.84]], 0.014, 0.004), 'cloth', k.root, [-0.26*w, 1.9, -0.16], [0.16, -0.5, 0.06]);
+    k.add(plate([[-0.16,0],[0.16,0],[0.22,-0.82],[0.02,-0.9],[-0.2,-0.84]], 0.014, 0.004), 'kitcloth', k.root, [-0.26*w, 1.9, -0.16], [0.16, -0.5, 0.06]);
     k.add(block(0.06, 0.06, 0.03, 0.3), 'metal', k.root, [-0.16*w, 1.86, 0.17], [0,0,0], { outline: false });   // the clasp
-    strap(k, 'cloth', [-0.16*w, 1.86, 0.17], [-0.36*w, 1.9, -0.05], 0.05, 0.012);
+    strap(k, 'kitcloth', [-0.16*w, 1.86, 0.17], [-0.36*w, 1.9, -0.05], 0.05, 0.012);
   } else if (kit === 2){
     k.add(loft([{ y:-0.22*w, w:0.14, d:0.14 }, { y:0.22*w, w:0.14, d:0.14 }], ngon(10, PI/10)), 'leather', k.root, [0, 1.84, -0.25], [0, 0, PI/2]);
     for (const s of [-1, 1]) k.add(block(0.016, 0.16, 0.04, 0.3), 'black', k.root, [0.12*w*s, 1.84, -0.25], [0,0,0], { outline: false });   // its straps
     for (let i = 0; i < 3; i++) k.add(block(0.07, 0.08, 0.05, 0.3), 'black', k.root, [(-0.1 + i*0.1)*w, 1.4, 0.18]);   // chest pouches
   } else if (kit === 3){
-    k.add(plate([[-0.24,0],[0.24,0],[0.28,-0.5],[-0.28,-0.5]], 0.014, 0.004), 'cloth', k.root, [0, 1.08, 0.17], [-0.08, 0, 0]);
-    k.add(plate([[-0.26,0],[0.26,0],[0.3,-0.56],[-0.3,-0.56]], 0.014, 0.004), 'cloth', k.root, [0, 1.08, -0.19], [0.1, 0, 0]);
+    // a kama in two front panels split at the centre and a wider back panel, each flaring out to a dark hem
+    for (const s of [-1, 1]){
+      const pg = k.group(k.root, [0.12*w*s, 1.08, 0.165], [-0.14, 0.28*s, 0.08*s]);
+      k.add(plate([[-0.1,0],[0.1,0],[0.15,-0.48],[-0.12,-0.46]].map(([x, y]) => [x*s, y]), 0.014, 0.004), 'kitcloth', pg);
+      k.add(plate([[-0.12,-0.42],[0.15,-0.44],[0.15,-0.48],[-0.12,-0.46]].map(([x, y]) => [x*s, y]), 0.018, 0.003), 'black', pg, [0, 0, 0.006], [0,0,0], { outline: false });
+    }
+    const bg = k.group(k.root, [0, 1.08, -0.19], [0.16, 0, 0]);
+    k.add(plate([[-0.26,0],[0.26,0],[0.34,-0.56],[-0.34,-0.56]], 0.014, 0.004), 'kitcloth', bg);
+    k.add(plate([[-0.33,-0.5],[0.33,-0.5],[0.34,-0.56],[-0.34,-0.56]], 0.018, 0.003), 'black', bg, [0, 0, -0.006], [0,0,0], { outline: false });
   }
 }
 
@@ -499,6 +506,9 @@ function pickVariant(t, rnd){
   const r = rnd();
   return r < 0.55 ? 0 : r < 0.7 ? 1 : r < 0.85 ? 2 : 3;
 }
+// field cloth (a look's cloak, kama, wrap: armourKit, HELM_VARIANTS): sand against cool armour (greys, blues, purples),
+// dark brown against warm or khaki-green armour, so it always stands off the plates it hangs on
+const kitCloth = c => { const { h, s } = new THREE.Color(c).getHSL({ h: 0, s: 0, l: 0 }); return s > 0.08 && h > 0.04 && h < 0.45 ? 0x4a3826 : 0xb39a70; };
 // the paint: orange on pale armour, red on dark
 const markColor = c => new THREE.Color(c).getHSL({ h: 0, s: 0, l: 0 }).l > 0.45 ? 0xc8601c : 0xa82a22;
 // two flashes on the helmet's cheeks, fitted to its armour shell
@@ -629,7 +639,8 @@ export const MODELS = {
     const w = 0.92;
     legs(k, w, { shin: 'metal' }); hips(k, w); k = upper(k); torso(k, w, { pack: false });
     // cloak: a cape off both shoulders and a short mantle
-    cape(k, k.dv === 1   // a cloak torn ragged at the hem, or whole
+    if (k.dv === 3) strap(k, 'mark', [0.3, 1.86, 0.16], [-0.24, 1.2, 0.2], 0.09, 0.014);   // a sash of rank across the chest
+    cape(k, k.dv === 1 || k.dv === 4   // a cloak torn ragged at the hem, or whole
       ? [[-0.3,0],[0.3,0],[0.36,-0.95],[0.26,-1.18],[0.14,-0.98],[0.02,-1.28],[-0.1,-1.02],[-0.22,-1.22],[-0.36,-1.0]]
       : [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1);
     k.add(loft([{ y:1.62, w:0.66, d:0.44 }, { y:1.82, w:0.52, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
@@ -726,6 +737,15 @@ export const MODELS = {
       k.add(block(0.04, 0.02, 0.2, 0.3), 'mark', h, [0, 0.115, 0.0], [0,0,0], { outline: false });
       k.add(block(0.3, 0.05, 0.02, 0.3), 'mark', k.root, [0, 1.73, 0.135], [0,0,0], { outline: false });
     } else if (k.dv === 2) k.add(block(0.12, 0.02, 0.02, 0.3), 'black', h, [0.03, 0.06, 0.09], [0, 0, 0.5], { outline: false });   // a scorch across the head
+    else if (k.dv === 3){
+      // a security droid: a dark visor plate across the snout and an armoured collar
+      k.add(block(0.15, 0.06, 0.12, 0.3), 'black', h, [0, 0.03, 0.08]);
+      k.add(loft([{ y:1.74, w:0.4, d:0.3 }, { y:1.86, w:0.26, d:0.22 }], SOFT_COLLAR), 'armor2', k.root);
+    } else if (k.dv === 4){
+      // unit paint: bands round the chest and the head
+      k.add(loft([{ y:1.46, w:0.45, d:0.29 }, { y:1.54, w:0.45, d:0.29 }], SOFT_BODY), 'mark', k.root, [0,0,0], [0,0,0], { outline: false });
+      k.add(block(0.17, 0.04, 0.19, 0.3), 'mark', h, [0, 0.06, -0.02], [0,0,0], { outline: false });
+    }
     const eyes = k.live(new THREE.Group(), h, 'eye');
     for (const s of [-1, 1]){
       const m = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 5), new THREE.MeshBasicMaterial({ color: t.eye, toneMapped: false }));
@@ -863,6 +883,7 @@ export function buildEnemyMesh(t, o = {}){
     MODELS[t.model](k, t);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
+    kitcloth: kitCloth(t.color),
     ...(F ? { skin: F.skin, hair: F.hair, beard: F.hair } : {}),
   });
   // the unit's group carries its place, heading and the AI's poses; inside it `vis` takes the gait's bob, sway and

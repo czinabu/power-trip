@@ -248,20 +248,22 @@ export function syncJediChips(){
 }
 // Weapons / stances / jetpack tiers unlock AUTOMATICALLY as the run deepens — no store, no choice. Abilities
 // stay customised (the XP store). This keeps gear progression effortless and the build choices deliberate.
-export function checkUnlocks(bannerDelay){
+// closing: the chapter has just been won (game/campaign.js chapterCleared, the wave chapter's clear below): what it hands
+// over is shown now, at its end, not as the next one opens. Its screens wait out the CHAPTER COMPLETE banner (bannerDelay).
+export function checkUnlocks(bannerDelay, closing){
   // an ARRAY, not a single slot — two unlocks can share the same trigger (e.g. FORCE PULL + FAST FORM both land at
   // level0/wave2; Mando's FLAMETHROWER + WRIST ROCKET both land at stage0) and the old single-`announce` version
   // only ever showed the FIRST one found, leaving the other granted but silently un-announced — no banner, ever.
   const announce = [];
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
-      const reached = (u.chapter && G.chapter >= 0) ? chapterCleared(u.chapter) : (G.waveTotal || 0) >= u.stage;
+      const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;
       if (reached && !u.has()){ u.grant(); announce.push(u); }
     }
     syncTrooperChips();
   } else if (isGunner()){
     for (const u of MANDO_AUTO){
-      const reached = (u.chapter && G.chapter >= 0) ? chapterCleared(u.chapter) : (G.waveTotal || 0) >= u.stage;   // the campaign: the chapter that hands it over (data/store.js)
+      const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;   // the campaign: the chapter that hands it over (data/store.js)
       if (reached && !u.has()){ u.grant(); announce.push(u); }
     }
     syncMandoChips();
@@ -269,7 +271,7 @@ export function checkUnlocks(bannerDelay){
     const meditates = formsTaught();
     for (const u of JEDI_AUTO){
       const reached = (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
-                                : (u.chapter && G.chapter >= 0) ? chapterCleared(u.chapter)          // a form or a power: the chapter that teaches it
+                                : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter)           // a form or a power: the chapter that teaches it, at its close
                                 : (G.levelIdx > u.level || (G.levelIdx === u.level && G.wave >= u.wave));
       if (!reached || u.has()) continue;
       if (u.fork && !meditates) continue;   // Form VII is a choice: only a run that can stop to make it offers it
@@ -290,17 +292,19 @@ export function checkUnlocks(bannerDelay){
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox) return;   // the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
-  announceUnlocks(announce, bannerDelay);
+  if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
+  announceUnlocks(announce, bannerDelay, closing);
 }
-// a chapter of this run (by id) is behind the hero: the run is on a later chapter
+// a chapter of this run (by id) is behind the hero: the run is on a later chapter, or it has just closed (G.chapterClosed):
+// what it hands out is granted and shown at its close, and its closing upgrade page offers its powers (data/store.js)
 const chapterPos = (id) => chapterOrder(G.actTwo).findIndex(c => c.id === id);
-function chapterCleared(id){ const at = chapterPos(id); return at >= 0 && G.chapter > at; }
-// ...or it has just closed (G.chapterClosed): its closing upgrade page already offers what it hands out (data/store.js)
 export function chapterClosed(id){ const at = chapterPos(id); return at >= 0 && (G.chapter > at || (G.chapter === at && G.chapterClosed === at)); }
+// ...and it is the one that just closed (the upgrade page marks what it taught as NEW)
+export function chapterJustClosed(id){ const at = chapterPos(id); return at >= 0 && G.chapter === at && G.chapterClosed === at; }
 // unlocks that landed while a chapter card was up (game/campaign.js), announced once it closes
 const heldUnlocks = [];
 export function releaseUnlockBanners(){ announceUnlocks(heldUnlocks.splice(0), 1200); }
-function announceUnlocks(announce, bannerDelay){
+function announceUnlocks(announce, bannerDelay, closing){
   // a learned form isn't a banner: it's a moment of meditation, where the hero can re-slot the loadout (meditation.js)
   const forms = announce.filter(u => u.form);
   if (forms.length) queueMeditation(forms.map(u => u.key));
@@ -308,6 +312,8 @@ function announceUnlocks(announce, bannerDelay){
   // an ability with a card (data/ability-cards.js) gets its own small screen; the rest keep the banner
   queueAbilityCards(announce.filter(hasAbilityCard));
   announce = announce.filter(u => !hasAbilityCard(u));
+  // a chapter's close: its upgrade page waits until the last banner has had its beat (it hides the banner when it opens)
+  if (closing && announce.length && shared.levelPhase === 'chapterdone') shared.phaseT = Math.max(shared.phaseT, (bannerDelay || 0) / 1000 + announce.length * 3.2);
   announce.forEach((u, i) => {
     setTimeout(() => { if (G.mode !== 'play') return;
       showBanner(u.name, /^HOLD /.test(u.hud) ? '' : 'PRESS', 3.0, { kicker: 'UNLOCKED', key: u.hud });
@@ -403,7 +409,11 @@ export function coopCampaignCleared(){
   campaignWaveRewards();
   earnWavePoint();
   shared.levelPhase = 'between';
-  if (chapterEnds() && !bossDue(L)){ G.chapterClosed = G.chapter; showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6); openSkillTree(); }
+  if (chapterEnds() && !bossDue(L)){
+    G.chapterClosed = G.chapter; showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
+    if (G.chapter >= 0) checkUnlocks(1600, true);   // what the chapter hands over, at its end (each screen waits for the upgrade page)
+    openSkillTree();
+  }
   else noteWavePoint();
 }
 
@@ -476,7 +486,10 @@ export function updateFlow(dt){
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.
         showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
-        if (G.chapter >= 0){ G.chapterClosed = G.chapter; shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; storyBeat('clear'); }   // (a chapter: the voice's last word first)
+        if (G.chapter >= 0){   // (a chapter: the voice's last word first)
+          G.chapterClosed = G.chapter; shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; storyBeat('clear');
+          checkUnlocks(1600, true);   // what the chapter hands over is shown now, at its end, before the upgrade page
+        }
         else { shared.levelPhase = 'travel'; shared.phaseT = 1.6; openSkillTree(); }
       }
     }

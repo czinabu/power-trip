@@ -42,7 +42,7 @@ export function queueMeditation(ids){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickMeditation(){
-  if (!pending.length || meditationUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
+  if (!pending.length || meditationUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open();
 }
 // a new run, a load or the main menu: forget anything still waiting
@@ -155,7 +155,7 @@ function rise(){
   if (!draft) return;
   if (!draft.some(Boolean)) draft[0] = STARTING_FORMS[0];
   setLoadout(draft); draft = null; phase = null; learnedNow = [];
-  autosave('form');
+  autosave('form', { notAtClose: true });
   setStanceHud();
   close();
   if (pending.length) tickMeditation();
@@ -168,7 +168,7 @@ el.addEventListener('click', (e) => {
   if (f){
     G.formFork = f.dataset.fork;
     (G.stanceUnlocked = G.stanceUnlocked || {})[G.formFork] = true;
-    startCards([...learnedNow, G.formFork]); S.reward(1); autosave('form fork'); return;
+    startCards([...learnedNow, G.formFork]); S.reward(1); autosave('form fork', { notAtClose: true }); return;
   }
   if (t.closest('[data-next]')){ if (phase === 'unlock') nextCard(); return; }
   const tr = t.closest('[data-train]');

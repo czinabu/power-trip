@@ -92,6 +92,7 @@ import { CHIPWORKS_SPOTS } from '../world/arenas/chipworks.js';
 import { WARCAMP_SPOTS } from '../world/arenas/warcamp.js';
 import { CANYON_SPOTS } from '../world/arenas/canyon.js';
 import { RELAY_SPOTS } from '../world/arenas/relay.js';
+import { OUTPOST_SPOTS } from '../world/arenas/outpost.js';
 import { TURNED, PURGE, DRILL, MARSHAL } from './allies.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
@@ -144,6 +145,46 @@ export const MISSIONS = {
     ],
     done: { jedi: 'The younglings are safe and the refuge still stands. But the Inquisitor lives, and it will be back.',
             mando: 'The foundlings are safe. The hunter got away. We will see it again.' },
+  },
+
+  // THE MANDALORIAN'S STORY, chapter 1 (data/campaign-mando.js: A JOB IN SALT HOLLOW): the bounty is an ambush. Out of the
+  // cantina door into the street, cut the clamps they put on the Cinderwake, then hold the pad while it warms up. The
+  // arena is the salt town's (world/arenas/outpost.js): the cantina south, the pad north, the guild hall east, stalls west.
+  salthollow: {
+    id: 'salthollow',
+    title: 'A JOB IN SALT HOLLOW',
+    campaignOnly: true,
+    heroes: ['mando'],
+    blurb: 'clear the street, cut the clamps, hold the pad',
+    level: { name: 'MISSION — SALT HOLLOW', sub: 'The mark left an hour ago. The men who came in after him did not.',
+             arena: 60, floor: 0xcdbb98, fog: 0xd8c8a8, sky: 0x6a8ab0, layout: 'outpost', waves: [], hazards: {} },
+    start: [0, -12.5, 0],   // on the cantina's doorstep under the awning, looking up the street at the square and the pad
+    kit: 4,
+    objectives: [
+      { kind: 'capture', title: 'CLEAR THE CANTINA STREET', postName: 'STREET', doneLine: 'THE STREET IS CLEAR', doneSub: 'Now get to the ship.', aggro: 8,
+        say: all('They were waiting outside the door. Clear the street in front of the cantina, then we can think.'),
+        task: all('Clear the street in front of the cantina'),
+        posts: [ { at: [0, -6], guards: { grunt: 2, blaster: 2 } } ],
+        r: 4.5, time: 5,
+        trickle: { every: 12, cap: 5, group: { grunt: 1, blaster: 1 } }, from: [0.35, Math.PI - 0.35] },
+
+      { kind: 'sabotage', title: 'CUT THE DOCKING CLAMPS', consoleName: 'CLAMP RELAY', consoleDone: 'CUT', doneLine: 'THE CINDERWAKE IS FREE', doneSub: 'Get to the pad.',
+        say: all('They have clamped the Cinderwake to the pad. The clamp relays are round the square. Cut all three.'),
+        task: all('Stand at each clamp relay to cut it'),
+        consoles: [ { at: [13.5, -5], guards: { grunt: 1, blaster: 1, officer: 1 } },                    // the guild hall's door
+                    { at: [-13.5, -14], guards: { grunt: 2, sniper: 1 } },                              // under the water-tower gantry
+                    { at: [-12, 6], guards: { grunt: 2, blaster: 1, grenadier: 1 } } ],               // by the market stalls
+        time: 3.5, r: 2.2, hitLoss: 1.2,
+        trickle: { every: 15, cap: 6, group: { grunt: 2, blaster: 1 } } },
+
+      { kind: 'hold', title: 'HOLD THE PAD', holding: 'ENGINES WARMING', doneLine: 'THE CINDERWAKE LIFTS', doneSub: 'Home. Now.',
+        say: all('The engines take time from cold. Hold the pad until she is ready to lift.'),
+        task: all('Hold the pad while the ship warms up'),
+        at: [OUTPOST_SPOTS.pad[0], OUTPOST_SPOTS.pad[1] - 7], r: 6, time: 35, awayRate: 0.5,
+        pulses: [ { grunt: 2, blaster: 1 }, { grunt: 2, officer: 1 }, { grunt: 2, blaster: 1, grenadier: 1 }, { grunt: 2, lancer: 1 } ],
+        every: [8, 11], cap: 7, from: [-Math.PI + 0.35, -0.35], aggro: 8 },
+    ],
+    done: all('The street is quiet and the Cinderwake is up. Somebody wanted you away from home for an hour.'),
   },
 
   // THE MANDALORIAN'S STORY (data/campaign-mando.js): the covert's last ship, on the clan's own canyon (world/arenas/covert.js)

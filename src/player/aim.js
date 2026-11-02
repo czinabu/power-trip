@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { camera } from '../engine/renderer.js';
 import { jaAim } from '../engine/camera.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
-import { sweepHit, bodyRadius, bodyHeight, chestPos } from '../enemies/bodyshape.js';
+import { sweepHit, bodyRadius, bodyHeight, chestPos, bandAt } from '../enemies/bodyshape.js';
 import { groundAt, solidAt } from '../world/collision.js';
 
 /* The crosshair ray, cast from the lens through the reticle (`ox`, `oy`: its pixel offset from the screen centre). It
@@ -16,7 +16,7 @@ const AIM_OPEN = 300, AIM_FAR = 80, FLOOR_FAR = 60, FLOOR_STEP = 0.5;
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _far = new THREE.Vector3(), _p = new THREE.Vector3();
 export const crosshairRay = () => _ray.ray;
 // what the last cast found: the foe under the crosshair (or null), and whether it stopped on the floor / a prop
-export const lastAim = { target: null, floor: false };
+export const lastAim = { target: null, floor: false, o: new THREE.Vector3(), d: new THREE.Vector3(0, 0, 1) };
 export function crosshairPoint(ox = 0, oy = 0){
   _ndc.set(ox * 2 / innerWidth, -oy * 2 / innerHeight);
   _ray.setFromCamera(_ndc, camera);
@@ -25,6 +25,7 @@ export function crosshairPoint(ox = 0, oy = 0){
 /* cast a ray from `o` along unit `d` (not before `t0` metres): the first foe body, the boss, the floor or a prop it meets,
    else the arena wall or far out. Fills lastAim. */
 function castAim(o, d, t0, pad = 0){
+  lastAim.o.copy(o); lastAim.d.copy(d);
   let bestT = 1e9, target = null;
   // foes: the shot converges a hand's depth INTO the body, so a bolt from the gun (a little off the camera ray) still
   // lands where the crosshair was
@@ -107,6 +108,35 @@ export function aimPoint(){
     return lt.t ? chestPos(lt) : lt.group.position.clone().setY(lt.group.position.y + 1.8);
   }
   return isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : heroCrosshair();
+}
+
+/* THE CUT'S HEIGHT from the crosshair (player/jedi/cutaim.js cutHeight), Jedi Academy style: where it sits on the foe
+   is where the cut lands. On a body: its head and shoulders, chest or legs (bodyshape.js bandAt). Just off one (over a
+   head, between two foes): the nearest foe in reach along the aim, at the height the aim line passes it. Null with
+   nobody there, or locked on (the lock frames the chest, so the view's tilt still picks): the view's tilt decides. */
+const BAND_REACH = 4.5, _bp = new THREE.Vector3();
+function bandOf(e, pt){
+  if (e === shared.boss){ const y = pt.y - e.group.position.y; return y > 2.6 ? 'high' : y < 1.3 ? 'low' : 'mid'; }
+  return e.t ? bandAt(e, pt) : null;
+}
+export function aimBand(){
+  if (player.lockTarget || !player.group) return null;
+  const pt = isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : heroCrosshair();
+  if (lastAim.target) return bandOf(lastAim.target, pt);
+  const o = lastAim.o, d = lastAim.d, dh2 = d.x*d.x + d.z*d.z, hp = player.group.position;
+  if (dh2 < 1e-6) return null;
+  let best = null, bestD = 1e9;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn') continue;
+    const q = e.group.position, dist = Math.hypot(q.x - hp.x, q.z - hp.z);
+    if (dist > BAND_REACH + bodyRadius(e) || dist >= bestD) continue;
+    const t = ((q.x - o.x)*d.x + (q.z - o.z)*d.z) / dh2;
+    if (t <= 0) continue;
+    const rx = o.x + d.x*t - q.x, rz = o.z + d.z*t - q.z, r = bodyRadius(e) + 0.7;
+    if (rx*rx + rz*rz > r*r) continue;
+    best = e; bestD = dist; _bp.set(o.x + d.x*t, o.y + d.y*t, o.z + d.z*t);
+  }
+  return best ? bandOf(best, _bp) : null;
 }
 
 /* the aim from a point on the hero (a hand, the chest): the unit direction toward what the crosshair is over, plus

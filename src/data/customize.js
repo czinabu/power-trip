@@ -102,16 +102,16 @@ export const CUSTOMIZE = {
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
-      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 }, unlock: 'archive' },
+      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'archive' },
       { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'hoth' },
     ] },
   ],
 
   mando: [
     { id: 'helmet', label: 'HELMET', kind: 'part', options: [
-      { id: 'tvisor', name: 'Hunter',  set: parts({ helmet: 'tvisor' }) },
-      { id: 'clean',  name: 'Classic', set: parts({ helmet: 'clean' }), unlock: 'trial-first' },
+      { id: 'clean',  name: 'Classic', set: parts({ helmet: 'clean' }) },
+      { id: 'tvisor', name: 'Hunter',  set: parts({ helmet: 'tvisor' }), unlock: 'trial-first' },
       { id: 'crest',  name: 'Crested', set: parts({ helmet: 'crest' }), unlock: 'mustafar' },
     ] },
     { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
@@ -165,8 +165,8 @@ export const CUSTOMIZE = {
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
-      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 }, unlock: 'trial-first' },
+      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'trial-first' },
       { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'jakku' },
     ] },
   ],
@@ -222,8 +222,8 @@ export const CUSTOMIZE = {
       { id: 'heavy',    name: 'Heavy',    set: { build: { bulk: 1.12, shoulders: 1.08 } } },
     ] },
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
-      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
-      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 }, unlock: 'siege' },
+      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 }, unlock: 'siege' },
       { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 }, unlock: 'hoth' },
     ] },
   ],

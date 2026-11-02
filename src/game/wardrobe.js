@@ -10,7 +10,7 @@
 //   sw_camp_looks_<hero>  the chapters whose looks were handed out at their close (game/look-unlocks.js)
 //   sw_camp_<hero>        '1' once the campaign is beaten (game/summary.js)
 // Players from before the wardrobe keep what they were wearing: on the first load their customizer picks are written
-// down once (sw_look_kept, kept on this device and through NEW GAME) and stay open for good.
+// down once (sw_look_kept, kept on this device) and stay open until NEW GAME starts them on the basics.
 //
 // No imports on purpose: player/mesh.js dresses the hero while the modules are still loading.
 
@@ -45,6 +45,12 @@ function keptPicks(){
     }
   } catch(e){ kept = kept && typeof kept === 'object' ? kept : {}; }
   return kept;
+}
+// NEW GAME: a clean start on the basics, so the looks kept from before the wardrobe go too (written empty, so they
+// aren't read back from the customizer picks)
+export function clearKept(){
+  kept = {};
+  try { localStorage.setItem(KEPT, '{}'); } catch(e){}
 }
 // can the player wear this option of this row, as this hero?
 export function optionOpen(hero, row, opt){

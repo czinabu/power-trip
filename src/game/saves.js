@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // SAVE SLOTS: three local slots, each a snapshot of the player's progress, plus the campaign run when saved mid-campaign.
 
+import { clearKept } from './wardrobe.js';
 import { G, player } from '../state.js';
 import { LEVELS } from '../data/levels.js';
 import { missionById, isArcadeId } from '../data/arcade.js';
@@ -157,6 +158,7 @@ export function loadSlotProgress(data){
 // NEW GAME: wipe the wins, bests and training ticks (the look and the saved slots stay)
 export function clearProgress(){
   try { for (const k of progressKeys()) if (!FRESH_KEEP.test(k)) localStorage.removeItem(k); } catch(e){}
+  clearKept();   // (and the customizer back to its basics: game/wardrobe.js)
 }
 
 /* ---------- labels ---------- */

@@ -7,24 +7,13 @@
 // continuous skinned surface over several joints (trousers over hip and knee, a sleeve over shoulder and elbow).
 
 import * as THREE from 'three';
-import { loft, limb, plate, block, shard, chamfer, ngon, KEEL, SHIELD, HEAD } from './shapes.js';
+import { loft, limb, plate, block, shard, chamfer, ngon, hoodRing, cowlDrape, KEEL, SHIELD, HEAD } from './shapes.js';
 import { seg, rounded } from './skin.js';
 import { DIM } from './rig.js';
 
 // smooth sections for cloth and skin: the chiselled profiles with their corners rounded off once, so robes and
 // skulls shade as soft forms (the ink outline and cel bands keep the low-poly read)
 const SOFT = rounded(chamfer(0.42)), SOFT_SHIELD = rounded(SHIELD), SOFT_HEAD = rounded(HEAD);
-
-// a C-shaped section (open at the front) so a hood can be lofted around the head without covering the face
-const HOOD = (() => {
-  const outer = [], inner = [], N = 9, open = 0.62;
-  for (let i = 0; i <= N; i++){
-    const a = Math.PI/2 + open + (i / N) * (Math.PI*2 - open*2);
-    outer.push([Math.cos(a), Math.sin(a)]);
-    inner.push([Math.cos(a) * 0.84, Math.sin(a) * 0.84]);
-  }
-  return outer.concat(inner.reverse());
-})();
 
 // the same, open at the BACK: a beard wraps the jaw and cheeks but leaves the neck behind bare
 const JAW = (() => {
@@ -119,13 +108,28 @@ export const JEDI_PARTS = {
   head: {
     // bare head: chiseled skull, brow ridge, nose, ears
     bald(R, k){ face(R, k); },
-    // the same face under a raised hood
+    // the same face under a raised hood: ONE surface of robe cloth from the shoulders to the crown. The cowl lies over
+    // the shoulders on the chest and the hood round the head rides the head, blending across the neck, so it turns
+    // and nods with him without a seam. The cowl's hem dips to a point down the back and a shallow V at the chest, so
+    // the hood reads as the robe's own cloth pulled up, not a helmet set on top
     hood(R, k){
       face(R, k);
-      k.add(loft([
-        { y:-0.02, w:0.34, d:0.32, z:-0.03 }, { y:0.14, w:0.29, d:0.3, z:-0.02 },
-        { y:0.3, w:0.27, d:0.28, z:-0.025 }, { y:0.39, w:0.15, d:0.18, z:-0.04 }, { y:0.42, w:0.02, d:0.03, z:-0.05 },
-      ], HOOD, { capTop: false, capBottom: false }), 'robe', R.head);
+      const H = DIM.headY;   // the head joint, in the chest's frame (t up the chain)
+      const ring = (t, w, d, z, open, fold, wall) => ({ t, w, d, z, p: hoodRing(open, fold, wall) });   // (model/shapes.js)
+      k.skin('robe', [
+        ring(0.37,      0.82, 0.48, -0.03,  0.32, 0.05, 0.97),    // the hem, out over the shoulders
+        ring(0.415,     0.72, 0.43, -0.03,  0.32, 0.05, 0.9),
+        ring(0.455,     0.5,  0.36, -0.035, 0.36, 0.04, 0.88),
+        ring(0.49,      0.31, 0.3,  -0.035, 0.44, 0.03, 0.87),    // gathered round the neck
+        ring(H + 0.05,  0.29, 0.305,-0.03,  0.56, 0.02, 0.86),    // the chin
+        ring(H + 0.14,  0.31, 0.325,-0.03,  0.64, 0.015, 0.86),   // framing the cheeks, clear of the face
+        ring(H + 0.24,  0.315,0.335,-0.035, 0.62, 0.015, 0.86),   // the brow
+        ring(H + 0.31,  0.265,0.31, -0.045, 0.52, 0.01, 0.86),
+        ring(H + 0.36,  0.19, 0.25, -0.065, 0.38, 0.01, 0.84),
+        ring(H + 0.39,  0.09, 0.13, -0.09,  0.22, 0,    0.7),     // the crown, peaked a little to the back
+        ring(H + 0.4,   0.02, 0.03, -0.1,   0.2,  0,    0.5),
+      ], { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true,
+        warp: cowlDrape({ neck: 0.49, len: 0.12, zc: -0.03, back: 0.17, front: 0.05, side: 0.015 }) });
     },
   },
 
@@ -139,6 +143,7 @@ export const JEDI_PARTS = {
     // short sides with a knot tied on the crown
     topknot(R, k){
       cap(R, k, 0.008);
+      if (k.parts.head === 'hood') return;   // under a raised hood the knot is let down: only the cropped sides show
       const knot = k.group(R.head, [0, 0.34, -0.04], [-0.35, 0, 0]);
       hair(R, knot, 0.25);
       k.add(loft([{ y:-0.035, w:0.07, d:0.07 }, { y:0.0, w:0.095, d:0.095 }, { y:0.04, w:0.08, d:0.08 }, { y:0.06, w:0.03, d:0.03 }], ngon(8, Math.PI/8)), 'hair', knot, [0, 0.03, -0.01]);
@@ -147,6 +152,10 @@ export const JEDI_PARTS = {
     // shoulder-length, falling behind the ears to the nape
     long(R, k){
       cap(R, k, 0.016);
+      if (k.parts.head === 'hood'){   // under a raised hood: the locks framing the face, the rest tucked in behind
+        for (const sx of [-1, 1]) k.add(loft([{ y:0.02, w:0.03, d:0.07 }, { y:0.24, w:0.04, d:0.12 }], chamfer(0.4)), 'hair', R.head, [0.112*sx, 0, -0.03]);
+        return;
+      }
       // the fall behind: hung from a pivot at the crown so it sways and lags the head (model/life.js hairSway)
       const fall = k.group(R.head, [0, 0.26, -0.05]);
       hair(R, fall, 0.6);

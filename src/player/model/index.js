@@ -60,13 +60,21 @@ function dress(R, S, hero, PARTS, player){
   };
   const k = {
     style: S,
+    parts: hero.parts,   // every slot's pick, so one slot can fit around another (hair tucked under a raised hood)
     mat: (key, over) => S.mat(key, over),
     add(geo, mat, parent, p, r, o){ const m = S.add(geo, mat, parent, p, r, o); shape(m, parent); parts.push(m); return m; },
     group(parent, p = [0,0,0], r = [0,0,0]){ const g = new THREE.Group(); g.position.set(...p); g.rotation.set(...r); parent.add(g); parts.push(g); return g; },
     /* a skinned chain over `bones` (see skin.js): rings [{t, w, d, z?}] along it, bending at the distances `at`.
-       dir -1 runs down a limb, +1 up the spine. The build knobs are baked per vertex, by how much each bone carries it. */
-    skin(mat, rings, { bones, at, blend = 0.06, profile = KEEL, dir = -1, outline }){
-      const geo = chainGeo(rings, at, blend, rounded(profile), dir);
+       dir -1 runs down a limb, +1 up the spine. The build knobs are baked per vertex, by how much each bone carries it.
+       A ring's own section `p` is rounded like the profile; `open` leaves the chain's ends uncapped (an open hem), and
+       warp(v) reshapes each rest-pose vertex (a THREE.Vector3 in the first bone's frame) before it is weighted. */
+    skin(mat, rings, { bones, at, blend = 0.06, profile = KEEL, dir = -1, outline, open, warp }){
+      rings = rings.map(r => r.p ? { ...r, p: rounded(r.p) } : r);
+      const geo = chainGeo(rings, at, blend, rounded(profile), dir, open ? { capTop: false, capBottom: false } : undefined);
+      if (warp){
+        const p = geo.attributes.position, v = new THREE.Vector3();
+        for (let i = 0; i < p.count; i++){ warp(v.fromBufferAttribute(p, i)); p.setXYZ(i, v.x, v.y, v.z); }
+      }
       const fit = bones.map(b => limbJoints.has(b) ? [B.bulk, B.bulk] : (b === R.chest || b === R.torso) ? [B.shoulders, 1] : [1, 1]);
       const weigh = (x, y) => chainWeights(dir * y, at, blend);
       const p = geo.attributes.position;

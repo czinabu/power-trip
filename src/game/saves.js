@@ -17,7 +17,7 @@ import { MANDO_WEAPONS, RUN_KIT, cleanKit } from '../data/mando.js';
 export const SLOTS = 3;
 export const AUTO = 'auto';   // the autosave's own slot (game/autosave.js): shown beside the three, loadable but never saved to by hand
 const slotKey = (i) => 'sw_save_' + i;
-const PROGRESS = /^sw_(camp_|trained_|lesson_|best_|sandbox_|arcade_won_|mission_.+_(jedi|mando)$)|^sw_(asktrain|look)$/;
+const PROGRESS = /^sw_(camp_|scar_|trained_|lesson_|best_|sandbox_|arcade_won_|mission_.+_(jedi|mando)$)|^sw_(asktrain|look)$/;
 // what NEW GAME clears: everything above but the hero's look and the sandbox's map/kit picks
 const FRESH_KEEP = /^sw_(look|sandbox_)/;
 

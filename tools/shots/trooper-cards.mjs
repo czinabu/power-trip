@@ -55,6 +55,7 @@ for (const id of pick){
   await page.click('[data-n="5"]').catch(() => {});
   await page.click('#sbdummy').catch(() => {});
   await page.click('[data-foe="grunt"]').catch(() => {});
+  await page.click('[data-sbtab="squad"]').catch(() => {});
   for (let i = 0; i < (C.squad || 0); i++) await page.click('#sbsquadadd').catch(() => {});
   await page.click('#sbdone').catch(() => {});
   await page.evaluate(kit => { GAME.sandboxKitAll(false); for (const k of kit) GAME.setSandboxKit(k, true);

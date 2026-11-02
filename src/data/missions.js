@@ -450,7 +450,7 @@ export const MISSIONS = {
       { kind: 'capture', title: 'BREAK THEIR LINE',
         say: { jedi: 'Your troopers are with you, General. Take their forward posts one by one. Leave the troopers to the squad, and the blades to yourself.',
                mando: 'Your clan rides with you. Take their posts one by one. They\'ll handle the troopers. The blades are yours.' },
-        task: { jedi: 'Take the three posts (tap H on one to send the squad there)', mando: 'Take the three posts (tap H on one to send the squad there)' },
+        task: { jedi: 'Take the three posts (tap the middle mouse button on one to send the squad there)', mando: 'Take the three posts (tap the middle mouse button on one to send the squad there)' },
         r: 5, time: 9, squadRate: 0.55, perMate: 0.15, postName: 'POST', doneLine: 'THEIR LINE BREAKS', aggro: 9,
         posts: [ { at: GRASSLAND_SPOTS.points.ridge, guards: { grunt: 3, blaster: 2 } },                        // the first ridge
                  { at: GRASSLAND_SPOTS.points.walker, guards: { grunt: 3, blaster: 2, officer: 1, lancer: 1 } },   // under the downed walker

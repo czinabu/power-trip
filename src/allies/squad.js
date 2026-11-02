@@ -27,7 +27,7 @@ import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
 import { damageEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from '../world/collision.js';
-import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen } from '../enemies/nav.js';
+import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
@@ -230,7 +230,7 @@ function guestOrder(id, idx, list, l, tag){
   sfx(620, 0.06, 'triangle', 0.04, 820);
   return true;
 }
-const setOrd = (list, mk) => list.forEach(a => { a.ord = mk(a); a.prevOrd = null; });
+const setOrd = (list, mk) => list.forEach(a => { a.ord = mk(a); a.prevOrd = null; a.fire = null; });
 const ORDER_FN = {
   follow(list, l, tag){
     const lead = C && C.partner ? 'partner' : 'me';   // ON ME from the co-op partner: they follow the partner
@@ -538,16 +538,34 @@ function allyCut(a){
   burst(at, a.t.eye, hit ? 8 : 3, hit ? 7 : 4, 3, 0.6);
   sfx(hit ? 520 : 300, 0.09, 'sawtooth', 0.04, hit ? 140 : 120);
 }
-// TAKE COVER: a spot near this squadmate, hard by a wall, with the wall between it and the fight
-function findCover(a){
-  const p = a.group.position;
-  // the fight: the nearest few foes (or where the hero's looking, if there are none)
+// the fight, as seen from p: the middle of the nearest few foes (or where the hero's looking, if there are none)
+function fightAt(p){
   let tx = 0, tz = 0, n = 0;
   const near = enemies.filter(e => !e.dead && !e.converted && e.state !== 'spawn')
     .map(e => [e, Math.hypot(e.group.position.x - p.x, e.group.position.z - p.z)]).filter(x => x[1] < 34).sort((x, y) => x[1] - y[1]).slice(0, 3);
   for (const [e] of near){ tx += e.group.position.x; tz += e.group.position.z; n++; }
-  if (!n){ const pp = playerPos(); tx = pp.x + Math.sin(G.yaw) * 20; tz = pp.z + Math.cos(G.yaw) * 20; }
-  else { tx /= n; tz /= n; }
+  if (!n){ const pp = playerPos(); return { x: pp.x + Math.sin(G.yaw) * 20, z: pp.z + Math.cos(G.yaw) * 20, none: true }; }
+  return { x: tx / n, z: tz / n, none: false };
+}
+// is a cover spot still worth holding? a wall between it and the fight, which hasn't come round it or onto it
+function stillCovers(at){
+  const f = fightAt(at);
+  if (f.none) return true;
+  return !!segBlockedBySolids(at.x, at.z, f.x, f.z) && Math.hypot(f.x - at.x, f.z - at.z) >= 5;
+}
+// a foe of the rank and file in range of (x, z) with a clear line to it (a cover spot with a shot from it)
+function shotFrom(x, z, range){
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || !isFodder(e)) continue;
+    const q = e.group.position;
+    if (Math.hypot(q.x - x, q.z - z) < range && !segBlockedBySolids(x, z, q.x, q.z)) return e;
+  }
+  return null;
+}
+// TAKE COVER: a spot near this squadmate, hard by a wall, with the wall between it and the fight
+function findCover(a){
+  const p = a.group.position, pp = playerPos();
+  const f = fightAt(p), tx = f.x, tz = f.z;
   let best = null, bs = 1e9;
   for (let r = 1.5; r <= COMMAND.coverSearch; r += 1.5){
     for (let k = 0; k < 16; k++){
@@ -557,6 +575,9 @@ function findCover(a){
       if (!segBlockedBySolids(x, z, tx, tz)) continue;          // ...and that wall between it and the fight
       if (Math.hypot(tx - x, tz - z) < 5) continue;              // not in among them
       let s = r + (Math.hypot(tx - x, tz - z) > 28 ? 6 : 0);      // close by, and still in the fight
+      const fromHero = Math.hypot(x - pp.x, z - pp.z);
+      if (fromHero > COMMAND.coverNear) s += (fromHero - COMMAND.coverNear) * 1.5;   // ...and not off across the map from you
+      if (shotFrom(x, z, a.role.range)) s -= COMMAND.coverShot;   // a spot it can still shoot from (round the wall's end)
       for (const o of allies) if (o !== a && o.ord.kind === 'cover' && o.ord.at && Math.hypot(o.ord.at.x - x, o.ord.at.z - z) < 1.6) s += 8;   // one to a spot
       if (s < bs){ bs = s; best = V3(x, 0, z); }
     }
@@ -625,10 +646,14 @@ function wantSpot(a, medic, dt){
   }
   if (o.kind === 'hold') return { x: o.at.x, z: o.at.z, r: 0.8 };
   if (o.kind === 'cover'){
+    // a spot found is kept while it still has a wall between it and the fight; only then (or with none yet) look again
     if ((o.reT -= dt) <= 0 || !o.at){
-      o.reT = COMMAND.coverEvery; const c = findCover(a);
-      if (c){ o.at = c; o.found = true; }
-      else if (!o.at){ o.at = V3(p.x, 0, p.z); o.found = false; say(a, 'NO COVER HERE!', 'NO COVER.'); }
+      o.reT = COMMAND.coverEvery;
+      if (!o.at || !o.found || !stillCovers(o.at)){
+        const c = findCover(a);
+        if (c){ o.at = c; o.found = true; }
+        else if (!o.at){ o.at = V3(p.x, 0, p.z); o.found = false; say(a, 'NO COVER HERE!', 'NO COVER.'); }
+      }
     }
     return { x: o.at.x, z: o.at.z, r: 0.7 };
   }
@@ -637,7 +662,69 @@ function wantSpot(a, medic, dt){
     return { x: o.at.x + s[0] * k, z: o.at.z + s[1] * k, r: 1.0 };
   }
   const ld = leader(a), q = slotAt(ld, a.fSlot != null ? a.fSlot : i, { x: 0, z: 0 });
+  // A FIRING POSITION: in a fight with no clear shot from its spot, it steps to one near you that has one
+  const fp = firingSpot(a, ld, q, dt);
+  if (fp) return { x: fp.x, z: fp.z, r: 0.8 };
   return { x: q.x, z: q.z, r: SQ.formation === 'tight' ? SQUAD.leash * 0.6 : SQUAD.leash, form: ld.vel };
+}
+/* FIRING POSITION — a following squadmate whose own spot has no shot at the rank and file in range (a crate, a pillar
+   in the way) looks round it for a nearby spot that does, close to the leader, and holds it while it's still good */
+function firingSpot(a, ld, slot, dt){
+  const F = SQUAD.firing, R = a.role.range, f = a.fire;
+  if (a.role.melee) return null;
+  if (f){
+    const e = f.e, lead = Math.hypot(ld.pos.x - f.lx, ld.pos.z - f.lz);
+    if ((f.t -= dt) <= 0 || !e || e.dead || !enemies.includes(e) || lead > F.leaderMoved) a.fire = null;
+    else if ((f.chk -= dt) <= 0){
+      f.chk = 0.5;
+      const q = e.group.position;
+      if (segBlockedBySolids(f.x, f.z, q.x, q.z) || Math.hypot(q.x - f.x, q.z - f.z) > R) a.fire = null;
+    }
+    if (a.fire) return a.fire;
+  }
+  if ((a.fireLook = (a.fireLook || 0) - dt) > 0) return null;
+  a.fireLook = F.every;
+  if (a.target || shotFrom(slot.x, slot.z, R)) return null;   // a shot already (or one from its spot): stay in formation
+  // is there a fight in reach at all? the nearest of the rank and file within range of the leader
+  let foe = null, bd = R;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || !isFodder(e)) continue;
+    const d = Math.hypot(e.group.position.x - ld.pos.x, e.group.position.z - ld.pos.z);
+    if (d < bd){ bd = d; foe = e; }
+  }
+  if (!foe) return null;
+  let best = null, bs = 1e9;
+  for (let r = 1.5; r <= F.search; r += 1.5){
+    for (let k = 0; k < 12; k++){
+      const an = k / 12 * Math.PI * 2, x = slot.x + Math.sin(an) * r, z = slot.z + Math.cos(an) * r;
+      if (Math.hypot(x - ld.pos.x, z - ld.pos.z) > F.leash || Math.hypot(x - ld.pos.x, z - ld.pos.z) < 1.8) continue;
+      if (!navOpenAt(x, z, 0) || inAimLine(x, z)) continue;
+      const e = shotFrom(x, z, R);
+      if (!e) continue;
+      let s = r;
+      for (const o of allies) if (o !== a && o.fire && Math.hypot(o.fire.x - x, o.fire.z - z) < 1.6) s += 6;   // one to a spot
+      if (s < bs){ bs = s; best = { x, z, e }; }
+    }
+    if (best) break;
+  }
+  if (!best) return null;
+  a.fire = { x: best.x, z: best.z, e: best.e, t: F.hold, chk: 0.5, lx: ld.pos.x, lz: ld.pos.z };
+  return a.fire;
+}
+/* the hero's AIM LINE: the strip of ground ahead of them, along the view, out to SQUAD.aimLine.len. A squadmate's spot
+   in it moves sideways out of it (to the side it's already on), so nobody stands in front of your crosshair */
+function inAimLine(x, z){
+  const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw), rx = x - pp.x, rz = z - pp.z;
+  const along = rx * fx + rz * fz;
+  return along > 0.5 && along < SQUAD.aimLine.len && Math.abs(-rx * fz + rz * fx) < SQUAD.aimLine.half;
+}
+function outOfAimLine(w){
+  if (!inAimLine(w.x, w.z)) return w;
+  const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw), rx = w.x - pp.x, rz = w.z - pp.z;
+  const side = -rx * fz + rz * fx, sg = side >= 0 ? 1 : -1, push = SQUAD.aimLine.half + 0.5 - Math.abs(side);
+  const x = w.x - fz * sg * push, z = w.z + fx * sg * push;
+  if (!navOpenAt(x, z, 0)) return w;   // nowhere to step aside to: stay
+  return { ...w, x, z };
 }
 /* CAMERA LANE — the strip of ground from the lens to the hero. Returns a unit push out of it (sideways, toward the
    nearer edge) for a body standing in it, else null */
@@ -798,7 +885,8 @@ function updateAlly(a, dt, medic, pp){
   // MOVE — toward its spot (or the downed hero), straight when the way is open, round cover when it isn't
   // GET THEM UP: done when they're up (or gone), then back to what it was doing
   if (a.ord.kind === 'revive' && (standing(a.ord.who) || !allies.includes(a.ord.who))){ a.ord = a.prevOrd && a.prevOrd.kind !== 'revive' ? a.prevOrd : FOLLOW; a.prevOrd = null; }
-  const w = wantSpot(a, medic, dt);
+  let w = wantSpot(a, medic, dt);
+  if (!medic && !w.chase && a.ord.kind !== 'revive' && w.r < 99) w = outOfAimLine(w);   // never stand in front of your crosshair
   let dx = w.x - p.x, dz = w.z - p.z;
   const dist = Math.hypot(dx, dz);
   const far = Math.hypot(pp.x - p.x, pp.z - p.z);
@@ -840,6 +928,16 @@ function updateAlly(a, dt, medic, pp){
       wantX = hx * sp; wantZ = hz * sp;
     }
   } else { a.moving = false; a.rt = null; if (lv && lsp > 0.8){ wantX = lv.x; wantZ = lv.z; } }
+  // eyes on a foe while it moves: a sidestep or a backpedal is slower than a run (no skating backwards at full tilt).
+  // A long way to go turns it round to run there instead (a.runFace), and it shoots again once it's back on its feet
+  a.runFace = false;
+  const wl = Math.hypot(wantX, wantZ);
+  if (a.target && !a.role.melee && wl > 1 && !medic){
+    const tq = a.target.group.position, tl = Math.hypot(tq.x - p.x, tq.z - p.z) || 1;
+    const cos = (wantX * (tq.x - p.x) + wantZ * (tq.z - p.z)) / (wl * tl);   // the way it's going, against the way to its foe
+    if (dist > SQUAD.backpedal.runAfter && cos < 0.2) a.runFace = true;
+    else { const k = cos >= 0.5 ? 1 : cos >= -0.2 ? SQUAD.backpedal.side : SQUAD.backpedal.back; wantX *= k; wantZ *= k; }
+  }
   // keep out of each other's and the hero's way
   for (const o of allies){
     if (o === a) continue;
@@ -876,7 +974,7 @@ function updateAlly(a, dt, medic, pp){
   if ((a.seekT -= dt) <= 0){ a.seekT = rand(0.3, 0.5); a.target = medic ? null : pickTarget(a); }
   const e = a.target && !a.target.dead && enemies.includes(a.target) ? a.target : (a.target = null);
   const sp2 = Math.hypot(a.mv.x, a.mv.z);
-  const face = a.throwAt ? Math.atan2(a.throwAt.x - p.x, a.throwAt.z - p.z) : e ? Math.atan2(e.group.position.x - p.x, e.group.position.z - p.z)
+  const face = a.throwAt ? Math.atan2(a.throwAt.x - p.x, a.throwAt.z - p.z) : a.runFace && sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : e ? Math.atan2(e.group.position.x - p.x, e.group.position.z - p.z)
              : sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : a.ord.kind !== 'follow' ? g.rotation.y : SQ.fYaw;
   const dy = Math.atan2(Math.sin(face - g.rotation.y), Math.cos(face - g.rotation.y));
   g.rotation.y += clamp(dy, -9 * dt, 9 * dt);
@@ -1005,7 +1103,7 @@ export function updateSquadHud(){
   const key = allies.map(a => a.name + orderLabel(a)).join() + SQ.formation + G.reviveLeft + Math.ceil(gl) + cp;
   if (key !== lastKey){
     lastKey = key;
-    hud.innerHTML = '<div class="sq-head"><span>SQUAD · ' + (SQ.formation === 'wide' ? 'SPREAD' : 'STACKED') + '</span><span class="sq-ord">ORDERS <kbd>H</kbd></span></div>' +
+    hud.innerHTML = '<div class="sq-head"><span>SQUAD · ' + (SQ.formation === 'wide' ? 'SPREAD' : 'STACKED') + '</span><span class="sq-ord">ORDERS <kbd>MMB</kbd></span></div>' +
       (cp >= 0 ? '<div class="sq-cp"><span>CP ' + cp + '</span><span class="sq-cpbar"><i style="width:' + cp + '%"></i></span><span class="sq-ord">CALL <kbd>T</kbd></span></div>' : '') +
       allies.map(a => '<div class="sq-row"><span class="sq-n">' + (a.def.tag ? '<b class="sq-tag">' + a.def.tag + '</b>' : '') + a.name + '</span><span class="sq-o">' + orderLabel(a) + '</span><span class="sq-bar"><i></i></span></div>').join('') +
       '<div class="sq-gr' + (gl > 0 ? '' : ' ready') + '">GRENADE ' + (gl > 0 ? Math.ceil(gl) + 'S' : 'READY') + '</div>' +

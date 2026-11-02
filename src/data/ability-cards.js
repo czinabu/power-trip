@@ -89,7 +89,7 @@ export const ABILITY_CARDS = {
                       'Hold RMB to raise the scope; each pull is one heavy shot that reaches across the field.'] },
   squad3:   { clip: at('t-squad3'), lines: ['Hammer joins the band: three clones on the line from here on.', 'His rotary pins whatever it hits, as SUPPRESS does.'] },
   bshield:  { clip: at('t-bshield'), name: 'BUBBLE SHIELD', hud: 'V', lines: ['Press V to raise a dome where you stand. Enemy bolts stop at its edge, for you and the squad.'] },
-  medic:    { clip: at('t-medic'), name: 'FIELD MEDIC', hud: 'H', lines: ['Patch joins the squad. He patches up whoever is near and runs to get the downed up on his own.',
+  medic:    { clip: at('t-medic'), name: 'FIELD MEDIC', hud: 'MMB', lines: ['Patch joins the squad. He patches up whoever is near and runs to get the downed up on his own.',
                       'Your own revives take half as long, and you knit slowly once clear of the fight.'] },
   ion:      { clip: at('t-ion'), name: 'ION GRENADE', hud: 'F', lines: ['Press F to throw a grenade that stuns everything in the blast and drops shields. Droids and jet troopers stay stunned twice as long.'] },
   breach:   { clip: at('t-breach'), name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },

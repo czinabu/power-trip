@@ -44,7 +44,7 @@ export const CFG = {
     perfectDodge: { bonus: 0.02, slowmo: 0.3, slowT: 0.5, refund: 1, cd: 1.0 },
     // BLADE CLASH — your cut meets a foe's strike mid-arc: neither lands, both recoil
     clash: { from: 0.15, to: 0.75, knock: 9, push: 5, stam: 6 },
-    // SOFT LOCK-ON (T / middle mouse) — the camera keeps one foe framed
+    // SOFT LOCK-ON (T) — the camera keeps one foe framed
     lockOn: { range: 22, keep: 28, cone: 0.55, yawPull: 7, pitch: 0.2, pitchPull: 2.5, pitchFree: 0.45 },
   },
   // HOLSTERED (4) — the Jedi clips the saber to his belt and fights with the Force alone; the Mando holsters his

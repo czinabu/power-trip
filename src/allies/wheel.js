@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE COMMAND WHEEL: hold H (VIEW on a pad) and the world slows while eight orders fan out round the crosshair. Point
+// THE COMMAND WHEEL: hold the middle mouse button or H (VIEW on a pad) and the world slows while eight orders fan out round the crosshair. Point
 // at one (the mouse, or the right stick) and let go of H to give it. 1-4 (the D-pad) picks one squadmate instead of the
 // whole squad; right click (B) or Esc puts the wheel away. A quick tap of H skips the wheel: the smart order
 // (allies/squad.js squadOrder). The orders and timings are data/allies.js ORDERS and COMMAND.
@@ -112,7 +112,7 @@ function render(){
   });
   const o = W.sel >= 0 ? ORDERS[W.sel] : null;
   el.querySelector('.sw-t').textContent = o ? o.name : 'SQUAD ORDERS';
-  el.querySelector('.sw-n').textContent = o ? o.note : (pad ? 'Right stick to pick · let go of VIEW to give it' : 'Point the mouse · let go of H to give it');
+  el.querySelector('.sw-n').textContent = o ? o.note : (pad ? 'Right stick to pick · let go of VIEW to give it' : 'Point the mouse · let go to give it');
   el.querySelector('.sw-who').innerHTML = '<span class="' + (W.who == null ? 'on' : '') + '">ALL</span>' +
     allies.map((a, i) => '<span class="' + (W.who === i ? 'on' : '') + (orderLabel(a) === 'DOWN' ? ' down' : '') + '"><kbd>' + (pad ? ['D←', 'D↑', 'D→', 'D↓'][i] : i + 1) + '</kbd>' + a.name + '</span>').join('');
 }

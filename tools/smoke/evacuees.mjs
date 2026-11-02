@@ -142,10 +142,14 @@ try {
     await host.evaluate(i => GAME.startMission('refuge', i), i);
     for (let k = 0; k < 200 && !((await host.evaluate(past)) && (await guest.evaluate(past))); k++) await host.waitForTimeout(400);
     console.log('co-op: hold begun · guest line ' + await guest.evaluate(() => { const M = GAME.missionState(); return JSON.stringify({ i: M.i, o: M.o && M.o.kind, gk: !!M.gk, ev: !!(M.net && M.net.ev) }); }));
+    // (and the host's approach lanes, lit on the guest's screen as each wave is called in: game/lanes.js)
+    await guest.evaluate(() => { window.__lit = 0; (function watch(){ if (GAME.shared.incoming) window.__lit++; if (window.__lit < 1e6) setTimeout(watch, 100); })(); });
     const [, g] = await Promise.all([play(host, 12), play(guest, 12, false)]);
     await shot(guest, 'evac-coop-guest');
-    console.log('co-op guest: ' + g.shown + ' of the line drawn');
+    const lit = await guest.evaluate(() => window.__lit);
+    console.log('co-op guest: ' + g.shown + ' of the line drawn · a lit lane seen ' + (lit ? 'yes' : 'no'));
     if (!(g.shown > 0)) errors.push('co-op: the guest never saw the host\'s evacuees');
+    if (!lit) errors.push('co-op: the guest never saw a lane light up');
   }
 } catch(e){ errors.push(e.stack || e.message); }
 await browser.close();

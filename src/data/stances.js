@@ -22,7 +22,7 @@ import { STARTING_FORMS } from './forms.js';
    BALANCE (damage a second = dmg × speed, before each form's own edge): Djem So ~1.4 and ~2.75 on armour and the boss ·
    Juyo ~1.4, ~1.85 at full fury, at 8 stamina and 5 Force a swing · Makashi ~1.2, ~1.75 on blades · Shien, Vaapad ~1.15 ·
    Ataru ~1.1, ~1.75 on the back line · Niman ~1.0, the cheapest powers · Shii-Cho ~0.95 with the widest arc · Soresu
-   ~0.75, the best guard. How far a cut throws a foe is capped for every form (data/config.js saberShove). Keep a form's edge where its role is; tools/form-balance.mjs prints the table. */
+   ~0.75, the best guard. The saber staff ~1.05 a blade, with two blades sweeping. How far a cut throws a foe is capped for every form (data/config.js saberShove). Keep a form's edge where its role is; tools/form-balance.mjs prints the table. */
 export const STANCES = {
   /* FORM I SHII-CHO — the first form every initiate learns (Kit Fisto, Luke at Jabba's barge). Wide, simple sweeps built
      for many foes at once; the string ends in the SARLACC SWEEP (a full turn: everything round you), and that finisher
@@ -138,6 +138,19 @@ export const STANCES = {
             deflectScatter: 0.06,
             gait: { amp: 1.05, lift: 1.0, bob: 0.45, lean: 1.1 },   // MOVEMENT: poised, then explosive
             syn: 'CONTROL · blocks and parries build fury (+40% dmg) · a parry finds the Shatterpoint: next cut ×2 · TAKES +10% damage' },
+  /* THE SABER STAFF — not one of the seven forms but a weapon of its own (the Jedi Temple Guard, Maul): a long hilt
+     held in both hands with a blade at each end (data/forms.js staff). A SPEED weapon: quick, flowing strings that wheel
+     from one end to the other, so every cut sweeps the front with one blade and the back with the other (jedi/bladehit.js
+     sweeps both). Each cut bites a little less than a single blade's, the long hilt is slower to bring square on a
+     block, and with both hands on it the Force comes a beat slower. bladeLen is each blade's (shorter than a saber's). */
+  staff:  { name: 'SABER STAFF — SWEEPS', form: 'staff', formNo: null, blade: 0xffd23a,
+            dmg: 1.2, heavyDmg: 0.85, speed: 0.88, knock: 0.7, stamina: 7, lunge: 1.25, move: 1.06, accel: 1.2, twist: 0.7, bladeLen: 0.82,
+            radiusMult: 1.15, comboGap: 1.2, fovKick: 3, postureMul: 0.85, parryBonus: 0.02,
+            blockStamMul: 1.25,   // COST: a long hilt is slow to bring square: every block and caught bolt costs 25% more
+            castMul: 1.2,         // …and with both hands on it, a Force cast comes 20% slower
+            deflectScatter: 0.08,
+            gait: { amp: 1.04, lift: 1.1, bob: 0.4, lean: 1.1 },   // MOVEMENT: light and turning, the staff carried across the body
+            syn: 'SWEEPS · two blades: every cut covers front and back · fast wheeling strings · spinning finisher · COSTLY guard · slower Force casts' },
   // THE DARKSABER — the Mando's signature melee (selected automatically when the darksaber is equipped, not a
   // switchable Jedi form). Heavy-like, but the highest damage in the game, a touch faster & more mobile than Djem So.
   darksaber: { name: 'DARKSABER', form: 'darksaber', blade: 0xc9a6ff,
@@ -214,6 +227,7 @@ export const CUT_ANGLE = {
     shien:   [180, 0, 225, 315, 135],
     juyo:    [45, 225, 0, 315, 180, 90, 135],   // Juyo: a savage, broken rhythm: diagonals whipped off each other, no two alike
     vaapad:  [135, 315, 180, 45, 90],          // Vaapad: answers on the line the attack came from, then explodes down the middle     // Shien: reverse-grip backhands whipped out to the weapon side and back across          // Soresu: short cuts that come straight back to guard: heavy cuts down from the shoulder and back up the same line
+    staff:   [0, 180, 45, 225, 90, 270],   // the staff: each cut leaves from where the last one finished, end over end
   },
   reset: 1.2,
   // the keys, with no flick: A / D the flat cuts · W + A / D the downward diagonals · S + A / D the rising cuts · W the

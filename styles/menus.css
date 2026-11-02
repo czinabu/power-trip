@@ -378,24 +378,56 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .cz-actions .btn.primary{flex:1.6}
 .cz-hint{font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .cz-hint kbd{color:var(--ink-soft)}
-/* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — foes on the left, powers on the right ---------- */
+/* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — four tabs over one page each ---------- */
 #sandbox{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
 #sandbox.open{display:flex}
-.sb-panel{width:min(1060px,100%);max-height:100%;overflow-y:auto;box-sizing:border-box;text-align:left;
+.sb-panel{width:min(920px,100%);height:min(640px,100%);display:flex;flex-direction:column;box-sizing:border-box;text-align:left;
   background:linear-gradient(180deg,rgba(40,22,14,.96),rgba(18,10,6,.98));border:1px solid rgba(255,200,140,.28);border-radius:16px;
   box-shadow:0 30px 80px rgba(0,0,0,.7);padding:20px 24px 20px;animation:rise .25s var(--ease)}
-.sb-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.sb-col{display:flex;flex-direction:column;gap:10px;min-width:0}
-.sb-col .sec-label{margin:0}
+.sb-panel>.howto-head{flex:none}
+.sb-story{flex:none;font:600 12px/1.4 var(--font-ui);letter-spacing:1.2px;color:var(--gold);margin:-4px 0 10px}
+/* the tab strip */
+.sb-tabs{flex:none;display:flex;align-items:stretch;gap:4px;border-bottom:1px solid var(--edge);margin-bottom:14px}
+.sb-tab{pointer-events:auto;cursor:pointer;display:flex;align-items:center;padding:10px 16px 9px;margin-bottom:-1px;white-space:nowrap;
+  font:700 14px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim);border:1px solid transparent;border-radius:var(--r) var(--r) 0 0;
+  transition:color .15s,background .15s}
+.sb-tab:hover{color:var(--ink)}
+.sb-tab.on{color:var(--gold);background:rgba(255,210,74,.08);border-color:var(--edge);border-bottom-color:rgba(30,16,10,1);
+  box-shadow:inset 0 2px 0 var(--gold)}
+.sb-tabx{font-weight:600;color:inherit;opacity:.75;margin-left:.45em}
+.sb-tabkey{display:flex;align-items:center;padding:0 4px;color:var(--ink-faint)}
+.sb-tabkey kbd{font-size:11px}
+/* one page shows at a time; it scrolls on its own only if a window is too small for it */
+.sb-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
+.sb-page{display:none;flex-direction:column;gap:10px;min-width:0}
+.sb-page.on{display:flex}
+.sb-page .sec-label{margin:4px 0 0}
+.sb-page .sec-label:first-child{margin-top:0}
 .sb-hint{font:500 12px/1 var(--font-body);letter-spacing:.3px;color:var(--ink-faint)}
-.sb-opts,.sb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.sb-seg{display:flex;gap:3px;padding:3px;border-radius:var(--r-chip);border:1px solid var(--edge)}
-.sb-seg span{pointer-events:auto;cursor:pointer;font:600 13px/1 var(--font-ui);letter-spacing:1.5px;padding:6px 12px;border-radius:var(--r-chip);color:var(--ink-dim)}
+.sb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sb-push{margin-left:auto}
+.sb-count{font:600 14px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-soft)}
+/* every control in the panel is one height: segments, toggles, buttons */
+#sandbox .sb-row .btn{height:36px;box-sizing:border-box;padding:0 18px;font-size:14px;letter-spacing:2px}
+.sb-seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:var(--r-chip);border:1px solid var(--edge);box-sizing:border-box;min-height:36px}
+.sb-seg.wide{align-self:flex-start;max-width:100%}
+.sb-seg span{pointer-events:auto;cursor:pointer;display:flex;align-items:center;white-space:nowrap;font:600 13px/1 var(--font-ui);letter-spacing:1.5px;
+  padding:0 12px;min-height:28px;border-radius:var(--r-chip);color:var(--ink-dim)}
+.sb-seg span:hover{color:var(--ink)}
 .sb-seg span.on{background:rgba(255,210,74,.18);color:var(--gold)}
-.setpill.on .setval{color:var(--gold)}
+/* an on / off toggle: dim and OFF, or gold and ON, the same look as a picked chip */
+.setpill.sb-tog{height:36px;box-sizing:border-box;padding:0 14px;background:rgba(255,255,255,.03);backdrop-filter:none;-webkit-backdrop-filter:none}
+.setpill.sb-tog .setval{color:var(--ink-faint);min-width:28px}
+.setpill.sb-tog.on{border-color:rgba(255,210,74,.7);background:linear-gradient(90deg,rgba(54,42,10,.8),rgba(24,20,8,.7));color:var(--ink)}
+.setpill.sb-tog.on .setval{color:var(--gold)}
+/* the duellists' FORM and RANK rows: a label, then the picks */
+.sb-pick{display:flex;align-items:center;gap:10px;min-width:0}
+.sb-pl{flex:none;width:44px;font:700 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint)}
 .sb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.sb-chip{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:var(--r);
+.sb-grid.foes{grid-template-columns:repeat(3,1fr)}
+.sb-grid.three{grid-template-columns:repeat(3,1fr)}
+.sb-chip{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:var(--r);min-width:0;
   border:1px solid var(--edge);background:rgba(255,255,255,.03);font:600 14px/1.1 var(--font-ui);letter-spacing:1.2px;color:var(--ink-soft);
   transition:border-color .15s,background .15s,color .15s}
 .sb-chip:hover{border-color:var(--edge-mid);color:var(--ink)}
@@ -408,8 +440,7 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 /* not reached in the story yet (before the campaign is beaten) */
 .sb-chip.locked,.sb-seg span.locked{opacity:.32;cursor:not-allowed;border-style:dashed}
 .sb-chip.locked:hover{border-color:var(--edge);color:var(--ink-soft)}
-.sb-story{font:600 12px/1.4 var(--font-ui);letter-spacing:1.2px;color:var(--gold);margin:-4px 0 12px}
-.sb-foot{display:flex;justify-content:flex-end;margin-top:16px}
+.sb-foot{flex:none;display:flex;justify-content:flex-end;margin-top:14px}
 .sb-saves{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .sb-save{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:var(--r);border:1px solid var(--edge);background:rgba(8,18,33,.55);min-width:0}
 .sb-save .sv-t{font:600 12px/1.2 var(--font-ui);letter-spacing:1.2px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -418,6 +449,44 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .sb-save .btn{padding:7px 0;flex:1;font-size:12px;letter-spacing:1.5px}
 .sb-save .btn.off{opacity:.35;cursor:not-allowed}
 #sbreplay.off{opacity:.35;cursor:not-allowed}
+/* narrow (a phone held upright, a small window): short tab names, two columns */
+@media (max-width:760px){
+  .sb-tabx{display:none}
+  #sandbox{padding:10px}
+  .sb-panel{height:100%;max-height:760px;padding:14px 14px 12px}
+  .sb-panel .howto-head{margin-bottom:8px}
+  .sb-panel .rm-sub,.sb-tabkey{display:none}
+  .sb-foot{display:none}
+  .sb-pick{flex-direction:column;align-items:flex-start;gap:4px}
+  .sb-chip{padding:8px 10px}
+  .sb-tab{padding:9px 11px 8px;font-size:13px;letter-spacing:1.5px}
+  .sb-grid.foes{grid-template-columns:repeat(2,1fr)}
+  .sb-saves{grid-template-columns:1fr}
+  .sb-push{margin-left:0}
+}
+/* short (a phone on its side): tighter everything, the footer button goes (✕ and B still close it) */
+@media (max-height:560px){
+  #sandbox{padding:8px}
+  .sb-panel{padding:10px 14px 10px;border-radius:12px;height:100%}
+  .sb-panel .howto-head{margin-bottom:4px}
+  .sb-panel .howto-title{font-size:20px}
+  .sb-story{margin:0 0 4px;font-size:11px}
+  .sb-tabs{margin-bottom:8px}
+  .sb-tab{padding:7px 12px 6px;font-size:12px}
+  .sb-foot{display:none}
+  .sb-page{gap:6px}
+  .sb-page .sec-label{margin-top:2px}
+  .sb-chip{padding:6px 9px;font-size:12px}
+  .sb-grid{gap:4px}
+  .sb-grid.foes{grid-template-columns:repeat(4,1fr)}
+  .sb-grid.kit{grid-template-columns:repeat(3,1fr)}
+  #sandbox .sb-row .btn,.setpill.sb-tog{height:30px;font-size:12px;padding:0 12px}
+  .sb-seg{min-height:30px}
+  .sb-seg span{min-height:22px;font-size:12px;padding:0 9px}
+  .sb-save{padding:5px 7px;gap:4px}
+  .sb-save .btn{padding:4px 0;font-size:11px}
+}
+@media (max-height:560px) and (max-width:600px){ .sb-grid.foes,.sb-grid.kit{grid-template-columns:repeat(2,1fr)} }
 /* THE BATTLE SETUP (ui/battlesim-ui.js): a bar along the top and the palette along the bottom, over an overhead view */
 #bsplan{position:fixed;inset:0;z-index:29;display:none;user-select:none;-webkit-user-select:none}
 body.bsplan #bsplan{display:block}
@@ -451,7 +520,7 @@ body.pad .bs-aim{display:block}
 .bs-row .btn.primary{margin-left:auto;padding:12px 40px 12px 30px;font-size:16px}
 .bs-keys{font:500 12px/1.5 var(--font-body);color:var(--ink-faint)}
 .bs-keys kbd{font-size:.75em}
-@media (max-width:760px){ .sb-saves{grid-template-columns:1fr} .bs-top{flex-wrap:wrap;gap:6px 14px} .bs-hover{margin-left:0} }
+@media (max-width:760px){ .bs-top{flex-wrap:wrap;gap:6px 14px} .bs-hover{margin-left:0} }
 /* a short or narrow window: the palette becomes one row that scrolls sideways, so the map keeps the screen */
 @media (max-height:560px),(max-width:760px){
   .bs-pal{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
@@ -464,7 +533,6 @@ body.pad .bs-aim{display:block}
   .bs-row .setpill{padding:6px 10px}
   .bs-top{padding:8px 12px}.bs-title{font-size:17px}
 }
-@media (max-width:760px){ .sb-cols{grid-template-columns:1fr} }
 
 /* ---------- ONLINE CO-OP panel (ui/coop-ui.js) ---------- */
 #coop{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;

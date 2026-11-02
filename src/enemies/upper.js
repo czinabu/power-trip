@@ -20,6 +20,7 @@
 import { clamp } from '../utils.js';
 import { LID_OPEN } from './detail.js';
 import { solveHolds } from './holds.js';
+import { stanceArms } from './foestance.js';
 
 const ease = (cur, want, dt, rate) => cur + (want - cur) * (1 - Math.exp(-rate * dt));
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -71,6 +72,7 @@ export function updateUpper(o, g, dt, aim, mode = 'on'){
     if (o.cutTwist != null && (o.state === 'windup' || o.state === 'strike')) twist = o.cutTwist;
     else if (o.t && !o.t.ranged && o.state === 'windup') twist = 0.32 * Math.sqrt(clamp(1 - Math.max(o.st, 0) / (o.wu || 1), 0, 1));
     else if (o.t && !o.t.ranged && o.state === 'strike') twist = -0.26;
+    else if (o.stanceTwist) twist = o.stanceTwist;   // a duellist's form turns its guard its own way (enemies/foestance.js)
   }
   const r = mode === 'off' ? 6 : 9;
   U.yaw = ease(U.yaw, yaw, dt, r); U.pitch = ease(U.pitch, pitch, dt, r);
@@ -96,13 +98,14 @@ export function updateUpper(o, g, dt, aim, mode = 'on'){
   U.st = ease(U.st ?? 0, on, dt, 3);
   const shift = Math.sin(U.t * ST.sw) * ST.sa * U.st, talk = on * talking(U, u, o, dt);
   const kick = U.kick * U.kick;
-  ch.rotation.set(U.pitch + breath - kick * 0.16 + U.fl * 0.3 + ST.cp * U.st, U.yaw + U.twist, -U.fr * 0.25 + shift);
+  ch.rotation.set(U.pitch + breath - kick * 0.16 + U.fl * 0.3 + ST.cp * U.st + (on ? o.stanceLean || 0 : 0), U.yaw + U.twist, -U.fr * 0.25 + shift);
   if (hd) hd.rotation.set(U.hx0 + U.hp - breath * 0.6 + kick * 0.05 + U.fl * 0.2 - snap * 0.55 + ST.hp * U.st + talk * Math.sin(U.t * 7.3) * 0.04,
     U.hy - U.twist * 0.6 - snap * (U.snapSide || 0) * 0.4, -U.fr * 0.15 + snap * (U.snapSide || 0) * 0.35 + U.ht - shift * 0.6);
   if (u.lids || u.jaw) faceLife(U, o, u, dt, mode, talk);
   if (u.gearL || u.gearR || u.gearB) gearSwing(U, o, g, u, dt, mode);
   if (u.cape0) capeSwing(U, g, u, dt, mode);
   if (u.offArm || u.offArmR) armsSwing(U, o, g, u, dt, mode, breath);
+  if (u.elbowOff && mode !== 'off') stanceArms(o, u, dt);   // a duellist's free hand: its form's pose, or both hands on the hilt (enemies/foestance.js)
   if (u.holds && mode !== 'off') solveHolds(u);   // hands that stay on a staff or a pike haft as it moves (enemies/holds.js)
   // FALLING (dead, floored): the chest curls and the head lolls with the body's tip, so a fall isn't a rigid plank
   if (mode === 'off'){

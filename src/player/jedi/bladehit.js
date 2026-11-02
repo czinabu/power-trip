@@ -6,6 +6,8 @@ import { shared, G, enemies, barrels, player, isGunner } from '../../state.js';
 import { stance } from '../helpers.js';
 import { pointHit, partsOf } from '../../enemies/bodyshape.js';
 import { meetBlades } from './clash.js';
+import { STAFF, saberIsStaff } from '../model/weapons.js';
+import { tutEvent } from '../../game/tutor-bus.js';
 export { bodyRadius } from '../../enemies/bodyshape.js';
 
 /* BODIES — foes use their real hitbox (enemies/bodyshape.js: legs, torso, head, turned and tipped over with the model);
@@ -26,6 +28,36 @@ export function bladeSegment(outB, outT){
   outT.set(0, len, 0); node.localToWorld(outT);
   return true;
 }
+// the saber staff's far blade, base → tip, in world space (false unless the staff is in hand: data/forms.js staff)
+export function farBladeSegment(outB, outT){
+  if (isGunner() || !saberIsStaff(player)) return false;
+  const node = player.saberBladeRoot, l2 = 1.6 * (stance().bladeLen || 1);
+  node.updateWorldMatrix(true, false);
+  outB.set(0, -(STAFF.end + 0.04 + 0.12 * l2), 0); node.localToWorld(outB);
+  outT.set(0, -(STAFF.end + l2), 0); node.localToWorld(outT);
+  return true;
+}
+const FB = new THREE.Vector3(), FT = new THREE.Vector3(), FPB = new THREE.Vector3(), FPT = new THREE.Vector3();
+
+/* the blade swings AROUND the hero, so between two frames its base and tip travel along arcs, not straight chords:
+   interpolate each in cylindrical coordinates about the hero (angle, distance, height), into flat x,y,z samples. A slow
+   frame still can't let a cut skip over a body it visibly passed through. */
+function sweepPoints(PB, B, PT, T, pts){
+  const c = player.group.position;
+  const cyl = (v, o) => { o.a = Math.atan2(v.z - c.z, v.x - c.x); o.r = Math.hypot(v.x - c.x, v.z - c.z); o.y = v.y; return o; };
+  const b0 = cyl(PB, {}), b1 = cyl(B, {}), t0 = cyl(PT, {}), t1 = cyl(T, {});
+  const da = (p, q) => { let d = q.a - p.a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+  const dB = da(b0, b1), dT = da(t0, t1);
+  const steps = Math.max(SWEEP, Math.ceil(Math.max(Math.abs(dB), Math.abs(dT)) / 0.2));   // a sample every ~11° of swing
+  for (let i = 1; i <= steps; i++){
+    const s = i / steps;
+    const ab = b0.a + dB * s, rb = b0.r + (b1.r - b0.r) * s, yb = b0.y + (b1.y - b0.y) * s;
+    const at = t0.a + dT * s, rt = t0.r + (t1.r - t0.r) * s, yt = t0.y + (t1.y - t0.y) * s;
+    const bx = c.x + Math.cos(ab) * rb, bz = c.z + Math.sin(ab) * rb, tx = c.x + Math.cos(at) * rt, tz = c.z + Math.sin(at) * rt;
+    for (let j = 0; j < ALONG; j++){ const a = j / (ALONG - 1); pts.push(bx + (tx - bx) * a, yb + (yt - yb) * a, bz + (tz - bz) * a); }
+  }
+  return pts;
+}
 
 /* Sweep the blade from where it was last frame to where it is now; return the targets it passed through for the first
    time this swing (enemies, the boss, barrels). The swing remembers who it has already cut. `live` is false outside
@@ -35,26 +67,20 @@ export function sweepBlade(sw, live){
   if (!sw.pb){ sw.pb = B.clone(); sw.pt = T.clone(); }
   PB.copy(sw.pb); PT.copy(sw.pt);
   sw.pb.copy(B); sw.pt.copy(T);
+  // the saber staff's far blade is tracked the same way (it cuts on the same beats as the near one)
+  const far = farBladeSegment(FB, FT);
+  if (far){
+    if (!sw.fpb){ sw.fpb = FB.clone(); sw.fpt = FT.clone(); }
+    FPB.copy(sw.fpb); FPT.copy(sw.fpt);
+    sw.fpb.copy(FB); sw.fpt.copy(FT);
+  }
   if (!live) return null;   // the chamber and the follow-through only track the blade; the stroke between them cuts
   const cut = sw.cutSet || (sw.cutSet = new Set());
   const out = [];
-  // the blade swings AROUND the hero, so between two frames its base and tip travel along arcs, not straight chords:
-  // interpolate each in cylindrical coordinates about the hero (angle, distance, height). A slow frame still can't
-  // let a cut skip over a body it visibly passed through.
-  const c = player.group.position;
-  const cyl = (v, o) => { o.a = Math.atan2(v.z - c.z, v.x - c.x); o.r = Math.hypot(v.x - c.x, v.z - c.z); o.y = v.y; return o; };
-  const b0 = cyl(PB, {}), b1 = cyl(B, {}), t0 = cyl(PT, {}), t1 = cyl(T, {});
-  const da = (p, q) => { let d = q.a - p.a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
-  const dB = da(b0, b1), dT = da(t0, t1);
-  const steps = Math.max(SWEEP, Math.ceil(Math.max(Math.abs(dB), Math.abs(dT)) / 0.2));   // a sample every ~11° of swing
   const pts = [];
-  for (let i = 1; i <= steps; i++){
-    const s = i / steps;
-    const ab = b0.a + dB * s, rb = b0.r + (b1.r - b0.r) * s, yb = b0.y + (b1.y - b0.y) * s;
-    const at = t0.a + dT * s, rt = t0.r + (t1.r - t0.r) * s, yt = t0.y + (t1.y - t0.y) * s;
-    const bx = c.x + Math.cos(ab) * rb, bz = c.z + Math.sin(ab) * rb, tx = c.x + Math.cos(at) * rt, tz = c.z + Math.sin(at) * rt;
-    for (let j = 0; j < ALONG; j++){ const a = j / (ALONG - 1); pts.push(bx + (tx - bx) * a, yb + (yt - yb) * a, bz + (tz - bz) * a); }
-  }
+  sweepPoints(PB, B, PT, T, pts);
+  const nearN = pts.length;   // (samples past this one are the far blade's)
+  if (far) sweepPoints(FPB, FB, FPT, FT, pts);
   // a READY blade in the way (a guard that holds, a strike in flight) stops the cut before it reaches any body
   if (meetBlades(sw, pts)) return out;
   const test = (obj, x, z, y0, y1, r) => {
@@ -75,8 +101,10 @@ export function sweepBlade(sw, live){
     for (let k = 0; k < pts.length; k += 3){
       const part = pointHit(e, P.set(pts[k], pts[k + 1], pts[k + 2]), BODY.edge);
       if (part){
+        const back = k >= nearN;   // the staff's far blade found it
         cut.add(e); out.push(e);
-        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: new THREE.Vector3().subVectors(T, PT) });
+        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: back ? new THREE.Vector3().subVectors(FT, FPT) : new THREE.Vector3().subVectors(T, PT), far: back });
+        if (back) tutEvent('farBlade', e);   // (the training's saber staff lesson)
         break;
       }
     }

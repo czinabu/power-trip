@@ -182,7 +182,7 @@ export function updateLegs(o, g, dt, mode = 'ground'){
   let buckle = 0;
   if (o.buckle > 0){ o.buckle = Math.max(0, o.buckle - dt); buckle = Math.sin(Math.PI * Math.min(1, (0.4 - o.buckle) / 0.4)) * 0.2; }
   // a duellist's low cut sinks the hips under it (enemies/duel.js cutDrop), the feet planted as for a buckle
-  vis.position.set(L.sway, L.bob + sink - buckle - (o.cutDrop || 0) / gs, 0);
+  vis.position.set(L.sway, L.bob + sink - buckle - ((o.cutDrop || 0) + (o.stanceDrop || 0)) / gs, 0);   // (and its form's crouch: enemies/foestance.js)
   vis.rotation.set(L.lean, 0, L.bank + (body ? body.roll * 0.5 * w : 0));
 
   // IK — each ankle onto its target, in the body's own frame (so a coil, a lean or a hit reaction never lifts the

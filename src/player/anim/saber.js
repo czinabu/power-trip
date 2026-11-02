@@ -8,12 +8,19 @@ import { AIR_GUARDS } from '../../data/agility.js';
 import { CUT_ANGLE } from '../../data/stances.js';
 import { DIM } from '../model/rig.js';
 import { solveArm, aimHeld, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
+import { STAFF } from '../model/weapons.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const PIVOT = new THREE.Vector3(0, 0.12, 0.04);   // the arc centre of a cut: between the shoulders, a touch forward
 const OFF_REST = new THREE.Vector3(-0.3, -0.42, 0.12), OFF_POLE = new THREE.Vector3(-0.55, -0.8, -0.25);
 const Y = new THREE.Vector3(0, 1, 0);
 const _t = new THREE.Vector3(), _p = new THREE.Vector3(), _ax = new THREE.Vector3(), _grip = new THREE.Vector3();
+/* THE PROPELLER — a saber staff wheels about the middle of its long hilt, not about the fist: the hands pass it round
+   between them, so as the staff turns the fist rides a small circle about the hilt's middle (STAFF_MID back down the
+   hilt from it). `shiftToMid` moves the hand by however far the blade turned from `from`, keeping that middle still. */
+const STAFF_MID = 0.2;
+const _wd = new THREE.Vector3(), _wf = new THREE.Vector3();
+const shiftToMid = (hand, from, to) => hand.addScaledVector(to, STAFF_MID).addScaledVector(from, -STAFF_MID);
 
 // cache the data as vectors once
 const vecOff = o => o && { hand: V(o.hand), pole: V(o.pole || [-0.55, -0.8, -0.25]).normalize(), sway: o.sway ?? 1 };   // sway: how much of the stride a free hand picks up (0 = held still, tucked)
@@ -68,6 +75,7 @@ const WRAP_LIFT = new THREE.Vector3(0, 0.24, -0.1);
 const WRAP_BLADE = { regular: new THREE.Vector3(0, 0.78, -0.62).normalize(), reverse: new THREE.Vector3(0, -0.55, -0.83).normalize() };
 
 const TWIRL_AXIS = new THREE.Vector3(0.25, 0, 1).normalize();   // a wheel in front of the chest, just canted
+const TWIRL_OFF = new THREE.Vector3(-0.5, 0.02, 0.18);   // where a two-handed wheel's free hand goes (the saber staff)
 const easeOut = t => 1 - (1 - t) * (1 - t);
 const DEF_POLE = new THREE.Vector3(0.55, -0.8, -0.25).normalize();
 const REV_ROUND = -0.2;   // a reverse stroke whose blade turns further than this (dot of chamber and strike) goes round level
@@ -124,11 +132,20 @@ export function guardPose(dt, R, held, grip, form, blocking, sway, over = null, 
   switchT = Math.max(0, switchT - dt);
   const k = Math.min(1, dt * (blocking ? 18 : switchT > 0 ? SWITCH_RATE : 9) * rate);
   _t.copy(g.hand); _t.y += sway.y; _t.z += sway.z;
+  // an air guard can whirl the weapon (data/agility.js 'wheel': `wheel` turns a second about `axis`, in chest space):
+  // the target spins and the pose chases it fast, the staff turning about its middle
+  let wd = null;
+  if (g.wheel){
+    wheelA += dt * g.wheel * Math.PI * 2;
+    wd = _wd.copy(g.blade).applyAxisAngle(g._axis || (g._axis = V(g.axis || [1, 0, 0]).normalize()), wheelA);
+    shiftToMid(_t, g.blade, wd);
+  } else wheelA = 0;
   // mid-switch the blade swings out round the weapon side, never across the body or face
   const out = switchT > 0 ? Math.sin(Math.PI * switchT / SWITCH_TIME) : 0;
   if (out){ _t.x += 0.12 * out; _t.z += 0.08 * out; }
   saberPose.hand.lerp(_t, k);
-  slerpDir(saberPose.blade, out ? _ax.copy(g.blade).addScaledVector(OUTX, SWITCH_OUT * out).normalize() : g.blade, k, saberPose.blade);
+  if (wd) slerpDir(saberPose.blade, wd, Math.min(1, dt * 30), saberPose.blade);
+  else slerpDir(saberPose.blade, out ? _ax.copy(g.blade).addScaledVector(OUTX, SWITCH_OUT * out).normalize() : g.blade, k, saberPose.blade);
   saberPose.pole.lerp(g.pole, k).normalize();
   saberPose.two += ((g.two ? 1 : 0) - saberPose.two) * Math.min(1, dt * 14);
   // a guard can rest its free hand while idle and bring it up as soon as the hero moves (offMove) or a fight is on (offFight)
@@ -149,7 +166,7 @@ export function guardPose(dt, R, held, grip, form, blocking, sway, over = null, 
 const SWITCH_TIME = 0.22, SWITCH_RATE = 24;   // seconds the fast blend lasts; its rate (the guard's own is 9)
 const GRIP_TURN = Math.PI / 0.16;   // rad/s the hilt turns over in the fingers on a grip change (half a turn in 0.16 s)
 const SWITCH_OUT = 1.1, OUTX = new THREE.Vector3(1, 0, 0);   // how far out to the weapon side the blade swings mid-switch
-let switchT = 0;
+let switchT = 0, wheelA = 0;
 // a form with a second block (block2, Makashi) alternates between the two each time the guard goes up
 let blockAlt = true, wasBlocking = false;
 export function startSwitch(){ switchT = SWITCH_TIME; }
@@ -168,14 +185,24 @@ function depth(p){
   if (q < 1e-4) _n.set(0, 0, 1); else _n.set(p.x / (rx * rx), 0, p.z / (rz * rz)).normalize();
   return (1 - q) * Math.min(rx, rz);
 }
-function keepClear(h, d){
+/* `far`: the saber staff's second blade, which leaves the far end of the hilt the other way (STAFF.end below the fist,
+   as long as the first): it is kept out of the body too, the staff turning about the fist to clear whichever end is in. */
+const FAR_LEN = STAFF.end + 1.3;
+function keepClear(h, d, far = false){
   const dh = depth(h);
   if (dh > 0) h.addScaledVector(_n, dh);
-  for (let it = 0; it < 6; it++){
+  for (let it = 0; it < (far ? 10 : 6); it++){
     let worst = 0, ws = 0;
     for (let s = 0.15; s <= BLADE_LEN; s += 0.1){
       const dp = depth(_s.copy(h).addScaledVector(d, s));
       if (dp > worst){ worst = dp; ws = s; _w.copy(_n); }
+    }
+    if (far){
+      // the far end: a point s back along the hilt is pushed out by turning the staff the other way about the fist
+      for (let s = 0.3; s <= FAR_LEN; s += 0.1){
+        const dp = depth(_s.copy(h).addScaledVector(d, -s));
+        if (dp > worst){ worst = dp; ws = -s; _w.copy(_n); }
+      }
     }
     if (!worst) break;
     d.addScaledVector(_w, worst / ws).normalize();
@@ -190,7 +217,7 @@ export function swingPose(R, held, grip, form, sw){
   if (!sw.anim){
     const fin = sw.step === 2 && sw.dir === 'neutral' && !sw.riposte;
     const pid = sw.riposte && !sw.ripLine ? 'forward' : fin ? style.finisher.pattern : (sw.pat.id || 'right');   // (a riposte on a line: jedi/guardline.js)
-    const set = SWINGS[grip] || SWINGS.regular;
+    const set = (style.set && SWINGS[style.set]) || SWINGS[grip] || SWINGS.regular;   // (the saber staff swings its own two-ended set)
     const keys = sw.pat.ang != null && !sw.riposte && !fin ? angleKeys(set, grip, sw.pat.ang, sw.h) : (set[pid] || set.right);
     // reach scales the chamber and follow-through out from the arc centre (committed forms swing bigger)
     const scaled = keys.map((kf, i) => i === 1 ? kf : { ...kf, hand: kf.hand.clone().sub(PIVOT).multiplyScalar(style.reach).add(PIVOT) });
@@ -281,14 +308,21 @@ export function swingPose(R, held, grip, form, sw){
     // the wheel carries the blade over the top toward the cut's side (the top of the wheel moves with the cut, so the
     // tip comes round into the chamber already travelling the way the stroke goes)
     const p = k / A.ts;
+    _wf.copy(saberPose.blade);
     saberPose.blade.applyAxisAngle(TWIRL_AXIS, -Math.PI * 2 * sp.twirl * A.side * (p - Math.sin(Math.PI * 2 * p) / (Math.PI * 2))).normalize();
+    if (staffIn(held)) shiftToMid(saberPose.hand, _wf, saberPose.blade);   // (the staff: passed round between the hands)
   }
   // the elbow: a reverse-grip cut raises and swings it with the key (data/poses.js pole), so the forearm can carry the
   // blade square off the fist; a regular-grip cut keeps it down and out
   if (grip === 'reverse') saberPose.pole.copy(a.pole || b.pole || DEF_POLE).lerp(b.pole || DEF_POLE, t).normalize();
   else saberPose.pole.copy(DEF_POLE);
   saberPose.twist = (ta + (tw - ta) * t) * style.twist;
-  saberPose.two = style.two ? 1 : 0;
+  // (a two-handed weapon wheeled about the fist lets go with the off hand for the twirl, flung out for balance, and
+  // takes the hilt again for the strike: a two-handed saber's spin)
+  // (the saber staff keeps both hands on: it's passed round between them, hand over hand, about the hilt's middle)
+  const wheel = style.two && sp && sp.twirl && grip === 'regular' && k < A.ts * 0.85 && !staffIn(held);
+  saberPose.two += ((style.two && !wheel ? 1 : 0) - saberPose.two) * 0.3;
+  if (wheel) saberPose.off.lerp(TWIRL_OFF, 0.2);
   saberPose.lean = (style.drop || 0) * Math.sin(Math.PI * k) * 1.6;
   // the free hand works against the blade (data/poses.js SWING_OFF): a forehand reaches it out at the foe on the wind-up
   // and draws it back to the hip as the blade comes through (the counter-pull that turns the body), a backhand tucks it in
@@ -320,15 +354,16 @@ export function swingPose(R, held, grip, form, sw){
    between covers like the films instead of repeating one block. Returns the same body cue as guardPose. */
 const ZONE_CYCLE = ['mid', 'high', 'mid', 'low'];
 const _pick = { side: 1, cyc: 0, last: {} };
-function pickDeflect(grip, d){
-  const set = DEFLECTS[grip] || DEFLECTS.regular;
+function pickDeflect(grip, d, form){
+  const ps = SWING_STYLE[form] && SWING_STYLE[form].set;
+  const set = (ps && DEFLECTS[ps]) || DEFLECTS[grip] || DEFLECTS.regular;   // (the saber staff has its own catches)
   // a saber lock (enemies/duel.js) always takes the same cover for its kind of bind: the bind looks the same every time
   if (d.fixed && set[d.fixed]) return set[d.fixed][0];
   // a bolt clearly off to one side is caught on that side; a bolt down the middle alternates forehand / cross-body
   const side = Math.abs(d.side) > 0.25 ? Math.sign(d.side) : -_pick.side;
   _pick.side = side;
   const h = d.h > 0.35 ? 'high' : d.h < -0.35 ? 'low' : ZONE_CYCLE[_pick.cyc++ % ZONE_CYCLE.length];
-  const zone = h + (side > 0 ? 'R' : 'L'), list = set[zone], key = grip + zone;
+  const zone = h + (side > 0 ? 'R' : 'L'), list = set[zone], key = (ps || grip) + zone;
   // never the same catch twice running in a zone
   const last = _pick.last[key] ?? -1;
   const i = (last + 1 + (list.length > 2 && Math.random() < 0.5 ? 1 : 0)) % list.length;
@@ -340,7 +375,7 @@ function pickDeflect(grip, d){
    reach, and the blade turned just enough that the saber's length passes through the contact point. */
 const ARM_SLACK = 0.04, BLADE_NEAR = 0.3, BLADE_FAR = 1.35;
 const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _cc = new THREE.Vector3(), _m = new THREE.Vector3(), _d = new THREE.Vector3();
-function fitContact(R, P, world){
+function fitContact(R, P, world, staff = false){
   // the contact in chest space AS THE CATCH WILL HAVE THE CHEST: the cover turns the chest by its twist, so undo that
   // turn rather than reading the chest where it happens to stand this frame
   const ch = R.chest;
@@ -348,8 +383,11 @@ function fitContact(R, P, world){
   _e.copy(ch.rotation); _e.y = P.twist;
   const C = ch.parent.worldToLocal(_cc.copy(world)).sub(ch.position).applyQuaternion(_q.setFromEuler(_e).invert());
   const hand = P.hand, blade = P.blade;
-  // slide the hand so the cover's own blade line crosses the contact at a point along the blade
-  const s = THREE.MathUtils.clamp(_m.subVectors(C, hand).dot(blade), BLADE_NEAR, BLADE_FAR);
+  // slide the hand so the cover's own blade line crosses the contact at a point along the blade (a saber staff's
+  // cover that stands its FAR blade in the line meets it on that one, back past the far end of the hilt)
+  const along = _m.subVectors(C, hand).dot(blade), farSide = staff && along < 0;
+  const s = farSide ? THREE.MathUtils.clamp(along, -(STAFF.end + BLADE_FAR - 0.2), -(STAFF.end + 0.1))
+                    : THREE.MathUtils.clamp(along, BLADE_NEAR, BLADE_FAR);
   hand.add(_m.copy(C).addScaledVector(blade, -s).sub(hand));
   // …but only as far as the arm goes
   const sh = R.armR.sh.position, reach = DIM.upper + DIM.fore - ARM_SLACK;
@@ -359,20 +397,26 @@ function fitContact(R, P, world){
   const to = _d.subVectors(C, hand), dist = to.length();
   if (dist > 0.05){
     to.divideScalar(dist);
-    const miss = _m.copy(C).addScaledVector(blade, -Math.min(Math.max(dist, BLADE_NEAR), BLADE_FAR)).sub(hand).length();
-    if (miss > 0.02) blade.copy(to);
+    if (farSide){
+      const miss = _m.copy(C).addScaledVector(blade, Math.min(Math.max(dist, STAFF.end + 0.1), STAFF.end + BLADE_FAR)).sub(hand).length();
+      if (miss > 0.02) blade.copy(to).negate();   // (the far blade turned onto it: the near one points away)
+    } else {
+      const miss = _m.copy(C).addScaledVector(blade, -Math.min(Math.max(dist, BLADE_NEAR), BLADE_FAR)).sub(hand).length();
+      if (miss > 0.02) blade.copy(to);
+    }
   }
   P.flick.multiplyScalar(0.3);   // the flick is for sending a bolt away: against a blade the saber stays on it
   P.flickHand.copy(hand).add(P.flick);
   P.flickBlade.copy(blade).addScaledVector(P.flick, 2.4).normalize();
 }
 
+const staffIn = (held) => !!(held.root && held.root.userData.staff);   // the saber staff is in this hand
 export function deflectPose(dt, R, held, grip, form, d){
   if (!saberPose.live) seed(R, held);
   const G0 = (GUARDS[grip] && (GUARDS[grip][form] || GUARDS[grip].niman)) || GUARDS.regular.niman;
   const bg = G0.block;
   if (!d.pose){
-    const p = pickDeflect(grip, d);
+    const p = pickDeflect(grip, d, form);
     const j = () => d.fixed ? 0 : (Math.random() - 0.5) * 0.06;
     const hand = p.hand.clone().add(_t.set(j(), j(), j()));
     const blade = p.blade.clone().add(_t.set(j() * 2, j() * 2, j() * 2)).normalize();
@@ -384,16 +428,16 @@ export function deflectPose(dt, R, held, grip, form, d){
       flick: p.flick.clone(),
     };
     if (d.lock) d.pose.base = { hand: d.pose.hand.clone(), blade: d.pose.blade.clone() };
-    if (d.contact) fitContact(R, d.pose, d.contact);
+    if (d.contact) fitContact(R, d.pose, d.contact, staffIn(held));
   } else if (d.lock && d.contact){
     // A SABER LOCK tracks the bind every frame: the cover is fitted afresh (from its own unfitted shape, so it never
     // drifts) to where the foe's blade is now, so the two blades stay crossed at the one point as the bind sways
     d.pose.hand.copy(d.pose.base.hand); d.pose.blade.copy(d.pose.base.blade);
-    fitContact(R, d.pose, d.contact);
+    fitContact(R, d.pose, d.contact, staffIn(held));
   } else if (d.refit){   // a held guard on a duellist's line turned into the real catch: re-aim the held cover at the blade
     d.refit = false;
     d.pose.from.hand.copy(saberPose.hand); d.pose.from.blade.copy(saberPose.blade); d.pose.from.twist = saberPose.twist;
-    if (d.contact) fitContact(R, d.pose, d.contact);
+    if (d.contact) fitContact(R, d.pose, d.contact, staffIn(held));
   }
   // an anticipated twirl (jedi/combat.js anticipateDeflect) leads the catch by d.lead seconds: until the bolt lands the
   // blade stays on its guard and wheels toward the bottom; the catch itself runs from the landing on
@@ -422,7 +466,9 @@ export function deflectPose(dt, R, held, grip, form, d){
       if (d.t < lead){ const u = d.t / lead; ang = Math.PI * (0.4 * u + 0.6 * u * u); }
       else { const v = Math.min(1, (d.t - lead) / w); ang = Math.PI + Math.PI * (0.4 * v + 0.6 * (1 - (1 - v) * (1 - v))); }
     } else { const p = Math.min(1, k / 0.6); ang = Math.PI * 2 * (p - Math.sin(Math.PI * 2 * p) / (Math.PI * 2)); }
+    _wf.copy(saberPose.blade);
     saberPose.blade.applyAxisAngle(TWIRL_AXIS, -sp.twirl * sp.side * ang).normalize();
+    if (staffIn(held)) shiftToMid(saberPose.hand, _wf, saberPose.blade);
   }
   saberPose.pole.lerp(P.pole, Math.min(1, dt * 30)).normalize();
   // the form's block decides the hands: Djem So closes both on the hilt, Ataru and Niman keep the free hand out
@@ -443,7 +489,8 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
     r.rotation.x = Math.abs(d) <= st ? to : r.rotation.x + Math.sign(d) * st;
   }
   R.chest.rotation.y = saberPose.twist;
-  keepClear(_ch.copy(saberPose.hand), _cd.copy(saberPose.blade));
+  const staff = !!(r && r.userData.staff);
+  keepClear(_ch.copy(saberPose.hand), _cd.copy(saberPose.blade), staff);
   solveArm(R.armR, _ch, saberPose.pole);
   R.armR.wr.updateWorldMatrix(true, false);
   // REVERSE-GRIP WRIST: the blade leaves the pinky side of the fist, so it can lie back along the forearm or stand
@@ -451,11 +498,12 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   // the part of the blade pointing on along the forearm is taken off, so every reverse cut, catch, flip and blend
   // between them hooks the blade out from the fist with the fist leading. Scaled by how far the hilt has turned over.
   const rev = r ? 1 - Math.abs(r.rotation.x) / Math.PI : 0;
-  if (rev > 0.01 && reverseWrist(R, _cd, rev)) keepClear(_ch, _cd);
+  if (rev > 0.01 && reverseWrist(R, _cd, rev)) keepClear(_ch, _cd, staff);
   aimHeld(R.chest, R.armR.wr, held.node, bladeAxis(held, _ax), _cd, 0.4);
   if (!offFree) return;
-  // off hand: blend between its own target and the pommel end of the hilt
-  bladeAxis(held, _ax).multiplyScalar(-0.15);
+  // off hand: blend between its own target and the pommel end of the hilt (on the saber staff, its own grip further
+  // down the long hilt: model/weapons.js STAFF.off)
+  bladeAxis(held, _ax).multiplyScalar(staff ? -STAFF.off : -0.15);
   pointInChest(R.chest, held.node, _ax, _grip);
   _t.copy(saberPose.off).lerp(_grip, saberPose.two);
   _p.copy(saberPose.offPole);

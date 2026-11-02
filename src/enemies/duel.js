@@ -24,9 +24,10 @@ import { dropToken } from './director.js';
 import { tellFx } from '../fx/tells.js';
 import { heroesHere } from '../player/players.js';
 import { hooks } from '../net/run.js';
-import { matchup, sealOf, updateFormTag, updateFormSwitch } from './foeform.js';
+import { matchup, sealOf, updateFormTag, updateFormSwitch, arcColor } from './foeform.js';
 import { pushKnock } from '../player/jedi/force.js';
 import { foeBlade } from '../player/jedi/clash.js';
+import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
 
 const LINES = ['L', 'R', 'H', 'Lo'];   // the lines a guard covers (Lo: the legs)
 const SIDES = ['L', 'R', 'H'];         // the lines a foe strikes from
@@ -217,7 +218,9 @@ export function updateDuel(e, dt, dist){
     readCut(e, dist);
     if (!flourish(e, dt, dist)) guardPose(e, dt);
   } else if (e.flourishT > 0 || e.fl0) endFlourish(e);
-  // the guard arc: a pale crescent on the covered side, brighter as you close in
+  // its form's stance: the body's turn and crouch, the saber in its fist, the free hand (enemies/foestance.js)
+  if (e.ff) updateStance(e, dt, guarding && !(e.dodgeT > 0) && !e.winded, e.blockLine && G.gt - e.blockAt < DUEL.read.hold ? e.blockLine : e.guard);
+  // the guard arc: a crescent on the covered side in its form family's colour, brighter as you close in
   if (showsGuard(e)){
     if (!g.userData.guardArc) makeGuardArc(e);
     const a = g.userData.guardArc;
@@ -227,7 +230,7 @@ export function updateDuel(e, dt, dist){
       a.rotation.z = dampToward(a.rotation.z, want, dt, 14);
       e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
       a.material.opacity = clamp(1 - dist / DUEL.guardRange, 0.15, 0.6) + e.arcFlash;
-      a.material.color.setHex(e.lineStreak >= DUEL.adaptAfter ? 0xffb35a : 0xfff0c8);   // amber: it has read your cut
+      a.material.color.copy(arcColor(e, e.lineStreak >= DUEL.adaptAfter, dt));   // its form's family; white-hot and pulsing: it has read your cut
     }
   }
   // posture bar over the head while the guard is under pressure, and its breath under it once it has spent some
@@ -292,12 +295,13 @@ function guardPose(e, dt){
   const u = e.group.userData;
   const blk = e.blockLine && G.gt - e.blockAt < DUEL.read.hold;
   const P = blk ? BLOCK_POSE : GUARD_POSE, line = blk ? e.blockLine : e.guard, k = blk ? DUEL.read.rate : 9;
+  // (its form's own guard on the line: enemies/foestance.js. A line with no pose of its own, an angle cut's or a
+  // thrust's, takes the high guard)
+  const p = guardArm(e, P, line, blk);
   if (u.staff){
-    const p = P.staff[line] || P.staff.H;   // (a line with no pose of its own, an angle cut's or a thrust's: the high guard)
     u.staff.rotation.z = dampToward(u.staff.rotation.z, p[0], dt, k);
     u.staff.rotation.x = dampToward(u.staff.rotation.x, p[1], dt, k);
   } else if (u.weaponArm){
-    const p = P.sword[line] || P.sword.H;
     u.weaponArm.rotation.x = dampToward(u.weaponArm.rotation.x, p[0], dt, k);
     u.weaponArm.rotation.z = dampToward(u.weaponArm.rotation.z, p[1], dt, k);
   }
@@ -371,7 +375,8 @@ function armNow(e){
 function cutFrom(e){
   const pl = e.plan, c = pl.c, u = e.group.userData;
   if (u.staff) return c && c.staff ? c.staff.from : WIND.staff[pl.side] || WIND.staff.H;
-  return c ? c.from : WIND.sword[pl.side] || WIND.sword.H;
+  const f = c ? c.from : WIND.sword[pl.side] || WIND.sword.H, w = windAdd(e);   // its form's chamber: higher, lower (enemies/foestance.js)
+  return w[0] || w[1] ? [f[0] + w[0], f[1] + w[1], f[2] || 0] : f;
 }
 function setArm(e, p){
   const u = e.group.userData;
@@ -865,7 +870,7 @@ function lockArm(e, K){
   const r0x = node.rotation.x, r0z = node.rotation.z;
   armCtx(e, K, staff);
   if (!e.lockA){
-    const key = (e.type || '') + ':' + (staff ? 'staff' : e.t.weapon || 'maul') + ':' + LOCK.kind;
+    const key = (e.type || '') + ':' + (staff ? 'staff' : e.t.weapon || 'maul') + ':' + LOCK.kind + ':' + gripKey(e);   // (a reverse grip binds its own way)
     if (!ARM_POSE.has(key)){
       let best = -Infinity, pose = staff ? K.staff : K.arm;
       for (let a = -3.2; a <= 1.6; a += 0.08) for (let b = -1.6; b <= 1.6; b += 0.08){
@@ -1166,9 +1171,10 @@ export function updatePuppetDuel(e, dt){
       arc.rotation.z = dampToward(arc.rotation.z, want, dt, 14);
       e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
       arc.material.opacity = clamp(1 - dist / DUEL.guardRange, 0.15, 0.6) + e.arcFlash;
-      arc.material.color.setHex(n[NG.read] ? 0xffb35a : 0xfff0c8);
+      arc.material.color.copy(arcColor(e, !!n[NG.read], dt));
     }
   }
+  if (e.ff) updateStance(e, dt, !!n[NG.up] && !e.dead && !n[NG.winded], LINES[n[NG.line]] || 'H');   // its form's stance, as the host's (enemies/foestance.js)
   const brace = !!n[NG.brace], hasBreath = n[NG.breath] >= 0, spent = hasBreath && n[NG.breath] < 99;
   if ((n[NG.posture] > 0 || spent || brace) && !e.dead && (brace || dist < DUEL.guardRange * 2)){
     if (!e.postBar) makePostureBar(e, hasBreath);

@@ -83,6 +83,17 @@ export const sealOf = (e) => ((e.dp && e.dp.seal != null) ? e.dp.seal : (RANKS[e
 
 export const formName = (f) => (STANCES[f] && STANCES[f].name.split(' —')[0]) || (FOE_FORM_NAMES[f] && FOE_FORM_NAMES[f].name) || (f || '').toUpperCase();
 
+/* THE GUARD CRESCENT'S COLOUR (enemies/duel.js): its form's family (FAMILIES: POWER orange, GUARD blue, SPEED green), so
+   a guard reads before the tag does; Niman, the Mandalorian's foes and anything formless keep the pale crescent. When it
+   has read your cut it runs white-hot and pulses. */
+const ARC_PALE = new THREE.Color(0xfff0c8), ARC_HOT = new THREE.Color(0xffffff), ARC = new THREE.Color(), FAM_COL = {};
+export function arcColor(e, read){
+  const f = FORM_FAMILY[e && e.ff];
+  const base = f ? (FAM_COL[f] || (FAM_COL[f] = new THREE.Color(FAMILIES[f].color))) : ARC_PALE;
+  if (!read) return ARC.copy(base);
+  return ARC.copy(base).lerp(ARC_HOT, 0.45 + 0.35 * Math.sin(G.gt * 18));
+}
+
 /* ---------------- the tag over its head ---------------- */
 const W = 320, H = 72;
 function draw(tag, e, k){
@@ -112,6 +123,7 @@ function makeTag(e){
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
   s.scale.set(2.1, 2.1 * H / W, 1); s.renderOrder = 999;
   s.userData.canvas = c;
+  s.raycast = () => {};   // a label, not a body: the camera's see-through, aim and hit rays pass straight through it
   e.group.add(s); e.formTag = s;
   return s;
 }

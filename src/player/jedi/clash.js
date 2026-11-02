@@ -23,6 +23,7 @@ const ARM_LINE = {
   maul:  [inArm(0), inArm(-1.25)],
   pike:  [inArm(-0.2, PIKE), inArm(-1.98, PIKE)],
 };
+const SABER_LINE = [new THREE.Vector3(0, -0.16, 0), new THREE.Vector3(0, -1.28, 0)];   // (the saber slot sits on the fist's grip)
 const STAFF_LINE = [new THREE.Vector3(0, -1.02, 0), new THREE.Vector3(0, 1.02, 0)];
 const BOSS_LINE = [new THREE.Vector3(0, 0.2, 0), new THREE.Vector3(0, 2.3, 0)];
 
@@ -31,6 +32,7 @@ export function foeBlade(e, outB, outT){
   const u = e.group.userData;
   let node = null, line = null;
   if (u.staff){ node = u.staff; line = STAFF_LINE; }
+  else if (u.saber && u.weaponArm){ node = u.saber; line = SABER_LINE; }   // a saber in its own slot: tipped or reversed in the fist (enemies/foestance.js)
   else if (u.weaponArm){ node = u.weaponArm; line = ARM_LINE[e.t.weapon || 'maul']; }
   if (!node || !line) return false;
   node.updateWorldMatrix(true, false);

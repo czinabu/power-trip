@@ -19,7 +19,7 @@ export const FORM_FAMILY = {
   djemso: 'power', shien: 'power',
   niman: null,
 };
-// names for the forms the hero can't take up (the hero's own come from data/stances.js)
+// a fallback name for a foe form with no stance of its own (the hero's forms, the saber staff among them, are named by data/stances.js)
 export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
 
 /* WHAT A COUNTER DOES — the edge goes to whoever's form beats the other's. `win`: your form counters its form; `lose`:

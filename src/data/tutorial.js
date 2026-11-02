@@ -261,6 +261,19 @@ export const LESSONS = {
           keys: 'TAP RMB · LMB', do: 'Parry, then strike the Shatterpoint', ev: 'shatter', stance: 'vaapad', need: 1, spawn: partner() },
       ] },
 
+    { id: 'staff', group: 'more', form: 'staff', name: 'THE SABER STAFF', sub: 'Two blades: every cut covers front and back', loadout: ['shiicho', 'staff', null],
+      done: 'One hilt, two blades. Keep it turning, and nothing gets behind you.',
+      steps: [
+        { sec: 'THE SABER STAFF', say: 'The saber staff has a blade at each end. Every cut you make in front, the far blade makes behind you.',
+          keys: '2 · LMB', do: 'With the staff, cut 3 targets with the far blade', ev: 'farBlade', stance: 'staff', need: 3, respawn: true,
+          spawn: dummies([[0, -2.2], [-1.5, 1.2], [1.5, 1.2]], { sparring: true }) },   // (one ahead, two behind: the far blade's)
+        { say: 'Keep it wheeling. A string of cuts flows end over end, and the last one spins you right round.',
+          keys: 'LMB · LMB · LMB', do: 'With the staff, cut down 4 targets around you', ev: 'kill', stance: 'staff', need: 4, respawn: true,
+          spawn: dummies([[-1.4, -2.2], [1.4, -2.2], [-1.6, 1.6], [1.6, 1.6]]) },
+        { say: 'Its long hilt costs more to hold square, but it wheels into a volley. Turn the fire.',
+          keys: 'TAP RMB', do: 'With the staff, turn 4 bolts', ev: 'deflect', stance: 'staff', need: 4, spawn: shooter() },
+      ] },
+
     /* ---------------- THE POWERS — each step opens when the story reaches that power ---------------- */
     { id: 'powers', group: 'more', any: ['barrier', 'throw', 'jslam', 'mend', 'judge', 'repulse'], name: 'FORCE POWERS', sub: 'The powers the story has opened to you', loadout: BASE,
       done: 'In a real run each pair is a choice: you will carry one of the two.',

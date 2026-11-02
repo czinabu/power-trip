@@ -198,7 +198,7 @@ export const JEDI_CHAPTERS = {
       chapter: ['The academy is guarded by its own overseers. Do not let the heat drive you into the channels.', rival(VEXIS, 'Oren. You came yourself. I knew the children would bring you.')],
       duel: ['Knight, finish the overseer. I am going after him. I should have dealt with him years ago.', rival(VEXIS, 'Come then, old man. I have kept a place for you.')],
       clear: ['The academy is ash, and its children are on our ships.', say(KAST, 'Knight, this is Kast. Vael\'s signal is gone. Vexis took him. The academy was a lure, and Vael was the catch.'),
-              say(KAST, 'Sit with what you have learned. You will need all of it now.'), 'The forms come together in you: Niman.'] } },
+              say(KAST, 'Sit with what you have learned. You will need all of it now.'), 'The forms come together in you: Niman.', 'The overseer\'s saber staff was taken from a fallen Temple Guard. Its blades burn gold again in a Jedi\'s hands: one hilt, two blades.'] } },
 
   // ---------------- ACT III: THE SEVENTH BLADE ----------------
   chase: {

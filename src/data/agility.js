@@ -154,6 +154,35 @@ export const AGILITY = {
     land:   { depth: 1.0, spring: 1.0 },
     run:    { arms: 'run', twist: 1.0, pump: 1.0 },
   },
+  // THE SABER STAFF — Darth Maul and the Temple Guards: a gymnast's acrobatics with the staff whirling through them.
+  // The dodges are aerials and handsprings with the staff wheeled at the side like a propeller (the 'wheel' guard
+  // spins it about its middle), the second jump a long pike over the foe with the staff held level overhead, and the
+  // landings come down wide and planted with the staff swept out level, then spring straight back up into the guard.
+  staff: {
+    dash: {
+      side: { roll: 1, lift: 0.55, legs: 'split', arms: 'wheel' },                                       // a no-hands aerial, the staff whirling
+      fwd:  { somer: 1, lift: 0.6, pitch: 0.2, legs: 'layout', arms: 'vault' },                          // a front handspring, the staff swept overhead
+      back: { somer: -1, lift: 0.55, legs: 'layout', arms: 'vault' },                                     // a back handspring
+    },
+    roll: {
+      side: { spin: 1, tilt: 0.2, lift: 0.08, legs: 'stride', arms: 'wheel', ease: 'twirl' },           // a spinning sidestep, the staff propellered
+      fwd:  { somer: 1, lift: -0.4, legs: 'tuck', arms: 'tuck' },                                        // a dive roll over the staff, hugged in
+      back: { somer: -1, lift: -0.4, legs: 'tuck', arms: 'tuck' },
+    },
+    jump:   { tuck: 0.6, arms: 'vault' },
+    double: { somer: 1, lift: 0.45, legs: 'pike', arms: 'vault' },                                      // Maul's leap: a long pike, the staff level overhead
+    evade: {
+      back: { somer: -1, lift: 0.5, legs: 'layout', arms: 'wheel' },                                   // a back layout, the staff wheeling at the side
+      fwd:  { somer: 1, lift: 0.4, legs: 'tuck', arms: 'wheel' },
+      side: { roll: 1, lift: 0.5, legs: 'split', arms: 'wheel' },                                      // the aerial again, higher
+    },
+    wall:   { back: { somer: -1, legs: 'layout', arms: 'wheel' }, fwd: { somer: 1, legs: 'tuck', arms: 'wheel' } },
+    glide:  { legs: 'split', pitch: 0.04, arms: 'vault' },            // drops with the staff level overhead, legs apart
+    rise:   { pitch: 0.12, arms: 'vault' },
+    slam:   { pitch: 0.14, legs: 'tuck', arms: 'plunge', land: 'sweep', kneel: 0.8 },   // the near blade driven down, then swept out level on the landing
+    land:   { depth: 1.05, spring: 1.3, splay: 0.3 },                 // lands wide and planted, and springs straight back up
+    run:    { arms: 'run', twist: 0.9, pump: 1.1 },
+  },
   // FORM V DJEM SO — Anakin and Vader: grounded and powerful. No spinning about: the dash is a low, driven slide,
   // the second jump is a raw Force leap with the blade raised to hammer, flips are tight and heavy, and every
   // landing sinks into the ground.
@@ -288,6 +317,25 @@ export const AIR_GUARDS = {
       trail:  { hand: [0.3, -0.24, -0.06], blade: [0.2, -0.32, -0.93], twist: -0.12, off: { hand: [-0.3, 0.02, 0.3], pole: OFF } },
       plunge: { hand: [0.06, -0.06, 0.4], blade: [0.02, -0.92, 0.38], two: true, twist: -0.05, pole: [0.6, -0.4, -0.6] },
       run:    { hand: [0.3, -0.3, -0.04], blade: [0.2, -0.58, -0.79], twist: -0.08, off: { hand: [-0.28, -0.12, 0.22], pole: OFF } },
+    },
+    // THE SABER STAFF moves as Maul does on Naboo: one hand on the middle of the hilt, the arm down and out at the
+    // weapon side, the staff held level along the line of travel, near blade out in front and the far one trailing
+    // past the hip; the free hand swings with the stride
+    // in the air: 'wheel' spins the staff about its middle beside the body (anim/saber.js guardPose, `wheel` turns a
+    // second, `axis` the wheel's axle in chest space), 'vault' holds it level overhead in both hands, a bar
+    staff: {
+      hang:   { hand: [0.16, 0.78, 0.3], blade: [0.98, 0.1, -0.15], twist: 0, off: { hand: [-0.18, 0.78, 0.3], pole: [-0.6, -0.3, -0.5] } },   // hands up on the lip, the staff level
+      windup: { hand: [0.06, 0.9, 0.1], blade: [0.1, 0.97, -0.2], two: true, twist: 0.04, pole: [0.7, -0.3, -0.4] },     // raised upright overhead, near blade up
+      cock:   { hand: [0.42, 0.08, -0.08], blade: [0.2, 0.08, -0.97], twist: 0.1, off: { hand: [-0.3, 0.2, 0.42], pole: OFF } },   // level at the hip along the line, near blade back
+      tuck:   { hand: [0.2, -0.08, 0.26], blade: [0.12, 0.97, 0.18], two: true, twist: 0, pole: [0.6, -0.7, -0.3] },          // hugged upright before the body
+      vault:  { hand: [0.3, 0.62, 0.22], blade: [0.98, 0.08, 0.1], two: true, twist: 0, pole: [0.5, -0.5, -0.7] },           // level overhead, a bar in both hands
+      wheel:  { hand: [0.46, -0.02, 0.18], blade: [0.0, 1, 0.0], twist: 0.04, wheel: 2.6, axis: [1, 0, 0.15], pole: [0.9, -0.4, -0.1],
+                off: { hand: [-0.46, 0.08, 0.12], pole: OFF } },   // propellered at the weapon side, the free arm out
+      plunge: { hand: [0.06, -0.06, 0.4], blade: [0.02, -0.92, 0.38], two: true, twist: -0.05, pole: [0.6, -0.4, -0.6] },
+      sweep:  { hand: [0.42, -0.3, 0.36], blade: [0.95, -0.12, 0.28], twist: -0.1, lean: 0.12, pole: [0.8, -0.6, 0],
+                off: { hand: [-0.42, -0.1, 0.2], pole: OFF } },    // the landing: swept out level and low across the front
+      run:    { hand: [0.44, -0.1, 0.16], blade: [0.06, 0.04, 1], twist: 0.04, pole: [0.9, -0.4, -0.1],
+                off: { hand: [-0.3, -0.12, 0.22], pole: OFF } },
     },
     // Makashi runs like Dooku crossing a courtyard: upright, the saber carried light and close in one hand before the
     // chest, blade angled up and forward like a fencer's point, the free hand clasped at the small of the back and

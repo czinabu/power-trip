@@ -112,6 +112,7 @@ export function ev(type, p){
 }
 function addEv(id, type, p, age){
   const e = { id, type, p, age, meshes: [] };
+  if (id > TW.evId) TW.evId = id;   // (a guest: the host's count, as far as it has seen)
   TW.seen.add(id);
   if (EV[type].start) EV[type].start(e);
   TW.ev.push(e);

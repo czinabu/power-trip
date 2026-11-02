@@ -12,7 +12,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=127.0.0.1&peerport=9024';
+const PORT = +(process.env.PEER_PORT || 9024);
+const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=127.0.0.1&peerport=' + PORT;
 const SHOTS = process.env.SHOTS, ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const W = SHOTS ? { width: 960, height: 540 } : { width: 480, height: 270 };
 const poll = { timeout: 150000, polling: 250 };
@@ -26,7 +27,7 @@ const RUNS = [
   ['trooper', 'warcamp', 'gunship'], ['trooper', 'hunt', 'rockslide'], ['trooper', 'lastassault', 'guns'], ['trooper', 'broadcast', 'signal'],
 ].filter(r => !ONLY || ONLY.includes(r[2]));
 
-const server = PeerServer({ port: 9024, host: '127.0.0.1', path: '/' });
+const server = PeerServer({ port: PORT, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
 async function open(name){
@@ -58,7 +59,7 @@ const twistAt = (page, mid, kind) => page.evaluate(([m, k]) => GAME.MISSIONS[m].
 // a few game seconds of the objective: the hero kept standing and on it, its progress pushed along at a steady clip
 async function play(page, seconds, push = true){
   const t0 = await page.evaluate(() => GAME.G.gt);
-  for (let k = 0; k < 400; k++){
+  for (const r0 = Date.now(); Date.now() - r0 < 360000;){   // (headless WebGL is slow: up to six minutes of wall time)
     const s = await page.evaluate(([push]) => {
       const { G, player } = GAME, M = GAME.missionState();
       player.hp = Math.max(player.hp, 1e3);
@@ -94,15 +95,22 @@ try {
     }
     const i = await twistAt(page, mid, kind);
     if (i < 0){ errors.push(mid + ': no objective with a ' + kind + ' twist'); continue; }
+    const ev0 = await page.evaluate(() => GAME.twistState().events);   // (its count runs on across missions)
     await page.evaluate(([m, i]) => GAME.startMission(m, i), [mid, i]);
     await toPlay(page);
-    await page.waitForFunction(() => GAME.missionState().o, null, poll);
+    for (let k = 0; k < 200 && !(await page.evaluate(() => {   // past its scenes and cards, to the objective
+      if (GAME.G.cutscene) GAME.cutscene.skipScene();
+      const b = document.querySelector('#chapcard.open [data-go]'); if (b) b.click();
+      if (GAME.G.paused){ const o = document.getElementById('goText'); if (o) o.click(); }
+      return !!GAME.missionState().o;
+    })); k++) await page.waitForTimeout(400);
+    if (!(await page.evaluate(() => !!GAME.missionState().o))){ errors.push(mid + ': its objective never began (' + await page.evaluate(() => JSON.stringify({ mode: GAME.G.mode, paused: GAME.G.paused, cut: !!GAME.G.cutscene, i: GAME.missionState().i, on: GAME.missionState().on }))+ ')'); continue; }
     const s = await play(page, SECONDS);
     await shot(page, kind + '-' + mid);
-    const tw = s.tw || {};
-    const ok = tw.kind === kind && (tw.events > 0 || tw.props > 0);
+    const tw = s.tw || {}; tw.events -= ev0;
+    const ok = tw.kind === kind && (tw.events > 0 || tw.props > 0 || tw.k > 0.05);   // (an event, a prop, or its mood: the listing deck has only the last)
     rows.push({ mission: mid, hero: h, kind, running: tw.kind, events: tw.events, props: tw.props, ok });
-    console.log((ok ? 'ok   ' : 'FAIL ') + kind.padEnd(12) + mid.padEnd(13) + h.padEnd(8) + 'events ' + tw.events + ' · props ' + tw.props);
+    console.log((ok ? 'ok   ' : 'FAIL ') + kind.padEnd(12) + mid.padEnd(13) + h.padEnd(8) + 'events ' + tw.events + ' · props ' + tw.props + ' · t ' + (tw.t || 0).toFixed(1));
     if (!ok) errors.push(mid + ': the ' + kind + ' twist ' + (tw.kind !== kind ? 'was not running (' + tw.kind + ')' : 'put nothing in the world'));
     // and it lets go cleanly when the objective is done
     await page.evaluate(() => GAME.skipObjective());
@@ -118,16 +126,20 @@ try {
     const code = await host.evaluate(() => document.querySelector('#coopstatus .code').textContent);
     await guest.click('#mode-coop'); await guest.fill('#coopcode', code); await guest.click('#coopjoin');
     for (const p of [host, guest]) await p.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
-    await host.click('#coopclose'); await guest.click('#coopclose');
+    await host.click('#coopclose');
     await host.evaluate(() => localStorage.setItem('sw_mission_refuge_jedi', '1'));
     await host.click('#hero-jedi'); await host.click('#mode-mission'); await host.click('#msn-refuge');
     await toPlay(host);
-    await guest.waitForFunction(() => GAME.G.mode === 'play' || document.querySelector('#goText'), null, poll);
+    // the guest sees the run and joins it
+    await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);
+    await guest.click('#coopclose'); await guest.click('#hero-mando');
+    await guest.click('#mode-coop'); await guest.click('#coopjoinrun');
     await toPlay(guest);
     const i = await twistAt(host, 'refuge', 'barrage');
     await host.evaluate(i => GAME.startMission('refuge', i), i);
-    await toPlay(host);
-    await guest.waitForFunction(() => GAME.twistState().kind === 'barrage', null, poll);
+    // both past the scenes, until the guest is running the host's twist
+    const past = () => { if (GAME.G.cutscene) GAME.cutscene.skipScene(); if (GAME.G.paused){ const o = document.getElementById('goText'); if (o) o.click(); } return GAME.twistState().kind; };
+    for (let k = 0; k < 200 && (await host.evaluate(past), await guest.evaluate(past)) !== 'barrage'; k++) await host.waitForTimeout(400);
     await Promise.all([play(host, 14), play(guest, 14, false)]);
     await shot(guest, 'coop-guest-barrage');
     const g = await guest.evaluate(() => GAME.twistState());

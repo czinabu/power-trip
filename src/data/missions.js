@@ -67,6 +67,8 @@
 //               breachLine / breachSub: the blast's banner; lines.breach in a chapter (one entry per door) on the comms
 // Any objective can set `doors`: how many of the arena's doors are open when it begins (a retry rebuilds them
 // shut), and `squad`: the squad's size by then (someone freed on the way joined it).
+// Any objective can set `twist`: its one signature hook, taught then tested ({ kind: 'blackout' | 'sandstorm' | 'heat', … },
+// game/twists.js has each kind's fields). It plays wherever the objective does: Missions page, story, arcade, co-op.
 // Text a kind shows can be renamed per objective: sabotage `consoleName` ('UPLINK'), `doneLine` / `doneSub` (the
 // banner when it's done; hold and capture take them too).
 // On the big battle maps an objective after the first can have `start`: [x, z, yaw], where a retry of it begins.

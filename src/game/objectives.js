@@ -11,7 +11,7 @@ import { players, targetable } from '../player/players.js';
 import { pad, padKeys } from '../engine/gamepad.js';
 
 /* ============================================================
-   THE VOICE PANEL — the line in character, then the plain task with its keys and a count
+   THE VOICE PANEL — the plain task with its keys and a count up top, the line in character under it as a quiet aside
    ============================================================ */
 const panel = document.getElementById('tutor');
 const el = (sel) => panel.querySelector(sel);

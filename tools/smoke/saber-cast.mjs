@@ -11,7 +11,7 @@ import path from 'path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=127.0.0.1&peerport=9023';
 const server = PeerServer({ port: 9023, host: '127.0.0.1', path: '/' });
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
 const poll = { timeout: 150000, polling: 250 };
 const SHOTS = process.env.SHOTS;
@@ -25,9 +25,17 @@ async function open(name){
     try { localStorage.setItem('jpt_quality', q); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
   }, SHOTS ? 'medium' : 'low');
-  await page.goto(url);
+  await page.goto(url, { timeout: 180000 });
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);
   return page;
+}
+// past the start card and the Jedi's forms page, into the fight
+async function toPlay(page){
+  for (let i = 0; i < 8 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){
+    if (await page.isVisible('#goText')) await page.click('#goText', { timeout: 2000 }).catch(() => {});
+    if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(800);
+  }
 }
 const fail = (msg) => { throw new Error(msg); };
 const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + '.png'), timeout: 180000 }); };
@@ -36,6 +44,7 @@ const foeLook = (page) => page.evaluate(() => { const e = GAME.enemies.find(o =>
 
 async function duel(page, mid, obj, want, tag){
   await page.evaluate(([m, o]) => GAME.startMission(m, o), [mid, obj]);
+  await toPlay(page);
   await page.waitForFunction(() => GAME.G.cutscene, null, poll);
   await page.waitForTimeout(SHOTS ? 5000 : 500);
   await shot(page, tag + '-entrance');
@@ -50,7 +59,10 @@ async function duel(page, mid, obj, want, tag){
 let ok = false;
 try {
   const page = await open('jedi');
-  await page.click('#hero-jedi');
+  await page.click('#hero-jedi'); await page.click('#mode-campaign');   // into a run first (a mission starts from inside one)
+  await toPlay(page);
+  await page.waitForFunction(() => document.querySelector('#chapcard.open'), null, poll);
+  await page.evaluate(() => { const b = document.querySelector('#chapcard.open [data-go]'); if (b) b.click(); });
   await duel(page, 'last-lesson', 0, { id: 'ILSA VENN', side: 'jedi' }, 'jedi-ilsa');
   await duel(page, 'trial-knight', 0, { id: 'THE KNIGHT', side: 'jedi' }, 'jedi-kast');
   await duel(page, 'refuge', 2, { id: 'THE INQUISITOR', side: 'inq' }, 'jedi-inquisitor');

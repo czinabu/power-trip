@@ -67,5 +67,5 @@ export function spawnEnemy(typeName, pos, opts = {}){
   attachHitboxDebug(e);   // ?hitbox draws it
   initDuel(e);   // sword-armed foes fight back: guards, feints, strings (duel.js)
   enemies.push(e);
-  maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run
+  if (!(g.userData.look && g.userData.look.side === 'jedi')) maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run (never 'SITH ACOLYTE' over a Jedi master)
 }

@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // FULLSCREEN: on by default, entered on the first click or key (browsers only allow it after one), toggled from the
-// main menu, the pause screen and Settings. In Chrome and Edge the Esc key is also locked while fullscreen, so a quick
+// main menu's hint row (a small icon), the pause screen and Settings. In Chrome and Edge the Esc key is also locked while fullscreen, so a quick
 // Esc reaches the game (pause / resume) instead of dropping you out; holding Esc still leaves fullscreen.
 
 const PREF = 'sw_fullscreen';   // '0' once the player turns fullscreen off; anything else means they want it
@@ -14,8 +14,18 @@ function enter(){
   const root = document.documentElement;
   try {
     const p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: 'hide' });
-    if (p && p.catch) p.catch(() => {});
-  } catch(err){}
+    if (p && p.catch) p.catch(refused);
+  } catch(err){ refused(); }
+}
+// a controller press isn't a "user gesture" to the browser, so asking for fullscreen from the pad is refused: the menu's
+// toggle says so for a moment, and the next real click or key takes the game fullscreen
+function refused(){
+  if (!wantFullscreen() || fsEl()) return;
+  armFirstGesture();
+  document.querySelectorAll('.fsmini').forEach((el) => {
+    el.classList.add('fs-nudge');
+    clearTimeout(el._nudgeT); el._nudgeT = setTimeout(() => el.classList.remove('fs-nudge'), 2600);
+  });
 }
 // call only from a click or key handler: the browser refuses fullscreen without one
 export function enterFullscreenIfWanted(){ if (fullscreenSupported && wantFullscreen() && !fsEl()) enter(); }
@@ -31,6 +41,7 @@ let _escLocked = false;
 export const escapeIsOurs = () => _escLocked && !!fsEl();
 function syncFullscreen(){
   const on = !!fsEl();
+  document.documentElement.classList.toggle('is-fs', on);
   document.querySelectorAll('.fsval').forEach((el) => { el.textContent = on ? 'ON' : 'OFF'; });
   const kb = navigator.keyboard;
   if (!on){ _escLocked = false; if (kb && kb.unlock) kb.unlock(); return; }
@@ -48,8 +59,11 @@ function firstGesture(e){
   if (e.target && e.target.closest && e.target.closest('.fsctl')) return;   // the toggle itself decides
   enterFullscreenIfWanted();
 }
-window.addEventListener('click', firstGesture, true);
-window.addEventListener('keydown', firstGesture, true);
+function armFirstGesture(){
+  window.addEventListener('click', firstGesture, true);
+  window.addEventListener('keydown', firstGesture, true);
+}
+armFirstGesture();
 
 document.querySelectorAll('.fsctl').forEach((el) => {
   if (!fullscreenSupported) el.style.display = 'none';

@@ -134,7 +134,7 @@
 .ov-actions{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:28px}
 #overlay.st-menu .ov-actions{justify-content:flex-start}
 /* menu column: BEGIN gets the full width; settings / help / co-op / roadmap share one quiet row under it (fullscreen
-   lives in SETTINGS on the menu, and keeps its button on the pause screen) */
+   is a small icon in the hint row on the menu, see .fsmini, and keeps its button on the pause screen) */
 #overlay.st-menu .ov-actions{gap:6px;margin-top:22px}
 #overlay.st-menu .ov-actions .btn{box-sizing:border-box}
 #overlay.st-menu .ov-actions .go{flex:1 0 100%;margin-bottom:4px}
@@ -181,6 +181,20 @@
   background:var(--accent);box-shadow:0 0 6px rgba(92,198,255,.8);cursor:pointer}
 .ov-foot{margin-top:18px;font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .ov-foot kbd{color:var(--ink-soft)}
+/* the main menu's quiet fullscreen toggle: an icon + word at the end of the hint row (the pause screen has its own button,
+   SETTINGS keeps its pill). fullscreen.js hides it where the browser can't go fullscreen (iPhone Safari) */
+.fsmini{display:none;align-items:center;gap:5px;float:right;margin:-3px -6px 0 12px;padding:3px 6px;border-radius:var(--r-chip);
+  color:var(--ink-faint);cursor:pointer;pointer-events:auto;transition:color .15s,background .15s}
+#overlay.st-menu .fsmini{display:inline-flex}
+.fsmini:hover{color:var(--ink-soft);background:rgba(92,198,255,.08)}
+.fsmini svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.fsmini .fs-out{display:none}
+html.is-fs .fsmini .fs-in{display:none}
+html.is-fs .fsmini .fs-out{display:inline}
+html.is-fs .fsmini .fsmini-t::before{content:'exit '}
+.fsmini.fs-nudge{color:var(--accent)}
+.fsmini.fs-nudge .fsmini-t{font-size:0} .fsmini.fs-nudge .fsmini-t::before{content:'click or press a key';font-size:13px}
+@media (pointer:coarse){.fsmini{padding:8px 10px;margin:-8px -10px 0 8px}}   /* a finger-sized target on phones */
 
 /* ---------- CONTROLS: a panel over the menu, never pushes the layout around ---------- */
 #howto{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;

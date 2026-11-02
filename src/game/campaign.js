@@ -162,7 +162,7 @@ function goals(c){
   const list = def ? def.objectives.map(o => said(o.title) || said(o.task)).filter(Boolean)
     : c.waves ? ['HOLD OUT FOR ' + (c.waves[1] - c.waves[0]) + ' WAVES'] : [];
   if (!list.length) return '';
-  return '<div class="cc-goals"><div class="cc-k">' + (list.length > 1 ? 'OBJECTIVES' : 'OBJECTIVE') + '</div><ol>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
+  return '<div class="cc-goals"><div class="cc-k">' + (list.length > 1 ? 'OBJECTIVES' : 'OBJECTIVE') + '</div><ol' + (list.length > 3 ? ' class="many"' : '') + '>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
 }
 // THE STORY, kept light: one line of it in view (keep: which), the rest of the voice's words and the scene between chapters
 // (a chapter's `talk`: where, then who says what) folded under "MORE STORY" for whoever wants it. A chapter's talk that

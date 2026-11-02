@@ -679,7 +679,7 @@ export function buildEnemyMesh(t, o = {}){
   const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
     : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + ':v' + v + (F ? ':f' + fi : '');
   const pal = look ? lookPalette(look) : null;
-  if (pal && !(o.look && lookById(o.look))){ pal.armor = { ...pal.armor, c: t.color }; pal.cloth = t.cloth ?? pal.cloth; }   // the rank and file keep their type's colours
+  if (pal && !(o.look && lookById(o.look))){ pal.armor = { ...pal.armor, c: shade(t.color, 0.8) }; pal.cloth = t.cloth ?? pal.cloth; }   // the rank and file keep their type's colours (a shade deeper: robes, not plate)
   const baked = bakeDesign(id, k => {
     k.v = v; k.face = F; k.badge = IMPERIAL.has(t.model); k.look = look;
     if (v === 4 && BARE[t.model]){

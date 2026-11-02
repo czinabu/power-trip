@@ -89,13 +89,18 @@ export function torso(k, w, o = {}){
   const ab = plate([[-0.12,-0.035],[0.12,-0.035],[0.13,0.03],[-0.13,0.03]], 0.026, 0.008);
   k.add(ab, 'armor2', k.root, [0, 1.17, 0.125], [0.04, 0, 0], { scale: [w, 1, 1] });
   k.add(ab, 'armor2', k.root, [0, 1.25, 0.13], [0.06, 0, 0], { scale: [w * 1.06, 1, 1] });
-  k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.64*w, d:0.425, z:0.026 }, { y:1.65, w:0.66*w, d:0.41, z:0.018 },
+  // an officer's TUNIC (o.tunic): cloth, not a cuirass. Straight and square through the chest, so it reads as a uniform
+  // (a woman's only a shallow contour), with the skirts running on below the belt
+  if (o.tunic) k.add(loft(f ? [{ y:1.3, w:0.38*w, d:0.25 }, { y:1.45, w:0.46*w, d:0.275 }, { y:1.58, w:0.5*w, d:0.3, z:0.01 }, { y:1.7, w:0.55*w, d:0.285 },
+                               { y:1.8, w:0.5*w, d:0.27 }, { y:1.88, w:0.26, d:0.21 }]
+                           : [{ y:1.3, w:0.4*w, d:0.26 }, { y:1.5, w:0.5*w, d:0.275 }, { y:1.72, w:0.58*w, d:0.28 }, { y:1.82, w:0.5*w, d:0.27 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
+  else k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.64*w, d:0.425, z:0.026 }, { y:1.65, w:0.66*w, d:0.41, z:0.018 },
                  { y:1.76, w:0.6*w, d:0.34 }, { y:1.84, w:0.46*w, d:0.29 }, { y:1.88, w:0.26, d:0.21 }]
                : [{ y:1.3, w:0.42*w, d:0.28 }, { y:1.48, w:0.6*w, d:0.36 }, { y:1.7, w:0.64*w, d:0.36 }, { y:1.82, w:0.48*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
   // the chest plate's lower lip, a darker rim the plate sits on, so the cuirass reads as a separate layer over the suit
   k.add(loft([{ y:1.28, w:0.44*w, d:0.29 }, { y:1.33, w:0.47*w, d:0.305 }], SOFT_BODY), 'armor2', k.root, [0,0,0], [0,0,0], { outline: false });
   // chest detail: a centre seam, a control box, and the backpack
-  k.add(block(0.03, 0.26, 0.03, 0.3), 'armor2', k.root, [0, 1.58, 0.185], [0,0,0], { outline: false });
+  if (!o.tunic) k.add(block(0.03, 0.26, 0.03, 0.3), 'armor2', k.root, [0, 1.58, 0.185], [0,0,0], { outline: false });
   if (o.box !== false) k.add(block(0.13, 0.07, 0.04, 0.3), 'black', k.root, [0.12*w, 1.62, 0.18], [0,0,0], { outline: false });
   if (o.pack !== false){ k.add(block(0.38*w, 0.42, 0.16, 0.3), 'suit', k.root, [0, 1.55, -0.23]); packTallies(k, w); }
   if (o.plates !== false) chestDetail(k, w);   // rivets and the flank gaps (an officer's tunic has none)
@@ -219,13 +224,13 @@ export function upper(k){
    curves rather than hinging. It hangs from `at` on the chest, tipped back by `tilt`; outline [[x, y]] runs from y 0
    down. Like the legs, it bends the chest's own mesh, so a cape that moves costs no draw call of its own. */
 export const CAPE_BANDS = 3;
-export function cape(k, outline, at, tilt = 0.08, depth = 0.014){
+export function cape(k, outline, at, tilt = 0.08, depth = 0.014, key = 'cloth'){
   const len = -Math.min(...outline.map(([, y]) => y)), seg = len / CAPE_BANDS;
   let bone = k.bone('cape0', k.root, at, [tilt, 0, 0]);
   for (let i = 0; i < CAPE_BANDS; i++){
     if (i) bone = k.bone('cape' + i, bone, [0, -seg, 0], [0, 0, 0], { blend: seg * 0.45, reach: 1.2 });
     const band = clipY(outline, -seg * (i + 1), -seg * i).map(([x, y]) => [x, y + seg * i]);
-    if (band.length > 2) k.add(plate(band, depth, 0), 'cloth', bone, [0, 0, 0], [0, 0, 0], { outline: false });
+    if (band.length > 2) k.add(plate(band, depth, 0), key, bone, [0, 0, 0], [0, 0, 0], { outline: false });
   }
 }
 // the part of polygon `pts` between heights lo and hi (Sutherland–Hodgman against the two lines)
@@ -279,11 +284,13 @@ const HELMETS = {
   },
   // MAGNAGUARD: narrow droid skull, twin eyes, a wrapped cowl
   magna(k, h, t){
-    k.add(dome([{ y:0.0, w:0.17, d:0.19 }, { y:0.18, w:0.21, d:0.24 }, { y:0.3, w:0.18, d:0.22 }, { y:0.36, w:0.1, d:0.14 }]), 'armor', h);
+    const bareSkull = k.dv === 2 || k.dv === 4;
+    k.add(dome([{ y:0.0, w:0.17, d:0.19 }, { y:0.18, w:0.21, d:0.24 }, { y:0.3, w:0.18, d:0.22 }, { y:0.36, w:0.1, d:0.14 }]), bareSkull ? 'armor2' : 'armor', h);
     k.add(block(0.14, 0.08, 0.06, 0.3), 'black', h, [0, 0.07, 0.1], [0,0,0], { outline: false });
     if (k.dv === 2 || k.dv === 4){
       // no cowl: the bare skull, a stripe of paint down its crown and a scarf at the neck
-      k.add(block(0.05, 0.03, 0.26, 0.3), 'mark', h, [0, 0.355, 0.0], [0,0,0], { outline: false });
+      k.add(block(0.1, 0.03, 0.26, 0.3), 'mark', h, [0, 0.355, 0.0], [0,0,0], { outline: false });
+      for (const s of [-1, 1]) k.add(block(0.02, 0.1, 0.03, 0.3), 'mark', h, [0.1*s, 0.2, 0.06], [0, 0.4*s, 0], { outline: false });   // and a slash under each eye
       k.add(loft([{ y:-0.1, w:0.34, d:0.3 }, { y:0.02, w:0.24, d:0.22 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.01]);
     } else k.add(loft([{ y:-0.08, w:0.4, d:0.36 }, { y:0.06, w:0.32, d:0.3 }, { y:0.16, w:0.26, d:0.27, z:-0.02 }, { y:0.3, w:0.2, d:0.22, z:-0.04 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.02]);
     const eyes = k.live(new THREE.Group(), h, 'eye');
@@ -375,7 +382,13 @@ const HELMETS = {
 
 // the helmet rides a HEAD bone at the neck (enemies/upper.js turns it to look)
 function helmet(k, name, t, y = 1.96){
-  const h = k.bone('head', k.root, [0, y, 0], [0,0,0], NECK);
+  const hb = k.bone('head', k.root, [0, y, 0], [0,0,0], NECK);
+  // a bare face reads small on an armoured frame from the game's camera: the head a size up (in a group inside the
+  // head bone, so it still turns with the look), and a woman's bun or tail fuller
+  const faced = k.bare || name === 'officer';
+  const h = faced ? k.group(hb) : hb;
+  if (faced) h.scale.setScalar(1.08);
+  if (k.face && faced) k.face = { ...k.face, bulk: 1.3 };
   if (k.bare){
     // BARE-HEADED (a look with the helmet off, data/foe-looks.js): a face, a comlink at the ear (its lamp is the
     // wind-up tell the visor would be), the helmet on the belt (hips → detail.js belt), maybe goggles or a headband
@@ -524,7 +537,9 @@ function pickVariant(t, rnd){
 }
 // field cloth (a look's cloak, kama, wrap: armourKit, HELM_VARIANTS): sand against cool armour (greys, blues, purples),
 // dark brown against warm or khaki-green armour, so it always stands off the plates it hangs on
-const kitCloth = c => { const { h, s } = new THREE.Color(c).getHSL({ h: 0, s: 0, l: 0 }); return s > 0.08 && h > 0.04 && h < 0.45 ? 0x4a3826 : 0xb39a70; };
+// kit cloth that sits with the armour: dark brown on warm or khaki plates, dark slate on a coloured cool one (the blue
+// jet troopers, lancers), a muted sand on white and grey
+const kitCloth = c => { const { h, s } = new THREE.Color(c).getHSL({ h: 0, s: 0, l: 0 }); return s > 0.08 && h > 0.04 && h < 0.45 ? 0x4a3826 : s > 0.15 ? 0x353b48 : 0x8c7c60; };
 // the paint: orange on pale armour, red on dark
 const markColor = c => new THREE.Color(c).getHSL({ h: 0, s: 0, l: 0 }).l > 0.45 ? 0xc8601c : 0xa82a22;
 // two flashes on the helmet's cheeks, fitted to its armour shell
@@ -655,11 +670,16 @@ export const MODELS = {
     const w = 0.92;
     legs(k, w, { shin: 'metal' }); hips(k, w); k = upper(k); torso(k, w, { pack: false });
     // cloak: a cape off both shoulders and a short mantle
-    if (k.dv === 3) strap(k, 'mark', [0.3, 1.86, 0.16], [-0.24, 1.2, 0.2], 0.09, 0.014);   // a sash of rank across the chest
-    cape(k, k.dv === 1 || k.dv === 4   // a cloak torn ragged at the hem, or whole
+    if (k.dv === 3){   // a broad sash of rank across the chest, and a tabard of it down the front
+      strap(k, 'mark', [0.3, 1.86, 0.16], [-0.24, 1.2, 0.2], 0.14, 0.014);
+      k.add(plate([[-0.11,0],[0.11,0],[0.09,-0.5],[0,-0.56],[-0.09,-0.5]], 0.012, 0.004), 'mark', k.root, [0, 1.06, 0.17], [-0.06, 0, 0]);
+    }
+    // a cloak torn ragged at the hem and weathered to rust, with no mantle (a different outline at the shoulders), or whole
+    const torn = k.dv === 1 || k.dv === 4;
+    cape(k, torn
       ? [[-0.3,0],[0.3,0],[0.36,-0.95],[0.26,-1.18],[0.14,-0.98],[0.02,-1.28],[-0.1,-1.02],[-0.22,-1.22],[-0.36,-1.0]]
-      : [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1);
-    k.add(loft([{ y:1.62, w:0.66, d:0.44 }, { y:1.82, w:0.52, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
+      : [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1, 0.014, torn ? 'rag' : 'cloth');
+    if (!torn) k.add(loft([{ y:1.62, w:0.66, d:0.44 }, { y:1.82, w:0.52, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
     const staff = k.slot('staff', k.root, [0.55, 1.5, 0.2], [0.3, 0, 0.5]);
     // both hands on the grips, re-aimed every frame as the staff guards, spins and strikes (enemies/holds.js)
     holdArm(k, w, 1, staff, [0, -0.3, 0], [0, -1, 0], { rx: 0.033, slot: 'offArmR', fore: 'metal', twist: 0.2, live: ['gripR', 'elbowR', 'handR'] });
@@ -731,7 +751,7 @@ export const MODELS = {
     for (const s of [-1, 1]){
       const sh = k.group(k.root, [0.25*s, 1.72, 0], [-0.15, 0, 0.14*s]);
       const arm = k.dv === 2 && s < 0 ? 'metal' : 'armor';   // a salvaged arm off another droid, unpainted
-      k.add(block(0.11, 0.1, 0.11, 0.4), k.dv === 1 ? 'mark' : 'armor2', sh);   // (a commander's shoulders in its paint)
+      k.add(block(0.11, 0.1, 0.11, 0.4), k.dv === 1 || k.dv === 4 ? 'mark' : k.dv === 3 ? 'black' : 'armor2', sh);   // (a commander's and a painted unit's shoulders in its paint, security's dark)
       k.add(limb(0.38, [[0,0.06,0.06],[1,0.05,0.05]], chamfer(0.35)), arm, sh);
       if (k.dv === 2 && s < 0){ k.add(block(0.07, 0.06, 0.07, 0.3), 'black', sh, [0, -0.4, 0], [0,0,0], { outline: false }); continue; }   // shot off at the elbow: a burnt stump
       k.add(limb(0.34, [[0,0.055,0.055],[1,0.045,0.045]], chamfer(0.35)), arm, sh, [0, -0.38, 0]);
@@ -739,8 +759,10 @@ export const MODELS = {
     }
     // the long droid head: snout forward, skull back, two small eyes
     const h = k.bone('head', k.root, [0, 2.05, 0.06], [0.25, 0, 0], NECK);
-    k.add(loft([{ y:-0.08, w:0.14, d:0.16 }, { y:0.05, w:0.16, d:0.18 }, { y:0.12, w:0.1, d:0.12 }], chamfer(0.35)), 'armor', h, [0, 0, -0.02]);
-    k.add(loft([{ y:0, w:0.12, d:0.1 }, { y:0.3, w:0.07, d:0.06 }], chamfer(0.35)), 'armor', h, [0, -0.02, 0.03], [PI/2 - 0.2, 0, 0]);
+    // the head in the unit's paint: a commander's in its colour, a security droid's dark
+    const hk = k.dv === 1 ? 'mark' : k.dv === 3 ? 'black' : 'armor';
+    k.add(loft([{ y:-0.08, w:0.14, d:0.16 }, { y:0.05, w:0.16, d:0.18 }, { y:0.12, w:0.1, d:0.12 }], chamfer(0.35)), hk, h, [0, 0, -0.02]);
+    k.add(loft([{ y:0, w:0.12, d:0.1 }, { y:0.3, w:0.07, d:0.06 }], chamfer(0.35)), k.dv === 1 ? 'armor' : hk, h, [0, -0.02, 0.03], [PI/2 - 0.2, 0, 0]);
     if (k.dv === 1){
       // a commander's kit: a long antenna off the skull, paint on the head and a band across the chest
       k.add(loft([{ y:0, w:0.016, d:0.016 }, { y:0.34, w:0.01, d:0.01 }], ngon(6)), 'metal', h, [-0.05, 0.08, -0.06], [-0.35, 0, 0.12], { outline: false });
@@ -749,11 +771,12 @@ export const MODELS = {
     } else if (k.dv === 2) k.add(block(0.12, 0.02, 0.02, 0.3), 'black', h, [0.03, 0.06, 0.09], [0, 0, 0.5], { outline: false });   // a scorch across the head
     else if (k.dv === 3){
       // a security droid: a dark visor plate across the snout and an armoured collar
-      k.add(block(0.15, 0.06, 0.12, 0.3), 'black', h, [0, 0.03, 0.08]);
-      k.add(loft([{ y:1.74, w:0.4, d:0.3 }, { y:1.86, w:0.26, d:0.22 }], SOFT_COLLAR), 'armor2', k.root);
+      k.add(block(0.15, 0.06, 0.12, 0.3), 'metal', h, [0, 0.03, 0.08]);
+      k.add(loft([{ y:1.74, w:0.4, d:0.3 }, { y:1.86, w:0.26, d:0.22 }], SOFT_COLLAR), 'black', k.root);
     } else if (k.dv === 4){
       // unit paint: bands round the chest and the head
-      k.add(loft([{ y:1.46, w:0.45, d:0.29 }, { y:1.54, w:0.45, d:0.29 }], SOFT_BODY), 'mark', k.root, [0,0,0], [0,0,0], { outline: false });
+      k.add(loft([{ y:1.42, w:0.45, d:0.29 }, { y:1.58, w:0.45, d:0.29 }], SOFT_BODY), 'mark', k.root, [0,0,0], [0,0,0], { outline: false });
+      k.add(loft([{ y:0.88, w:0.35, d:0.21 }, { y:0.96, w:0.35, d:0.21 }], SOFT_BODY), 'mark', k.root, [0,0,0], [0,0,0], { outline: false });   // and the hips
       k.add(block(0.17, 0.04, 0.19, 0.3), 'mark', h, [0, 0.06, -0.02], [0,0,0], { outline: false });
     }
     const eyes = k.live(new THREE.Group(), h, 'eye');
@@ -770,12 +793,14 @@ export const MODELS = {
   // other (officer). No armour: the one you can drop fast.
   officer(k, t){
     const w = 0.94 * k.bw;
-    legs(k, w, { shin: 'cloth', boot: 'black' }); hips(k, w); k = upper(k); torso(k, w, { box: false, pack: false, plates: false });
+    legs(k, w, { shin: 'cloth', boot: 'black' }); hips(k, w); k = upper(k); torso(k, w, { box: false, pack: false, plates: false, tunic: true });
+    k.add(loft([{ y:0.86, w:0.47*w*(k.fem ? 1.12 : 1), d:0.31 }, { y:1.0, w:0.44*w*(k.fem ? 1.12 : 1), d:0.3 }, { y:1.06, w:0.42*w, d:0.29 }], SOFT_BODY), 'armor');   // the tunic's skirts
+    k.add(block(0.02, 0.62, 0.02, 0.3), 'armor2', k.root, [0.07, 1.48, 0.15], [0,0,0], { outline: false });   // the closure, off-centre
     k.add(loft([{ y:1.03, w:0.42*w, d:0.29 }, { y:1.1, w:0.42*w, d:0.29 }], SOFT_BODY), 'black');   // belt
     k.add(block(0.05, 0.04, 0.03, 0.3), 'metal', k.root, [0, 1.065, 0.15], [0,0,0], { outline: false });
-    k.add(block(0.13, 0.055, 0.02, 0.3), 'black', k.root, [0.15*w, 1.66, 0.185], [0,0,0], { outline: false });   // rank plaque
-    for (let i = 0; i < 3; i++) k.glow(new THREE.BoxGeometry(0.022, 0.022, 0.01), i ? 0x4a8cff : 0xff3a2a, k.root, [0.11*w + i*0.035, 1.66 - (i % 2)*0.012, 0.197]);
-    for (const x of [-0.12, -0.16]) k.add(loft([{ y:0, w:0.025, d:0.025 }, { y:0.07, w:0.025, d:0.025 }], ngon(6)), 'metal', k.root, [x*w, 1.64, 0.18], [0,0,0], { outline: false });   // code cylinders
+    k.add(block(0.13, 0.055, 0.02, 0.3), 'black', k.root, [0.15*w, 1.66, 0.148], [0,0,0], { outline: false });   // rank plaque
+    for (let i = 0; i < 3; i++) k.glow(new THREE.BoxGeometry(0.022, 0.022, 0.01), i ? 0x4a8cff : 0xff3a2a, k.root, [0.11*w + i*0.035, 1.66 - (i % 2)*0.012, 0.16]);
+    for (const x of [-0.12, -0.16]) k.add(loft([{ y:0, w:0.025, d:0.025 }, { y:0.07, w:0.025, d:0.025 }], ngon(6)), 'metal', k.root, [x*w, 1.64, 0.145], [0,0,0], { outline: false });   // code cylinders
     k.add(loft([{ y:1.86, w:0.27, d:0.22 }, { y:1.95, w:0.22, d:0.18 }], SOFT_COLLAR), 'armor2');   // the high collar
     cape(k, [[-0.27,0],[0.27,0],[0.31,-0.98],[0.18,-1.04],[-0.18,-1.04],[-0.31,-0.98]], [0, 1.84, -0.19], 0.16);   // a short service cape off both shoulders
     sideArm(k, w, -1, [0.35, 0, 0.0], { bend: -1.2 });   // hand tucked at the small of its back
@@ -904,7 +929,7 @@ export function buildEnemyMesh(t, o = {}){
     MODELS[t.model](k, t);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
-    kitcloth: kitCloth(t.color),
+    kitcloth: kitCloth(t.color), rag: 0x5a2c22,
     ...(F ? { skin: F.skin, hair: F.hair, beard: F.hair } : {}),
     ...(pal || {}),
   });

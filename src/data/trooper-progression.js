@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE CLONE ARC TROOPER's progression (testing only), in the same shapes as data/store.js and data/skills.js:
+// THE CLONE ARC TROOPER's progression, in the same shapes as data/store.js and data/skills.js:
 //   TROOPER_AUTO   handed over by the run (no choice): the recon scan, a third frag, power cells, a third clone
 //   TROOPER_STORE  the choices: fork I (defence or sustain), fork II (control), the signature fork (Commander or
 //                  Commando, at Mustafar like the Mando's), and the final power at the Spearhead

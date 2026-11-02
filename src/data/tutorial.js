@@ -57,7 +57,7 @@ export const TRAINING_LEVELS = {
           arena: 48, floor: 0x9a948a, fog: 0xc4b8c0, sky: 0x35609e, layout: 'hall', waves: [], hazards: {} },
   mando: { name: 'TRAINING — THE ARMORER\'S FORGE', sub: 'The covert hides its forge from the stars.',
            arena: 48, floor: 0x55504c, fog: 0x3a2420, sky: 0x060814, layout: 'forge', waves: [], hazards: {} },
-  // the clone trooper (testing): the band's hidden range, laid out on the forge's yard until it has a place of its own
+  // the clone trooper: the band's hidden range, laid out on the forge's yard until it has a place of its own
   trooper: { name: 'TRAINING — THE HIDDEN RANGE', sub: 'Deserters keep their edge where no one is looking.',
            arena: 48, floor: 0x4c5056, fog: 0x1c2a36, sky: 0x060a14, layout: 'forge', waves: [], hazards: {} },
 };
@@ -454,7 +454,7 @@ export const LESSONS = {
           keys: 'Z', do: 'Fire the jetpack missile at the targets', use: ['cd', 'missile'], need: 1, respawn: true, spawn: dummies([[-2, -10], [2, -10], [0, -11]]) },
       ] },
   ],
-  // the clone ARC trooper (testing): the basics on the forge yard's layout (world/arenas/forge.js), taught by the Captain
+  // the clone ARC trooper: the basics on the forge yard's layout (world/arenas/forge.js), taught by the Captain
   trooper: [
     { id: 'yard', group: 'basics', name: 'ON YOUR FEET', sub: 'Move, vault, roll, strafe and slide',
       done: 'Good. You still move like an ARC. Now show me you still shoot like one.',
@@ -538,5 +538,5 @@ export const DRILLS = {
     darksaber:  { say: 'The Darksaber. It is not the blade that is strong, but the one who wields it. Throw it, and your line will bring it home.', key: '3 · RMB + LMB', use: ['weapon', 'darksaber'] },
     disruptor:  { say: 'The disruptor. One shot, nothing left.', key: '3', use: ['weapon', 'disruptor'] },
   },
-  trooper: {},   // (testing: the trooper earns nothing in a run yet)
+  trooper: {},   // (the trooper earns nothing here yet)
 };

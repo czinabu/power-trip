@@ -90,7 +90,7 @@ import { CHIPWORKS_SPOTS } from '../world/arenas/chipworks.js';
 import { WARCAMP_SPOTS } from '../world/arenas/warcamp.js';
 import { CANYON_SPOTS } from '../world/arenas/canyon.js';
 import { RELAY_SPOTS } from '../world/arenas/relay.js';
-import { TURNED, PURGE, DRILL } from './allies.js';
+import { TURNED, PURGE, DRILL, MARSHAL } from './allies.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
 export const MISSION_COLOR = { jedi: 0x5ad2ff, mando: 0xffa040, trooper: 0x4aa8ff };
@@ -948,7 +948,7 @@ export const MISSIONS = {
     done: { jedi: 'The forge is ash. But it fell too easily. This was never his army.',
             mando: 'The forge is ash, and it was too easy. This was bait.' },
   },
-  // THE NIGHT OF THE ORDER: the ARC trooper's prologue (testing), eight years before the campaign. A jungle firebase at
+  // THE NIGHT OF THE ORDER: the ARC trooper's prologue, eight years before the campaign. A jungle firebase at
   // night; the order has come, the company has turned, and the trooper and two brothers who refused it get their
   // wounded General out. Campaign only (the trooper's first chapter, data/campaign.js); one voice for every hero, so a
   // co-op partner of any kind hears the same story. The foes wear the turned company's armour (`foeLook`).
@@ -998,7 +998,7 @@ export const MISSIONS = {
         say: all('The Marshal. Same batch, same tank, same instructors. He is the one who gave the order to fire. Put him down, or at least make him run.'),
         task: all('Beat the Marshal while the squad holds the pad'),
         enter: all('The company falls back. One of them keeps walking.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4, dmg: 1.1, scale: 1.12, tint: 0x9a7a2a, at: JUNGLE_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4, dmg: 1.1, scale: 1.12, tint: 0xc9a040, at: JUNGLE_SPOTS.duel,
         line: all('Good soldiers follow orders, brother. You were the best of us.'),
         rage: 0.5, rageDuel: {},
         // he breaks off instead of falling: the trooper's campaign is where it ends
@@ -1291,7 +1291,7 @@ export const MISSIONS = {
         say: all('He came down himself. Brother, he is not here to win. Watch the gunship.'),
         task: all('Face the Marshal while the squad holds the yard'),
         enter: all('The Marshal walks down off his deck, rifle low.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4.5, dmg: 1.15, scale: 1.12, tint: 0x9a7a2a, at: WARCAMP_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4.5, dmg: 1.15, scale: 1.12, tint: 0xc9a040, at: WARCAMP_SPOTS.duel,
         line: all('You came all this way to read my orders, brother. You could have asked.'),
         rage: 0.5, rageDuel: {},
         escape: 0.3, escapeLine: all('He breaks off, and his gunship lifts from behind the barracks. The Captain is aboard it.'),
@@ -1327,7 +1327,7 @@ export const MISSIONS = {
         say: all('He is right there, brother. He waited for you. Squad, keep his men off the trooper.'),
         task: all('Face the Marshal while the squad holds his rear guard'),
         enter: all('The Marshal steps out from behind the rocks. He has the Captain\'s helmet on his belt.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 5, dmg: 1.2, scale: 1.12, tint: 0x9a7a2a, at: CANYON_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 5, dmg: 1.2, scale: 1.12, tint: 0xc9a040, at: CANYON_SPOTS.duel,
         line: all('You were always good at following, brother. Keep up.'),
         rage: 0.5, rageDuel: {},
         escape: 0.3, escapeLine: all('He breaks for his ship at the canyon\'s head. The Captain is bound in the last camp, alive.'),
@@ -1407,7 +1407,7 @@ export const MISSIONS = {
         say: all('He is coming down the spire himself. No more running, for either of you. Remember how he fights.'),
         task: all('Face the Marshal'),
         enter: all('The Marshal walks out of the lift. His helmet is off.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0x9a7a2a, at: RELAY_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0xc9a040, at: RELAY_SPOTS.duel,
         line: all('It is not the Empire\'s order, brother. It never was. It is older than all of us. I only wanted to hear the end of it.'),
         rage: 0.45, rageDuel: {},
         trickle: { every: 14, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },

@@ -10,7 +10,6 @@ import { resolveLook } from './appearance.js';
 import { JEDI_PARTS } from './jedi.js';
 import { MANDO_PARTS } from './mando.js';
 import { TROOPER_PARTS } from './trooper.js';
-import { TROOPER_TEST } from '../../state.js';
 import { chainGeo, chainWeights, rounded } from './skin.js';
 import { makeCloth } from './cloth.js';
 import { KEEL } from './shapes.js';
@@ -26,9 +25,8 @@ export function buildHeroModel(target, lookIn = {}){
   const jedi = dress(R, S, look.jedi, JEDI_PARTS, target);
   const mando = dress(R, S, look.mando, MANDO_PARTS, target);
   for (const p of mando.parts) p.visible = false;
-  // the clone trooper (testing only: built when the page has ?trooper, or a look asks for it) has its own palette, so
-  // it gets its own style: its suit and cloth never take the Mando's colours
-  const trooper = (TROOPER_TEST || lookIn.withTrooper) ? dress(R, makeStyle(look.style, look.trooper.palette), look.trooper, TROOPER_PARTS, target) : { parts: [] };
+  // the clone trooper has its own palette, so it gets its own style: its suit and cloth never take the Mando's colours
+  const trooper = dress(R, makeStyle(look.style, look.trooper.palette), look.trooper, TROOPER_PARTS, target);
   for (const p of trooper.parts) p.visible = false;
   mountLoadout(R, S, target);
   // dust, scuffs and the fight's soot (model/wear.js): each hero worn as much as its look says

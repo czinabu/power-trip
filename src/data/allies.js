@@ -23,7 +23,7 @@ export const SQUAD = {
   roles: {
     rifle: { hp: 110, speed: 6.0, dmg: 9, range: 20, every: [1.5, 2.3], spread: 0.045, burst: 1, burstGap: 0, boltSpeed: 30 },
     heavy: { hp: 150, speed: 5.3, dmg: 5, range: 17, every: [2.8, 3.6], spread: 0.07, burst: 3, burstGap: 0.13, boltSpeed: 28 },
-    /* the ARC trooper's SPECIALISTS (testing). MEDIC: patches the hero and the squad within `healR` (`heal` hp a second,
+    /* the ARC trooper's SPECIALISTS. MEDIC: patches the hero and the squad within `healR` (`heal` hp a second,
        once clear of a hit for `healDelay` s) and runs to get a downed squadmate up on its own. SCOUT: a long rifle that
        picks off the far line first (`far`) */
     medic: { hp: 100, speed: 6.2, dmg: 6, range: 16, every: [1.8, 2.6], spread: 0.05, burst: 1, burstGap: 0, boltSpeed: 30, heal: 4, healR: 7, healDelay: 2 },
@@ -49,7 +49,7 @@ export const SQUAD = {
       { name: 'BRUN',  role: 'heavy', model: 'mandalorian', color: 0x8c8f94, eye: 0xffa040, cloth: 0x3a2a4a, scale: 1.06 },
       { name: 'ARLA',  role: 'rifle', model: 'mandalorian', color: 0x4e6e5a, eye: 0xffa040, cloth: 0x6a5a2a },
     ],
-    // the clone trooper's own fire team (testing): the same brothers who fight beside the Jedi, in the legion's blue,
+    // the clone trooper's own fire team: the same brothers who fight beside the Jedi, in the legion's blue,
     // now the trooper's band of deserters
     // Specialists: HAMMER's rotary PINS whatever it hits (as SUPPRESS does), PATCH the medic comes with the FIELD MEDIC
     // pick (`need`), TALLY is the scout. `tag` is the mark by the name in the squad panel
@@ -113,7 +113,7 @@ export const ORDERS = [
   { id: 'cover',     name: 'TAKE COVER',     note: 'Behind the nearest wall: hit less, fire slower', icon: '▙' },
   { id: 'hold',      name: 'HOLD HERE',      note: 'Stop where they stand',                       icon: '■' },
 ];
-// the ARC trooper's wheel (testing): SUPPRESS takes SPREAD / STACK's place (the trooper's squad stays spread)
+// the ARC trooper's wheel: SUPPRESS takes SPREAD / STACK's place (the trooper's squad stays spread)
 export const SUPPRESS_ORDER = { id: 'suppress', name: 'SUPPRESS', note: 'Pin the foes round the crosshair: they slow and hold their fire', icon: '≋' };
 export const TROOPER_ORDERS = ORDERS.map(o => o.id === 'formation' ? SUPPRESS_ORDER : o);
 export const ordersFor = (trooper) => trooper ? TROOPER_ORDERS : ORDERS;

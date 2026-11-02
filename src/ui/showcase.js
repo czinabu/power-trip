@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost } from '../engine/renderer.js';
-import { G, TROOPER_TEST } from '../state.js';
+import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
 import { applySaberGrip } from '../player/model/weapons.js';
@@ -36,7 +36,7 @@ const THEMES = {
     halo: '#fff0c2', ink: '#1c0608', far: '#4b1212', glow: 0xff8a3a, rim: 0xff5a2a, key: 0xfff0dc,
     stars: false, planet: { c: '#ffe2b0', shade: '#a33a1c', ring: false }, skyline: 'mesas', suns: 2,
   },
-  // the clone ARC trooper (testing only): a stormy dusk over a city of spires, in the legion's blue
+  // the clone ARC trooper: a stormy dusk over a city of spires, in the legion's blue
   trooper: {
     word: 'ARC TROOPER',
     sky: ['#05101c', '#123a5c', '#2f7fd6', '#c8e6ff'],
@@ -337,7 +337,7 @@ function paint(k){
   x.fillStyle = T.ink; x.fillRect(0, hz + H * 0.07, W, H);
   textures[k].needsUpdate = true;
 }
-function paintAll(){ paint('jedi'); paint('mando'); if (TROOPER_TEST) paint('trooper'); }
+function paintAll(){ paint('jedi'); paint('mando'); paint('trooper'); }
 paintAll();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(paintAll);   // the hero name needs the display font
 

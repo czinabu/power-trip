@@ -1,7 +1,7 @@
 // (kept vague: the hero is still under wraps, ?trooper only)
 export default {
   title: 'The third hero: kit polish',
-  status: 'now',
+  status: 'done',
   date: '2026-11-02',
   items: [
     'Its twin pistols each run their own heat, so one can cool while the other fires',

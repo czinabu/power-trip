@@ -25,7 +25,7 @@ export const FOOTWORK = {
   shien:     { crouch: -0.22, splay: 0.42, lead: 0.3,  lean: 0.14, width: 1.2 },    // low and coiled, weight forward over the lead foot
   juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15 },   // pitched forward and low, a predator about to spring
   vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
-  staff:     { crouch: -0.2,  splay: 0.44, lead: 0.34, lean: 0.1,  width: 1.2 },    // the saber staff: wide and turned, room for the far blade to pass
+  staff:     { crouch: -0.18, splay: 0.58, lead: 0.16, lean: 0.06, width: 1.3 },    // the saber staff: the Inquisitor's wide, square, planted stance
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
@@ -126,10 +126,13 @@ export const SABER_GUARDS = {
     /* THE SABER STAFF (data/forms.js staff) — both hands on the long hilt, the right one at the near blade's end
        (model/weapons.js STAFF: the left closes STAFF.off further down). Every pose keeps the far blade, which leaves the
        hilt the other way, clear of the body (anim/saber.js keepClear turns the staff about the fist if it isn't).
-       READY: the Temple Guard's diagonal: the staff across the front, the near blade raised out over the weapon side,
-       the far blade low past the off hip, ready to wheel either end in. */
+       READY: the Inquisitor's guard: feet planted wide, the staff gripped one-handed at the weapon hip and slanted up
+       across the front of the body, the near blade rising past the off shoulder and the far one low out past the
+       weapon-side knee; the free hand hangs loose and ready. (Moving, it's carried as Maul carries it: data/agility.js
+       AIR_GUARDS run.) */
     staff: {
-      ready: { hand: [0.2, 0.02, 0.42], blade: [0.62, 0.72, 0.3], two: true, twist: 0.12, torso: 0.04, lean: 0.06, pole: [0.6, -0.7, -0.3] },
+      ready: { hand: [0.42, -0.36, 0.42], blade: [-0.7, 0.7, -0.12], twist: 0.08, torso: 0.04, lean: 0.04, pole: [0.75, -0.6, -0.25],
+               off: { hand: [-0.36, -0.3, 0.16], pole: OFF_POLE } },
       // BLOCK 1: the staff held level across the chest, a bar from shoulder to shoulder and past
       block: { hand: [0.22, 0.26, 0.46], blade: [0.97, 0.08, 0.2], two: true, twist: 0.04, lean: 0.1, pole: [0.5, -0.8, -0.2] },
       // BLOCK 2 (they alternate): stood upright before the body, the near blade over the head, the far one down past the knees

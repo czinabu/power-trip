@@ -10,7 +10,7 @@
 
 import * as THREE from 'three';
 import { camera, scene } from '../engine/renderer.js';
-import { G, shared, player, isGunner } from '../state.js';
+import { G, shared, player, isGunner, bolts } from '../state.js';
 import { VOICE, storyHero } from '../data/campaign.js';
 import { MANDO_BOSS, MANDO_CAST } from '../data/campaign-mando.js';
 import { JEDI_BOSS, JEDI_DUELS, JEDI_CAST } from '../data/campaign-jedi.js';
@@ -222,6 +222,18 @@ function stillHero(){
   player.moveVel.set(0, 0, 0); player.vel.set(0, 0, 0);
   player.backRun = false;
 }
+// ...and whatever they were in the middle of (a swing, a slash, a punch, a push) is let go, so they stand at ease in the
+// scene rather than held mid-stroke with the blade's trail hanging off it; blaster fire still in the air (held, like the
+// foes who fired it) is kept out of the shots until play resumes
+function calmHero(){
+  player.atkT = 0; player.swing = null; player.queuedAtk = false;
+  if (player.darkT > 0){ player.darkT = 0; player.darkApplied = false; if (player.darkLight) player.darkLight.intensity = 0; }
+  player.meleeT = 0; player.meleeQueued = false;
+  player.castT = 0; player.kickT = 0; player.stabT = 0; player.flinchT = 0; player.pivotT = 0; player.recoilKick = 0;
+  if (player.palmT > 0){ player.palmT = 0; player.palm = null; player.palmQueued = false; }
+  player.flaming = false; if (player.flameLight) player.flameLight.intensity = 0;
+}
+const showBolts = (on) => { for (const b of bolts) if (b.mesh) b.mesh.visible = on; };
 function start(opts){
   if (C.on || G.mode !== 'play') return false;
   if (opts.key && seen.has(opts.key)) return false;
@@ -236,7 +248,7 @@ function start(opts){
   C.unholster = false;
   if (opts.actors && opts.actors.some(a => a.kind) && !isGunner() && !player.holstered){ player.holstered = true; C.unholster = true; syncHolster(); }
   player.firing = false; player.trigHeld = false; player.blockHeld = false;
-  stillHero();
+  stillHero(); calmHero(); showBolts(false);
   document.body.classList.add('cutscene');
   el.classList.add('on'); el.classList.toggle('mando', isGunner());
   skipHint();
@@ -255,6 +267,7 @@ function finish(skipped){
   if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
   C.on = false; C.onDone = null;
   G.cutscene = false;
+  showBolts(true);
   document.body.classList.remove('cutscene');
   el.classList.remove('on', 'fade');
   setLine(null); setTitle(null); setWhere(null); setGoal(null);

@@ -53,6 +53,8 @@ import { diffDmgMul } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
 import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
+import { TAUNTS, SCARRED, SCARS, scarOf } from '../data/duel-taunts.js';
+import { punchIn } from '../engine/camera.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -118,7 +120,7 @@ function clearMission(){
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
   for (const p of M.props) scene.remove(p);
-  M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1;
+  M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1; M.pn = null; M.pnSeen = undefined;
   endTwist(true);
   stopBattleFx();
   if (M.on) hidePanel();
@@ -560,7 +562,7 @@ const KINDS = {
     begin(o, s){
       sweepField();
       if (o.quarry) o.name = heroKey(M.def.quarry).name;   // (o is this run's copy: forHero)
-      s.foe = null; s.dropT = o.quarry ? 1.6 : 2.4; s.raged = false;
+      s.foe = null; s.dropT = o.quarry ? 1.6 : 2.4; s.raged = false; s.scar = null;
       if (o.quarry){ const q = heroKey(M.def.quarry); showBanner(q.name, 'Nowhere left to run.', 2.0, { kicker: 'CORNERED' }); }
       else showBanner('', heroText(o.enter) || 'The troops fall back. Something walks through them.', 2.4);
     },
@@ -574,7 +576,11 @@ const KINDS = {
                               : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
         }
         if (o.quarry && M.qHp) M.qHp = Math.max(0.6, M.qHp);   // the run wore it down, but it still has a fight in it
-        s.foe = o.quarry ? spawnQuarryFoe(o) : spawnInquisitor(o, o.at, { line: heroText(o.line), kicker: o.kicker });
+        // a rematch: it still wears the wounds you gave it when it got away (SCARS, data/duel-taunts.js)
+        const sc = s.scar = scarsOn(o.name), q = o.quarry && heroKey(M.def.quarry), kick = q ? q.kicker : o.kicker;
+        const scarKick = sc && (kick ? kick + ' · ' : '') + 'WOUNDED AT ' + sc.where.toUpperCase();
+        s.foe = o.quarry ? spawnQuarryFoe(o, null, scarKick) : spawnInquisitor(o, o.at, { line: heroText(o.line), kicker: scarKick || o.kicker });
+        if (sc) woundFoe(s.foe, o, sc);
         if (o.escape) s.foe.hpFloor = Math.max(1, s.foe.maxHp * o.escape);   // it won't fall here: at this much left it breaks off (escapeDuel)
         storyBeat('duel', { name: o.name, quarry: !!o.quarry });
       }
@@ -584,15 +590,16 @@ const KINDS = {
         s.raged = true;
         if (e.dp) e.dp = { ...e.dp, ...o.rageDuel };   // (a gunfighter has no duelling profile to sharpen)
         e.spd *= 1.15;
-        showBanner('', o.name + ' PRESSES THE ATTACK', 1.8); S.roar(e.group.position);
+        rageTurn(o, s, e);
       }
+      if (s.scar && !gone) bleed(s, e, dt);
       // trickle: troops keep coming for the squad to hold off while you take the duel (a strike team's last stand)
       if (o.trickle && !gone && (s.trickT = (s.trickT ?? o.trickle.every) - dt) <= 0){
         s.trickT = o.trickle.every;
         if (hostilesAlive() + G.spawnQueue.length < o.trickle.cap + 1) queueGroup(o.trickle.group, { at: o.from && (() => arcSpawn(o.from[0], o.from[1])) });
       }
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: gone ? 0 : e.hp / e.maxHp, status: o.name, warn: true });
-      if (gone){ showBanner(o.name + ' FALLS', '', 2.2); return true; }
+      if (gone){ showBanner(o.name + ' FALLS', '', 2.2); clearScars(o.name); return true; }
     },
   },
 };
@@ -826,6 +833,71 @@ function breakAway(o, s){
   shove(M.quarry, s);
   showBanner('', M.quarry.def.name + ' BREAKS AWAY', 1.4);
 }
+/* MID-DUEL STORY TURNS (data/duel-taunts.js) — at its rage threshold the foe says its one line, under its name, while
+   the lens punches in on it for a beat (engine/camera.js punchIn): no letterbox, no lock, the fight never stops. */
+function tauntFor(o, scar){
+  const t = (scar && SCARRED[scar.key]) || TAUNTS[M.def.id] || TAUNTS[o.name] || TAUNTS[o.foe];
+  return heroText(t) || 'Enough. Now I fight.';
+}
+let pnSeq = 0;   // (never reset, so a retry's punch-in still reads as new to a co-op guest)
+function rageTurn(o, s, e){
+  showBanner(o.name, '\u201c' + tauntFor(o, s.scar) + '\u201d', 2.6, { kicker: 'PRESSES THE ATTACK' });
+  S.roar(e.group.position);
+  const up = 1.3 * (o.scale || 1);
+  punchIn(e.group.position, up);
+  G.slowmo = Math.min(G.slowmo, 0.6); G.slowmoT = Math.max(G.slowmoT, 0.35);   // the line lands in a held breath
+  M.pn = [++pnSeq, r2(e.group.position.x), r2(e.group.position.z), r2(up)]; M.pnT = 1.6;   // co-op: the guest's lens too (missionSnap)
+}
+
+/* SCARS — a foe that breaks off and comes back carries what you did to it. A campaign run keeps them with its story
+   (G.story.scars, saved with the run and shared with a co-op partner); a lone mission keeps them per hero in
+   localStorage (sw_scar_*, a save slot's progress). Each is the list of missions it got away from; it's cleared once
+   the foe falls for good. Arcade contracts and trials neither leave nor take them. */
+const scarStore = () => !(M.def.arcade || M.def.trial);
+const scarKey = (key) => 'sw_scar_' + key + '_' + G.hero;
+function scarList(key){
+  if (M.chapter) return (G.story && G.story.scars && G.story.scars[key]) || [];
+  try { return JSON.parse(localStorage.getItem(scarKey(key)) || '[]'); } catch(e){ return []; }
+}
+function setScarList(key, list){
+  if (M.chapter){ G.story = { ...(G.story || {}), scars: { ...((G.story && G.story.scars) || {}), [key]: list } }; return; }
+  try { if (list.length) localStorage.setItem(scarKey(key), JSON.stringify(list)); else localStorage.removeItem(scarKey(key)); } catch(e){}
+}
+// the wounds this foe brings to this duel: null, or { key, n, where (the last place it got away from) }
+function scarsOn(name){
+  const key = scarOf(name);
+  if (!key || !scarStore()) return null;
+  const S_ = SCARS[key], list = scarList(key).filter(id => id !== M.def.id);   // (not the wound it took here last time: replaying a mission doesn't stack it)
+  if (!list.length) return null;
+  const last = list[list.length - 1];
+  return { key, n: Math.min(S_.max, list.length), where: S_.where[last] || 'your last fight', fx: S_.fx };
+}
+function markScar(name){
+  const key = scarOf(name);
+  if (!key || !scarStore()) return false;
+  const list = scarList(key).filter(id => id !== M.def.id);
+  setScarList(key, [...list, M.def.id]);
+  return true;
+}
+function clearScars(name){ const key = scarOf(name); if (key && scarStore() && scarList(key).length) setScarList(key, []); }
+// it comes in down by a share of its health per scar (never so low that it starts already raging)
+function woundFoe(e, o, sc){
+  const cut = SCARS[sc.key].cut * sc.n, floor = e.maxHp * Math.min(0.95, (o.rage || 0.5) + 0.1);
+  e.hp = Math.max(Math.min(floor, e.hp), Math.round(e.hp - e.maxHp * cut));
+  e.scarred = sc.n;
+}
+// the wound trails off it as it fights: smoke from a cut, sparks from a droid's torn plating
+function bleed(s, e, dt){
+  if ((s.bleedT = (s.bleedT || 0) - dt) > 0) return;
+  const p = e.group.position, sc = e.group.scale.y || 1;
+  if (s.scar.fx === 'sparks'){ s.bleedT = 0.35 + Math.random() * 0.5; burst(V3(p.x, 1.35 * sc, p.z), 0xffc860, 3, 3.5, 2.5, 0.22); }
+  else {
+    s.bleedT = 0.1;
+    burst(V3(p.x + (Math.random() - 0.5) * 0.3, 1.25 * sc, p.z + (Math.random() - 0.5) * 0.3), 0x26282c, 1, 0.6, 1.6, 0.75);
+    if (Math.random() < 0.25) burst(V3(p.x, 1.2 * sc, p.z), 0xff5a2a, 1, 1.2, 1.5, 0.2);   // (an ember off the wound now and then)
+  }
+}
+
 // the refuge's Inquisitor: beaten, but not finished. It throws you back and is gone in the smoke (the story needs it
 // alive for the Long Chase)
 function escapeDuel(o, e){
@@ -836,7 +908,8 @@ function escapeDuel(o, e){
   burst(V3(p.x, 1.4, p.z), o.tint, 18, 9, 5, 0.8);
   G.shake = Math.max(G.shake, 0.8);
   S.roar(p);
-  showBanner(o.name + ' ESCAPES', heroText(o.escapeLine) || '', 3.0);
+  const scarred = markScar(o.name);   // the payoff: it carries this into the rematch
+  showBanner(o.name + ' ESCAPES', heroText(o.escapeLine) || '', 3.0, scarred ? { kicker: 'WOUNDED · IT WILL CARRY THIS' } : undefined);
   const c = G.chapter >= 0 && chapterAt(G.chapter);
   playScene(o.escapeScene || 'inq-escape', { mark: [p.x, p.z], lines: (c && c.escapeLines) || undefined });   // its parting words (a story's own, if it has them), where it stood (game/cutscene.js)
   storyBeat('escape', { name: o.name });
@@ -1095,6 +1168,7 @@ export function updateMission(dt){
 }
 function updateMissionHost(dt){
   M.fx = M.fx.filter(f => f(dt));
+  if (M.pn && (M.pnT -= dt) <= 0) M.pn = null;   // (the guest only needs the punch-in while it's happening)
   updateBattleFx(dt);
   twistCtx.frac = Math.min(1, objectiveFrac(M.o, M.s));
   updateTwist(dt, twistCtx);
@@ -1205,7 +1279,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), tw: twistSnap() };
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap() };
 }
 // guest: follow the host's mission
 export function coopMissionSync(ms){
@@ -1231,6 +1305,7 @@ export function coopMissionSync(ms){
   }
   M.net = ms;
   if (ms.tw) twistSync(ms.tw);
+  if (ms.pn && ms.pn[0] !== M.pnSeen){ M.pnSeen = ms.pn[0]; punchIn({ x: ms.pn[1], y: 0, z: ms.pn[2] }, ms.pn[3]); }   // the host's foe hit its rage: this lens punches in too
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached
   while (M.markers.length > ms.mk.length) removeMarker(M.markers.pop());
   ms.mk.forEach((r, k) => {

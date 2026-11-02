@@ -44,15 +44,17 @@ const $ = (id) => document.getElementById(id);
 // top-right objectives checklist (training lessons, mission objectives): a window of up to 7 rows around the current one
 function renderChecklist(c){
   const el = $('objlist');
+  // while the checklist is up it is the one home for the objective: the top-left run line would only repeat it
+  document.body.classList.toggle('has-checklist', !!c);
   if (!c){ el.classList.remove('on'); return; }
   const nowKey = c.items.findIndex(i => i.now) + '/' + c.items.filter(i => i.done).length;
   if (el._now !== nowKey){ el._now = nowKey; el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh'); }   // the objective changed: flash the list
   const cur = Math.max(0, c.items.findIndex(i => i.now)), n = c.items.length;
   const from = Math.max(0, Math.min(cur - 2, n - 7)), rows = c.items.slice(from, from + 7);
   el.classList.add('on');
-  setHtml(el, '<div class="ol-h">' + c.title + '</div>' + rows.map(i =>
+  setHtml(el, (c.kicker ? '<div class="ol-k">' + c.kicker + '</div>' : '') + '<div class="ol-h">' + c.title + '</div>' + rows.map(i =>
     '<div class="ol-i' + (i.done ? ' done' : i.now ? ' now' : '') + '"><b>' + (i.done ? '✓' : i.now ? '▶' : '○') + '</b><span>' + i.text + '</span></div>' +
-      (i.sub && i.sub.length ? '<div class="ol-s">' + i.sub.join('<br>') + (i.frac != null ? '<span class="ol-b"><i style="width:' + (clamp(i.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : '') + '</div>' : '')).join('') +
+      (i.sub && i.sub.length ? '<div class="ol-s' + (i.warn ? ' warn' : '') + '">' + i.sub.join('<br>') + (i.frac != null ? '<span class="ol-b"><i style="width:' + (clamp(i.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : '') + '</div>' : '')).join('') +
     (n > 7 ? '<div class="ol-n">' + c.items.filter(i => i.done).length + ' / ' + n + ' DONE</div>' : ''));
 }
 
@@ -102,9 +104,10 @@ function renderWeaponSlots(){
   for (const [, w] of slots) key += (w || '-') + (w && weaponUnlocked(w) ? '1' : '0');
   const wrap = $('wslots'); if (wrap._k === key) return;
   wrap._k = key;
-  wrap.innerHTML = slots.map(([k, w, empty]) => {
-    const own = !!w && weaponUnlocked(w), nm = own ? (w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name) : (w ? 'LOCKED' : 'NO ' + (empty || 'WEAPON'));
-    return '<span class="wslot' + (player.weapon === w ? ' on' : '') + (own ? '' : ' lock') + '"><span class="kc">' + k + '</span>' + nm + '</span>';
+  // only what you carry: an empty or still-locked slot is noise from the first minute (the key still says which number it is)
+  wrap.innerHTML = slots.filter(([, w]) => w && weaponUnlocked(w)).map(([k, w]) => {
+    const nm = w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name;
+    return '<span class="wslot' + (player.weapon === w ? ' on' : '') + '"><span class="kc">' + k + '</span>' + nm + '</span>';
   }).join('');
 }
 
@@ -220,7 +223,9 @@ export function updateHud(){
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
   renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && !!G.mission);
-  renderChecklist(G.mode === 'play' && !G.sandbox ? (G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null);
+  { const c = G.mode === 'play' && !G.sandbox ? (G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
+    if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)
+    renderChecklist(c); }
   // CUT HEIGHT (player/jedi/cutaim.js): three ticks beside the crosshair, the lit one is where your next cut goes
   { const ch = $('cuth'), on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
     if (ch){ ch.style.display = on ? '' : 'none'; if (on) ch.dataset.h = cutHeight(); }

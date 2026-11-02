@@ -1076,9 +1076,9 @@ export function missionChecklist(){
     const same = objs.filter(x => x.title === o.title);
     const now = k === M.i && !M.won;
     return { text: o.title + (same.length > 1 ? ' (' + (same.indexOf(o) + 1) + '/' + same.length + ')' : ''), done: k < M.i || M.won, now,
-             sub: now ? [o.task && heroKey(o.task), live && live.status].filter(Boolean) : null, frac: now && live ? live.frac : null };
+             sub: now ? [o.task && heroKey(o.task), live && live.status].filter(Boolean) : null, frac: now && live ? live.frac : null, warn: now && live && live.warn };
   });
-  return { title: 'MISSION OBJECTIVES', items };
+  return { kicker: M.kick, title: 'OBJECTIVES', items };
 }
 // dev console / tests: the running mission's state (the quarry, the current objective's state)
 export const missionState = () => M;

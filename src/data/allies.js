@@ -28,6 +28,12 @@ export const SQUAD = {
        picks off the far line first (`far`) */
     medic: { hp: 100, speed: 6.2, dmg: 6, range: 16, every: [1.8, 2.6], spread: 0.05, burst: 1, burstGap: 0, boltSpeed: 30, heal: 4, healR: 7, healDelay: 2 },
     scout: { hp: 90, speed: 6.4, dmg: 20, range: 32, every: [2.6, 3.4], spread: 0.012, burst: 1, burstGap: 0, boltSpeed: 46, far: true },
+    /* a JEDI fighting beside the squad (a story's guest: the ARC trooper's Hoth). MELEE: no bolts; it runs at the rank
+       and file within `range` of where it stands (on a follow order, never past `leash` m from the hero) and cuts them
+       down with a saber at `reach`, a cut every `every` s (a wind-up of `windup` s first). DEFLECT: that share of the
+       bolts and blows that reach it are turned on the blade */
+    jedi:  { hp: 240, speed: 7.4, dmg: 34, range: 13, reach: 2.3, every: [0.8, 1.1], windup: 0.22, leash: 16, melee: true, deflect: 0.6,
+             spread: 0, burst: 1, burstGap: 0, boltSpeed: 0 },
   },
   // who comes when the hero calls: in this order (looks: enemies/mesh.js MODELS · cloth = the unit markings)
   roster: {

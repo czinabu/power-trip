@@ -95,7 +95,7 @@ export const PAD_CONTROLS = {
       ['{z}', 'Jetpack missile', 'The final upgrade'],
     ]},
   ],
-  // the clone ARC trooper (testing only: player/trooper/kit.js) plays on the Mandalorian's pad binds
+  // the clone ARC trooper (player/trooper/kit.js) on its own pad layout (data/gamepad.js PAD_BINDS.trooper)
   trooper: [
     { title: 'MOVE', rows: [
       ['{LS}', 'Move', 'Steers any way, at the stick\'s angle'],
@@ -110,6 +110,7 @@ export const PAD_CONTROLS = {
       ['HOLD {rmb}', 'Aim', 'Up to the eye: a tight cone and a steady reticle, with either gun'],
       ['{r}', 'Vent', 'Overheated: press it in the beat (a moment after the overheat) for a perfect vent that clears the gun at once · too early or late and it jams · not overheated: a plain vent'],
       ['{1} / {2}', 'Switch gun', 'DC-15 rifle or the twin DC-17s'],
+      ['{1} (again)', 'Rifle module', 'With the DC-15 in hand: swap its module · BURST · AUTO BARREL (hold {lmb}) · MARKSMAN SCOPE ({rmb} raises the scope) · the run hands them over'],
       ['{e}', 'Rifle bash', 'A shove with the stock: staggers whoever is right in front and cracks a duellist\'s guard'],
       ['{h}', 'Squad orders', 'TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks · ATTACK, GRENADE and SUPPRESS cost COMMAND POINTS, earned by your kills and the squad\'s · SUPPRESS pins the foes round the crosshair: they crawl and slow their shots · ATTACK sends two round the target\'s sides to FLANK it: they hit it harder from there'],
       ['{t}', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],

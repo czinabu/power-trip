@@ -4,7 +4,7 @@
 // looks. Anywhere else (menus, pause, the upgrade screen, the sandbox panel) the pad moves a focus ring between the
 // things you can click.
 
-import { PAD_BUTTONS, PAD_TUNE, PAD_BINDS, PAD_GLYPHS, padFamily } from '../data/gamepad.js';
+import { PAD_BUTTONS, PAD_TUNE, PAD_BINDS, PAD_GLYPHS, padFamily, padLayout } from '../data/gamepad.js';
 import { shared, G, player, isGunner } from '../state.js';
 import { clamp } from '../utils.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
@@ -64,7 +64,7 @@ export function padKey(tok, hero){
   return tok;
 }
 // a whole label: groups split on ' · ', keys on spaces, '/' '+' and words like HOLD / TAP kept as they are
-export function padKeys(text, hero = isGunner() ? 'mando' : 'jedi'){
+export function padKeys(text, hero = padLayout(G.hero)){
   return text.split(' · ').map(g => g.replace(/W A S D/g, 'LS').split(' ').map(k => k === 'LS' ? PAD_GLYPHS[pad.family].LS :
     /^(\/|\+|HOLD|TAP|x2|\(air\))$/i.test(k) ? k : padKey(k, hero)).join(' ')).join(' · ');
 }
@@ -72,7 +72,7 @@ export function padKeys(text, hero = isGunner() ? 'mando' : 'jedi'){
 function relabelHud(){
   for (const el of document.querySelectorAll('#actionbar .key, #stances .num, #wslots .kc, #lockbar .lb-hint b')){
     if (el.dataset.kb == null) el.dataset.kb = el.textContent;
-    const hero = el.closest('.j-ab') ? 'jedi' : el.closest('.m-ab') ? 'mando' : isGunner() ? 'mando' : 'jedi';
+    const hero = el.closest('.j-ab') ? 'jedi' : el.closest('.m-ab') ? padLayout(G.hero === 'trooper' ? 'trooper' : 'mando') : padLayout(G.hero);
     const v = pad.active ? padKeys(el.dataset.kb, hero) : el.dataset.kb;
     if (el.textContent !== v) el.textContent = v;
   }
@@ -152,7 +152,7 @@ requestAnimationFrame(poll);
 
 /* ---------- THE FIGHT ---------- */
 function fight(btn, down, up, lx, ly, rx, ry, dt){
-  const binds = PAD_BINDS[isGunner() ? 'mando' : 'jedi'];
+  const binds = PAD_BINDS[padLayout(G.hero)];
   const lbHeld = btn[4];
   // releases first (a bind lets go of what it pressed), then LB, then the rest, so LB + Y opens the layer at once
   PAD_BUTTONS.forEach((name, i) => { if (up(i)) release(name); });

@@ -8,7 +8,7 @@
 //   · FORMS on the pause screen — the same page, read only, for the run in progress.
 
 import { G } from '../state.js';
-import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed } from '../data/forms.js';
+import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
 import { canResume, oldNimanRun } from '../game/saves.js';
@@ -24,11 +24,13 @@ const ORDER = Object.keys(FORMS).filter(id => FORMS[id].ready);
 const LOCK = '<svg class="fm-lock-ic" viewBox="0 0 16 16" width="14" height="14" role="img" aria-label="Locked: unlocks with your next form"><title>Unlocks with your next form</title><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 // the lore behind a small "i" (hover, focus or click), like the notes on Controls
 const loreInfo = (C) => (C.lore || C.who) ? '<span class="fm-i" tabindex="0" role="button" aria-label="Lore">i</span><div class="fm-lorepop">' + esc(C.lore || '') + (C.who ? ' <i>' + esc(C.who) + '</i>' : '') + '</div>' : '';
-// locked forms: Form V and VII have two variants each, so a chip reads V-a / V-b without naming either
+// locked forms: Form V and VII have two variants each, so a chip reads V-a / V-b without naming either. The saber staff
+// has no numeral and gives nothing away until it's in hand: ???
 const lockedNo = (id) => { const same = ORDER.filter(x => FORMS[x].no === FORMS[id].no); return FORMS[id].no + (same.length > 1 ? '-' + 'ab'[same.indexOf(id)] : ''); };
+const lockedName = (id) => FORMS[id].no ? 'FORM ' + lockedNo(id) : '? ? ?';
 const lockedChip = (id) => {
   const closed = FORMS[id].fork && ctx.closed && ctx.closed !== id;
-  return '<div class="fm-chip" title="' + (closed ? 'Closed for this run: you chose ' + esc(FORMS[ctx.closed].name) : 'Not learned yet') + '"><span>FORM ' + lockedNo(id) + '</span>' + (closed ? esc(FORMS[id].name) : LOCK) + '</div>';
+  return '<div class="fm-chip" title="' + (closed ? 'Closed for this run: you chose ' + esc(FORMS[ctx.closed].name) : 'Not learned yet') + '"><span>' + lockedName(id) + '</span>' + (closed ? esc(FORMS[id].name) : LOCK) + '</div>';
 };
 const lockedRow = () => { const l = ORDER.filter(id => !ctx.known.includes(id)); return l.length ? '<div class="fm-sec">NOT LEARNED YET</div><div class="fm-chips">' + l.map(lockedChip).join('') + '</div>' : ''; };
 
@@ -98,7 +100,7 @@ function card(id){
   const F = FORMS[id], C = FORM_CODEX[id] || {};
   const slotted = ctx.loadout.indexOf(id);
   return '<div class="fm-card' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no">FORM ' + F.no + ' · ' + esc(F.tag) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + loreInfo(C) + '</div>' +
+    '<div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + loreInfo(C) + '</div>' +
     '<b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
@@ -108,14 +110,14 @@ function card(id){
 function tile(id){
   const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = ctx.loadout.indexOf(id);
   return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no">FORM ' + F.no + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
+    '<div class="fm-no">' + formTitle(id) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
     '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
 }
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="fm-detail empty">Select a form to see what it is good and bad at.</div>';
   const F = FORMS[id], C = FORM_CODEX[id] || {};
-  return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">FORM ' + F.no + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
+  return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
     '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>';

@@ -65,7 +65,7 @@ function render(){
   $('sbformslbl').style.display = $('sbforms').style.display = jedi ? '' : 'none';
   if (jedi) $('sbforms').innerHTML = Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
     const id = G.loadout[i], f = id && FORMS[id];
-    return `<div class="sb-chip${f ? ' on' : ''}" data-slot="${i}">${f ? 'FORM ' + f.no + ' · ' + f.name : 'EMPTY'}<span class="k">${i + 1}</span></div>`;
+    return `<div class="sb-chip${f ? ' on' : ''}" data-slot="${i}">${f ? (f.no ? 'FORM ' + f.no + ' · ' : '') + f.name : 'EMPTY'}<span class="k">${i + 1}</span></div>`;
   }).join('');
   $('sbkit').innerHTML = (heroKey(SANDBOX_KIT) || []).map(r => {
     if (!kitOffered(r)) return `<div class="sb-chip locked" title="${LATER}">${HIDDEN}<span class="k">LATER</span></div>`;   // a power not earned yet keeps its name

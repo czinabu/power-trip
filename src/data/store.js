@@ -60,7 +60,7 @@ export const JEDI_AUTO = [
   // THE FORMS — learned along FORM_PATH (data/forms.js); game/meditation.js announces each and lets the hero re-slot.
   // A Form VII entry isn't granted here: the run offers the fork and the hero picks which one it keeps.
   ...FORM_PATH.map(p => ({ key: p.form, form: true, chapter: p.chapter, level: p.level, wave: p.wave, stage: p.stage,
-    hud: '', name: FORMS[p.form].name + ' · FORM ' + FORMS[p.form].no, fork: !!FORMS[p.form].fork,
+    hud: '', name: FORMS[p.form].name + (FORMS[p.form].no ? ' · FORM ' + FORMS[p.form].no : ''), fork: !!FORMS[p.form].fork,
     has: () => stanceUnlocked(p.form) || (FORMS[p.form].fork && !!G.formFork),
     grant(){ if (!FORMS[p.form].fork){ (G.stanceUnlocked = G.stanceUnlocked || {})[p.form] = true; setStanceHud(); } } })),
   // FORCE JUMP gets stronger automatically as the legend grows (like the Mando jetpack)

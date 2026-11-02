@@ -15,7 +15,11 @@
             hold a regular grip. Only Niman, the form that borrows from every other, has none: it takes the hero's grip
             preference (Settings / G), so its reverse guard is the Starkiller-style one
    ready    has a stance in data/stances.js and can be slotted. The rest are planned (roadmap: Seven forms) and stay out
-            of every loadout until their stance lands. */
+            of every loadout until their stance lands.
+   staff    not one of the seven: the SABER STAFF, a double-bladed hilt held in both hands (the Jedi Temple Guard's
+            weapon, Maul's). It has no numeral (`kind` stands in for "FORM n" on the cards), shows the long hilt and its
+            second blade (player/model/weapons.js setSaberStaff) and swings its own two-ended set (data/poses.js). Until
+            the hero has it, the forms pages name it only as ??? (ui/forms-ui.js lockedChip). */
 export const FORMS = {
   shiicho: { no: 'I',   name: 'SHII-CHO', tag: 'CROWDS',   needs: [], ready: true, grip: 'regular' },
   makashi: { no: 'II',  name: 'MAKASHI',  tag: 'DUELS',    needs: ['shiicho'], ready: true, grip: 'regular' },
@@ -26,7 +30,12 @@ export const FORMS = {
   niman:   { no: 'VI',  name: 'NIMAN',    tag: 'BALANCED', needs: [], anyOf: 4, ready: true },
   juyo:    { no: 'VII', name: 'JUYO',     tag: 'FURY',     needs: [], anyOf: 5, variant: 'vii', fork: true, ready: true, grip: 'regular' },
   vaapad:  { no: 'VII', name: 'VAAPAD',   tag: 'CONTROL',  needs: [], anyOf: 5, variant: 'vii', fork: true, ready: true, grip: 'regular' },
+  staff:   { no: null,  name: 'SABER STAFF', tag: 'SWEEPS', kind: 'DOUBLE BLADE', needs: [], ready: true, grip: 'regular', staff: true },
 };
+// the line a card heads a form with: "FORM VI", or the saber staff's "DOUBLE BLADE"; and the one a locked chip shows
+// (the staff stays a mystery until it's in hand: ???)
+export const formTitle = (id) => FORMS[id] ? (FORMS[id].no ? 'FORM ' + FORMS[id].no : FORMS[id].kind || FORMS[id].name) : '';
+export const isStaff = (id) => !!(FORMS[id] && FORMS[id].staff);
 
 /* THE LOADOUT — three slots on 1 / 2 / 3 (and the wheel). A slot holds a form id or null (an empty slot is skipped).
    DEFAULT_LOADOUT is the training grounds' and the missions' fallback; a campaign or survival run starts on RUN_LOADOUT,
@@ -45,6 +54,7 @@ export const RUN_LOADOUT = ['shiicho', null, null];
      CORE         Soresu and Ataru, the styles a Padawan grows into: the Wall and the Acrobat
      INTERMEDIATE Djem So and Shien (the Knight), Makashi (Jakku), Niman, which blends them all (Mustafar)
      PEAK         Form VII, never taught early: after the chase, and only one of its two roads
+     THE STAFF    the saber staff, taken from the Ember Academy's overseers on Mustafar (with Niman)
    Form V's two variants come together from the Knight (G swaps them). Form VII is a fork: the run offers both and the
    hero keeps one. */
 export const FORM_PATH = [
@@ -54,6 +64,7 @@ export const FORM_PATH = [
   { form: 'shien',   chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },   // …both its variants
   { form: 'makashi', chapter: 'jakku',         level: 1, wave: 2, stage: 7 },   // a duellist's holocron in the salvage
   { form: 'niman',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // Form VI: the five forms brought together
+  { form: 'staff',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // the saber staff, won off the academy's overseers
   { form: 'juyo',    chapter: 'chase',         level: 2, wave: 0, stage: 9 },   // Form VII, offered after the chase
   { form: 'vaapad',  chapter: 'chase',         level: 2, wave: 0, stage: 9 },
 ];
@@ -125,4 +136,8 @@ export const FORM_CODEX = {
     best: 'Duellists and heavy hitters who come to you',
     pros: ['Blocks and parries build fury, up to +40% damage', 'A parry finds the Shatterpoint: your next cut on that foe lands double and floors it'],
     cons: ['Blows land 10% harder on you', 'Weak when nobody attacks you', 'Choosing it closes Juyo for the run'] },
+  staff: { who: 'The Jedi Temple Guard, Darth Maul', lore: 'Not a form but a weapon: one long hilt, a blade at each end, kept spinning in both hands. Every cut is two.',
+    best: 'Crowds closing in from every side',
+    pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you'],
+    cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },
 };

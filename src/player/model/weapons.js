@@ -33,7 +33,26 @@ export const WEAPON_MODELS = {
       glow.position.y = 0.95;
       const light = new THREE.PointLight(0x44bbff, SABER_LIGHT * glow.light, 9); light.position.y = 0.9;
       root.add(blade, glow, light);
-      return { group: g, bladeRoot: root, blade, glow, light };
+      /* THE SABER STAFF (data/forms.js staff): the hilt runs on past the pommel to a second emitter, STAFF.end below the
+         fist, and a second blade leaves it the other way. The off hand closes on the hilt at STAFF.off. The second
+         blade and its glow are children of the first, so they light, retract, re-ignite, smear and hide with it
+         (fx/trail.js setBladeLen keeps them on their emitter as the length changes). Hidden until setSaberStaff. */
+      const staff = new THREE.Group(); staff.visible = false; root.add(staff);
+      S.add(loft([
+        { y:-STAFF.end - 0.01, w:0.062, d:0.062 }, { y:-STAFF.end + 0.02, w:0.082, d:0.082 }, { y:-STAFF.end + 0.05, w:0.068, d:0.068 },
+        { y:-0.2, w:0.064, d:0.064 }, { y:-0.16, w:0.078, d:0.078 }, { y:-0.12, w:0.07, d:0.07 },
+      ], ngon(8, Math.PI/8)), 'hilt', staff);
+      for (let i = 0; i < 4; i++) S.add(block(0.072, 0.012, 0.072, 0.4), 'leather', staff, [0, -STAFF.off - 0.05 + i*0.03, 0], [0,0,0], { outline: false });   // the off hand's wrap
+      S.add(block(0.022, 0.035, 0.03, 0.3), 'gunDark', staff, [0, -STAFF.end + 0.1, -0.038], [0,0,0], { outline: false });   // its own activator
+      S.add(block(0.09, 0.02, 0.09, 0.4), 'accent', staff, [0, -0.17, 0], [0,0,0], { outline: false });   // the coupling at the middle
+      const blade2 = new THREE.Mesh(blade.geometry, blade.material), glow2 = new THREE.Mesh(glow.geometry, glow.material);
+      blade2.rotation.x = glow2.rotation.x = Math.PI;
+      blade.add(blade2); glow.add(glow2);
+      blade2.visible = glow2.visible = false;
+      const staffParts = { hilt: staff, blade2, glow2 };
+      root.userData.staffParts = staffParts;
+      fitStaffBlades(blade, glow, staffParts, 1);
+      return { group: g, bladeRoot: root, blade, glow, light, staff: staffParts };
     },
   },
 
@@ -205,6 +224,31 @@ export const WEAPON_MODELS = {
    A switch mid-game turns the hilt over in the fingers (anim/saber.js eases the root to `gripTo`); a fresh model
    starts in its grip. */
 let saberGrip = 'regular';
+/* THE SABER STAFF'S HILT, in the saber root's space (the fist at 0, the main blade's emitter at +0.17): where the far
+   emitter sits (below the fist) and where the off hand closes on the hilt. anim/saber.js and jedi/bladehit.js read
+   these, so the blade the eye sees is the blade that cuts. */
+export const STAFF = { end: 0.56, off: 0.34 };
+// keep the staff's second blade on its emitter for a main blade of length s (the main blade centres on 0.17 + 0.78 s
+// and the glow on 0.15 + 0.8 s, both starting just past the hilt; the second pair mirrors them past the far emitter, and
+// sits in its parent's scaled space)
+export function fitStaffBlades(blade, glow, sp, s){
+  if (!sp) return;
+  s = Math.max(0.02, s);
+  sp.blade2.position.y = (-(STAFF.end + 0.03 + 0.78 * s) - (0.17 + 0.78 * s)) / s;
+  sp.glow2.position.y = (-(STAFF.end + 0.01 + 0.8 * s) - (0.15 + 0.8 * s)) / s;
+}
+// show or put away the staff (the long hilt and the second blade) on a hero's saber. A model built later takes the
+// last state set (mountLoadout), like the grip.
+let staffOn = false;
+export function setSaberStaff(hero, on, remember = true){
+  on = !!on;
+  if (remember) staffOn = on;
+  const root = hero && hero.saberBladeRoot, sp = root && root.userData.staffParts;
+  if (!sp) return;
+  sp.hilt.visible = sp.blade2.visible = sp.glow2.visible = on;
+  root.userData.staff = on;
+}
+export const saberIsStaff = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.staff);
 export function applySaberGrip(player, grip, instant = false){
   saberGrip = grip === 'reverse' ? 'reverse' : 'regular';
   const root = player.saberBladeRoot;
@@ -231,7 +275,9 @@ export function mountLoadout(R, S, player){
   player.saberPivot = R.armR.sh;
   player.blade = { blade: saber.blade, glow: saber.glow, light: saber.light };
   player.saberBladeRoot = saber.bladeRoot;
+  player.blade.staff = saber.staff;
   applySaberGrip(player, saberGrip, true);
+  setSaberStaff(player, staffOn, false);
 
   player.pistols = { L: mountWeapon(R, S, 'pistol', 'handL').group, R: mountWeapon(R, S, 'pistol', 'handR').group };
 

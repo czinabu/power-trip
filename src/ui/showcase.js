@@ -7,14 +7,14 @@ import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, 
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
-import { applySaberGrip } from '../player/model/weapons.js';
+import { applySaberGrip, setSaberStaff } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
 import { heroName } from '../game/wardrobe.js';
 import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
-import { FORMS, formGrip, forkClosed } from '../data/forms.js';
+import { FORMS, formGrip, forkClosed, isStaff } from '../data/forms.js';
 import { guardPose, swingPose, applySaberPose, releaseSaberPose, saberPose } from '../player/anim/saber.js';
 import { rexRest } from '../player/anim/guns.js';
 
@@ -239,6 +239,7 @@ function dress(hero){
   fig.rifleMesh.visible = false;
   fig.darksaberMesh.visible = false;
   applySaberGrip(fig, G.saberGrip, true);
+  setSaberStaff(fig, false, false);   // (the stance preview and the form rotation put the saber staff in hand themselves)
   const set = (o, v) => o.rotation.set(...(v || [0, 0, 0]));
   for (const s of ['armL', 'armR']){ set(R[s].sh, P[s].sh); set(R[s].el, P[s].el); }
   for (const s of ['legL', 'legR']){ set(R[s].hip, P[s].hip); set(R[s].knee, P[s].knee); }
@@ -413,7 +414,7 @@ export function previewStance(id){
   if (!id){
     if (!pv.id) return;
     pv.id = null; pv.sw = null;
-    if (R){ releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0; fig.vis.position.y = pv.vy; if (shown) dress(shown); }
+    if (R){ releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0; fig.vis.position.y = pv.vy; setSaberStaff(fig, false, false); if (shown) dress(shown); }
     document.body.classList.remove('stance-preview');
     return;
   }
@@ -423,6 +424,7 @@ export function previewStance(id){
   dress('jedi'); setTheme('jedi', true);
   const st = STANCES[id];
   applySaberGrip(fig, formGrip(id, G.saberGrip), true);
+  setSaberStaff(fig, isStaff(id), false);   // the saber staff shows its long hilt and second blade
   const crystal = fig.look.jedi.saber != null ? fig.look.jedi.saber : st.blade;
   fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal);
   releaseSaberPose(R, 1);   // the next guard seeds the pose from the figure's own arm
@@ -474,6 +476,7 @@ function rotPick(id){
   rot.id = id; rot.t = 0;
   const grip = formGrip(id, G.saberGrip);
   applySaberGrip(fig, grip, false);   // the hilt turns over in the hand if the grip changes
+  setSaberStaff(fig, isStaff(id), false);
   const st = STANCES[id], crystal = fig.look.jedi.saber != null ? fig.look.jedi.saber : st && st.blade;   // the customizer's blade colour wins
   if (crystal != null){ fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal); }
 }
@@ -491,6 +494,7 @@ function rotStop(){
   rot.on = false;
   releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0;
   applySaberGrip(fig, G.saberGrip, true);
+  setSaberStaff(fig, false, false);
 }
 function rotPose(dt){
   const list = rotForms();

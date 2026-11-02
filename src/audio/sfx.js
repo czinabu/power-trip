@@ -84,6 +84,7 @@ const FORM_SOUND = {
   niman:   { p: 1,    len: 1,    air: 1,    ring: 1,    damp: 1 },
   juyo:    { p: 1.06, len: 0.8,  air: 1.1,  ring: 1.04, damp: 1.15, drive: 0.4 },   // ragged, snarling
   vaapad:  { p: 0.86, len: 1.1,  air: 0.9,  ring: 0.8,  damp: 1.3, drive: 0.2, thump: true },
+  staff:   { p: 1.08, len: 0.9,  air: 1.2,  ring: 1.06, damp: 1, flick: true },   // the saber staff: two hums, the far end chasing the near
 };
 function formSwing(v, pos){
   swing(v.p, v.len, false, { pos, air: v.air, drive: v.drive });

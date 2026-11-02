@@ -149,6 +149,10 @@ export const CFG = {
     mandoShoulderFly: 1.05,   // ...and in the air
     duelPull: 0.18,           // LOCK-ON: per metre to the locked foe, the lens backs off so both duelists stay framed...
     duelMax: 1.6,             // ...up to this much
+    duelSide: 1.5,            // DUEL SIDE-ON (engine/camera.js): with one foe squared up straight ahead, the lens slides this far sideways...
+    duelSideTurn: 0.35,       // ...and the aim point this share of it, so the view turns back toward the pair
+    duelSideLat: 1.6,         // fully on while the foe is within this of the view's centre line (sideways, metres), easing off by here
+    duelSideFar: 11,          // and while it is nearer than this (easing in over the last 4 m)
     crowdLift: 0.5,           // and the lens rises up to this much so the pack reads over the hero's shoulders
     bossDist: 2.4,            // boss fights sit further back...
     bossNear: 3.4,            // ...and further still (up to this) while the boss is right on top of you

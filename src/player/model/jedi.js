@@ -202,9 +202,12 @@ export const JEDI_PARTS = {
     sleeves(R, k){
       for (const A of [R.armL, R.armR]){
         const s = A.side;
-        k.add(loft([{ y:-0.1, w:0.16, d:0.156 }, { y:-0.01, w:0.172, d:0.165 }, { y:0.045, w:0.142, d:0.142 }, { y:0.075, w:0.07, d:0.08 }], SOFT), 'tunic', A.sh, [0.012*s, 0.02, 0], [0, 0, -0.38*s]);   // deltoid
+        // (under the outer robe its own sleeve covers the shoulder, stretching from the armhole: the tunic's deltoid and
+        // sleeve top would only poke out of it as the arm lifts)
+        const robed = k.parts.robe === 'outer';
+        if (!robed) k.add(loft([{ y:-0.1, w:0.16, d:0.156 }, { y:-0.01, w:0.172, d:0.165 }, { y:0.045, w:0.142, d:0.142 }, { y:0.075, w:0.07, d:0.08 }], SOFT), 'tunic', A.sh, [0.012*s, 0.02, 0], [0, 0, -0.38*s]);   // deltoid
         k.skin('tunic', [
-          ...seg(0.34, [[-0.2,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
+          ...seg(0.34, [[robed ? 0.12 : -0.2,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
           ...seg(0.3, [[0.1,0.098,0.098],[0.45,0.114,0.114],[0.78,0.148,0.145]], 0.34),
         ], { bones: [A.sh, A.el], at: [0.34], blend: 0.05, profile: chamfer(0.4) });
         k.add(limb(0.3, [[0.6,0.085,0.085],[1,0.075,0.075]], chamfer(0.3)), 'leather', A.el);
@@ -245,22 +248,27 @@ function outerRobe(R, k, hooded){
       const rx = 0.225 + 0.15 * v, rz = 0.18 + 0.12 * v;
       return [Math.cos(a) * rx, 0.04 - v * len * (0.94 + 0.06 * Math.abs(Math.sin(a))), Math.sin(a) * rz - 0.01];
     } });
-  // the sleeves: roomy from the shoulder, belled wide at the wrist
+  // the sleeves: roomy from the shoulder, belled wide at the wrist. Each hangs from an ARMHOLE: a fixed joint on the
+  // chest where the shoulder rests, carrying the sleeve's top, so as the arm lifts overhead the cloth there stretches
+  // from the body to the arm (as a real sleeve does) instead of the whole top swinging up through the robe and cowl
   for (const A of [R.armL, R.armR]){
+    const hole = k.group(R.chest, A.sh.position.toArray(), [A.sh.rotation.x, A.sh.rotation.y, A.sh.rotation.z]);
     k.skin('robe', [
       ...seg(DIM.upper, [[-0.32,0.24,0.22],[-0.1,0.22,0.215],[0.3,0.2,0.2],[0.75,0.185,0.185],[1,0.18,0.18]]),
       ...seg(DIM.fore, [[0.15,0.18,0.18],[0.5,0.2,0.2],[0.8,0.25,0.25],[0.97,0.29,0.29]], DIM.upper),
-    ], { bones: [A.sh, A.el], at: [DIM.upper], blend: 0.05, profile: hoodRing(0, 0.025, 0.9), open: true });
+    ], { bones: [hole, A.sh, A.el], at: [0.02, DIM.upper], blend: 0.07, profile: hoodRing(0, 0.025, 0.9), open: true });
   }
   if (hooded) return;
-  // hood down: a rolled collar round the neck, falling lower at the back where the hood lies
+  // hood down: a rolled collar round the neck that widens into a yoke over the shoulders (rounding off the sleeve
+  // tops), falling lower at the back where the hood lies
   const cr = (t, w, d, z, open, fold, wall) => ({ y: t, w, d, z, p: hoodRing(open, fold, wall) });
   k.add(warpGeo(loft([
-    cr(0.36, 0.5,  0.36, -0.03, 0.5,  0.03, 0.96),
-    cr(0.41, 0.42, 0.33, -0.035,0.5,  0.03, 0.86),
-    cr(0.46, 0.32, 0.3,  -0.04, 0.55, 0.02, 0.84),
-    cr(0.5,  0.27, 0.26, -0.045,0.6,  0.01, 0.82),
-  ], hoodRing(0.5), { capTop: false, capBottom: false }), cowlDrape({ neck: 0.5, len: 0.14, zc: -0.03, back: 0.1, front: 0.02, side: 0.03 })), 'robe', R.chest);
+    cr(0.35, 0.66, 0.44, -0.03, 0.42, 0.04, 0.97),   // a yoke that rounds over the shoulders, not a square edge
+    cr(0.39, 0.62, 0.41, -0.03, 0.42, 0.04, 0.9),
+    cr(0.43, 0.54, 0.37, -0.035,0.45, 0.035,0.88),
+    cr(0.465,0.38, 0.32, -0.04, 0.5,  0.02, 0.85),
+    cr(0.5,  0.28, 0.27, -0.045,0.58, 0.01, 0.82),
+  ], hoodRing(0.5), { capTop: false, capBottom: false }), cowlDrape({ neck: 0.5, len: 0.15, zc: -0.03, back: 0.1, front: 0.03, side: 0.07, width: 0.33 })), 'robe', R.chest);
   // the hood itself, emptied and lying flat in folds between the shoulder blades, its point hanging lowest
   k.add(loft([
     { y: 0.08, w: 0.05, d: 0.03, z: -0.235 },

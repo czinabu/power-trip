@@ -52,7 +52,7 @@ import { players, targetable } from '../player/players.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
-import { beginTwist, updateTwist, endTwist } from './twists.js';
+import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -212,7 +212,9 @@ const KINDS = {
       const inZone = heroIn(o.at[0], o.at[1], o.r), foes = hostilesIn(o.at[0], o.at[1], o.r);
       // squadRate: squadmates ordered onto the zone (H) keep it ticking while you're away; a foe in it halves that
       const mates = o.squadRate ? squadIn(o.at[0], o.at[1], o.r) : 0;
-      const rate = inZone ? 1 : mates ? o.squadRate * (foes ? 0.5 : 1) : foes ? 0 : o.awayRate;
+      let rate = inZone ? 1 : mates ? o.squadRate * (foes ? 0.5 : 1) : foes ? 0 : o.awayRate;
+      const gate = o.twist && twistGate(o.at[0], o.at[1], twistCtx);   // its twist can hold it up (game/twists.js)
+      if (gate) rate *= gate.rate;
       s.prog += dt * rate; s.rate = rate; s.inZone = inZone;
       if (s.kids) updateEvacuees(evac(o), s, dt, Math.min(1, s.prog / o.time), rate);
       setMarkerColor(s.zone, rate === 0 ? RED : heroKey(MISSION_COLOR));
@@ -221,9 +223,9 @@ const KINDS = {
       const total = alive ? ' · ' + alive + ' HOSTILE' + (alive === 1 ? '' : 'S') : '';
       const who = o.evacuees ? heroKey(evac(o).name) + ' ' + (evac(o).verb || 'ABOARD') + ' ' + s.aboard + ' / ' + evac(o).count : (o.holding || 'HOLDING');
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: s.prog / o.time,
-        status: (rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
+        status: (gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
                : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || 'RAMP UNGUARDED') + ' ' + mmss(o.time - s.prog)) + total,
-        warn: rate === 0 });
+        warn: rate === 0 || !!(gate && gate.warn) });
       if (s.prog >= o.time){
         showBanner(o.doneLine || 'TRANSPORT AWAY', o.doneLine ? (o.doneSub || '') : 'Its guns clear the field as it climbs.', 2.4);
         G.shake = Math.max(G.shake, 0.6);
@@ -254,7 +256,7 @@ const KINDS = {
         if (hostilesAlive() + G.spawnQueue.length < o.trickle.cap) queueGroup(o.trickle.group, { at: o.from && (() => arcSpawn(o.from[0], o.from[1])) });
       }
       const hit = player.lastHurt !== s.hurtAt; s.hurtAt = player.lastHurt;
-      let left = 0, at = null;
+      let left = 0, at = null, gate = null;
       for (const c of s.cons){
         if (c.done) continue;
         left++;
@@ -263,8 +265,10 @@ const KINDS = {
         at = c;
         // a hit sets the work back, once a second at most: a sniper and two blasters on you shouldn't pin it at zero forever
         if (hit && c.prog > 0 && G.gt - (s.lossAt ?? -9) > 1){ s.lossAt = G.gt; c.prog = Math.max(0, c.prog - o.hitLoss); floater(V3(c.x, 1.6, c.z), 'INTERRUPTED', '#ff9a8a'); }
-        c.prog += dt;
-        if (Math.floor(c.prog * 4) !== Math.floor((c.prog - dt) * 4)) sfx(700 + c.prog * 160, 0.04, 'square', 0.02, 900 + c.prog * 160);
+        gate = o.twist && twistGate(c.x, c.z, twistCtx);   // its twist can hold it up (game/twists.js)
+        const was = c.prog;
+        c.prog += dt * (gate ? gate.rate : 1);
+        if (Math.floor(c.prog * 4) !== Math.floor(was * 4) && c.prog > was) sfx(700 + c.prog * 160, 0.04, 'square', 0.02, 900 + c.prog * 160);
         if (c.prog >= o.time){
           c.done = true; left--; at = null;
           setMarkerColor(c.m, GREEN); c.m.userData.beam.visible = false; c.m.userData.done = true;
@@ -278,8 +282,8 @@ const KINDS = {
       const n = s.cons.length; s.at = at;
       setObjectiveHud({ kicker: M.kick, title: o.title,
         frac: at ? at.prog / o.time : (n - left) / n,
-        status: at ? (o.consoleName ? 'WORKING… STAY ON IT' : 'SLICING… STAY ON THE CONSOLE')
-                   : (n - left) + ' / ' + n + (o.consoleName ? ' ' + o.consoleName + 'S DONE' : ' UPLINKS DOWN') });
+        status: at && gate && gate.status ? gate.status : at ? (o.consoleName ? 'WORKING… STAY ON IT' : 'SLICING… STAY ON THE CONSOLE')
+                   : (n - left) + ' / ' + n + (o.consoleName ? ' ' + o.consoleName + 'S DONE' : ' UPLINKS DOWN'), warn: !!(at && gate && gate.warn) });
       if (!left){ showBanner(o.doneLine || 'UPLINKS SILENCED', o.doneLine ? (o.doneSub || '') : 'The bombardment never comes.', 2.2); return true; }
     },
   },
@@ -963,7 +967,7 @@ function beginObjective(){
     if (allies.length < o.squad) spawnSquad(o.squad - allies.length, o.start);
   }
   KINDS[o.kind].begin(o, M.s);
-  if (o.twist) beginTwist(o);   // its signature hook (game/twists.js)
+  if (o.twist) beginTwist(o, false, twistCtx);   // its signature hook (game/twists.js)
 }
 // a hold that falls back as its twist presses in (the forge's heat): the zone steps to its next stand at each step of
 // the clock, and the troops marching on it turn for the new spot
@@ -978,10 +982,24 @@ function fallBack(o, s){
   showBanner('FALL BACK', (tw.fallLine && heroKey(tw.fallLine)) || 'The heat is coming up. Take the next stand.', 2.2);
   sfx(520, 0.12, 'square', 0.04, 260);
 }
-// what a twist needs to know of the objective each frame (host): how far along it is, and the duel's foe
-const twistCtx = { guest: false, frac: 0, foe: () => M.s && M.s.foe && !M.s.foe.dead ? M.s.foe : null };
+// what a twist needs to know of the objective each frame (host): how far along it is, the duel's foe, the objective and
+// its state, the escort, and a hand on the mission's markers (one of its own: the HUD arrow finds it, a guest is sent it)
+const twistCtx = { guest: false, frac: 0, foe: () => M.s && M.s.foe && !M.s.foe.dead ? M.s.foe : null,
+  get o(){ return M.o; }, get s(){ return M.s; }, get vip(){ return M.vip; },
+  mark(m){ M.markers.push(m); return m; }, unmark(m){ removeMarker(m); M.markers = M.markers.filter(k => k !== m); } };
+// how far along the objective is, 0..1, for its twist
+function objectiveFrac(o, s){
+  if (!o || !s) return 0;
+  switch (o.kind){
+    case 'hold': return s.prog / o.time;
+    case 'escort': return s.P ? s.d / s.P.len : 0;
+    case 'capture': return s.cur ? (s.k + s.cur.prog / o.time) / o.posts.length : (s.k || 0) / o.posts.length;
+    case 'sabotage': return s.cons ? s.cons.filter(c => c.done).length / s.cons.length : 0;
+  }
+  return 0;
+}
 // a guest's: the host's progress, and the duel's foe among the foes it's shown
-const guestCtx = { guest: true, frac: 0, foe: () => {   // (the toughest of its type: the duel's foe stands alone, but be sure)
+const guestCtx = { guest: true, frac: 0, get o(){ return M.o; }, s: null, get vip(){ return M.vip; }, mark(){}, unmark(){}, foe: () => {   // (the toughest of its type: the duel's foe stands alone, but be sure)
   const t = M.o && M.o.kind === 'duel' && M.o.foe;
   let best = null;
   if (t) for (const e of enemies) if (!e.dead && e.type === t && (!best || e.maxHp > best.maxHp)) best = e;
@@ -1078,7 +1096,7 @@ export function updateMission(dt){
 function updateMissionHost(dt){
   M.fx = M.fx.filter(f => f(dt));
   updateBattleFx(dt);
-  twistCtx.frac = M.o && M.o.kind === 'hold' && M.s ? M.s.prog / M.o.time : 0;
+  twistCtx.frac = Math.min(1, objectiveFrac(M.o, M.s));
   updateTwist(dt, twistCtx);
   if (M.panelT > 0 && (M.panelT -= dt) <= 0) hidePanel();
   if (M.failT > 0){ if ((M.failT -= dt) <= 0) startMission(M.def.id, M.i, false, { chapter: M.chapter, retry: true }); return; }   // it got away: this leg again
@@ -1130,6 +1148,8 @@ export function objectiveTarget(){
     if (s && s.last && s.last.visible) return s.last.position;
     return q ? q.g.position : (M.net && M.net.q ? V3(M.net.q[0], 0, M.net.q[2]) : null);
   }
+  const tt = twistTarget();   // the twist needs you somewhere first (game/twists.js)
+  if (tt) return tt;
   const pp = playerPos();
   let best = null, bd = Infinity;
   for (const k of M.markers){
@@ -1185,7 +1205,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen() };
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), tw: twistSnap() };
 }
 // guest: follow the host's mission
 export function coopMissionSync(ms){
@@ -1207,9 +1227,10 @@ export function coopMissionSync(ms){
     M.begun = ms.i;
     M.o = forHero(M.def.objectives[ms.i]);
     say(M.o, { told: M.told === ms.i });
-    if (M.o.twist) beginTwist(M.o, true);   // the host's twist, on this screen too
+    if (M.o.twist) beginTwist(M.o, true, guestCtx);   // the host's twist, on this screen too
   }
   M.net = ms;
+  if (ms.tw) twistSync(ms.tw);
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached
   while (M.markers.length > ms.mk.length) removeMarker(M.markers.pop());
   ms.mk.forEach((r, k) => {

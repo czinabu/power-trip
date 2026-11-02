@@ -79,6 +79,7 @@ export const G = {
   mission: false,        // true while a story mission runs (game/mission.js)
   sandbox: false,        // true while the sandbox runs (game/sandbox.js)
   sandboxGod: false,     // the sandbox's god mode: the hero can't fall
+  calm: false,           // the calm after a chapter's last fight (game/aftermath.js): the chapter is won, nobody falls
   forceElite: false,     // set while the sandbox spawns its ELITE foes
   endlessWave: 0,        // current survival wave (1-based)
   mut: null,             // active wave mutator id (or null)

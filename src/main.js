@@ -118,6 +118,7 @@ import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import './net/foefire.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
+import { updateSwingMarker, swingMarkInfo } from './fx/swingmark.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
 import './ui/saves-ui.js';   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
@@ -184,6 +185,7 @@ function tick(){
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
+  updateSwingMarker(rawDt);   // the Jedi's swing marker: where the next cut lands, on the floor (fx/swingmark.js)
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
   // cutscene: frozen, they'd hang in its shots as a still of the last action beat
   const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;
@@ -228,7 +230,7 @@ import { arenaInfo } from './world/arena.js';
 import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
-Object.assign(window.GAME, { pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
+Object.assign(window.GAME, { swingMarkInfo, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';
 import { openBattleSetup } from './ui/battlesim-ui.js';

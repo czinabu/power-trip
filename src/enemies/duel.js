@@ -24,7 +24,7 @@ import { dropToken } from './director.js';
 import { tellFx } from '../fx/tells.js';
 import { heroesHere } from '../player/players.js';
 import { hooks } from '../net/run.js';
-import { matchup, sealOf, updateFormTag } from './foeform.js';
+import { matchup, sealOf, updateFormTag, updateFormSwitch } from './foeform.js';
 import { pushKnock } from '../player/jedi/force.js';
 import { foeBlade } from '../player/jedi/clash.js';
 
@@ -254,6 +254,7 @@ export function updateDuel(e, dt, dist){
     }
   } else if (e.postBar) e.postBar.visible = false;
   // its form and rank, and whether your form counters it (enemies/foeform.js)
+  updateFormSwitch(e, dt);   // a master changes form on you (enemies/foeform.js)
   updateFormTag(e, !e.dead && !e.converted && dist < DUEL.guardRange * 1.6);
 }
 

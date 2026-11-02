@@ -3,6 +3,8 @@
 // Before the campaign is beaten, what the story hasn't reached yet shows dimmed and locked (game/sandbox-unlocks.js).
 // It holds the game still while it's open and frees the cursor, the same way the upgrade screen does.
 
+import { RANKS, RANK_ORDER } from '../data/foe-forms.js';
+import { formName } from '../enemies/foeform.js';
 import { renderer } from '../engine/renderer.js';
 import { showBanner } from './banners.js';
 import { G, shared, isGunner, heroKey } from '../state.js';
@@ -37,6 +39,7 @@ export function closeSandboxPanel(relock = true){
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
 }
 
+const SB_FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo'];   // (a magnaguard always fights with its staff)
 function pill(id, on){ const el = $(id); el.classList.toggle('on', on); el.querySelector('.setval').textContent = on ? 'ON' : 'OFF'; }
 const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
@@ -55,6 +58,9 @@ function render(){
     return `<div class="sb-save"><div class="sv-t" title="${v ? f + ' foes, ' + a + ' squadmates' : 'Nothing saved here'}">${t}</div><div class="sv-b">` +
       `<div class="btn${BS.plan.length ? '' : ' off'}" data-save="${i}">SAVE</div><div class="btn${v && mapOffered(v.map) ? '' : ' off'}" data-load="${i}">LOAD</div></div></div>`;
   }).join('');
+  // the duellists' form and rank (enemies/foeform.js reads G.sbFoeForm / G.sbFoeRank; AUTO: as a run would pick)
+  $('sbfform').innerHTML = [null, ...SB_FORMS].map(f => `<span data-fform="${f || ''}" class="${(G.sbFoeForm || null) === f ? 'on' : ''}">${f ? formName(f) : 'AUTO'}</span>`).join('');
+  $('sbfrank').innerHTML = [null, ...RANK_ORDER].map(r => `<span data-frank="${r || ''}" class="${(G.sbFoeRank || null) === r ? 'on' : ''}">${r ? RANKS[r].no + ' ' + RANKS[r].name : 'AUTO'}</span>`).join('');
   pill('sbelite', SB.elite); pill('sbdummy', SB.dummy); pill('sbgod', !!G.sandboxGod); pill('sbreadout', readoutOn());
   $('sbsquadn').textContent = squadSize() + ' / ' + SQUAD.max;
   $('sbfoes').innerHTML = SANDBOX_FOES.map(f => {
@@ -89,6 +95,9 @@ panel.addEventListener('click', (e) => {
   if (t.closest('#sbreplay')){ closeSandboxPanel(); replayBattle(); return; }
   if (map){ if (map.dataset.map !== SB.map){ setSandboxMap(map.dataset.map); render(); } return; }
   if (n){ SB.count = +n.dataset.n; render(); return; }
+  const ff = t.closest('[data-fform]'), fr = t.closest('[data-frank]');
+  if (ff){ G.sbFoeForm = ff.dataset.fform || null; render(); return; }
+  if (fr){ G.sbFoeRank = fr.dataset.frank || null; render(); return; }
   if (foe){ sandboxSpawn(foe.dataset.foe); foe.classList.remove('pop'); void foe.offsetWidth; foe.classList.add('pop'); return; }
   if (kit){ const on = kit.classList.contains('on'); setSandboxKit(kit.dataset.kit, !on); render(); return; }
   if (t.closest('#sbelite')){ SB.elite = !SB.elite; render(); return; }

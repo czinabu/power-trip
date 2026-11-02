@@ -1109,7 +1109,7 @@ function spawnInquisitor(o, at = o.at, opts = {}){
   // every named duellist fights in a form at a rank (data/foe-forms.js NAMED_FORMS): its mission's form (a trial's FORM MASTER, its blade in that form's colour), else its name's
   if (e.dp && e.ff){
     const N = namedForm(o, o.foe);
-    setFoeForm(e, N.form, N.rank);
+    setFoeForm(e, N.form, N.rank, N.repertoire);
     initDuel(e, { ...N.profile, ...(e.t.weapon === 'saber' ? {} : { deflect: 0 }), ...o.duel });
   } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
   if (o.form && e.dp && STANCES[o.form]){

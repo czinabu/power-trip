@@ -72,7 +72,7 @@ export function spawnEnemy(typeName, pos, opts = {}){
   // fight back by their type's profile: guards, feints, strings (duel.js)
   const F = foeFormFor(e);
   if (F){
-    setFoeForm(e, F.form, F.rank);
+    setFoeForm(e, F.form, F.rank, F.repertoire);
     initDuel(e, t.weapon === 'saber' ? F.profile : { ...F.profile, deflect: 0 });   // (only a lightsaber bats a bolt back)
   } else initDuel(e);
   enemies.push(e);

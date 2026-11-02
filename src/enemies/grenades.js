@@ -21,6 +21,7 @@ import { enemyDmgScale } from '../game/survival.js';
 import { damageEnemy } from './damage.js';
 import { damageBoss } from '../boss/boss.js';
 import { blastAllies } from '../allies/squad.js';
+import { civBlast } from '../game/civilians.js';
 
 export const grenades = [];
 const ballGeo = new THREE.SphereGeometry(0.16, 10, 8);
@@ -106,6 +107,7 @@ function explode(n){
   for (const b of barrels){ if (b.mesh.position.distanceTo(pos) < n.R && b.fuse < 0) b.fuse = 0.15; }
   if (turned) return;   // turned back, or thrown by an ally: it's on your side now
   blastAllies(pos, n.R, n.dmg * enemyDmgScale());   // the hero's squad is caught in it too
+  civBlast(pos.x, pos.z, n.R, n);   // and anyone being got out (game/civilians.js)
   if (hooks.blast) hooks.blast(pos, n.R, n.dmg * enemyDmgScale(), 'g');
   const pp = playerPos();
   if (Math.hypot(pp.x - pos.x, pp.z - pos.z) < n.R && pp.y < 3.2){   // a dash through it is a perfect dodge (hurtPlayer)

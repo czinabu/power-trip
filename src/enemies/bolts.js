@@ -33,6 +33,7 @@ import { airGuardLost, airParryOk } from '../player/mobility.js';
 import { masteryXp } from '../game/progression.js';
 import { noteDefense } from '../game/readout.js';
 import { allySweep, hurtAlly, isFodder } from '../allies/squad.js';
+import { civSweep } from '../game/civilians.js';
 import { hooks } from '../net/run.js';
 
 /* ============================================================
@@ -125,6 +126,15 @@ export function updateBolts(dt){
       if (ah){
         b.mesh.position.lerpVectors(PREV, b.mesh.position, ah.t);
         hurtAlly(ah.ally, b.dmg, b.mesh.position); kill = true;
+        boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
+      }
+    }
+    // ...and one that meets someone being got out (a hold's evacuees) stops in them: they go down (game/civilians.js)
+    if (!kill && !b.friendly && !b.ghost){
+      const ch = civSweep(PREV, b.mesh.position, BOLT_R);
+      if (ch){
+        b.mesh.position.lerpVectors(PREV, b.mesh.position, ch.t);
+        ch.c.hit(b, 'bolt'); kill = true;
         boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
       }
     }

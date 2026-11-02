@@ -8,6 +8,7 @@ import { PAD_BUTTONS, PAD_TUNE, PAD_BINDS, PAD_GLYPHS, padFamily, padLayout } fr
 import { shared, G, player, isGunner } from '../state.js';
 import { clamp } from '../utils.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
+import { toggleStrafe } from '../player/strafe.js';
 import { audioInit } from '../audio/sfx.js';
 import { skipScene, holdSkip } from '../game/cutscene.js';
 import { wheelStick } from '../allies/wheel.js';
@@ -100,7 +101,7 @@ function release(name){
   held.delete(name);
   if (v.mouse != null) sendMouse(v.mouse, false); else sendKey(v.key, false);
 }
-function releaseAll(){ for (const name of [...held.keys()]) release(name); }
+function releaseAll(){ for (const name of [...held.keys()]) release(name); player.padStrafe = false; }
 function setStickKeys(x, y){
   const T = PAD_TUNE.moveKey;
   const want = { w: y > T, s: y < -T, d: x > T, a: x < -T };
@@ -133,7 +134,7 @@ function poll(t){
   const now = playing();
   if (now !== wasPlaying){
     // switching between fight and menu: let go of everything, and ignore buttons still held from the other side
-    releaseAll(); setStickKeys(0, 0); padMove.on = false;
+    releaseAll(); setStickKeys(0, 0); padMove.on = false; lbTap.used = true;
     blocked.clear(); btn.forEach((b, i) => { if (b) blocked.add(i); });
     wasPlaying = now;
     if (!now){ navReset(); checkT = 0; }
@@ -151,16 +152,22 @@ function poll(t){
 requestAnimationFrame(poll);
 
 /* ---------- THE FIGHT ---------- */
+const lbTap = { at: 0, used: true };   // when LB went down (real time), and whether a layer button went with it
 function fight(btn, down, up, lx, ly, rx, ry, dt){
   const binds = PAD_BINDS[padLayout(G.hero)];
   const lbHeld = btn[4];
   // releases first (a bind lets go of what it pressed), then LB, then the rest, so LB + Y opens the layer at once
   PAD_BUTTONS.forEach((name, i) => { if (up(i)) release(name); });
-  if (down(4)) press('LB', binds.base.LB);
+  // STRAFE (player/strafe.js): LB held strafes while it is held, whatever the setting; in TOGGLE a quick tap of LB on
+  // its own (no layer button pressed with it) flips the strafe on or off
+  if (up(4) && !lbTap.used && performance.now() - lbTap.at < 300) toggleStrafe();
+  if (down(4)){ press('LB', binds.base.LB); lbTap.at = performance.now(); lbTap.used = false; }
   PAD_BUTTONS.forEach((name, i) => {
     if (i === 4 || i === 9 || !down(i)) return;
+    if (lbHeld) lbTap.used = true;
     press(name, (lbHeld && binds.lb[name]) || binds.base[name]);
   });
+  player.padStrafe = held.has('LB');
   if (down(9)){ releaseAll(); sendKey('tab', true); sendKey('tab', false); }   // MENU pauses (menus.js: Tab pauses and resumes)
 
   // LEFT STICK — move. The keys for anything that reads W A S D, the smooth direction for locomotion.

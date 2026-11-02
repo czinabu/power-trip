@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // WALK-UP LINES: optional story in the lulls. Walk up to someone on your side (a squadmate, a chapter's guest fighter, the
-// escort, the people a hold is getting out) while nothing is on top of you, and a prompt comes up over them: tap H (the
-// squad-orders key; VIEW on a pad) and they say a line, over the comms strip, under their own name. The words are
+// escort, the people a hold is getting out, the story's voice hanging back after a chapter's opening: game/onset.js)
+// while nothing is on top of you, and a prompt comes up over them: tap H (the squad-orders key; VIEW on a pad) and they
+// say a line, over the comms strip, under their own name. The words are
 // data/talk.js. Nobody has to be talked to: the mission never waits on it.
 //
 // Every mode with someone on your side: a mission's escort and evacuees, the squad in a run, survival, the sandbox's battle
@@ -10,7 +11,9 @@
 import { G, player, heroKey } from '../state.js';
 import { playerPos, fwd } from '../player/helpers.js';
 import { allies } from '../allies/squad.js';
-import { TALK, MISSION_TALK } from '../data/talk.js';
+import { TALK, MISSION_TALK, CHAPTER_TALK } from '../data/talk.js';
+import { onSetFigures } from './onset.js';
+import { chapterOrder, storyHero } from '../data/campaign.js';
 import { comms, fightHot, commsTalking, commsShowing } from './story.js';
 import { missionFigures, missionId } from './mission.js';
 import { hostilesIn } from './objectives.js';
@@ -28,11 +31,16 @@ const one = (name) => {
   const n = String(name).replace(/CHILDREN$/, 'CHILD').replace(/S$/, '');
   return (/^[AEIOU]/.test(n) ? 'AN ' : 'A ') + n;
 };
+// the chapter's own lines for someone (data/talk.js CHAPTER_TALK, by story then chapter id)
+function chapterLines(name){
+  const c = G.chapter >= 0 && chapterOrder(G.actTwo)[G.chapter], all = c && CHAPTER_TALK[storyHero()];
+  return (all && all[c.id] && all[c.id][name]) || null;
+}
 function linesFor(f){
   const mid = missionId(), own = mid && MISSION_TALK[mid] && MISSION_TALK[mid][f.name];
   const base = f.kind ? TALK[f.kind] : TALK[f.name];
   const pick = (v) => !v ? [] : Array.isArray(v) ? v : (heroKey(v) || v.jedi || v.trooper || v.mando || []);
-  return [...pick(own), ...pick(base)];
+  return [...pick(chapterLines(f.name)), ...pick(own), ...pick(base)];
 }
 
 // everyone who could be talked to right now
@@ -44,6 +52,7 @@ function figures(){
     out.push({ key: 'ally:' + name, name, pos: a.group.position, h: 2.3 * ((a.t && a.t.scale) || 1) });
   }
   for (const f of missionFigures()) out.push(f);
+  for (const f of onSetFigures()) out.push(f);   // the story's voice, staying on after the chapter's opening (game/onset.js)
   return out.filter(f => linesFor(f).length);
 }
 

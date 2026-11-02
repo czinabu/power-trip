@@ -35,6 +35,7 @@ import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
 import { missionState } from './mission.js';
 import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
+import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
 
@@ -57,7 +58,7 @@ el.style.setProperty('--bars', (CUT.bars * 100) + 'vh');
 const $ = (c) => el.querySelector(c);
 
 /* ---------- the scene playing now ---------- */
-const C = { on: false, key: '', shots: [], i: 0, t: 0, actors: [], heroYaw: 0, mark: null, onDone: null, fade: 0, ending: false, shown: null };
+const C = { on: false, key: '', shots: [], i: 0, t: 0, actors: [], kept: [], keepYaw: 0, heroYaw: 0, mark: null, onDone: null, fade: 0, ending: false, shown: null };
 export const sceneOn = () => C.on;
 // scenes already seen on this visit: a retry after a death doesn't replay them (cleared when a chapter or mission starts afresh)
 const seen = new Set();
@@ -115,12 +116,21 @@ function updateActor(a, dt){
 function dropActors(){
   player.talking = false;
   for (const a of C.actors) if (a.g) a.g.userData.talk = false;
-  for (const a of C.actors){ if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
-  C.actors = [];
+  // whoever stays on set (data/cast.js `stays`: the story's voice, there in person) is handed to game/onset.js, which keeps
+  // them on the field behind the hero; the rest go
+  const stay = [...C.kept, ...C.actors.filter(a => a.stays && a.g)];
+  for (const a of C.actors){ if (a.stays) continue; if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
+  C.actors = []; C.kept = [];
+  if (stay.length) keepCast(stay, C.keepYaw, !!C.one);   // (a scene without cuts leaves them where they stand: no pop)
 }
-// the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it
+// the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it (anyone who
+// stays is only hidden: they are back, behind the hero, when the scene hands back)
 function dropCast(){
-  C.actors = C.actors.map(a => { if (!a.kind) return a; dropFigure(a); return { g: null, gone: true }; });
+  C.actors = C.actors.map(a => {
+    if (!a.kind) return a;
+    if (a.stays){ a.g.visible = false; a.talk = false; C.kept.push(a); } else dropFigure(a);
+    return { g: null, gone: true };
+  });
 }
 
 /* ---------- anchors: what a shot's lens circles. Each gives a spot and the way it faces ---------- */
@@ -189,7 +199,8 @@ const shot = (on, from, to, t, look, extra = {}) => ({ on, from, to, t, look, ..
 function heroLines(lines, side = 1){
   return lines.map((ln, k) => {
     const s = (k % 2 ? -1 : 1) * side;
-    return shot('hero', [0.6 * s, 3.4, 1.55], [0.42 * s, 2.9, 1.6], lineTime(ln), { on: 'hero', h: 1.45 }, { line: ln, mirror: true });
+    // (framed off the hero's eyes, not a fixed height: a hero standing at ease would put the head under the letterbox)
+    return shot('hero', [0.6 * s, 3.4, -0.12], [0.42 * s, 2.9, -0.08], lineTime(ln), { on: 'hero', h: -0.22, eye: true }, { line: ln, mirror: true, eye: true });
   });
 }
 function actorLines(lines, who){
@@ -241,12 +252,42 @@ const canStart = (key) => !C.on && G.mode === 'play' && !(key && seen.has(key));
 // a scene that won't play: the figures built for it leave the field (a stand-in left behind would stand there for good,
 // beside the real foe: the duel foe's double after a retry, which keeps the duel's intro marked as seen)
 function discard(actors){ for (const a of actors || []){ if (a.kind) dropFigure(a); else if (a.own && a.g) scene.remove(a.g); } }
+/* ---------- room to talk: nobody stands on top of the hero when a scene starts ----------
+   A scene that starts as a fight ends (a duel foe breaking off, a cornered quarry) finds the hero wherever the fight left
+   them, often a step from the one who is about to speak: the two bodies overlap in every close and the over-the-shoulder
+   lens sits inside the hero. So before the first shot, the speaker steps back to ROOM (a stand-in built for the scene), or,
+   when it can't (a wall behind it, or it is something already on the field: the boss, the quarry), the hero does. */
+const ROOM = 2.6;
+// a clear spot `d` from (x, z) along `yaw` (or a little either side of it) on level ground with nothing in between: null if none
+function roomSpot(x, z, y, yaw, d){
+  for (const da of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const k of [1, 1.2]){
+    const a = yaw + da, c = findClearSpawn(x + Math.sin(a) * d * k, z + Math.cos(a) * d * k, 0.6);
+    if (Math.hypot(c.x - x, c.z - z) < d * 0.92 || segBlockedBySolids(x, z, c.x, c.z)) continue;
+    if (Math.abs(groundAt(c.x, c.z, y + 1.5) - y) > 0.45 || sightClear(x, y + 1.5, z, c.x, y + 1.5, c.z) < 0.95) continue;
+    return c;
+  }
+  return null;
+}
+function makeRoom(actors){
+  for (const a of actors || []){
+    if (!a || !a.g || (a.kind && !a.bound)) continue;   // (the story's cast is set apart already: castSpots)
+    const pp = playerPos(), q = a.g.position, need = ROOM * Math.max(1, a.scale || 1), d = Math.hypot(q.x - pp.x, q.z - pp.z);
+    if (d >= need) continue;
+    const away = d > 0.05 ? yawTo(pp.x, pp.z, q.x, q.z) : G.yaw;   // hero → actor
+    let c = a.own && !a.kind && roomSpot(pp.x, pp.z, pp.y, away, need);
+    if (c){ q.set(c.x, groundAt(c.x, c.z, pp.y + 1.5), c.z); a.g.rotation.y = yawTo(c.x, c.z, pp.x, pp.z); continue; }
+    c = roomSpot(q.x, q.z, pp.y, away + Math.PI, need);   // it can't move: the hero steps back from it instead
+    if (c){ pp.x = c.x; pp.z = c.z; pp.y = Math.max(pp.y, groundAt(c.x, c.z, pp.y + 1.5)); }
+  }
+}
 function start(opts){
   if (!canStart(opts.key)){ discard(opts.actors); return false; }
   if (opts.key) seen.add(opts.key);
+  makeRoom(opts.actors);
   const pp = playerPos();
+  if (opts.face === 'actor'){ const g = opts.actors[0].g.position; opts.face = [g.x, g.z]; }   // (where it stands now: makeRoom)
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
-  Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], heroYaw: G.yaw,
+  Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
                      mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null, at: performance.now() });
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
@@ -655,17 +696,19 @@ function setShots(lines, plan, who2i, sideOf, where){
 }
 // the end of a chapter's opening: the lens rises behind the hero and looks out over the field, and the objective comes up
 // (from wherever behind the hero has a clear line: a shop wall or a crate stack behind them swings the lens round, or in)
+// where the goal shot's lens comes down to: never under the head of a hero standing at ease, or a close one crops it
+const goalLow = (d) => Math.max(2.45, d * 0.36);
 function goalShot(goal, yaw){
   const pp = playerPos();
   const clear = (a, d, h) => lensView(pp.x, pp.y + 1.5, pp.z, pp.x + Math.sin(yaw + a) * d, pp.y + h, pp.z + Math.cos(yaw + a) * d);
   let best = null, bestK = -1;
   search: for (const d of [7.2, 5.6, 4.4]) for (const a of [0.55, -0.55, 0.3, -0.3, 0.85, -0.85, 0]){
-    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, d * 0.36), clear(Math.PI + a * 0.6, d * 0.87, d * 0.43));
+    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, goalLow(d)), clear(Math.PI + a * 0.6, d * 0.87, (d * 0.5 + goalLow(d)) / 2));
     if (k > bestK){ bestK = k; best = [a, d]; }
     if (k > 0.98) break search;
   }
   const [a, d] = best;
-  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, d * 0.36], Math.max(3.6, goal.length / CUT.readRate + 1.6),
+  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, goalLow(d)], Math.max(3.6, goal.length / CUT.readRate + 1.6),
     { on: 'hero', ahead: 12, h: 1.0 }, { goal, dropCast: true, kind: 'goal', faceYaw: yaw });
 }
 
@@ -731,6 +774,7 @@ export function playOpening(id, title, own){
     cast.forEach((m, k) => {
       const sp = spots[k], F = makeFigure(m.who, sp.x, sp.z, yawTo(sp.x, sp.z, pp.x, pp.z), { holo: m.holo });
       if (!F){ plan.set(m.who, 'off'); return; }
+      F.stays = !m.holo && F.own && !!castOf(m.who).stays && stage.stay !== false;   // (they stay on the field after: game/onset.js)
       F.look = pp;
       who2i.set(m.who, actors.length);
       actors.push(F);
@@ -755,7 +799,7 @@ export function playOpening(id, title, own){
                beat(ONE.back, { kind: 'back' }));
   } else shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
   C.building = null;
-  const ok = start({ key: 'open:' + id, shots, actors, face: first, one });   // (if it can't, start drops the cast it was given)
+  const ok = start({ key: 'open:' + id, shots, actors, face: first, one, keepYaw: endYaw });   // (if it can't, start drops the cast it was given)
   if (ok && talk.length) G.talkStaged = id;
   return ok;
 }
@@ -773,7 +817,15 @@ export function playDuelIntro(spec, share = true){
     if (!q) return false;
     q.scale = spec.scale || 1; actors.push(q); at = [q.g.position.x, q.g.position.z];
   } else {
-    const pp = playerPos(), away = Math.atan2(at[0] - pp.x, at[1] - pp.z);
+    const pp = playerPos();
+    // it walks up to its mark, where the real foe steps in after: a hero left standing on that mark by the fight before
+    // steps back off it, so the two don't end up inside each other
+    const need = ROOM * Math.max(1, spec.scale || 1);
+    if (Math.hypot(at[0] - pp.x, at[1] - pp.z) < need){
+      const c = roomSpot(at[0], at[1], pp.y, Math.hypot(at[0] - pp.x, at[1] - pp.z) > 0.05 ? yawTo(at[0], at[1], pp.x, pp.z) : G.yaw + Math.PI, need);
+      if (c){ pp.x = c.x; pp.z = c.z; }
+    }
+    const away = Math.atan2(at[0] - pp.x, at[1] - pp.z);
     const from = findClearSpawn(at[0] + Math.sin(away) * 5, at[1] + Math.cos(away) * 5, 1.0);
     actors.push(makeActor(spec, from.x, from.z, away + Math.PI));
   }
@@ -819,7 +871,7 @@ export function playScene(id, opts = {}){
     shots = actors.length ? [overShoulder(1.6), ...actorLines(lines.slice(0, 1)), ...heroLines(lines.slice(1)), settle()]
                           : [shot('mark', [0.6, 6, 2.2], [0.4, 5, 2.0], 2.4, { on: 'mark', h: 1.0 }), ...heroLines(lines), settle()];
   } else shots = [...heroLines(lines), settle()];
-  return start({ key: opts.key, shots, actors, face: opts.mark, mark: opts.mark ? { x: opts.mark[0], z: opts.mark[1] } : null,
+  return start({ key: opts.key, shots, actors, face: actors.length ? 'actor' : opts.mark, mark: opts.mark ? { x: opts.mark[0], z: opts.mark[1] } : null,
                  onDone: opts.onDone, share: opts.share === false ? null : { k: 'scene', id, mark: opts.mark || null } });
 }
 

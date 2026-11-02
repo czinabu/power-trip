@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { setFistGlow } from '../player/jedi/palm.js';
-import { LONG_GUNS, setLongGun } from '../player/model/weapons.js';
+import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod } from '../player/model/weapons.js';
 
 // the rig joints, in a fixed order (model/rig.js): their rotations travel as quaternions
 const JOINTS = ['vis', 'hips', 'torso', 'chest', 'head', 'back', 'cape', 'skirt', 'flaps.F', 'flaps.B', 'flaps.L', 'flaps.R',
@@ -42,6 +42,7 @@ export function readPose(hero){
     jet: jet ? r3(jet.material.opacity) : 0, jetS: jet ? r3(jet.scale.y) : 1,
     miss: hero.jetMissileMesh && hero.jetMissileMesh.visible ? 1 : 0,
     lg: hero.rifleMesh && hero.rifleMesh.userData.long ? Math.max(0, LONG_GUNS.indexOf(hero.rifleMesh.userData.long)) : 0,   // which long gun is on the mount (model/weapons.js)
+    rm: hero.longGuns && hero.longGuns.dc15 ? Math.max(0, RIFLE_MOD_IDS.indexOf(hero.longGuns.dc15.group.userData.mod || 'burst')) : 0,   // the DC-15's fitted module
     spin: hero.repeaterSpin ? r3(hero.repeaterSpin.rotation.z % (Math.PI * 2)) : 0,
     fist: hero.fistGlow ? r3(hero.fistGlow[0].material.opacity / 0.85) : 0, fc: hero.fistGlow ? hero.fistGlow[0].material.color.getHex() : 0,   // the holstered Jedi's Force-lit hands (jedi/palm.js)
   };
@@ -114,6 +115,7 @@ function applyGear(hero, pose){
   if (hero.jetGlow) for (const g of hero.jetGlow){ g.material.opacity = fx.jet || 0; g.scale.y = fx.jetS || 1; }
   if (hero.jetMissileMesh) hero.jetMissileMesh.visible = !!fx.miss;
   setLongGun(hero, LONG_GUNS[fx.lg | 0] || 'disruptor');   // the partner's carbine, repeater or disruptor
+  setRifleMod(hero, RIFLE_MOD_IDS[fx.rm | 0] || 'burst');   // the partner trooper's DC-15 module
   if (hero.repeaterSpin && fx.spin != null) hero.repeaterSpin.rotation.z = fx.spin;
   if (fx.fist || hero.fistGlow) setFistGlow(hero, fx.fist || 0, fx.fc || null);
 }

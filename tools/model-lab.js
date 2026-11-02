@@ -14,7 +14,7 @@ import { settleCloth } from '../src/player/model/cloth.js';
 import { gripHands } from '../src/player/model/life.js';
 import { curlHand } from '../src/player/model/jedi.js';
 import { rexRest, riflePose } from '../src/player/anim/guns.js';
-import { setLongGun } from '../src/player/model/weapons.js';
+import { setLongGun, setRifleMod } from '../src/player/model/weapons.js';
 
 const q = new URLSearchParams(location.search);
 const STYLE = q.get('style') || 'ink';
@@ -79,6 +79,15 @@ const POSES = {
     label: 'DC-15 aim', hero: 'trooper', weapon: 'dc15', grip: { L: 0.8, R: 1 }, shoulder: true,
     torso: [0, 0, 0], legL: { hip: [-0.25, 0, -0.1], knee: [0.15, 0, 0] }, legR: { hip: [0.2, 0, 0.1], knee: [0.25, 0, 0] },
   },
+  // the DC-15's modules (data/trooper.js RIFLE_MODS): the same aim, the auto barrel and the marksman scope fitted
+  trooper_rifle_auto: {
+    label: 'DC-15 · auto barrel', hero: 'trooper', weapon: 'dc15', mod: 'auto', grip: { L: 0.8, R: 1 }, shoulder: true,
+    torso: [0, 0, 0], legL: { hip: [-0.25, 0, -0.1], knee: [0.15, 0, 0] }, legR: { hip: [0.2, 0, 0.1], knee: [0.25, 0, 0] },
+  },
+  trooper_rifle_scope: {
+    label: 'DC-15 · marksman scope', hero: 'trooper', weapon: 'dc15', mod: 'marksman', grip: { L: 0.8, R: 1 }, shoulder: true,
+    torso: [0, 0, 0], legL: { hip: [-0.25, 0, -0.1], knee: [0.15, 0, 0] }, legR: { hip: [0.2, 0, 0.1], knee: [0.25, 0, 0] },
+  },
   trooper_run: {
     label: 'Stride', hero: 'trooper', weapon: 'dual', rex: true,
     torso: [0.12, 0, 0],
@@ -106,7 +115,7 @@ function figure(poseName){
   t.pistols.L.visible = mando && P.weapon === 'dual';
   t.pistols.R.visible = mando && (P.weapon === 'dual' || P.weapon === 'single');
   t.rifleMesh.visible = mando && (P.weapon === 'disruptor' || P.weapon === 'dc15');
-  if (P.weapon === 'dc15') setLongGun(t, 'dc15');
+  if (P.weapon === 'dc15'){ setLongGun(t, 'dc15'); setRifleMod(t, P.mod || 'burst'); }
   const set = (o, v) => v && o.rotation.set(v[0], v[1], v[2]);
   for (const s of ['armL', 'armR']) if (P[s]){ set(R[s].sh, P[s].sh); set(R[s].el, P[s].el); }   // (an IK pose like the trooper's rest leaves them out)
   for (const s of ['legL', 'legR']){ set(R[s].hip, P[s].hip); set(R[s].knee, P[s].knee); }

@@ -118,6 +118,7 @@ const TENSE = [ { bass: 0, chord: [12,15,19] }, { bass: 1, chord: [13,17,20] }, 
      bpm            tempo multiplier · dangerBpm  the multiplier while it's going wrong */
 export const CUES = {
   regroup:    { floor: 0.2, ceil: 0.42 },   // between objectives: the fight catches its breath
+  calm:       { floor: 0.08, ceil: 0.24 },  // the calm after a chapter's last fight (game/aftermath.js): the walk back
   battle:     { floor: 0.5, lift: 0.85 },
   defend:     { floor: 0.55, ost: 'gallop', lift: 0.8 },
   infiltrate: { floor: 0.36, ceil: 0.8, ost: 'tick', riser: true },

@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// CHARACTER SEE-THROUGH — a squadmate, a foe, a boss or a co-op partner standing between the lens and the hero (or
+// CHARACTER SEE-THROUGH — a squadmate, a foe, a boss, a co-op partner or the story's voice on set standing between the lens and the hero (or
 // right up against the lens) turns see-through, whole and in its own shape, the way props do (world/camblock.js).
 // Props bake an id into their vertices; characters are live groups that share materials across a crowd, so a unit
 // that starts blocking gets its OWN clone of each material with a screen-door dither (no transparency sorting), and
@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { shared, G, enemies } from '../state.js';
 import { allies } from '../allies/squad.js';
 import { partnerPuppet } from '../net/partner.js';
+import { onSetGroups } from '../game/onset.js';
 
 export const CHAR_SEE = {
   amt: 0.68,      // share of a fully faded character's pixels dropped (props use 0.55: a body is smaller, so a little more)
@@ -130,6 +131,7 @@ export function updateCharFade(cam, px, py, pz, dt, on = true){
   const b = shared.boss;
   if (b && b.group) want(b.group, test(b.group, CHAR_SEE.bossRadius, CHAR_SEE.bossHeight), dt);
   for (let s = 0; s < 4; s++){ const P = partnerPuppet(s); if (P && P.group) want(P.group, test(P.group, CHAR_SEE.radius, CHAR_SEE.height), dt); }
+  for (const g of onSetGroups()) want(g, test(g, CHAR_SEE.radius * (g.scale.x || 1), CHAR_SEE.height * (g.scale.y || 1)), dt);   // the story's voice, hanging back (game/onset.js)
   // a body that left the fight (killed and cleared, sent back, a new run) gets its real materials back at once
   for (const [g, rec] of live) if (!seen.has(g)) swapOut(g, rec);
 }

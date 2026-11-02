@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updateHud(): per-frame HUD refresh.
 
-import { fragCharges, fragMax } from '../player/trooper/kit.js';
+import { fragCharges, fragMax, rifleMods } from '../player/trooper/kit.js';
+const MOD_TAG = { burst: 'BURST', auto: 'AUTO', marksman: 'SCOPE' };
 import { TROOPER } from '../data/trooper.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
@@ -28,6 +29,7 @@ import { playerPos } from '../player/helpers.js';
 import { missionChecklist, objectiveTarget } from '../game/mission.js';
 import { chapterLabel } from '../game/campaign.js';
 import { objectiveHud } from '../game/objectives.js';
+import { calmHud, calmTarget } from '../game/aftermath.js';
 import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
@@ -64,7 +66,7 @@ function renderChecklist(c){
 const _wp = new THREE.Vector3();
 function renderWaypoint(on){
   const el = $('waypoint'); if (!el) return;
-  const t = on ? objectiveTarget() : null, pp = t && playerPos();
+  const t = on ? (calmTarget() || objectiveTarget()) : null, pp = t && playerPos();   // (the calm after a chapter: its rally point)
   const d = t ? Math.hypot(t.x - pp.x, t.z - pp.z) : 0;
   if (!t || d < 7){ el.classList.remove('on'); return; }
   _wp.set(t.x, 3.2, t.z).project(camera);
@@ -102,13 +104,19 @@ function renderWeaponSlots(){
   const sig = signatureWeapon(), kit = kitOf();
   const slots = isTrooper() ? [['1', 'rifle', ''], ['2', 'pistols', ''], ...(G.unlocked.launcher ? [['3', 'launcher', '']] : [])]   // (the trooper: DC-15, twin DC-17s, the Commando's launcher)
     : [['1', kit.sidearm, 'SIDEARM'], ['2', kit.primary, 'PRIMARY'], ['3', sig, ''], ['4', 'fists', '']];
-  let key = player.weapon + sig;
+  const mods = isTrooper() ? rifleMods() : [];   // the DC-15's modules the run has handed over (player/trooper/kit.js)
+  let key = player.weapon + sig + (player.rifleMod || '') + mods.length;
   for (const [, w] of slots) key += (w || '-') + (w && weaponUnlocked(w) ? '1' : '0');
   const wrap = $('wslots'); if (wrap._k === key) return;
   wrap._k = key;
   // only what you carry: an empty or still-locked slot is noise from the first minute (the key still says which number it is)
   wrap.innerHTML = slots.filter(([, w]) => w && weaponUnlocked(w)).map(([k, w]) => {
-    const nm = w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name;
+    let nm = w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name;
+    // the DC-15 names its fitted module, with a pip for each one it carries (1 again swaps): BURST · AUTO · SCOPE
+    if (w === 'rifle' && mods.length > 1){
+      const cur = player.rifleMod || 'burst';
+      nm += ' <span class="wmod">' + MOD_TAG[cur] + '</span><span class="wpips">' + mods.map(m => '<i class="' + (m === cur ? 'on' : '') + '"></i>').join('') + '</span>';
+    }
     return '<span class="wslot' + (player.weapon === w ? ' on' : '') + '"><span class="kc">' + k + '</span>' + nm + '</span>';
   }).join('');
 }
@@ -198,7 +206,10 @@ export function updateHud(){
   document.body.classList.toggle('training', !!G.training);
   document.body.classList.toggle('mission-play', !!G.mission);
   document.body.classList.toggle('sandbox', !!G.sandbox);
-  if (G.training){
+  const calm = G.mode === 'play' && calmHud();   // the calm after a chapter's last fight (game/aftermath.js): its line, in any chapter
+  if (calm){
+    setHtml($('waveinfo'), '<span class="wi-l">' + chapterLabel() + ' · COMPLETE</span><span class="wi-w">' + calm.title + '</span><span class="wi-h">' + calm.status + '</span>');
+  } else if (G.training){
     const tp = trainingProgress();
     setHtml($('waveinfo'), '<span class="wi-l">TRAINING · ' + tp.place + '</span><span class="wi-w">' + tp.name + '</span>' +
       (tp.total ? '<span class="wi-h">STEP ' + tp.lesson + ' / ' + tp.total + '</span><span class="wi-bar"><i style="width:' + ((tp.lesson - 1) / tp.total * 100).toFixed(1) + '%"></i></span>' : ''));
@@ -224,8 +235,9 @@ export function updateHud(){
       (shared.boss ? '' : hostiles));
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
-  renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && !!G.mission);
-  { const c = G.mode === 'play' && !G.sandbox ? (G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
+  renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && (!!G.mission || !!calm));
+  { const c = G.mode === 'play' && !G.sandbox ? (calm ? { kicker: chapterLabel() + ' · COMPLETE', title: calm.title, items: [{ text: calm.status, now: true }] }   // (the calm after a chapter)
+                                                : G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
     if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)
     renderChecklist(c); }
   // CUT HEIGHT (player/jedi/cutaim.js): three ticks beside the crosshair, the lit one is where your next cut goes
@@ -292,7 +304,7 @@ export function updateHud(){
     if (isTrooper()){   // the trooper's hint chips say what its keys do
       setText($('ab-boost').querySelector('.an'), 'ROLL');
       if (meleeEl) setText(meleeEl.querySelector('.an'), 'BASH');
-      if (braceEl) setText(braceEl.querySelector('.an'), 'AIM');
+      if (braceEl) setText(braceEl.querySelector('.an'), mandoWeapon().scope ? 'SCOPE' : 'AIM');   // the marksman module raises a scope
     }
     document.getElementById('ab-mslam').classList.toggle('nofp', player.grounded || player.jet < abil('mslam').cost);   // air-only, jet fuel
     // DYNAMIC CROSSHAIR — line gap / colour / ring react to the situation

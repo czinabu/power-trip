@@ -8,6 +8,8 @@
 //   holo   speakers who are somewhere else: they stand in as a flickering blue hologram (a call, a transmission)
 //   off    speakers heard only over comms: no figure at all (the hero listens; the line carries a comms mark)
 //   on     the story's voice in person (by default the voice is in the hero's ear unless the talk has them there)
+//   stay   false: nobody stays on the field after this opening (by default whoever data/cast.js marks `stays` and was
+//          there in person hangs back behind the hero for walk-up lines: game/onset.js)
 //   where  replaces the talk's own place line under the scene (null: none). The talk's `where` was written for the card;
 //          a scene staged on the chapter's own ground drops a "where" that would contradict it
 //   oneshot  true: the scene never cuts (God of War style): the lens drifts off the play camera to whoever speaks and

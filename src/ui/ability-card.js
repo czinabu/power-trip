@@ -24,7 +24,7 @@ export function queueAbilityCards(list){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickAbilityCards(){
-  if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
+  if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open(pending.shift());
 }
 // a new run, a load or the main menu: forget anything still waiting

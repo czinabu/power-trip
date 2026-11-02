@@ -28,6 +28,7 @@ import { playerPos } from '../player/helpers.js';
 import { missionChecklist, objectiveTarget } from '../game/mission.js';
 import { chapterLabel } from '../game/campaign.js';
 import { objectiveHud } from '../game/objectives.js';
+import { calmHud, calmTarget } from '../game/aftermath.js';
 import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
@@ -64,7 +65,7 @@ function renderChecklist(c){
 const _wp = new THREE.Vector3();
 function renderWaypoint(on){
   const el = $('waypoint'); if (!el) return;
-  const t = on ? objectiveTarget() : null, pp = t && playerPos();
+  const t = on ? (calmTarget() || objectiveTarget()) : null, pp = t && playerPos();   // (the calm after a chapter: its rally point)
   const d = t ? Math.hypot(t.x - pp.x, t.z - pp.z) : 0;
   if (!t || d < 7){ el.classList.remove('on'); return; }
   _wp.set(t.x, 3.2, t.z).project(camera);
@@ -198,7 +199,10 @@ export function updateHud(){
   document.body.classList.toggle('training', !!G.training);
   document.body.classList.toggle('mission-play', !!G.mission);
   document.body.classList.toggle('sandbox', !!G.sandbox);
-  if (G.training){
+  const calm = G.mode === 'play' && calmHud();   // the calm after a chapter's last fight (game/aftermath.js): its line, in any chapter
+  if (calm){
+    setHtml($('waveinfo'), '<span class="wi-l">' + chapterLabel() + ' · COMPLETE</span><span class="wi-w">' + calm.title + '</span><span class="wi-h">' + calm.status + '</span>');
+  } else if (G.training){
     const tp = trainingProgress();
     setHtml($('waveinfo'), '<span class="wi-l">TRAINING · ' + tp.place + '</span><span class="wi-w">' + tp.name + '</span>' +
       (tp.total ? '<span class="wi-h">STEP ' + tp.lesson + ' / ' + tp.total + '</span><span class="wi-bar"><i style="width:' + ((tp.lesson - 1) / tp.total * 100).toFixed(1) + '%"></i></span>' : ''));
@@ -224,8 +228,9 @@ export function updateHud(){
       (shared.boss ? '' : hostiles));
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
-  renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && !!G.mission);
-  { const c = G.mode === 'play' && !G.sandbox ? (G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
+  renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && (!!G.mission || !!calm));
+  { const c = G.mode === 'play' && !G.sandbox ? (calm ? { kicker: chapterLabel() + ' · COMPLETE', title: calm.title, items: [{ text: calm.status, now: true }] }   // (the calm after a chapter)
+                                                : G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
     if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)
     renderChecklist(c); }
   // CUT HEIGHT (player/jedi/cutaim.js): three ticks beside the crosshair, the lit one is where your next cut goes

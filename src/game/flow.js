@@ -49,6 +49,7 @@ import { playBossIntro } from './cutscene.js';
 import { coopRun } from '../net/run.js';
 import { resetReadout, beginWave } from './readout.js';
 import { nextChapter, retryChapter } from './campaign.js';
+import { startCalm } from './aftermath.js';
 import { storyBeat, clearComms, commsBusy } from './story.js';
 import { setFoeLook } from '../enemies/look.js';
 
@@ -476,7 +477,7 @@ export function updateFlow(dt){
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.
         showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
-        if (G.chapter >= 0){ G.chapterClosed = G.chapter; shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; storyBeat('clear'); }   // (a chapter: the voice's last word first)
+        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear'); if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; } }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
         else { shared.levelPhase = 'travel'; shared.phaseT = 1.6; openSkillTree(); }
       }
     }

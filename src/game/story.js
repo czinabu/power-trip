@@ -86,6 +86,7 @@ function place(){
 export const commsBusy = () => !!cur || queue.length > 0;
 export const commsShowing = () => !!cur;
 export const commsTalking = () => !!(cur && cur.talk);   // the line up is a walk-up line (game/talk.js)
+export const commsSpeaker = () => cur ? cur.who : null;   // whose line is up (someone on set says it with their hands: game/onset.js)
 
 /* ---------- beats ---------- */
 const CUT_IN = new Set(['duel', 'escape', 'boss', 'breach']);   // these speak over whatever's still queued: they're about what's in front of you

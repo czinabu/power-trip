@@ -34,6 +34,7 @@ import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
 import { missionState } from './mission.js';
 import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
+import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
 
@@ -55,7 +56,7 @@ el.style.setProperty('--bars', (CUT.bars * 100) + 'vh');
 const $ = (c) => el.querySelector(c);
 
 /* ---------- the scene playing now ---------- */
-const C = { on: false, key: '', shots: [], i: 0, t: 0, actors: [], heroYaw: 0, mark: null, onDone: null, fade: 0, ending: false, shown: null };
+const C = { on: false, key: '', shots: [], i: 0, t: 0, actors: [], kept: [], keepYaw: 0, heroYaw: 0, mark: null, onDone: null, fade: 0, ending: false, shown: null };
 export const sceneOn = () => C.on;
 // scenes already seen on this visit: a retry after a death doesn't replay them (cleared when a chapter or mission starts afresh)
 const seen = new Set();
@@ -113,12 +114,21 @@ function updateActor(a, dt){
 function dropActors(){
   player.talking = false;
   for (const a of C.actors) if (a.g) a.g.userData.talk = false;
-  for (const a of C.actors){ if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
-  C.actors = [];
+  // whoever stays on set (data/cast.js `stays`: the story's voice, there in person) is handed to game/onset.js, which keeps
+  // them on the field behind the hero; the rest go
+  const stay = [...C.kept, ...C.actors.filter(a => a.stays && a.g)];
+  for (const a of C.actors){ if (a.stays) continue; if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
+  C.actors = []; C.kept = [];
+  if (stay.length) keepCast(stay, C.keepYaw, !!C.one);   // (a scene without cuts leaves them where they stand: no pop)
 }
-// the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it
+// the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it (anyone who
+// stays is only hidden: they are back, behind the hero, when the scene hands back)
 function dropCast(){
-  C.actors = C.actors.map(a => { if (!a.kind) return a; dropFigure(a); return { g: null, gone: true }; });
+  C.actors = C.actors.map(a => {
+    if (!a.kind) return a;
+    if (a.stays){ a.g.visible = false; a.talk = false; C.kept.push(a); } else dropFigure(a);
+    return { g: null, gone: true };
+  });
 }
 
 /* ---------- anchors: what a shot's lens circles. Each gives a spot and the way it faces ---------- */
@@ -274,7 +284,7 @@ function start(opts){
   const pp = playerPos();
   if (opts.face === 'actor'){ const g = opts.actors[0].g.position; opts.face = [g.x, g.z]; }   // (where it stands now: makeRoom)
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
-  Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], heroYaw: G.yaw,
+  Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
                      mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null });
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
@@ -759,6 +769,7 @@ export function playOpening(id, title, own){
     cast.forEach((m, k) => {
       const sp = spots[k], F = makeFigure(m.who, sp.x, sp.z, yawTo(sp.x, sp.z, pp.x, pp.z), { holo: m.holo });
       if (!F){ plan.set(m.who, 'off'); return; }
+      F.stays = !m.holo && F.own && !!castOf(m.who).stays && stage.stay !== false;   // (they stay on the field after: game/onset.js)
       F.look = pp;
       who2i.set(m.who, actors.length);
       actors.push(F);
@@ -783,7 +794,7 @@ export function playOpening(id, title, own){
                beat(ONE.back, { kind: 'back' }));
   } else shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
   C.building = null;
-  const ok = start({ key: 'open:' + id, shots, actors, face: first, one });   // (if it can't, start drops the cast it was given)
+  const ok = start({ key: 'open:' + id, shots, actors, face: first, one, keepYaw: endYaw });   // (if it can't, start drops the cast it was given)
   if (ok && talk.length) G.talkStaged = id;
   return ok;
 }

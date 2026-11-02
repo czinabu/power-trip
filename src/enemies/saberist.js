@@ -66,7 +66,7 @@ export function buildSaberist(k, t, L, H){
   if (L.armour === 'inq') inqPlates(k, w);
   if (L.armour === 'warden') wardenPlates(k, w);
   if (L.armour === 'general') generalPlates(k, w);
-  H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5 });
+  H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5, elbow: 'elbowOff' });   // (its elbow a bone: the free hand takes its form's pose, or the hilt: enemies/foestance.js)
   H.weaponArm(k, t, w);
   head(k, t, L, f, H);
 }

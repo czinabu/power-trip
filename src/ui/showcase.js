@@ -222,6 +222,7 @@ export function restyleShowcase(picks){
 }
 
 let shown = null;   // hero currently on the stand
+let figTop = 0, fitTop = 0;   // the dressed figure's top (world y), and the eased value the close-up frames to
 function dress(hero){
   if (hero === 'trooper' && !(fig.trooperParts && fig.trooperParts.length)) hero = 'mando';
   shown = hero;
@@ -244,6 +245,22 @@ function dress(hero){
   R.hips.position.y = hipsY + (P.drop || 0);
   if (trooper) rexRest(R, fig.pistols);   // the DC-17s Rex's way, as he carries them in the fight: one up, one down
   settleCloth(fig);
+  figTop = measureTop();
+}
+
+/* how tall the dressed figure stands (helmet crest, antenna, raised pistol and all; the Jedi's blade left out), so the
+   customizer's close-up can frame every hero and build head to toe */
+const _box = new THREE.Box3(), _ob = new THREE.Box3();
+function measureTop(){
+  stage.updateMatrixWorld(true);
+  _box.makeEmpty();
+  fig.vis.traverse(o => {
+    if (!o.isMesh || o.isSkinnedMesh || !(o.layers.mask & 1) || !chainVisible(o)) return;
+    for (let p = o; p; p = p.parent) if (p === fig.saberHand) return;
+    const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+    _box.union(_ob.copy(g.boundingBox).applyMatrix4(o.matrixWorld));
+  });
+  return _box.isEmpty() ? PED_H + 2.2 : _box.max.y;
 }
 
 /* ---------- painted backdrops ---------- */
@@ -357,6 +374,18 @@ function frame(){
 }
 frame();
 addEventListener('resize', () => { frame(); paintAll(); });
+/* the close-up while customizing: the band from the stand's foot to the figure's top plus headroom fills the view, so a
+   tall helmet or a heavy build pulls the camera back instead of losing its head off the top of the screen */
+const HALF_FOV = Math.tan(THREE.MathUtils.degToRad(28 / 2));
+const fitOut = { y: 0, z: 0, look: 0 };
+function closeUp(top){
+  const lo = -0.05, hi = top + 0.22 + (top - lo) * 0.06;   // headroom: a fixed margin plus a share of the height
+  const mid = (lo + hi) / 2, half = (hi - lo) / 2;
+  fitOut.look = mid;
+  fitOut.y = mid + 0.45;   // a touch above, looking slightly down onto the stand
+  fitOut.z = Math.max(5.6, half / HALF_FOV) * (cam.aspect < 1.3 ? 1.12 : 1);
+  return fitOut;
+}
 
 /* ---------- per frame ---------- */
 const accent = new THREE.Color(), tmpC = new THREE.Color();
@@ -511,8 +540,10 @@ export function renderShowcase(dt){
   }
   focus += ((pv.id ? 0.45 : focusTo) - focus) * Math.min(1, dt * 4);
   const f = focus * focus * (3 - 2 * focus);
-  cam.position.set(0, 1.9 + f * 0.12, camZ * (1 - f * 0.32));
-  cam.lookAt(0, 1.3 + f * 0.25, 0);
+  fitTop = fitTop ? fitTop + (figTop - fitTop) * Math.min(1, dt * 5) : figTop;
+  const fit = closeUp(fitTop);
+  cam.position.set(0, 1.9 + (fit.y - 1.9) * f, camZ + (fit.z - camZ) * f);
+  cam.lookAt(0, 1.3 + (fit.look - 1.3) * f, 0);
   if (pv.id) table.rotation.y = 0.5;   // three-quarter view, not turning: the cuts are what is on show
   else { spin += (TURN + boost) * dt; table.rotation.y = spin; }
   // a slow breath and a small weight shift, so the figure on display isn't a statue

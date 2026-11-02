@@ -11,7 +11,7 @@
 export const DEFAULT_LOOK = {
   style: 'ink',
   jedi: {
-    parts: { legs: 'boots', waist: 'panels', torso: 'tunic', head: 'bald', hair: 'bald', beard: 'none', arms: 'sleeves' },
+    parts: { legs: 'boots', waist: 'panels', torso: 'tunic', head: 'bald', robe: 'none', hair: 'bald', beard: 'none', arms: 'sleeves' },
     palette: {
       robe: 0x3b2a1e, tunic: 0x9c7d58, tabard: 0x6b4f37, leather: 0x23170f,
       skin: 0x5c3826, hair: 0x140e0a, eyes: 0x2a1a10, boot: 0x1a120c, trim: 0xb08a4a,
@@ -44,7 +44,7 @@ export const SAMPLE_LOOKS = {
     jedi: { parts: { hair: 'topknot', beard: 'goatee' }, palette: { skin: 0xa86b45, hair: 0x140e0a } },
   },
   hooded: {
-    jedi: { parts: { head: 'hood', hair: 'short', waist: 'long' }, palette: { robe: 0x2a2724, tunic: 0xc9b48f, skin: 0xc58c64 }, build: { bulk: 0.92, shoulders: 0.95 } },
+    jedi: { parts: { head: 'hood', robe: 'outer', hair: 'short', waist: 'long' }, palette: { robe: 0x2a2724, tunic: 0xc9b48f, skin: 0xc58c64 }, build: { bulk: 0.92, shoulders: 0.95 } },
     mando: { parts: { arms: 'bare', cape: 'full' }, palette: { beskar: 0x8b5a3c, beskar2: 0x4f3a2c, accent: 0x2f6b8a, cloth: 0x4a4038 }, build: { bulk: 1.12, shoulders: 1.08 } },
   },
 };

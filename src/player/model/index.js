@@ -90,8 +90,8 @@ function dress(R, S, hero, PARTS, player){
     },
     /* a hanging piece of real cloth (see cloth.js): top row pinned to `anchor`, rest(u, v) → [x, y, z] in its frame,
        pushed out of the capsules [[jointA, jointB, radius]] */
-    cloth(mat, anchor, { W, H, rest, thick = 0.02, capsules = [], outline = true, slack }){
-      const C = makeCloth({ anchor, W, Hn: H, rest, thick, capsules, root: R.vis, slack,
+    cloth(mat, anchor, { W, H, rest, thick = 0.02, capsules = [], outline = true, slack, pull }){
+      const C = makeCloth({ anchor, W, Hn: H, rest, thick, capsules, root: R.vis, slack, pull,
         material: S.mat(mat), outlineMaterial: outline ? S.outline() : null });
       player.cloth.push(C); parts.push(C.mesh);
       return C;

@@ -581,6 +581,10 @@ body.pad .bs-aim{display:block}
 /* a chapter's briefing, its choices and Act II's pick (game/campaign.js): what to do first and plain (the objectives), then one
    line of story, large. The rest of the story (the voice's other lines, the scene's dialogue) folds under MORE STORY */
 #chapcard .cc-brief{width:min(760px,100%)}
+/* the briefing's column: as wide as its widest heading, objective or button row (never past the card), and the story's line
+   wraps inside it instead of widening it (contain: it adds nothing to the column's width) */
+#chapcard .cc-brief{display:grid;grid-template-columns:fit-content(100%);align-content:start}
+#chapcard .cc-brief .cc-scene{contain:inline-size;min-width:min(420px,100%);box-sizing:border-box}
 #chapcard .cc-goals{margin:22px 0 0}
 #chapcard .cc-k{font:600 11px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink-dim);margin-bottom:8px}
 #chapcard .cc-goals ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 0;counter-reset:g}
@@ -602,10 +606,10 @@ body.pad .bs-aim{display:block}
 #chapcard .cc-more summary::before{content:'▸ '}
 #chapcard .cc-more[open] summary::before{content:'▾ '}
 #chapcard .cc-more summary:hover{color:var(--ink)}
-#chapcard .cc-chapters{margin-top:16px}
-#chapcard .cc-chapters summary{font-size:12px;color:var(--ink-dim)}
-#chapcard .cc-chapters summary::before,#chapcard .cc-chapters[open] summary::before{content:none}
-#chapcard .cc-chapters .pips{display:inline-flex;gap:4px;margin-right:4px}
+#chapcard .cc-chapters{margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font:600 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim)}
+#chapcard .cc-chapters .at{color:var(--ink-soft)}
+#chapcard .cc-chapters .nx::before{content:'·';margin-right:10px;color:var(--ink-faint)}
+#chapcard .cc-chapters .pips{display:inline-flex;gap:4px}
 #chapcard .cc-chapters .pips i{width:18px;height:4px;border-radius:2px;background:var(--edge-mid)}
 #chapcard .cc-chapters .pips i.done{background:var(--xp)}
 #chapcard .cc-chapters .pips i.now{background:var(--cc)}

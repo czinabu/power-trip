@@ -10,6 +10,8 @@
 // already on the field by that name first (the trooper's band, the Mandalorian on Jakku) instead of building a stand-in.
 // Names the lines use that aren't here (the hero's 'YOU', a stranger) stay off screen: their lines play over comms.
 
+import { MARSHAL } from './allies.js';
+
 const jedi = (look, o = {}) => ({ kind: 'hero', as: 'jedi', look: { jedi: look }, saber: true, ...o });
 const mando = (look, o = {}) => ({ kind: 'hero', as: 'mando', look: { mando: look }, ...o });
 const civ = (look, o = {}) => ({ kind: 'hero', as: 'jedi', look: { jedi: look }, ...o });   // plain clothes: the robe, no hilt
@@ -42,6 +44,6 @@ export const CAST = {
   'SGT. VANT': clone(0x2f7fd6, { bound: true }),
   'BRISK': clone(0x2f7fd6, { bound: true, variant: 4 }),
   'HAMMER': clone(0x2f7fd6, { bound: true, scale: 1.06 }),
-  'THE MARSHAL': { kind: 'foe', t: { model: 'clone', color: 0xdcdcd6, eye: 0xff3a2a, cloth: 0x9a7a2a }, scale: 1.12 },
+  'THE MARSHAL': { kind: 'foe', t: { ...MARSHAL }, scale: 1.12 },   // his own black-and-gold commander's armour (enemies/mesh.js marshal)
   'CAPTAIN VORN': { kind: 'foe', t: { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x8a1a1a }, variant: 4 },
 };

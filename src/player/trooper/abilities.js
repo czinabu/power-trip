@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE CLONE ARC TROOPER's powers (testing only): what the run hands over or lets him choose (data/trooper-progression.js).
+// THE CLONE ARC TROOPER's powers: what the run hands over or lets him choose (data/trooper-progression.js).
 //   Q  RECON SCAN       marks every foe nearby: they take more damage from everyone, and show a tag
 //   V  BUBBLE SHIELD    (fork I)  a dome where he stands that stops enemy bolts
 //   F  ION GRENADE      (fork II) stuns and drops shields      ·  F  BREACH CHARGE (fork II) a forward blast that launches

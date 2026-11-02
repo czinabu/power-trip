@@ -15,6 +15,7 @@
 // Every scene skips with Enter, Space or Esc (A or MENU on a pad); in co-op either player's skip ends it for both.
 
 import { VOICE } from './campaign.js';
+import { MARSHAL as MARSHAL_DRESS } from './allies.js';
 
 // the frame: letterbox bars (a share of the screen's height each), fades, and how long a line stays up at the least
 export const CUT = { bars: 0.11, fadeIn: 0.4, fadeOut: 0.35, minLine: 2.6, readRate: 15 };   // readRate: characters a second
@@ -24,11 +25,11 @@ const INQ = { jedi: { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, sc
 
 const ORDER_OPENS = [[VOICE.trooper, 'Midnight. The comms lit up, and every visor in the company turned to the General. Not ours.'],
                      [VOICE.trooper, 'Whatever that order was, brother, we are not following it.']];
-const MARSHAL = { foe: 'officer', name: 'THE MARSHAL', tint: 0x9a7a2a, scale: 1.12 };   // in the turned company's armour (enemies/look.js)
+const MARSHAL = { foe: 'officer', dress: MARSHAL_DRESS, name: 'THE MARSHAL', tint: 0xc9a040, scale: 1.12 };   // in his own black-and-gold armour (data/allies.js MARSHAL)
 const MARSHAL_LEAVES = [['THE MARSHAL', 'Run, then. Hide your General. I will find you both, brother. It is what we were made for.']];
 
 export const OPENINGS = {
-  // the ARC trooper's prologue (testing): one set of words for whoever plays it
+  // the ARC trooper's prologue: one set of words for whoever plays it
   order: {
     jedi:  ORDER_OPENS, mando: ORDER_OPENS },
   // ---------------- ACT I ----------------

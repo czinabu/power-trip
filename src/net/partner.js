@@ -59,12 +59,13 @@ function build(P, picks, heroName){
    out, and where, comes with every pose */
 function dress(P, heroName){
   const { puppet } = P;
-  P.hero = heroName === 'mando' ? 'mando' : 'jedi';
-  const mando = P.hero === 'mando';
+  P.hero = heroName === 'mando' || heroName === 'trooper' ? heroName : 'jedi';
+  const mando = P.hero === 'mando', trooper = P.hero === 'trooper', gunner = mando || trooper;
   for (const m of puppet.mandoParts) m.visible = mando;
-  for (const m of puppet.headBare) m.visible = !mando;
-  puppet.rig.skirt.visible = !mando;
-  puppet.saberHand.visible = !mando;
+  for (const m of puppet.trooperParts || []) m.visible = trooper;   // (the ARC trooper's armour: player/model/trooper.js)
+  for (const m of puppet.headBare) m.visible = !gunner;
+  puppet.rig.skirt.visible = !gunner;
+  puppet.saberHand.visible = !gunner;
 }
 
 // their picked name, else "PARTNER" with one other player, "PLAYER 3" and so on with more (net/names.js)

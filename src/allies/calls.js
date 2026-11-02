@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE ARC TROOPER'S BATTLEFIELD CALLS (T, testing only), paid in COMMAND POINTS (player/trooper/command.js):
+// THE ARC TROOPER'S BATTLEFIELD CALLS (T), paid in COMMAND POINTS (player/trooper/command.js):
 //   REINFORCE    with a squadmate down: everyone down is back up, now
 //   SUPPLY DROP  otherwise: a crate drops beside you; it tops up the frag grenades, cools the guns and patches you up
 // One key that picks the call the moment needs, as tapping H picks the order. The tuning is data/trooper.js

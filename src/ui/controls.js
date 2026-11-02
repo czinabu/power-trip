@@ -91,7 +91,7 @@ const CONTROLS = {
       ['Z', 'Jetpack missile', 'The final upgrade'],
     ]},
   ],
-  // the clone ARC trooper (testing only: player/trooper/kit.js)
+  // the clone ARC trooper (player/trooper/kit.js)
   trooper: [
     { title: 'MOVE', rows: [
       ['W A S D', 'Move'],
@@ -152,7 +152,7 @@ const TIPS = {
     '<b>Sith acolytes</b> bat blaster fire back. Close in: punch through their guard, charge them with W + E, catch their cuts with E and finish them with a takedown.',
     'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>skill point</b>: spend them on weapon upgrades when a chapter ends.',
   ],  trooper: [
-    '<b>The ARC trooper is in testing.</b> Its powers come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
+    '<b>The ARC trooper\'s powers</b> come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
     '<b>Pause</b> with TAB (or ESC); TAB or ENTER resumes.',
     '<b>Heat</b> is the gauge beside your reticle. Overheat, and R pressed in the beat clears it at once.',
     'Your squad of clones holds ground while you lead: tap <b>H</b> on a foe to focus it, hold H for every order.',
@@ -166,7 +166,7 @@ import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
 import { PAD_GLYPHS, PAD_MENU, padLayout } from '../data/gamepad.js';
 import { PAD_CONTROLS } from '../data/controls-pad.js';
 import { pad, padKey } from '../engine/gamepad.js';
-import { TROOPER_TEST, isGunner } from '../state.js';
+import { isGunner } from '../state.js';
 
 let showAll = false, device = 'kb';
 export function toggleControlsDetail(hero){ showAll = !showAll; renderControls(hero); }
@@ -227,7 +227,7 @@ export function renderControls(hero){
   if (tabs){
     tabs.innerHTML = '<span data-h="jedi" class="' + (hero === 'jedi' ? 'on' : '') + '">JEDI</span>' +
                      '<span data-h="mando" class="' + (hero === 'mando' ? 'on' : '') + '">MANDALORIAN</span>' +
-                     (TROOPER_TEST ? '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">ARC TROOPER</span>' : '');   // (testing only)
+                     '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">ARC TROOPER</span>';
     const devs = document.getElementById('howtodev');
     if (devs) devs.innerHTML = '<span data-dev="kb" class="' + (device === 'kb' ? 'on' : '') + '">KEYBOARD</span>' +
                                '<span data-dev="pad" class="' + (device === 'pad' ? 'on' : '') + '">CONTROLLER</span>';

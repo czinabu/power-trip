@@ -1,8 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// CLONE ARC TROOPER kit tuning (testing only: the hero shows on the menu with ?trooper in the URL). Edit freely.
+// CLONE ARC TROOPER kit tuning. Edit freely.
 // The trooper is a GUNNER like the Mando (state.js isGunner): it shares the reticle, bolts, heat and hit markers, but
 // it fights on foot with no jetpack, leads a clone squad, and its guns are its own (TROOPER_WEAPONS below).
-// STILL TO BUILD before it leaves testing: its cutscene lines (the Mando's for now) and its own DC-15 model (the
+// STILL TO BUILD: its cutscene lines (the Mando's for now) and its own DC-15 model (the
 // carbine's for now).
 
 /* WEAPONS — the same fields as data/mando.js MANDO_WEAPONS (heat, cool, spreads, falloff), plus:

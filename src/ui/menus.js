@@ -5,7 +5,7 @@ import { renderer } from '../engine/renderer.js';
 import { cycleQuality } from '../engine/quality.js';
 import { audioInit, setMasterVol, setMusicVol, setSfxVol, S } from '../audio/sfx.js';
 import { AE } from '../audio/engine.js';
-import { shared, G, player, isGunner, isTrooper, TROOPER_TEST } from '../state.js';
+import { shared, G, player, isGunner, isTrooper } from '../state.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { setHero } from '../player/hero.js';
 import { startLevel, retryLevel, retryIsBoss, startCoopCampaign } from '../game/flow.js';
@@ -122,9 +122,7 @@ function beginPlay(){
 // hero picker — select only (don't ignite); the player clicks elsewhere / GO to launch
 document.getElementById('hero-jedi').addEventListener('click', (e) => { e.stopPropagation(); setHero('jedi'); refreshMissionMark(); });
 document.getElementById('hero-mando').addEventListener('click', (e) => { e.stopPropagation(); setHero('mando'); refreshMissionMark(); });
-// the clone trooper is in testing: its card only shows with ?trooper in the page URL (state.js TROOPER_TEST)
-{ const ht = document.getElementById('hero-trooper');
-  if (ht && TROOPER_TEST){ ht.style.display = ''; ht.addEventListener('click', (e) => { e.stopPropagation(); setHero('trooper'); refreshMissionMark(); }); } }
+document.getElementById('hero-trooper').addEventListener('click', (e) => { e.stopPropagation(); setHero('trooper'); refreshMissionMark(); });
 // mode picker — campaign vs survival
 // SURVIVAL is LOCKED until the campaign has been cleared as BOTH heroes (any difficulty).
 export function survivalUnlocked(){ try { return localStorage.getItem('sw_camp_jedi') === '1' && localStorage.getItem('sw_camp_mando') === '1'; } catch(e){ return false; } }

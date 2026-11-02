@@ -1,7 +1,7 @@
 // (kept vague: the hero is still under wraps, ?trooper only)
 export default {
   title: 'The third hero: flanking',
-  status: 'now',
+  status: 'done',
   date: '2026-10-31',
   items: [
     'Marking a target sends two of the squad round its sides, where they hit harder',

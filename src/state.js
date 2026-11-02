@@ -68,7 +68,7 @@ export const G = {
   stance: 'niman', stanceCd: 0,
   loadout: ['ataru', 'niman', 'djemso'],   // the forms on 1 / 2 / 3 (data/forms.js DEFAULT_LOADOUT)
   mandoKit: null,        // the Mando's guns on 1 / 2: { sidearm, primary } (data/mando.js KIT_SLOTS); null = RUN_KIT
-  hero: 'jedi',          // 'jedi' (saber/Force), 'mando' (jetpack/blasters) or 'trooper' (clone ARC trooper, testing only) — chosen on the menu
+  hero: 'jedi',          // 'jedi' (saber/Force), 'mando' (jetpack/blasters) or 'trooper' (clone ARC trooper) — chosen on the menu
   // SURVIVAL / ENDLESS mode
   modeSel: 'campaign',   // menu pick: 'campaign' | 'endless' | 'training' | 'mission' | 'sandbox'
   story: {},             // the campaign story's choices so far, { choice id: answer } (game/choices.js), saved with the run
@@ -87,14 +87,12 @@ export const G = {
 };
 /* THE HEROES. The Jedi fights with a blade; the Mandalorian and the clone trooper are GUNNERS: a floating reticle,
    blaster bolts, heat, aimed fire. Code that is about guns asks isGunner(); code that is the Mando's own kit (the
-   jetpack, the darksaber, the flamethrower, the E boxing kit) asks isMando(). The trooper is still in testing: its hero
-   card only shows with ?trooper in the page URL (TROOPER_TEST). heroKey() picks a hero's entry from per-hero data
+   jetpack, the darksaber, the flamethrower, the E boxing kit) asks isMando(). heroKey() picks a hero's entry from per-hero data
    ({ jedi, mando, trooper }), falling back to the Mando's for a trooper entry not written yet. */
 export const isMando = (h = G.hero) => h === 'mando';
 export const isTrooper = (h = G.hero) => h === 'trooper';
 export const isGunner = (h = G.hero) => h === 'mando' || h === 'trooper';
 export const heroKey = (obj, h = G.hero) => obj ? (obj[h] !== undefined ? obj[h] : h === 'trooper' ? obj.mando : obj.jedi) : obj;
-export const TROOPER_TEST = (() => { try { return new URLSearchParams(location.search).has('trooper'); } catch(e){ return false; } })();
 
 export let rockets = [], birds = [], detos = [], grapples = [];   // mando projectiles / hooks
 export const enemies = [], bolts = [], orbs = [], barrels = [], vents = [], rings = [], vfx = [], pillars = [], solids = [], hazardZones = [];

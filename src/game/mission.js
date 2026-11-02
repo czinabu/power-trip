@@ -560,7 +560,7 @@ const KINDS = {
           s.intro = true;
           const q = o.quarry && heroKey(M.def.quarry);
           if (playDuelIntro(q ? { mid: M.def.id, quarry: true, name: q.name, kicker: q.kicker, scale: q.scale, line: heroText(o.line) }
-                              : { mid: M.def.id, foe: o.foe, name: o.name, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
+                              : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
         }
         if (o.quarry && M.qHp) M.qHp = Math.max(0.6, M.qHp);   // the run wore it down, but it still has a fight in it
         s.foe = o.quarry ? spawnQuarryFoe(o) : spawnInquisitor(o, o.at, { line: heroText(o.line), kicker: o.kicker });
@@ -912,7 +912,7 @@ function vipDown(){
 
 // the duel's opponent: an existing duellist, scaled up into a champion with its own bar and a sharper profile
 function spawnInquisitor(o, at = o.at, opts = {}){
-  const e = fieldSpawn(o.foe, at[0], at[1], { look: castId(o.name, M.def.id) });   // a saber wielder in its own look (data/saber-cast.js)
+  const e = fieldSpawn(o.foe, at[0], at[1], { look: castId(o.name, M.def.id), dress: o.dress });   // (dress: a named foe's own model, the Marshal's)   // a saber wielder in its own look (data/saber-cast.js)
   e.champion = true;
   const look = e.group.userData.look;
   e.hp = e.maxHp = Math.round(e.hp * o.hp * heroScale(SCALE.bossHp, heroesHere()));
@@ -926,7 +926,7 @@ function spawnInquisitor(o, at = o.at, opts = {}){
     if (glow) glow.material.color.setHex(masterBlade(look, STANCES[o.form].blade));   // (an enemy master still burns red)
   } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
   e.group.scale.multiplyScalar(o.scale);
-  if (!look) e.group.userData.bodyMat.color.lerp(new THREE.Color(o.tint), 0.5);   // (a cast look wears its own colours)
+  if (!look && !o.dress) e.group.userData.bodyMat.color.lerp(new THREE.Color(o.tint), 0.5);   // (a cast look, or a dress, wears its own colours)
   makeBossBar(e);
   burst(V3(e.group.position.x, 1.2, e.group.position.z), o.tint, 24, 8, 5, 1);
   G.shake = Math.max(G.shake, 0.7);

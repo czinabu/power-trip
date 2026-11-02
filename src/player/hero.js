@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// Hero swap (Jedi / Mandalorian / clone trooper, the last in testing).
+// Hero swap (Jedi / Mandalorian / clone trooper).
 
 import { G, player, isGunner } from '../state.js';
 import { syncWeaponMesh } from './mando/weapons.js';
@@ -11,7 +11,6 @@ import { TROOPER_WEAPONS } from '../data/trooper.js';
 /* ---------- HERO SWAP — show one hero's outfit and loadout. The Mandalorian and the trooper are both GUNNERS: they
    share the reticle and the gun HUD (the body's 'mando' class); the trooper adds its own 'trooper' class on top. ---------- */
 export function setHero(hero){
-  if (hero === 'trooper' && !(player.trooperParts && player.trooperParts.length)) hero = 'mando';   // (no trooper built: the page has no ?trooper)
   G.hero = hero;
   const gunner = isGunner(hero), mando = hero === 'mando', trooper = hero === 'trooper';
   if (player.saberHand) player.saberHand.visible = !gunner;

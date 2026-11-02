@@ -1,7 +1,7 @@
 // (kept vague: the hero is still under wraps, ?trooper only)
 export default {
   title: 'The third hero: the last act',
-  status: 'now',
+  status: 'done',
   date: '2026-11-02',
   items: [
     'Its story is complete, from the first night to the last fight',

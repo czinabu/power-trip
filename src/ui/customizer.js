@@ -3,7 +3,7 @@
 // Each pick restyles the figure on the showcase turntable at once; DONE saves the picks and rebuilds the player, so
 // the next run plays in the new look. Picks are saved per hero in localStorage (player/mesh.js).
 
-import { G, player, TROOPER_TEST } from '../state.js';
+import { G, player } from '../state.js';
 import { CUSTOMIZE, pickedOption, swatchOf } from '../data/customize.js';
 import { STANCES } from '../data/stances.js';
 import { loadPicks, savePicks, rebuildPlayerModel } from '../player/mesh.js';
@@ -23,7 +23,6 @@ const hex = c => '#' + c.toString(16).padStart(6, '0');
 function render(){
   const hero = G.hero, mine = picks[hero] || {};
   const tabs = document.getElementById('czhero');
-  if (TROOPER_TEST && !tabs.querySelector('[data-h="trooper"]')) tabs.insertAdjacentHTML('beforeend', '<span data-h="trooper">ARC TROOPER</span>');   // (testing only)
   for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
   rowsEl.innerHTML = CUSTOMIZE[hero].map(row => {
     const cur = pickedOption(row, mine);

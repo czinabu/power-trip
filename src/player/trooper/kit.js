@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE CLONE ARC TROOPER's own kit (testing only): the input map, the frag grenade, the rifle bash and the combat roll.
+// THE CLONE ARC TROOPER's own kit: the input map, the frag grenade, the rifle bash and the combat roll.
 // Its guns (the DC-15 burst rifle and the twin DC-17s) fire through the Mando's gun code (mando/weapons.js), since both
 // are gunners; the tuning is data/trooper.js.
 

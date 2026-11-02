@@ -76,4 +76,21 @@ export const ABILITY_CARDS = {
                                   'Choosing it locks the Disruptor Rifle.'] },
   jetmissile:{ name: 'JETPACK MISSILE', hud: 'Z', clip: missile, lines: ['Launch a missile from the jetpack: a huge blast and huge damage.',
                                   'Earned after your signature weapon.'] },
+  // ---------------- the ARC trooper's (data/trooper-progression.js TROOPER_AUTO / TROOPER_STORE) ----------------
+  // (no clip recorded yet: the card shows its words alone, ui/ability-card.js)
+  scan:     { lines: ['Press Q to send out a pulse that marks every foe nearby.', 'Marked foes take more damage from you and from the squad.'] },
+  frag3:    { lines: ['A third frag grenade on your belt. Press G to throw one onto the crosshair; they refill one at a time.'] },
+  modAuto:  { lines: ['The DC-15 takes an auto barrel. With the rifle in hand, press 1 again to fit it.',
+                      'Hold LMB to fire lighter bolts in a stream: more heat and a wider cone, made for crowds and suppression.'] },
+  modScope: { lines: ['The DC-15 takes a marksman scope. With the rifle in hand, press 1 again to fit it.',
+                      'Hold RMB to raise the scope; each pull is one heavy shot that reaches across the field.'] },
+  squad3:   { lines: ['Hammer joins the band: three clones on the line from here on.', 'His rotary pins whatever it hits, as SUPPRESS does.'] },
+  bshield:  { name: 'BUBBLE SHIELD', hud: 'V', lines: ['Press V to raise a dome where you stand. Enemy bolts stop at its edge, for you and the squad.'] },
+  medic:    { name: 'FIELD MEDIC', hud: 'H', lines: ['Patch joins the squad. He patches up whoever is near and runs to get the downed up on his own.',
+                      'Your own revives take half as long, and you knit slowly once clear of the fight.'] },
+  ion:      { name: 'ION GRENADE', hud: 'F', lines: ['Press F to throw a grenade that stuns everything in the blast and drops shields. Droids and jet troopers stay stunned twice as long.'] },
+  breach:   { name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },
+  commander:{ name: 'COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line.'] },
+  commando: { name: 'COMMANDO', hud: '3', lines: ['The rifle\'s AT launcher is on key 3: one heavy rocket a pull.', 'You hit 18% harder.'] },
+  strafe:   { name: 'GUNSHIP STRAFING RUN', hud: 'X', lines: ['Press X to call a gunship: it lays a line of blasts from you toward the crosshair.'] },
 };

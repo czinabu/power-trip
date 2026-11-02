@@ -48,7 +48,7 @@ function render(){
     const g = p.kind === 'hero' ? '' : p.kind === 'ally' ? 'YOUR SIDE' : 'FOES';
     const head = g !== grp ? ((grp = g) ? `<span class="grp">${g}</span>` : '') : '';
     const ok = pickable(p);
-    return head + `<span class="bs-chip ${p.kind}${p.special ? ' special' : ''}${i === BS.pick ? ' on' : ''}${ok ? '' : ' locked'}" data-pick="${i}"${ok ? '' : ' title="Later in the campaign"'}>${ok || !p.special ? unitName(p) : '? ? ?'}</span>`;
+    return head + `<span class="bs-chip ${p.kind}${p.special ? ' special' : ''}${i === BS.pick ? ' on' : ''}${ok ? '' : ' locked'}" data-pick="${i}"${ok ? '' : ' title="Later in the campaign"'}>${ok ? unitName(p) : '? ? ?'}</span>`;
   }).join('');
   $('bscount').innerHTML = SANDBOX_COUNTS.map(n => `<span data-n="${n}" class="${n === SB.count ? 'on' : ''}">×${n}</span>`).join('');
   const el = $('bselite'); el.classList.toggle('on', SB.elite); el.querySelector('.setval').textContent = SB.elite ? 'ON' : 'OFF';

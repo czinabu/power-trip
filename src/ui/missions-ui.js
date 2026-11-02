@@ -7,6 +7,8 @@
 // Keys: the arrows move between the open missions, Enter begins. A pad's focus ring walks the cards like any button.
 // ARCADE (data/arcade.js) heads the page: a board of random contracts with no story, open to every hero from the start.
 // SHUFFLE deals a new board; SURPRISE ME begins a random one straight away.
+// ARCADE and each act fold under a header (arrow + progress): the act the player is on (and the picked mission's) opens,
+// the rest stay shut, and a fold set by hand is remembered.
 
 import { G } from '../state.js';
 import { missionDone, missionTitle } from '../game/mission.js';
@@ -62,11 +64,31 @@ function arcCard(c){
 function arcadeShelf(){
   const board = arcadeBoard(boardSeed), picked = isArcadeId(G.missionId) && !board.some(c => c.id === G.missionId) ? missionById(G.missionId) : null;
   const won = arcadeWins(G.hero);
-  return `<div class="mp-story mp-arcade"><div class="sec-label">ARCADE <span class="mp-sub">random missions, no story${won ? ' · ' + won + ' won' : ''}</span></div>
-    <div class="mp-arcbtns"><div class="btn" data-arc="shuffle">⟳ SHUFFLE</div><div class="btn" data-arc="surprise">⚄ SURPRISE ME</div></div>
-    <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div></div>`;
+  return fold('arcade', isArcadeId(G.missionId), 'mp-arcade', `ARCADE<span class="mp-sub">random missions, no story</span>`, won ? won + ' won' : '',
+    `<div class="mp-arcbtns"><div class="btn" data-arc="shuffle">⟳ SHUFFLE</div><div class="btn" data-arc="surprise">⚄ SURPRISE ME</div></div>
+    <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div>`);
 }
 
+/* ---------- folding sections ---------- */
+// ARCADE and every act fold under a header with an arrow and its progress (6/7). Until the player folds one by hand, the
+// campaign act they're on and the picked mission's section open and the rest stay shut; a hand-set fold is
+// remembered (per hero for the acts, since each hero's acts are their own)
+let folds = {};
+try { folds = JSON.parse(localStorage.getItem('sw_mp_folds') || '{}') || {}; } catch(e){ folds = {}; }
+const foldKey = (k) => k === 'arcade' ? k : G.hero + ':' + k;
+const isOpen = (k, dflt) => { const v = folds[foldKey(k)]; return v === undefined ? !!dflt : !!v; };
+function fold(key, dflt, cls, title, count, body, extra = ''){
+  const open = isOpen(key, dflt);
+  return `<div class="mp-sec ${cls}${open ? ' open' : ''}${extra}" data-fold="${key}">
+    <div class="mp-fold" role="button" aria-expanded="${open}"><i class="mp-arrow"></i><span class="mp-ft">${title}</span><span class="mp-n">${count}</span></div>
+    <div class="mp-body">${body}</div></div>`;
+}
+function toggleFold(sec){
+  const open = !sec.classList.contains('open');
+  sec.classList.toggle('open', open); sec.querySelector('.mp-fold').setAttribute('aria-expanded', open);
+  folds[foldKey(sec.dataset.fold)] = open;
+  try { localStorage.setItem('sw_mp_folds', JSON.stringify(folds)); } catch(e){}
+}
 /* ---------- the page ---------- */
 const pips = (n) => '<span class="mthreat" title="Threat ' + n + ' of 5">' + [1, 2, 3, 4, 5].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>';
 function card(m){
@@ -82,16 +104,25 @@ function render(){
     t.style.display = HEROES().includes(t.dataset.h) ? '' : 'none';
     t.classList.toggle('on', t.dataset.h === G.hero);
   }
-  const shelves = missionShelves(G.hero), many = true;   // (the arcade's shelf is always above the story's, so each says which it is)
-  listEl.innerHTML = arcadeShelf() + shelves.map(s => {
-    const groups = s.groups.map(g => {
+  const shelves = missionShelves(G.hero);
+  listEl.innerHTML = arcadeShelf() + shelves.map((s, si) => {
+    const acts = s.groups.map((g, ai) => {
       const ms = g.missions.filter(m => trialSeen(m.id));
-      if (!ms.length) return '';
-      const won = ms.filter(m => missionOpen(m.id) && missionDone(m.id, G.hero)).length;
-      return `<div class="mp-act">${g.title || many ? `<div class="mp-acth"><span>${g.title || s.title}</span><span class="mp-n">${won}/${ms.length}</span></div>` : ''}
-        <div class="mp-grid">${ms.map(card).join('')}</div></div>`;
+      const open = ms.filter(m => missionOpen(m.id)), won = open.filter(m => missionDone(m.id, G.hero)).length;
+      return { g, ai, ms, open: open.length, won };
+    }).filter(a => a.ms.length);
+    if (!acts.length) return '';
+    // the act the player is on: the first with an open mission still to win, else the last one they can play
+    const cur = acts.find(a => a.won < a.open) || [...acts].reverse().find(a => a.open) || acts[0];
+    const groups = acts.map(a => {
+      const shut = !a.open, done = !shut && a.won === a.ms.length;
+      const count = shut ? '🔒 ' + a.ms.length : (done ? '✓ ' : '') + a.won + '/' + a.ms.length;
+      const dflt = (si === 0 && a === cur) || a.ms.some(m => m.id === G.missionId);   // the main story's current act, and the picked mission's
+      return fold(s.id + ':' + a.ai, dflt, 'mp-act', a.g.title || s.title, count,
+        `<div class="mp-grid">${a.ms.map(card).join('')}</div>`, (shut ? ' shut' : '') + (done ? ' done' : ''));
     }).join('');
-    return groups ? `<div class="mp-story">${many ? `<div class="sec-label">${s.title}</div>` : ''}${groups}</div>` : '';
+    const head = acts.length > 1 || acts[0].g.title ? `<div class="sec-label mp-storyh">${s.title}</div>` : '';   // (a one-shelf story's fold says it already)
+    return `<div class="mp-story${head ? '' : ' solo'}">${head}${groups}</div>`;
   }).join('');
   if (!shown(G.missionId)) setMission(G.missionId); else refreshInfo();
 }
@@ -146,6 +177,8 @@ export function closeMissionPage(){
 listEl.addEventListener('click', (e) => {
   const b = e.target.closest('[data-arc]');
   if (b){ e.stopPropagation(); audioInit(); if (b.dataset.arc === 'shuffle') shuffleBoard(); else surprise(); return; }
+  const f = e.target.closest('.mp-fold');
+  if (f){ e.stopPropagation(); audioInit(); toggleFold(f.parentElement); return; }
   const c = e.target.closest('.msn'); if (!c) return;
   e.stopPropagation(); audioInit(); setMission(c.dataset.mission);
 });
@@ -166,7 +199,7 @@ document.addEventListener('keydown', (e) => {
   const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
   if (dir){
     e.preventDefault();
-    const cards = [...listEl.querySelectorAll('.msn:not(.locked)')], cur = listEl.querySelector('.msn.sel');
+    const cards = [...listEl.querySelectorAll('.mp-sec.open .msn:not(.locked)')], cur = listEl.querySelector('.msn.sel');
     if (!cur){ if (cards[0]) setMission(cards[0].dataset.mission); return; }
     const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
     let best = null, bs = Infinity;

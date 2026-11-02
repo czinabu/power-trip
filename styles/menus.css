@@ -79,12 +79,32 @@
 .mp-head .mp-back{padding:8px 14px;font-size:13px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .mp-head .cz-tabs{margin-left:auto}
 .mp-head .cz-tabs span{padding:7px 12px;font-size:13px}
-/* the shelves scroll inside the page, so BEGIN and the picked mission's details stay in view */
-#mplist{display:flex;flex-direction:column;gap:14px;max-height:max(230px,calc(100vh - 470px));overflow-y:auto;pointer-events:auto;
+/* the shelves scroll inside a box of fixed height, so BEGIN and the picked mission's details stay put in view (folding a section never moves them) */
+#mplist{display:flex;flex-direction:column;gap:8px;height:max(230px,calc(100vh - 470px));flex:none;overflow-y:auto;pointer-events:auto;
   padding-right:4px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--edge-mid) transparent}
-.mp-story{display:flex;flex-direction:column;gap:10px}
-.mp-acth{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font:700 12px/1.2 var(--font-ui);letter-spacing:2.5px;color:var(--ink-soft)}
-.mp-acth .mp-n{color:var(--ink-dim);letter-spacing:1.5px}
+.mp-story{display:flex;flex-direction:column;gap:8px}
+/* the story's own heading: a clear break between the arcade above and the campaign's acts */
+.mp-storyh{margin:14px 0 2px;color:var(--gold);letter-spacing:3px}
+.mp-story.solo{margin-top:8px;padding-top:12px;border-top:1px solid var(--edge)}
+.mp-storyh::after{background:linear-gradient(90deg,rgba(255,210,74,.45),var(--edge))}
+/* folding sections: ARCADE and each act, a header with an arrow and its progress, the cards under it while open */
+.mp-sec{display:flex;flex-direction:column}
+.mp-fold{--bc:var(--gold);display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--edge);border-left:3px solid rgba(255,210,74,.55);
+  border-radius:var(--r);background:rgba(8,18,33,.6);cursor:pointer;pointer-events:auto;user-select:none;-webkit-user-select:none;
+  font:700 12.5px/1.2 var(--font-ui);letter-spacing:2.5px;color:var(--ink-soft);transition:border-color .15s,color .15s,background .15s}
+.mp-fold:hover{color:var(--ink);border-color:var(--edge-mid);border-left-color:var(--gold);background:rgba(12,24,42,.75)}
+.mp-sec.open>.mp-fold{color:var(--ink);background:rgba(12,24,42,.75)}
+.mp-arcade>.mp-fold{--bc:var(--accent);border-left-color:rgba(90,210,255,.55)}
+.mp-arcade>.mp-fold:hover{border-left-color:var(--accent)}
+.mp-arrow{flex:none;width:6px;height:6px;margin:0 3px 0 1px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .18s var(--ease)}
+.mp-sec.open>.mp-fold .mp-arrow{transform:rotate(45deg) translate(-2px,-2px)}
+.mp-ft{flex:1;min-width:0}
+.mp-fold .mp-sub{margin-left:10px;font-weight:600;letter-spacing:1.5px;color:var(--ink-dim);text-transform:none}
+.mp-fold .mp-n{flex:none;color:var(--ink-dim);letter-spacing:1.5px}
+.mp-sec.done>.mp-fold .mp-n{color:var(--xp)}
+.mp-sec.shut>.mp-fold{opacity:.55}
+.mp-body{display:none;flex-direction:column;gap:6px;padding:6px 0 4px}
+.mp-sec.open>.mp-body{display:flex;animation:rise .2s var(--ease)}
 .mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .msn{--bc:var(--gold);position:relative;padding:8px 11px 9px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);cursor:pointer;
   pointer-events:auto;text-align:left;opacity:.78;transition:opacity .15s,border-color .15s,background .15s;scroll-margin:70px 0}
@@ -108,7 +128,6 @@
 #mpinfo .mpi-won{margin-left:auto;font:500 12.5px/1 var(--font-body);letter-spacing:.3px;color:var(--ink-soft)}
 #mpinfo .ok{color:var(--xp)} #mpinfo .no{color:var(--ink-dim)}
 /* the ARCADE shelf (ui/missions-ui.js): random contracts, SHUFFLE and SURPRISE ME */
-.mp-arcade .sec-label .mp-sub{margin-left:8px;font-weight:600;letter-spacing:1.5px;color:var(--ink-dim);text-transform:none}
 .mp-arcbtns{display:flex;gap:6px}
 .mp-arcbtns .btn{flex:1 1 0;padding:7px 10px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.6);pointer-events:auto}
 .msn.arc{--bc:var(--accent)}
@@ -491,7 +510,7 @@ body.pad .bs-aim{display:block}
 #overlay.st-pause #homeconfirm{align-items:flex-start;margin-top:26px}
 #overlay.st-pause .ov-foot{text-align:left;margin-top:22px;font-size:12px}
 #overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:rise .3s var(--ease) both}
-@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay.st-menu .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0}}
+@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay.st-menu .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
 
 /* ---------- SAVE / LOAD: same panel as CONTROLS, one row per slot (ui/saves-ui.js) ---------- */
 #saves{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;

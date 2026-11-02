@@ -146,27 +146,31 @@ export const DUEL = {
   dodgeStep: 7,           // backstep speed when it slips a cut
   flipTime: 0.5, flipHeight: 1.3,   // an Ataru master's slip is a backflip this long and this high (FORM_DUEL flip)
   // SABER LOCK — blades bind; mash LMB to drive through, or break it with a kick (E) or a Force push (F)
-  lock: { chance: 0.7, time: 4.2, press: 0.15, stam: 3, kickStam: 22, pushCost: 18, loseDmg: 16, heavyPress: 1.35, fastPress: 0.85,
+  /* reach: the blades meet this far out in front of you (m); clear: the foe's blade keeps this far off your body at the
+     bind; armDist: a foe whose blade runs on from its arm (not a staff) stands this much further off than the kind's dist */
+  lock: { reach: 0.75, clear: 0.42, armDist: 0.3, chance: 0.7, time: 4.2, press: 0.15, stam: 3, kickStam: 22, pushCost: 18, loseDmg: 16, heavyPress: 1.35, fastPress: 0.85,
     /* SURGE — the foe's push comes in waves: `first` / `every` s apart it gathers itself for `tell` s (its body flares,
        the bar's edge glows, a whine rises), then bears down `mul`× as hard for `dur` s. A press inside the surge MEETS
        it and counts `meet`×. */
     surge: { first: [0.8, 1.2], every: [1.0, 1.6], tell: 0.32, dur: 0.45, mul: 2.6, meet: 1.6 },
     /* THE STRUGGLE ON SCREEN — how far the balance (−1 … 1) moves the bodies: give (m) the foe is driven back / crowds
        in, lean its pitch (back as it loses), arm its blade forced up, slide how far the crossing point moves toward the
-       loser, sink / rise your blade's catch height pressed down toward you / up over it */
-    press3d: { give: 0.35, lean: 0.2, arm: 0.35, slide: 0.12, sink: 0.35, rise: 0.12 } },
+       loser (your blade follows its blade wherever the bind goes: enemies/duel.js lockContact) */
+    press3d: { give: 0.35, lean: 0.2, arm: 0.35, slide: 0.12 } },
   /* LOCK KINDS — where the blades bind sets how the lock looks and how it ends (enemies/duel.js startLock). A clash more
      than `at.high` m above your feet binds HIGH, one under `at.low` binds LOW; an exchange run to `lockAt` beats ends
      CORPS-À-CORPS, hilt to hilt. label: called out as it binds. win / lose: called out at the end. h: your catch height.
-     y: the bind's height. dist: how close you stand. arm / staff: its weapon at the bind (as GUARD_POSE). push: how hard
-     it bears down (× its profile push). Winning: open adds to its stagger (thrown high, wide open), side throws it aside
+     y: the bind's height. dist: how close you stand. cover: the catch your blade takes on the bind (data/poses.js
+     SABER_DEFLECTS zone, its first pose), fitted onto the foe's blade every frame so the two always cross at one point.
+     aim: the line its weapon is laid along at the bind, in its own frame [toward its weapon arm, up, toward you]
+     (enemies/duel.js lockArm solves the arm or staff onto it); arm / staff: the fallback pose (as GUARD_POSE). push: how hard it bears down (× its profile push). Winning: open adds to its stagger (thrown high, wide open), side throws it aside
      with its knees buckling, knock shoves it clear. */
   lockKinds: {
     at: { high: 1.75, low: 1.2 },
-    mid:  { label: null,            win: 'OVERPOWERED',  lose: 'OVERPOWERED', h: 0.25,  y: 1.55, dist: 1.75, arm: [-1.75, -0.35], staff: [-1.3, 0.6],  push: 1 },
-    high: { label: 'HIGH BIND',     win: 'THROWN HIGH',  lose: 'BEATEN DOWN', h: 0.7,   y: 1.95, dist: 1.7,  arm: [-2.65, -0.1],  staff: [-1.6, 1.25], push: 0.9,  open: 0.45 },
-    low:  { label: 'LOW BIND',      win: 'SWEPT ASIDE',  lose: 'SWEPT',       h: -0.45, y: 0.95, dist: 1.8,  arm: [-0.75, -0.6],  staff: [0.9, -0.9],  push: 1.1,  side: true },
-    body: { label: 'CORPS-À-CORPS', win: 'SHOVED CLEAR', lose: 'SHOULDERED',  h: 0.05,  y: 1.35, dist: 1.15, arm: [-1.2, -1.0],   staff: [-1.1, 0.2],  push: 1.25, knock: 16 },
+    mid:  { label: null,            win: 'OVERPOWERED',  lose: 'OVERPOWERED', h: 0.25,  y: 1.55, dist: 1.75, cover: 'midR', aim: [-0.7, 0.65, 0.3],  arm: [-1.75, -0.35], staff: [-1.3, 0.6],  push: 1 },
+    high: { label: 'HIGH BIND',     win: 'THROWN HIGH',  lose: 'BEATEN DOWN', h: 0.7,   y: 1.95, dist: 1.7,  cover: 'highR', aim: [-0.25, 0.6, 0.75], arm: [-2.65, -0.1],  staff: [-1.6, 1.25], push: 0.9,  open: 0.45 },
+    low:  { label: 'LOW BIND',      win: 'SWEPT ASIDE',  lose: 'SWEPT',       h: -0.45, y: 0.95, dist: 1.8,  cover: 'lowR', aim: [-0.75, -0.4, 0.5], arm: [-0.75, -0.6],  staff: [0.9, -0.9],  push: 1.1,  side: true },
+    body: { label: 'CORPS-À-CORPS', win: 'SHOVED CLEAR', lose: 'SHOULDERED',  h: 0.05,  y: 1.35, dist: 1.4,  cover: 'midL', aim: [-0.55, 0.8, 0.2], clear: 0.25, arm: [-1.2, -1.0],   staff: [-1.1, 0.2],  push: 1.25, knock: 16 },
   },
   /* FLOURISH — a duellist between exchanges twirls its blade (or spins its staff) and settles back into its stance: every
      `every` s while it circles you `range` m out, and `after` s after an exchange ends or a lock breaks. It lasts `dur` s

@@ -13,7 +13,7 @@ import { burst } from '../../fx/particles.js';
 import { spawnHitSpark } from '../../fx/vfx.js';
 import { palmPoints } from '../../fx/palms.js';
 import { fwd, playerPos } from '../helpers.js';
-import { mandoWeapon, mandoAimPoint, mandoAimRay, switchWeapon, fireTrigger, startReload } from '../mando/weapons.js';
+import { mandoWeapon, mandoAimPoint, mandoAimRay, switchWeapon, fireTrigger, startReload, syncWeaponMesh } from '../mando/weapons.js';
 import { mandoDive } from '../mando/mobility.js';
 import { trySlide } from '../parkour.js';
 import { throwGrenade } from '../../enemies/grenades.js';
@@ -64,6 +64,7 @@ export function swapModule(){
   }
   const i = list.indexOf(player.rifleMod || 'burst'), next = list[(i + 1) % list.length];
   player.rifleMod = next;
+  syncWeaponMesh();   // the module's parts on the gun (model/weapons.js setRifleMod)
   const W = mandoWeapon();
   player.burstLeft = 0; player.burstQ = false; player.spin = 0;
   player.fireCd = Math.max(player.fireCd, 0.3);   // the module clicks home
@@ -98,7 +99,7 @@ export function updateTrooperKit(dt){
   updateCalls(dt);
 }
 export const fragMax = () => TROOPER.frag.charges + (player.up.fragExtra || 0);   // FRAG POUCH (data/trooper-progression.js) adds one
-export function resetTrooperKit(){ if (!rifleMods().includes(player.rifleMod)) player.rifleMod = 'burst'; player.fragCharges = fragMax(); player.fragT = 0; player.bashCd = 0; resetTrooperPowers(); resetCalls(); resetCommand(); }
+export function resetTrooperKit(){ if (!rifleMods().includes(player.rifleMod)){ player.rifleMod = 'burst'; syncWeaponMesh(); } player.fragCharges = fragMax(); player.fragT = 0; player.bashCd = 0; resetTrooperPowers(); resetCalls(); resetCommand(); }
 function fragTarget(F, from){
   const aim = mandoAimPoint(), ray = mandoAimRay();
   const o = ray.origin, d = ray.direction;

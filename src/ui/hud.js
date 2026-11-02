@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updateHud(): per-frame HUD refresh.
 
-import { fragCharges, fragMax } from '../player/trooper/kit.js';
+import { fragCharges, fragMax, rifleMods } from '../player/trooper/kit.js';
+const MOD_TAG = { burst: 'BURST', auto: 'AUTO', marksman: 'SCOPE' };
 import { TROOPER } from '../data/trooper.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
@@ -103,13 +104,19 @@ function renderWeaponSlots(){
   const sig = signatureWeapon(), kit = kitOf();
   const slots = isTrooper() ? [['1', 'rifle', ''], ['2', 'pistols', ''], ...(G.unlocked.launcher ? [['3', 'launcher', '']] : [])]   // (the trooper: DC-15, twin DC-17s, the Commando's launcher)
     : [['1', kit.sidearm, 'SIDEARM'], ['2', kit.primary, 'PRIMARY'], ['3', sig, ''], ['4', 'fists', '']];
-  let key = player.weapon + sig;
+  const mods = isTrooper() ? rifleMods() : [];   // the DC-15's modules the run has handed over (player/trooper/kit.js)
+  let key = player.weapon + sig + (player.rifleMod || '') + mods.length;
   for (const [, w] of slots) key += (w || '-') + (w && weaponUnlocked(w) ? '1' : '0');
   const wrap = $('wslots'); if (wrap._k === key) return;
   wrap._k = key;
   // only what you carry: an empty or still-locked slot is noise from the first minute (the key still says which number it is)
   wrap.innerHTML = slots.filter(([, w]) => w && weaponUnlocked(w)).map(([k, w]) => {
-    const nm = w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name;
+    let nm = w === 'fists' ? 'HOLSTER' : MANDO_WEAPONS[w].short || MANDO_WEAPONS[w].name;
+    // the DC-15 names its fitted module, with a pip for each one it carries (1 again swaps): BURST · AUTO · SCOPE
+    if (w === 'rifle' && mods.length > 1){
+      const cur = player.rifleMod || 'burst';
+      nm += ' <span class="wmod">' + MOD_TAG[cur] + '</span><span class="wpips">' + mods.map(m => '<i class="' + (m === cur ? 'on' : '') + '"></i>').join('') + '</span>';
+    }
     return '<span class="wslot' + (player.weapon === w ? ' on' : '') + '"><span class="kc">' + k + '</span>' + nm + '</span>';
   }).join('');
 }
@@ -297,7 +304,7 @@ export function updateHud(){
     if (isTrooper()){   // the trooper's hint chips say what its keys do
       setText($('ab-boost').querySelector('.an'), 'ROLL');
       if (meleeEl) setText(meleeEl.querySelector('.an'), 'BASH');
-      if (braceEl) setText(braceEl.querySelector('.an'), 'AIM');
+      if (braceEl) setText(braceEl.querySelector('.an'), mandoWeapon().scope ? 'SCOPE' : 'AIM');   // the marksman module raises a scope
     }
     document.getElementById('ab-mslam').classList.toggle('nofp', player.grounded || player.jet < abil('mslam').cost);   // air-only, jet fuel
     // DYNAMIC CROSSHAIR — line gap / colour / ring react to the situation

@@ -110,6 +110,10 @@ body.mando #fpbar{background:linear-gradient(90deg,#d98a2b,#ffd9a0)}
 .wslot.on{background:rgba(255,255,255,.08);color:var(--ink)}
 .wslot.on .kc{border-color:var(--accent);color:var(--accent)}
 .wslot.lock{opacity:.35}
+.wslot .wmod{color:#8fd0ff;letter-spacing:1px}
+.wslot .wpips{display:inline-flex;gap:2px;margin-left:1px}
+.wslot .wpips i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.22)}
+.wslot .wpips i.on{background:#8fd0ff}
 .wrow{display:flex;align-items:baseline;gap:8px;padding-right:6px}
 #wpnLabel{display:none}
 .weaponbox .ammo{font:700 14px/1 var(--font-ui);letter-spacing:0.5px;color:var(--gold);min-width:46px;text-align:right;font-variant-numeric:tabular-nums}

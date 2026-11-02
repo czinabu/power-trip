@@ -112,14 +112,45 @@ export const WEAPON_MODELS = {
       for (let i = 0; i < 6; i++) S.add(block(0.064, 0.012, 0.022, 0.2), 'gunMetal', g, [0, 0.142, 0.32 + i*0.055], [0, 0, 0], { outline: false });   // the vents
       S.add(loft([{ y:-0.13, w:0.03, d:0.03 }, { y:0.13, w:0.028, d:0.028 }], ngon(8)), 'gunMetal', g, [0, 0.11, 0.82], [Math.PI/2, 0, 0]);
       S.add(loft([{ y:-0.025, w:0.044, d:0.044 }, { y:0.025, w:0.04, d:0.04 }], ngon(8)), 'gunDark', g, [0, 0.11, 0.93], [Math.PI/2, 0, 0]);   // the flash hider
-      // the scope on the top rail, offset left, with its lens
-      S.add(loft([{ y:-0.09, w:0.04, d:0.04 }, { y:0.07, w:0.04, d:0.04 }, { y:0.09, w:0.05, d:0.05 }], ngon(8)), 'gunDark', g, [-0.02, 0.19, 0.12], [Math.PI/2, 0, 0]);
-      for (const z of [0.07, 0.17]) S.add(block(0.02, 0.03, 0.02, 0.2), 'gunDark', g, [-0.012, 0.165, z], [0, 0, 0], { outline: false });
-      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.01, 8), new THREE.MeshBasicMaterial({ color: 0x66ddff }));
-      lens.rotation.x = Math.PI/2; lens.position.set(-0.02, 0.19, 0.216); g.add(lens);
       // the front sight
       S.add(block(0.012, 0.035, 0.02, 0.2), 'gunDark', g, [0, 0.15, 0.68], [0, 0, 0], { outline: false });
-      return { group: g };
+      // THE MODULES (data/trooper.js RIFLE_MODS): each fitted module is a set of parts of its own; setRifleMod shows one
+      const lit = (w, h, d, col, pos, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: col })); m.position.set(...pos); par.add(m); return m; };
+      const mods = { burst: new THREE.Group(), auto: new THREE.Group(), marksman: new THREE.Group() };
+      for (const k in mods){ mods[k].visible = k === 'burst'; g.add(mods[k]); }
+      // BURST (stock): the short scope on the top rail, offset left, with its lens
+      { const b = mods.burst;
+        S.add(loft([{ y:-0.09, w:0.04, d:0.04 }, { y:0.07, w:0.04, d:0.04 }, { y:0.09, w:0.05, d:0.05 }], ngon(8)), 'gunDark', b, [-0.02, 0.19, 0.12], [Math.PI/2, 0, 0]);
+        for (const z of [0.07, 0.17]) S.add(block(0.02, 0.03, 0.02, 0.2), 'gunDark', b, [-0.012, 0.165, z], [0, 0, 0], { outline: false });
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.01, 8), new THREE.MeshBasicMaterial({ color: 0x66ddff }));
+        lens.rotation.x = Math.PI/2; lens.position.set(-0.02, 0.19, 0.216); b.add(lens); }
+      // AUTO BARREL: a fat finned heat sink over the front of the barrel, a drum cell slung under the receiver (its
+      // charge ring lit), a foregrip, and an open reflex sight in place of the scope
+      { const a = mods.auto;
+        S.add(loft([{ y:-0.13, w:0.09, d:0.09 }, { y:0.13, w:0.084, d:0.084 }], ngon(10)), 'gunMetal', a, [0, 0.11, 0.76], [Math.PI/2, 0, 0]);
+        for (let i = 0; i < 5; i++) S.add(loft([{ y:-0.006, w:0.12, d:0.12 }, { y:0.006, w:0.12, d:0.12 }], ngon(10)), 'gunDark', a, [0, 0.11, 0.66 + i*0.05], [Math.PI/2, 0, 0], { outline: false });   // the cooling fins
+        S.add(loft([{ y:-0.045, w:0.13, d:0.13 }, { y:0.045, w:0.13, d:0.13 }], ngon(12)), 'gunDark', a, [0, -0.01, 0.2], [0, 0, Math.PI/2]);   // the drum cell
+        for (const sx of [-1, 1]){ const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.007, 4, 16), new THREE.MeshBasicMaterial({ color: 0xffb84a }));
+          ring.rotation.y = Math.PI/2; ring.position.set(0.047 * sx, -0.01, 0.2); a.add(ring); }   // its charge rings, lit
+        S.add(block(0.03, 0.1, 0.035, 0.3), 'gunDark', a, [0, 0.03, 0.5], [-0.25, 0, 0]);   // the foregrip
+        S.add(block(0.05, 0.016, 0.06, 0.2), 'gunDark', a, [0, 0.165, 0.1]);   // the reflex sight: its base…
+        S.add(block(0.05, 0.05, 0.008, 0.2), 'gunDark', a, [0, 0.19, 0.12], [0, 0, 0], { outline: false });   // …its frame
+        lit(0.03, 0.03, 0.004, 0xffb84a, [0, 0.19, 0.124], a); }
+      // MARKSMAN SCOPE: a long scope on high mounts with a lit front lens, a barrel extension to a muzzle brake, a cheek
+      // rest on the stock and a folded bipod
+      { const m = mods.marksman;
+        S.add(loft([{ y:-0.2, w:0.06, d:0.06 }, { y:-0.15, w:0.05, d:0.05 }, { y:0.12, w:0.05, d:0.05 }, { y:0.2, w:0.07, d:0.07 }], ngon(10)), 'gunDark', m, [-0.01, 0.215, 0.1], [Math.PI/2, 0, 0]);
+        for (const z of [0.0, 0.2]) S.add(block(0.026, 0.06, 0.03, 0.2), 'gunMetal', m, [-0.006, 0.172, z], [0, 0, 0], { outline: false });
+        S.add(loft([{ y:-0.02, w:0.03, d:0.03 }, { y:0.02, w:0.03, d:0.03 }], ngon(8)), 'gunMetal', m, [0.03, 0.215, 0.08], [0, 0, Math.PI/2]);   // the turret
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 10), new THREE.MeshBasicMaterial({ color: 0x9fe8ff }));
+        lens.rotation.x = Math.PI/2; lens.position.set(-0.01, 0.215, 0.302); m.add(lens);
+        S.add(loft([{ y:-0.1, w:0.026, d:0.026 }, { y:0.1, w:0.024, d:0.024 }], ngon(8)), 'gunMetal', m, [0, 0.11, 1.05], [Math.PI/2, 0, 0]);   // the barrel extension
+        S.add(block(0.06, 0.04, 0.07, 0.3), 'gunDark', m, [0, 0.11, 1.17]);   // the muzzle brake…
+        for (const sx of [-1, 1]) S.add(block(0.006, 0.026, 0.05, 0.1), 'gunMetal', m, [0.031 * sx, 0.11, 1.17], [0, 0, 0], { outline: false });   // …its ports
+        S.add(block(0.045, 0.05, 0.14, 0.3), 'gunMetal', m, [0, 0.12, -0.22]);   // the cheek rest
+        for (const sx of [-1, 1]) S.add(block(0.012, 0.012, 0.3, 0.2), 'gunMetal', m, [0.022 * sx, 0.078, 0.6], [0, 0, 0], { outline: false });   // the folded bipod, under the shroud
+      }
+      return { group: g, mods };
     },
   },
 
@@ -242,6 +273,16 @@ export function setLongGun(player, id){
   if (!m || !player.longGuns || !player.longGuns[id] || m.userData.long === id) return;
   for (const k of LONG_GUNS) player.longGuns[k].group.visible = k === id;
   m.userData.long = id;
+}
+// fit the DC-15's module `mod` (burst / auto / marksman): its parts show, the others go, and the muzzle moves with it
+const DC15_MUZZLE = { burst: [0, 0.11, 0.97], auto: [0, 0.11, 0.97], marksman: [0, 0.11, 1.21] };
+export const RIFLE_MOD_IDS = ['burst', 'auto', 'marksman'];   // (append only: co-op sends the index)
+export function setRifleMod(player, mod){
+  const w = player.longGuns && player.longGuns.dc15; if (!w || !w.mods) return;
+  if (!w.mods[mod]) mod = 'burst';
+  if (w.group.userData.mod === mod) return;
+  for (const k in w.mods) w.mods[k].visible = k === mod;
+  w.group.userData.mod = mod; w.group.userData.muzzle = DC15_MUZZLE[mod];
 }
 // the drawn long gun's muzzle point in the mount's space
 export const longMuzzle = (player) => (player.longGuns && player.longGuns[player.rifleMesh.userData.long] || {}).group?.userData.muzzle || [0, 0.11, 0.96];

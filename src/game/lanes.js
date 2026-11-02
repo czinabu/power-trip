@@ -164,7 +164,7 @@ let chevGeo = null;
 function chevron(){
   if (!chevGeo){
     const s = new THREE.Shape();
-    s.moveTo(-0.55, -0.2); s.lineTo(0, 0.25); s.lineTo(0.55, -0.2); s.lineTo(0.55, 0.12); s.lineTo(0, 0.55); s.lineTo(-0.55, 0.12); s.closePath();
+    s.moveTo(-0.8, -0.3); s.lineTo(0, 0.35); s.lineTo(0.8, -0.3); s.lineTo(0.8, 0.15); s.lineTo(0, 0.8); s.lineTo(-0.8, 0.15); s.closePath();
     chevGeo = new THREE.ShapeGeometry(s);
   }
   return chevGeo;
@@ -226,7 +226,7 @@ export function updateLanes(dt, gt){
     mk.beam.visible = h > 0.05; mk.beam.material.opacity = h * 0.22;
     for (const m of mk.chev){
       const run = h > 0 ? 0.5 + 0.5 * Math.sin(gt * 8 - m.userData.k * 0.9) : 0;   // a wave of light running toward the zone
-      m.material.opacity = LANE.idle * 0.8 + h * (0.25 + 0.6 * run);
+      m.material.opacity = LANE.idle * 0.8 + h * (0.35 + 0.6 * run);
     }
     if (h > 0.3) hot.push({ pos: mk.g.position, seen: onScreen(l.x, l.z) });
   }

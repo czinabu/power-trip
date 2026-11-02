@@ -15,6 +15,7 @@ import { loft, limb, plate, block, shard, chamfer, ngon, gripHand, KEEL, SHIELD,
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bakeDesign, instantiate } from './kit.js';
 import { rounded } from '../player/model/skin.js';
+import { lookPool, lookKey, FOE_LOOKS } from '../data/foe-looks.js';
 import { face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling } from './detail.js';
 
 const PI = Math.PI;
@@ -67,6 +68,7 @@ export function legs(k, w, o = {}){
 }
 
 export function hips(k, w, o = {}){
+  if (k.fem) w *= 1.1;   // a woman's build: the frame is narrower (k.bw), the hips stay near full width
   k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
   k.add(loft([{ y:1.0, w:0.47*w, d:0.31 }, { y:1.1, w:0.46*w, d:0.305 }], SOFT_BODY), 'armor2');
   k.add(plate([[-0.06,-0.04],[0.06,-0.04],[0.06,0.04],[-0.06,0.04]], 0.02, 0.006), 'metal', k.root, [0, 1.05, 0.16], [0,0,0], { outline: false });
@@ -78,11 +80,16 @@ export function hips(k, w, o = {}){
 }
 
 export function torso(k, w, o = {}){
-  k.add(loft([{ y:1.07, w:0.36*w, d:0.24 }, { y:1.33, w:0.38*w, d:0.25 }], SOFT_BODY), 'suit');
+  const f = !!k.fem;
+  // a woman's build: a nipped waist, and a cuirass contoured over the bust (deeper at the chest, drawn in under it)
+  k.add(loft(f ? [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.2, w:0.33*w, d:0.225 }, { y:1.33, w:0.35*w, d:0.24 }]
+               : [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.33, w:0.38*w, d:0.25 }], SOFT_BODY), 'suit');
   const ab = plate([[-0.12,-0.035],[0.12,-0.035],[0.13,0.03],[-0.13,0.03]], 0.026, 0.008);
   k.add(ab, 'armor2', k.root, [0, 1.17, 0.125], [0.04, 0, 0], { scale: [w, 1, 1] });
   k.add(ab, 'armor2', k.root, [0, 1.25, 0.13], [0.06, 0, 0], { scale: [w * 1.06, 1, 1] });
-  k.add(loft([{ y:1.3, w:0.42*w, d:0.28 }, { y:1.48, w:0.6*w, d:0.36 }, { y:1.7, w:0.64*w, d:0.36 }, { y:1.82, w:0.48*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
+  k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.63*w, d:0.42, z:0.026 }, { y:1.65, w:0.65*w, d:0.4, z:0.018 },
+                 { y:1.76, w:0.6*w, d:0.34 }, { y:1.84, w:0.46*w, d:0.29 }, { y:1.88, w:0.26, d:0.21 }]
+               : [{ y:1.3, w:0.42*w, d:0.28 }, { y:1.48, w:0.6*w, d:0.36 }, { y:1.7, w:0.64*w, d:0.36 }, { y:1.82, w:0.48*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
   // the chest plate's lower lip, a darker rim the plate sits on, so the cuirass reads as a separate layer over the suit
   k.add(loft([{ y:1.28, w:0.44*w, d:0.29 }, { y:1.33, w:0.47*w, d:0.305 }], SOFT_BODY), 'armor2', k.root, [0,0,0], [0,0,0], { outline: false });
   // chest detail: a centre seam, a control box, and the backpack
@@ -96,7 +103,7 @@ export function torso(k, w, o = {}){
     k.add(loft([{ y:0, w:0.018, d:0.018 }, { y:0.62, w:0.012, d:0.012 }], ngon(6)), 'metal', k.root, [0.12*w, 1.84, -0.26], [-0.12, 0, 0], { outline: false });
     k.add(block(0.03, 0.03, 0.03, 0.3), 'mark', k.root, [0.12*w, 2.45, -0.33], [0,0,0], { outline: false });
   }
-  k.add(loft([{ y:1.83, w:0.28, d:0.22 }, { y:1.98, w:0.18, d:0.16 }], SOFT_COLLAR), 'suit');   // gorget
+  k.add(loft(f ? [{ y:1.83, w:0.25, d:0.2 }, { y:1.98, w:0.16, d:0.145 }] : [{ y:1.83, w:0.28, d:0.22 }, { y:1.98, w:0.18, d:0.16 }], SOFT_COLLAR), 'suit');   // gorget
 }
 
 export function pauldrons(k, w, key = 'armor', size = 1){
@@ -258,7 +265,11 @@ const HELMETS = {
   magna(k, h, t){
     k.add(dome([{ y:0.0, w:0.17, d:0.19 }, { y:0.18, w:0.21, d:0.24 }, { y:0.3, w:0.18, d:0.22 }, { y:0.36, w:0.1, d:0.14 }]), 'armor', h);
     k.add(block(0.14, 0.08, 0.06, 0.3), 'black', h, [0, 0.07, 0.1], [0,0,0], { outline: false });
-    k.add(loft([{ y:-0.08, w:0.4, d:0.36 }, { y:0.06, w:0.32, d:0.3 }, { y:0.16, w:0.26, d:0.27, z:-0.02 }, { y:0.3, w:0.2, d:0.22, z:-0.04 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.02]);
+    if (k.dv === 2){
+      // no cowl: the bare skull, a stripe of paint down its crown and a scarf at the neck
+      k.add(block(0.05, 0.03, 0.26, 0.3), 'mark', h, [0, 0.355, 0.0], [0,0,0], { outline: false });
+      k.add(loft([{ y:-0.1, w:0.34, d:0.3 }, { y:0.02, w:0.24, d:0.22 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.01]);
+    } else k.add(loft([{ y:-0.08, w:0.4, d:0.36 }, { y:0.06, w:0.32, d:0.3 }, { y:0.16, w:0.26, d:0.27, z:-0.02 }, { y:0.3, w:0.2, d:0.22, z:-0.04 }], SOFT_COLLAR), 'cloth', h, [0, 0, -0.02]);
     const eyes = k.live(new THREE.Group(), h, 'eye');
     for (const s of [-1, 1]){
       const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.03), new THREE.MeshBasicMaterial({ color: t.eye, toneMapped: false }));
@@ -286,9 +297,20 @@ const HELMETS = {
   },
   // IMPERIAL OFFICER: a bare face under a peaked cap, the cap badge lit (the tell that swells as it aims or calls)
   officer(k, h, t){
-    // a real face under the cap (enemies/detail.js): it blinks, and its jaw works as it barks an order
-    face(k, h, { hair: false });
+    // a real face (enemies/detail.js): it blinks, and its jaw works as it barks an order. Its look (data/foe-looks.js)
+    // picks the face, and whether it wears the cap or goes bare-headed, hair combed back
+    const F = k.face || {};
+    if (k.cap === false){
+      face(k, h, { ...F, style: F.style === 'bald' ? 'buzz' : F.style || 'part' });
+      // the tell the cap badge would be: a rank pin lit on the collar, on the head so it turns with the look
+      k.glow(new THREE.BoxGeometry(0.05, 0.03, 0.01), t.eye, h, [0.07, -0.03, 0.12], [0,0,0], { tag: 'eye' });
+      return;
+    }
+    face(k, h, { ...F, hair: false });
     k.add(loft([{ y:-0.02, w:0.215, d:0.235 }, { y:0.04, w:0.215, d:0.235 }], SOFT_HEAD), 'hair', h, [0, 0.215, -0.005]);   // cropped hair under the cap
+    if (F.style === 'bun'){   // long hair pinned up in a bun under the cap's back edge
+      k.add(loft([{ y:-0.05, w:0.1, d:0.08 }, { y:0.0, w:0.12, d:0.1 }, { y:0.05, w:0.08, d:0.07 }], SOFT_HEAD), 'hair', h, [0, 0.19, -0.13], [PI/2 + 0.3, 0, 0]);
+    }
     k.add(loft([{ y:0.22, w:0.25, d:0.27 }, { y:0.3, w:0.29, d:0.31 }, { y:0.36, w:0.3, d:0.32 }, { y:0.385, w:0.28, d:0.3 }], SOFT_HEAD), 'armor', h);   // crown
     k.add(loft([{ y:0, w:0.215, d:0.12, z:0.13 }, { y:0.022, w:0.215, d:0.12, z:0.13 }], SOFT_COLLAR), 'black', h, [0, 0.22, 0.02]);   // brim
     k.add(loft([{ y:0, w:0.26, d:0.28 }, { y:0.03, w:0.258, d:0.278 }], SOFT_HEAD), 'black', h, [0, 0.235, 0], [0,0,0], { outline: false });   // cap band
@@ -326,17 +348,35 @@ const HELMETS = {
 function helmet(k, name, t, y = 1.96){
   const h = k.bone('head', k.root, [0, y, 0], [0,0,0], NECK);
   if (k.bare){
-    // BARE-HEADED (variant 4): a face, a comlink at the ear (its lamp is the wind-up tell the visor would be), the
-    // helmet on the belt (hips → detail.js belt)
+    // BARE-HEADED (a look with the helmet off, data/foe-looks.js): a face, a comlink at the ear (its lamp is the
+    // wind-up tell the visor would be), the helmet on the belt (hips → detail.js belt), maybe goggles or a headband
     face(k, h, k.face);
     k.add(block(0.03, 0.05, 0.04, 0.3), 'black', h, [0.122, 0.13, 0.0], [0, 0.2, 0], { outline: false });
     k.glow(new THREE.BoxGeometry(0.018, 0.018, 0.012), t.eye, h, [0.13, 0.15, 0.024], [0,0,0], { tag: 'eye' });
+    headgear(k, h, k.hat);
     return h;
   }
   k.add(loft([{ y:-0.04, w:0.14, d:0.14 }, { y:0.08, w:0.13, d:0.13 }], ngon(6, PI/6)), 'suit', h);   // neck
   HELMETS[name](k, h, t);
   if (k.v === 2) cheekMarks(k, h);
   return h;
+}
+
+/* what a bare head may wear (data/foe-looks.js hat): 'goggles' pushed up on the brow, a cloth 'band' round the head */
+function headgear(k, h, hat){
+  if (!hat) return;
+  const ring = (y, wd, key, out) => k.add(loft([{ y:0, w:0.235 + wd, d:0.255 + wd }, { y:0.034, w:0.232 + wd, d:0.252 + wd }], SOFT_HEAD), key, h, [0, y, -0.008], [-0.12, 0, 0], { outline: out });
+  if (hat === 'goggles'){
+    ring(0.215, 0, 'black', false);   // the strap
+    for (const s of [-1, 1]){
+      k.add(loft([{ y:0, w:0.075, d:0.075 }, { y:0.035, w:0.07, d:0.07 }], ngon(8, PI/8)), 'gun', h, [0.048*s, 0.255, 0.112], [PI/2 - 0.5, 0, 0]);
+      k.add(loft([{ y:0, w:0.055, d:0.055 }, { y:0.006, w:0.055, d:0.055 }], ngon(8, PI/8)), 'black', h, [0.048*s, 0.27, 0.139], [PI/2 - 0.5, 0, 0], { outline: false });
+    }
+  } else if (hat === 'band'){
+    ring(0.2, 0.004, 'cloth', true);
+    // the knot's tails at the back
+    for (const s of [-1, 1]) k.add(block(0.035, 0.1, 0.012, 0.3), 'cloth', h, [0.025*s, 0.17, -0.13], [-0.4, 0, 0.25*s], { outline: false });
+  }
 }
 
 /* ---------------- markings: a few units in a squad wear rank or field paint (k.v, picked per spawn) ----------------
@@ -348,6 +388,18 @@ const IMPERIAL = new Set(['storm', 'purge', 'heavy', 'jet', 'riot', 'grenadier',
 export const variantsOf = t => MARKED.has(t.model) ? (BARE[t.model] ? [0, 1, 2, 3, 4] : [0, 1, 2, 3]) : [0];
 // the faces a variant can wear (an index into detail.js FACES; clones share one), -1 for none
 export const facesOf = (t, v) => t.model === 'clone' ? (v === 4 ? [0] : [-1]) : (v === 4 || t.model === 'officer') ? FACES.map((_, i) => i) : [-1];
+/* a unit's LOOK (data/foe-looks.js): o.look, a whole look (a named escort); o.variant / o.face, a marking and one of
+   detail.js FACES (the enemy lab); else one from its model's pool; else (clones, Mandalorians) the old marking roll */
+function resolveLook(t, o, rnd){
+  if (o.look) return { v: 0, ...o.look };
+  const pool = lookPool(t.model);
+  if (pool && o.lookIndex != null) return pool[o.lookIndex % pool.length];
+  if (pool && o.variant == null && o.face == null) return pool[Math.floor(rnd() * pool.length)];
+  const v = o.variant ?? pickVariant(t, rnd);
+  const faces = facesOf(t, v), fi = o.face ?? faces[Math.floor(rnd() * faces.length)];
+  const F = fi < 0 ? null : t.model === 'clone' ? CLONE_FACE : FACES[fi % FACES.length];
+  return { v: v === 4 ? 0 : v, bare: v === 4 && !!BARE[t.model], face: F };
+}
 function pickVariant(t, rnd){
   if (!MARKED.has(t.model)) return 0;
   if (BARE[t.model] && rnd() < 0.12) return 4;
@@ -454,7 +506,7 @@ function cogGeometry(){
 export const MODELS = {
   // PURGE TROOPER — the rank-and-file melee hunter with a vibro-sword (grunt)
   purge(k, t){
-    const w = 1;
+    const w = 1 * k.bw;
     legs(k, w); hips(k, w); k = upper(k); torso(k, w); pauldrons(k, w, 'armor2', 0.9);
     sideArm(k, w, -1, [-0.12, 0, 0.05]);
     weaponArm(k, t, w);
@@ -462,19 +514,19 @@ export const MODELS = {
   },
   // STORMTROOPER — the blaster line (blaster)
   storm(k, t){
-    const w = 1;
+    const w = 1 * k.bw;
     legs(k, w); hips(k, w, { holster: true }); k = upper(k); torso(k, w); pauldrons(k, w, 'armor', 0.85);
     rifle(k, t, w, false); rifleSling(k, w);
     helmet(k, 'storm', t);
   },
   // HEAVY ASSAULT TROOPER — the brute with a vibro-maul: broad, plated, high collar
   heavy(k, t){
-    const w = 1.3;
+    const w = 1.3 * k.bw;
     legs(k, w, { boot: 'armor2' }); hips(k, w); k = upper(k); torso(k, w);
     k.add(loft([{ y:1.78, w:0.62, d:0.42 }, { y:1.98, w:0.5, d:0.4 }], SOFT_COLLAR), 'armor2');   // raised collar
     hazard(k);
     pauldrons(k, w, 'armor', 1.25);
-    for (const s of [-1, 1]) k.add(shard(0.07, 0.18, 0.07), 'metal', k.root, [0.5*s, 1.92, 0], [0, 0, -0.3*s]);
+    for (const s of [-1, 1]) k.add(shard(0.07, 0.18, 0.07), 'metal', k.root, [0.385*w*s, 1.92, 0], [0, 0, -0.3*s]);
     sideArm(k, w, -1, [-0.1, 0, 0.08]);
     weaponArm(k, t, w);
     helmet(k, 'heavy', t, 1.94);
@@ -484,7 +536,9 @@ export const MODELS = {
     const w = 0.92;
     legs(k, w, { shin: 'metal' }); hips(k, w); k = upper(k); torso(k, w, { pack: false });
     // cloak: a cape off both shoulders and a short mantle
-    cape(k, [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1);
+    cape(k, k.dv === 1   // a cloak torn ragged at the hem, or whole
+      ? [[-0.3,0],[0.3,0],[0.36,-0.95],[0.26,-1.18],[0.14,-0.98],[0.02,-1.28],[-0.1,-1.02],[-0.22,-1.22],[-0.36,-1.0]]
+      : [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1);
     k.add(loft([{ y:1.62, w:0.66, d:0.44 }, { y:1.82, w:0.52, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
     const staff = k.slot('staff', k.root, [0.55, 1.5, 0.2], [0.3, 0, 0.5]);
     // both hands on the grips, re-aimed every frame as the staff guards, spins and strikes (enemies/holds.js)
@@ -512,7 +566,7 @@ export const MODELS = {
   },
   // JET TROOPER — rocket pack, T-visor, carbine (flyer)
   jet(k, t){
-    const w = 1;
+    const w = 1 * k.bw;
     legs(k, w); hips(k, w, { holster: true }); k = upper(k); torso(k, w, { pack: false }); pauldrons(k, w, 'armor2', 0.85);
     rifle(k, t, w, false); rifleSling(k, w);
     // the pack: core, twin fuel tanks, flared nozzles, and the live thruster flames
@@ -528,7 +582,7 @@ export const MODELS = {
   },
   // SHORETROOPER with a riot shield and a vibro-sword (phalanx)
   riot(k, t){
-    const w = 1.05;
+    const w = 1.05 * k.bw;
     legs(k, w); hips(k, w); k = upper(k); torso(k, w); pauldrons(k, w, 'armor2', 1.0);
     k.add(plate([[-0.25,0],[0.25,0],[0.28,-0.5],[-0.28,-0.5]], 0.014, 0.004), 'cloth', k.root, [0, 1.12, 0.17], [-0.06, 0, 0], { outline: false });   // kama
     weaponArm(k, t, w);
@@ -562,15 +616,22 @@ export const MODELS = {
     k.add(loft([{ y:1.78, w:0.05, d:0.05 }, { y:2.02, w:0.045, d:0.045 }], ngon(6)), 'metal', k.root, [0, 0, 0.03], [0.18, 0, 0]);   // neck
     for (const s of [-1, 1]){
       const sh = k.group(k.root, [0.25*s, 1.72, 0], [-0.15, 0, 0.14*s]);
+      const arm = k.dv === 2 && s < 0 ? 'metal' : 'armor';   // a salvaged arm off another droid, unpainted
       k.add(block(0.11, 0.1, 0.11, 0.4), 'armor2', sh);
-      k.add(limb(0.38, [[0,0.06,0.06],[1,0.05,0.05]], chamfer(0.35)), 'armor', sh);
-      k.add(limb(0.34, [[0,0.055,0.055],[1,0.045,0.045]], chamfer(0.35)), 'armor', sh, [0, -0.38, 0]);
+      k.add(limb(0.38, [[0,0.06,0.06],[1,0.05,0.05]], chamfer(0.35)), arm, sh);
+      k.add(limb(0.34, [[0,0.055,0.055],[1,0.045,0.045]], chamfer(0.35)), arm, sh, [0, -0.38, 0]);
       k.add(block(0.08, 0.1, 0.06, 0.3), 'metal', sh, [0, -0.76, 0.02]);
     }
     // the long droid head: snout forward, skull back, two small eyes
     const h = k.bone('head', k.root, [0, 2.05, 0.06], [0.25, 0, 0], NECK);
     k.add(loft([{ y:-0.08, w:0.14, d:0.16 }, { y:0.05, w:0.16, d:0.18 }, { y:0.12, w:0.1, d:0.12 }], chamfer(0.35)), 'armor', h, [0, 0, -0.02]);
     k.add(loft([{ y:0, w:0.12, d:0.1 }, { y:0.3, w:0.07, d:0.06 }], chamfer(0.35)), 'armor', h, [0, -0.02, 0.03], [PI/2 - 0.2, 0, 0]);
+    if (k.dv === 1){
+      // a commander's kit: a long antenna off the skull, paint on the head and a band across the chest
+      k.add(loft([{ y:0, w:0.016, d:0.016 }, { y:0.34, w:0.01, d:0.01 }], ngon(6)), 'metal', h, [-0.05, 0.08, -0.06], [-0.35, 0, 0.12], { outline: false });
+      k.add(block(0.04, 0.02, 0.2, 0.3), 'mark', h, [0, 0.115, 0.0], [0,0,0], { outline: false });
+      k.add(block(0.3, 0.05, 0.02, 0.3), 'mark', k.root, [0, 1.73, 0.135], [0,0,0], { outline: false });
+    } else if (k.dv === 2) k.add(block(0.12, 0.02, 0.02, 0.3), 'black', h, [0.03, 0.06, 0.09], [0, 0, 0.5], { outline: false });   // a scorch across the head
     const eyes = k.live(new THREE.Group(), h, 'eye');
     for (const s of [-1, 1]){
       const m = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 5), new THREE.MeshBasicMaterial({ color: t.eye, toneMapped: false }));
@@ -584,7 +645,7 @@ export const MODELS = {
   // IMPERIAL OFFICER — a grey tunic, belt and rank plaque, a peaked cap, one hand behind its back and a sidearm in the
   // other (officer). No armour: the one you can drop fast.
   officer(k, t){
-    const w = 0.94;
+    const w = 0.94 * k.bw;
     legs(k, w, { shin: 'cloth', boot: 'black' }); hips(k, w); k = upper(k); torso(k, w, { box: false, pack: false, plates: false });
     k.add(loft([{ y:1.03, w:0.42*w, d:0.29 }, { y:1.1, w:0.42*w, d:0.29 }], SOFT_BODY), 'black');   // belt
     k.add(block(0.05, 0.04, 0.03, 0.3), 'metal', k.root, [0, 1.065, 0.15], [0,0,0], { outline: false });
@@ -599,7 +660,7 @@ export const MODELS = {
   },
   // GRENADIER — a field trooper in khaki plates, a bandolier of detonators across the chest and one in hand (grenadier)
   grenadier(k, t){
-    const w = 1.04;
+    const w = 1.04 * k.bw;
     legs(k, w); hips(k, w, { holster: true }); k = upper(k); torso(k, w); pauldrons(k, w, 'armor2', 0.95);
     k.add(plate([[-0.05,0.3],[0.05,0.3],[0.05,-0.3],[-0.05,-0.3]], 0.02, 0.006), 'leather', k.root, [0, 1.56, 0.19], [0, 0, 0.62], { outline: false });   // bandolier
     for (let i = 0; i < 4; i++){
@@ -614,7 +675,7 @@ export const MODELS = {
   },
   // PURGE LANCER — a lean purge trooper in a short cape, an electro-pike carried point-forward, a finned crest (lancer)
   lancer(k, t){
-    const w = 0.98;
+    const w = 0.98 * k.bw;
     legs(k, w); hips(k, w); k = upper(k); torso(k, w, { box: false }); pauldrons(k, w, 'armor2', 1.0);
     cape(k, [[-0.28,0],[0.28,0],[0.32,-0.9],[0,-1.0],[-0.32,-0.9]], [0, 1.86, -0.22], 0.1);   // short cape
     // the pike is carried one-handed at the hip, point forward (the off hand can't reach a haft that low on the far
@@ -645,9 +706,9 @@ export const MODELS = {
   },
   // SCOUT SNIPER — scout helm, camo poncho, a long DLT-19x (sniper)
   scout(k, t){
-    const w = 0.95;
+    const w = 0.95 * k.bw;
     legs(k, w); hips(k, w, { holster: true }); k = upper(k); torso(k, w);
-    k.add(loft([{ y:1.3, w:0.78, d:0.52 }, { y:1.62, w:0.7, d:0.46 }, { y:1.84, w:0.48, d:0.34 }, { y:1.94, w:0.24, d:0.2 }], SOFT_COLLAR), 'cloth');   // poncho
+    k.add(loft([{ y:1.3, w:0.78*k.bw, d:0.52 }, { y:1.62, w:0.7, d:0.46 }, { y:1.84, w:0.48, d:0.34 }, { y:1.94, w:0.24, d:0.2 }], SOFT_COLLAR), 'cloth');   // poncho
     rifle(k, t, w, true);
     helmet(k, 'scout', t);
   },
@@ -666,33 +727,34 @@ const HOLDS = {
 
 /* ---------------- build ---------------- */
 
-/* o.variant: force a marking (0 plain, 1–4: see MARKED); o.face: force a face (detail.js FACES); o.wear: 0 fresh → 1
-   beaten (default: picked per unit). o.seed (a foe's number, the same on both screens in co-op) picks the marking and the
-   face, so a bare-headed trooper is bare-headed for both players */
+/* o.look: a whole look (data/foe-looks.js); o.lookIndex: one from the model's pool; o.variant: force a marking (0 plain,
+   1–4: see MARKED); o.face: force a face (detail.js FACES); o.wear: 0 fresh → 1 beaten (default: picked per unit).
+   o.seed (a foe's number, the same on both screens in co-op) picks the look, so a bare-headed trooper is bare-headed,
+   and the same person, for both players */
 const seeded = n => { let x = (n * 2654435761) >>> 0; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; }; };
 export function buildEnemyMesh(t, o = {}){
   const rnd = o.seed != null ? seeded(o.seed + 1) : Math.random;
-  const v = o.variant ?? pickVariant(t, rnd);
-  const faces = facesOf(t, v), fi = o.face ?? faces[Math.floor(rnd() * faces.length)];
-  const F = fi < 0 ? null : t.model === 'clone' ? CLONE_FACE : FACES[fi % FACES.length];
-  const id = t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + ':v' + v + (F ? ':f' + fi : '');
+  const L = resolveLook(t, o, rnd), F = L.face || null;
+  const carry = L.bare && ((FOE_LOOKS[t.model] && FOE_LOOKS[t.model].carry) || BARE[t.model]);
+  const id = t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + lookKey(L);
   const baked = bakeDesign(id, k => {
-    k.v = v; k.face = F; k.badge = IMPERIAL.has(t.model);
-    if (v === 4 && BARE[t.model]){
+    k.v = L.v || 0; k.dv = L.dv || 0; k.face = F; k.badge = IMPERIAL.has(t.model);
+    k.fem = !!L.fem; k.bw = L.fem ? 0.88 : 1; k.hat = L.hat || null; k.cap = L.cap;
+    if (carry){
       // the helmet it took off, hung on its belt: the same helmet design without its lit lenses
       k.bare = true;
-      k.bareHelmet = g => HELMETS[BARE[t.model]]({ ...k, root: g, glow: () => new THREE.Object3D(), live: o => o }, g, t);
+      k.bareHelmet = g => HELMETS[carry]({ ...k, root: g, glow: () => new THREE.Object3D(), live: o => o }, g, t);
     }
     MODELS[t.model](k, t);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
-    ...(F ? { skin: F.skin, hair: F.hair } : {}),
+    ...(F ? { skin: F.skin, hair: F.hair, beard: F.hair } : {}),
   });
   // the unit's group carries its place, heading and the AI's poses; inside it `vis` takes the gait's bob, sway and
   // lean (enemies/gait.js), so the two never fight over one transform. No two of a squad are quite alike: each is a
   // touch taller or shorter (vis only: hitboxes keep the type's size), its armour a shade off and worn its own way
   const vis = instantiate(baked, { seed: Math.random() * 97, wear: o.wear ?? 0.1 + Math.random() * 0.45 }), g = new THREE.Group();
-  vis.scale.setScalar(0.96 + Math.random() * 0.08);
+  vis.scale.setScalar((0.96 + Math.random() * 0.08) * (L.fem ? 0.96 : 1));   // (a woman's build stands a touch shorter)
   const tone = 0.93 + Math.random() * 0.1;
   vis.userData.bodyMat.color.multiplyScalar(tone);
   if (vis.userData.plateMat) vis.userData.plateMat.color.multiplyScalar(tone);

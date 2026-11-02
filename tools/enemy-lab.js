@@ -2,7 +2,8 @@
 // Enemy lab (dev only: `npm run dev`, then open /tools/enemy-lab.html).
 // Lines up every enemy type (or both bosses) under the game's own lights, so enemy model changes can be judged
 // without playing. URL params: ?set=troops|bosses|squad  &pose=idle|windup|guardL|guardR|guardH|guardLo|blockL|blockR|blockH|blockLo|windL|windR|windH|windT (a duellist's guards, blocks and wind-ups)  &elite=swift|vital|volatile  &view=front|back  &z=<camera distance>
-// &orbit=1 (slow turntable). &variant=0..4 (4: bare-headed) &face=0..4 force a marking and a face; &talk=1 has them talk;
+// &orbit=1 (slow turntable). ?set=looks&type=blaster (or several, comma-separated, or all; &per=N caps each) lines up a
+// type's pool of looks (data/foe-looks.js). &variant=0..4 (4: bare-headed) &face=0..4 force a marking and a face; &talk=1 has them talk;
 // &cam=x,y,z,lookY places the lens for a close-up. &cut=diagR|all plays a duellist's cut on a loop (data/duel.js FOE_CUTS; all: every cut in
 // turn, named in the corner); &at=0..2 freezes it there instead (0→1 the wind-up, 1→2 the strike). The stats corner shows draw calls per frame.
 
@@ -10,6 +11,7 @@ import * as THREE from 'three';
 import { scene, camera, composer, renderer } from '../src/engine/renderer.js';
 import { ENEMY_TYPES } from '../src/data/enemies.js';
 import { buildEnemyMesh } from '../src/enemies/mesh.js';
+import { lookPool } from '../src/data/foe-looks.js';
 import { buildBoss } from '../src/boss/mesh.js';
 import { updateUpper } from '../src/enemies/upper.js';
 import { markHit } from '../src/enemies/marks.js';
@@ -64,6 +66,20 @@ if (SET === 'bosses'){
     const t = { scale: 1, ...m };
     const g = buildEnemyMesh(t);
     figs.push({ g, label: m.name, w: 2.1 });
+  }
+} else if (SET === 'looks'){
+  // every look in one type's pool (data/foe-looks.js), or &type=all: the first few of every type's
+  const TYPE = q.get('type') || 'blaster', per = +q.get('per') || 0;
+  for (const [name, t] of Object.entries(ENEMY_TYPES)){
+    if (TYPE !== 'all' && !TYPE.split(',').includes(name)) continue;
+    const pool = lookPool(t.model) || [null];
+    pool.slice(0, per || pool.length).forEach((L, i) => {
+      const g = buildEnemyMesh(t, L ? { lookIndex: i } : {});
+      if (t.fly) g.position.y = 0.6;
+      pose(g, !!t.heavy);
+      const tag = L ? (L.fem ? 'F' : 'M') + (L.bare || L.face ? ' face' : '') + (L.v ? ' m' + L.v : '') + (L.dv ? ' kit' + L.dv : '') : '';
+      figs.push({ g, label: (TYPE === 'all' || TYPE.includes(',') ? name + ' ' : '') + tag, w: 0.85 + t.scale * 0.7 });
+    });
   }
 } else {
   const ONLY = q.get('only');   // &only=grunt,brute — a subset, for close-ups

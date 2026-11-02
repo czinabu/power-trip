@@ -714,7 +714,7 @@ function sightBlocked(ax, ay, az, bx, by, bz){
   return false;
 }
 function makeQuarry(q = heroKey(M.def.quarry)){
-  const g = buildEnemyMesh(ENEMY_TYPES[q.foe]);
+  const g = buildEnemyMesh(ENEMY_TYPES[q.foe], { seed: 7 });   // (one look, the same on both co-op screens)
   g.scale.multiplyScalar(q.scale || 1);
   g.userData.bodyMat.color.lerp(new THREE.Color(q.tint), 0.5);
   const tag = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4),
@@ -870,7 +870,7 @@ function leadHero(P){
   return best || players[0];
 }
 function buildVip(d){
-  const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 });
+  const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.look ? { look: d.look } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
   const tag = makeFriendTag(1.2); addFriendRing(g);
   scene.add(g, tag); M.props.push(g, tag);
   return M.vip = { g, tag, def: d, hp: d.hp, maxHp: d.hp };

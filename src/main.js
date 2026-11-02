@@ -103,8 +103,9 @@ import { updateBarks } from './fx/barks.js';
 import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist } from './enemies/nav.js';
 import { DUEL, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
-import { LOCK, startLock, endLock, duelDefend, eliteRamp } from './enemies/duel.js';
+import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush } from './enemies/duel.js';
 import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
+import { bladeSegment } from './player/jedi/bladehit.js';
 import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partner.js';
 import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft } from './allies/squad.js';
 import { updateWheel, wheelOpen } from './allies/wheel.js';
@@ -219,7 +220,7 @@ window.GAME = { shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMa
   FOCUS, focusTier, focusDmgMul, focusRegenMul, addFocus, updateFocus, enemyDmgScale, applySwingDamage,
   hitMarker, spawnBlasterBolt, mandoWeapon, updateBolts, updateHud,
   hazardZones, updateHazardZones, hazardContains, setOverlayState, nav: { NAV, buildNav, updateNav, navSteer, navDist },
-  duel: { DUEL, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint },
+  duel: { DUEL, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint, bladeSegment, lockPush },
   scars: { scarBody, severLimbs },
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed },

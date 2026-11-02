@@ -89,7 +89,7 @@ export function torso(k, w, o = {}){
   const ab = plate([[-0.12,-0.035],[0.12,-0.035],[0.13,0.03],[-0.13,0.03]], 0.026, 0.008);
   k.add(ab, 'armor2', k.root, [0, 1.17, 0.125], [0.04, 0, 0], { scale: [w, 1, 1] });
   k.add(ab, 'armor2', k.root, [0, 1.25, 0.13], [0.06, 0, 0], { scale: [w * 1.06, 1, 1] });
-  k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.64*w, d:0.44, z:0.034 }, { y:1.65, w:0.66*w, d:0.42, z:0.024 },
+  k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.64*w, d:0.425, z:0.026 }, { y:1.65, w:0.66*w, d:0.41, z:0.018 },
                  { y:1.76, w:0.6*w, d:0.34 }, { y:1.84, w:0.46*w, d:0.29 }, { y:1.88, w:0.26, d:0.21 }]
                : [{ y:1.3, w:0.42*w, d:0.28 }, { y:1.48, w:0.6*w, d:0.36 }, { y:1.7, w:0.64*w, d:0.36 }, { y:1.82, w:0.48*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
   // the chest plate's lower lip, a darker rim the plate sits on, so the cuirass reads as a separate layer over the suit

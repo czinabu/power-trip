@@ -6,6 +6,7 @@ import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { G, keys, player, isGunner } from '../state.js';
+import { strafing } from './strafe.js';
 import { MANDO, JEDI_FORCE, JUMP_HOLD_THRESH, forceJumpPow } from '../data/mando.js';
 import { stance, maxHp } from './helpers.js';
 import { focusMoveMul } from './jedi/focus.js';
@@ -51,7 +52,7 @@ export function updateMovement(dt, pp, st, f, r){
   // Jedi paces, a brisk purposeful walk, fight or no fight: the Vader walk, cutting down whatever comes into reach.
   const wasSprinting = player.sprinting;
   player.sprinting = !isGunner() && !!player.sprintOn && !!keys['w'] && (player.grounded || wasSprinting)
-                     && !keys['alt'] && !player.blockHeld && player.atkT <= 0 && !(player.flinchT > 0)
+                     && !strafing() && !player.blockHeld && player.atkT <= 0 && !(player.flinchT > 0)
                      && !(player.landStagT > 0) && !(player.slideT > 0) && !player.mantle && !player.hang;
   player.walking = !isGunner() && !player.sprintOn && player.grounded;
   // PIVOT — reversing hard at speed plants the feet: you brake to a stop before the new direction takes

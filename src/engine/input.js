@@ -22,6 +22,7 @@ import { forceDash, doJump } from '../player/movement.js';
 import { trySlide } from '../player/parkour.js';
 import { pullPress, pullRelease, graspThrow, graspDrop } from '../player/jedi/grasp.js';
 import { toggleLock } from '../player/lockon.js';
+import { toggleStrafe } from '../player/strafe.js';
 import {
   bactaStim, mandoRocket, mandoJetMissile, whistlingBirds, thermalDetonator, grappleHook, jetSlam
 } from '../player/mando/gadgets.js';
@@ -159,7 +160,10 @@ document.addEventListener('keydown', (e) => {
     if (k !== 'tab'){ if (k.length === 1 && 'wasd'.includes(k)) keys[k] = true; return; }
   }
   keys[k] = true;
-  if (k === 'alt') e.preventDefault();   // ALT is the STRAFE hold (player/animation.js): keep the browser from grabbing it for its menu bar
+  if (k === 'alt'){
+    e.preventDefault();   // ALT is STRAFE (player/strafe.js): keep the browser from grabbing it for its menu bar
+    if (e.isTrusted && !e.repeat && G.mode === 'play' && !G.paused && !G.skillSelect) toggleStrafe();   // TOGGLE mode: each press flips it (a pad's LB toggles on a tap: engine/gamepad.js)
+  }
   if (k === 'p' && !e.repeat){ cycleQuality(); return; }   // graphics quality — works anywhere
   if (k === 'm' && !e.repeat){ audioInit(); const on = MUSIC.toggle(); showBanner('', '♪ MUSIC ' + (on ? 'ON' : 'OFF'), 1.0); return; }   // music on/off (persists)
   if (k === ' ' && !e.repeat) doJump();
@@ -190,7 +194,7 @@ document.addEventListener('keydown', (e) => {
     }
   } else {
     // SHIFT dashes any way you're pressing (or rolls out of a hard landing). Sprinting has its own key: Q toggles it
-    // between run (the default) and walk (locomotion.js runs it). Z out of a sprint slides; hold ALT to strafe.
+    // between run (the default) and walk (locomotion.js runs it). Z out of a sprint slides; ALT strafes.
     if (k === 'shift' && !e.repeat) forceDash();
     if (k === 'q' && !e.repeat && G.mode === 'play'){
       player.sprintOn = !player.sprintOn;
@@ -235,5 +239,6 @@ document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; i
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck
 // on, and no sprint or slide. Losing focus releases everything; any key event that says ALT is up releases ALT.
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-document.addEventListener('keydown', (e) => { if (!e.altKey && keys['alt']) keys['alt'] = false; }, true);
-document.addEventListener('mousedown', (e) => { if (!e.altKey && keys['alt']) keys['alt'] = false; }, true);
+// (only for real input: the pad's own key events never say ALT, and LB held + a face button must keep the strafe)
+document.addEventListener('keydown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);
+document.addEventListener('mousedown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);

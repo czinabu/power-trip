@@ -8,6 +8,7 @@ import { AE } from '../audio/engine.js';
 import { shared, G, player, isGunner, isTrooper } from '../state.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { setHero } from '../player/hero.js';
+import { setStrafeMode } from '../player/strafe.js';
 import { startLevel, retryLevel, retryIsBoss, startCoopCampaign } from '../game/flow.js';
 import { coopRun } from '../net/run.js';
 import { startEndless } from '../game/survival.js';
@@ -203,6 +204,9 @@ function setSwingMirror(on){
 }
 setSwingMirror(localStorage.getItem('sw_swingmirror') === '1');
 document.getElementById('swingctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSwingMirror(!G.swingMirror); });
+// STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
+setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');
+document.getElementById('strafectl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setStrafeMode(G.strafeMode === 'hold' ? 'toggle' : 'hold'); });
 // CUT AIM — the keys pick the cut's angle (the default), or a mouse flick just before the press does (player/jedi/cutaim.js).
 // (sw_cutaim, not the old sw_cutmouse: that one was saved as MOUSE on every load while mouse was the default.)
 function setCutMouse(on){

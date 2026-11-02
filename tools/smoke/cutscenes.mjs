@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // CUTSCENES SMOKE TEST — the campaign's in-engine scenes (game/cutscene.js) on the BUILT game, as both heroes:
 //   · a chapter's opening plays when its card closes, holds the fight still, and hands back to play on its own
-//   · Enter skips one (a tap of Space doesn't: it has to be held), and a chapter's talk plays on set in its opening
+//   · a tap of Space moves a scene on a line, holding Space skips it, and a chapter's talk plays on set in its opening
 //   · a mission duel's entrance plays before its foe, and the foe steps in once it ends
 //   · co-op: the host's duel entrance plays for the guest too; a skip is a vote: the guest's alone shows the host
 //     "<NAME> WANTS TO SKIP" and keeps both watching, and the host's agreeing ends it for both
@@ -57,15 +57,19 @@ try {
     await page.waitForFunction(() => !GAME.G.cutscene, null, poll);   // it ends on its own...
     if (await page.evaluate(() => document.body.classList.contains('cutscene'))) fail(hero + ': the letterbox stayed up');
     if (hero === 'jedi' && !(await page.evaluate(() => GAME.G.talkStaged === 'last-lesson'))) fail(hero + ': chapter 1\'s scene with Ilsa was not staged in the opening');
-    // ...and Enter skips one (chapter 2's opening, with the Inquisitor or VX-7 watching)
+    // ...and holding Space skips one (chapter 2's opening, with the Inquisitor or VX-7 watching)
     await page.evaluate(() => GAME.startChapter(1)); await begin(page);
     if (!(await page.evaluate(() => GAME.G.cutscene))) fail(hero + ': chapter 2 opened without its scene');
-    // a tap of Space (jump) doesn't throw the scene away: Space has to be held
+    // a tap of Space moves it on a line, and doesn't throw the scene away
+    await page.waitForTimeout(1500);   // (past the scene's first moment, where a mashed jump doesn't count)
+    const shot = () => page.evaluate(() => +GAME.cutscene.shotInfo().split(':')[0]);
+    const before = await shot();
     await page.keyboard.press(' ');
     await page.waitForTimeout(200);
     if (!(await page.evaluate(() => GAME.G.cutscene))) fail(hero + ': a tap of Space skipped the scene');
-    await page.keyboard.press('Enter');
-    if (await page.evaluate(() => GAME.G.cutscene)) fail(hero + ': Enter did not skip the scene');
+    if (!((await shot()) > before)) fail(hero + ': a tap of Space did not move the scene on');
+    await page.keyboard.down(' '); await page.waitForTimeout(1200); await page.keyboard.up(' ');
+    if (await page.evaluate(() => GAME.G.cutscene)) fail(hero + ': holding Space did not skip the scene');
     // a mission duel: its entrance, then the foe
     await page.evaluate(() => GAME.startMission('trial-knight', 0));
     await page.waitForFunction(() => GAME.G.cutscene, null, poll);
@@ -107,12 +111,14 @@ try {
   await host.waitForFunction(() => GAME.G.cutscene, null, poll);
   await guest.waitForFunction(() => GAME.G.cutscene, null, poll);
   await host.waitForFunction(() => GAME.coopRun.guestScene, null, poll);   // the host's foes hold for the guest's scene too
-  await guest.keyboard.press('Enter');   // the guest asks to skip: nothing ends until the host agrees
+  await guest.bringToFront();   // (a tab in the background gets no frames, and a hold is timed by them)
+  await guest.keyboard.down(' '); await guest.waitForTimeout(1200); await guest.keyboard.up(' ');   // the guest asks to skip: nothing ends until the host agrees
   await host.waitForFunction(() => /WANTS TO SKIP/.test(document.querySelector('#cutscene .cs-vote').textContent), null, poll);
   if (!(await host.evaluate(() => GAME.G.cutscene)) || !(await guest.evaluate(() => GAME.G.cutscene))) fail('one player\'s skip ended a co-op scene alone');
   if (!/WAITING FOR YOUR PARTNER/.test(await guest.evaluate(() => document.querySelector('#cutscene .cs-vote').textContent))) fail('the guest is not told it is waiting on the host');
   if (process.env.SHOT) await host.screenshot({ path: process.env.SHOT });
-  await host.keyboard.press('Enter');   // the host agrees: both scenes end
+  await host.bringToFront();
+  await host.keyboard.down(' '); await host.waitForTimeout(1200); await host.keyboard.up(' ');   // the host agrees: both scenes end
   await host.waitForFunction(() => !GAME.G.cutscene, null, poll);
   await guest.waitForFunction(() => !GAME.G.cutscene, null, poll);
   await host.waitForFunction(() => !GAME.coopRun.guestScene, null, poll);

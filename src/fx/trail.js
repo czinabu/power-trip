@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { G, player, isGunner, enemies, shared } from '../state.js';
 import { stance, bladeColor } from '../player/helpers.js';
-import { FORM_OF } from '../data/poses.js';
-import { fitStaffBlades } from '../player/model/weapons.js';
+import { FORM_OF, SWING_STYLE } from '../data/poses.js';
+import { fitStaffBlades, saberIsStaff } from '../player/model/weapons.js';
 
 /* ---------- saber motion trail ----------
    Every lightsaber in the scene leaves a streak that runs EXACTLY where its blade went: the player's saber, the saber
@@ -42,7 +42,7 @@ const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (
   shien:     { life: 0.2, core: 0.7, base: 0.18 },
   juyo:      { life: 0.16, core: 0.95, base: 0.22 },   // hot, ragged streaks
   vaapad:    { life: 0.19, core: 0.8, base: 0.16 },
-  staff:     { life: 0.18, core: 0.8, base: 0.2 },     // two wheeling streaks, one off each end
+  staff:     { life: 0.12, core: 0.6, base: 0.42 },    // two wheeling streaks, one off each end: kept short and thin, or a whirl of both washes the view out
   darksaber: { life: 0.2, core: 0.35, base: 0.15 },
   thrown:    { life: 0.14, core: 0.7, base: 0.1 },     // a spinning disc of light, short so it doesn't swallow the hilt
 };
@@ -121,6 +121,9 @@ export function updateTrail(dt){
   if ((scanT -= dt) <= 0){ scanT = TRAIL_TUNE.scan; scan(); }
   const swinging = player.atkT > 0 || player.darkT > 0;
   const riposte = player.swing && player.swing.riposte;
+  // (the saber staff's whirl between cuts draws no streak: both blades wheeling a full turn in a few frames would fan
+  // two great additive sheets across the view; the streaks pick up again as the cut itself comes through)
+  const sw = player.swing, whirl = swinging && sw && sw.spin && sw.spin.twirl && sw.t < sw.dur * SWING_STYLE.staff.ts && saberIsStaff(player);
   tipSpeed = 0;
   for (const b of BLADES.values()){
     for (const p of b.s) p.age += dt;
@@ -146,6 +149,7 @@ export function updateTrail(dt){
       const T = TRAIL_TUNE;
       let w = Math.min(1, Math.max(0, (sp - T.speedOn) / (T.speedFull - T.speedOn)));
       if (owner.userData.trailAlways || (mine && swinging)) w = 1;
+      if (mine && whirl) w = 0;
       if (mine && player.blade && b.m === player.blade.glow) tipSpeed = sp;   // the blade's motion smear (updateBladeFX)
       b.s.push({ h: _h.clone(), d: _d.clone(), len, age: 0, w });
       if (b.s.length > MAXS) b.s.shift();

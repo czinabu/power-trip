@@ -55,10 +55,11 @@ export function lookPool(model){
   const n = P.n, women = spread(n, Math.round(n * P.fem)), bare = P.face ? null : spread(n, Math.round(n * (P.bare || 0)), 1);
   const capped = P.face ? spread(n, Math.round(n * P.cap), 2) : null;
   const pool = [];
-  let mark = 0, fi = 0, mi = 0;
+  let mark = 0, fi = 0, mi = 0, nb = 0;
   for (let i = 0; i < n; i++){
-    const fem = women.has(i), L = { v: 0, fem };
     const faced = P.face || bare.has(i);
+    // helmeted: the women spread through the pool; bare-headed: every other face is a woman's, so both show unmasked
+    const fem = faced && !P.face ? nb++ % 2 === 1 : women.has(i), L = { v: 0, fem };
     if (!faced) L.v = [0, 1, 0, 2, 3][mark++ % 5];   // helmeted: the markings, plain most often
     if (faced){
       const skin = SKINS[(i * 3 + Math.floor(r() * 3)) % SKINS.length];

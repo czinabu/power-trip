@@ -326,6 +326,17 @@ const HELMETS = {
     for (const s of [-1, 1]) k.add(block(0.025, 0.12, 0.08, 0.3), 'cloth', h, [0.15*s, 0.2, 0.06], [0, 0.35*s, 0], { outline: false });
     k.glow(new THREE.BoxGeometry(0.2, 0.012, 0.01), t.eye, h, [0, 0.225, 0.168], [0,0,0], { tag: 'eye', opacity: 0.6 });
   },
+  // THE MARSHAL (the ARC trooper's rival, a clone commander): the clone helm with a tall crest and a gold-trimmed brow,
+  // a gold stripe down the dome, cheek plates and a long rangefinder
+  marshal(k, h, t){
+    HELMETS.clone(k, h, t);
+    k.add(block(0.04, 0.16, 0.36, 0.3), 'cloth', h, [0, 0.4, -0.02]);   // the commander's crest, taller than a trooper's fin
+    k.add(block(0.26, 0.03, 0.05, 0.3), 'cloth', h, [0, 0.262, 0.14], [-0.15, 0, 0]);   // gold brow over the visor
+    k.add(block(0.05, 0.03, 0.28, 0.3), 'cloth', h, [0, 0.43, 0.0], [0, 0, 0], { outline: false });   // the stripe over the dome
+    for (const s of [-1, 1]) k.add(block(0.03, 0.14, 0.1, 0.3), 'armor2', h, [0.155*s, 0.07, 0.07], [0, 0.3*s, 0]);   // cheek plates
+    k.add(block(0.022, 0.24, 0.022, 0.3), 'metal', h, [0.17, 0.34, 0.0], [0.2, 0, -0.1]);
+    k.glow(new THREE.BoxGeometry(0.02, 0.02, 0.02), t.eye, h, [0.19, 0.46, 0.03]);   // its lamp
+  },
   // MANDALORIAN WARRIOR (a squadmate): a tall beskar helm with the T-visor, a rangefinder and a flared jaw
   mandalorian(k, h, t){
     k.add(dome([{ y:-0.03, w:0.25, d:0.27 }, { y:0.1, w:0.28, d:0.3 }, { y:0.26, w:0.29, d:0.31 }, { y:0.36, w:0.25, d:0.27 }, { y:0.42, w:0.13, d:0.16 }]), 'armor', h);
@@ -692,6 +703,27 @@ export const MODELS = {
     k.add(block(0.32, 0.05, 0.03, 0.3), 'cloth', k.root, [0, 1.74, 0.19], [0,0,0], { outline: false });   // the chest stripe
     rifle(k, t, w, false); rifleSling(k, w);
     helmet(k, 'clone', t);
+  },
+  // THE MARSHAL — the ARC trooper's batch-brother and rival, a clone COMMANDER in black-and-gold purge armour
+  // (data/allies.js MARSHAL dresses the officer type in it): a broad gold commander's pauldron, gold chevrons, a kama
+  // of dark plates trimmed in gold, a holstered sidearm, the DC-15 held across the chest
+  marshal(k, t){
+    const w = 1.04;
+    legs(k, w, { boot: 'armor2' }); hips(k, w, { holster: true });
+    // the kama: dark armoured flaps at the hips and back, gold at the hem
+    for (const [x, ry, z] of [[-0.2, -0.5, 0.06], [0.2, 0.5, 0.06], [0, PI, -0.17]]){
+      const kg = k.group(k.root, [x*w, 1.06, z], [0.06, ry, 0]);
+      k.add(plate([[-0.14,0],[0.14,0],[0.16,-0.48],[-0.16,-0.48]], 0.02, 0.006), 'armor2', kg);
+      k.add(plate([[-0.16,-0.44],[0.16,-0.44],[0.16,-0.48],[-0.16,-0.48]], 0.024, 0.004), 'cloth', kg, [0, 0, 0.004], [0,0,0], { outline: false });
+    }
+    k = upper(k); torso(k, w); pauldrons(k, w, 'armor', 0.9);
+    // the commander's pauldron over the left shoulder, in gold, with a dark rim
+    k.add(loft(cap(0.36, 0.34), SOFT), 'cloth', k.root, [-0.4*w, 1.83, 0], [0, 0, 0.36]);
+    k.add(loft([{ y:-0.1, w:0.375, d:0.355 }, { y:-0.075, w:0.37, d:0.35 }], SOFT), 'armor2', k.root, [-0.4*w, 1.83, 0], [0, 0, 0.36]);
+    for (let i = 0; i < 3; i++) k.add(block(0.16, 0.03, 0.03, 0.3), 'cloth', k.root, [0.1*w, 1.73 - i*0.06, 0.19], [0, 0, 0.5], { outline: false });   // rank chevrons
+    k.add(block(0.04, 0.42, 0.03, 0.3), 'cloth', k.root, [-0.08*w, 1.55, 0.19], [0,0,0], { outline: false });   // the stripe down the chest
+    rifle(k, t, w, false); rifleSling(k, w);
+    helmet(k, 'marshal', t);
   },
   // MANDALORIAN WARRIOR — a squadmate: beskar in its own colour, a cloth kama, a jetpack, a blaster rifle
   mandalorian(k, t){

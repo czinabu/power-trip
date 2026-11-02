@@ -2,7 +2,7 @@
 // Enemy lab (dev only: `npm run dev`, then open /tools/enemy-lab.html).
 // Lines up every enemy type (or both bosses) under the game's own lights, so enemy model changes can be judged
 // without playing. URL params: ?set=troops|bosses|squad  &pose=idle|windup|guardL|guardR|guardH|guardLo|blockL|blockR|blockH|blockLo|windL|windR|windH|windT (a duellist's guards, blocks and wind-ups)  &elite=swift|vital|volatile  &view=front|back  &z=<camera distance>
-// &orbit=1 (slow turntable). ?set=looks&type=blaster (or several, comma-separated, or all; &per=N caps each) lines up a
+// &orbit=1 (slow turntable). ?set=looks&type=blaster (or several, comma-separated, or all; &per=N caps each; &faces=1 only faces) lines up a
 // type's pool of looks (data/foe-looks.js). &variant=0..4 (4: bare-headed) &face=0..4 force a marking and a face; &talk=1 has them talk;
 // &cam=x,y,z,lookY places the lens for a close-up. &cut=diagR|all plays a duellist's cut on a loop (data/duel.js FOE_CUTS; all: every cut in
 // turn, named in the corner); &at=0..2 freezes it there instead (0→1 the wind-up, 1→2 the strike). The stats corner shows draw calls per frame.
@@ -16,7 +16,7 @@ import { buildBoss } from '../src/boss/mesh.js';
 import { updateUpper } from '../src/enemies/upper.js';
 import { markHit } from '../src/enemies/marks.js';
 import { ELITES } from '../src/data/enemies.js';
-import { SQUAD } from '../src/data/allies.js';
+import { SQUAD, PURGE, MARSHAL } from '../src/data/allies.js';
 import { DETAIL } from '../src/player/model/shapes.js';
 import { surfaceDetail } from '../src/player/model/styles.js';
 import { solveHolds } from '../src/enemies/holds.js';
@@ -67,6 +67,12 @@ if (SET === 'bosses'){
     const g = buildEnemyMesh(t);
     figs.push({ g, label: m.name, w: 2.1 });
   }
+} else if (SET === 'rival'){
+  // the trooper story's rival: the Marshal (data/allies.js MARSHAL), beside the purge clone officer he used to be drawn as
+  for (const [label, dress] of [['purge officer (old)', PURGE.officer], ['THE MARSHAL', MARSHAL]]){
+    const g = buildEnemyMesh({ ...ENEMY_TYPES.officer, ...dress, scale: 1.12 });
+    figs.push({ g, label, w: 2.2 });
+  }
 } else if (SET === 'looks'){
   // every look in one type's pool (data/foe-looks.js), or &type=all: the first few of every type's
   const TYPE = q.get('type') || 'blaster', per = +q.get('per') || 0;
@@ -74,6 +80,7 @@ if (SET === 'bosses'){
     if (TYPE !== 'all' && !TYPE.split(',').includes(name)) continue;
     const pool = lookPool(t.model) || [null];
     pool.slice(0, per || pool.length).forEach((L, i) => {
+      if (q.get('faces') && !(L && L.face)) return;   // &faces=1: only the looks with a face
       const g = buildEnemyMesh(t, L ? { lookIndex: i } : {});
       if (t.fly) g.position.y = 0.6;
       pose(g, !!t.heavy);

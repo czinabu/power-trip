@@ -117,3 +117,16 @@ if the player can stand in the zone and still protect the line. Every hold now f
   faintly marked, so the routes are learnable.
 - **The zone covers the line.** A hero within 3.2 m of someone in the line counts as holding the zone (half speed if a
   foe stands in the zone), so leaving the circle to guard them never costs the hold.
+
+The audit as it stands (2026-11-02, `npm run smoke:holds`): nearest lane mouth to the walk / nearest arrival to the line.
+
+| Hold | Lanes (out of sight) | Lane → walk | Arrival → line |
+|---|---|---|---|
+| The Last Evacuation, hold the ramp | 3 (0) | 22.5 m | 31.7 m |
+| The Last Ship, hold the ramp | 2 (2) | 22.4 m | 33.2 m |
+| The Burning Archive, get the archivists out | 2 (2) | 15.3 m | 25.6 m (was under 1 m) |
+| The Ember Academy, get the children out | 2 (2) | 21.8 m | 43.2 m |
+| The Gallows, get them aboard | 2 (2) | 23.9 m | 34.5 m |
+| The Lothal Breakout, hold the gate | 3 (3) | 24.6 m | 36.4 m |
+| The Pens on Tessaril, hold the gate | 2 (1) | 18.6 m | 18.5 m |
+| Vael's Chains, get the children out | 3 (3) | 22.9 m | 22.3 m (was under 2 m) |

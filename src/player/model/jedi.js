@@ -7,24 +7,13 @@
 // continuous skinned surface over several joints (trousers over hip and knee, a sleeve over shoulder and elbow).
 
 import * as THREE from 'three';
-import { loft, limb, plate, block, shard, chamfer, ngon, KEEL, SHIELD, HEAD } from './shapes.js';
+import { loft, limb, plate, block, shard, chamfer, ngon, hoodRing, cowlDrape, warpGeo, KEEL, SHIELD, HEAD } from './shapes.js';
 import { seg, rounded } from './skin.js';
 import { DIM } from './rig.js';
 
 // smooth sections for cloth and skin: the chiselled profiles with their corners rounded off once, so robes and
 // skulls shade as soft forms (the ink outline and cel bands keep the low-poly read)
 const SOFT = rounded(chamfer(0.42)), SOFT_SHIELD = rounded(SHIELD), SOFT_HEAD = rounded(HEAD);
-
-// a C-shaped section (open at the front) so a hood can be lofted around the head without covering the face
-const HOOD = (() => {
-  const outer = [], inner = [], N = 9, open = 0.62;
-  for (let i = 0; i <= N; i++){
-    const a = Math.PI/2 + open + (i / N) * (Math.PI*2 - open*2);
-    outer.push([Math.cos(a), Math.sin(a)]);
-    inner.push([Math.cos(a) * 0.84, Math.sin(a) * 0.84]);
-  }
-  return outer.concat(inner.reverse());
-})();
 
 // the same, open at the BACK: a beard wraps the jaw and cheeks but leaves the neck behind bare
 const JAW = (() => {
@@ -119,14 +108,36 @@ export const JEDI_PARTS = {
   head: {
     // bare head: chiseled skull, brow ridge, nose, ears
     bald(R, k){ face(R, k); },
-    // the same face under a raised hood
+    // the same face under a raised hood: ONE surface of robe cloth from the shoulders to the crown. The cowl lies over
+    // the shoulders on the chest and the hood round the head rides the head, blending across the neck, so it turns
+    // and nods with him without a seam. The cowl's hem dips to a point down the back and a shallow V at the chest, so
+    // the hood reads as the robe's own cloth pulled up, not a helmet set on top
     hood(R, k){
       face(R, k);
-      k.add(loft([
-        { y:-0.02, w:0.34, d:0.32, z:-0.03 }, { y:0.14, w:0.29, d:0.3, z:-0.02 },
-        { y:0.3, w:0.27, d:0.28, z:-0.025 }, { y:0.39, w:0.15, d:0.18, z:-0.04 }, { y:0.42, w:0.02, d:0.03, z:-0.05 },
-      ], HOOD, { capTop: false, capBottom: false }), 'robe', R.head);
+      const H = DIM.headY;   // the head joint, in the chest's frame (t up the chain)
+      const ring = (t, w, d, z, open, fold, wall) => ({ t, w, d, z, p: hoodRing(open, fold, wall) });   // (model/shapes.js)
+      k.skin('robe', [
+        ring(0.36,      0.8,  0.48, -0.03,  0.32, 0.05, 0.97),    // the hem, out over the shoulders
+        ring(0.395,     0.76, 0.45, -0.03,  0.32, 0.05, 0.9),
+        ring(0.43,      0.64, 0.4,  -0.032, 0.33, 0.045,0.89),    // the shoulders' curve, not a shelf
+        ring(0.46,      0.46, 0.34, -0.035, 0.37, 0.035,0.88),
+        ring(0.49,      0.31, 0.3,  -0.035, 0.44, 0.03, 0.87),    // gathered round the neck
+        ring(H + 0.05,  0.29, 0.305,-0.03,  0.56, 0.02, 0.86),    // the chin
+        ring(H + 0.14,  0.31, 0.325,-0.03,  0.64, 0.015, 0.86),   // framing the cheeks, clear of the face
+        ring(H + 0.24,  0.315,0.335,-0.035, 0.62, 0.015, 0.86),   // the brow
+        ring(H + 0.31,  0.265,0.31, -0.045, 0.52, 0.01, 0.86),
+        ring(H + 0.36,  0.19, 0.25, -0.065, 0.38, 0.01, 0.84),
+        ring(H + 0.39,  0.09, 0.13, -0.09,  0.22, 0,    0.7),     // the crown, peaked a little to the back
+        ring(H + 0.4,   0.02, 0.03, -0.1,   0.2,  0,    0.5),
+      ], { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true,
+        warp: cowlDrape({ neck: 0.49, len: 0.13, zc: -0.03, back: 0.17, front: 0.05, side: 0.05, width: 0.38 }) });
     },
+  },
+
+  // the outer robe over everything (see outerRobe below), worn with the hood up or lying down on the back
+  robe: {
+    none(){},
+    outer(R, k){ outerRobe(R, k, k.parts.head === 'hood'); },
   },
 
   hair: {
@@ -139,6 +150,7 @@ export const JEDI_PARTS = {
     // short sides with a knot tied on the crown
     topknot(R, k){
       cap(R, k, 0.008);
+      if (k.parts.head === 'hood') return;   // under a raised hood the knot is let down: only the cropped sides show
       const knot = k.group(R.head, [0, 0.34, -0.04], [-0.35, 0, 0]);
       hair(R, knot, 0.25);
       k.add(loft([{ y:-0.035, w:0.07, d:0.07 }, { y:0.0, w:0.095, d:0.095 }, { y:0.04, w:0.08, d:0.08 }, { y:0.06, w:0.03, d:0.03 }], ngon(8, Math.PI/8)), 'hair', knot, [0, 0.03, -0.01]);
@@ -147,6 +159,10 @@ export const JEDI_PARTS = {
     // shoulder-length, falling behind the ears to the nape
     long(R, k){
       cap(R, k, 0.016);
+      if (k.parts.head === 'hood'){   // under a raised hood: the locks framing the face, the rest tucked in behind
+        for (const sx of [-1, 1]) k.add(loft([{ y:0.02, w:0.03, d:0.07 }, { y:0.24, w:0.04, d:0.12 }], chamfer(0.4)), 'hair', R.head, [0.112*sx, 0, -0.03]);
+        return;
+      }
       // the fall behind: hung from a pivot at the crown so it sways and lags the head (model/life.js hairSway)
       const fall = k.group(R.head, [0, 0.26, -0.05]);
       hair(R, fall, 0.6);
@@ -186,9 +202,12 @@ export const JEDI_PARTS = {
     sleeves(R, k){
       for (const A of [R.armL, R.armR]){
         const s = A.side;
-        k.add(loft([{ y:-0.1, w:0.16, d:0.156 }, { y:-0.01, w:0.172, d:0.165 }, { y:0.045, w:0.142, d:0.142 }, { y:0.075, w:0.07, d:0.08 }], SOFT), 'tunic', A.sh, [0.012*s, 0.02, 0], [0, 0, -0.38*s]);   // deltoid
+        // (under the outer robe its own sleeve covers the shoulder, stretching from the armhole: the tunic's deltoid and
+        // sleeve top would only poke out of it as the arm lifts)
+        const robed = k.parts.robe === 'outer';
+        if (!robed) k.add(loft([{ y:-0.1, w:0.16, d:0.156 }, { y:-0.01, w:0.172, d:0.165 }, { y:0.045, w:0.142, d:0.142 }, { y:0.075, w:0.07, d:0.08 }], SOFT), 'tunic', A.sh, [0.012*s, 0.02, 0], [0, 0, -0.38*s]);   // deltoid
         k.skin('tunic', [
-          ...seg(0.34, [[-0.2,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
+          ...seg(0.34, [[robed ? 0.12 : -0.2,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
           ...seg(0.3, [[0.1,0.098,0.098],[0.45,0.114,0.114],[0.78,0.148,0.145]], 0.34),
         ], { bones: [A.sh, A.el], at: [0.34], blend: 0.05, profile: chamfer(0.4) });
         k.add(limb(0.3, [[0.6,0.085,0.085],[1,0.075,0.075]], chamfer(0.3)), 'leather', A.el);
@@ -197,6 +216,69 @@ export const JEDI_PARTS = {
     },
   },
 };
+
+/* THE OUTER ROBE (Anakin's, Obi-Wan's): worn open over the tunic, from the shoulders to the shins, with wide sleeves.
+   Three parts so each moves with what it covers, and a hood either way:
+   - the body: one skinned surface over torso and chest, open down the front so the tunic, tabards and belt show,
+     running up under the raised hood's cowl (head.hood), or with the hood down, into a rolled collar and the hood
+     lying in folds over the upper back
+   - the skirts: real cloth (cloth.js) pinned round the hips and open at the front, so it parts and swings round the
+     legs on a stride and trails behind a run
+   - the sleeves: skinned over shoulder and elbow, belled wide at the wrist, the hand coming out of the cuff */
+function outerRobe(R, k, hooded){
+  const ring = (t, w, d, z, open, fold = 0.02, wall = 0.9) => ({ t, w, d, z, p: hoodRing(open, fold, wall) });
+  const T = DIM.chestY;   // the chest joint, up the torso
+  k.skin('robe', [
+    ring(-0.11,      0.47, 0.38, -0.01, 0.78, 0.03, 0.96),   // over the hips, where the skirts take over
+    ring(0.05,       0.46, 0.37, -0.01, 0.74, 0.03),
+    ring(0.2,        0.46, 0.36, -0.01, 0.7),
+    ring(T + 0.08,   0.52, 0.37, -0.01, 0.66),
+    ring(T + 0.2,    0.56, 0.37, -0.015,0.6),
+    ring(T + 0.3,    0.52, 0.34, -0.02, 0.52),
+    ring(T + 0.38,   0.38, 0.29, -0.025,0.48, 0.01, 0.95),   // up under the cowl
+  ], { bones: [R.torso, R.chest], at: [T], blend: 0.08, profile: hoodRing(0.7), dir: 1, open: true });
+  // the skirts: one sheet wrapped from the front left edge round the back to the front right, flaring to the shins
+  const open = 0.62, len = 0.86;
+  // (heavy wool: a short leash and a firm pull back to its drape, so a sprint swings the hem behind instead of
+  // flinging it up over the knees)
+  k.cloth('robe', R.skirt, { W: 12, H: 9, thick: 0.018, slack: 0.26, pull: 0.02,
+    capsules: k.bodyCapsules([[R.skirt, robeLow(R, k), 0.21]]),
+    rest: (u, v) => {
+      const a = Math.PI/2 + open + (u + 1) / 2 * (Math.PI*2 - open*2);
+      const rx = 0.225 + 0.15 * v, rz = 0.18 + 0.12 * v;
+      return [Math.cos(a) * rx, 0.04 - v * len * (0.94 + 0.06 * Math.abs(Math.sin(a))), Math.sin(a) * rz - 0.01];
+    } });
+  // the sleeves: roomy from the shoulder, belled wide at the wrist. Each hangs from an ARMHOLE: a fixed joint on the
+  // chest where the shoulder rests, carrying the sleeve's top, so as the arm lifts overhead the cloth there stretches
+  // from the body to the arm (as a real sleeve does) instead of the whole top swinging up through the robe and cowl
+  for (const A of [R.armL, R.armR]){
+    const hole = k.group(R.chest, A.sh.position.toArray(), [A.sh.rotation.x, A.sh.rotation.y, A.sh.rotation.z]);
+    k.skin('robe', [
+      ...seg(DIM.upper, [[-0.32,0.24,0.22],[-0.1,0.22,0.215],[0.3,0.2,0.2],[0.75,0.185,0.185],[1,0.18,0.18]]),
+      ...seg(DIM.fore, [[0.15,0.18,0.18],[0.5,0.2,0.2],[0.8,0.25,0.25],[0.97,0.29,0.29]], DIM.upper),
+    ], { bones: [hole, A.sh, A.el], at: [0.02, DIM.upper], blend: 0.07, profile: hoodRing(0, 0.025, 0.9), open: true });
+  }
+  if (hooded) return;
+  // hood down: a rolled collar round the neck that widens into a yoke over the shoulders (rounding off the sleeve
+  // tops), falling lower at the back where the hood lies
+  const cr = (t, w, d, z, open, fold, wall) => ({ y: t, w, d, z, p: hoodRing(open, fold, wall) });
+  k.add(warpGeo(loft([
+    cr(0.35, 0.66, 0.44, -0.03, 0.42, 0.04, 0.97),   // a yoke that rounds over the shoulders, not a square edge
+    cr(0.39, 0.62, 0.41, -0.03, 0.42, 0.04, 0.9),
+    cr(0.43, 0.54, 0.37, -0.035,0.45, 0.035,0.88),
+    cr(0.465,0.38, 0.32, -0.04, 0.5,  0.02, 0.85),
+    cr(0.5,  0.28, 0.27, -0.045,0.58, 0.01, 0.82),
+  ], hoodRing(0.5), { capTop: false, capBottom: false }), cowlDrape({ neck: 0.5, len: 0.15, zc: -0.03, back: 0.1, front: 0.03, side: 0.07, width: 0.33 })), 'robe', R.chest);
+  // the hood itself, emptied and lying flat in folds between the shoulder blades, its point hanging lowest
+  k.add(loft([
+    { y: 0.08, w: 0.05, d: 0.03, z: -0.235 },
+    { y: 0.14, w: 0.18, d: 0.07, z: -0.24 },
+    { y: 0.26, w: 0.3,  d: 0.12, z: -0.24 },
+    { y: 0.37, w: 0.35, d: 0.15, z: -0.22 },
+    { y: 0.45, w: 0.32, d: 0.14, z: -0.18 },
+    { y: 0.49, w: 0.26, d: 0.1,  z: -0.14 },
+  ], hoodRing(0, 0.05, 0.6)), 'robe', R.chest);
+}
 
 /* a robe panel's rest shape in the skirt's frame (u across, v down): hangs from the belt where `flap` sits, widening
    to a pointed hem, tilted out by `tilt`, `z` in front of the flap. The cloth hangs from the skirt itself; the flap

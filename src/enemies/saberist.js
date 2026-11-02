@@ -12,7 +12,7 @@
 // mesh.js hands in its body-kit functions (H), so this file adds no import cycle.
 
 import * as THREE from 'three';
-import { loft, limb, plate, block, chamfer, ngon, KEEL } from '../player/model/shapes.js';
+import { loft, limb, plate, block, chamfer, ngon, hoodRing, cowlDrape, warpGeo, KEEL } from '../player/model/shapes.js';
 import { rounded } from '../player/model/skin.js';
 import { face } from './detail.js';
 import { lookColors } from '../data/saber-cast.js';
@@ -39,18 +39,22 @@ export function lookPalette(L){
 export function buildSaberist(k, t, L, H){
   const f = L.build === 'f', w = (f ? 0.86 : 0.98) * (L.w || 1), hw = f ? 0.98 : 1;   // shoulders · hips
   const inq = L.side === 'inq', jedi = L.side === 'jedi';
-  k.sleeve = 'armor';   // the arms are sleeves (mesh.js arm), belled at the wrist unless armoured
+  // a raised hood comes with the long OUTER ROBE it belongs to (as the hero's: player/model/jedi.js outerRobe): the
+  // sleeves, the skirts and an open-fronted body all in the cloak's cloth over the tunic
+  const robed = !!(L.hood && L.cloak && !inq);
+  k.sleeve = robed ? 'cloth' : 'armor';   // the arms are sleeves (mesh.js arm), belled at the wrist unless armoured
   k.bell = !inq;
   const thighs = legs(k, hw, jedi, H.legBones);
-  hipsAndSkirt(k, hw, L, thighs);
+  hipsAndSkirt(k, hw, L, thighs, robed ? 'cloth' : 'armor');
   k = H.upper(k);
   chest(k, w, f, L);
+  if (robed) outerRobe(k, w);
   if (L.cloak){
     H.cape(k, [[-0.3*w,0],[0.3*w,0],[0.4*w,-1.5],[0.14,-1.62],[-0.14,-1.62],[-0.4*w,-1.5]], [0, 1.86, -0.2], 0.07);
     // the cloak's fall over the shoulders, and the hood lying back below the collar
     k.add(loft([{ y:1.7, w:0.6*w, d:0.2, z:-0.1 }, { y:1.84, w:0.5*w, d:0.18, z:-0.11 }, { y:1.9, w:0.3, d:0.12, z:-0.12 }], SOFT), 'cloth');
     // over plain shoulders the cloak wraps forward onto them, so it reads from the front too; a clasp and its chain hold it
-    if (!inq && !L.mantle){
+    if (!inq && !L.mantle && !L.hood){   // (a raised hood's cowl covers the shoulders itself: cowl())
       for (const s of [-1, 1]) k.add(loft([{ y:-0.05, w:0.24*w, d:0.34 }, { y:0.04, w:0.22*w, d:0.32 }, { y:0.09, w:0.14*w, d:0.24 }], ngon(12)), 'cloth', k.root, [0.36*w*s, 1.76, -0.03], [0, 0, -0.42*s]);
       for (const s of [-1, 1]) k.add(loft([{ y:-0.022, w:0.045, d:0.02 }, { y:0.022, w:0.045, d:0.02 }], ngon(10)), 'metal', k.root, [0.15*w*s, 1.8, 0.16], [0.2, 0, 0], NO_INK);
       k.add(block(0.2*w, 0.012, 0.012, 0.3), 'metal', k.root, [0, 1.79, 0.165], [0,0,0], NO_INK);
@@ -82,7 +86,7 @@ function legs(k, w, jedi, legBones){
 }
 
 // the hips, a wide belt and sash, and the tunic's skirts front and back (a Jedi's tabard runs down over them)
-function hipsAndSkirt(k, w, L, thighs){
+function hipsAndSkirt(k, w, L, thighs, skirt = 'armor'){
   k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
   k.add(loft([{ y:0.98, w:0.47*w, d:0.31 }, { y:1.12, w:0.45*w, d:0.3 }], SOFT_BODY), 'armor');   // the tunic's hem over the hips
   k.add(loft([{ y:1.04, w:0.49*w, d:0.325 }, { y:1.11, w:0.485*w, d:0.322 }], SOFT_BODY), 'trim', k.root, [0,0,0], [0,0,0], NO_INK);   // sash
@@ -100,15 +104,15 @@ function hipsAndSkirt(k, w, L, thighs){
   /* the back: three pleats, the outer two angled forward round the hips, flaring as they fall */
   for (const [x, ry, z] of [[-0.2, 0.5, -0.12], [0, 0, -0.17], [0.2, -0.5, -0.12]]){
     const c = x === 0;
-    k.add(plate([[-0.13*w,0],[0.13*w,0],[(c ? 0.16 : 0.19)*w,-len],[0,-len - 0.03],[-(c ? 0.16 : 0.19)*w,-len]], 0.016, 0.004), 'armor', k.root, [x*w, 1.03, z], [0.1, ry, 0], NO_INK);
+    k.add(plate([[-0.13*w,0],[0.13*w,0],[(c ? 0.16 : 0.19)*w,-len],[0,-len - 0.03],[-(c ? 0.16 : 0.19)*w,-len]], 0.016, 0.004), skirt, k.root, [x*w, 1.03, z], [0.1, ry, 0], NO_INK);
   }
   thighs.forEach((T, i) => {
     const s = i ? 1 : -1;   // (left, then right)
     /* in the thigh's frame (its top at the hip, y 0): a front panel folded once down its length, so it catches the light
        as cloth does, narrow at the waist and flaring to the hem past the knee; a Jedi's tabard runs down it, tapering */
-    k.add(plate([[0,0.09],[0.12*s,0.09],[0.15*s,-len + 0.08],[0,-len + 0.05]], 0.014, 0.004), 'armor', T, [-0.08*s, 0, 0.14], [-0.06, 0.28*s, 0], NO_INK);
-    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.06],[0,-len + 0.05]], 0.014, 0.004), 'armor', T, [-0.08*s, 0, 0.14], [-0.06, -0.38*s, 0], NO_INK);
-    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.09],[0,-len + 0.08]], 0.014, 0.004), 'armor', T, [0.04*s, 0, 0.1], [-0.06, 0.9*s, 0], NO_INK);   // its side, round the leg
+    k.add(plate([[0,0.09],[0.12*s,0.09],[0.15*s,-len + 0.08],[0,-len + 0.05]], 0.014, 0.004), skirt, T, [-0.08*s, 0, 0.14], [-0.06, 0.28*s, 0], NO_INK);
+    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.06],[0,-len + 0.05]], 0.014, 0.004), skirt, T, [-0.08*s, 0, 0.14], [-0.06, -0.38*s, 0], NO_INK);
+    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.09],[0,-len + 0.08]], 0.014, 0.004), skirt, T, [0.04*s, 0, 0.1], [-0.06, 0.9*s, 0], NO_INK);   // its side, round the leg
     if (L.side === 'jedi') k.add(plate([[-0.05,0.085],[0.05,0.085],[0.036,-len*0.82],[0,-len*0.82 - 0.03],[-0.036,-len*0.82]], 0.016, 0.004), 'armor2', T, [0.0, 0, 0.165], [-0.06, 0, 0], NO_INK);
   });
 }
@@ -190,18 +194,46 @@ function head(k, t, L, f, H){
   if (L.hood) hood(k, h);
 }
 
-// a raised hood: a soft shell over the crown that the face peeks out of, a rolled rim of cloth framing the face, and
-// (on the chest: buildSaberist) the cowl it falls into round the neck
-function hood(k, h){
-  const R = ngon(14);
-  k.add(loft([{ y:-0.03, w:0.27, d:0.27, z:-0.05 }, { y:0.14, w:0.29, d:0.3, z:-0.035 }, { y:0.3, w:0.27, d:0.29, z:-0.03 },
-              { y:0.4, w:0.19, d:0.22, z:-0.045 }, { y:0.455, w:0.07, d:0.09, z:-0.075 }], R), 'cloth', h);
-  const rim = new THREE.TorusGeometry(0.15, 0.021, 6, 18, PI * 1.5);
-  k.add(rim, 'cloth', h, [0, 0.16, 0.088], [-0.12, 0, -PI * 0.25], { scale: [1, 1.12, 1] });
-}
-// the cowl a raised hood falls into, round the neck and over the shoulders
+/* a raised hood, cut like the hero's (player/model/jedi.js): the cloak's own cloth, a C open at the face that rounds
+   over the crown to a soft point at the back, and below it (on the body: buildSaberist) the cowl it falls into, over
+   the shoulders and down the back. The hood's skirt reaches down inside the cowl's neck, so as the head turns the two
+   stay one piece of cloth instead of a cap set on top */
+const ring = (y, w, d, z, open, fold, wall) => ({ y, w, d, z, p: hoodRing(open, fold, wall) });
+let _hood = null;
+const HOOD_GEO = () => _hood || (_hood = loft([
+  ring(-0.11, 0.31, 0.3,  -0.035, 0.44, 0.02, 0.87),
+  ring(0.03,  0.29, 0.305,-0.03,  0.56, 0.02, 0.86),
+  ring(0.13,  0.31, 0.325,-0.03,  0.64, 0.015, 0.86),   // framing the cheeks, clear of the face
+  ring(0.23,  0.315,0.335,-0.035, 0.62, 0.015, 0.86),
+  ring(0.3,   0.265,0.31, -0.05,  0.52, 0.01, 0.86),
+  ring(0.355, 0.19, 0.25, -0.07,  0.38, 0.01, 0.84),
+  ring(0.39,  0.09, 0.13, -0.095, 0.22, 0,    0.7),     // the crown, peaked a little to the back
+  ring(0.4,   0.02, 0.03, -0.105, 0.2,  0,    0.5),
+], hoodRing(0.4), { capTop: false, capBottom: false }));
+function hood(k, h){ k.add(HOOD_GEO(), 'cloth', h); }
+// the cowl a raised hood falls into: gathered round the neck, out over the shoulders, its hem dipping down the back
 function cowl(k, w){
-  k.add(loft([{ y:1.78, w:0.58*w, d:0.4, z:-0.03 }, { y:1.9, w:0.42*w, d:0.33, z:-0.04 }, { y:1.99, w:0.28, d:0.26, z:-0.06 }], ngon(14)), 'cloth');
+  const geo = loft([
+    ring(1.76, 0.98*w, 0.52, -0.04, 0.32, 0.05, 0.97),
+    ring(1.81, 0.84*w, 0.47, -0.04, 0.32, 0.05, 0.9),
+    ring(1.87, 0.56*w, 0.38, -0.045,0.36, 0.04, 0.88),
+    ring(1.9,  0.36,   0.32, -0.045,0.44, 0.03, 0.87),
+    ring(1.93, 0.33,   0.31, -0.04, 0.5,  0.02, 0.87),
+  ], hoodRing(0.3), { capTop: false, capBottom: false });
+  k.add(warpGeo(geo, cowlDrape({ neck: 1.9, len: 0.15, zc: -0.04, back: 0.2, front: 0.05, side: 0.02, width: 0.32 })), 'cloth');
+}
+
+// the outer robe's body, open down the front over the tunic and running up under the cowl
+function outerRobe(k, w){
+  k.add(loft([
+    ring(1.0,  0.53*w, 0.37, -0.01, 0.72, 0.03, 0.95),
+    ring(1.25, 0.49*w, 0.33, -0.01, 0.7,  0.025, 0.9),
+    ring(1.45, 0.6*w,  0.37, -0.01, 0.66, 0.02, 0.9),
+    ring(1.6,  0.66*w, 0.39, -0.01, 0.62, 0.02, 0.9),
+    ring(1.72, 0.68*w, 0.37, -0.015,0.56, 0.02, 0.9),
+    ring(1.8,  0.6*w,  0.33, -0.02, 0.5,  0.015,0.9),
+    ring(1.87, 0.44*w, 0.28, -0.03, 0.46, 0.01, 0.92),
+  ], hoodRing(0.7), { capTop: false, capBottom: false }), 'cloth');
 }
 
 // the Inquisitor's rebreather: a dark plate over the mouth and jaw, red vents, straps to the ears

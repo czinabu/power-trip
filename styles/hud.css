@@ -440,6 +440,8 @@ body.cutscene #talkp{opacity:0 !important}
 
 /* ---------- CUTSCENES (game/cutscene.js): letterbox bars, the chapter's title, a subtitle, the skip hint ---------- */
 body.cutscene #hud,body.cutscene #boonstrip,body.cutscene #threats,body.cutscene #comms{opacity:0 !important;transition:opacity .2s}
+/* the chapter card (game/campaign.js): the fight's HUD waits behind it, and shows as BEGIN is pressed */
+body.chapcard-up #hud,body.chapcard-up #boonstrip,body.chapcard-up #threats{opacity:0 !important;transition:none}
 #cutscene{position:fixed;inset:0;z-index:18;pointer-events:none;display:none}
 #cutscene.on{display:block;animation:csIn .4s ease both}
 #cutscene::after{content:'';position:absolute;inset:0;background:#000;opacity:0;transition:opacity .35s ease}

@@ -67,6 +67,11 @@ export const CUSTOMIZE = {
       { id: 'down', name: 'Down', set: parts({ head: 'bald' }) },
       { id: 'up',   name: 'Up',   set: parts({ head: 'hood' }), unlock: 'archive' },
     ] },
+    // the long outer robe over the tunic (player/model/jedi.js outerRobe): its hood up or down follows the HOOD row
+    { id: 'outerRobe', label: 'OUTER ROBE', kind: 'part', options: [
+      { id: 'off', name: 'Off', set: parts({ robe: 'none' }) },
+      { id: 'on',  name: 'On',  set: parts({ robe: 'outer' }) },
+    ] },
     // robe + the tabard panels over it, as one pair so they always go together
     { id: 'robe', label: 'ROBES', kind: 'color', options: [
       { id: 'earth',   name: 'Earth brown', set: pal({ robe: 0x3b2a1e, tabard: 0x6b4f37 }) },

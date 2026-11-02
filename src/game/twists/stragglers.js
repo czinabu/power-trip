@@ -12,6 +12,7 @@ import { floater } from '../../fx/floaters.js';
 import { sfx } from '../../audio/sfx.js';
 import { heroIn, makeBeacon, removeMarker } from '../objectives.js';
 import { makeEvacuee } from '../../world/arenas/refuge.js';
+import { CIV } from '../civilians.js';
 
 const kindOf = (o) => (o && o.evacuees && o.evacuees.kind) || (isMando() ? 'foundling' : 'youngling');
 function child(o, i, x, z){
@@ -34,6 +35,7 @@ export default {
       if ((l <= 0.4 || c.t > 5) && !ctx.guest){ unprop(c.m); S.cur = null; S.i++; }
     }
     if (ctx.guest) return;
+    if (S.cur) CIV.list.push(S.cur.civ || (S.cur.civ = { m: S.cur.m, r: 0.32, h: 1.4 }));   // the foes give the frozen one room too (game/civilians.js)
     const at = tw.at || [];
     if (!S.cur && S.i < at.length && (ctx.frac || 0) >= at[S.i] - 0.002){
       const [x, z] = tw.spots[S.i];

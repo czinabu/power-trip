@@ -28,6 +28,7 @@ import { playerPos } from '../player/helpers.js';
 import { missionChecklist, objectiveTarget } from '../game/mission.js';
 import { chapterLabel } from '../game/campaign.js';
 import { objectiveHud } from '../game/objectives.js';
+import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { cutHeight, pickCut } from '../player/jedi/cutaim.js';
@@ -55,7 +56,8 @@ function renderChecklist(c){
   setHtml(el, (c.kicker ? '<div class="ol-k">' + c.kicker + '</div>' : '') + '<div class="ol-h">' + c.title + '</div>' + rows.map(i =>
     '<div class="ol-i' + (i.done ? ' done' : i.now ? ' now' : '') + '"><b>' + (i.done ? '✓' : i.now ? '▶' : '○') + '</b><span>' + i.text + '</span></div>' +
       (i.sub && i.sub.length ? '<div class="ol-s' + (i.warn ? ' warn' : '') + '">' + i.sub.join('<br>') + (i.frac != null ? '<span class="ol-b"><i style="width:' + (clamp(i.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : '') + '</div>' : '')).join('') +
-    (n > 7 ? '<div class="ol-n">' + c.items.filter(i => i.done).length + ' / ' + n + ' DONE</div>' : ''));
+    (n > 7 ? '<div class="ol-n">' + c.items.filter(i => i.done).length + ' / ' + n + ' DONE</div>' : '') +
+    '<div class="ol-hold">HOLD ' + objectiveKey() + ' · FULL OBJECTIVE</div>');   // (ui/objective-view.js)
 }
 
 // WAYPOINT: a gold diamond over the live objective's spot, pinned to the screen edge when it is off-screen or behind

@@ -44,6 +44,7 @@ export const PAD_CONTROLS = {
       ['{h}', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks, the D-pad orders one squadmate, let go to give it · stand by a downed squadmate to get them up · in the sandbox it opens the sandbox panel, and {alt} + {h} gives orders', 1],
       ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
+      ['HOLD {o}', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
       ['{rmb} + {space}', 'Evasive leap', 'Jump while blocking to vault clear · in a fight it spends a dash charge and is only safe at its start', 1],
     ]},
     { title: 'FORCE POWERS', rows: [
@@ -86,6 +87,7 @@ export const PAD_CONTROLS = {
       ['{h}', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks, the D-pad orders one squadmate, let go to give it · stand by a downed squadmate to get them up · in the sandbox it opens the sandbox panel, and {alt} + {h} gives orders', 1],
       ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
+      ['HOLD {o}', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
       ['{4}', 'Holster', 'Take a fighting stance with fists and gadgets: {lmb} / {e} swing hook, hook, uppercut, haymaker, hold {rmb} for the gauntlet shield ({lmb} behind it cuts shield and blade), and gadget power refills faster · {4} or a weapon slot draws', 1],
     ]},
     { title: 'GADGETS', rows: [
@@ -118,6 +120,7 @@ export const PAD_CONTROLS = {
       ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{t}', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
+      ['HOLD {o}', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
     ]},
     { title: 'POWERS', rows: [
       ['{g}', 'Frag grenade', 'Thrown onto the crosshair · two charges that refill one at a time'],

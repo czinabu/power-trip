@@ -86,6 +86,7 @@ import { endRun } from './game/summary.js';
 import './ui/banners.js';
 import './ui/threats.js';
 import { updateHud } from './ui/hud.js';
+import { objectiveInfo, holdObjectiveView, renderObjectiveView } from './ui/objective-view.js';
 import { setOverlayState } from './ui/menus.js';
 import './ui/roadmap.js';   // the ROADMAP panel (its button on the main menu)
 import './ui/forms-ui.js';   // the FORMS page: before the fight (BEGIN) and on the pause screen
@@ -170,6 +171,7 @@ function tick(){
     updateHud();
   }
   updateSquadHud();
+  renderObjectiveView();   // HOLD O (a pad: LB + D-pad right): the objective, its step and the progress (ui/objective-view.js)
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
@@ -227,6 +229,7 @@ Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   /
 Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
+Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });   // HOLD O: the objective view (ui/objective-view.js), for tests
 
 /* the form loadout (data/forms.js): the seven forms and what sits on 1 / 2 / 3 */
 import { FORMS } from './data/forms.js';

@@ -617,6 +617,9 @@ body.pad .bs-aim{display:block}
 #meditate .md-slot .n{font-size:13px;color:var(--ink-faint)}
 #meditate .md-slot.empty{color:var(--ink-faint)}
 #meditate .md-slot.sel{border-color:var(--cc);background:var(--panel-hi);box-shadow:0 0 0 1px var(--cc)}
+#meditate .md-slotw{position:relative;min-width:0;display:flex}
+#meditate .md-slotw>.md-slot{flex:1 1 auto;min-width:0}
+#meditate .md-slot.has-x{padding-right:44px}
 #meditate .md-forms{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 #meditate .md-form{cursor:pointer;padding:10px 12px;border:1px solid var(--edge-mid);border-radius:var(--r);background:var(--panel);border-left:3px solid var(--c)}
 #meditate .md-form:hover{background:var(--panel-hi);border-color:var(--c)}
@@ -679,6 +682,13 @@ body.pad .kbonly{display:none}
 .fm-slot .n{font-size:13px;color:var(--ink-faint)}
 .fm-slot.empty{color:var(--ink-faint)}
 .fm-slot.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:var(--panel-hi)}
+.fm-slotw{position:relative;min-width:0;display:flex}
+.fm-slotw>.fm-slot{flex:1 1 auto;min-width:0}
+.fm-slot.has-x{padding-right:44px}
+.fm-slot.edit.empty{border-style:dashed;border-left-style:solid}
+.fm-clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);z-index:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border:1px solid transparent;border-radius:var(--r);font:700 13px/1 var(--font-ui);color:var(--ink-faint);cursor:pointer}
+.fm-clear:hover{color:var(--ink);border-color:var(--edge-lit);background:rgba(255,255,255,.05)}
 .fm-note{margin-top:8px;font-size:13px;line-height:1.4;color:var(--ink-dim)}
 .fm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 .fm-card{padding:11px 13px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);background:var(--panel)}

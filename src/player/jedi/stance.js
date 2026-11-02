@@ -26,7 +26,7 @@ export function setStanceHud(){
     chip.classList.toggle('empty', !f);
     chip.querySelector('.snm').textContent = f ? f.name : '—';
     chip.querySelector('.sty').textContent = f ? f.tag : 'EMPTY';
-    if (f) chip.style.setProperty('--c', hex(STANCES[id].blade));
+    if (f) chip.style.setProperty('--c', hex(STANCES[id].blade)); else chip.style.removeProperty('--c');   // an emptied slot: skipped by 1 / 2 / 3, the wheel and the D-pad
     chip.classList.toggle('active', !!f && id === G.stance);
     chip.classList.toggle('locked', !!f && !stanceUnlocked(id));   // dim the forms you haven't earned yet
   }

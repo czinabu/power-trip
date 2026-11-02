@@ -44,6 +44,7 @@ export const G = {
   saberGrip: 'regular',   // player preference: 'regular' or 'reverse' lightsaber grip (visual only)
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)
   missionForms: null,    // the three forms chosen before a mission (ui/forms-ui.js)
+  strafeMode: 'toggle',  // player preference: ALT strafe is a 'toggle' (press on, press off) or a 'hold' (player/strafe.js)
   swingMirror: false,   // player preference: flips which way strafe-L/R directional cuts sweep
   cutMouse: false,       // player preference: a mouse flick just before a cut picks its angle (off by default: the keys do)
   mouseSens: 1,          // player preference: mouse look sensitivity multiplier
@@ -79,6 +80,7 @@ export const G = {
   mission: false,        // true while a story mission runs (game/mission.js)
   sandbox: false,        // true while the sandbox runs (game/sandbox.js)
   sandboxGod: false,     // the sandbox's god mode: the hero can't fall
+  calm: false,           // the calm after a chapter's last fight (game/aftermath.js): the chapter is won, nobody falls
   forceElite: false,     // set while the sandbox spawns its ELITE foes
   endlessWave: 0,        // current survival wave (1-based)
   mut: null,             // active wave mutator id (or null)

@@ -8,6 +8,8 @@
 //   boss   the campaign boss's own model (boss/mesh.js): `kind` 'sith' or 'mando'
 // `scale` sizes it (a child is about 0.62), `saber` hangs a hilt at its belt (a Jedi), `bound` looks for a squadmate
 // already on the field by that name first (the trooper's band, the Mandalorian on Jakku) instead of building a stand-in.
+// `stays`: once the opening is over they stay on the field, hanging back behind the hero, and can be walked up to for a
+// line in a lull (game/onset.js; their words: data/talk.js). Someone on set as a hologram never stays.
 // Names the lines use that aren't here (the hero's 'YOU', a stranger) stay off screen: their lines play over comms.
 
 import { MARSHAL } from './allies.js';
@@ -19,7 +21,7 @@ const clone = (cloth, o = {}) => ({ kind: 'foe', t: { model: 'clone', color: 0xe
 
 export const CAST = {
   // ---------------- the Jedi's story ----------------
-  'MASTER VAEL': jedi({ parts: { hair: 'long', beard: 'full' }, palette: { skin: 0xc58c64, hair: 0xd8d4cc, robe: 0x3b2a1e, tabard: 0x6b4f37, tunic: 0xd2c4a2 }, build: { bulk: 0.95 } }),
+  'MASTER VAEL': jedi({ parts: { hair: 'long', beard: 'full' }, palette: { skin: 0xc58c64, hair: 0xd8d4cc, robe: 0x3b2a1e, tabard: 0x6b4f37, tunic: 0xd2c4a2 }, build: { bulk: 0.95 } }, { stays: true }),
   'ILSA VENN': jedi({ parts: { hair: 'braid' }, palette: { skin: 0xe0ac86, hair: 0x6a2c16, eyes: 0x2f5a34, robe: 0x17161b, tabard: 0x2c2a31, tunic: 0x6e6a66 }, build: { bulk: 0.9, shoulders: 0.94 } }),
   'TARN ODO': jedi({ parts: { hair: 'bald', beard: 'stubble' }, palette: { skin: 0x3f261a, robe: 0x24331f, tabard: 0x3e5236, tunic: 0x9c7d58 }, build: { bulk: 1.12, shoulders: 1.08 } }, { scale: 1.06 }),
   'SERA QUILL': jedi({ parts: { hair: 'topknot' }, palette: { skin: 0x8aa66a, hair: 0x140e0a, robe: 0x8c7656, tabard: 0xb39d78, tunic: 0xe6e2d8 }, build: { bulk: 0.9, shoulders: 0.94 } }),
@@ -30,7 +32,7 @@ export const CAST = {
   'DARTH VEXIS': { kind: 'boss', boss: 'sith' },
 
   // ---------------- the Mandalorian's story ----------------
-  'THE ARMORER': mando({ parts: { helmet: 'crest', arms: 'heavy', cape: 'full' }, palette: { beskar: 0xc9a24a, beskar2: 0x76664a, suit: 0x4a3a2a, cloth: 0x6a1d1a, accent: 0x1f2126 } }),
+  'THE ARMORER': mando({ parts: { helmet: 'crest', arms: 'heavy', cape: 'full' }, palette: { beskar: 0xc9a24a, beskar2: 0x76664a, suit: 0x4a3a2a, cloth: 0x6a1d1a, accent: 0x1f2126 } }, { stays: true }),
   'KAEL VARR': mando({ parts: { helmet: 'tvisor', cape: 'half' }, palette: { beskar: 0x5f6e45, beskar2: 0x7e4428, suit: 0x3c4230, cloth: 0x7b6b52 } }),
   'SKYE': mando({ parts: { helmet: 'clean', arms: 'bare', cape: 'none' }, palette: { beskar: 0x3e5f8a, beskar2: 0xaab4c0, suit: 0x222b40, accent: 0xd8dde2 }, build: { bulk: 0.92, shoulders: 0.95 } }),
   'BRAKKA': mando({ parts: { helmet: 'crest', arms: 'heavy', cape: 'half' }, palette: { beskar: 0x8a2a26, beskar2: 0x4a4f58, suit: 0x16171a, cloth: 0x1e1d20 }, build: { bulk: 1.12, shoulders: 1.08 } }, { scale: 1.06 }),
@@ -40,7 +42,7 @@ export const CAST = {
   'THE IRON MAGISTRATE': { kind: 'boss', boss: 'mando' },
 
   // ---------------- the ARC trooper's story ----------------
-  'THE CAPTAIN': clone(0x7a6a3a, { variant: 4 }),
+  'THE CAPTAIN': clone(0x7a6a3a, { variant: 4, stays: true }),
   'SGT. VANT': clone(0x2f7fd6, { bound: true }),
   'BRISK': clone(0x2f7fd6, { bound: true, variant: 4 }),
   'HAMMER': clone(0x2f7fd6, { bound: true, scale: 1.06 }),

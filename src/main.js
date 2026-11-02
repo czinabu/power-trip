@@ -110,6 +110,9 @@ import { downed } from './game/revive.js';
 import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/story.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
+import { updateOnSet, onSetFigures } from './game/onset.js';
+import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
+import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import './net/foefire.js';
@@ -148,6 +151,7 @@ function tick(){
       updatePlayer(dt);
       updateFlow(wdt);
       updateMission(dt);
+      updateAftermath(dt);   // the calm after a chapter's last fight: a walk back to the rally point (game/aftermath.js)
       updateGlance(dt);   // an objective's hand-off turns the view to the next one, for a moment (game/glance.js)
       updateSandbox(dt);
       updateSquad(dt);   // the hero's squad, and anyone downed waiting to be got up (allies/squad.js, game/revive.js)
@@ -174,6 +178,7 @@ function tick(){
   renderObjectiveView();   // HOLD O (a pad: LB + D-pad right): the objective, its step and the progress (ui/objective-view.js)
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
+  updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
@@ -229,6 +234,7 @@ import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, sta
 import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
+Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
 Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests

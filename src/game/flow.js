@@ -49,6 +49,7 @@ import { playBossIntro } from './cutscene.js';
 import { coopRun } from '../net/run.js';
 import { resetReadout, beginWave } from './readout.js';
 import { nextChapter, retryChapter } from './campaign.js';
+import { startCalm } from './aftermath.js';
 import { storyBeat, clearComms, commsBusy } from './story.js';
 import { setFoeLook } from '../enemies/look.js';
 
@@ -148,7 +149,7 @@ export function startLevel(idx, opts){
   player.riposteT = 0;
   player.mantle = null; player.wallRun = null; player.wallRunUsed = false; player.landStagT = 0;   // parkour state
   player.jetCharges = null; player.dodgeKind = null;   // the Mando's air-dodge charges refill to full
-  player.hang = null; player.slideT = 0; player.sprinting = false; player.sprintOn = true; player.pivotT = 0; player.flinchT = 0;
+  player.hang = null; player.slideT = 0; player.sprinting = false; player.sprintOn = true; player.strafeLatch = false; player.pivotT = 0; player.flinchT = 0;
   player.lockTarget = null;
   resetMandoMelee();
   player.judgeT = 0;
@@ -486,10 +487,7 @@ export function updateFlow(dt){
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.
         showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
-        if (G.chapter >= 0){   // (a chapter: the voice's last word first)
-          G.chapterClosed = G.chapter; shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; storyBeat('clear');
-          checkUnlocks(1600, true);   // what the chapter hands over is shown now, at its end, before the upgrade page
-        }
+        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear'); if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; } checkUnlocks(1600, true); }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
         else { shared.levelPhase = 'travel'; shared.phaseT = 1.6; openSkillTree(); }
       }
     }

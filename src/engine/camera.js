@@ -218,7 +218,8 @@ export function updateCamera(dt){
   if (G.mode === 'dead'){ if (deadAt < 0) deadAt = performance.now(); dk = Math.min(1, (performance.now() - deadAt) / 2500); dk = dk*dk*(3 - 2*dk); }
   else deadAt = -1;
   // (a scoped disruptor keeps its sight picture: no punch-in through a scope)
-  const pw = player.zoom ? 0 : punchWeight();
+  // (aiming down the sights: only a touch of it, so the shot and the sight picture stay put)
+  const pw = player.zoom ? 0 : punchWeight() * (adsFly ? 0.35 : 1);
   const d = (camDist + dk*3) * (1 - PUNCH_DIST * pw);
   // where the lens is clipped back toward (JA traces from the aim point; the Mando's rig from the hero's head)
   let ox = pp.x, oy = ty, oz = pp.z;
@@ -324,7 +325,7 @@ export function updateCamera(dt){
   td = td*td*(3 - 2*td);
   const ahead = C.lookAhead * (1 - td * C.topDownAhead);
   if (jedi) camera.lookAt(punchLook(LOOK, pw));   // JA: the view runs from the lens through its aim point, over the hero's head
-  else camera.lookAt(punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw));   // (aiming down the sights: barely, so the shot stays put)
+  else camera.lookAt(punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw));   // (and the aim leans less still)
   // camera ROLL into a strafe — subtle for the Jedi; a pronounced Max-Payne bank for the boosting Mando, but
   // damped right down while AIMING so the shot stays readable.
   const strafe = vx * (-f.z) + vz * f.x;

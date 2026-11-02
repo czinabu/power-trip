@@ -23,6 +23,8 @@ import { recordChapters } from './sandbox-unlocks.js';
 import { choiceAfter, choose, resetStory, storyChoices, answer, storyWords } from './choices.js';
 import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
+import { resetSet } from './onset.js';
+import { startCalm, guestCalm, endCalm } from './aftermath.js';
 
 const ROMAN = ['I', 'II', 'III'];
 export const chapters = () => chapterOrder(G.actTwo);
@@ -49,6 +51,8 @@ export function startChapter(pos, opts = {}){
   const c = chapterAt(pos);
   if (!c) return;
   G.chapter = pos; G.chapterClosed = null;   // (set again when it closes: game/flow.js chapterClosed)
+  endCalm(true);   // (a calm still running from the last chapter, or a retry from inside one: game/aftermath.js)
+  resetSet(pos, !!opts.retry);   // the story's voice that stayed on set (game/onset.js): back behind the hero on a retry of this chapter
   if (!opts.guest) recordChapters(pos);   // the sandbox follows the story (a co-op guest's is followChapter's)
   const title = chapterTitle(c), no = chapterNo(pos), name = no + ' — ' + title, sub = 'ACT ' + ROMAN[c.act] + ' · ' + c.world;
   if (opts.retry && G.checkpoint && G.checkpoint.ch === pos) G.waveTotal = G.checkpoint.waveTotal;
@@ -100,8 +104,10 @@ function chapterCleared(){
   storyBeat('clear', { quiet: !!G.mission });   // a mission's clear lines are already on its Chapter complete card (game/mission.js)
   // a story whose last chapter is a mission (the trooper's broadcast): clearing it ends the campaign, as the last boss does
   if (c && !chapterAt(G.chapter + 1)){ victory(); return; }
-  if (G.coopGuest){ checkUnlocks(1600, true); openSkillTree(); return; }   // (a guest's new powers show once its page closes)
-  shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6;   // the voice's last word, then the upgrade screen and the road on (game/flow.js)
+  if (G.coopGuest){ checkUnlocks(1600, true); guestCalm(openSkillTree); return; }   // (after the host's calm, if it has one: game/aftermath.js; a guest's new powers show at the close too)
+  // after a duel or a hold: a calm walk back to the rally point first (game/aftermath.js), then the voice's last word, the
+  // upgrade screen and the road on (game/flow.js)
+  if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6; }
   checkUnlocks(1600, true);   // the powers and forms this chapter hands over: their screens now, at its end (not as the next chapter opens)
 }
 // the 'travel' beat ran out (game/flow.js): the next chapter, or Act II's pick when it's due

@@ -1,0 +1,153 @@
+// POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+// THE CALM AFTER A CHAPTER'S LAST FIGHT: a quiet beat between the loud one that closed a chapter (a duel, a hold, a
+// stretch of waves) and the next chapter card. The field is cleared and the score drops away; a marker comes up at the
+// rally point (the story's voice waits there if they stayed on set: game/onset.js) and a short exchange plays over the
+// comms while you walk to it (data/calm.js). Reaching it, once the exchange has had its say, closes the chapter as
+// before: the voice's last word, the upgrade screen, the next card (game/flow.js 'chapterdone'). It closes on its own
+// after CALM_CFG.max seconds, wherever you are. Nobody can fall during it (player/damage.js): the chapter is already won.
+//
+// Every story's campaign (Jedi, Mandalorian, ARC trooper), solo and co-op: the host runs it and its snapshots carry the
+// rally point to the guests (net/foes.js), who see the same marker; whoever reaches it first closes it for everyone, and
+// a guest's upgrade screen waits for it to end (game/campaign.js). A lone mission, survival, training and the sandbox have
+// no next chapter to wait for: they end as they always have.
+
+import { G, shared, enemies } from '../state.js';
+import { playerPos } from '../player/helpers.js';
+import { makeBeacon, removeMarker, pulseMarker, heroIn } from './objectives.js';
+import { comms, commsBusy } from './story.js';
+import { onSetFigures, meetAt } from './onset.js';
+import { CALM, CALM_CFG } from '../data/calm.js';
+import { chapterOrder, storyHero, storyVoice } from '../data/campaign.js';
+import { MISSIONS } from '../data/missions.js';
+import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision.js';
+import { removeEnemy } from '../enemies/cleanup.js';
+import { burst } from '../fx/particles.js';
+import { MUSIC } from '../audio/music.js';
+import { net, on, send, connected } from '../net/session.js';
+import * as THREE from 'three';
+
+const COLOR = 0x9fe0ff;
+// the calm running now. host: { t, at: {x, z}, mark, said, label, who }; a guest's copy is shown, not run (A.guest)
+const A = { on: false, t: 0, at: null, mark: null, said: false, label: '', who: '', reached: false, guest: false, sent: false, then: null, wait: 0, seen: false };
+export const calmOn = () => A.on;
+
+const chapterNow = () => G.chapter >= 0 ? chapterOrder(G.actTwo)[G.chapter] : null;
+// the chapter's own exchange, or one from the pool for how it ended; false: no calm for it
+function exchangeFor(c){
+  const book = CALM[storyHero()] || CALM.jedi, own = book.chapters && book.chapters[c.id];
+  if (own === false) return false;
+  if (own) return own;
+  const def = c.kind === 'mission' && MISSIONS[c.mission], last = def && def.objectives[def.objectives.length - 1];
+  const kind = def ? (last && CALM_CFG.after.includes(last.kind) ? last.kind : null) : 'hold';   // (a wave chapter was a hold)
+  if (!kind) return false;
+  const pool = book[kind] || book.hold;
+  return pool && pool.length ? pool[G.chapter % pool.length] : [];
+}
+
+// the rally point: where the voice stands, if they stayed on set and are a walk away; otherwise open ground a walk off
+function rallySpot(){
+  const pp = playerPos(), cast = onSetFigures()[0];
+  if (cast){
+    const d = Math.hypot(cast.pos.x - pp.x, cast.pos.z - pp.z);
+    if (d >= CALM_CFG.near){ const k = Math.max(0, (d - 1.6) / d); return { x: pp.x + (cast.pos.x - pp.x) * k, z: pp.z + (cast.pos.z - pp.z) * k, who: cast.name }; }
+  }
+  const [hx, hz] = [shared.arenaHalf - 3, (shared.arenaHalfZ || shared.arenaHalf) - 3];
+  let best = null, bs = -Infinity;
+  for (let k = 0; k < 16; k++){
+    const a = G.yaw + Math.PI + (k / 16) * Math.PI * 2;   // (from behind the hero round: back the way they came, first)
+    for (const d of [CALM_CFG.far[1], (CALM_CFG.far[0] + CALM_CFG.far[1]) / 2, CALM_CFG.far[0], CALM_CFG.far[0] * 0.6]){
+      const c = findClearSpawn(pp.x + Math.sin(a) * d, pp.z + Math.cos(a) * d, 1.2);
+      if (Math.abs(c.x) > hx || Math.abs(c.z) > hz || segBlockedBySolids(pp.x, pp.z, c.x, c.z)) continue;
+      const dd = Math.hypot(c.x - pp.x, c.z - pp.z), up = Math.abs(groundAt(c.x, c.z, pp.y + 2) - pp.y);
+      const score = Math.min(dd, CALM_CFG.far[1]) - up * 6 - k * 0.15;
+      if (score > bs){ bs = score; best = c; }
+      break;
+    }
+  }
+  const c = best || findClearSpawn(pp.x - Math.sin(G.yaw) * CALM_CFG.far[0], pp.z - Math.cos(G.yaw) * CALM_CFG.far[0], 1.2);
+  const met = cast && meetAt(c.x, c.z);   // (the voice was too close to walk to: they go on ahead and meet you there, unseen)
+  return { x: c.x, z: c.z, who: met ? cast.name : '' };
+}
+function showMark(x, z){
+  if (A.mark) removeMarker(A.mark);
+  A.mark = makeBeacon(x, z, groundAt(x, z, 3), COLOR, 1.4);
+}
+function dropMark(){ if (A.mark){ removeMarker(A.mark); A.mark = null; } }
+
+// game/campaign.js (a mission chapter cleared) and game/flow.js (a wave chapter's last wave): start the calm if the
+// chapter earns one. True when it did (the caller then waits for it: shared.levelPhase 'aftermath')
+export function startCalm(){
+  const c = chapterNow();
+  if (!c || G.mode !== 'play' || G.coopGuest || A.on) return false;
+  const lines = exchangeFor(c);
+  if (lines === false) return false;
+  // the field goes quiet: whatever is left of the fight is swept away
+  for (const e of enemies){ if (!e.dead && e.group) burst(new THREE.Vector3(e.group.position.x, 1.2, e.group.position.z), 0xffd28a, 10, 4, 3, 0.8); removeEnemy(e); }
+  enemies.length = 0; G.spawnQueue.length = 0;
+  Object.assign(A, { on: true, guest: false, t: 0, at: null, said: false, reached: false, lines, label: (CALM[storyHero()] || CALM.jedi).label || 'REGROUP', who: '' });
+  G.calm = true;
+  shared.levelPhase = 'aftermath'; shared.phaseT = 0;
+  MUSIC.setCue('calm');
+  return true;
+}
+// ends it. quiet: a new chapter, the menu, a retry (nothing follows); otherwise the chapter closes (game/flow.js)
+export function endCalm(quiet){
+  if (!A.on && !A.mark) return;
+  const host = A.on && !A.guest;
+  A.on = false; A.at = null; G.calm = false;
+  dropMark();
+  if (quiet || !host) return;
+  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.6;   // (the voice's last word, then the upgrade screen: it waits for the comms)
+}
+
+// for the HUD (ui/hud.js): the line while it runs, and where the waypoint points
+export function calmHud(){
+  if (!A.on) return null;
+  return { title: A.who ? A.label + ' · ' + A.who : A.label, status: !A.at ? 'TAKE A BREATH' : A.reached ? 'REGROUPED' : 'NO RUSH · WALK TO THE MARKER' };
+}
+export const calmTarget = () => A.on && A.at ? A.at : null;
+
+// once a frame of play (main.js)
+export function updateAftermath(dt){
+  if (G.mode === 'menu' || G.chapter < 0){ if (A.on || A.mark) endCalm(true); A.then = null; return; }
+  if (A.guest || G.coopGuest){ updateGuest(dt); return; }
+  if (!A.on || dt <= 0) return;
+  A.t += dt;
+  if (!A.at && A.t >= CALM_CFG.markAt){
+    const r = rallySpot();
+    A.at = { x: r.x, z: r.z }; A.who = r.who;
+    showMark(r.x, r.z);
+    const voice = storyVoice(undefined, chapterNow());
+    if (A.lines.length) comms(A.lines.map(([who, say]) => ({ who: who || voice, say })));
+    A.said = true;
+  }
+  if (A.mark) pulseMarker(A.mark, dt, G.gt);
+  if (!A.at) return;
+  A.reached = A.reached || heroIn(A.at.x, A.at.z, CALM_CFG.reach);   // (either hero, in co-op)
+  const talked = !commsBusy() || A.t > CALM_CFG.talkMax;
+  if ((A.reached && talked && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max) endCalm(false);
+}
+
+/* ---------- co-op ---------- */
+// net/foes.js: what the host's snapshot carries ([x, z] of the rally point while a calm is up)
+export function calmSnap(){ return A.on && !A.guest && A.at ? [Math.round(A.at.x * 10) / 10, Math.round(A.at.z * 10) / 10] : undefined; }
+// a guest: the host's snapshot. Shows the marker while the host's calm is up; takes it down when it ends
+export function calmSync(af){
+  if (af){
+    A.seen = true;
+    if (!A.on || !A.at || A.at.x !== af[0] || A.at.z !== af[1]){ Object.assign(A, { on: true, guest: true, at: { x: af[0], z: af[1] }, who: '', reached: false, sent: false, label: (CALM[storyHero()] || CALM.jedi).label || 'REGROUP' }); showMark(af[0], af[1]); G.calm = true; }
+  } else if (A.on && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); }
+}
+// game/campaign.js: a guest's chapter cleared. What follows (its upgrade screen) waits for the host's calm, if one comes
+export function guestCalm(then){ A.then = then; A.wait = 2.0; A.seen = false; }
+function updateGuest(dt){
+  if (A.mark) pulseMarker(A.mark, dt, G.gt);
+  if (A.on && A.at && !A.sent){
+    const p = playerPos();
+    if (Math.hypot(p.x - A.at.x, p.z - A.at.z) < CALM_CFG.reach){ A.reached = true; A.sent = true; if (connected()) send({ t: 'afr' }); }
+  }
+  if (A.then && !A.on && (A.seen || (A.wait -= dt) <= 0)){ const f = A.then; A.then = null; f(); }   // (no calm came, or it ended)
+  if (!G.coopGuest && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); A.guest = false; }   // (left the host's run)
+}
+// the host: a guest reached the rally point (it counts as there once the exchange has had its say)
+on('afr', () => { if (net.role === 'host' && A.on && !A.guest) A.reached = true; });

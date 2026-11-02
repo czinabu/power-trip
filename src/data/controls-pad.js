@@ -16,7 +16,7 @@ export const PAD_CONTROLS = {
       ['HOLD {space}', 'Force leap and glide', 'Spends Force'],
       ['{shift}', 'Roll / dash', 'In a fight, a quick roll any way you push {LS}: it costs some stamina (each form spends its own share), with a moment of invulnerability · again mid-roll (or in the air) to Force dash, which spends a charge (the pips on the slot) and some Force · out of a fight it just dashes, free · roll or dash just as a blow lands for a perfect dodge'],
       ['{q}', 'Run / walk', 'Switches between run (the default; forward sprints) and walk; the sprint turns wide, and in a fight it burns stamina (it gives out before your guard does), the walk is a brisk, menacing pace, fights included'],
-      ['HOLD {alt}', 'Strafe', 'Keeps you facing the crosshair while you move: sidestep, backpedal and circle a foe · no sprint while it is held · it also opens the {alt} layer: hold it for the Force powers'],
+      ['HOLD {alt}', 'Strafe', 'Keeps you facing the crosshair while you move: sidestep, backpedal and circle a foe · no sprint while strafing · it also opens the {alt} layer: hold it for the Force powers · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
       ['{z}', 'Force slide', 'Out of a sprint: a long skid forward that ducks blaster fire and bowls troops over · attack out of it to sweep', 1],
     ]},
     { title: 'PARKOUR', rows: [
@@ -66,7 +66,7 @@ export const PAD_CONTROLS = {
       ['{shift} (air)', 'Air dodge', 'A straight thruster kick any way you push, invulnerable for a moment, and it stops your fall · spends a jet charge (the pips on the slot) and a little fuel', 1],
       ['HOLD {shift}', 'Boost in the air', 'Keep it held after the dodge: he lays out the way you fly, Max Payne style, guns up on the crosshair · look down to dive', 1],
       ['HOLD {rmb} (air)', 'Hover', 'Hold your height and strafe; let go of the stick to stop dead', 1],
-      ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move; running away from it no longer turns your back · it also opens the {alt} layer: hold it for the gadgets'],
+      ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move; running away from it no longer turns your back · it also opens the {alt} layer: hold it for the gadgets · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
       ['{c}', 'Slide', 'Feet first, out of any run, aiming too · carries far, steers a little, ducks blaster fire and keeps your aim steady · jump out of it for a long hop', 1],
       ['FLOW', 'Parkour pays', 'Vaults, climbs and slides refuel the jetpack; shots right after one hit harder'],
     ]},
@@ -107,7 +107,7 @@ export const PAD_CONTROLS = {
       ['{space}', 'Jump', 'Run and jump at low cover to vault it; jump at a ledge to climb · no jetpack: the trooper fights on foot'],
       ['{shift}', 'Combat roll', 'A dive any way you push, invulnerable through the throw, and the gun stays on target'],
       ['{c}', 'Slide', 'Feet first out of a run, firing as you go'],
-      ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move · it also opens the {alt} layer: hold it for the powers'],
+      ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move · it also opens the {alt} layer: hold it for the powers · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
     ]},
     { title: 'FIGHT', rows: [
       ['{lmb}', 'Fire', 'DC-15: a three-bolt burst · twin DC-17s: semi-auto, each pull fires the other pistol, so pull fast · headshots hit far harder'],

@@ -26,7 +26,7 @@ import { foeType } from '../enemies/look.js';
 import { castId, masterBlade } from '../data/saber-cast.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
-import { resetCameraRig } from '../engine/camera.js';
+import { resetCameraRig, updateCamera } from '../engine/camera.js';
 import { net, on, send, connected } from '../net/session.js';
 import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
@@ -119,7 +119,7 @@ function dropActors(){
   const stay = [...C.kept, ...C.actors.filter(a => a.stays && a.g)];
   for (const a of C.actors){ if (a.stays) continue; if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
   C.actors = []; C.kept = [];
-  if (stay.length) keepCast(stay, C.keepYaw);
+  if (stay.length) keepCast(stay, C.keepYaw, !!C.one);   // (a scene without cuts leaves them where they stand: no pop)
 }
 // the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it (anyone who
 // stays is only hidden: they are back, behind the hero, when the scene hands back)
@@ -255,7 +255,8 @@ function start(opts){
   const pp = playerPos();
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
-                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0 });
+                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null });
+  if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
   G.cutscene = true;
   // a scene with people on set: the Jedi's blade goes back on the belt while they talk (and comes out again after)
@@ -264,7 +265,8 @@ function start(opts){
   player.firing = false; player.trigHeld = false; player.blockHeld = false;
   stillHero(); calmHero(); showBolts(false);
   document.body.classList.add('cutscene');
-  el.classList.add('on'); el.classList.toggle('mando', isGunner());
+  el.classList.add('on'); el.classList.toggle('mando', isGunner()); el.classList.toggle('one', !!C.one);
+  el.style.setProperty('--bars', C.one ? '0vh' : (CUT.bars * 100) + 'vh');   // (no letterbox on a scene without cuts)
   skipHint();
   holdSkip(false);
   voted = false; lastTally = null; showVote(null);
@@ -279,7 +281,7 @@ function finish(skipped){
   const done = C.onDone;
   dropActors();
   if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
-  C.on = false; C.onDone = null;
+  C.on = false; C.onDone = null; C.one = null;
   G.cutscene = false;
   showBolts(true);
   document.body.classList.remove('cutscene');
@@ -357,6 +359,7 @@ function showShot(){
   });
   // the hero speaks a line of its own: the Jedi's jaw works (player/model/life.js express)
   player.talking = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
+  if (C.one){ if (s.kind === 'goal') oneExit(); return; }   // (a scene without cuts frames its own way: oneLens)
   pickSide(s);
 }
 // what's on screen now, for the shot tools (tools/shots/cutscene.mjs)
@@ -456,6 +459,7 @@ export function updateCutscene(){
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
+  if (C.one){ oneLens(s, dt, now); return; }
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
   const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
   lensAt(s, k, s.side || 1, P);
@@ -477,6 +481,113 @@ export function updateCutscene(){
   el.classList.toggle('fade', last);
 }
 
+/* ---------- a scene without cuts (data/cutscene-stage.js `oneshot`) ---------- */
+// God of War's way: the scene never cuts away. The lens leaves the play camera from wherever it is, drifts round to whoever
+// speaks, rises behind the hero for the objective, and settles back exactly where the play camera wants to be, with no
+// letterbox, so the fight picks up in the same shot. The lens rides an orbit round the pair (the hero and the one they
+// talk to), so a swing from one face to the other arcs round them instead of through them; every move is critically
+// damped (it eases off and eases in, never snaps).
+// castOff: how far round from the way the hero faced the cast stands (radians: off to one side, out of the play camera's
+// view once the hero turns back to the field). drift/back: seconds for the opening drift and the settle back.
+// lag: how long the lens takes to catch up with each new framing (seconds; more is lazier)
+const ONE = { castOff: 1.25, drift: 3.0, back: 2.0, lag: 0.85, backLag: 0.5, walk: 1.5 };
+const DIR = new THREE.Vector3(), TP = new THREE.Vector3(), TL = new THREE.Vector3();
+function smooth(o, k, to, st, dt){   // Unity's SmoothDamp on o[k] (its velocity in o[k + 'v'])
+  const w = 2 / st, x = w * dt, e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+  const c = o[k] - to, tmp = ((o[k + 'v'] || 0) + w * c) * dt;
+  o[k + 'v'] = ((o[k + 'v'] || 0) - w * tmp) * e;
+  o[k] = to + (c + tmp) * e;
+}
+const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+function oneBegin(){
+  const O = C.one, pp = playerPos(), b = C.actors[0], q = b && b.g ? b.g.position : null;
+  O.px = q ? (pp.x + q.x) / 2 : pp.x; O.pz = q ? (pp.z + q.z) / 2 : pp.z; O.py = q ? Math.min(pp.y, q.y) : pp.y;
+  O.Y = q ? yawTo(pp.x, pp.z, q.x, q.z) : G.yaw;
+  const cp = camera.position;
+  O.a = Math.atan2(cp.x - O.px, cp.z - O.pz); O.d = Math.max(1, Math.hypot(cp.x - O.px, cp.z - O.pz)); O.h = cp.y - O.py;
+  camera.getWorldDirection(DIR);
+  const r = Math.hypot(cp.x - O.px, cp.y - O.py - 1.5, cp.z - O.pz);
+  O.lx = cp.x + DIR.x * r; O.ly = cp.y + DIR.y * r; O.lz = cp.z + DIR.z * r; O.fov = camera.fov;
+}
+// where the play camera will sit once the scene hands back: run its rig for a moment, read it, put the lens back
+const probe = { P: new THREE.Vector3(), L: new THREE.Vector3(), fov: 60 };
+function playCamera(){
+  const pos = camera.position.clone(), quat = camera.quaternion.clone(), fov = camera.fov;
+  G.cutscene = false; resetCameraRig();
+  updateCamera(1);   // (a whole second: every lag in the rig settles on its resting spot)
+  G.cutscene = true;
+  probe.P.copy(camera.position); camera.getWorldDirection(DIR); probe.L.copy(camera.position).addScaledVector(DIR, 10); probe.fov = camera.fov;
+  camera.position.copy(pos); camera.quaternion.copy(quat); camera.fov = fov; camera.updateProjectionMatrix();
+  resetCameraRig();
+  return probe;
+}
+// what a beat frames: the lens as [angle round the pair, distance, height] and the point it looks at
+function oneTarget(s, out){
+  const O = C.one, pp = playerPos(), b = C.actors[0], sd = O.sd;
+  const eh = eyeOf('hero'), eb = b && b.g ? eyeOf(b) : eh, mid = (eh + eb) / 2;
+  // a point k of the way from the pair's middle to someone's face (0: between them; 1: on the face)
+  const at = (who, k) => { const q = who === 'hero' ? pp : b && b.g ? b.g.position : pp, y = who === 'hero' ? eh : eb;
+    return TL.set(O.px + (q.x - O.px) * k, mid + (y - mid) * k, O.pz + (q.z - O.pz) * k); };
+  const orbit = (a, d, h, L, fov) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; return out; };
+  const fromWorld = (P, L, fov) => orbit(Math.atan2(P.x - O.px, P.z - O.pz), Math.hypot(P.x - O.px, P.z - O.pz), P.y - O.py, L, fov);
+  if (s.kind === 'back'){ const pc = playCamera(); out.P = pc.P; return fromWorld(pc.P, pc.L, pc.fov); }
+  out.P = null;
+  if (s.kind === 'goal'){   // up behind the hero (on the side away from the cast), over what they face
+    const a = O.goalYaw + Math.PI - 0.45 * sd;
+    TP.set(pp.x + Math.sin(a) * 6.2, pp.y + 3.2, pp.z + Math.cos(a) * 6.2);
+    TL.set(pp.x + Math.sin(O.goalYaw) * 12, pp.y + 1.0, pp.z + Math.cos(O.goalYaw) * 12);
+    return fromWorld(TP, TL, 50);
+  }
+  if (!b || !b.g) return orbit(O.goalYaw + Math.PI + 0.5 * sd, 4.2, eh - O.py + 0.4, at('hero', 1), 46);   // (nobody on set)
+  if (s.kind === 'drift') return orbit(O.Y + sd * 2.1, 5.6, mid - O.py + 1.0, at('hero', 0.15), 48);
+  const speaker = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
+  // a line holds while the lens creeps in a little (a still lens reads as a cut you didn't notice)
+  const creep = 1 - 0.08 * Math.min(1, C.t / s.t);
+  if (speaker >= 0 && C.actors[speaker] && C.actors[speaker].g) return orbit(O.Y + sd * 2.3, 4.3 * creep, eh - O.py + 0.12, at('actor', 0.8), 42);   // over the hero, on them
+  if (s.line) return orbit(O.Y + sd * 0.9, 4.0 * creep, eh - O.py + 0.05, at('hero', 0.8), 42);   // round past them to the hero's face
+  return orbit(O.Y + sd * 1.75, 4.8, mid - O.py + 0.3, at('hero', 0), 46);   // the pair
+}
+const OT = {};
+function oneLens(s, dt, now){
+  const O = C.one, tg = oneTarget(s, OT), back = s.kind === 'back', st = back ? ONE.backLag : ONE.lag;
+  smooth(O, 'a', O.a + wrapA(tg.a - O.a), st, dt); smooth(O, 'd', tg.d, st, dt); smooth(O, 'h', tg.h, st, dt);
+  smooth(O, 'lx', tg.L.x, st, dt); smooth(O, 'ly', tg.L.y, st, dt); smooth(O, 'lz', tg.L.z, st, dt); smooth(O, 'fov', tg.fov, st, dt);
+  P.set(O.px + Math.sin(O.a) * O.d, O.py + O.h, O.pz + Math.cos(O.a) * O.d);
+  L.set(O.lx, O.ly, O.lz);
+  // kept out of props, like the play camera (pulled in toward the hero's head)
+  const pp = playerPos(), oy = eyeOf('hero') - 0.2, cl = cameraClearance(pp.x, oy, pp.z, P.x, P.y, P.z);
+  if (cl < 1) P.set(pp.x + (P.x - pp.x) * cl, oy + (P.y - oy) * cl, pp.z + (P.z - pp.z) * cl);
+  if (P.y < 0.35) P.y = 0.35;
+  // the last stretch of the settle lands exactly on the play camera, so the hand back has no seam at all
+  let w = 0, fov = O.fov;
+  if (back && tg.P){
+    w = Math.min(1, Math.max(0, (C.t - (s.t - 1.1)) / 1.0)); w = w * w * (3 - 2 * w);
+    P.lerp(tg.P, w); L.lerp(tg.L, w); fov += (tg.fov - fov) * w;
+  }
+  const hand = 0.014 * (1 - w), T = now / 1000;   // (an operator's hands: none by the time it is the play camera again)
+  P.x += Math.sin(T * 0.83) * hand; P.y += Math.sin(T * 1.13 + 1) * hand * 0.7; P.z += Math.sin(T * 0.71 + 2) * hand;
+  camera.position.copy(P);
+  camera.lookAt(L);
+  updatePropFade(P, L.x, L.y - 1, L.z, dt);
+  if (Math.abs(camera.fov - fov) > 0.02){ camera.fov = fov; camera.updateProjectionMatrix(); }
+  el.classList.remove('fade');
+}
+// the objective: whoever is on set heads off to their own side (and a little back), out of the shot before it hands back
+function oneExit(){
+  const O = C.one;
+  for (const a of C.actors){
+    if (!a.g || !a.own || a.bound || a.holo || a.walk) continue;
+    const p = a.g.position;
+    for (const da of [0, 0.4, -0.4, 0.8, -0.8]){
+      const yaw = O.goalYaw + O.sd * 1.95 + da * O.sd, c = findClearSpawn(p.x + Math.sin(yaw) * 12, p.z + Math.cos(yaw) * 12, 0.6);
+      if (segBlockedBySolids(p.x, p.z, c.x, c.z) && da !== -0.8) continue;
+      const dist = Math.hypot(c.x - p.x, c.z - p.z);
+      if (dist > 1) a.walk = { x0: p.x, z0: p.z, x1: c.x, z1: c.z, t: dist / ONE.walk, k: 0 };
+      break;
+    }
+  }
+}
+
 /* ============================================================
    THE SCENES
    ============================================================ */
@@ -493,19 +604,19 @@ function watchSpot(pp){
 
 /* ---------- a scene on set: the story's people standing there with the hero (data/cast.js, data/cutscene-stage.js) ---------- */
 // where the cast stands: in front of the hero, spread across their view, on open ground in plain sight
-function castSpots(n, pp){
+function castSpots(n, pp, off = 0){
   const fan = n === 1 ? [0] : n === 2 ? [-0.42, 0.42] : [-0.62, 0, 0.62], d0 = n === 1 ? 2.7 : 2.9, spots = [];
   for (const a0 of fan){
     let pick = null;
     for (const d of [d0, d0 * 1.2, d0 * 0.85, d0 * 1.45]) for (const da of [0, 0.22, -0.22, 0.45, -0.45]){
       if (pick) break;
-      const yaw = G.yaw + a0 + da, c = findClearSpawn(pp.x + Math.sin(yaw) * d, pp.z + Math.cos(yaw) * d, 0.6);
+      const yaw = G.yaw + off + a0 + da, c = findClearSpawn(pp.x + Math.sin(yaw) * d, pp.z + Math.cos(yaw) * d, 0.6);
       if (Math.hypot(c.x - pp.x, c.z - pp.z) < 1.8 || spots.some(q => Math.hypot(q.x - c.x, q.z - c.z) < 1.1)) continue;
       if (segBlockedBySolids(pp.x, pp.z, c.x, c.z) || Math.abs(groundAt(c.x, c.z, pp.y + 1.5) - pp.y) > 0.45) continue;
       if (sightClear(pp.x, pp.y + 1.5, pp.z, c.x, pp.y + 1.5, c.z) < 0.95) continue;
       pick = c;
     }
-    if (!pick){ const yaw = G.yaw + a0; pick = findClearSpawn(pp.x + Math.sin(yaw) * d0, pp.z + Math.cos(yaw) * d0, 0.6); }
+    if (!pick){ const yaw = G.yaw + off + a0; pick = findClearSpawn(pp.x + Math.sin(yaw) * d0, pp.z + Math.cos(yaw) * d0, 0.6); spots.miss = (spots.miss || 0) + 1; }
     spots.push(pick);
   }
   return spots;
@@ -618,8 +729,13 @@ export function playOpening(id, title, own){
   const cast = [...plan].filter(([, how]) => how === 'on' || how === 'holo').map(([who, how]) => ({ who, holo: how === 'holo' }));
   const who2i = new Map();
   let castFace = null;
+  // a scene without cuts (data/cutscene-stage.js `oneshot`; for now only where nobody is already on the field): the cast
+  // stands off to one side, so the hero turns to them to talk and back to the field for the objective
+  const one = stage.oneshot && !actors.length ? { sd: 1, goalYaw: G.yaw } : null;
   if (cast.length){
-    const spots = castSpots(cast.length, pp), base = actors.length;
+    let spots = castSpots(cast.length, pp, one ? ONE.castOff : 0);
+    if (one && spots.miss){ const alt = castSpots(cast.length, pp, -ONE.castOff); if ((alt.miss || 0) < spots.miss){ spots = alt; one.sd = -1; } }
+    const base = actors.length;
     cast.forEach((m, k) => {
       const sp = spots[k], F = makeFigure(m.who, sp.x, sp.z, yawTo(sp.x, sp.z, pp.x, pp.z), { holo: m.holo });
       if (!F){ plan.set(m.who, 'off'); return; }
@@ -639,9 +755,16 @@ export function playOpening(id, title, own){
   if (later.length && castFace && lines.length){ const k = shots.length - lines.length; shots[k].faceActor = who2i.values().next().value; }   // (back to the cast for the rest)
   const endYaw = face ? yawTo(pp.x, pp.z, face[0], face[1]) : heroYaw;
   C.building = actors.map(a => a.g);   // (the cast on set doesn't block the objective's view: rayClear)
-  shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
+  if (one){
+    // no wide shot and no cut to the objective: the title comes up as the lens drifts off the play camera, the objective
+    // as it rises behind the hero, and last it settles back where the play camera sits (oneLens)
+    const beat = (t, extra) => shot('hero', [0, 1, 1], [0, 1, 1], t, { on: 'hero', h: 1 }, extra);
+    shots[0] = beat(ONE.drift, { title, kind: 'drift' });
+    shots.push(beat(stage.goal ? Math.max(3.6, stage.goal.length / CUT.readRate + 1.6) : 1.8, { goal: stage.goal || undefined, kind: 'goal', faceYaw: one.goalYaw }),
+               beat(ONE.back, { kind: 'back' }));
+  } else shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
   C.building = null;
-  const ok = start({ key: 'open:' + id, shots, actors, face: first, keepYaw: endYaw });   // (if it can't, start drops the cast it was given)
+  const ok = start({ key: 'open:' + id, shots, actors, face: first, one, keepYaw: endYaw });   // (if it can't, start drops the cast it was given)
   if (ok && talk.length) G.talkStaged = id;
   return ok;
 }

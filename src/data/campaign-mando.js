@@ -50,7 +50,7 @@ export const MANDO_CHAPTERS = {
   // ---------------- ACT I: THE BROKEN COVERT ----------------
   siege: {
     title: 'A JOB IN SALT HOLLOW', world: 'SALT HOLLOW, ORVANE',
-    arena: { layout: 'outpost', arena: 60 },
+    kind: 'mission', mission: 'salthollow', steps: 2,   // (it stands for the shared slot's two waves) a fight with a shape (the cantina street, the clamp relays, the pad), not two waves in the square
     talk: { where: 'ABOARD THE CINDERWAKE, LOW OVER THE SALT FLATS',
       lines: [[ROOK, 'You said next time I could come. This is next time.'],
               ['YOU', 'You said that. I said no.'],
@@ -59,10 +59,10 @@ export const MANDO_CHAPTERS = {
     brief: ['Ossik Vane has put work your way for ten years, and he says this one is easy: a deserter with a price on him, drinking in Salt Hollow.',
             'Collect him and come home. Rook is waiting up.'],
     opening: { lines: [[OSSIK, 'Funny thing. The deserter left an hour ago. The men who came in after him did not.'], [A, 'That is not a bounty. That is an ambush. Fight your way to the pad.']] },
+    says: ['Imperial armour outside the door. Remnant troops, the Magistrate\'s colours. They were waiting for you. Clear the street.',
+           'Ossik has gone quiet. They have clamped the Cinderwake to the pad. The clamp relays are round the square. Cut all three.',
+           'The engines take time from cold. Hold the pad until she lifts. Then home.'],
     lines: {
-      wave: [
-        ['Imperial armour in the market. Remnant troops, the Magistrate\'s colours. They were waiting for you.', { who: OSSIK, say: 'I\'m sorry. I am. I didn\'t have a choice.' }],
-        ['Ossik has gone quiet. More of them on the rooftops. Clear the street and get to your ship.'] ],
       clear: [{ who: OSSIK, say: 'They have Nell. My girl. They said they only wanted you away from home for an hour.' },
               'An hour. He sold them the covert. Come home. Now.'],
     } },

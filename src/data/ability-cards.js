@@ -4,27 +4,30 @@
 // Keyed by the auto-unlock's key (data/store.js JEDI_AUTO / MANDO_AUTO) or the store node's id (JEDI_STORE / MANDO_STORE: shown
 // once the store page closes). A store entry names itself (name, hud); an auto-unlock takes both from its table. A form keeps
 // its own screen (game/meditation.js).
-// clip   a small animated WebP of the ability in the game (src/assets/abilities/), inlined into the build
-import pull from '../assets/abilities/pull.webp?inline';
-import jump from '../assets/abilities/jump.webp?inline';
-import flame from '../assets/abilities/flame.webp?inline';
-import dual from '../assets/abilities/dual.webp?inline';
-import jet from '../assets/abilities/jet.webp?inline';
-import throwClip from '../assets/abilities/throw.webp?inline';
-import barrier from '../assets/abilities/barrier.webp?inline';
-import jslam from '../assets/abilities/jslam.webp?inline';
-import mend from '../assets/abilities/mend.webp?inline';
-import judge from '../assets/abilities/judge.webp?inline';
-import repulse from '../assets/abilities/repulse.webp?inline';
-import grip from '../assets/abilities/grip.webp?inline';
-import grapple from '../assets/abilities/grapple.webp?inline';
-import mslam from '../assets/abilities/mslam.webp?inline';
-import bacta from '../assets/abilities/bacta.webp?inline';
-import birds from '../assets/abilities/birds.webp?inline';
-import deto from '../assets/abilities/deto.webp?inline';
-import disruptor from '../assets/abilities/disruptor.webp?inline';
-import darksaber from '../assets/abilities/darksaber.webp?inline';
-import missile from '../assets/abilities/missile.webp?inline';
+// clip   a small animated WebP of the ability in the game (public/abilities/). Shipped as files beside dist/index.html, not
+//        inlined: they were most of the download, and a card only needs its one when it opens. The built page opened on
+//        its own (no files beside it) shows the card's words alone.
+const at = (n) => 'abilities/' + n + '.webp';   // (public/abilities/: beside the page, fetched only when a card opens)
+const pull = at('pull'),
+      jump = at('jump'),
+      flame = at('flame'),
+      dual = at('dual'),
+      jet = at('jet'),
+      throwClip = at('throw'),
+      barrier = at('barrier'),
+      jslam = at('jslam'),
+      mend = at('mend'),
+      judge = at('judge'),
+      repulse = at('repulse'),
+      grip = at('grip'),
+      grapple = at('grapple'),
+      mslam = at('mslam'),
+      bacta = at('bacta'),
+      birds = at('birds'),
+      deto = at('deto'),
+      disruptor = at('disruptor'),
+      darksaber = at('darksaber'),
+      missile = at('missile');
 
 export const ABILITY_CARDS = {
   pull: { clip: pull, lines: ['Hold C to lock a foe in your Force Grasp. It hangs in the air and follows your aim: sweep it into other foes to bowl them over.',
@@ -78,19 +81,19 @@ export const ABILITY_CARDS = {
                                   'Earned after your signature weapon.'] },
   // ---------------- the ARC trooper's (data/trooper-progression.js TROOPER_AUTO / TROOPER_STORE) ----------------
   // (no clip recorded yet: the card shows its words alone, ui/ability-card.js)
-  scan:     { lines: ['Press Q to send out a pulse that marks every foe nearby.', 'Marked foes take more damage from you and from the squad.'] },
-  frag3:    { lines: ['A third frag grenade on your belt. Press G to throw one onto the crosshair; they refill one at a time.'] },
-  modAuto:  { lines: ['The DC-15 takes an auto barrel. With the rifle in hand, press 1 again to fit it.',
+  scan:     { clip: at('t-scan'), lines: ['Press Q to send out a pulse that marks every foe nearby.', 'Marked foes take more damage from you and from the squad.'] },
+  frag3:    { clip: at('t-frag3'), lines: ['A third frag grenade on your belt. Press G to throw one onto the crosshair; they refill one at a time.'] },
+  modAuto:  { clip: at('t-modAuto'), lines: ['The DC-15 takes an auto barrel. With the rifle in hand, press 1 again to fit it.',
                       'Hold LMB to fire lighter bolts in a stream: more heat and a wider cone, made for crowds and suppression.'] },
-  modScope: { lines: ['The DC-15 takes a marksman scope. With the rifle in hand, press 1 again to fit it.',
+  modScope: { clip: at('t-modScope'), lines: ['The DC-15 takes a marksman scope. With the rifle in hand, press 1 again to fit it.',
                       'Hold RMB to raise the scope; each pull is one heavy shot that reaches across the field.'] },
-  squad3:   { lines: ['Hammer joins the band: three clones on the line from here on.', 'His rotary pins whatever it hits, as SUPPRESS does.'] },
-  bshield:  { name: 'BUBBLE SHIELD', hud: 'V', lines: ['Press V to raise a dome where you stand. Enemy bolts stop at its edge, for you and the squad.'] },
-  medic:    { name: 'FIELD MEDIC', hud: 'H', lines: ['Patch joins the squad. He patches up whoever is near and runs to get the downed up on his own.',
+  squad3:   { clip: at('t-squad3'), lines: ['Hammer joins the band: three clones on the line from here on.', 'His rotary pins whatever it hits, as SUPPRESS does.'] },
+  bshield:  { clip: at('t-bshield'), name: 'BUBBLE SHIELD', hud: 'V', lines: ['Press V to raise a dome where you stand. Enemy bolts stop at its edge, for you and the squad.'] },
+  medic:    { clip: at('t-medic'), name: 'FIELD MEDIC', hud: 'H', lines: ['Patch joins the squad. He patches up whoever is near and runs to get the downed up on his own.',
                       'Your own revives take half as long, and you knit slowly once clear of the fight.'] },
-  ion:      { name: 'ION GRENADE', hud: 'F', lines: ['Press F to throw a grenade that stuns everything in the blast and drops shields. Droids and jet troopers stay stunned twice as long.'] },
-  breach:   { name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },
-  commander:{ name: 'COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line.'] },
-  commando: { name: 'COMMANDO', hud: '3', lines: ['The rifle\'s AT launcher is on key 3: one heavy rocket a pull.', 'You hit 18% harder.'] },
-  strafe:   { name: 'GUNSHIP STRAFING RUN', hud: 'X', lines: ['Press X to call a gunship: it lays a line of blasts from you toward the crosshair.'] },
+  ion:      { clip: at('t-ion'), name: 'ION GRENADE', hud: 'F', lines: ['Press F to throw a grenade that stuns everything in the blast and drops shields. Droids and jet troopers stay stunned twice as long.'] },
+  breach:   { clip: at('t-breach'), name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },
+  commander:{ clip: at('t-commander'), name: 'COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line.'] },
+  commando: { clip: at('t-commando'), name: 'COMMANDO', hud: '3', lines: ['The rifle\'s AT launcher is on key 3: one heavy rocket a pull.', 'You hit 18% harder.'] },
+  strafe:   { clip: at('t-strafe'), name: 'GUNSHIP STRAFING RUN', hud: 'X', lines: ['Press X to call a gunship: it lays a line of blasts from you toward the crosshair.'] },
 };

@@ -55,13 +55,15 @@ function place(F, at){
   F.look = pp;
 }
 
-// game/cutscene.js, as a chapter's opening hands back: these figures stay (yaw: the way the hero faces the field)
-export function keepCast(figs, yaw){
+// game/cutscene.js, as a chapter's opening hands back: these figures stay (yaw: the way the hero faces the field).
+// put: a scene without cuts (cutscene.js oneshot) hands back in view, so whoever is still standing there stays put
+export function keepCast(figs, yaw, put){
   if (G.chapter < 0 || G.mode !== 'play'){ for (const F of figs) dropFigure(F); return; }
   clearFigs();
   S.ch = G.chapter; S.yaw = yaw; S.names = figs.map(F => F.name); S.figs = figs; S.want = false;
-  const at = spots(figs.length, yaw);
-  figs.forEach((F, k) => place(F, at[k]));
+  const move = put ? figs.filter(F => F.g.visible === false) : figs, at = spots(move.length, yaw), pp = playerPos();
+  move.forEach((F, k) => place(F, at[k]));
+  for (const F of figs) if (!move.includes(F)){ F.walk = null; F.talk = false; F.look = pp; }
 }
 function clearFigs(){ for (const F of S.figs) dropFigure(F); S.figs = []; }
 // game/campaign.js, as a chapter starts: off the field. A retry of the same chapter brings them back (its opening has

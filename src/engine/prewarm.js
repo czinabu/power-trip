@@ -16,6 +16,7 @@ import { ensureBarrierMesh } from '../player/jedi/force.js';
 import { ensureJudgeLines } from '../player/jedi/judgement-fx.js';
 import { shared, G } from '../state.js';
 import { holdLightCount } from '../fx/lights.js';
+import { seeThroughSpecimen } from '../world/charfade.js';
 
 /* ---------- 1. SHADERS ----------
    three.js builds a shader program the first time a material variant is drawn, and again for every material when the
@@ -41,6 +42,9 @@ function buildSpecimens(){
   specimen(new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)),
                           new THREE.LineBasicMaterial({ color: 0xbfe8ff })));   // grapple and Darksaber lines
   specimen(buildEnemyMesh(ENEMY_TYPES.grunt));   // the skinned, outlined trooper material every foe and squadmate shares
+  // the same dithered see-through, as a squadmate or a foe in front of the lens wears it (world/charfade.js): the trooper
+  // build, a heavy and a saber wielder (their faces, robes and blades), so none builds its program mid-fight
+  for (const t of ['grunt', 'brute', 'acolyte']) if (ENEMY_TYPES[t]) specimen(seeThroughSpecimen(buildEnemyMesh(ENEMY_TYPES[t])));
 }
 const lazy = [];   // objects that other modules build on first use: shown for the compile, then put back
 function showLazy(){

@@ -605,6 +605,19 @@ function wantSpot(a, medic, dt){
   const ld = leader(a), sl = (SQ.formation === 'tight' ? SQUAD.tightSlots : SQUAD.slots)[i], fx = Math.sin(ld.yaw), fz = Math.cos(ld.yaw);
   return { x: ld.pos.x - fz * sl[0] + fx * sl[1], z: ld.pos.z + fx * sl[0] + fz * sl[1], r: SQ.formation === 'tight' ? SQUAD.leash * 0.6 : SQUAD.leash };
 }
+/* CAMERA LANE — the strip of ground from the lens to the hero. Returns a unit push out of it (sideways, toward the
+   nearer edge) for a body standing in it, else null */
+const SQUAD_LANE = { half: 1.2, spare: 0.9, push: 4.5 };
+function laneOffset(p, pp){
+  const cx = camera.position.x, cz = camera.position.z, lx = pp.x - cx, lz = pp.z - cz, len = Math.hypot(lx, lz);
+  if (len < 1) return null;
+  const ux = lx / len, uz = lz / len, along = (p.x - cx) * ux + (p.z - cz) * uz;
+  if (along <= 0 || along > len - SQUAD_LANE.spare) return null;
+  const side = (p.x - cx) * -uz + (p.z - cz) * ux;   // + left of the line, - right
+  if (Math.abs(side) > SQUAD_LANE.half) return null;
+  const sg = side >= 0 ? 1 : -1;
+  return { x: -uz * sg, z: ux * sg };
+}
 export function updateSquad(dt){
   if (!allies.length){ if (markTag) markTag.visible = false; if (downed.length || G.coopRevive) updateRevive(dt, []); return; }
   const pp = playerPos();
@@ -741,6 +754,9 @@ function updateAlly(a, dt, medic, pp){
     if (d2 < 2.2 && d2 > 1e-4){ const k = 2.4 / Math.sqrt(d2); wantX += ox * k; wantZ += oz * k; }
   }
   if (!medic){ const ox = p.x - pp.x, oz = p.z - pp.z, d2 = ox*ox + oz*oz; if (d2 < 2.6 && d2 > 1e-4){ const k = 3 / Math.sqrt(d2); wantX += ox * k; wantZ += oz * k; } }
+  // ...and out of the camera's line to the hero: a squadmate standing in it steps to the side it is already nearer
+  // (it still fades while it does: world/charfade.js)
+  if (!medic && a.ord.kind !== 'revive'){ const lane = laneOffset(p, pp); if (lane){ wantX += lane.x * SQUAD_LANE.push; wantZ += lane.z * SQUAD_LANE.push; } }
   const ac = 16 * dt;
   a.mv.x += clamp(wantX - a.mv.x, -ac, ac); a.mv.z += clamp(wantZ - a.mv.z, -ac, ac);
   p.x += a.mv.x * dt; p.z += a.mv.z * dt;

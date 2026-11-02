@@ -136,7 +136,7 @@ export const FORM_CODEX = {
     best: 'Duellists and heavy hitters who come to you',
     pros: ['Blocks and parries build fury, up to +40% damage', 'A parry finds the Shatterpoint: your next cut on that foe lands double and floors it'],
     cons: ['Blows land 10% harder on you', 'Weak when nobody attacks you', 'Choosing it closes Juyo for the run'] },
-  staff: { who: 'The Jedi Temple Guard, Darth Maul', lore: 'Not a form but a weapon: one long hilt, a blade at each end, kept spinning in both hands. Every cut is two.',
+  staff: { who: 'The Jedi Temple Guard, Darth Maul', lore: 'Not a form but a weapon: one long hilt, a blade at each end, kept spinning in both hands. The Temple Guards carried it gold-bladed to hold a door against many; Maul made it a whirlwind. Every cut is two.',
     best: 'Crowds closing in from every side',
     pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you'],
     cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { G, player, isGunner } from '../state.js';
 import { stance, bladeColor } from '../player/helpers.js';
-import { FORM_OF } from '../data/poses.js';
+import { FORM_OF, SWING_STYLE } from '../data/poses.js';
 import { STAFF, fitStaffBlades, saberIsStaff } from '../player/model/weapons.js';
 
 /* ---------- saber motion trail ----------
@@ -39,7 +39,7 @@ const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (
   shien:     { life: 0.2, core: 0.7, base: 0.18 },
   juyo:      { life: 0.16, core: 0.95, base: 0.22 },   // hot, ragged streaks
   vaapad:    { life: 0.19, core: 0.8, base: 0.16 },
-  staff:     { life: 0.18, core: 0.8, base: 0.2 },     // two wheeling streaks, one off each end
+  staff:     { life: 0.12, core: 0.6, base: 0.42 },    // two wheeling streaks, one off each end: kept short and thin, or a whirl of both washes the view out
   darksaber: { life: 0.2, core: 0.35, base: 0.15 },
 };
 const SUB = 4;   // Catmull-Rom subdivisions between frame samples
@@ -60,7 +60,11 @@ export function updateTrail(dt){
   // ability slash) — so the ribbon traces the real arc, in either grip
   const bladeNode = (player.saberHand && player.saberHand.visible) ? player.saberHand
                   : (player.darksaberMesh && player.darksaberMesh.visible) ? player.darksaberMesh : null;
-  const swinging = player.atkT > 0 || player.darkT > 0;
+  // (the saber staff's whirl between cuts draws no streak: both blades wheeling a full turn in a few frames would fan
+  // two great additive sheets across the view; the streaks pick up again as the cut itself comes through)
+  const sw = player.swing, whirl = sw && sw.spin && sw.spin.twirl && sw.t < sw.dur * SWING_STYLE.staff.ts && saberIsStaff(player);
+  if (whirl) for (const r of RIB) r.pts.length = 0;
+  const swinging = (player.atkT > 0 || player.darkT > 0) && !whirl;
   if (swinging && bladeNode){
     const dark = bladeNode === player.darksaberMesh;
     trailCfg = TRAIL[dark ? 'darksaber' : (FORM_OF[G.stance] || 'niman')] || TRAIL.niman;

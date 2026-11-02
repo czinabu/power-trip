@@ -82,8 +82,28 @@ function updatePauseCam(){
   P.last = now;
 }
 
+// PUNCH-IN — a story beat mid-fight (a duel foe's rage, game/mission.js): for a moment the lens tucks in, narrows and
+// leans its aim toward the foe, then lets go. No letterbox and no lock: the hero is still yours the whole time.
+// `at` is a live position (or a fixed point); `up` how high on it to look
+let punch = null;
+const PUNCH_IN = 0.22, PUNCH_OUT = 0.6, PUNCH_FOV = 9, PUNCH_DIST = 0.24, PUNCH_LOOK = 0.42;
+export function punchIn(at, up = 1.3, dur = 1.6){ punch = { at, up, t0: G.gt, dur }; }
+function punchWeight(){
+  if (!punch) return 0;
+  const a = G.gt - punch.t0;
+  if (a < 0 || a > punch.dur || G.mode !== 'play'){ punch = null; return 0; }
+  const w = Math.min(1, a / PUNCH_IN, (punch.dur - a) / PUNCH_OUT);
+  return w * w * (3 - 2 * w);
+}
+// lean a look point toward the punch's target by its weight
+function punchLook(v, pw){
+  if (pw <= 0) return v;
+  const a = punch.at;
+  return v.set(v.x + (a.x - v.x) * PUNCH_LOOK * pw, v.y + ((a.y || 0) + punch.up - v.y) * PUNCH_LOOK * pw, v.z + (a.z - v.z) * PUNCH_LOOK * pw);
+}
+
 // a cutscene ended (game/cutscene.js): the Jedi rig starts over from its ideal spot instead of swooping in from before it
-export function resetCameraRig(){ jaLive = false; camFov = camera.fov; }
+export function resetCameraRig(){ jaLive = false; camFov = camera.fov; punch = null; }
 
 // BATTLE SETUP (game/battlesim.js): the lens hangs over the map at shared.planCam, tipped down at its pitch
 function updatePlanCam(){
@@ -161,7 +181,9 @@ export function updateCamera(dt){
   let dk = 0;
   if (G.mode === 'dead'){ if (deadAt < 0) deadAt = performance.now(); dk = Math.min(1, (performance.now() - deadAt) / 2500); dk = dk*dk*(3 - 2*dk); }
   else deadAt = -1;
-  const d = camDist + dk*3;
+  // (a scoped disruptor keeps its sight picture: no punch-in through a scope)
+  const pw = player.zoom ? 0 : punchWeight();
+  const d = (camDist + dk*3) * (1 - PUNCH_DIST * pw);
   // where the lens is clipped back toward (JA traces from the aim point; the Mando's rig from the hero's head)
   let ox = pp.x, oy = ty, oz = pp.z;
   if (jedi){
@@ -263,8 +285,8 @@ export function updateCamera(dt){
   let td = clamp((G.pitch - C.topDownFrom) / (1.2 - C.topDownFrom), 0, 1);
   td = td*td*(3 - 2*td);
   const ahead = C.lookAhead * (1 - td * C.topDownAhead);
-  if (jedi) camera.lookAt(LOOK);   // JA: the view runs from the lens through its aim point, over the hero's head
-  else camera.lookAt(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots);
+  if (jedi) camera.lookAt(punchLook(LOOK, pw));   // JA: the view runs from the lens through its aim point, over the hero's head
+  else camera.lookAt(punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw));   // (aiming down the sights: barely, so the shot stays put)
   // camera ROLL into a strafe — subtle for the Jedi; a pronounced Max-Payne bank for the boosting Mando, but
   // damped right down while AIMING so the shot stays readable.
   const strafe = vx * (-f.z) + vz * f.x;
@@ -283,6 +305,6 @@ export function updateCamera(dt){
   const wantFov = player.zoom ? 30 : (baseFov(C) + (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6) + (stance().fovKick || 0) - blasterAim);
   // previewing the FOV setting (often while paused, dt = 0): snap so the view follows the slider at once
   camFov = G.fovPreview ? wantFov : camFov + (wantFov - camFov) * Math.min(1, dt * (player.zoom ? 12 : 7));
-  const fov = camFov - fovPunch;
+  const fov = camFov - fovPunch - PUNCH_FOV * pw;
   if (Math.abs(camera.fov - fov) > 0.02){ camera.fov = fov; camera.updateProjectionMatrix(); }
 }

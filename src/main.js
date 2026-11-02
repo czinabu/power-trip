@@ -179,13 +179,16 @@ function tick(){
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
-  updateTrail(dt);
+  // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
+  // cutscene: frozen, they'd hang in its shots as a still of the last action beat
+  const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;
+  updateTrail(fxDt);
   updateJudgeFX();
   updateAmbient(G.paused ? 0 : rawDt);
   updateScorch(dt);
-  updateSevered(dt);
-  updateParticles(dt);
-  updateVFX(dt);
+  updateSevered(fxDt);
+  updateParticles(fxDt);
+  updateVFX(fxDt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
   // squadmates, foes, a boss or a partner standing between the lens and the hero turn see-through (world/charfade.js)

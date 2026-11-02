@@ -239,10 +239,40 @@ const canStart = (key) => !C.on && G.mode === 'play' && !(key && seen.has(key));
 // a scene that won't play: the figures built for it leave the field (a stand-in left behind would stand there for good,
 // beside the real foe: the duel foe's double after a retry, which keeps the duel's intro marked as seen)
 function discard(actors){ for (const a of actors || []){ if (a.kind) dropFigure(a); else if (a.own && a.g) scene.remove(a.g); } }
+/* ---------- room to talk: nobody stands on top of the hero when a scene starts ----------
+   A scene that starts as a fight ends (a duel foe breaking off, a cornered quarry) finds the hero wherever the fight left
+   them, often a step from the one who is about to speak: the two bodies overlap in every close and the over-the-shoulder
+   lens sits inside the hero. So before the first shot, the speaker steps back to ROOM (a stand-in built for the scene), or,
+   when it can't (a wall behind it, or it is something already on the field: the boss, the quarry), the hero does. */
+const ROOM = 2.6;
+// a clear spot `d` from (x, z) along `yaw` (or a little either side of it) on level ground with nothing in between: null if none
+function roomSpot(x, z, y, yaw, d){
+  for (const da of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const k of [1, 1.2]){
+    const a = yaw + da, c = findClearSpawn(x + Math.sin(a) * d * k, z + Math.cos(a) * d * k, 0.6);
+    if (Math.hypot(c.x - x, c.z - z) < d * 0.92 || segBlockedBySolids(x, z, c.x, c.z)) continue;
+    if (Math.abs(groundAt(c.x, c.z, y + 1.5) - y) > 0.45 || sightClear(x, y + 1.5, z, c.x, y + 1.5, c.z) < 0.95) continue;
+    return c;
+  }
+  return null;
+}
+function makeRoom(actors){
+  for (const a of actors || []){
+    if (!a || !a.g || (a.kind && !a.bound)) continue;   // (the story's cast is set apart already: castSpots)
+    const pp = playerPos(), q = a.g.position, need = ROOM * Math.max(1, a.scale || 1), d = Math.hypot(q.x - pp.x, q.z - pp.z);
+    if (d >= need) continue;
+    const away = d > 0.05 ? yawTo(pp.x, pp.z, q.x, q.z) : G.yaw;   // hero → actor
+    let c = a.own && !a.kind && roomSpot(pp.x, pp.z, pp.y, away, need);
+    if (c){ q.set(c.x, groundAt(c.x, c.z, pp.y + 1.5), c.z); a.g.rotation.y = yawTo(c.x, c.z, pp.x, pp.z); continue; }
+    c = roomSpot(q.x, q.z, pp.y, away + Math.PI, need);   // it can't move: the hero steps back from it instead
+    if (c){ pp.x = c.x; pp.z = c.z; pp.y = Math.max(pp.y, groundAt(c.x, c.z, pp.y + 1.5)); }
+  }
+}
 function start(opts){
   if (!canStart(opts.key)){ discard(opts.actors); return false; }
   if (opts.key) seen.add(opts.key);
+  makeRoom(opts.actors);
   const pp = playerPos();
+  if (opts.face === 'actor'){ const g = opts.actors[0].g.position; opts.face = [g.x, g.z]; }   // (where it stands now: makeRoom)
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], heroYaw: G.yaw,
                      mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null });
@@ -771,7 +801,15 @@ export function playDuelIntro(spec, share = true){
     if (!q) return false;
     q.scale = spec.scale || 1; actors.push(q); at = [q.g.position.x, q.g.position.z];
   } else {
-    const pp = playerPos(), away = Math.atan2(at[0] - pp.x, at[1] - pp.z);
+    const pp = playerPos();
+    // it walks up to its mark, where the real foe steps in after: a hero left standing on that mark by the fight before
+    // steps back off it, so the two don't end up inside each other
+    const need = ROOM * Math.max(1, spec.scale || 1);
+    if (Math.hypot(at[0] - pp.x, at[1] - pp.z) < need){
+      const c = roomSpot(at[0], at[1], pp.y, Math.hypot(at[0] - pp.x, at[1] - pp.z) > 0.05 ? yawTo(at[0], at[1], pp.x, pp.z) : G.yaw + Math.PI, need);
+      if (c){ pp.x = c.x; pp.z = c.z; }
+    }
+    const away = Math.atan2(at[0] - pp.x, at[1] - pp.z);
     const from = findClearSpawn(at[0] + Math.sin(away) * 5, at[1] + Math.cos(away) * 5, 1.0);
     actors.push(makeActor(spec, from.x, from.z, away + Math.PI));
   }
@@ -817,7 +855,7 @@ export function playScene(id, opts = {}){
     shots = actors.length ? [overShoulder(1.6), ...actorLines(lines.slice(0, 1)), ...heroLines(lines.slice(1)), settle()]
                           : [shot('mark', [0.6, 6, 2.2], [0.4, 5, 2.0], 2.4, { on: 'mark', h: 1.0 }), ...heroLines(lines), settle()];
   } else shots = [...heroLines(lines), settle()];
-  return start({ key: opts.key, shots, actors, face: opts.mark, mark: opts.mark ? { x: opts.mark[0], z: opts.mark[1] } : null,
+  return start({ key: opts.key, shots, actors, face: actors.length ? 'actor' : opts.mark, mark: opts.mark ? { x: opts.mark[0], z: opts.mark[1] } : null,
                  onDone: opts.onDone, share: opts.share === false ? null : { k: 'scene', id, mark: opts.mark || null } });
 }
 

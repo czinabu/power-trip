@@ -32,6 +32,7 @@ import { damageBoss, bossStagger, bossStun, makeBossPuppet, dropBossPuppet } fro
 import { net, on, send, connected } from './session.js';
 import { coopRun, hitQueue } from './run.js';
 import { STANCES } from '../data/stances.js';
+import { masterBlade } from '../data/saber-cast.js';
 import { duelRec, updatePuppetDuel, netProfile, updateSaberLock, LOCK } from '../enemies/duel.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
@@ -60,7 +61,7 @@ function snapshot(){
       u.weaponArm ? r2(u.weaponArm.rotation.z) : 0, u.staff ? r2(u.staff.rotation.x) : 0,   // (the weapon's other axis: which line a guard or block covers)
       e.form || '',   // a form master's form: its blade colour (game/mission.js)
       u.weaponArm ? r2(u.weaponArm.rotation.y) : 0, r2(e.cutDrop || 0), e.cutTwist != null ? r2(e.cutTwist) : null, e.cut || 0,
-      duelRec(e)]);   // a duellist's cut: a low sweep's yaw, the hips' drop, the chest's turn (enemies/duel.js); the limbs a saber has taken off (enemies/scars.js); a duellist's guard, posture and breath (duel.js duelRec)
+      duelRec(e), e.look || '']);   // (26: a saber wielder's look, data/saber-cast.js: the host's duel foe in its own face)   // a duellist's cut: a low sweep's yaw, the hips' drop, the chest's turn (enemies/duel.js); the limbs a saber has taken off (enemies/scars.js); a duellist's guard, posture and breath (duel.js duelRec)
   }
   const bs = shared.boss, bu = bs && bs.group.userData;
   const boss = bs && !bs.net ? [r2(bs.group.position.x), r2(bs.group.position.y), r2(bs.group.position.z), r2(bs.group.rotation.y), r2(bs.group.rotation.x),
@@ -125,10 +126,10 @@ function makePuppet(rec){
   const [nid, type, , , , , , , sc, hp, maxHp, state, flags, elite] = rec;
   const t = ENEMY_TYPES[type];
   if (!t) return null;
-  const g = buildEnemyMesh(foeType(type), { seed: typeof nid === 'number' ? nid : undefined });   // the host's marking and face (enemies/spawn.js)
+  const g = buildEnemyMesh(foeType(type), { seed: typeof nid === 'number' ? nid : undefined, look: rec[26] || undefined });   // the host's marking and face (enemies/spawn.js), a duel foe's look
   g.scale.setScalar(sc);
   if (elite) dressElite(g, elite);
-  if (rec[20] && STANCES[rec[20]] && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(STANCES[rec[20]].blade);   // a form master's blade
+  if (rec[20] && STANCES[rec[20]] && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(masterBlade(g.userData.look, STANCES[rec[20]].blade));   // a form master's blade
   const e = { net: true, nid, type, t, group: g, hp, maxHp, state, st: 0, vel: V3(0, 0, 0), flash: 0, hitCd: 0, dead: false,
     netState: state, converted: false, convT: 0, struck: false, stumble: 0, burn: 0, flinch: 0, spd: t.speed, elite: elite || null, shieldHp: 0, shieldBroken: false,
     aimLine: null, want: { pos: V3(rec[2], rec[3], rec[4]), rx: rec[5], ry: rec[6], rz: rec[7] },

@@ -36,39 +36,105 @@ export const CLONE_FACE = { skin: 0x8a6450, hair: 0x120d0a, style: 'buzz' };
 
 /* a face on head bone `h` (its origin at the neck). o.hair: false under a cap. The lids hang from a 'lids' bone at the
    top of the eyes (scaled down open, to full when they blink) and the chin, lower lip and mouth's dark from a 'jaw'
-   bone at the hinge, so both animate inside the baked mesh */
+   bone at the hinge, so both animate inside the baked mesh.
+   The saber cast (enemies/saberist.js, data/saber-cast.js) asks for more: o.fem (a narrower jaw and chin, a finer
+   nose and brow, lashes), o.style (bald, buzz, crop, part, long, ponytail, bun, topknot, braid), o.beard (stubble,
+   goatee, full: 'beard' key), o.marks + o.markStyle (face tattoos: 'tattoo' key), o.scar ('scar' key), o.horns (a horn
+   crown: 'horn' key), o.void (a face of shadow) and o.sith (lit Sith eyes, o.eyeC, the 'eye' tag: they flare on a wind-up) */
 export function face(k, h, o = {}){
-  k.add(loft([{ y:-0.04, w:0.13, d:0.13 }, { y:0.08, w:0.12, d:0.12 }], ngon(8, PI/8)), 'skin', h);   // neck
-  k.add(loft([{ y:0.04, w:0.17, d:0.2, z:-0.005 }, { y:0.1, w:0.205, d:0.232 }, { y:0.18, w:0.218, d:0.24 }, { y:0.26, w:0.21, d:0.235, z:-0.005 },
+  const f = !!o.fem, jw = f ? 0.86 : 1;
+  k.add(loft([{ y:-0.04, w:0.13*jw, d:0.13 }, { y:0.08, w:0.12*jw, d:0.12 }], ngon(8, PI/8)), 'skin', h);   // neck
+  k.add(loft([{ y:0.04, w:0.17*jw, d:0.2, z:-0.005 }, { y:0.1, w:0.205*(f ? 0.93 : 1), d:0.232 }, { y:0.18, w:0.218*(f ? 0.96 : 1), d:0.24 }, { y:0.26, w:0.21, d:0.235, z:-0.005 },
               { y:0.31, w:0.17, d:0.2, z:-0.01 }, { y:0.335, w:0.08, d:0.1, z:-0.01 }], SOFT_HEAD), 'skin', h);   // skull
-  k.add(loft([{ y:0.02, w:0.15, d:0.1, z:0.052 }, { y:0.09, w:0.17, d:0.1, z:0.058 }], SOFT_LIMB), 'skin', h);   // upper jaw, cheeks
+  k.add(loft([{ y:0.02, w:0.15*jw, d:0.1, z:0.052 }, { y:0.09, w:0.17*(f ? 0.92 : 1), d:0.1, z:0.058 }], SOFT_LIMB), 'skin', h);   // upper jaw, cheeks
   // the jaw: chin and lower lip on a hinge just under the ears
   const jaw = k.bone('jaw', h, [0, 0.085, 0.0]);
-  k.add(loft([{ y:-0.075, w:0.085, d:0.07, z:0.07 }, { y:-0.04, w:0.13, d:0.09, z:0.064 }, { y:-0.005, w:0.15, d:0.1, z:0.058 }], SOFT_LIMB), 'skin', jaw);
-  k.add(block(0.05, 0.012, 0.014, 0.4), 'lip', jaw, [0, -0.032, 0.11], [0, 0, 0], NO_INK);   // lower lip
+  k.add(loft([{ y:-0.075, w:0.085*(f ? 0.8 : 1), d:0.07*(f ? 0.9 : 1), z:0.07 }, { y:-0.04, w:0.13*jw, d:0.09, z:0.064 }, { y:-0.005, w:0.15*jw, d:0.1, z:0.058 }], SOFT_LIMB), 'skin', jaw);
+  k.add(block(0.05, f ? 0.016 : 0.012, f ? 0.017 : 0.014, 0.4), 'lip', jaw, [0, -0.032, 0.11], [0, 0, 0], NO_INK);   // lower lip
   k.add(block(0.05, 0.03, 0.03, 0.3), 'black', jaw, [0, -0.012, 0.085], [0, 0, 0], NO_INK);   // the dark of the mouth (shows as it opens)
-  k.add(block(0.054, 0.008, 0.012, 0.3), 'lip', h, [0, 0.062, 0.113], [0, 0, 0], NO_INK);    // upper lip
-  k.add(shard(0.034, 0.07, 0.032), 'skin', h, [0, 0.1, 0.12], [0.2, 0, 0], NO_INK);           // nose
+  k.add(block(0.054, f ? 0.011 : 0.008, 0.012, 0.3), 'lip', h, [0, 0.062, 0.113], [0, 0, 0], NO_INK);    // upper lip
+  k.add(shard(f ? 0.028 : 0.034, f ? 0.06 : 0.07, f ? 0.027 : 0.032), 'skin', h, [0, 0.1, 0.12], [0.2, 0, 0], NO_INK);           // nose
   const lids = k.bone('lids', h, [0, 0.157, 0]);
   for (const s of [-1, 1]){
-    k.add(block(0.025, 0.06, 0.045, 0.45), 'skin', h, [0.11*s, 0.13, -0.005], [0, 0.2*s, 0]);   // ears
+    k.add(block(0.025, 0.06, 0.045, 0.45), 'skin', h, [0.11*s*(f ? 0.97 : 1), 0.13, -0.005], [0, 0.2*s, 0]);   // ears
     k.add(block(0.05, 0.03, 0.02, 0.4), 'black', h, [0.045*s, 0.145, 0.107], [0, 0, 0], NO_INK);   // socket shadow
-    k.add(block(0.032, 0.016, 0.012, 0.4), 'eyew', h, [0.045*s, 0.143, 0.115], [0, 0, 0], NO_INK);
-    k.add(block(0.013, 0.014, 0.01, 0.3), 'black', h, [0.045*s, 0.143, 0.121], [0, 0, 0], NO_INK);   // pupil
+    if (!o.void){
+      k.add(block(0.032, 0.016, 0.012, 0.4), 'eyew', h, [0.045*s, 0.143, 0.115], [0, 0, 0], NO_INK);
+      k.add(block(0.013, 0.014, 0.01, 0.3), 'black', h, [0.045*s, 0.143, 0.121], [0, 0, 0], NO_INK);   // pupil
+    }
     k.add(block(0.04, 0.022, 0.012, 0.4), 'skin', lids, [0.045*s, -0.011, 0.12], [0, 0, 0], NO_INK);   // lid
-    k.add(block(0.052, 0.012, 0.015, 0.3), 'hair', h, [0.047*s, 0.172, 0.115], [0, 0, -0.12*s], NO_INK);   // brow
+    if (f) k.add(block(0.042, 0.006, 0.014, 0.3), 'black', lids, [0.046*s, -0.021, 0.121], [0, 0, -0.1*s], NO_INK);   // lashes, on the lid's edge
+    k.add(block(0.052, f ? 0.008 : 0.012, 0.015, 0.3), 'hair', h, [0.047*s, f ? 0.176 : 0.172, 0.115], [0, 0, (f ? -0.2 : -0.12)*s], NO_INK);   // brow
     k.add(block(0.04, 0.02, 0.025, 0.45), 'skin', h, [0.066*s, 0.112, 0.092], [0, 0.5*s, 0], NO_INK);   // cheekbone
   }
+  if (o.sith){
+    // SITH EYES: gold irises that burn (unlit), on one live group so a wind-up swells them like a visor (enemies/ai.js)
+    const eyes = k.live(new THREE.Group(), h, 'eye');
+    for (const s of [-1, 1]){
+      const m = new THREE.Mesh(new THREE.BoxGeometry(o.void ? 0.03 : 0.016, o.void ? 0.012 : 0.013, 0.004), new THREE.MeshBasicMaterial({ color: o.eyeC ?? 0xffb21c, toneMapped: false }));
+      m.position.set(0.045*s, 0.143, o.void ? 0.118 : 0.1235); eyes.add(m);
+    }
+  }
+  if (o.scar) k.add(block(0.008, 0.075, 0.006, 0.3), 'scar', h, [-0.047, 0.15, 0.121], [0, 0, 0.18], NO_INK);   // a pale line through the brow and down the cheek
+  if (o.marks) tattoo(k, h, o.markStyle || 'bars');
+  if (o.horns) for (const [x, y, z, r] of [[0, 0.335, 0.05, 0], [0.06, 0.32, 0.03, -0.35], [-0.06, 0.32, 0.03, 0.35], [0.1, 0.27, 0.0, -0.8], [-0.1, 0.27, 0.0, 0.8], [0.03, 0.3, -0.07, -0.3], [-0.03, 0.3, -0.07, 0.3]])
+    k.add(shard(0.022, 0.05, 0.022), 'horn', h, [x, y, z], [-0.2, 0, r]);
+  if (o.beard) beard(k, h, jaw, o.beard);
   if (o.hair === false) return;
-  const style = o.style || 'crop';
+  hairdo(k, h, o.style || 'crop');
+}
+
+// the hair over the crown: a skull-hugging cap (buzz) or a fuller one (crop), and what hangs from it
+function hairdo(k, h, style){
+  if (style === 'bald') return;
   if (style === 'buzz'){
     k.add(loft([{ y:0.16, w:0.222, d:0.214, z:-0.03 }, { y:0.22, w:0.224, d:0.246, z:-0.012 }, { y:0.27, w:0.214, d:0.244, z:-0.008 },
                 { y:0.315, w:0.175, d:0.205, z:-0.01 }, { y:0.34, w:0.085, d:0.105, z:-0.01 }], SOFT_HEAD), 'hair', h, [0, 0, 0], [0, 0, 0], NO_INK);
-  } else {
-    k.add(loft([{ y:0.15, w:0.226, d:0.2, z:-0.04 }, { y:0.21, w:0.232, d:0.25, z:-0.015 }, { y:0.27, w:0.226, d:0.254, z:-0.006 },
-                { y:0.32, w:0.188, d:0.22, z:-0.01 }, { y:0.355, w:0.09, d:0.12, z:-0.012 }], SOFT_HEAD), 'hair', h);
-    if (style === 'part') k.add(block(0.09, 0.03, 0.12, 0.45), 'hair', h, [0.04, 0.33, 0.04], [0.15, 0, -0.2]);   // a swept fringe
+    return;
   }
+  k.add(loft([{ y:0.15, w:0.226, d:0.2, z:-0.04 }, { y:0.21, w:0.232, d:0.25, z:-0.015 }, { y:0.27, w:0.226, d:0.254, z:-0.006 },
+              { y:0.32, w:0.188, d:0.22, z:-0.01 }, { y:0.355, w:0.09, d:0.12, z:-0.012 }], SOFT_HEAD), 'hair', h);
+  if (style === 'part') k.add(block(0.09, 0.03, 0.12, 0.45), 'hair', h, [0.04, 0.33, 0.04], [0.15, 0, -0.2]);   // a swept fringe
+  if (style === 'long'){
+    // a fall to the shoulders behind, and a lock down each side in front of the ears
+    k.add(loft([{ y:-0.14, w:0.19, d:0.05, z:-0.1 }, { y:0.0, w:0.23, d:0.1, z:-0.09 }, { y:0.16, w:0.24, d:0.15, z:-0.07 }], SOFT_LIMB), 'hair', h);
+    for (const s of [-1, 1]) k.add(loft([{ y:-0.02, w:0.03, d:0.07, z:0.0 }, { y:0.2, w:0.04, d:0.12, z:-0.01 }], SOFT_LIMB), 'hair', h, [0.112*s, 0, 0]);
+  }
+  if (style === 'ponytail' || style === 'braid'){
+    // tied at the back of the crown, the tail hanging down the back of the neck (a braid in links, longer)
+    k.add(loft([{ y:-0.025, w:0.045, d:0.045 }, { y:0.025, w:0.05, d:0.05 }], ngon(8, PI/8)), 'black', h, [0, 0.25, -0.125], [-1.1, 0, 0], NO_INK);   // the tie
+    if (style === 'ponytail') k.add(loft([{ y:-0.3, w:0.03, d:0.03 }, { y:-0.18, w:0.07, d:0.06 }, { y:-0.04, w:0.08, d:0.07 }, { y:0.02, w:0.06, d:0.06 }], SOFT_LIMB), 'hair', h, [0, 0.25, -0.15], [0.32, 0, 0]);
+    else for (let i = 0; i < 8; i++) k.add(block(0.05 - i*0.003, 0.055, 0.045, 0.45), 'hair', h, [0, 0.21 - i*0.05, -0.155 - i*0.012], [0.2 + 0.15*(i % 2 ? 1 : -1), 0, 0]);
+  }
+  if (style === 'bun') k.add(loft([{ y:-0.05, w:0.06, d:0.06 }, { y:-0.01, w:0.1, d:0.1 }, { y:0.04, w:0.09, d:0.09 }, { y:0.065, w:0.04, d:0.04 }], SOFT_HEAD), 'hair', h, [0, 0.27, -0.13], [-1.0, 0, 0]);
+  if (style === 'topknot') k.add(loft([{ y:-0.03, w:0.06, d:0.06 }, { y:0.02, w:0.085, d:0.085 }, { y:0.06, w:0.07, d:0.07 }, { y:0.08, w:0.03, d:0.03 }], SOFT_HEAD), 'hair', h, [0, 0.36, -0.03]);
+}
+
+// a beard on the jaw (it moves as the jaw talks) and a moustache on the lip
+function beard(k, h, jaw, kind){
+  if (kind === 'stubble'){
+    k.add(loft([{ y:-0.08, w:0.09, d:0.075, z:0.07 }, { y:-0.04, w:0.136, d:0.095, z:0.064 }, { y:0.0, w:0.156, d:0.104, z:0.058 }], SOFT_LIMB), 'stubble', jaw, [0, 0, 0], [0, 0, 0], NO_INK);
+    return;
+  }
+  if (kind === 'full'){
+    // under the lower lip and round the chin, and up the jaw on each side to the ears: the mouth stays clear
+    k.add(loft([{ y:-0.14, w:0.07, d:0.06, z:0.075 }, { y:-0.1, w:0.14, d:0.1, z:0.07 }, { y:-0.05, w:0.155, d:0.105, z:0.063 }], SOFT_LIMB), 'beard', jaw);
+    for (const s of [-1, 1]) k.add(block(0.022, 0.1, 0.09, 0.45), 'beard', jaw, [0.074*s, 0.0, 0.05], [0, 0.25*s, 0], NO_INK);
+  }
+  else k.add(loft([{ y:-0.11, w:0.04, d:0.04, z:0.09 }, { y:-0.06, w:0.07, d:0.06, z:0.09 }, { y:-0.03, w:0.07, d:0.05, z:0.092 }], SOFT_LIMB), 'beard', jaw);   // goatee
+  k.add(block(0.075, 0.018, 0.02, 0.45), 'beard', h, [0, 0.074, 0.112], [0, 0, 0], NO_INK);   // moustache
+  for (const s of [-1, 1]) k.add(block(0.016, 0.04, 0.018, 0.45), 'beard', h, [0.038*s, 0.05, 0.108], [0, 0, 0.15*s], NO_INK);
+}
+
+// face tattoos, pressed onto the skin: bars (across the brow and chin), diamonds (under each eye), lines (down the face)
+function tattoo(k, h, style){
+  const at = (w, hh, p, r = [0, 0, 0]) => k.add(block(w, hh, 0.006, 0.2), 'tattoo', h, p, r, NO_INK);
+  if (style === 'diamonds') for (const s of [-1, 1]){
+    at(0.016, 0.016, [0.046*s, 0.118, 0.115], [0, 0, PI/4]);
+    at(0.011, 0.011, [0.06*s, 0.097, 0.107], [0, 0, PI/4]);
+  }
+  else if (style === 'lines') for (const x of [-0.06, -0.03, 0, 0.03, 0.06]) at(0.009, 0.06, [x, 0.215, 0.112 - Math.abs(x) * 0.45]);
+  else { at(0.12, 0.012, [0, 0.2, 0.112]); at(0.04, 0.01, [0, 0.022, 0.116]); for (const s of [-1, 1]) at(0.03, 0.01, [0.072*s, 0.1, 0.1], [0, 0.5*s, 0]); }
 }
 
 /* ---------------- plate layering ---------------- */

@@ -21,6 +21,7 @@ import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { buildEnemyMesh } from '../enemies/mesh.js';
 import { foeType } from '../enemies/look.js';
+import { castId, masterBlade } from '../data/saber-cast.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { resetCameraRig } from '../engine/camera.js';
@@ -64,10 +65,12 @@ const binders = {
 };
 export function bindActor(name, fn){ binders[name] = fn; }
 function makeActor(def, x, z, yaw){
-  const g = buildEnemyMesh(foeType(ENEMY_TYPES[def.foe] ? def.foe : 'duelist'));   // (in the mission's uniform: enemies/look.js)
+  // (in the mission's uniform: enemies/look.js) (a saber wielder in its own face and clothes: data/saber-cast.js)
+  const g = buildEnemyMesh(foeType(ENEMY_TYPES[def.foe] ? def.foe : 'duelist'), { look: castId(def.name, def.mid) });
+  const look = g.userData.look;
   g.scale.multiplyScalar(def.scale || 1);
-  if (def.tint != null && g.userData.bodyMat) g.userData.bodyMat.color.lerp(new THREE.Color(def.tint), 0.5);
-  if (def.blade != null && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(def.blade);   // a form master's blade (game/mission.js)
+  if (def.tint != null && g.userData.bodyMat && !look) g.userData.bodyMat.color.lerp(new THREE.Color(def.tint), 0.5);
+  if (def.blade != null && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(masterBlade(look, def.blade));   // a form master's blade (game/mission.js)
   g.position.set(x, groundAt(x, z, 3.2), z); g.rotation.y = yaw;
   scene.add(g);
   return { g, own: true, scale: def.scale || 1, name: def.name || '', walk: null };

@@ -197,7 +197,8 @@ const shot = (on, from, to, t, look, extra = {}) => ({ on, from, to, t, look, ..
 function heroLines(lines, side = 1){
   return lines.map((ln, k) => {
     const s = (k % 2 ? -1 : 1) * side;
-    return shot('hero', [0.6 * s, 3.4, 1.55], [0.42 * s, 2.9, 1.6], lineTime(ln), { on: 'hero', h: 1.45 }, { line: ln, mirror: true });
+    // (framed off the hero's eyes, not a fixed height: a hero standing at ease would put the head under the letterbox)
+    return shot('hero', [0.6 * s, 3.4, -0.12], [0.42 * s, 2.9, -0.08], lineTime(ln), { on: 'hero', h: -0.22, eye: true }, { line: ln, mirror: true, eye: true });
   });
 }
 function actorLines(lines, who){
@@ -693,17 +694,19 @@ function setShots(lines, plan, who2i, sideOf, where){
 }
 // the end of a chapter's opening: the lens rises behind the hero and looks out over the field, and the objective comes up
 // (from wherever behind the hero has a clear line: a shop wall or a crate stack behind them swings the lens round, or in)
+// where the goal shot's lens comes down to: never under the head of a hero standing at ease, or a close one crops it
+const goalLow = (d) => Math.max(2.45, d * 0.36);
 function goalShot(goal, yaw){
   const pp = playerPos();
   const clear = (a, d, h) => lensView(pp.x, pp.y + 1.5, pp.z, pp.x + Math.sin(yaw + a) * d, pp.y + h, pp.z + Math.cos(yaw + a) * d);
   let best = null, bestK = -1;
   search: for (const d of [7.2, 5.6, 4.4]) for (const a of [0.55, -0.55, 0.3, -0.3, 0.85, -0.85, 0]){
-    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, d * 0.36), clear(Math.PI + a * 0.6, d * 0.87, d * 0.43));
+    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, goalLow(d)), clear(Math.PI + a * 0.6, d * 0.87, (d * 0.5 + goalLow(d)) / 2));
     if (k > bestK){ bestK = k; best = [a, d]; }
     if (k > 0.98) break search;
   }
   const [a, d] = best;
-  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, d * 0.36], Math.max(3.6, goal.length / CUT.readRate + 1.6),
+  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, goalLow(d)], Math.max(3.6, goal.length / CUT.readRate + 1.6),
     { on: 'hero', ahead: 12, h: 1.0 }, { goal, dropCast: true, kind: 'goal', faceYaw: yaw });
 }
 

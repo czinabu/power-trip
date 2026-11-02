@@ -881,7 +881,7 @@ function lockArm(e, K){
   return A;
 }
 // your blade's part in the bind: the kind's own cover (DUEL.lockKinds cover), held on the contact, no flick
-const lockCatch = K => ({ t: 0, dur: 99, pose: null, side: 0, h: K.h, lock: true, fixed: K.cover || 'midR', contact: lockContact() });
+const lockCatch = K => ({ t: 0, dur: 99, pose: null, lock: true, fixed: K.cover || 'midR', contact: lockContact() });
 export function updateSaberLock(dt){
   const e = LOCK.foe;
   if (!e) return;

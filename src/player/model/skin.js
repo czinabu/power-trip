@@ -41,7 +41,7 @@ export function chainWeights(t, at, blend){
 
 /* the chain's geometry in its first joint's frame: rings at y = dir·t (dir -1 down a limb, +1 up a spine), with
    extra rings packed round each joint so the bend has edges to curve with */
-export function chainGeo(rings, at, blend, profile, dir){
+export function chainGeo(rings, at, blend, profile, dir, caps){
   const src = [...rings].sort((a, b) => a.t - b.t);
   const ts = src.map(r => r.t);
   for (const j of at) for (let k = -3; k <= 3; k++) ts.push(j + k * blend / 2);
@@ -58,9 +58,11 @@ export function chainGeo(rings, at, blend, profile, dir){
     while (i < src.length - 2 && src[i + 1].t < t) i++;
     const a = src[i], b = src[i + 1] || a, u = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
     const l = (p, q) => (p || 0) + ((q || 0) - (p || 0)) * u;
-    return { y: dir * t, w: l(a.w, b.w), d: l(a.d, b.d), x: l(a.x, b.x), z: l(a.z, b.z) };
+    // a ring may carry its own section `p` (same point count on every ring): blended between the authored ones too
+    const p = a.p && b.p ? a.p.map((q, m) => [l(q[0], b.p[m][0]), l(q[1], b.p[m][1])]) : a.p;
+    return { y: dir * t, w: l(a.w, b.w), d: l(a.d, b.d), x: l(a.x, b.x), z: l(a.z, b.z), p };
   };
   const secs = keep.map(at_);
   if (dir < 0) secs.reverse();   // loft wants them bottom → top
-  return loft(secs, profile);
+  return loft(secs, profile, caps);
 }

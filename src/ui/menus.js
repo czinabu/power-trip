@@ -448,7 +448,7 @@ document.addEventListener('pointerlockerror', () => {
 // Chrome / Edge, see fullscreen.js) a quick Esc pauses and resumes too, so closing the pause screen with Esc no longer
 // drops you out of fullscreen. Runs in the capture phase so it sees the screen before Esc closes a panel on top of it.
 export const panelOpen = () => howto.classList.contains('open') || settings.classList.contains('open') || document.getElementById('saves').classList.contains('open') || overlay.classList.contains('newconfirming') ||
-  document.getElementById('roadmap').classList.contains('open') || document.getElementById('forms').classList.contains('open') || document.getElementById('coop').classList.contains('open') || overlay.classList.contains('confirming') || overlay.classList.contains('asktrain');
+  document.getElementById('roadmap').classList.contains('open') || document.getElementById('codex').classList.contains('open') || document.getElementById('forms').classList.contains('open') || document.getElementById('coop').classList.contains('open') || overlay.classList.contains('confirming') || overlay.classList.contains('asktrain');
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.key !== 'Escape' && e.key !== 'Enter' && e.key !== 'Tab')) return;
   const tab = e.key === 'Tab', esc = e.key === 'Escape' || tab;   // Tab pauses exactly as a quick Esc does

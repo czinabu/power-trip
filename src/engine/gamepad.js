@@ -286,7 +286,7 @@ function slide(dir){
   sl.dispatchEvent(new Event('change', { bubbles: true }));
   return true;
 }
-const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms'].some(id => document.getElementById(id).classList.contains('open')) ||
+const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex'].some(id => document.getElementById(id).classList.contains('open')) ||
   sandboxOpen() || /\b(confirming|newconfirming|asktrain|customizing)\b/.test(overlay.className);
 
 function menu(btn, down, lx, ly, ry, dt){

@@ -58,6 +58,7 @@ import { punchIn } from '../engine/camera.js';
 import { scarBody, markHit } from '../enemies/scars.js';
 import { SCARS as CUTS } from '../enemies/kit.js';
 import { puppetOf } from '../net/foes.js';
+import { meetNamed } from './codex.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -1019,6 +1020,7 @@ function vipDown(){
 function spawnInquisitor(o, at = o.at, opts = {}){
   const e = fieldSpawn(o.foe, at[0], at[1], { look: castId(o.name, M.def.id), dress: o.dress });   // (dress: a named foe's own model, the Marshal's)   // a saber wielder in its own look (data/saber-cast.js)
   e.champion = true;
+  meetNamed(o.name, o.foe, M.def.id);   // its codex entry (game/codex.js)
   const look = e.group.userData.look;
   e.hp = e.maxHp = Math.round(e.hp * o.hp * heroScale(SCALE.bossHp, heroesHere()));
   e.t = { ...e.t, dmg: e.t.dmg * o.dmg, score: 20 };   // a copy: never mutate the shared type

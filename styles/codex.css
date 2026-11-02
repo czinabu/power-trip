@@ -1,0 +1,75 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
+/* ---------- CODEX: same panel as CONTROLS; a list on the left, the turning model and a few short lines on the right (ui/codex-ui.js) ---------- */
+#codex{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
+  background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
+#codex.open{display:flex}
+.cx-panel{width:min(1080px,100%);height:min(680px,100%);display:flex;flex-direction:column;overflow:hidden}
+.cx-panel .howto-head{margin-bottom:12px}
+.cx-tabs{margin-bottom:12px;flex-wrap:wrap}
+.cx-tabs span{position:relative}
+.cx-dot{display:none;position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.cx-dot.on{display:block}
+.cx-body{flex:1;min-height:0;display:grid;grid-template-columns:230px 1fr;gap:16px}
+.cx-list{overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
+.cx-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(255,255,255,.025);
+  font:700 14px/1.1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-soft);cursor:pointer;flex:none}
+.cx-item:hover{border-color:var(--edge-mid);color:var(--ink)}
+.cx-item.on{border-color:var(--edge-lit);background:rgba(92,198,255,.1);color:var(--ink)}
+.cx-item.locked{color:var(--ink-faint);border-style:dashed}
+.cx-item .lk{width:12px;height:12px;flex:none}
+.cx-new{margin-left:auto;font-size:10px;letter-spacing:1.5px;color:#1a1200;background:var(--gold);border-radius:3px;padding:2px 5px}
+.cx-view{min-height:0;display:grid;grid-template-columns:minmax(220px,0.9fr) 1.1fr;gap:18px}
+.cx-stage{position:relative;min-height:0;border:1px solid var(--edge);border-radius:var(--r-lg);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 70%,rgba(60,130,200,.28),rgba(8,18,33,.2) 60%,rgba(0,0,0,0) 80%)}
+.cx-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab}
+.cx-look{position:absolute;left:0;right:0;bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.cx-arrow{cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:var(--r);
+  border:1px solid var(--edge-mid);background:rgba(8,18,33,.85);color:var(--ink);font-size:20px;line-height:1}
+.cx-arrow:hover{border-color:var(--edge-lit)}
+.cx-lk{min-width:120px;text-align:center;font:700 12px/1.25 var(--font-ui);letter-spacing:1.5px;color:var(--ink-soft);
+  background:rgba(4,10,20,.75);border-radius:var(--r);padding:4px 8px}
+.cx-lk i{font-style:normal;color:var(--ink-faint);margin-left:4px}
+.cx-lk em{display:block;font-style:normal;font-weight:600;letter-spacing:1px;color:var(--gold)}
+.cx-info{overflow-y:auto;padding-right:4px}
+.cx-kick{font:700 12px/1 var(--font-ui);letter-spacing:2.4px;color:var(--accent)}
+.cx-name{margin-top:6px;font:700 34px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
+.cx-name.dim{color:var(--ink-faint)}
+.cx-threat{margin-top:10px;display:flex;align-items:center;gap:8px;font:700 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim)}
+.cx-pips{display:flex;gap:3px}
+.cx-pips i{width:14px;height:6px;border-radius:2px;background:rgba(255,255,255,.1)}
+.cx-pips i.on{background:var(--danger)}
+.cx-lore{margin-top:12px;font:500 15px/1.4 var(--font-body);color:var(--ink-soft);font-style:italic}
+.cx-sec{margin-top:14px}
+.cx-sec h4{margin:0 0 6px;font:700 12px/1 var(--font-ui);letter-spacing:2.2px;color:var(--gold)}
+.cx-sec ul{margin:0;padding:0 0 0 16px;font:500 14px/1.35 var(--font-body);color:var(--ink)}
+.cx-sec li{margin:3px 0}
+.cx-chips{display:flex;flex-wrap:wrap;gap:6px}
+.cx-chips span{font:700 12px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink);padding:6px 9px;border:1px solid var(--edge-mid);border-radius:var(--r-chip);background:rgba(255,255,255,.04)}
+.cx-cols{display:grid;grid-template-columns:1fr;gap:0}
+/* the CODEX button's count of entries not read yet */
+.cx-badge:empty{display:none}
+.cx-badge{min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:var(--gold);color:#1a1200;
+  font:700 11px/16px var(--font-ui);letter-spacing:0;text-align:center}
+#overlay.st-menu .ov-actions .btn:not(.go){flex-basis:22%}
+#overlay.st-pause #settoggle,#overlay.st-pause #fsBtn{grid-column:span 3}
+#overlay.st-pause #ctltoggle,#overlay.st-pause #cxtoggle,#overlay.st-pause #coopBtn{grid-column:span 2;order:3}
+#overlay.st-menu.mpage #cxtoggle{display:none}
+/* a new entry mid-fight: a quiet note in the corner, above the autosave's */
+#cxnote{position:fixed;right:18px;bottom:52px;z-index:24;padding:6px 12px;border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(4,10,20,.78);
+  color:#bfe3ff;font:600 12px/1.2 var(--font-ui);letter-spacing:.14em;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s}
+#cxnote b{color:var(--gold);margin-right:6px}
+#cxnote.on{opacity:1;transform:none}
+/* a phone: the list becomes a strip of names across the top, the model and the lines stack under it */
+@media (max-width:760px){
+  #codex{padding:8px}
+  .cx-panel{height:100%;padding:14px 14px 16px;overflow-y:auto}
+  .cx-body{display:flex;flex-direction:column;gap:10px}
+  .cx-list{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:0 0 4px;flex:none}
+  .cx-item{white-space:nowrap}
+  .cx-view{display:flex;flex-direction:column;gap:12px}
+  .cx-stage{height:300px;flex:none}
+  .cx-info{overflow:visible}
+  .cx-name{font-size:28px}
+  .howto-title{font-size:24px}
+  .cx-tabs span{padding:7px 9px;font-size:12px;letter-spacing:1.6px}
+}

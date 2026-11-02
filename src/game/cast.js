@@ -24,6 +24,7 @@ import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { groundAt } from '../world/collision.js';
 import { allies } from '../allies/squad.js';
+import { meetAlly } from './codex.js';
 
 export const castOf = (name) => CAST[name] || null;
 
@@ -86,6 +87,19 @@ function heroFigure(def){
   target.group.rotation.order = 'YXZ';
   return target;
 }
+// a figure for the codex's preview (ui/codex-ui.js): built and posed at rest, never put in the scene
+export function castPreview(name){
+  const def = castOf(name);
+  if (!def) return null;
+  if (def.kind === 'hero'){
+    const target = heroFigure(def), F = { target, g: target.group, kind: 'hero', t: 0, gest: 0, turn: 0 };
+    target.group.scale.setScalar(def.scale || 1);
+    pose(F, 0);
+    return target.group;
+  }
+  if (def.kind === 'boss') return buildBoss(def.boss);
+  return buildEnemyMesh({ ...def.t, scale: def.scale || 1 }, { variant: def.variant ?? 0, wear: 0.15 });
+}
 // def: a data/cast.js entry · at { x, z } · yaw · opts.holo
 export function makeFigure(name, x, z, yaw, opts = {}){
   const def = castOf(name);
@@ -108,6 +122,7 @@ export function makeFigure(name, x, z, yaw, opts = {}){
     stripLights(g);
     F = { name, g, kind: 'foe', own: true, scale: def.scale || 1, walk: null, talk: false, look: null };
   }
+  if (!opts.holo) meetAlly(name);   // a friendly face met in person opens its codex entry (game/codex.js: foes there have none)
   F.g.position.set(x, groundAt(x, z, 3.2), z);
   F.g.rotation.y = yaw;
   scene.add(F.g);

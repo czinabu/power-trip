@@ -35,6 +35,7 @@ import { coopRun, hitQueue } from './run.js';
 import { STANCES } from '../data/stances.js';
 import { masterBlade } from '../data/saber-cast.js';
 import { duelRec, updatePuppetDuel, netProfile, updateSaberLock, LOCK } from '../enemies/duel.js';
+import { meetFoe, meetWarbringer } from '../game/codex.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
 let sentAt = 0, hostSent = false, runListeners = [];
@@ -143,6 +144,7 @@ function makePuppet(rec){
   }
   scene.add(g);
   enemies.push(e);
+  meetFoe(type, g); if (flags & WARBRINGER) meetWarbringer();   // the guest's codex too (game/codex.js)
   return e;
 }
 

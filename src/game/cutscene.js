@@ -37,6 +37,7 @@ import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
 import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
+import { meetNamed } from './codex.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -899,7 +900,7 @@ window.addEventListener('keyup', (e) => { if (e.key === ' ') holdSkip(false); },
 on('csp', (m) => {
   if (net.role !== 'guest' || !m.s || C.on || G.cardUp || G.mode !== 'play') return;
   const s = m.s;
-  if (s.k === 'duel') playDuelIntro(s.spec, false);
+  if (s.k === 'duel'){ playDuelIntro(s.spec, false); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
   else if (s.k === 'boss') setTimeout(() => playBossIntro(false), 120);   // (the boss's puppet lands with the host's next snapshot)
   else if (s.k === 'scene') playScene(s.id, { mark: s.mark, share: false });
 });

@@ -73,7 +73,8 @@ export const TROOPER_CHAPTERS = {
         [rival(MARSHAL, 'Eight years on a dock. Is this what you refused the order for, brother?'), 'That voice. The Marshal. Do not answer him. Hold the yard.'],
       ],
       clear: ['The yard is ours, for a moment.', say(VANT, 'Captain, Brisk is gone. They dragged him onto a speeder, toward the garrison block.'),
-              'Then that is where we are going.'],
+              'Then that is where we are going.',
+              'And brother: you ran that yard like a sergeant. Wear the green.'],   // (a promotion: game/wardrobe.js PROMOTIONS)
     } },
   archive: {
     title: 'THE KILL HOUSE', world: 'THE GARRISON BLOCK, VORRAN',
@@ -107,7 +108,8 @@ export const TROOPER_CHAPTERS = {
     lines: {
       duel: [rival('CAPTAIN VORN', 'The Marshal said you would come here. He said you always come back for the paperwork.')],
       clear: ['The files are ours, and they say what I was afraid they would.',
-              'Your chip did not fail, brother. Someone switched it off, the night before the order. Someone who wanted a few of us to say no.'],
+              'Your chip did not fail, brother. Someone switched it off, the night before the order. Someone who wanted a few of us to say no.',
+              'You got us through a dead ship without losing anyone. That is a lieutenant\'s work. Wear the blue.'],   // (a promotion)
     } },
   'trial-first': {
     title: 'BROTHERS IN ARMS', world: 'THE HALCYON, AFTER',
@@ -119,9 +121,9 @@ export const TROOPER_CHAPTERS = {
     brief: ['The Captain has set the old training droids up on the decks, stun settings on.',
             'Take every post with your squad, not in front of it.'],
     lines: {
-      // the promotion (game/wardrobe.js PROMOTION): from here he is an ARC, in the Captain's old kit (game/look-unlocks.js)
+      // the first promotion (game/wardrobe.js PROMOTIONS): a captain's helmet and pauldron (game/look-unlocks.js)
       clear: ['That is a squad. And you led it, brother.',
-              'As of tonight you are ARC. My old kit is in the locker: the helmet, the pauldron, the kama. It fits you better than it fits me now.',
+              'As of tonight you are a captain, same as me. My spare helmet and pauldron are in the locker. Paint them how you like.',
               'One more thing in those files. The officer who switched our chips off signed it: General Rhenna Kast. She knew, brother. She always knew.'],
     } },
 
@@ -174,6 +176,7 @@ export const TROOPER_CHAPTERS = {
               [KAST, 'Because you three asked questions. Show me you still do.']] },
     lines: {
       clear: ['Kast lowers her blade, and laughs.', say(KAST, 'Someone else had the code, trooper. He used it the other way. Find out who switched the Marshal on, and you will find out who wants the order given again.'),
+              say(KAST, 'The Republic is gone, but I still hold a commission, and I am giving you one. Commander. Wear the yellow.'),   // (a promotion)
               'Hammer joins the squad. He held Kast\'s line for eight years. He says he is owed a better war.'],
     } },
   jakku: {
@@ -193,7 +196,10 @@ export const TROOPER_CHAPTERS = {
     lines: {
       chapter: ['His company is forming up. Our old company, brother, painted black.'],
       duel: [rival(MARSHAL, 'You were always a step behind me, brother. Today too.')],
-      clear: ['He has the Captain.', 'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.',
+      // the second promotion (game/wardrobe.js PROMOTIONS): ARC, in the Captain's old ARC kit (game/look-unlocks.js)
+      clear: ['He has the Captain.',
+              say(VANT, 'He kept his old ARC kit in the gunship. He said it was yours the day you held a line without him. You just did. You are ARC now, brother.'),
+              'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.',
               'Tally pulled a marksman scope out of his armoury and fitted it to your DC-15. You will want it in the canyons.'],
     } },
 

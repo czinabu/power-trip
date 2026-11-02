@@ -16,8 +16,11 @@
 
 const DEV_ALL = (() => { try { return new URLSearchParams(location.search).get('looks') === 'all'; } catch(e){ return false; } })();   // ?looks=all: everything open, for testing
 const KEPT = 'sw_look_kept';
-// the trooper's promotion to ARC: the end of Act I's last chapter (BROTHERS IN ARMS), where his skill tree's ARC tier opens too
-export const PROMOTION = 'trial-first';
+// the trooper's promotions, up the Grand Army's ranks (the Legends ladder): SERGEANT at Dock Shift, LIEUTENANT on the
+// Halcyon, CAPTAIN at the end of Act I (BROTHERS IN ARMS), COMMANDER from General Kast on Hoth, then ARC at the Marshal's
+// war camp. Each brings its rank colour or kit and its own card (game/look-unlocks.js, data/ability-cards.js)
+export const PROMOTIONS = { siege: 'sergeant', refuge: 'lieutenant', 'trial-first': 'captain', 'trial-knight': 'commander', mustafar: 'arc' };
+export const PROMOTION = 'mustafar';   // ARC: the name changes to ARC TROOPER here
 
 const local = (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } };
 // src: a save slot's progress ({ key: value }) to read instead of the live one (ui/saves-ui.js names a slot's hero by it)

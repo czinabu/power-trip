@@ -30,6 +30,7 @@ import { resetCameraRig, updateCamera } from '../engine/camera.js';
 import { net, on, send, connected } from '../net/session.js';
 import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
+import { allies } from '../allies/squad.js';
 import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
 import { missionState } from './mission.js';
@@ -175,13 +176,14 @@ function lensView(ax, ay, az, x, y, z){
 // ...and nothing else drawn in the way either: a canyon wall, a building or a ship's hull isn't a prop (a ray through the
 // scene; the hero, the cast and anything see-through don't count)
 const ray = new THREE.Raycaster(), RA = new THREE.Vector3(), RD = new THREE.Vector3();
+let raySkip = null;   // (a scene without cuts counts the rest of the cast, and squadmates, as in the way: oneClear)
 const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
 function rayClear(ax, ay, az, x, y, z){
   RA.set(ax, ay, az); RD.set(x - ax, y - ay, z - az);
   const len = RD.length() + 0.4;   // (a little past the lens: it can't sit inside a wall either)
   if (len < 0.5) return 1;
   ray.set(RA, RD.normalize()); ray.near = 0.3; ray.far = len;
-  const skip = new Set([player.group, ...C.actors.map(a => a.g), ...(C.building || [])].filter(Boolean));
+  const skip = raySkip || new Set([player.group, ...C.actors.map(a => a.g), ...(C.building || [])].filter(Boolean));
   for (const h of ray.intersectObjects(scene.children, true)){
     const o = h.object, m = o.material;
     if (!(o.isMesh) || !m || [].concat(m).some(mm => mm.transparent || mm.depthWrite === false) || !shown(o)) continue;
@@ -559,7 +561,7 @@ function oneTarget(s, out){
   // (who: 'hero', or one of the cast on set)
   const at = (who, k) => { const f = who === 'hero' ? null : who && who.g ? who : b, q = f ? f.g.position : pp, y = f ? eyeOf(f) : eh;
     return TL.set(O.px + (q.x - O.px) * k, mid + (y - mid) * k, O.pz + (q.z - O.pz) * k); };
-  const orbit = (a, d, h, L, fov) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; return out; };
+  const orbit = (a, d, h, L, fov, face = null) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; out.face = face; return out; };
   const fromWorld = (P, L, fov) => orbit(Math.atan2(P.x - O.px, P.z - O.pz), Math.hypot(P.x - O.px, P.z - O.pz), P.y - O.py, L, fov);
   if (s.kind === 'back'){ const pc = playCamera(); out.P = pc.P; return fromWorld(pc.P, pc.L, pc.fov); }
   out.P = null;
@@ -577,14 +579,42 @@ function oneTarget(s, out){
   const sp = speaker >= 0 && C.actors[speaker];
   if (sp && sp.g){   // over the hero's shoulder, on whoever speaks (in a group, turned toward that one)
     const Ys = yawTo(pp.x, pp.z, sp.g.position.x, sp.g.position.z);
-    return orbit(Ys + sd * 2.3, 4.3 * creep, eh - O.py + 0.12, at(sp, 0.8), 42);
+    return orbit(Ys + sd * 2.3, 4.9 * creep, eh - O.py + 0.15, at(sp, 0.6), 44, sp);   // (aimed between them: the hero's head stays in frame)
   }
-  if (s.line) return orbit(O.Y + sd * 0.9, 4.0 * creep, eh - O.py + 0.05, at('hero', 0.8), 42);   // round past them to the hero's face
+  if (s.line) return orbit(O.Y + sd * 0.9, 4.4 * creep, eh - O.py + 0.08, at('hero', 0.65), 44);   // round past them to the hero's face
   return orbit(O.Y + sd * 1.75, 4.8, mid - O.py + 0.3, at('hero', 0), 46);   // the pair
+}
+// which way round from a beat's angle has nothing standing between the lens and the face it frames (a squadmate, or
+// another of the cast): tried once a beat, so the lens commits to it instead of hunting frame to frame
+function oneClear(s, tg, face){
+  if (s.oneDa != null) return s.oneDa;
+  const O = C.one, sd = O.sd;
+  raySkip = new Set([player.group, face && face.g].filter(Boolean));
+  let best = 0, bestK = -1;
+  for (const da of [0, 0.3, -0.3, 0.6, -0.6, 0.9].map(v => v * sd)){
+    const a = tg.a + da, x = O.px + Math.sin(a) * tg.d, y = O.py + tg.h, z = O.pz + Math.cos(a) * tg.d;
+    const k = lensView(tg.L.x, tg.L.y, tg.L.z, x, y, z) - 0.5 * inWay(x, z, tg.L, face);
+    if (k > bestK + 0.02){ bestK = k; best = da; }
+    if (k > 0.97) break;
+  }
+  raySkip = null;
+  return (s.oneDa = best);
+}
+// how many figures (squadmates, the rest of the cast) stand on the line from the lens at (x, z) to the point L it looks at
+// (people aren't props: the see-through fade and the ray miss them)
+function inWay(x, z, L, face){
+  const dx = L.x - x, dz = L.z - z, L2 = dx * dx + dz * dz || 1;
+  let n = 0;
+  const test = (g) => { if (!g || !g.visible) return; const o = g.position, t = ((o.x - x) * dx + (o.z - z) * dz) / L2;
+    if (t > 0.04 && t < 0.92 && Math.hypot(x + dx * t - o.x, z + dz * t - o.z) < 0.6) n++; };
+  for (const a of allies) test(a.group);
+  for (const a of C.actors) if (a !== face) test(a.g);
+  return n;
 }
 const OT = {};
 function oneLens(s, dt, now){
   const O = C.one, tg = oneTarget(s, OT), back = s.kind === 'back', st = back ? ONE.backLag : ONE.lag;
+  if (!back && s.kind !== 'goal') tg.a += oneClear(s, tg, tg.face);
   smooth(O, 'a', O.a + wrapA(tg.a - O.a), st, dt); smooth(O, 'd', tg.d, st, dt); smooth(O, 'h', tg.h, st, dt);
   smooth(O, 'lx', tg.L.x, st, dt); smooth(O, 'ly', tg.L.y, st, dt); smooth(O, 'lz', tg.L.z, st, dt); smooth(O, 'fov', tg.fov, st, dt);
   P.set(O.px + Math.sin(O.a) * O.d, O.py + O.h, O.pz + Math.cos(O.a) * O.d);
@@ -766,7 +796,7 @@ export function playOpening(id, title, own){
   let castFace = null;
   // a scene without cuts (data/cutscene-stage.js `oneshot`; for now only where nobody is already on the field): the cast
   // stands off to one side, so the hero turns to them to talk and back to the field for the objective
-  const one = stage.oneshot && !actors.length ? { sd: 1, goalYaw: G.yaw } : null;
+  let one = stage.oneshot && !actors.length ? { sd: 1, goalYaw: G.yaw } : null;
   if (cast.length){
     let spots = castSpots(cast.length, pp, one ? ONE.castOff : 0);
     if (one && spots.miss){ const alt = castSpots(cast.length, pp, -ONE.castOff); if ((alt.miss || 0) < spots.miss){ spots = alt; one.sd = -1; } }
@@ -789,6 +819,9 @@ export function playOpening(id, title, own){
   shots.push(...setShots(talk, plan, who2i, sideOf, where), ...later, ...setShots(lines, plan, who2i, sideOf));
   if (later.length && castFace && lines.length){ const k = shots.length - lines.length; shots[k].faceActor = who2i.values().next().value; }   // (back to the cast for the rest)
   const endYaw = face ? yawTo(pp.x, pp.z, face[0], face[1]) : heroYaw;
+  // ...but only when it is the hero and the people talking: squadmates crowding round would keep stepping in front of the
+  // faces of an unbroken shot, so with a squad about it plays with its cuts (a squadmate who is one of the cast is fine)
+  if (one){ const own = new Set(actors.map(a => a.g)); if (allies.some(a => a.group && !own.has(a.group) && Math.hypot(a.group.position.x - pp.x, a.group.position.z - pp.z) < 10)) one = null; }
   C.building = actors.map(a => a.g);   // (the cast on set doesn't block the objective's view: rayClear)
   if (one){
     // no wide shot and no cut to the objective: the title comes up as the lens drifts off the play camera, the objective

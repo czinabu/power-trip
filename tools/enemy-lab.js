@@ -132,6 +132,7 @@ function placeLabels(){
 const btn = (on, label, params) => `<button class="${on ? 'on' : ''}" onclick="location.search='${new URLSearchParams({ set: SET, pose: POSE, elite: ELITE, view: VIEW, ...params })}'">${label}</button>`;
 document.getElementById('bar').innerHTML =
   btn(SET === 'troops', 'Troops', { set: 'troops' }) + btn(SET === 'bosses', 'Bosses', { set: 'bosses' }) + btn(SET === 'squad', 'Squad', { set: 'squad' })
+  + btn(SET === 'looks', 'Looks', { set: 'looks', type: q.get('type') || 'blaster' }) + btn(SET === 'rival', 'Rival', { set: 'rival' })
   + btn(POSE === 'idle', 'Idle', { pose: 'idle' }) + btn(POSE === 'windup', 'Windup', { pose: 'windup' })
   + ['', ...Object.keys(ELITES)].map(n => btn(n === ELITE, n || 'no elite', { elite: n })).join('')
   + btn(false, VIEW === 'back' ? 'Front view' : 'Back view', { view: VIEW === 'back' ? 'front' : 'back' });

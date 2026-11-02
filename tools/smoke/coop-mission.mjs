@@ -42,7 +42,7 @@ try {
   await host.click('#coopclose');
   // the host starts Survival
   await host.evaluate(() => localStorage.setItem('sw_mission_pursuit_jedi', '1'));   // missions stay locked until the campaign clears them
-  await host.click('#hero-jedi'); await host.click('#mode-mission'); await host.click('#msn-pursuit');
+  await host.click('#hero-jedi'); await host.click('#mode-mission'); await host.evaluate(() => document.getElementById('msn-pursuit').click());   // (its act's fold can be shut: the card is picked as a click on it would)
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT

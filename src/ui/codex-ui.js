@@ -1,0 +1,248 @@
+// POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+// THE CODEX PAGE: everyone the hero has met, foe or friend (data/codex.js), with a turning model of each, its looks, and a
+// few short lines on how it fights. Opens from CODEX on the main menu and the pause screen; entries not met yet stand
+// as dark silhouettes. A small note in the corner says when a new entry opens mid-fight (game/codex.js codexHooks).
+
+import * as THREE from 'three';
+import { CODEX, CODEX_TABS, CODEX_BY_ID, ELITE_NOTES } from '../data/codex.js';
+import { codexMet, codexFresh, codexRead, codexCount, codexNewCount, codexHooks } from '../game/codex.js';
+import { ENEMY_TYPES, ELITES } from '../data/enemies.js';
+import { lookPool } from '../data/foe-looks.js';
+import { TURNED, PURGE, DRILL } from '../data/allies.js';
+import { ACOLYTES, castId, lookById, masterBlade } from '../data/saber-cast.js';
+import { STANCES } from '../data/stances.js';
+import { buildEnemyMesh } from '../enemies/mesh.js';
+import { dressElite } from '../enemies/elites.js';
+import { updateUpper } from '../enemies/upper.js';
+import { buildBoss } from '../boss/mesh.js';
+import { castPreview } from '../game/cast.js';
+import { svgIcon } from './icons.js';
+import { G } from '../state.js';
+
+const panel = document.getElementById('codex');
+const btn = document.getElementById('cxtoggle');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let tab = 'troops', sel = null, look = 0, built = false;
+
+/* ---------- the looks: every way the entry's model can turn up ---------- */
+const UNIFORMS = [['TURNED CLONE', TURNED], ['PURGE CLONE', PURGE], ['TRAINING DROID', DRILL]];
+const DROID_KIT = { b1: ['', 'COMMANDER', 'SALVAGED ARM', 'SECURITY', 'UNIT PAINT'], magna: ['', 'TORN CLOAK', 'PAINTED SKULL', 'SASH OF RANK', 'TORN AND BARE'] };
+function lookName(model, L){
+  if (L.dv) return DROID_KIT[model] ? DROID_KIT[model][L.dv] : 'STANDARD';
+  if (model === 'officer') return L.cap ? 'CAPPED' : 'BARE-HEADED';
+  if (L.bare) return 'HELMET OFF';
+  return ['STANDARD', 'SERGEANT', 'VETERAN', 'COMMS RIG'][L.v || 0] || 'STANDARD';
+}
+const _looks = {};
+function looksOf(E){
+  if (_looks[E.id]) return _looks[E.id];
+  const out = [];
+  if (E.kind === 'type'){
+    const t = ENEMY_TYPES[E.id], pool = lookPool(t.model);
+    if (pool) pool.forEach((L, i) => out.push({ name: lookName(t.model, L), o: { lookIndex: i } }));
+    else if (t.model === 'acolyte') ACOLYTES.forEach((_, i) => out.push({ name: 'ACOLYTE', o: { face: i } }));
+    else out.push({ name: 'STANDARD', o: { seed: 1 } });
+    for (const [name, U] of UNIFORMS) if (U[E.id]) out.push({ name, dress: U[E.id], o: { seed: 3 } });
+    for (const id in ELITES) out.push({ name: 'ELITE · ' + ELITES[id].label, note: ELITE_NOTES[id], elite: id, o: { ...out[0].o } });
+  } else out.push({ name: '', o: {} });
+  return (_looks[E.id] = out);
+}
+
+/* ---------- building a model (cached: each look is built once, then kept for the next visit) ---------- */
+const _models = new Map();
+function buildModel(E, k){
+  const key = E.id + '#' + k;
+  if (_models.has(key)) return _models.get(key);
+  const L = looksOf(E)[k] || looksOf(E)[0];
+  let g = null;
+  if (E.kind === 'type'){
+    g = buildEnemyMesh(L.dress ? { ...ENEMY_TYPES[E.id], ...L.dress } : ENEMY_TYPES[E.id], { ...L.o, wear: 0 });
+    if (L.elite){ g.scale.multiplyScalar(ELITES[L.elite].scale); dressElite(g, L.elite); }
+  } else if (E.kind === 'named'){
+    const t = ENEMY_TYPES[E.foe], id = castId(E.name, E.mids && E.mids[0]), cast = lookById(id);
+    g = buildEnemyMesh({ ...t, ...(E.uniform || {}), ...(E.dress || {}) }, { look: id || undefined, seed: 7, wear: 0 });
+    if (E.scale) g.scale.multiplyScalar(E.scale);
+    if (!cast && !E.dress && E.tint != null) g.userData.bodyMat.color.lerp(new THREE.Color(E.tint), 0.5);
+    if (E.form && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(masterBlade(g.userData.look, STANCES[E.form].blade));
+  } else if (E.kind === 'warbringer'){
+    g = buildEnemyMesh(ENEMY_TYPES.brute, { seed: 4, wear: 0.1 });
+    g.scale.multiplyScalar(1.55);
+    g.userData.bodyMat.color.lerp(new THREE.Color(0xff2a2a), 0.4);   // as game/survival.js spawnChampion dresses it
+    const crest = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 4),
+      new THREE.MeshStandardMaterial({ color: 0xff3b3b, emissive: 0xff2020, emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.4 }));
+    crest.position.set(0, 2.55, 0); g.add(crest);
+  } else if (E.kind === 'boss') g = buildBoss(E.boss);
+  else if (E.kind === 'squad'){
+    const d = E.def;
+    g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: d.role !== 'jedi', weapon: d.weapon, look: d.look }, { seed: 5, wear: 0.15 });
+    if (d.look && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(0x3aff8c);
+  } else if (E.kind === 'cast') g = castPreview(E.name);
+  if (!g) g = new THREE.Group();
+  const holder = new THREE.Group();
+  holder.add(g);
+  // its height: about two metres a unit of scale (a box round it is no good: skinned parts measure in their bind pose)
+  const vis = g.userData && g.userData.vis, h = (E.kind === 'warbringer' ? 2.7 : 2) * g.scale.y * (vis && vis !== g ? vis.scale.y : 1) * (E.kind === 'cast' ? 0.92 : 1);
+  const m = { holder, g, h, F: {} };
+  _models.set(key, m);
+  return m;
+}
+
+/* ---------- the stage: its own small renderer, drawing only while the page is open ---------- */
+let R = null, stage, cam, cur = null, spin = 0.5, drag = null, last = 0, dark = false;
+const SIL = new THREE.MeshBasicMaterial({ color: 0x142235 });
+function initStage(canvas){
+  R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  R.setPixelRatio(Math.min(devicePixelRatio, 2));
+  R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 0.95;
+  stage = new THREE.Scene();
+  stage.add(new THREE.HemisphereLight(0xb8d4ff, 0x2a2018, 0.8));
+  const key = new THREE.DirectionalLight(0xfff2e0, 1.8); key.position.set(3, 6, 5); stage.add(key);
+  const rim = new THREE.DirectionalLight(0x5aa8ff, 1.6); rim.position.set(-4, 3, -5); stage.add(rim);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(1.4, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x5cc6ff, transparent: true, opacity: 0.12, depthWrite: false }));
+  stage.add(floor);
+  cam = new THREE.PerspectiveCamera(28, 1, 0.1, 60);
+  canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, s: spin }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', (e) => { if (drag) spin = drag.s + (e.clientX - drag.x) * 0.012; });
+  const up = () => { drag = null; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+}
+function show(E, k, locked){
+  if (cur) stage.remove(cur.holder);
+  cur = buildModel(E, k);
+  stage.add(cur.holder);
+  dark = locked;
+  // frame it: a trooper fills most of the stage, a droid stands small, a boss towers (to a point)
+  const h = Math.max(cur.h * 1.06, 2.3), d = (h * 0.66) / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+  cam.position.set(0, h * 0.55, d); cam.lookAt(0, h * 0.47, 0);
+}
+function frame(now){
+  if (!panel.classList.contains('open')) return;
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  const c = R.domElement, w = c.clientWidth, h = c.clientHeight;
+  if (!w || !h) return;
+  if (c.width !== Math.round(w * R.getPixelRatio()) || c.height !== Math.round(h * R.getPixelRatio())){ R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  if (!drag) spin += dt * 0.45;
+  if (cur){
+    cur.holder.rotation.y = spin;
+    if (!dark && cur.g.userData.chest) updateUpper(cur.F, cur.g, dt, null);   // it breathes, and a staff stays in both hands
+  }
+  stage.overrideMaterial = dark ? SIL : null;
+  R.render(stage, cam);
+}
+
+/* ---------- the page ---------- */
+const pips = (n) => '<span class="cx-pips" aria-label="Threat ' + n + ' of 5">' + [1, 2, 3, 4, 5].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>';
+const list = (title, rows) => rows && rows.length ? '<div class="cx-sec"><h4>' + title + '</h4><ul>' + rows.map(r => '<li>' + esc(r) + '</li>').join('') + '</ul></div>' : '';
+function build(){
+  built = true;
+  panel.innerHTML = `<div class="howto-panel cx-panel">
+    <div class="howto-head"><div class="howto-title">CODEX</div><div class="rm-sub" id="cxcount"></div><div class="howto-x" id="cxclose">✕</div></div>
+    <div class="cz-tabs cx-tabs" id="cxtabs">${CODEX_TABS.map(t => `<span data-tab="${t.id}">${t.name}<b class="cx-dot"></b></span>`).join('')}</div>
+    <div class="cx-body">
+      <div class="cx-list" id="cxlist"></div>
+      <div class="cx-view">
+        <div class="cx-stage"><canvas id="cxcanvas"></canvas>
+          <div class="cx-look" id="cxlook"><span class="cx-arrow" data-step="-1" aria-label="Previous look">‹</span><span class="cx-lk" id="cxlk"></span><span class="cx-arrow" data-step="1" aria-label="Next look">›</span></div>
+        </div>
+        <div class="cx-info" id="cxinfo"></div>
+      </div>
+    </div>
+  </div>`;
+  initStage(document.getElementById('cxcanvas'));
+  document.getElementById('cxclose').addEventListener('click', (e) => { e.stopPropagation(); setCodex(false); });
+}
+function renderList(){
+  const rows = CODEX.filter(e => e.tab === tab);
+  document.getElementById('cxlist').innerHTML = rows.map(e => {
+    const m = codexMet(e.id);
+    return `<div class="cx-item${m ? '' : ' locked'}${e.id === sel ? ' on' : ''}" data-id="${e.id}">${m ? esc(e.name) : svgIcon('lock', 'lk') + '? ? ?'}${m && codexFresh(e.id) ? '<b class="cx-new">NEW</b>' : ''}</div>`;
+  }).join('');
+  for (const s of document.querySelectorAll('#cxtabs span')){
+    s.classList.toggle('on', s.dataset.tab === tab);
+    s.querySelector('.cx-dot').classList.toggle('on', CODEX.some(e => e.tab === s.dataset.tab && codexFresh(e.id)));
+  }
+  const n = CODEX.filter(e => e.tab === tab && codexMet(e.id)).length;
+  document.getElementById('cxcount').textContent = n + ' / ' + rows.length + ' met · ' + codexCount() + ' / ' + CODEX.length + ' in all';
+}
+function renderEntry(){
+  const E = CODEX_BY_ID[sel], met = codexMet(sel), L = looksOf(E), info = document.getElementById('cxinfo');
+  look = Math.min(look, L.length - 1);
+  show(E, met ? look : 0, !met);
+  const lk = document.getElementById('cxlook');
+  lk.style.visibility = met && L.length > 1 ? 'visible' : 'hidden';
+  document.getElementById('cxlk').innerHTML = esc(L[look].name || '') + ' <i>' + (look + 1) + ' / ' + L.length + '</i>' + (L[look].note ? '<em>' + esc(L[look].note) + '</em>' : '');
+  if (!met){
+    info.innerHTML = `<div class="cx-name dim">? ? ?</div><div class="cx-lore">${E.ally ? 'Not met yet.' : 'Not encountered yet.'} Keep playing to fill this page.</div>`;
+    return;
+  }
+  info.innerHTML = `<div class="cx-kick">${esc(E.kicker || '')}</div><div class="cx-name">${esc(E.name)}</div>
+    ${E.threat ? '<div class="cx-threat">THREAT ' + pips(E.threat) + '</div>' : ''}
+    <div class="cx-lore">${esc(E.lore)}</div>
+    ${E.weapons ? '<div class="cx-sec"><h4>' + (E.ally ? 'CARRIES' : 'WEAPONS') + '</h4><div class="cx-chips">' + E.weapons.map(w => '<span>' + esc(w) + '</span>').join('') + '</div></div>' : ''}
+    <div class="cx-cols">${list('WATCH FOR', E.watch)}${list('HOW TO BEAT IT', E.beat)}${list('IN THE FIELD', E.field)}${list('WORKING WITH THEM', E.tips)}</div>`;
+  if (codexFresh(sel)){ codexRead(sel); renderList(); refreshButton(); }
+}
+function pick(id){
+  sel = id; look = 0;
+  renderList(); renderEntry();
+}
+function setTab(id){
+  tab = id;
+  const rows = CODEX.filter(e => e.tab === tab);
+  pick((rows.find(e => codexFresh(e.id)) || rows.find(e => codexMet(e.id)) || rows[0]).id);
+}
+
+export function setCodex(open){
+  if (open && !built) build();
+  panel.classList.toggle('open', open);
+  if (!open) return;
+  // open on a new entry if there is one, else where it was left
+  const fresh = CODEX.find(e => codexFresh(e.id));
+  if (fresh){ tab = fresh.tab; pick(fresh.id); } else if (sel) pick(sel); else setTab(tab);
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+export const codexOpen = () => panel.classList.contains('open');
+
+panel.addEventListener('click', (e) => {
+  e.stopPropagation();   // reading the codex must never launch or resume the game
+  const t = e.target.closest('[data-tab]'), it = e.target.closest('.cx-item'), ar = e.target.closest('.cx-arrow');
+  if (t) setTab(t.dataset.tab);
+  else if (it) pick(it.dataset.id);
+  else if (ar){ const n = looksOf(CODEX_BY_ID[sel]).length; look = (look + +ar.dataset.step + n) % n; renderEntry(); }
+  else if (e.target === panel) setCodex(false);   // the backdrop closes it
+});
+document.addEventListener('keydown', (e) => {
+  if (!codexOpen()) return;
+  if (e.key === 'Escape') setCodex(false);
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && sel && codexMet(sel)){   // (a pad's D-pad moves the focus ring instead: engine/gamepad.js)
+    const n = looksOf(CODEX_BY_ID[sel]).length; look = (look + (e.key === 'ArrowRight' ? 1 : -1) + n) % n; renderEntry();
+  }
+});
+btn.addEventListener('click', (e) => { e.stopPropagation(); setCodex(true); });
+
+/* ---------- the CODEX button's count, and the note in the corner when an entry opens ---------- */
+function refreshButton(){
+  const n = codexNewCount();
+  btn.querySelector('.cx-badge').textContent = n ? n : '';
+}
+const note = document.createElement('div');
+note.id = 'cxnote';
+document.body.appendChild(note);
+let pending = [], noteT = 0;
+codexHooks.met = (id) => {
+  refreshButton();
+  if (G.mode !== 'play') return;
+  pending.push(CODEX_BY_ID[id].name);
+  clearTimeout(noteT);
+  noteT = setTimeout(() => {   // a wave of firsts at once is one note
+    note.innerHTML = '<b>CODEX</b> ' + (pending.length === 1 ? esc(pending[0]) + ' added' : pending.length + ' new entries');
+    pending = [];
+    note.classList.add('on');
+    noteT = setTimeout(() => note.classList.remove('on'), 3200);
+  }, 500);
+};
+// the count follows the save: a slot loaded or a new game shows its own codex
+new MutationObserver(refreshButton).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class', 'style'] });
+refreshButton();

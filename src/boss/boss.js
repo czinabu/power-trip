@@ -35,6 +35,7 @@ import { diffHpMul } from '../data/difficulty.js';
 import { hideIndicators } from '../enemies/cleanup.js';
 import { players, localPlayer, targetable } from '../player/players.js';
 import { queueHit, hooks } from '../net/run.js';
+import { meetBoss } from '../game/codex.js';
 
 /* ============================================================
    BOSS — DARTH VEXIS
@@ -45,6 +46,7 @@ export function spawnBoss(){
   const kind = mando ? 'mando' : 'sith';
   const hp = Math.round((mando ? BOSS_MANDO.hp : BOSS_CFG.hp) * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));   // DIFFICULTY scales the boss too
   const g = buildBoss(kind);
+  meetBoss(kind);   // the codex entry (game/codex.js)
   g.userData.gait = { bob: BOSS_GAIT.bob, lean: BOSS_GAIT.lean, step(o, at){   // a footfall: dust and a thud near the hero
     const p = playerPos(), d = Math.hypot(at.x - p.x, at.z - p.z);
     if (d < BOSS_GAIT.thudRange){ G.shake = Math.max(G.shake, BOSS_GAIT.thud * (1 - d / BOSS_GAIT.thudRange * 0.6)); burst(V3(at.x, at.y + 0.1, at.z), BOSS_GAIT.dust, 3, 2, 2, 0.5); }
@@ -638,6 +640,7 @@ export function bossBlowResult(res, ax, az){
 // the guest's stand-in for the boss: built from the host's word, posed by it, no brain
 export function makeBossPuppet(kind, hp, maxHp){
   const g = buildBoss(kind);
+  meetBoss(kind);   // the codex entry (game/codex.js)
   g.userData.gait = { bob: BOSS_GAIT.bob, lean: BOSS_GAIT.lean, step(o, at){
     const p = playerPos(), d = Math.hypot(at.x - p.x, at.z - p.z);
     if (d < BOSS_GAIT.thudRange){ G.shake = Math.max(G.shake, BOSS_GAIT.thud * (1 - d / BOSS_GAIT.thudRange * 0.6)); burst(V3(at.x, at.y + 0.1, at.z), BOSS_GAIT.dust, 3, 2, 2, 0.5); }

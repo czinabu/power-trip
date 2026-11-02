@@ -39,6 +39,7 @@ import { makeBeacon, removeMarker, pulseMarker } from '../game/objectives.js';
 import { goDown, getUp, downed, addHeroReviver, updateRevive, heroDownState } from '../game/revive.js';
 import { MISSION_COLOR } from '../data/missions.js';
 import { ALLY_COLOR, ALLY_DOWN, addFriendRing, updateFriendRing, makeFriendTag } from '../fx/friend.js';
+import { meetAlly } from '../game/codex.js';
 
 export const allies = [];
 /* CO-OP (net/squad.js fills this in; null in solo): the host's browser runs the squad and the guest's draws it as puppets
@@ -89,6 +90,7 @@ export function addSquadmate(at, opts){
               mv: { x: 0, z: 0 }, fireT: rand(0.5, 1.5), burstLeft: 0, burstT: 0, target: null, seekT: 0, hitAt: -99,
               flash: 0, body: null, stuckT: 0, sideT: 0, side: 1, lastX: s.x, lastZ: s.z };
   allies.push(a);
+  meetAlly(def.name);   // its codex entry (game/codex.js)
   if (G.reviveLeft == null) refill();
   return a;
 }
@@ -846,6 +848,7 @@ export function syncNetSquad(m, foeOf){
   });
 }
 function addSquadmateNet(def, r){
+  meetAlly(def.name);   // the guest's codex too (game/codex.js)
   const role = SQUAD.roles[def.role];
   const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
   const g = buildEnemyMesh(t);

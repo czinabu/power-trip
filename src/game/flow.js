@@ -158,7 +158,10 @@ export function startLevel(idx, opts){
   player.mendT = 0;
   player.cancelDR = 0; player.swingLock = 0; player.dashCharges = null; player.dashRecharge = 0; player.cancelRiposte = false;
   player.cds.mend = 0;
-  if (fresh) switchStance(G.mission || G.sandbox ? 'niman' : STARTING_FORMS[0], true);   // a run and the training grounds start on Form I
+  // a lone mission and the sandbox hand out their kit up front; a run (a story's prologue too: a mission chapter that starts the
+  // run is still the run) and the training grounds start on Form I
+  const kitUpFront = (G.mission && G.chapter < 0) || G.sandbox;
+  if (fresh) switchStance(kitUpFront ? 'niman' : STARTING_FORMS[0], true);
   setStanceHud();
   G.yaw = Math.PI;  // face arena center
   player.faceYaw = Math.PI;
@@ -176,7 +179,7 @@ export function startLevel(idx, opts){
     G.mandoKit = { ...RUN_KIT };   // the Mando's guns on 1 / 2: the blaster pistol alone, until the run hands out more (data/mando.js ARMORY_PATH)   // the run's Form VII choice; nothing left waiting from the last run
     // a run (campaign or survival) and the training grounds start on the forms the hero knows and grow (each lesson slots
     // its own: game/tutorial.js); the missions keep the old three (a mission then slots what its kit teaches)
-    G.loadout = [...(G.mission || G.sandbox ? DEFAULT_LOADOUT : RUN_LOADOUT)];
+    G.loadout = [...(kitUpFront ? DEFAULT_LOADOUT : RUN_LOADOUT)];
     G.waveTotal = -1; G.mandoChoiceShown = false;
     G.xp = 0; G.xpEarned = 0; G.skillPoints = 0; G.powerLv = {}; G.mastery = {}; G.seenTypes = {}; resetUpgrades();
     G.boonOffer = null; G.boonPicked = false;

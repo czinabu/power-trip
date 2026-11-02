@@ -80,11 +80,32 @@ function buildModel(E, k){
   if (!g) g = new THREE.Group();
   const holder = new THREE.Group();
   holder.add(g);
-  // its height: about two metres a unit of scale (a box round it is no good: skinned parts measure in their bind pose)
-  const vis = g.userData && g.userData.vis, h = (E.kind === 'warbringer' ? 2.7 : 2) * g.scale.y * (vis && vis !== g ? vis.scale.y : 1) * (E.kind === 'cast' ? 0.92 : 1);
-  const m = { holder, g, h, F: {} };
+  const m = { holder, g, F: {}, ...measure(holder) };
   _models.set(key, m);
   return m;
+}
+
+/* how much room the model takes, measured from its meshes as it stands (skinned parts in their posed shape, not their
+   bind pose): its top and foot, and how far it reaches out from the turntable's axis at any turn, so the camera can frame
+   every entry head to toe however tall, wide or long it is */
+const _box = new THREE.Box3(), _ob = new THREE.Box3(), _v = new THREE.Vector3();
+const chainVisible = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+function measure(holder){
+  holder.updateMatrixWorld(true);
+  _box.makeEmpty();
+  let r = 0;
+  holder.traverse(o => {
+    if (!o.isMesh || !chainVisible(o) || !o.geometry || !o.geometry.attributes.position) return;
+    let b;
+    if (o.isSkinnedMesh){ o.skeleton.update(); o.computeBoundingBox(); b = o.boundingBox; }
+    else { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b = o.geometry.boundingBox; }
+    if (!b || b.isEmpty()) return;
+    _ob.copy(b).applyMatrix4(o.matrixWorld);
+    _box.union(_ob);
+    for (let i = 0; i < 4; i++){ _v.set(i & 1 ? _ob.max.x : _ob.min.x, 0, i & 2 ? _ob.max.z : _ob.min.z); r = Math.max(r, Math.hypot(_v.x, _v.z)); }
+  });
+  if (_box.isEmpty()) return { top: 2, foot: 0, r: 0.5 };
+  return { top: _box.max.y, foot: Math.min(0, _box.min.y), r };
 }
 
 /* ---------- the stage: its own small renderer, drawing only while the page is open ---------- */
@@ -111,9 +132,20 @@ function show(E, k, locked){
   cur = buildModel(E, k);
   stage.add(cur.holder);
   dark = locked;
-  // frame it: a trooper fills most of the stage, a droid stands small, a boss towers (to a point)
-  const h = Math.max(cur.h * 1.06, 2.3), d = (h * 0.66) / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
-  cam.position.set(0, h * 0.55, d); cam.lookAt(0, h * 0.47, 0);
+  fit();
+}
+/* frame it head to toe: the band from the floor to its top, plus headroom (a share of its height, and room below for the
+   look picker), fits the view's height, and its reach out from the turntable's axis fits the view's width at any turn.
+   A long weapon held out (a lance, a pike) may sweep past the edge as it turns rather than shrink the figure to a speck */
+const TAN = Math.tan(THREE.MathUtils.degToRad(28 / 2));
+function fit(){
+  if (!cur) return;
+  const { top, foot, r } = cur, tall = top - foot;
+  const lo = foot - 0.2 - tall * 0.08, hi = top + 0.15 + tall * 0.08;   // the foot sits clear of the look picker
+  const mid = (lo + hi) / 2, half = Math.max((hi - lo) / 2, 1.3);
+  const reach = Math.min(r, tall * 0.36 + 0.25);
+  const d = Math.max(half / TAN, (reach * 1.06 + 0.1) / (TAN * cam.aspect)) + reach * 0.5;   // the near side stands closer than the axis
+  cam.position.set(0, mid + d * 0.04, d); cam.lookAt(0, mid, 0);
 }
 function frame(now){
   if (!panel.classList.contains('open')) return;
@@ -121,7 +153,7 @@ function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   const c = R.domElement, w = c.clientWidth, h = c.clientHeight;
   if (!w || !h) return;
-  if (c.width !== Math.round(w * R.getPixelRatio()) || c.height !== Math.round(h * R.getPixelRatio())){ R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  if (c.width !== Math.round(w * R.getPixelRatio()) || c.height !== Math.round(h * R.getPixelRatio())){ R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); fit(); }
   if (!drag) spin += dt * 0.45;
   if (cur){
     cur.holder.rotation.y = spin;

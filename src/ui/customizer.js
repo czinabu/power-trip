@@ -34,6 +34,13 @@ function unlockWhere(hero, id){
   return c ? 'ACT ' + ROMAN[c.act] + ' · ' + forHero(c.title, hero) : 'THE CAMPAIGN';
 }
 const hintEl = document.getElementById('czlock');
+// a row's options as shown: the ones open from the start first, then by the chapter that unlocks them, the campaign's
+// end last (the data's own order still decides what a hero wears by default: data/customize.js)
+function shownOrder(hero, row){
+  const list = chapterOrder(null, hero).map(c => c.id);
+  const at = (o) => !o.unlock ? -1 : o.unlock === 'won' ? 1e3 : (list.indexOf(o.unlock) + 1 || 999);
+  return row.options.map((o, i) => [o, i]).sort((a, b) => at(a[0]) - at(b[0]) || a[1] - b[1]).map(([o]) => o);
+}
 
 function render(){
   const hero = G.hero, mine = picks[hero] || {};
@@ -43,7 +50,7 @@ function render(){
   let open = 0, all = 0;
   rowsEl.innerHTML = CUSTOMIZE[hero].map(row => {
     const cur = wornOption(hero, row, mine);
-    const opts = row.options.map(o => {
+    const opts = shownOrder(hero, row).map(o => {
       const shut = !optionOpen(hero, row, o); all++; if (!shut) open++;
       const cls = (o === cur ? ' sel' : '') + (shut ? ' locked' : '');
       const tip = shut ? o.name + ' · unlocks in ' + unlockWhere(hero, o.unlock) : o.name;

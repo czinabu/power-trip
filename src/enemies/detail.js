@@ -53,18 +53,25 @@ export function face(k, h, o = {}){
   k.add(block(0.05, f ? 0.016 : 0.012, f ? 0.017 : 0.014, 0.4), 'lip', jaw, [0, -0.032, 0.11], [0, 0, 0], NO_INK);   // lower lip
   k.add(block(0.05, 0.03, 0.03, 0.3), 'black', jaw, [0, -0.012, 0.085], [0, 0, 0], NO_INK);   // the dark of the mouth (shows as it opens)
   k.add(block(0.054, f ? 0.011 : 0.008, 0.012, 0.3), 'lip', h, [0, 0.062, 0.113], [0, 0, 0], NO_INK);    // upper lip
-  k.add(shard(f ? 0.028 : 0.034, f ? 0.06 : 0.07, f ? 0.027 : 0.032), 'skin', h, [0, 0.1, 0.12], [0.2, 0, 0], NO_INK);           // nose
+  if (o.fine) nose(k, h, f);
+  else k.add(shard(f ? 0.028 : 0.034, f ? 0.06 : 0.07, f ? 0.027 : 0.032), 'skin', h, [0, 0.1, 0.12], [0.2, 0, 0], NO_INK);           // nose
   const lids = k.bone('lids', h, [0, 0.157, 0]);
   for (const s of [-1, 1]){
     k.add(block(0.025, 0.06, 0.045, 0.45), 'skin', h, [0.11*s*(f ? 0.97 : 1), 0.13, -0.005], [0, 0.2*s, 0]);   // ears
-    k.add(block(0.05, 0.03, 0.02, 0.4), 'black', h, [0.045*s, 0.145, 0.107], [0, 0, 0], NO_INK);   // socket shadow
-    if (!o.void){
-      k.add(block(0.032, 0.016, 0.012, 0.4), 'eyew', h, [0.045*s, 0.143, 0.115], [0, 0, 0], NO_INK);
-      k.add(block(0.013, 0.014, 0.01, 0.3), 'black', h, [0.045*s, 0.143, 0.121], [0, 0, 0], NO_INK);   // pupil
+    if (o.fine && !o.void) fineEye(k, h, lids, s, f, o.sith);
+    else {
+      k.add(block(0.05, 0.03, 0.02, 0.4), 'black', h, [0.045*s, 0.145, 0.107], [0, 0, 0], NO_INK);   // socket shadow
+      if (!o.void){
+        k.add(block(0.032, 0.016, 0.012, 0.4), 'eyew', h, [0.045*s, 0.143, 0.115], [0, 0, 0], NO_INK);
+        k.add(block(0.013, 0.014, 0.01, 0.3), 'black', h, [0.045*s, 0.143, 0.121], [0, 0, 0], NO_INK);   // pupil
+      }
+      k.add(block(0.04, 0.022, 0.012, 0.4), 'skin', lids, [0.045*s, -0.011, 0.12], [0, 0, 0], NO_INK);   // lid
+      if (f) k.add(block(0.042, 0.006, 0.014, 0.3), 'black', lids, [0.046*s, -0.021, 0.121], [0, 0, -0.1*s], NO_INK);   // lashes, on the lid's edge
     }
-    k.add(block(0.04, 0.022, 0.012, 0.4), 'skin', lids, [0.045*s, -0.011, 0.12], [0, 0, 0], NO_INK);   // lid
-    if (f) k.add(block(0.042, 0.006, 0.014, 0.3), 'black', lids, [0.046*s, -0.021, 0.121], [0, 0, -0.1*s], NO_INK);   // lashes, on the lid's edge
-    k.add(block(0.052, f ? 0.008 : 0.012, 0.015, 0.3), 'hair', h, [0.047*s, f ? 0.176 : 0.172, 0.115], [0, 0, (f ? -0.2 : -0.12)*s], NO_INK);   // brow
+    if (o.fine && f){   // an arched brow: rising, then falling away to the temple
+      k.add(block(0.03, 0.009, 0.014, 0.3), 'hair', h, [0.036*s, 0.176, 0.119], [0, 0, 0.18*s], NO_INK);
+      k.add(block(0.026, 0.008, 0.014, 0.3), 'hair', h, [0.063*s, 0.177, 0.113], [0, 0.3*s, -0.35*s], NO_INK);
+    } else k.add(block(0.052, f ? 0.008 : o.fine ? 0.015 : 0.012, 0.015, 0.3), 'hair', h, [0.047*s, f ? 0.176 : 0.172, 0.115], [0, 0, (f ? -0.2 : -0.12)*s], NO_INK);   // brow
     k.add(block(0.04, 0.02, 0.025, 0.45), 'skin', h, [0.066*s, 0.112, 0.092], [0, 0.5*s, 0], NO_INK);   // cheekbone
   }
   if (o.sith){
@@ -72,7 +79,7 @@ export function face(k, h, o = {}){
     const eyes = k.live(new THREE.Group(), h, 'eye');
     for (const s of [-1, 1]){
       const m = new THREE.Mesh(new THREE.BoxGeometry(o.void ? 0.03 : 0.016, o.void ? 0.012 : 0.013, 0.004), new THREE.MeshBasicMaterial({ color: o.eyeC ?? 0xffb21c, toneMapped: false }));
-      m.position.set(0.045*s, 0.143, o.void ? 0.118 : 0.1235); eyes.add(m);
+      m.position.set(0.045*s, 0.143, o.void ? 0.118 : o.fine ? 0.1242 : 0.1235); eyes.add(m);
     }
   }
   if (o.scar) k.add(block(0.008, 0.075, 0.006, 0.3), 'scar', h, [-0.047, 0.15, 0.121], [0, 0, 0.18], NO_INK);   // a pale line through the brow and down the cheek
@@ -82,6 +89,27 @@ export function face(k, h, o = {}){
   if (o.beard) beard(k, h, jaw, o.beard);
   if (o.hair === false) return;
   hairdo(k, h, o.style || 'crop');
+}
+
+/* THE FINE FACE (o.fine: the saber cast, seen close in duel entrances): an almond eye with a coloured iris ('iris')
+   in a soft socket shade ('socket', not a black box), a lash line over it, and a nose with a bridge, a tip and wings */
+function fineEye(k, h, lids, s, f, sith){
+  const x = 0.045*s;
+  k.add(block(0.054, 0.034, 0.02, 0.45), 'socket', h, [x, 0.146, 0.106], [0, 0, 0], NO_INK);   // the socket's shade
+  k.add(block(0.037, 0.018, 0.008, 0.45), 'eyew', h, [x, 0.143, 0.118], [0, 0.18*s, 0], NO_INK);   // the white, turned with the face's curve
+  if (!sith) k.add(block(0.017, 0.017, 0.004, 0.3), 'iris', h, [x - 0.002*s, 0.143, 0.1225], [0, 0, 0], NO_INK);
+  k.add(block(0.0075, 0.0085, 0.004, 0.2), 'black', h, [x - 0.002*s, 0.143, 0.1245], [0, 0, 0], NO_INK);   // pupil
+  k.add(block(0.04, f ? 0.0065 : 0.0045, 0.01, 0.3), 'black', h, [x, 0.1525, 0.121], [0, 0.18*s, f ? -0.12*s : 0], NO_INK);   // lash line
+  if (f) k.add(block(0.01, 0.004, 0.008, 0.2), 'black', h, [x + 0.022*s, 0.155, 0.117], [0, 0.3*s, 0.5*s], NO_INK);   // its flick
+  k.add(block(0.045, 0.024, 0.012, 0.4), 'skin', lids, [x, -0.011, 0.123], [0, 0.18*s, 0], NO_INK);   // lid (covers it all when it blinks)
+  k.add(block(0.032, 0.005, 0.008, 0.3), 'socket', h, [x, 0.131, 0.119], [0, 0.18*s, 0], NO_INK);   // the crease under the eye
+}
+function nose(k, h, f){
+  const n = f ? 0.85 : 1;
+  k.add(loft([{ y:0, w:0.02*n, d:0.02, z:0.0 }, { y:0.055, w:0.016*n, d:0.014, z:-0.012 }], SOFT_LIMB), 'skin', h, [0, 0.1, 0.127], [0, 0, 0], NO_INK);   // bridge
+  k.add(loft([{ y:-0.014, w:0.028*n, d:0.024 }, { y:0.004, w:0.034*n, d:0.03 }, { y:0.016, w:0.022*n, d:0.022 }], SOFT_LIMB), 'skin', h, [0, 0.094, 0.13], [0, 0, 0], NO_INK);   // tip
+  for (const s of [-1, 1]) k.add(block(0.014*n, 0.014, 0.018, 0.45), 'skin', h, [0.018*s*n, 0.088, 0.123], [0, 0.4*s, 0], NO_INK);   // wings
+  k.add(block(0.022*n, 0.004, 0.01, 0.2), 'socket', h, [0, 0.081, 0.128], [0, 0, 0], NO_INK);   // the shadow under it
 }
 
 // the hair over the crown: a skull-hugging cap (buzz) or a fuller one (crop), and what hangs from it

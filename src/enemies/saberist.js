@@ -20,15 +20,17 @@ import { lookColors } from '../data/saber-cast.js';
 const PI = Math.PI;
 const NO_INK = { outline: false };
 const SOFT = rounded(chamfer(0.42)), SOFT_LIMB = rounded(chamfer(0.4)), SOFT_BODY = rounded(chamfer(0.3));
+const ROBE = rounded(chamfer(0.46));   // cloth over a body: rounder than any plate
 
 // the bake's colours for a look: cloth on the 'armor' keys (no metal sheen), the face's own
 export function lookPalette(L){
   const C = lookColors(L), F = L.face || {};
   const cloth = c => ({ c, r: 0.92, m: 0.04 });
   return {
-    armor: L.side === 'inq' ? { c: C.tunic, r: 0.7, m: 0.18 } : cloth(C.tunic), armor2: L.side === 'inq' ? { c: C.tabard, r: 0.45, m: 0.55 } : cloth(C.tabard),
+    armor: L.side === 'inq' ? { c: C.tunic, r: 0.85, m: 0.08 } : cloth(C.tunic), armor2: L.side === 'inq' ? { c: C.tabard, r: 0.55, m: 0.3 } : cloth(C.tabard),
     suit: C.under, cloth: C.cloak, leather: C.belt, trim: C.trim, glove: C.glove, boot: C.boot ?? C.belt,
     skin: F.skin, hair: F.hair, beard: F.beardC ?? F.hair, stubble: F.beardC ?? F.hair, lip: F.lip ?? 0x7a4a3c,
+    socket: F.skin != null ? new THREE.Color(F.skin).multiplyScalar(0.72).getHex() : 0x6a4c3a, iris: F.eyes ?? 0x3a2a1c,
     tattoo: F.marks ?? 0x1a1414, horn: F.horns ?? 0xd8c8a8, scar: F.skin != null ? new THREE.Color(F.skin).lerp(new THREE.Color(0xffffff), 0.35).getHex() : 0xd8b4a0,
   };
 }
@@ -37,9 +39,10 @@ export function lookPalette(L){
 export function buildSaberist(k, t, L, H){
   const f = L.build === 'f', w = (f ? 0.86 : 0.98) * (L.w || 1), hw = f ? 0.98 : 1;   // shoulders · hips
   const inq = L.side === 'inq', jedi = L.side === 'jedi';
-  k.sleeve = 'armor';   // the arms are sleeves (mesh.js arm)
-  legs(k, hw, jedi, H.legBones);
-  hipsAndSkirt(k, hw, L);
+  k.sleeve = 'armor';   // the arms are sleeves (mesh.js arm), belled at the wrist unless armoured
+  k.bell = !inq;
+  const thighs = legs(k, hw, jedi, H.legBones);
+  hipsAndSkirt(k, hw, L, thighs);
   k = H.upper(k);
   chest(k, w, f, L);
   if (L.cloak){
@@ -48,6 +51,7 @@ export function buildSaberist(k, t, L, H){
     k.add(loft([{ y:1.7, w:0.6*w, d:0.2, z:-0.1 }, { y:1.84, w:0.5*w, d:0.18, z:-0.11 }, { y:1.9, w:0.3, d:0.12, z:-0.12 }], SOFT), 'cloth');
     if (!L.hood && L.mask !== 'helm') k.add(loft([{ y:-0.1, w:0.3, d:0.1, z:-0.03 }, { y:0.0, w:0.34, d:0.14, z:-0.02 }, { y:0.06, w:0.26, d:0.1, z:-0.02 }], ngon(10)), 'cloth', k.root, [0, 1.9, -0.17], [-0.25, 0, 0]);
   }
+  if (L.hood) cowl(k, w);
   if (inq) inqPlates(k, w);
   if (L.armour === 'general') generalPlates(k, w);
   H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5 });
@@ -57,37 +61,50 @@ export function buildSaberist(k, t, L, H){
 
 // trousers into tall boots; the Jedi's boots a shade lighter than the Sith's
 function legs(k, w, jedi, legBones){
+  const thighs = [];
   for (const s of [-1, 1]){
     const L = legBones(k, 0.16 * s);
+    thighs.push(L.thigh);
     k.add(limb(0.5, [[-0.04,0.2*w,0.21],[0.2,0.19*w,0.2],[0.8,0.15*w,0.155],[1,0.14*w,0.145]], KEEL), 'suit', L.thigh);
     k.add(limb(0.38, [[0,0.15*w,0.16],[0.12,0.16*w,0.17],[0.85,0.13*w,0.14],[1,0.125*w,0.135]], KEEL), 'boot', L.shin, [0, 0, 0.005]);
     k.add(loft([{ y:-0.03, w:0.165*w, d:0.175 }, { y:0.02, w:0.17*w, d:0.18 }], SOFT_LIMB), jedi ? 'leather' : 'boot', L.shin, [0, -0.01, 0.005]);   // the boot's cuff
     k.add(plate([[-0.075,0.035],[-0.09,-0.075],[0.16,-0.085],[0.21,-0.05],[0.1,0.0],[0.03,0.04]].map(([x, y]) => [x * 1.12, y * 1.12]), 0.13*w, 0.014), 'boot', L.foot, [0, 0, 0], [0, -PI/2, 0]);
   }
+  return thighs;
 }
 
 // the hips, a wide belt and sash, and the tunic's skirts front and back (a Jedi's tabard runs down over them)
-function hipsAndSkirt(k, w, L){
+function hipsAndSkirt(k, w, L, thighs){
   k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
   k.add(loft([{ y:0.98, w:0.47*w, d:0.31 }, { y:1.12, w:0.45*w, d:0.3 }], SOFT_BODY), 'armor');   // the tunic's hem over the hips
   k.add(loft([{ y:1.04, w:0.49*w, d:0.325 }, { y:1.11, w:0.485*w, d:0.322 }], SOFT_BODY), 'trim', k.root, [0,0,0], [0,0,0], NO_INK);   // sash
   k.add(loft([{ y:1.0, w:0.5*w, d:0.33 }, { y:1.05, w:0.5*w, d:0.33 }], SOFT_BODY), 'leather', k.root, [0,0,0], [0,0,0], NO_INK);       // belt
   k.add(block(0.07, 0.05, 0.02, 0.3), 'metal', k.root, [0, 1.025, 0.17], [0,0,0], NO_INK);   // buckle
   for (const x of [-0.17, 0.2]) k.add(block(0.06, 0.07, 0.04, 0.35), 'leather', k.root, [x*w, 1.0, 0.13], [0, x < 0 ? -0.4 : 0.4, 0], NO_INK);   // pouches
-  // the skirts: long for the Jedi and the Sith, short under an Inquisitor's armour
-  const len = L.side === 'inq' ? 0.36 : 0.5;
-  for (const [z, r] of [[0.16, -0.08], [-0.16, 0.08]]){
-    k.add(plate([[-0.22*w,0],[0.22*w,0],[0.26*w,-len],[-0.26*w,-len]], 0.014, 0.004), 'armor', k.root, [0, 1.02, z], [r, 0, 0], NO_INK);
-    if (L.side === 'jedi') k.add(plate([[-0.09,0],[0.09,0],[0.1,-len - 0.04],[-0.1,-len - 0.04]], 0.016, 0.004), 'armor2', k.root, [0, 1.02, z * 1.07], [r, 0, 0], NO_INK);
+  /* THE ROBE'S SKIRTS. An Inquisitor's are short, under its armour. Otherwise a long robe split up the front: each front
+     panel rides its thigh (it swings open with the stride instead of the leg cutting through it) and the back hangs long
+     and full. A Jedi's tabard runs down each front panel */
+  if (L.side === 'inq'){
+    for (const [z, r] of [[0.16, -0.08], [-0.16, 0.08]]) k.add(plate([[-0.22*w,0],[0.22*w,0],[0.26*w,-0.36],[-0.26*w,-0.36]], 0.014, 0.004), 'armor', k.root, [0, 1.02, z], [r, 0, 0], NO_INK);
+    return;
   }
+  const len = 0.74;
+  k.add(plate([[-0.24*w,0],[0.24*w,0],[0.34*w,-len],[0.2*w,-len - 0.03],[-0.2*w,-len - 0.03],[-0.34*w,-len]], 0.016, 0.004), 'armor', k.root, [0, 1.03, -0.165], [0.1, 0, 0], NO_INK);
+  thighs.forEach((T, i) => {
+    const s = i ? 1 : -1;   // (left, then right)
+    // in the thigh's frame: its top at the hip (thigh y 0 = hip), hanging past the knee to the shin
+    k.add(plate([[-0.03*s,0.09],[0.21*s,0.09],[0.24*s,-len + 0.1],[-0.01*s,-len + 0.06]].map(([x, y]) => [x - 0.08*s, y]), 0.014, 0.004), 'armor', T, [0, 0, 0.145], [-0.06, 0, 0], NO_INK);
+    if (L.side === 'jedi') k.add(plate([[-0.045,0.085],[0.045,0.085],[0.05,-len + 0.03],[-0.05,-len + 0.03]], 0.016, 0.004), 'armor2', T, [0.0, 0, 0.158], [-0.06, 0, 0], NO_INK);
+  });
 }
 
 // the torso: the tunic, shaped by the build; crossed lapels (the Jedi's tabard over both shoulders)
 function chest(k, w, f, L){
   const b = f ? 1.05 : 1;   // the chest stands out a touch on a woman's frame; the waist pulls in
-  k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.88 : 1), d:0.25 }], SOFT_BODY), 'armor');
-  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.9 : 1), d:0.27 }, { y:1.44, w:0.56*w, d:0.33*b, z:0.01*b }, { y:1.58, w:0.62*w, d:0.35*b, z:0.015*b }, { y:1.72, w:0.64*w, d:0.34 },
-              { y:1.82, w:0.5*w, d:0.29 }, { y:1.9, w:0.28, d:0.21 }], SOFT_BODY), 'armor');
+  k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.86 : 1), d:0.25 }], ROBE), 'armor');
+  // the chest rounds over into sloping shoulders (no plate's square shelf)
+  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.54*w, d:0.32*b, z:0.012*b }, { y:1.58, w:0.6*w, d:0.34*b, z:0.016*b }, { y:1.7, w:0.62*w, d:0.32 },
+              { y:1.79, w:0.54*w, d:0.28 }, { y:1.86, w:0.38*w, d:0.23 }, { y:1.92, w:0.24, d:0.19 }], ROBE), 'armor');
   k.add(loft([{ y:1.84, w:0.25, d:0.2 }, { y:1.97, w:0.18, d:0.16 }], SOFT), 'armor2');   // the high collar
   // the lapels: two bands from each shoulder, crossing at the belt (the Jedi's tabard, the Sith's dark wrap)
   for (const s of [-1, 1]){
@@ -95,7 +112,7 @@ function chest(k, w, f, L){
     k.add(plate(p, 0.012, 0.003), 'armor2', k.root, [0.11*w*s, 1.88, 0.15*b], [-0.16*b, 0, -0.2*s], NO_INK);
     k.add(plate(p, 0.012, 0.003), 'armor2', k.root, [0.11*w*s, 1.88, -0.15], [0.12, 0, -0.2*s], NO_INK);
     // the shoulder's roll of cloth (no pauldron)
-    k.add(loft([{ y:-0.06, w:0.2*w, d:0.22 }, { y:0.03, w:0.19*w, d:0.21 }, { y:0.08, w:0.13*w, d:0.15 }], SOFT), 'armor', k.root, [0.39*w*s, 1.76, 0], [0, 0, -0.32*s]);
+    k.add(loft([{ y:-0.07, w:0.19*w, d:0.2 }, { y:0.01, w:0.19*w, d:0.2 }, { y:0.06, w:0.14*w, d:0.16 }, { y:0.085, w:0.07*w, d:0.09 }], ngon(12)), 'armor', k.root, [0.39*w*s, 1.74, 0], [0, 0, -0.42*s]);
   }
   if (L.side !== 'jedi') k.add(plate([[-0.012,0],[0.012,0],[0.012,-0.62],[-0.012,-0.62]], 0.006, 0.002), 'trim', k.root, [0, 1.86, 0.17*b + 0.005], [-0.1, 0, 0], NO_INK);   // red piping down the front
 }
@@ -124,16 +141,23 @@ function head(k, t, L, f, H){
   const h = k.bone('head', k.root, [0, 1.96, 0], [0,0,0], H.NECK);
   const F = L.face || {};
   if (L.mask === 'helm'){ inqHelm(k, h, t); return; }
-  face(k, h, { ...F, fem: f, hair: L.hood && F.style !== 'bald' ? true : undefined, style: L.hood ? (F.style === 'bald' ? 'bald' : 'buzz') : F.style });
+  face(k, h, { ...F, fine: true, fem: f, hair: L.hood && F.style !== 'bald' ? true : undefined, style: L.hood ? (F.style === 'bald' ? 'bald' : 'buzz') : F.style });
   if (L.mask === 'half') rebreather(k, h);
   if (L.hood) hood(k, h);
 }
 
-// a raised hood: the shell over the crown and back, its sides framing the face, a lip of cloth over the brow
+// a raised hood: a soft shell over the crown that the face peeks out of, a rolled rim of cloth framing the face, and
+// (on the chest: buildSaberist) the cowl it falls into round the neck
 function hood(k, h){
-  // round, close over the crown and down past the jaw behind the cheeks, its front edge stopping short of the face
-  k.add(loft([{ y:-0.08, w:0.3, d:0.25, z:-0.06 }, { y:0.06, w:0.31, d:0.3, z:-0.05 }, { y:0.24, w:0.3, d:0.3, z:-0.04 }, { y:0.36, w:0.24, d:0.27, z:-0.04 },
-              { y:0.43, w:0.12, d:0.15, z:-0.05 }], ngon(12)), 'cloth', h);
+  const R = ngon(14);
+  k.add(loft([{ y:-0.03, w:0.27, d:0.27, z:-0.05 }, { y:0.14, w:0.29, d:0.3, z:-0.035 }, { y:0.3, w:0.27, d:0.29, z:-0.03 },
+              { y:0.4, w:0.19, d:0.22, z:-0.045 }, { y:0.455, w:0.07, d:0.09, z:-0.075 }], R), 'cloth', h);
+  const rim = new THREE.TorusGeometry(0.15, 0.021, 6, 18, PI * 1.5);
+  k.add(rim, 'cloth', h, [0, 0.16, 0.088], [-0.12, 0, -PI * 0.25], { scale: [1, 1.12, 1] });
+}
+// the cowl a raised hood falls into, round the neck and over the shoulders
+function cowl(k, w){
+  k.add(loft([{ y:1.78, w:0.58*w, d:0.4, z:-0.03 }, { y:1.9, w:0.42*w, d:0.33, z:-0.04 }, { y:1.99, w:0.28, d:0.26, z:-0.06 }], ngon(14)), 'cloth');
 }
 
 // the Inquisitor's rebreather: a dark plate over the mouth and jaw, red vents, straps to the ears

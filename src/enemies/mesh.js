@@ -122,6 +122,7 @@ export function arm(k, parent, w, o = {}){
   k.add(loft([{ y:-0.05, w:0.125*w, d:0.13 }, { y:0.0, w:0.135*w, d:0.145 }, { y:0.05, w:0.12*w, d:0.13 }], SOFT_LIMB), k.sleeve || 'armor2', el, [0, 0, 0.01]);   // elbow cop
   k.add(limb(0.3, [[0,0.13*w,0.13],[0.6,0.135*w,0.13],[1,0.105*w,0.1]], KEEL), o.fore || 'armor', el, [0, -0.02, 0.005]);
   // the glove's cuff, then the hand: a rounded fist, or fingers closed round what it holds
+  if (k.bell) k.add(loft([{ y:-0.35, w:0.2*w, d:0.19 }, { y:-0.25, w:0.16*w, d:0.16 }, { y:-0.12, w:0.14*w, d:0.14 }], SOFT_LIMB), 'armor', el, [0, 0, 0.005]);   // a robe's sleeve, belled at the wrist
   const hand = k.sleeve ? 'glove' : 'suit';
   k.add(loft([{ y:0.06, w:0.115*w, d:0.115 }, { y:0.035, w:0.12*w, d:0.12 }], SOFT_LIMB), 'black', el, [0, -0.38, 0.02], [0,0,0], { outline: false });
   if (!o.hand) k.add(loft([{ y:-0.075, w:0.1*w, d:0.11 }, { y:-0.02, w:0.122*w, d:0.13 }, { y:0.04, w:0.112*w, d:0.12 }], SOFT_LIMB), hand, el, [0, -0.38, 0.02]);
@@ -680,7 +681,7 @@ export function buildEnemyMesh(t, o = {}){
   const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
     : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + ':v' + v + (F ? ':f' + fi : '');
   const pal = look ? lookPalette(look) : null;
-  if (pal && !(o.look && lookById(o.look))){ pal.armor = { ...pal.armor, c: shade(t.color, 0.8) }; pal.cloth = t.cloth ?? pal.cloth; }   // the rank and file keep their type's colours (a shade deeper: robes, not plate)
+  if (pal && !(o.look && lookById(o.look))){ pal.armor = { ...pal.armor, c: shade(t.color, 0.6) }; pal.cloth = t.cloth ?? pal.cloth; }   // the rank and file keep their type's colours (deeper: black robes, not grey plate)
   const baked = bakeDesign(id, k => {
     k.v = v; k.face = F; k.badge = IMPERIAL.has(t.model); k.look = look;
     if (v === 4 && BARE[t.model]){

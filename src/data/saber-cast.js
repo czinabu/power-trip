@@ -17,7 +17,7 @@
 //   build    'm' | 'f' — shoulders, chest, waist and height. `w` widens or narrows the frame on top (1 = the usual)
 //   height   × the figure's height on top of the build's
 //   face     skin, hair (colour), style (bald, buzz, crop, part, long, ponytail, bun, topknot, braid), beard (stubble,
-//            goatee, full), beardC (its colour, else the hair's), lip, marks (face tattoos: their colour), markStyle
+//            goatee, full), beardC (its colour, else the hair's), eyes (the iris), lip, marks (face tattoos: their colour), markStyle
 //            ('bars' | 'diamonds' | 'lines'), scar, horns (a horn crown, its colour), void (a face of shadow), sith
 //            (gold Sith eyes, lit: they flare as it winds up), eyeC (their colour)
 //   mask     'half' (a rebreather over the mouth and jaw) | 'helm' (the full Inquisitor helm)
@@ -32,13 +32,13 @@ const RED = 0xff2a36;
 // each side's clothes; a look's own `colors` go on top
 export const SIDES = {
   jedi: { tunic: 0xcdb791, tabard: 0x8a6440, under: 0x5a4330, cloak: 0x5a3d26, belt: 0x3a2616, trim: 0x6e4a2a, glove: 0x4a3424 },
-  sith: { tunic: 0x26232a, tabard: 0x16141a, under: 0x121115, cloak: 0x1a1216, belt: 0x18120f, trim: 0x8e1a20, glove: 0x0e0d10, blade: RED },
-  inq:  { tunic: 0x1c1c22, tabard: 0x2e2e36, under: 0x111114, cloak: 0x141014, belt: 0x18120f, trim: 0xa01a22, glove: 0x0c0c0f, blade: RED },
+  sith: { tunic: 0x18161b, tabard: 0x0d0c0f, under: 0x0e0d10, cloak: 0x130d10, belt: 0x18120f, trim: 0x8e1a20, glove: 0x0e0d10, blade: RED },
+  inq:  { tunic: 0x141417, tabard: 0x24242a, under: 0x0d0d10, cloak: 0x100c10, belt: 0x18120f, trim: 0xa01a22, glove: 0x0c0c0f, blade: RED },
   echo: { tunic: 0x241c38, tabard: 0x161026, under: 0x0e0a18, cloak: 0x150f26, belt: 0x120c1c, trim: 0x8a5aff, glove: 0x0c0814, blade: 0xb24bff },
 };
 
 // ILSA VENN: the hero's oldest friend; under the Inquisitor's mask from the night the temple falls
-const ILSA_FACE = { skin: 0xdaa888, hair: 0x6a2c16, style: 'ponytail', lip: 0xa8645a };
+const ILSA_FACE = { skin: 0xdaa888, hair: 0x6a2c16, style: 'ponytail', lip: 0xa8645a, eyes: 0x3e6a44 };
 
 export const CAST = {
   // ---- the Jedi ----
@@ -47,10 +47,10 @@ export const CAST = {
                    cloak: true, colors: { cloak: 0x4a3422, tabard: 0x6e4e30 } },                      // Tarn Odo
   'SERA QUILL':  { side: 'jedi', build: 'f', w: 0.95, face: { skin: 0x9a7350, hair: 0x140e0a, style: 'braid', marks: 0x24365e, markStyle: 'diamonds', lip: 0x7a4a3c },
                    colors: { tunic: 0xa49c8c, tabard: 0x5a5448, under: 0x3a3832, trim: 0x2e8a62 } },      // straight out of a prison cell
-  'THE KNIGHT':  { side: 'jedi', build: 'f', w: 1.02, height: 1.02, face: { skin: 0xc49a7c, hair: 0x8a8478, style: 'bun', scar: true, lip: 0x9a6458 },
+  'THE KNIGHT':  { side: 'jedi', build: 'f', w: 1.02, height: 1.02, face: { skin: 0xc49a7c, hair: 0x8a8478, style: 'bun', scar: true, lip: 0x9a6458, eyes: 0x4a6a80 },
                    armour: 'general', cloak: true, colors: { cloak: 0x6a5642, trim: 0xb8962e } },        // General Rhenna Kast, in Hoth gear
   // the ARC trooper's Hoth chapter: a Jedi fighting beside the squad (a squadmate whose def names this look: data/allies.js)
-  'MASTER IRO':  { side: 'jedi', build: 'm', w: 1.02, face: { skin: 0xb07a56, hair: 0x2a2018, style: 'topknot', beard: 'goatee' },
+  'MASTER IRO':  { side: 'jedi', build: 'm', w: 1.02, face: { skin: 0xb07a56, hair: 0x2a2018, style: 'topknot', beard: 'goatee', eyes: 0x5a3a20 },
                    cloak: true, colors: { cloak: 0x5a4632, trim: 0x2e8a52 }, blade: 0x3aff8c },
   // ---- the Empire's blades ----
   'THE INQUISITOR':   { side: 'inq', build: 'f', face: { ...ILSA_FACE, sith: true }, mask: 'half', armour: 'inq', cloak: true },   // Ilsa, masked

@@ -3,7 +3,8 @@
 // game/twists/) on the BUILT game: start its mission at that objective as a hero who plays it, stand on the objective,
 // push its progress along so the twist's later beats come, and check the twist is running and has put something in
 // the world (an event, a prop). Then the same in co-op, on a guest's screen. Fails on any page or console error.
-// SHOTS=<dir> saves a screenshot of each. ONLY=kind,kind… runs just those.
+// SHOTS=<dir> saves a screenshot of each. ONLY=kind,kind… runs just those. TWIST_SECONDS=… sets the game time on
+// each (default 16), PEER_PORT=… the co-op signalling port (to run two copies side by side).
 //   npm run build && npm run smoke:twists
 
 import { chromium } from 'playwright';

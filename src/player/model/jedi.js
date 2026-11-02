@@ -130,6 +130,7 @@ export const JEDI_PARTS = {
         ring(H + 0.4,   0.02, 0.03, -0.1,   0.2,  0,    0.5),
       ], { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true,
         warp: cowlDrape({ neck: 0.49, len: 0.12, zc: -0.03, back: 0.17, front: 0.05, side: 0.015 }) });
+      outerRobe(R, k);   // the hood is the outer robe's: the robe comes with it
     },
   },
 
@@ -206,6 +207,43 @@ export const JEDI_PARTS = {
     },
   },
 };
+
+/* THE OUTER ROBE that a raised hood belongs to (Anakin's, Obi-Wan's): worn open over the tunic, from the shoulders to
+   the shins, with wide sleeves. Three parts so each moves with what it covers:
+   - the body: one skinned surface over torso and chest, open down the front so the tunic, tabards and belt show,
+     running up under the hood's cowl (head.hood)
+   - the skirts: real cloth (cloth.js) pinned round the hips and open at the front, so it parts and swings round the
+     legs on a stride and trails behind a run
+   - the sleeves: skinned over shoulder and elbow, belled wide at the wrist, the hand coming out of the cuff */
+function outerRobe(R, k){
+  const ring = (t, w, d, z, open, fold = 0.02, wall = 0.9) => ({ t, w, d, z, p: hoodRing(open, fold, wall) });
+  const T = DIM.chestY;   // the chest joint, up the torso
+  k.skin('robe', [
+    ring(-0.11,      0.47, 0.38, -0.01, 0.78, 0.03, 0.96),   // over the hips, where the skirts take over
+    ring(0.05,       0.46, 0.37, -0.01, 0.74, 0.03),
+    ring(0.2,        0.46, 0.36, -0.01, 0.7),
+    ring(T + 0.08,   0.52, 0.37, -0.01, 0.66),
+    ring(T + 0.2,    0.56, 0.37, -0.015,0.6),
+    ring(T + 0.3,    0.52, 0.34, -0.02, 0.52),
+    ring(T + 0.38,   0.38, 0.29, -0.025,0.48, 0.01, 0.95),   // up under the cowl
+  ], { bones: [R.torso, R.chest], at: [T], blend: 0.08, profile: hoodRing(0.7), dir: 1, open: true });
+  // the skirts: one sheet wrapped from the front left edge round the back to the front right, flaring to the shins
+  const open = 0.62, len = 0.86;
+  k.cloth('robe', R.skirt, { W: 12, H: 9, thick: 0.018, slack: 0.35,
+    capsules: k.bodyCapsules([[R.skirt, robeLow(R, k), 0.21]]),
+    rest: (u, v) => {
+      const a = Math.PI/2 + open + (u + 1) / 2 * (Math.PI*2 - open*2);
+      const rx = 0.225 + 0.15 * v, rz = 0.18 + 0.12 * v;
+      return [Math.cos(a) * rx, 0.04 - v * len * (0.94 + 0.06 * Math.abs(Math.sin(a))), Math.sin(a) * rz - 0.01];
+    } });
+  // the sleeves: roomy from the shoulder, belled wide at the wrist
+  for (const A of [R.armL, R.armR]){
+    k.skin('robe', [
+      ...seg(DIM.upper, [[-0.32,0.24,0.22],[-0.1,0.22,0.215],[0.3,0.2,0.2],[0.75,0.185,0.185],[1,0.18,0.18]]),
+      ...seg(DIM.fore, [[0.15,0.18,0.18],[0.5,0.2,0.2],[0.8,0.25,0.25],[0.97,0.29,0.29]], DIM.upper),
+    ], { bones: [A.sh, A.el], at: [DIM.upper], blend: 0.05, profile: hoodRing(0, 0.025, 0.9), open: true });
+  }
+}
 
 /* a robe panel's rest shape in the skirt's frame (u across, v down): hangs from the belt where `flap` sits, widening
    to a pointed hem, tilted out by `tilt`, `z` in front of the flap. The cloth hangs from the skirt itself; the flap

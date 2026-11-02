@@ -28,6 +28,7 @@ export function updateMovement(dt, pp, st, f, r){
   const speedMul = (st.move || 1) * player.up.move * (player.blockHeld ? 0.5 : 1) * (player.zoom ? 0.4 : 1) * (player.judgeT > 0 ? 0.45 : 1) * (player.clinch ? player.clinch.move : 1)   // a foe held in the Mando's clinch drags his feet (mando/melee.js)
                    * (player.atkT > 0 && st.moveAtk ? st.moveAtk : 1)              // ATARU keeps its feet moving mid-swing
                    * (player.atkT > 0 && st.moveAtkPenalty ? st.moveAtkPenalty : 1)    // DARKSABER crawls while committed to a swing
+                   * (player.twistMove || 1)                                         // wading (a mission twist: game/twists/tide.js)
                    * (1 + (player.momentumStacks || 0) * 0.06)                          // MOMENTUM boon — kills build speed
                    * (player.surgeT > G.gt ? player.surgeMul : 1)                      // CHASE SURGE — parkour on a story pursuit
                    * (player.boon && player.boon.adrenal && player.hp < maxHp()*0.35 ? 1.18 : 1)    // ADRENALINE boon — desperate burst

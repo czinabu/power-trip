@@ -34,7 +34,8 @@ import { makeEvacuee } from '../world/arenas/refuge.js';
 import { startLevel, queueSpawn, checkUnlocks } from './flow.js';
 import { endRun } from './summary.js';
 import { showBanner, bannerTap } from '../ui/banners.js';
-import { storyBeat } from './story.js';
+import { storyBeat, comms } from './story.js';
+import { glanceAt, cancelGlance } from './glance.js';
 import { hooks } from '../net/run.js';
 import { overlay, setOverlayState } from '../ui/menus.js';
 import { showPanel, hidePanel, makeBeacon, makeConsole, setMarkerColor, pulseMarker, removeMarker,
@@ -112,6 +113,7 @@ export function startCoopMission(id){ startMission(id, 0, true); }
 export function retryMission(){ startMission(M.def ? M.def.id : (G.missionId || 'refuge'), M.def ? M.i : 0, false, { chapter: M.chapter, retry: true }); }
 export function missionTitle(id, hero = G.hero){ const t = (missionById(id) || MISSIONS.refuge).title; return typeof t === 'object' ? heroKey(t, hero) : t; }   // (a hero with no title of its own takes heroKey's fallback)
 function clearMission(){
+  cancelGlance(); M.told = -1;
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
   for (const p of M.props) scene.remove(p);
@@ -134,7 +136,8 @@ function sayLine(o){
 }
 // a hold's evacuees, as the campaign chapter's story has them (the Jedi's Lothal: the pens' children, not prisoners)
 const evac = (o) => M.chapter && M.chapter.evacuees ? { ...o.evacuees, ...M.chapter.evacuees } : o.evacuees;
-function say(o, opts){ showPanel(missionVoice(), sayLine(o), '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7; }
+// opts.told: the line was already said over comms as the objective was handed off (handOff), so the panel shows just the task
+function say(o, opts = {}){ showPanel(missionVoice(), opts.told ? '' : sayLine(o), '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7; }
 function fieldSpawn(type, x, z, opts){
   const s = findClearSpawn(x, z, 1.0);
   spawnEnemy(type, V3(s.x, 0, s.z), opts);
@@ -949,7 +952,7 @@ function beginObjective(){
   const o = forHero(M.def.objectives[M.i]);
   M.o = o; M.s = {};
   showBanner(o.title, (o.task && heroKey(o.task)) || '', 4.5, { kicker: 'OBJECTIVE ' + (M.i + 1) + ' / ' + M.def.objectives.length });   // long enough to read mid-fight; the checklist flashes with it (ui/hud.js)
-  say(o);
+  say(o, { told: M.told === M.i });
   if (o.doors != null) setDoorsOpen(o.doors);   // the arena's doors as this objective finds them (a retry rebuilds them shut)
   if (o.squad != null && !M.guest){   // the squad as it stands by now (someone freed on the way joined it)
     G.squadCap = Math.min(SQUAD.max, Math.max(G.squadCap || 0, o.squad));
@@ -964,9 +967,46 @@ function completeObjective(){
   M.o = null;
   if (M.i + 1 >= M.def.objectives.length){ M.endT = 2.4; M.won = true; return; }
   if (M.def.objectives[M.i + 1].kind !== 'duel') sweepField();
+  hidePanel(); M.panelT = 0;   // the last objective's words go with it: the next one's are on their way (handOff)
   patchUp();
   M.i++;
   M.waitT = 2.6;
+  handOff(M.i);
+}
+
+/* ============================================================
+   THE HAND-OFF — between one objective and the next: the done banner says what just happened, then the voice says why
+   the next one matters (its line, over comms, which the panel then leaves out) and the view glances at where it is, with
+   no letterbox and no loss of control. A duel has its own entrance (game/cutscene.js) and needs neither.
+   Host and co-op guest alike: the host's comms line reaches the guest's strip, and each screen glances on its own.
+   ============================================================ */
+const HANDOFF = { lineAt: 0.7, glanceAt: 1.2 };   // seconds into the wait: after the done banner has been read
+function handOff(i, guest = false){
+  const raw = M.def.objectives[i];
+  if (!raw || raw.kind === 'duel') return;
+  const o = forHero(raw);
+  M.told = i;
+  if (!guest){
+    const line = sayLine(o), who = missionVoice();
+    let t = 0;
+    if (line) M.fx.push(dt => { if ((t += dt) < HANDOFF.lineAt) return true; if (M.told === i && M.on) comms({ who, say: line }, { front: true }); return false; });
+  }
+  const at = nextSpot(o);
+  if (at) glanceAt(at[0], at[1], { delay: HANDOFF.glanceAt });
+}
+// where an objective will be, before its markers are up: a hold's zone, the nearest console, the first post, the door to
+// stack on, the escort where it stands, the quarry where it waits
+function nextSpot(o){
+  const p = playerPos(), near = (list) => list.reduce((b, c) => !b || Math.hypot(c[0] - p.x, c[1] - p.z) < Math.hypot(b[0] - p.x, b[1] - p.z) ? c : b, null);
+  switch (o.kind){
+    case 'hold': return o.at;
+    case 'sabotage': return near(o.consoles.map(c => c.at));
+    case 'capture': return o.posts[0] && o.posts[0].at;
+    case 'breach': return o.stack;
+    case 'escort': { const g = M.vip && M.vip.g; return g ? [g.position.x, g.position.z] : o.path && o.path[0]; }
+    case 'pursuit': { const q = M.quarry ? M.quarry.g.position : M.net && M.net.q ? { x: M.net.q[0], z: M.net.q[2] } : null; return q ? [q.x, q.z] : null; }
+  }
+  return null;
 }
 function missionComplete(){
   const def = M.def;
@@ -1080,6 +1120,22 @@ export function missionChecklist(){
   });
   return { title: 'MISSION OBJECTIVES', items };
 }
+// the people on your side the mission has on the field, for walk-up lines (game/talk.js): the escort, and anyone being
+// got out by a hold (one of the line speaks for them all). { key, name, kind, pos, g }
+export function missionFigures(){
+  if (!M.on) return [];
+  const out = [];
+  if (M.vip && M.vip.g.visible !== false) out.push({ key: 'vip', name: M.vip.def.name, pos: M.vip.g.position, g: M.vip.g, h: 2.3 * (M.vip.def.scale || 1) });
+  const ev = M.o && M.o.evacuees && M.s && M.s.kids;
+  if (ev){
+    const kind = evac(M.o).kind || (isMando() ? 'foundling' : 'youngling'), p = playerPos();
+    let best = null, bd = Infinity;
+    for (const k of ev){ if (!k.m.visible) continue; const d = Math.hypot(k.m.position.x - p.x, k.m.position.z - p.z); if (d < bd){ bd = d; best = k; } }
+    if (best) out.push({ key: 'evac', name: heroKey(evac(M.o).name) || kind.toUpperCase(), kind, pos: best.m.position, g: best.m, h: 1.6 });
+  }
+  return out;
+}
+export const missionId = () => M.on && M.def ? M.def.id : null;
 // dev console / tests: the running mission's state (the quarry, the current objective's state)
 export const missionState = () => M;
 // how far through the mission (the atmosphere's mood follows it)
@@ -1107,16 +1163,18 @@ export function coopMissionSync(ms){
     for (const m of M.markers) removeMarker(m);
     M.markers = [];
     for (const p of M.props) scene.remove(p);
-    M.props = []; M.quarry = null; M.vip = null; M.begun = -1; M.i = -1; M.run = ms.run;
+    M.props = []; M.quarry = null; M.vip = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
   }
   if (ms.i !== M.i){
+    const handed = M.i >= 0 && ms.i === M.i + 1;
     if (M.i >= 0){ MUSIC.objectiveSting(); patchUp(); }   // the last objective is done: this hero's own breather too
     M.i = ms.i;
+    if (handed && !ms.b) handOff(ms.i, true);   // the host's hand-off: its line comes over comms, the glance is this screen's own
   }
   if (ms.b && M.begun !== ms.i){
     M.begun = ms.i;
     M.o = forHero(M.def.objectives[ms.i]);
-    say(M.o);
+    say(M.o, { told: M.told === ms.i });
   }
   M.net = ms;
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached

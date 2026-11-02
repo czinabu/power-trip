@@ -192,7 +192,8 @@ export const SWING_PATTERNS = {
   thrust:   { id: 'thrust', yF:  0.05, yT:  0.0,  h: 'low', reach: 0.8, lunge: 1.35 },  // drawn back to the hip, driven straight through (in on the low line)
 };
 
-/* CUT AIM — Jedi Academy style: where you aim picks the cut's HEIGHT: tip the view up past `pitchHigh` for a high cut,
+/* CUT AIM — Jedi Academy style: where the crosshair sits on a foe picks the cut's HEIGHT (player/aim.js aimBand). With
+   nobody under it, or locked on, the view's tilt does: tip it up past `pitchHigh` for a high cut,
    down past `pitchLow` for a low one (pitch is + looking down; a fight sits around 0.2, and the lock-on leaves you this
    much room: data/config.js lockOn.pitchFree). The cut's angle comes from CUT_ANGLE below. */
 export const CUT_AIM = { pitchHigh: 0.04, pitchLow: 0.42 };

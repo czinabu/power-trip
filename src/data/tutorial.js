@@ -129,7 +129,7 @@ export const LESSONS = {
           keys: 'A / D / W + LMB', do: 'Land cuts in 3 different directions: hold A, D or W as you click', ev: 'cutHit', uniq: 'dir', need: 3, respawn: true,
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Where your eyes go, the blade follows. Lift your gaze and it cuts high; lower it and it sweeps low.',
-          keys: 'AIM + LMB', do: 'Land a high, a middle and a low cut: aim up, level, then down (the ticks by the crosshair show which)', ev: 'cutHeight', uniq: 'h', need: 3, respawn: true,
+          keys: 'AIM + LMB', do: 'Land a high, a middle and a low cut: put the crosshair on a head, a chest, then the legs', ev: 'cutHeight', uniq: 'h', need: 3, respawn: true,
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Three cuts make a string, and in Shii-Cho the third is the Sarlacc Sweep: it cuts all the way round you. It was made for crowds.',
           keys: 'LMB LMB LMB', do: 'Land 2 Sarlacc Sweep finishers on the crowd', ev: 'finisher', need: 2, respawn: true,

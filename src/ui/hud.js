@@ -33,7 +33,7 @@ import { calmHud, calmTarget } from '../game/aftermath.js';
 import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
-import { cutHeight, pickCut } from '../player/jedi/cutaim.js';
+import { pickCut } from '../player/jedi/cutaim.js';
 import { aimPoint, lastAim } from '../player/aim.js';
 
 // give every power slot its icon once (key badge top-left, icon centre, name below)
@@ -262,10 +262,9 @@ export function updateHud(){
                                                 : G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
     if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)
     renderChecklist(c); }
-  // CUT HEIGHT (player/jedi/cutaim.js): three ticks beside the crosshair, the lit one is where your next cut goes
-  { const ch = $('cuth'), on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
-    if (ch){ ch.style.display = on ? '' : 'none'; if (on) ch.dataset.h = cutHeight(); ch.style.transform = isGunner() ? '' : jx.tf; }
-    // and the dial: the angle the next cut comes from (hidden for a keyed cut: the thrust, the back strike)
+  // THE CUT DIAL (player/jedi/cutaim.js): the angle the next cut comes from (hidden for a keyed cut: the thrust, the
+  // back strike). Its height is where the crosshair sits on the foe, so the crosshair itself shows that
+  { const on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
     const cd = $('cutdial');
     if (cd){
       cd.style.transform = isGunner() ? '' : jx.tf;

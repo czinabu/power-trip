@@ -32,7 +32,7 @@ await page.evaluate((st) => { if (st) GAME.G.story = JSON.parse(st); }, process.
 await page.evaluate((ch) => { document.getElementById('chapcard').classList.remove('open'); GAME.G.cardUp = false; const i = GAME.chapters().findIndex(c => c.id === ch); GAME.startChapter(i < 0 ? 0 : i); }, ch);
 await page.waitForTimeout(2500);
 await page.evaluate(() => { const b = document.querySelector('#chapcard.open [data-go]'); if (b) b.click(); });
-let n = 0, last = '';
+let n = 0, last = '', after = +(process.env.AFTER || 0);
 // STEP=<ms>: frame-step the page's clock instead of letting it run (smooth frames however slow the renderer: one frame
 // every STEP ms of game time)
 if (process.env.STEP){
@@ -42,8 +42,10 @@ if (process.env.STEP){
 }
 for (let i = 0; i < (process.env.STEP ? 3000 : 400); i++){
   if (process.env.STEP) await page.clock.runFor(+process.env.STEP);
-  const st = await page.evaluate(() => ({ on: !!GAME.G.cutscene, shot: GAME.cutscene.shotInfo ? GAME.cutscene.shotInfo() : '' }));
-  if (!st.on){ if (n) break; await page.waitForTimeout(100); continue; }
+  const st = await page.evaluate(() => ({ on: !!GAME.G.cutscene, cam: [GAME.camera?.position.x, GAME.camera?.position.y, GAME.camera?.position.z], shot: GAME.cutscene.shotInfo ? GAME.cutscene.shotInfo() : '' }));
+  // AFTER=<frames>: keep going that many frames once the scene ends (the hand back to play)
+  if (!st.on){ if (n && !(after-- > 0)) break; if (!n){ await page.waitForTimeout(100); continue; } }
+  if (process.env.CAMLOG) console.log('cam', n, st.on ? 'scene' : 'play', st.cam.map(v => v.toFixed(3)).join(' '));
   if (st.shot !== last){ console.log('shot', ((Date.now() - t0) / 1000).toFixed(1) + 's', st.shot); last = st.shot; }
   if (!process.env.VIDEO) await page.screenshot({ path: out + '/' + hero + '-' + ch + '-' + String(n++).padStart(3, '0') + '.png' }); else n++;
   await page.waitForTimeout(+every);

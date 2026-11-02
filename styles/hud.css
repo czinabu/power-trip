@@ -443,6 +443,8 @@ body.cutscene #hud,body.cutscene #boonstrip,body.cutscene #threats,body.cutscene
 #cutscene .cs-bar{position:absolute;left:0;right:0;height:var(--bars,11vh);background:#000}
 #cutscene .cs-bar.top{top:0;animation:csTop .5s var(--ease,ease) both}
 #cutscene .cs-bar.bot{bottom:0;animation:csBot .5s var(--ease,ease) both}
+#cutscene.one .cs-bar{display:none}   /* a scene without cuts: no letterbox (game/cutscene.js oneLens) */
+#cutscene.one .cs-skip{top:5vh}
 #cutscene .cs-title{position:absolute;left:6vw;bottom:calc(var(--bars,11vh) + 17vh);opacity:0;max-width:70vw}
 #cutscene .cs-title.on{animation:csRise 3.4s ease both}
 #cutscene .cs-k{font-size:13px;letter-spacing:3px;color:var(--accent,#5ad2ff)}

@@ -7,7 +7,7 @@ import { missionById, isArcadeId } from '../data/arcade.js';
 import { switchStance } from '../player/jedi/stance.js';
 import { resumeChapter, chapterLabel } from './campaign.js';
 import { chapterOrder, chapterNo, forHero, CHAPTER_OF_LEVEL } from '../data/campaign.js';
-import { DEFAULT_LOADOUT, cleanLoadout, migrateForm } from '../data/forms.js';
+import { DEFAULT_LOADOUT, STARTING_FORMS, cleanLoadout, migrateForm } from '../data/forms.js';
 import { clearMeditation } from './meditation.js';
 import { MANDO_WEAPONS, RUN_KIT, cleanKit } from '../data/mando.js';
 
@@ -51,8 +51,14 @@ export function restoreRun(run){
   player.weapon = run.weapon || (run.hero === 'trooper' ? 'rifle' : 'single');
   player.rifleMod = run.rifleMod || 'burst';   // the DC-15's fitted module (data/trooper.js RIFLE_MODS)
   G.unlocked = clone(run.unlocked) || {}; G.stanceUnlocked = migrateUnlocked(run.stanceUnlocked);
-  if ((run.loadout || []).includes('niman') || run.stance === 'niman') G.stanceUnlocked.niman = true;   // a run saved when every hero started on Niman keeps it
+  if (oldNimanRun(run)) G.stanceUnlocked.niman = true;   // a run saved when every hero started on Niman keeps it
   G.loadout = cleanLoadout(run.loadout || DEFAULT_LOADOUT); G.mandoChoiceShown = !!run.mandoChoiceShown;
+  // a chapter run only ever slots forms it has learned. A Jedi story begun before the prologue fix was handed a lone mission's
+  // three (Ataru, Niman, Djem So) on its first chapter: those go, so the run is back on just what it has learned
+  if (run.chapterId && run.hero === 'jedi'){
+    G.loadout = G.loadout.map(id => id && knownIn(G.stanceUnlocked, id) ? id : null);
+    if (!G.loadout.some(Boolean)) G.loadout[0] = STARTING_FORMS[0];
+  }
   // the Mando's guns: a save from before the loadouts carried both pistols, so it keeps whichever was in hand (the run
   // hands out the primaries again as it goes on: game/flow.js checkUnlocks)
   G.mandoKit = cleanKit(run.mandoKit || { sidearm: run.weapon === 'dual' ? 'dual' : 'single', primary: null });
@@ -68,6 +74,15 @@ export function restoreRun(run){
   player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = !!run.phoenixReady;
   player.focus = 0; player.focusHitT = 0; player._focusTier = 0;
   if (run.stats){ const { elapsed, ...st } = run.stats; G.stats = { ...st, startGt: G.gt - (elapsed || 0), summary: null }; }
+}
+
+// a save from before the chapters had ids (and before Shii-Cho was the only starting form) that carried Niman
+export const oldNimanRun = (run) => !run.chapterId && ((run.loadout || []).includes('niman') || run.stance === 'niman');
+const knownIn = (su, id) => STARTING_FORMS.includes(id) || !!(su && su[id]);
+// the form a loaded run goes back to: the one it was in, if it has learned it, else the first it carries
+function runStance(run){
+  const id = migrateForm(run.stance) || STARTING_FORMS[0];
+  return G.loadout.includes(id) || knownIn(G.stanceUnlocked, id) ? id : (G.loadout.find(Boolean) || STARTING_FORMS[0]);
 }
 
 // earned forms, keyed by form id (saves from before the forms had ids keyed them fast / strong)
@@ -105,7 +120,7 @@ export function resumeRun(){
   }
   restoreRun(run);
   resumeChapter(run);   // (a save from before the chapters picks up on the chapter that opens its level)
-  switchStance(migrateForm(run.stance) || 'shiicho', true);
+  switchStance(runStance(run), true);
 }
 // 'CHAPTER 3 · THE LAST EVACUATION' for a saved run, without starting it
 function savedChapter(run, hero){

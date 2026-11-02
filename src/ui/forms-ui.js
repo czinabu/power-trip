@@ -11,7 +11,7 @@ import { G } from '../state.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
-import { canResume } from '../game/saves.js';
+import { canResume, oldNimanRun } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
 import { audioInit } from '../audio/sfx.js';
 import { openArmoryCodex } from './armory-ui.js';
@@ -57,8 +57,10 @@ function prefightContext(){
     note: 'Training starts with the basics in Shii-Cho. Each form you learn in the story opens its own lesson here, picked between lessons.' };
   if (m === 'campaign' && canResume()){
     const run = G.resumeRun, su = run.stanceUnlocked || {};
-    const known = ORDER.filter(id => (STARTING_FORMS.includes(id) || su[id] || (id === 'niman' && (run.loadout || []).includes('niman'))) && !forkClosed(id, run.formFork));
-    return { edit: false, known, loadout: cleanLoadout(run.loadout || RUN_LOADOUT), closed: run.formFork,
+    const known = ORDER.filter(id => (STARTING_FORMS.includes(id) || su[id] || (id === 'niman' && oldNimanRun(run))) && !forkClosed(id, run.formFork));
+    const loadout = cleanLoadout(run.loadout || RUN_LOADOUT).map(id => id && (!run.chapterId || known.includes(id)) ? id : null);   // (as the run loads: game/saves.js restoreRun)
+    if (!loadout.some(Boolean)) loadout[0] = STARTING_FORMS[0];
+    return { edit: false, known, loadout, closed: run.formFork,
       note: 'Your saved run carries these three. They change each time you learn a new form.' };
   }
   return { edit: false, known: story, loadout: RUN_LOADOUT.slice(),

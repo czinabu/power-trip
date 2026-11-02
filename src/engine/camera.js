@@ -294,7 +294,7 @@ export function updateCamera(dt){
   let rollGain = (isGunner()) ? (player.boosting ? 0.013 : !player.grounded ? 0.009 : 0.006) : 0.0035;
   let rollMax  = (isGunner()) ? (player.boosting ? 0.13 : 0.08) : 0.045;
   if (adsFly){ rollGain *= 0.35; rollMax *= 0.45; }
-  camera.rotateZ(clamp(-strafe * rollGain, -rollMax, rollMax) + shakeRoll);
+  camera.rotateZ(clamp(-strafe * rollGain, -rollMax, rollMax) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
   // FOV kick on dashes and at speed; disruptor ZOOM (ADS) pulls the view in tight for precision
   // blasters get a SLIGHT aim zoom only while BRACING (hold RMB) for precision — single pulls in more than dual
   const BRACE_ZOOM = { single: 14, dual: 9, carbine: 12, repeater: 7, rifle: 12 };   // (the carbine shoulders in nearly as tight as the pistol; the repeater is a hip gun; the trooper's DC-15 like the carbine)

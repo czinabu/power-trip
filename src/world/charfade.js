@@ -23,6 +23,10 @@ export const CHAR_SEE = {
 };
 
 const live = new Map();   // group → { see: uniform {value}, pairs: [[mesh, real, clone]], v }
+// A unit's clones are kept once made (not disposed when it eases solid): disposing the last material on a program
+// deletes that program, so the next unit to step in the way compiled it again, a hitch every time. Kept per group (a
+// WeakMap, so a cleared unit's clones go with it), the next fade reuses them and costs nothing.
+const kept = new WeakMap();   // group → Map(real material → clone)
 
 /* a dithered clone of one material, its fade driven by the unit's own uniform */
 function seeClone(src, uni){
@@ -39,11 +43,17 @@ function seeClone(src, uni){
 }
 
 function swapIn(group){
-  const see = { value: 0 }, pairs = [];
+  let cache = kept.get(group);
+  if (!cache){ cache = { see: { value: 0 }, clones: new Map() }; kept.set(group, cache); }
+  const see = cache.see, pairs = [];
+  see.value = 0;
   group.traverse(o => {
     if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
     if (o.material.depthTest === false) return;   // overlays drawn over everything (health and guard bars) stay crisp
-    const real = o.material, clone = seeClone(real, see);
+    const real = o.material;
+    let clone = cache.clones.get(real);
+    if (!clone){ clone = seeClone(real, see); cache.clones.set(real, clone); }
+    else copyLook(real, clone);   // the real one may have changed (a tint, a flash) since this clone last showed
     o.material = clone;
     pairs.push([o, real, clone, snap(real)]);
   });
@@ -57,7 +67,6 @@ function swapOut(group, rec){
     const [o, real, clone, last] = p;
     if (!same(snap(clone), last)) copyLook(clone, real);   // something wrote through the mesh while it was faded: keep it
     if (o.material === clone) o.material = real;
-    clone.dispose();
   }
   live.delete(group);
 }
@@ -123,6 +132,16 @@ export function updateCharFade(cam, px, py, pz, dt, on = true){
   for (let s = 0; s < 4; s++){ const P = partnerPuppet(s); if (P && P.group) want(P.group, test(P.group, CHAR_SEE.radius, CHAR_SEE.height), dt); }
   // a body that left the fight (killed and cleared, sent back, a new run) gets its real materials back at once
   for (const [g, rec] of live) if (!seen.has(g)) swapOut(g, rec);
+}
+
+/* the shader warm-up (engine/prewarm.js): a specimen wears its see-through clones for good, so their program is built
+   with the rest before a fight, not the first time a squadmate or a foe steps in front of the lens */
+export function seeThroughSpecimen(group){
+  group.traverse(o => {
+    if (!o.isMesh || !o.material || Array.isArray(o.material) || o.material.depthTest === false) return;
+    o.material = seeClone(o.material, { value: 0.5 });
+  });
+  return group;
 }
 
 export const charFadeState = () => [...live.values()].map(r => +r.v.toFixed(2));

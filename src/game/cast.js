@@ -148,6 +148,14 @@ function pose(F, dt){
   R.armR.el.rotation.set(-0.24 - g * (0.7 + beat * 0.16), 0, 0);
   // the head turns to whoever it is listening to (the body follows part of the way: F.turn), and nods along while it talks
   R.head.rotation.set(-0.04 + g * Math.sin(t * 5.3) * 0.045, F.turn * 0.65 * MIRROR, 0);
+  // walking off (a scene without cuts sends them on their way: game/cutscene.js oneExit): a plain stride over the idle
+  F.stride = (F.stride || 0) + ((F.walk ? 1 : 0) - (F.stride || 0)) * k;
+  if (F.stride > 0.01){
+    const s = F.stride, ph = (F.ph = (F.ph || 0) + dt * 5.6), sw = Math.sin(ph), up = Math.cos(ph);
+    R.legL.hip.rotation.x -= sw * 0.48 * s; R.legR.hip.rotation.x += sw * 0.48 * s;
+    R.legL.knee.rotation.x += Math.max(0, up) * 0.7 * s; R.legR.knee.rotation.x += Math.max(0, -up) * 0.7 * s;
+    R.armL.sh.rotation.x += sw * 0.28 * s; R.armR.sh.rotation.x -= sw * 0.28 * s;
+  }
 }
 // look: a point { x, y?, z } the figure turns toward (the speaker, or the hero)
 export function stepFigure(F, dt){

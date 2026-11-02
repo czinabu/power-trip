@@ -10,12 +10,14 @@
 //   on     the story's voice in person (by default the voice is in the hero's ear unless the talk has them there)
 //   where  replaces the talk's own place line under the scene (null: none). The talk's `where` was written for the card;
 //          a scene staged on the chapter's own ground drops a "where" that would contradict it
+//   oneshot  true: the scene never cuts (God of War style): the lens drifts off the play camera to whoever speaks and
+//          settles back onto it, with no letterbox (game/cutscene.js oneLens). A prototype: only the Jedi's siege for now
 // Anyone in the lines not listed stands there in person, if data/cast.js has a figure for them.
 
 export const STAGE = {
   jedi: {
     'last-lesson': { goal: 'Training blades, first to yield. Beat Ilsa.', on: ['MASTER VAEL'] },
-    siege: { goal: 'Hold the temple steps. Keep the Empire off the doors.', where: 'THE TEMPLE STEPS, BEFORE DAWN' },
+    siege: { goal: 'Hold the temple steps. Keep the Empire off the doors.', where: 'THE TEMPLE STEPS, BEFORE DAWN', oneshot: true },
     archive: { goal: 'Get the archivists out, then reach the Ledger\'s vault.', off: ['MASTER VAEL'] },
     refuge: { goal: 'Hold the ramp until the last transport is loaded.', off: ['MASTER VAEL'] },
     'trial-first': { goal: 'Trial: break the Wall\'s guard and beat Tarn Odo.', off: ['MASTER VAEL'] },

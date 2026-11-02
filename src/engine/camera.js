@@ -19,6 +19,41 @@ const jaLoc = camera.position.clone(), jaTarget = camera.position.clone(), LOOK 
 const wob = (t, s) => (Math.sin(t*23.1 + s) * 0.55 + Math.sin(t*37.7 + s*2.3) * 0.3 + Math.sin(t*61.3 + s*4.1) * 0.15);
 
 // how crowded is the fight around the hero? nearby enemies count fully, ones at the edge of the radius fade out
+/* DUEL SIDE-ON — the one foe you're squared up with (the lock-on target, the boss, or a lone duellist close in). When
+   it stands straight down the view behind the hero, the lens slides sideways (and the view turns back part of the way)
+   so the two sit either side of the crosshair instead of stacked one behind the other */
+let duelSide = 0, duelSign = 1;
+const _dh = camera.position.clone(), _df = camera.position.clone();
+function duelFoe(pp){
+  const lt = player.lockTarget;
+  if (lt && !lt.dead && lt.group) return lt.group.position;
+  const b = shared.boss;
+  if (b && b.hp > 0 && b.group && Math.hypot(b.group.position.x - pp.x, b.group.position.z - pp.z) < 12) return b.group.position;
+  let best = null, bd = 7, near = 0;
+  for (const e of enemies){
+    if (e.dead || e.converted || !e.group) continue;
+    const d = Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z);
+    if (d < 10) near++;
+    if (e.dp && d < bd){ bd = d; best = e.group.position; }
+  }
+  return near <= 2 ? best : null;   // (a pack is framed by the crowd pull instead)
+}
+function updateDuelSide(pp, f, rv, dt){
+  const C = CFG.camera, q = G.mode === 'play' && !G.cutscene ? duelFoe(pp) : null;
+  let want = 0;
+  if (q){
+    const dx = q.x - pp.x, dz = q.z - pp.z, ahead = dx*f.x + dz*f.z, lat = dx*rv.x + dz*rv.z, dist = Math.hypot(dx, dz);
+    // the lens slides the way that pulls the pair further APART on screen: toward the side the foe already shows on,
+    // next to the hero, from last frame's view (the shoulder offset usually puts it right). Flips only on a clear swap
+    _dh.set(pp.x, pp.y + 1.2, pp.z).project(camera); _df.set(q.x, (q.y || 0) + 1.2, q.z).project(camera);
+    const gap = _df.x - _dh.x;
+    if (Math.abs(gap) > 0.12) duelSign = Math.sign(gap);
+    if (ahead > 0.5) want = C.duelSide * clamp(1 - Math.abs(lat) / C.duelSideLat, 0, 1) * clamp((C.duelSideFar - dist) / 4, 0, 1) * duelSign;
+  }
+  duelSide += (want - duelSide) * Math.min(1, dt * 2.5);
+  return duelSide;
+}
+
 function crowdAround(pp){
   const R = CFG.camera.crowdRadius;
   let n = 0;
@@ -134,6 +169,7 @@ export function updateCamera(dt){
   const tz = pp.z + clamp(vz * 0.12, -1.5, 1.5);
   const ty = pp.y + C.pivotY;
   const rv = rightV();
+  const side = updateDuelSide(pp, f, rv, dt);
   // ----- MANDO camera: HIGH + ALWAYS over a shoulder (helmet never under the crosshair) — the shoulder follows the
   //       way you last strafed, with situational distance & offset strength -----
   let camHi = 0, distMul = 1, ots = 0;
@@ -148,7 +184,7 @@ export function updateCamera(dt){
     if (Math.abs(lat) > 2.5) player.camSide = Math.sign(lat);
     const target = (player.camSide || 1) * (aiming ? C.mandoShoulderAim : flying ? C.mandoShoulderFly : C.mandoShoulder);
     player.camOts = (player.camOts || 0) + (target - (player.camOts || 0)) * Math.min(1, dt*4);   // smooth the swap
-    ots = player.camOts;
+    ots = player.camOts + (aiming ? 0 : side * 0.6);   // (the shoulder already splits them; a duel adds a little, never while aiming)
     camHi = C.mandoLensUp;                                // sit over the helmet so it stays below the centred crosshair
     distMul = aiming ? 0.88 : flying ? 1.25 : 1;          // aiming tucks in over the shoulder; flight backs off for the room
   }
@@ -210,8 +246,10 @@ export function updateCamera(dt){
       jaLoc.set(TMP.x - (TMP.x - jaLoc.x)*lr, TMP.y - (TMP.y - jaLoc.y)*lr, TMP.z - (TMP.z - jaLoc.z)*lr);
     }
     // JA's horizontal offset slides lens and aim together, so the view direction is unchanged
-    TMP.set(jaLoc.x + rv.x*J.horz, jaLoc.y, jaLoc.z + rv.z*J.horz);
-    LOOK.set(jaTarget.x + rv.x*J.horz, jaTarget.y, jaTarget.z + rv.z*J.horz);
+    // (plus the duel side-on slide: the lens all the way, the aim point part of it, so the view turns back toward the pair)
+    const hl = J.horz + side, ha = J.horz + side * CFG.camera.duelSideTurn;
+    TMP.set(jaLoc.x + rv.x*hl, jaLoc.y, jaLoc.z + rv.z*hl);
+    LOOK.set(jaTarget.x + rv.x*ha, jaTarget.y, jaTarget.z + rv.z*ha);
     ox = jaTarget.x; oy = jaTarget.y; oz = jaTarget.z;
   } else {
     jaLive = false;

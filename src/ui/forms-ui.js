@@ -44,6 +44,14 @@ function savedPick(key, fallback, known){
   try { const v = JSON.parse(localStorage.getItem(key)); if (Array.isArray(v)) list = v; } catch(e){}
   list = cleanLoadout(list).map(id => id && known.includes(id) ? id : null);
   if (!list.some(Boolean)) list[0] = STARTING_FORMS[0];
+  // a slot left empty (a saved pick from before a form was learned) takes the most advanced learned form not yet in,
+  // so FIGHT is always ready with three when three are known
+  for (const id of known.slice().reverse()){
+    const at = list.indexOf(null); if (at < 0) break;
+    if (list.includes(id)) continue;
+    const next = list.slice(); next[at] = id;
+    const clean = cleanLoadout(next); if (clean.includes(id)) list = clean;   // (one Form V, one Form VII)
+  }
   return list;
 }
 
@@ -147,7 +155,9 @@ export function openPrefight(go){
   if (ctx.edit){ const e = ctx.loadout.indexOf(null); ctx.slot = e >= 0 ? e : 0; }
   ctx.focus = ctx.loadout.find(Boolean) || null;
   // nothing to choose or learn about: training (its lessons pick the form between lessons) or a single learned form
-  if (G.modeSel === 'training' || ctx.known.length <= 1){ fight(); return; }
+  // and nothing to choose at all: a campaign or survival run carries the three it has (they change as it learns forms,
+  // and FORMS on the pause screen shows them), so the page would only be one more screen between BEGIN and the fight
+  if (G.modeSel === 'training' || ctx.known.length <= 1 || !ctx.edit){ fight(); return; }
   render(); panel.classList.add('open');
 }
 export function openCodex(){

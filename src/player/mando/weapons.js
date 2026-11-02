@@ -112,6 +112,7 @@ export function updateReload(dt){
   const W = mandoWeapon();
   if (player.ventT > 0) player.ventT -= dt;
   if (player.heatDelay > 0) player.heatDelay -= dt;
+  if (W && W.fire === 'twin'){ coolTwin(W, dt); return; }
   if (!W || W.melee){ player.heat = Math.max(0, player.heat - (W && W.cool || 0.6) * dt); player.overheat = false; return; }
   if (player.heatDelay <= 0 || player.overheat){           // overheated coils always bleed; otherwise wait out the delay
     const rate = (player.overheat ? (W.overCool || 0.42) : (W.cool || 0.6)) * (player.up.heatCool || 1);
@@ -120,8 +121,56 @@ export function updateReload(dt){
   }
   if (player.overheat && player.heat <= 0.02){ player.overheat = false; sfx(620, 0.06, 'square', 0.05, 320); sfx(820, 0.05, 'triangle', 0.04, 400); floater(playerPos(), 'READY', '#bfe8ff'); }
 }
+// THE TWIN DC-17s' HEAT — each pistol has its own coils (player.hR / player.hL, flags oR / oL). One pistol cooking off
+// locks only that pistol: the other keeps firing while it bleeds. Both cooked is the gun's OVERHEAT (the active vent's
+// beat). player.heat mirrors the pair (their mean) so every other reader (a vent, a squad call, a boon, the % readout)
+// keeps working: when something outside lowers or zeroes player.heat, syncTwin scales both pistols to match.
+const twinMean = () => ((player.hR || 0) + (player.hL || 0)) / 2;
+function syncTwin(){
+  const want = player.heat, had = player.heatSync ?? twinMean();
+  if (Math.abs(want - had) > 1e-6){
+    if (want <= 0.0005){ player.hR = player.hL = 0; player.oR = player.oL = false; }
+    else if (had > 0.0005){ const k = want / had; player.hR = Math.min(1, (player.hR || 0) * k); player.hL = Math.min(1, (player.hL || 0) * k); }
+    else player.hR = player.hL = Math.min(1, want);
+  }
+  if (!player.overheat && player.oR && player.oL){ player.oR = player.oL = false; }   // the lock was lifted from outside (a perfect vent)
+}
+function pushTwin(){ player.heat = twinMean(); player.heatSync = player.heat; }
+export function pistolHot(side){ return side > 0 ? !!player.oR : !!player.oL; }
+function coolTwin(W, dt){
+  syncTwin();
+  if (player.jamT > 0){ player.jamT -= dt; pushTwin(); return; }   // a missed active vent holds both hot a moment longer
+  const mul = player.up.heatCool || 1;
+  for (const k of ['R', 'L']){
+    const over = player['o' + k];
+    if (player.heatDelay > 0 && !over) continue;
+    player['h' + k] = Math.max(0, (player['h' + k] || 0) - (over ? (W.overCool || 0.42) : (W.cool || 0.6)) * mul * dt);
+    if (over && player['h' + k] <= 0.02){ player['o' + k] = false;
+      if (!player.overheat){ sfx(620, 0.05, 'square', 0.04, 320); floater(playerPos(), k === 'R' ? 'RIGHT READY' : 'LEFT READY', '#bfe8ff'); } }
+  }
+  const wasOver = player.overheat;
+  player.overheat = !!(player.oR && player.oL);
+  if (wasOver && !player.overheat){ player.oR = player.oL = false; sfx(620, 0.06, 'square', 0.05, 320); sfx(820, 0.05, 'triangle', 0.04, 400); floater(playerPos(), 'READY', '#bfe8ff'); }
+  pushTwin();
+}
+function addTwinHeat(W, side){
+  syncTwin();
+  const k = side > 0 ? 'R' : 'L';
+  // each pistol fires every other shot, so it takes twice the per-shot heat: the pair runs as hot as the old one bar
+  player['h' + k] = Math.min(1, (player['h' + k] || 0) + 2 * (W.heat || 0.1) * (player.up.heatMul || 1) / (player.up.heatCap || 1));
+  player.heatDelay = HEAT_COOL_DELAY;
+  if (player['h' + k] >= 0.999 && !player['o' + k]){
+    player['h' + k] = 1; player['o' + k] = true;
+    if (player.oR && player.oL){ pushTwin(); player.heat = 1; player.heatSync = 1; player.overheat = true; player.overheatAt = G.gt; player.ventTried = false;
+      floater(playerPos().clone().setY(playerPos().y + 2.6), 'R IN THE BEAT: VENT', '#bfe8ff'); sfx(90, 0.22, 'sawtooth', 0.08, 40); sfx(160, 0.16, 'square', 0.06, 70); floater(playerPos(), 'OVERHEAT!', '#ff7a3a'); G.shake = Math.max(G.shake, 0.2); return true; }
+    sfx(150, 0.12, 'square', 0.05, 70); floater(playerPos(), k === 'R' ? 'RIGHT PISTOL HOT' : 'LEFT PISTOL HOT', '#ff9a5a');
+  }
+  pushTwin();
+  return false;
+}
 // add heat for one shot; returns true if that shot just tripped the overheat lock
-function addHeat(W){
+function addHeat(W, side){
+  if (W.fire === 'twin' && side) return addTwinHeat(W, side);
   player.heat = Math.min(1, player.heat + (W.heat || 0.1) * (player.up.heatMul || 1) / (player.up.heatCap || 1));   // POWER CELLS hold more (game/progression.js)
   player.heatDelay = HEAT_COOL_DELAY;   // restart the cool-delay every shot
   if (player.heat >= 0.999){ player.overheat = true; player.heat = 1; player.overheatAt = G.gt; player.ventTried = false; player.burstLeft = 0;
@@ -233,12 +282,12 @@ export function fireTrigger(){
   fireBlaster(W);
 }
 // THE TWIN DC-17s (the trooper) — semi-automatic: each click of LMB fires the other pistol (right, left, right…), each
-// on its own cooldown, both into the one heat bar, so a quick finger fires twice as fast as one gun. RMB aims (the
+// on its own cooldown and its own heat bar (coolTwin above), so a quick finger fires twice as fast as one gun. RMB aims (the
 // tighter cone). They fire straight out of a roll or a slide.
 function fireTwin(W){
   if ((player.twinGapT || 0) > G.gt) return;   // the fastest two clicks can land: data/trooper.js `twinGap`
   const side = player.twinNext || 1;
-  const ready = s => (s > 0 ? player.fireCd : (player.fireCdL || 0)) <= 0;
+  const ready = s => (s > 0 ? player.fireCd : (player.fireCdL || 0)) <= 0 && !pistolHot(s);   // a cooked pistol sits out
   const s = ready(side) ? side : ready(-side) ? -side : 0;
   if (!s) return;
   firePistol(W, s);
@@ -247,6 +296,7 @@ function fireTwin(W){
 export function firePistol(W, side){
   if (G.mode !== 'play' || player.overheat) return;
   if (side > 0 ? player.fireCd > 0 : (player.fireCdL || 0) > 0) return;
+  if (W.fire === 'twin'){ syncTwin(); if (pistolHot(side)) return; }
   fireBlaster(W, side);
   if (side > 0) player.fireCd = shotGap(W);
   else player.fireCdL = shotGap(W);
@@ -317,7 +367,7 @@ function fireBlaster(W, hand){
   else S.blaster();
   if (!hand) player.fireCd = shotGap(W);   // (a named pistol keeps its own cooldown: firePistol)
   if (player.weapon === 'single') player.shieldDropT = SHIELD_RETURN;   // a shot drops the shield (see mandoShielding)
-  addHeat(W);   // energy cap — overheats if you don't pace your fire
+  addHeat(W, hand);   // energy cap (a named twin pistol heats its own coils) — overheats if you don't pace your fire
 }
 function fireRifle(W){
   player.aiming = 0.8;

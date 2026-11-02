@@ -156,7 +156,12 @@ export function updateHud(){
         em.classList.add('saberbar');
         em.classList.toggle('over', player.exhausted);   // guard broken → flashes red
       } else {
-        ef.style.height = ((1 - player.heat) * 100) + '%';
+        // the trooper's twin DC-17s read as two bars, one a pistol (left bar the left gun): mando/weapons.js coolTwin
+        const twin = mandoWeapon().fire === 'twin', ef2 = document.getElementById('energyfill2');
+        em.classList.toggle('twin', twin);
+        ef.style.height = ((1 - (twin ? (player.hR || 0) : player.heat)) * 100) + '%';
+        if (twin){ ef2.style.height = ((1 - (player.hL || 0)) * 100) + '%'; ef.classList.toggle('hot', !!player.oR); ef2.classList.toggle('hot', !!player.oL); }
+        else ef.classList.remove('hot');
         em.classList.remove('saberbar');
         em.classList.toggle('over', player.overheat);
       }

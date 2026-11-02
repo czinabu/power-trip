@@ -164,6 +164,62 @@ export const CUSTOMIZE = {
       { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 } },
     ] },
   ],
+  // the clone ARC trooper (player/model/trooper.js): the gear, the legion and its colours, the kama
+  trooper: [
+    { id: 'helmet', label: 'HELMET', kind: 'part', options: [
+      { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }) },
+      { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }) },
+      { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
+    ] },
+    { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
+      { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }) },
+      { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }) },
+      { id: 'phase2',  name: 'Bare',         set: parts({ arms: 'phase2' }) },
+    ] },
+    // the ARC's black collar yoke and pouches, and the legion paint on the legs: on, or plain Phase II plates
+    { id: 'gear', label: 'GEAR', kind: 'part', options: [
+      { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }) },
+      { id: 'phase2', name: 'Phase II', set: parts({ torso: 'phase2', legs: 'phase2' }) },
+    ] },
+    { id: 'kama', label: 'KAMA', kind: 'part', options: [
+      { id: 'long', name: 'Kama', set: parts({ kama: 'long' }) },
+      { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
+    ] },
+    // the legion's colour: the pauldron, the visor paint, the knees and the bands
+    { id: 'legion', label: 'LEGION', kind: 'color', options: [
+      { id: 'blue',   name: 'Legion blue',  set: pal({ mark: 0x2f7fd6 }) },
+      { id: 'orange', name: 'Gold-orange',  set: pal({ mark: 0xd8822a }) },
+      { id: 'red',    name: 'Guard red',    set: pal({ mark: 0xb0302a }) },
+      { id: 'yellow', name: 'Yellow',       set: pal({ mark: 0xd6b23a }) },
+      { id: 'green',  name: 'Jungle green', set: pal({ mark: 0x4a7a3a }) },
+      { id: 'grey',   name: 'Wolf grey',    set: pal({ mark: 0x8a949e }) },
+      { id: 'violet', name: 'Violet',       set: pal({ mark: 0x6a4a9a }) },
+      { id: 'black',  name: 'Black',        set: pal({ mark: 0x1f2126 }) },
+    ] },
+    { id: 'plate', label: 'PLATES', kind: 'color', options: [
+      { id: 'white',  name: 'White',   set: pal({ plate: 0xe8e8e3 }) },
+      { id: 'ivory',  name: 'Ivory',   set: pal({ plate: 0xd8d0b8 }) },
+      { id: 'grey',   name: 'Grey',    set: pal({ plate: 0xa8adb2 }) },
+      { id: 'shadow', name: 'Shadow',  set: pal({ plate: 0x34373c, grey: 0x16171a }) },
+    ] },
+    { id: 'cloth', label: 'KAMA COLOUR', kind: 'color', options: [
+      { id: 'black', name: 'Black', set: pal({ cloth: 0x141518 }) },
+      { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }) },
+      { id: 'red',   name: 'Red',   set: pal({ cloth: 0x6a1d1a }) },
+      { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }) },
+      { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }) },
+    ] },
+    { id: 'build', label: 'BUILD', kind: 'part', options: [
+      { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
+      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.92, shoulders: 0.95 } } },
+      { id: 'heavy',    name: 'Heavy',    set: { build: { bulk: 1.12, shoulders: 1.08 } } },
+    ] },
+    { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [
+      { id: 'field',  name: 'Field',       set: { wear: 0.4 } },
+      { id: 'fresh',  name: 'Fresh',       set: { wear: 0 } },
+      { id: 'worn',   name: 'Battle-worn', set: { wear: 0.9 } },
+    ] },
+  ],
 };
 
 // the option a row has picked (its first one when nothing, or an unknown id, was saved)

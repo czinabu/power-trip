@@ -239,6 +239,14 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
   background:linear-gradient(0deg,#2aa9ff,#bfe8ff);transition:height .08s linear,background .15s}
 #energymeter.over #energyfill{background:linear-gradient(0deg,#ff3a1a,#ffd2a8)}
 #energymeter.over{border-color:rgba(255,90,50,.9);animation:pulse .4s infinite}
+#energyfill2{display:none;position:absolute;right:0;bottom:0;width:4px;height:100%;
+  background:linear-gradient(0deg,#2aa9ff,#bfe8ff);transition:height .08s linear,background .15s}
+/* the trooper's twin pistols: two bars side by side (left = the left pistol) */
+#energymeter.twin{width:10px}
+#energymeter.twin #energyfill{left:auto;right:0;width:4px}
+#energymeter.twin #energyfill2{display:block;left:0;right:auto}
+#energymeter.twin #energyfill.hot,#energymeter.twin #energyfill2.hot{background:linear-gradient(0deg,#ff3a1a,#ffd2a8)}
+#energymeter.over #energyfill2{background:linear-gradient(0deg,#ff3a1a,#ffd2a8)}
 #energymeter.saberbar{border-color:rgba(180,140,255,.7)}
 #energymeter.saberbar #energyfill{background:linear-gradient(0deg,#9a5cff,#e0ccff)}
 #energymeter.saberbar.over #energyfill{background:linear-gradient(0deg,#ff3a1a,#ffd2a8)}

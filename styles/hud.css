@@ -219,10 +219,6 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
 #cutdial.live{opacity:1}
 #cutdial i{position:absolute;left:-1px;top:-24px;width:2px;height:48px;border-radius:1px;background:linear-gradient(to bottom,rgba(210,242,255,.95),rgba(210,242,255,0) 70%);transform-origin:1px 24px}
 #cutdial.live i{box-shadow:0 0 6px var(--accent)}
-#cuth{position:fixed;top:50%;left:50%;width:7px;height:22px;margin:-11px 0 0 14px;pointer-events:none;z-index:7}
-#cuth i{position:absolute;left:0;width:7px;height:2px;border-radius:1px;background:rgba(210,242,255,.22);transition:background .08s,width .08s}
-#cuth .ch-high{top:0}#cuth .ch-mid{top:10px}#cuth .ch-low{top:20px}
-#cuth[data-h=high] .ch-high,#cuth[data-h=mid] .ch-mid,#cuth[data-h=low] .ch-low{background:rgba(210,242,255,.95);width:10px;box-shadow:0 0 6px var(--accent)}
 /* floaters */
 /* barks: a mid-fight line over the speaker's head (fx/barks.js) */
 #barks{position:fixed;inset:0;pointer-events:none;z-index:6}
@@ -576,9 +572,13 @@ body.has-checklist #waveinfo{display:none}
 #basics{padding:4px 8px;border-radius:var(--r-chip);background:rgba(4,10,20,.5)}
 #squadhud{padding:7px 9px;border-radius:var(--r-chip);background:linear-gradient(90deg,rgba(4,10,20,.6),rgba(4,10,20,.15))}
 /* the mission voice at the bottom (#tutor.drill) stays clear of the action bar on the right: narrower, and on screens
-   too narrow for the two to sit side by side it rides just above the bar's top row */
+   too narrow for the two to sit side by side it rides just above the bar's top row. The HUD stage (ui/hud-stage.js)
+   measures that each beat and sets the card's and the comms strip's height as one column; these are only where they
+   start, before its first measure */
 #tutor.drill{width:min(560px,calc(100vw - 32px))}
 @media (max-width:1500px){ #tutor.drill{bottom:178px} }
+/* a closing card (Chapter / Mission complete) has the stage: the form hint by the action bar stays down under it */
+body.stage-card #stancesyn{opacity:0 !important;transition:opacity .2s}
 /* the vitals and the XP line sit on the floor of the shot, which is often the brightest sand or snow in it */
 #status{padding:8px 10px 9px;margin:-8px -10px;border-radius:var(--r-chip);background:linear-gradient(90deg,rgba(4,10,20,.62),rgba(4,10,20,.3) 75%,rgba(4,10,20,0))}
 .barlabel,#waveinfo .wi-l{color:#c4dbec}

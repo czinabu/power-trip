@@ -11,6 +11,7 @@ import { enemyHpScale, applyElite } from './elites.js';
 import { attachHitboxDebug } from './bodyshape.js';
 import { foeTipToast } from '../game/upgrades.js';
 import { initDuel } from './duel.js';
+import { foeFormFor, setFoeForm } from './foeform.js';
 import { foeType } from './look.js';
 import { meetFoe } from '../game/codex.js';
 
@@ -67,7 +68,13 @@ export function spawnEnemy(typeName, pos, opts = {}){
   };
   applyElite(e, g);
   attachHitboxDebug(e);   // ?hitbox draws it
-  initDuel(e);   // sword-armed foes fight back: guards, feints, strings (duel.js)
+  // a saber (or staff) duellist fights in one of the hero's forms at a rank (data/foe-forms.js); other sword-armed foes
+  // fight back by their type's profile: guards, feints, strings (duel.js)
+  const F = foeFormFor(e);
+  if (F){
+    setFoeForm(e, F.form, F.rank, F.repertoire);
+    initDuel(e, t.weapon === 'saber' ? F.profile : { ...F.profile, deflect: 0 });   // (only a lightsaber bats a bolt back)
+  } else initDuel(e);
   enemies.push(e);
   meetFoe(typeName, g);   // its codex entry opens (game/codex.js)
   if (!(g.userData.look && g.userData.look.side === 'jedi')) maybeTip(typeName);   // one-time onboarding tip the first time this archetype appears in a run (never 'SITH ACOLYTE' over a Jedi master)

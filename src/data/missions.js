@@ -1539,7 +1539,7 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the challenge' },
         enter: { jedi: 'The keeper of the refuge steps into the light.', mando: 'The challenger draws.' }, kicker: 'TRIAL',
         line: { jedi: 'Show me you can hold a door.', mando: 'By the old custom.' },
-        foe: 'acolyte', form: 'soresu', name: 'THE WALL', hp: 4, dmg: 0.9, scale: 1.12, tint: 0x3a7ad2, at: [0, -6],   // a Soresu master (data/duel.js FORM_DUEL)
+        foe: 'acolyte', form: 'soresu', name: 'THE WALL', hp: 4, dmg: 0.9, scale: 1.12, tint: 0x3a7ad2, at: [0, -6],   // a Soresu master (data/foe-forms.js)
         duel: { block: 0.9, posture: 200, feint: 0.15, chain: 1, counter: 0.35 },
         rage: 0.4, rageDuel: { chain: 2, counter: 0.5 },
         hero: { mando: { foe: 'duelist', form: null, name: 'THE CHALLENGER', tint: 0x7a5a3a, line: 'By the old custom.' } } },

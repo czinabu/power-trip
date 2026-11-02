@@ -6,6 +6,8 @@
 // type's pool of looks (data/foe-looks.js). &variant=0..4 (4: bare-headed) &face=0..4 force a marking and a face; &talk=1 has them talk;
 // &cam=x,y,z,lookY places the lens for a close-up. &cut=diagR|all plays a duellist's cut on a loop (data/duel.js FOE_CUTS; all: every cut in
 // turn, named in the corner); &at=0..2 freezes it there instead (0→1 the wind-up, 1→2 the strike). The stats corner shows draw calls per frame.
+// ?set=forms: an acolyte in each form (and the magnaguard's staff) in its form's guard (data/foe-stances.js): &line=R|L|H|Lo, &block=1,
+// &old=1 (the shared guard from before), &forms=a,b picks some, &yaw=<radians> turns them (1.3: side on).
 
 import * as THREE from 'three';
 import { scene, camera, composer, renderer } from '../src/engine/renderer.js';
@@ -23,6 +25,7 @@ import { solveHolds } from '../src/enemies/holds.js';
 import { GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS } from '../src/data/duel.js';
 import { CAST_IDS, ACOLYTES } from '../src/data/saber-cast.js';
 import { STANCES } from '../src/data/stances.js';
+import { guardArm, updateStance, stanceArms } from '../src/enemies/foestance.js';
 
 const q = new URLSearchParams(location.search);
 { const d = new URLSearchParams(location.search); if (d.has('rings')) DETAIL.rings = +d.get('rings'); if (d.has('round')) DETAIL.round = +d.get('round'); if (d.has('detail')) surfaceDetail.value = +d.get('detail'); }   // detail dial (player/model/shapes.js DETAIL)
@@ -90,6 +93,18 @@ if (SET === 'bosses'){
       figs.push({ g, label: (TYPE === 'all' || TYPE.includes(',') ? name + ' ' : '') + tag, w: 0.85 + t.scale * 0.7 });
     });
   }
+} else if (SET === 'forms'){
+  /* ?set=forms: an acolyte in each form (and the magnaguard's staff) in its own stance (data/foe-stances.js), guarding the
+     &line=R|L|H|Lo (default R; &block=1 its block). &old=1: the shared guard every form held before. &live=1 has them breathe */
+  const LINE = q.get('line') || 'R', BLK = q.get('block') === '1', OLD = q.get('old') === '1';
+  const FORMS = (q.get('forms') || 'shiicho,makashi,soresu,ataru,djemso,shien,juyo,staff').split(',');
+  for (const ff of FORMS){
+    const staff = ff === 'staff', t = staff ? ENEMY_TYPES.duelist : ENEMY_TYPES.acolyte;
+    const g = buildEnemyMesh(t, { face: FORMS.indexOf(ff) % 5 });
+    if (!staff && g.userData.bladeGlow && STANCES[ff]) g.userData.bladeGlow.material.color.setHex(STANCES[ff].blade);
+    const e = { group: g, t, type: staff ? 'duelist' : 'acolyte', ff: OLD ? null : ff, state: 'chase', guard: LINE, st: 0 };
+    figs.push({ g, label: (STANCES[ff] ? STANCES[ff].name.split(' —')[0] : 'STAFF') + (OLD ? ' (before)' : ''), w: 1.7, e, line: LINE, blk: BLK });
+  }
 } else if (SET === 'saber'){
   /* the saber cast (data/saber-cast.js): every named look, then the rank-and-file acolytes. &nolook=1 builds them the
      way they were before the cast, a tinted acolyte each (the before shot); &who=a,b picks some by id; &acolytes=0 hides those */
@@ -133,7 +148,7 @@ const total = figs.reduce((s, f) => s + f.w, 0);
 let x = -total / 2;
 for (const f of figs){
   f.g.position.x = x + f.w / 2; x += f.w;
-  f.g.rotation.y = VIEW === 'back' ? Math.PI + 0.4 : -0.4;
+  f.g.rotation.y = q.get('yaw') != null ? +q.get('yaw') : VIEW === 'back' ? Math.PI + 0.4 : -0.4;   // &yaw=<radians>: turn them (1.57: side on)
   scene.add(f.g);
 }
 
@@ -226,6 +241,21 @@ if (q.get('hits')) setTimeout(() => {
     markHit(g, at(0.05, 2.18, 0.16), back, 'crack');
   }
 }, 300);
+// a form's guard, settled at once (the game eases into it: enemies/duel.js guardPose, enemies/foestance.js)
+function formPose(f, dt){
+  const e = f.e, u = f.g.userData, P = f.blk ? BLOCK_POSE : GUARD_POSE;
+  const p = guardArm(e, P, f.line, f.blk);
+  if (u.staff){ u.staff.rotation.z = p[0]; u.staff.rotation.x = p[1]; }
+  else if (u.weaponArm){ u.weaponArm.rotation.x = p[0]; u.weaponArm.rotation.z = p[1]; }
+  for (let i = 0; i < 10; i++) updateStance(e, 0.1, true, f.line);
+  if (u.chest) u.chest.rotation.set((e.stanceLean || 0) + 0.04, e.stanceTwist || 0, 0);
+  if (u.head) u.head.rotation.y = -(e.stanceTwist || 0) * 0.6;
+  // the hips sink into its crouch, the knees bend so the feet stay planted (the game's gait IK does this: enemies/gait.js)
+  const d = e.stanceDrop || 0, a = Math.acos(Math.max(-1, 1 - d / 0.9));
+  if (u.vis) u.vis.position.y = -d;
+  for (const [th, sh, ft] of [[u.thighL, u.shinL, u.footL], [u.thighR, u.shinR, u.footR]]) if (th){ th.rotation.x = -a; sh.rotation.x = 2 * a; ft.rotation.x = -a; }
+  if (u.elbowOff) for (let i = 0; i < 10; i++) stanceArms(e, u, 0.1);
+}
 const stats = document.getElementById('stats');
 const orbit = q.get('orbit') === '1';
 renderer.info.autoReset = false;
@@ -233,7 +263,8 @@ const LIVE = q.get('live') === '1';   // &live=1: run the upper-body life (stanc
 let lastT = 0;
 renderer.setAnimationLoop(t => {
   const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0; lastT = t;
-  if (LIVE && dt > 0) for (const f of figs){ f.o = f.o || { state: 'idle' }; updateUpper(f.o, f.g, dt, null); }
+  if (LIVE && dt > 0) for (const f of figs){ f.o = f.o || f.e || { state: 'idle' }; updateUpper(f.o, f.g, dt, null); }
+  for (const f of figs) if (f.e) formPose(f, f.e.ff ? 0.5 : 0);
   if (orbit) for (const f of figs) f.g.rotation.y = f.yaw0 = t * 0.0004;
   playCuts(window.LAB && window.LAB.clock != null ? window.LAB.clock : t);
   for (const f of figs) if (f.g.userData.holds) solveHolds(f.g.userData);   // hands on a staff follow it (the game runs this in enemies/upper.js)

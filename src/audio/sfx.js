@@ -70,8 +70,8 @@ function swing(p, len, dark, o = {}){
   T({ pos, at, type: 'sawtooth', f: 97.5 * p, f2: 160 * p, ft: d * 0.55, g: 0.05 * gain, a: 0.03, d, filt: { type: 'lowpass', f: 900, f2: 2000 } });
   N({ pos, at, color: 'pink', g: 0.09 * air * gain, a: 0.05 * len, d: 0.16 * len, filt: { type: 'bandpass', f: 450, f2: 1900, q: 1.3 } });
 }
-/* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (data/duel.js
-   FORM_DUEL). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
+/* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
+   e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
    moved air, drive its grit; ring tunes the clash's metal and damp how long it rings (Soresu soaks a blow, Djem So's
    rings out). flick adds Ataru's flourish, a second short whoosh; thump puts weight under a Djem So clash. */
 const FORM_SOUND = {

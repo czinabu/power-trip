@@ -42,6 +42,13 @@ function faceAbilityAim(range){
   // NO aim assist — powers fire exactly where you're aiming. (Kept as a no-op so call sites stay simple.)
 }
 
+/* how hard Force Push shoves a foe `d` m away: its knock (mastery ranks applied), falling off to half at the edge of its
+   range, × the holstered palms' power. The saber lock's Force shove (enemies/duel.js lockPush) throws with this same
+   number, so breaking a bind with F sends the foe exactly as far as a push at that range would. */
+export function pushKnock(d, A = abil('push')){
+  return A.knock * (1 - (d / A.range) * 0.5) * forcePower();
+}
+
 export function forcePush(){
   const A = abil('push');
   const st = stance();
@@ -70,8 +77,8 @@ export function forcePush(){
     if (!inAim(e, aim, A.range, cosLim, 0.14)) continue;   // any of the body in the cone; a foe in the air only when aimed up at
     if (d < 0.05) TMP.copy(f);
     TMP.normalize();
-    const falloff = 1 - (d / A.range) * 0.5, close = flow && d < FL.near;
-    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), A.knock * falloff * forcePower() * (close ? FL.knockMul : 1));
+    const close = flow && d < FL.near;
+    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), pushKnock(d, A) * (close ? FL.knockMul : 1));
     pushed++;
     tutEvent('pushHit', e);
   }

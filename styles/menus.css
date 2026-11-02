@@ -535,14 +535,55 @@ body.pad .bs-aim{display:block}
 :is(#chapcard,#meditate,#lessonboard) .cc-voice{margin:22px 0 0;padding:12px 16px;border-left:2px solid var(--cc);background:var(--panel)}
 :is(#chapcard,#meditate,#lessonboard) .cc-who{font-size:12px;letter-spacing:2.2px;color:var(--cc);margin-bottom:6px}
 :is(#chapcard,#meditate,#lessonboard) .cc-voice p{margin:6px 0 0;font:500 17px/1.45 var(--font-body);color:var(--ink)}
-/* the scene between chapters (game/campaign.js talk): where it happens, then each speaker's line, fading in one after another */
-#chapcard .cc-talk{margin:20px 0 0;padding:12px 16px 14px;border:1px solid var(--edge-mid);border-radius:var(--r);background:rgba(4,8,16,.55)}
-#chapcard .cc-where{font-size:11px;letter-spacing:2.4px;color:var(--ink-faint);margin-bottom:4px}
-#chapcard .cc-talk p{margin:8px 0 0;font:500 16px/1.45 var(--font-body);color:var(--ink-soft);opacity:0;animation:rise .4s var(--ease) forwards;animation-delay:calc(.25s + var(--i) * .45s)}
-#chapcard .cc-talk p b{display:block;font:600 11px/1.2 var(--font-ui);letter-spacing:2px;color:var(--ink-dim);margin-bottom:2px}
+/* a chapter's briefing, its choices and Act II's pick (game/campaign.js): what to do first and plain (the objectives), then one
+   line of story, large. The rest of the story (the voice's other lines, the scene's dialogue) folds under MORE STORY */
+#chapcard .cc-brief{width:min(760px,100%)}
+#chapcard .cc-goals{margin:22px 0 0}
+#chapcard .cc-k{font:600 11px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink-dim);margin-bottom:8px}
+#chapcard .cc-goals ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 0;counter-reset:g}
+#chapcard .cc-goals li{counter-increment:g;display:flex;align-items:baseline;gap:8px;font:700 19px/1.25 var(--font-ui);letter-spacing:1.4px;color:var(--ink)}
+#chapcard .cc-goals li::before{content:counter(g);font-size:14px;color:var(--cc)}
+#chapcard .cc-goals li:not(:last-child){margin-right:10px}
+#chapcard .cc-goals li:not(:last-child)::after{content:'›';margin-left:10px;color:var(--ink-faint)}
+#chapcard .cc-goals ol:has(li:only-child) li::before{content:none}
+/* more than three steps: a short numbered list down the card, so a row never wraps with an arrow left hanging */
+#chapcard .cc-goals ol.many{flex-direction:column;gap:3px}
+#chapcard .cc-goals ol.many li{font-size:17px;margin-right:0}
+#chapcard .cc-goals ol.many li::after{content:none}
+#chapcard .cc-scene{margin:18px 0 0;padding:12px 18px 14px;border-left:2px solid var(--cc);background:var(--panel)}
+#chapcard .cc-scene .cc-who{font-size:12px;letter-spacing:2.2px;color:var(--cc);margin-bottom:2px}
+#chapcard .cc-scene p.nar{margin:6px 0 0;font:500 20px/1.4 var(--font-body);color:var(--ink)}
+#chapcard .cc-more{margin-top:8px}
+#chapcard .cc-more summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft);padding:7px 0}
+#chapcard .cc-more summary::-webkit-details-marker{display:none}
+#chapcard .cc-more summary::before{content:'▸ '}
+#chapcard .cc-more[open] summary::before{content:'▾ '}
+#chapcard .cc-more summary:hover{color:var(--ink)}
+#chapcard .cc-chapters{margin-top:16px}
+#chapcard .cc-chapters summary{font-size:12px;color:var(--ink-dim)}
+#chapcard .cc-chapters summary::before,#chapcard .cc-chapters[open] summary::before{content:none}
+#chapcard .cc-chapters .pips{display:inline-flex;gap:4px;margin-right:4px}
+#chapcard .cc-chapters .pips i{width:18px;height:4px;border-radius:2px;background:var(--edge-mid)}
+#chapcard .cc-chapters .pips i.done{background:var(--xp)}
+#chapcard .cc-chapters .pips i.now{background:var(--cc)}
+#chapcard .cc-chapters .cc-roster{margin-top:6px}
+#chapcard .cc-more p.nar{font-size:17px;color:var(--ink-soft)}
+#chapcard .cc-talk{margin:12px 0 0;padding:10px 0 0;border-top:1px solid var(--edge)}
+#chapcard .cc-where{font-size:11px;letter-spacing:2.4px;color:var(--ink-faint)}
+#chapcard .cc-talk p{display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:baseline;margin:8px 0 0;font:500 16px/1.4 var(--font-body);color:var(--ink-soft)}
+#chapcard .cc-talk p b{font:600 11px/1.2 var(--font-ui);letter-spacing:2px;color:var(--ink-dim);text-align:right}
 #chapcard .cc-talk p.you b{color:var(--cc)}
 #chapcard .cc-talk p.you{color:var(--ink)}
-@media (prefers-reduced-motion:reduce){#chapcard .cc-talk p{animation:none;opacity:1}}
+/* the chapter you're on already names its place under the title */
+#chapcard .cc-brief .cc-roster li.now .w{display:none}
+@media (max-width:640px){
+  #chapcard .cc-goals li{font-size:16px}
+  #chapcard .cc-goals li:not(:last-child)::after{content:none}
+  #chapcard .cc-scene p.nar{font-size:18px}
+  #chapcard .cc-talk p{display:block}
+  #chapcard .cc-talk p b{display:block;text-align:left;margin-bottom:2px}
+  #chapcard .cc-brief .cc-roster li .w{display:none}
+}
 :is(#chapcard,#meditate,#lessonboard) .cc-roster{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:4px}
 :is(#chapcard,#meditate,#lessonboard) .cc-roster li{display:flex;align-items:center;gap:10px;padding:6px 10px;font-size:15px;letter-spacing:1.4px;color:var(--ink-dim);
   border:1px solid transparent;border-radius:var(--r-chip)}

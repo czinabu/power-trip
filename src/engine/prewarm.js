@@ -9,6 +9,7 @@ import { SQUAD, TURNED, PURGE, DRILL, MARSHAL } from '../data/allies.js';
 import { buildEnemyMesh, variantsOf, facesOf } from '../enemies/mesh.js';
 import { lookPool } from '../data/foe-looks.js';
 import { buildBoss } from '../boss/mesh.js';
+import { CAST_IDS } from '../data/saber-cast.js';
 import { inkProbe } from '../fx/ink.js';
 import { ensureBossLight } from '../boss/light.js';
 import { ensureBarrierMesh } from '../player/jedi/force.js';
@@ -77,6 +78,7 @@ for (const t of Object.values(TURNED)) jobs.push(() => buildEnemyMesh({ ...ENEMY
 for (const t of [...Object.values(PURGE), ...Object.values(DRILL)]) jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES.blaster, ...t }));   // the trooper's story: the purge companies, the drill's droids
 jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES.officer, ...MARSHAL }));   // the trooper story's rival
 for (const roster of Object.values(SQUAD.roster)) for (const d of roster) jobs.push(() => buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: true }));
+for (const look of CAST_IDS) jobs.push(() => buildEnemyMesh(ENEMY_TYPES.acolyte, { look }));   // the saber cast's named faces (data/saber-cast.js)
 jobs.push(() => buildBoss('sith'), () => buildBoss('mando'));
 const run = job => { try { job(); } catch(e){} };
 const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 1500 }) : f => setTimeout(f, 60);

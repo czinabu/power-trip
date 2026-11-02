@@ -88,6 +88,27 @@ await playing();
 check(await page.evaluate(() => GAME.G.mission), 'the loaded mission starts');
 await pause(); await shot('07-pause-mission');
 
+// a NEW Jedi story opens on its prologue (a mission chapter) knowing only Shii-Cho, not a lone mission's three forms
+await page.click('#homeBtn'); await page.click('#homeYes');
+await page.click('#hero-jedi'); await page.click('#mode-campaign');
+await page.click('#campNewBtn'); await page.click('#newYes');
+if (await page.isVisible('#trainNo')) await page.click('#trainNo');
+if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});
+await playing();
+const fresh = await page.evaluate(() => ({ ch: GAME.G.chapter, mission: GAME.G.mission, loadout: GAME.G.loadout, stance: GAME.G.stance, su: Object.keys(GAME.G.stanceUnlocked || {}) }));
+check(fresh.ch >= 0 && fresh.mission && JSON.stringify(fresh.loadout) === '["shiicho",null,null]' && fresh.stance === 'shiicho' && !fresh.su.length,
+  'a new Jedi story starts with Shii-Cho only (' + JSON.stringify(fresh) + ')');
+// a run saved with that bug (Ataru, Niman, Djem So slotted, in Niman) loads back on just the forms it has learned
+await pause(); await page.click('#saveBtn'); await page.click('[data-act="save"][data-i="2"]');
+await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('sw_save_2')); d.run.loadout = ['ataru', 'niman', 'djemso']; d.run.stance = 'niman'; localStorage.setItem('sw_save_2', JSON.stringify(d)); });
+await page.click('#savesclose'); await page.click('#homeBtn'); await page.click('#homeYes');
+await page.click('#campLoadBtn'); await page.click('[data-act="load"][data-i="2"]');
+await page.click('#goText');
+if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});
+await playing();
+const fixed = await page.evaluate(() => ({ loadout: GAME.G.loadout, stance: GAME.G.stance, niman: !!(GAME.G.stanceUnlocked || {}).niman }));
+check(JSON.stringify(fixed.loadout) === '["shiicho",null,null]' && fixed.stance === 'shiicho' && !fixed.niman, 'a run saved with the extra forms loads with Shii-Cho only (' + JSON.stringify(fixed) + ')');
+
 for (const e of errors) console.error(e);
 if (errors.length) process.exitCode = 1;
 await browser.close();

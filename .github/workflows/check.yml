@@ -10,7 +10,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-24.04   # Playwright 1.56 has no Chromium for ubuntu-latest (26.04)
-    timeout-minutes: 30   # the battle-map smoke run (smoke:maps) brought the job close to 20
+    timeout-minutes: 50   # the suites take about 30 minutes now (smoke ~10, the co-op ones ~15, maps); 30 cut runs off mid smoke:maps
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

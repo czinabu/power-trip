@@ -88,6 +88,8 @@ import { FRIGATE_SPOTS } from '../world/arenas/frigate.js';
 import { KAMINO_SPOTS } from '../world/arenas/kamino.js';
 import { CHIPWORKS_SPOTS } from '../world/arenas/chipworks.js';
 import { WARCAMP_SPOTS } from '../world/arenas/warcamp.js';
+import { CANYON_SPOTS } from '../world/arenas/canyon.js';
+import { RELAY_SPOTS } from '../world/arenas/relay.js';
 import { TURNED, PURGE, DRILL } from './allies.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
@@ -1291,6 +1293,121 @@ export const MISSIONS = {
         trickle: { every: 13, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
     ],
     done: all('He has the Captain. His orders name one place: a relay spire, out past the Rim. He is going to give the order again, brother, to every clone with a chip in his head. And he wants us to watch.'),
+  },
+
+  // THE HUNT (Act III, the chase slot): the Marshal's trail up a wind-blasted canyon. Three of his camps, each fresher
+  // than the last; at the top, he turns to fight, then runs again, and leaves the Captain behind, alive, as a message.
+  hunt: {
+    id: 'hunt',
+    title: 'THE HUNT',
+    campaignOnly: true,
+    blurb: 'follow the Marshal\'s trail up the canyon, camp by camp, and catch him at the top',
+    level: { name: 'MISSION — THE HUNT', sub: all('His trail runs up the canyon. So do we.'),
+             arena: 64, floor: 0xb08058, fog: 0xd8a878, sky: 0x4a7ab0, layout: 'canyon', waves: [], hazards: {} },
+    start: CANYON_SPOTS.start,
+    kit: 7,
+    grant: all([]),
+    squad: 4, squadCap: 4,
+    foeLook: PURGE,
+    objectives: [
+      { kind: 'capture', title: 'FOLLOW HIS TRAIL', music: 'battle', postName: 'CAMP',
+        say: all('Three camps up the canyon, brother, and he has left a rear guard at every one. Take each camp. Tally, eyes on the ridges.'),
+        task: all('Take each of his camps, one after another'),
+        posts: [ { at: CANYON_SPOTS.camps[0], guards: { grunt: 2, blaster: 2, sniper: 1 } },
+                 { at: CANYON_SPOTS.camps[1], guards: { blaster: 2, grenadier: 1, sniper: 1 } },
+                 { at: CANYON_SPOTS.camps[2], guards: { grunt: 2, blaster: 2, officer: 1 } } ],
+        r: 4.5, time: 5, squadRate: 0.6, perMate: 0.3, doneLine: 'HIS LAST CAMP', doneSub: 'The fire is still warm.',
+        trickle: { every: 13, cap: 7, group: { grunt: 1, blaster: 1, sniper: 1 } }, from: [Math.PI / 2 - 0.9, Math.PI / 2 + 0.9], aggro: 9 },
+      { kind: 'duel', title: 'CATCH THE MARSHAL', start: [-4, 4, 0], music: 'duel',
+        say: all('He is right there, brother. He waited for you. Squad, keep his men off the trooper.'),
+        task: all('Face the Marshal while the squad holds his rear guard'),
+        enter: all('The Marshal steps out from behind the rocks. He has the Captain\'s helmet on his belt.'),
+        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 5, dmg: 1.2, scale: 1.12, tint: 0x9a7a2a, at: CANYON_SPOTS.duel,
+        line: all('You were always good at following, brother. Keep up.'),
+        rage: 0.5, rageDuel: {},
+        escape: 0.3, escapeLine: all('He breaks for his ship at the canyon\'s head. The Captain is bound in the last camp, alive.'),
+        trickle: { every: 13, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [Math.PI / 2 - 0.8, Math.PI / 2 + 0.8] },
+    ],
+    done: all('He left the Captain alive, so we would know he could have done otherwise. The Captain heard him talk, brother. The spire is not his idea. Something under it asked him to come.'),
+  },
+
+  // THE LAST ASSAULT (Act III, the spearhead slot): every brother the band has freed comes to the relay spire. Take the
+  // three gun emplacements in the outer defences, then hold the lift door while the company comes up.
+  lastassault: {
+    id: 'lastassault',
+    title: 'THE LAST ASSAULT',
+    campaignOnly: true,
+    blurb: 'take the relay spire\'s gun emplacements with every brother you freed, then hold the lift door',
+    level: { name: 'MISSION — THE LAST ASSAULT', sub: all('The relay spire. Everyone we freed is here.'),
+             arena: 64, floor: 0x3a3a40, fog: 0x22222e, sky: 0x0a0c14, layout: 'relay', waves: [], hazards: {} },
+    start: RELAY_SPOTS.start,
+    kit: 8,
+    grant: all([]),
+    squad: 4, squadCap: 4, battle: true,
+    foeLook: PURGE,
+    objectives: [
+      { kind: 'capture', title: 'TAKE THE GUNS', music: 'battle', postName: 'GUN',
+        say: all('Three guns cover the approach. The company is pinned on the beach until they go quiet. One at a time, brother, the squad in with you.'),
+        task: all('Take each gun emplacement with the squad (H sends them onto it)'),
+        posts: [ { at: RELAY_SPOTS.guns[0], guards: { grunt: 2, blaster: 2, grenadier: 1 } },
+                 { at: RELAY_SPOTS.guns[1], guards: { blaster: 2, sniper: 1, phalanx: 1 } },
+                 { at: RELAY_SPOTS.guns[2], guards: { grunt: 2, blaster: 2, officer: 1 } } ],
+        r: 4.5, time: 5, squadRate: 0.7, perMate: 0.35, doneLine: 'THE GUNS ARE QUIET', doneSub: 'The company is coming up the beach.',
+        trickle: { every: 12, cap: 8, group: { grunt: 2, blaster: 1 } }, from: [Math.PI / 2 - 1.0, Math.PI / 2 + 1.0], aggro: 9 },
+      { kind: 'hold', title: 'HOLD THE LIFT DOOR', music: 'battle', start: [0, 0, 0],
+        say: all('Vant is on the lift door. Hold it while he cuts it open and the company comes up behind us. Nobody goes through it but us.'),
+        task: all('Hold the lift door until Vant has it open'),
+        at: RELAY_SPOTS.door, r: 6.5, time: 50, awayRate: 0.3, squadRate: 0.6, holding: 'CUTTING THE DOOR',
+        overrun: 'CLEAR THE DOOR', unguarded: 'DOOR UNGUARDED', doneLine: 'THE DOOR IS OPEN', doneSub: 'Up the spire.',
+        pulses: [ { grunt: 3, blaster: 2 }, { blaster: 2, grenadier: 1, lancer: 1 }, { grunt: 2, officer: 1, sniper: 1 }, { grunt: 2, brute: 1, blaster: 1 },
+                  { grunt: 2, blaster: 2, bomber: 1 }, { grunt: 3, phalanx: 1 } ],
+        every: [7, 10], cap: 11, from: [-Math.PI + 0.3, Math.PI - 0.3], aggro: 9 },
+    ],
+    done: all('The door is open, and the company is on the plinth. Whatever he is sending, it starts soon. Go up, brother. We hold the bottom.'),
+  },
+
+  // THE BROADCAST (the trooper's finale, Exegol's slot): hold the spire's foot while the order counts down, cut its three
+  // uplinks, then the Marshal. Whatever becomes of him is asked after (data/campaign-trooper.js TROOPER_CHOICES).
+  broadcast: {
+    id: 'broadcast',
+    title: 'THE BROADCAST',
+    campaignOnly: true,
+    blurb: 'hold the spire, cut the uplinks before the order goes out, and face the Marshal',
+    level: { name: 'MISSION — THE BROADCAST', sub: all('The order goes out in minutes. Unless we stop it.'),
+             arena: 64, floor: 0x3a3a40, fog: 0x22222e, sky: 0x0a0c14, layout: 'relay', waves: [], hazards: {} },
+    start: [0, 4, Math.PI],
+    kit: 9,
+    grant: all([]),
+    squad: 4, squadCap: 4, battle: true,
+    foeLook: PURGE,
+    objectives: [
+      { kind: 'hold', title: 'HOLD THE SPIRE', music: 'battle',
+        say: all('The broadcast is warming up. Every purge trooper he has is coming back down to stop us. Hold the foot of the spire.'),
+        task: all('Hold the spire\'s door while the squad digs in'),
+        at: RELAY_SPOTS.door, r: 7, time: 55, awayRate: 0.3, squadRate: 0.6, holding: 'THE ORDER IS COUNTING DOWN',
+        overrun: 'CLEAR THE DOOR', unguarded: 'DOOR UNGUARDED', doneLine: 'THEY BREAK', doneSub: 'Now the uplinks.',
+        pulses: [ { grunt: 3, blaster: 2 }, { blaster: 2, grenadier: 2 }, { grunt: 2, officer: 1, sniper: 1, phalanx: 1 }, { grunt: 2, brute: 1, blaster: 2 },
+                  { grunt: 3, lancer: 1, blaster: 1 }, { grunt: 2, bomber: 2, blaster: 1 } ],
+        every: [6, 9], cap: 12, from: [-Math.PI / 2 - 1.2, -Math.PI / 2 + 1.2], aggro: 9 },
+      { kind: 'sabotage', title: 'CUT THE UPLINKS', consoleName: 'UPLINK', consoleDone: 'CUT', music: 'infiltrate', start: [0, 8, 0],
+        doneLine: 'THE SPIRE GOES DARK', doneSub: 'The order never leaves it.',
+        say: all('Three uplinks round the spire. Cut every one and the order has nowhere to go. Quick, brother. You can hear it starting.'),
+        task: all('Stand at each uplink pylon to cut it'),
+        consoles: [ { at: RELAY_SPOTS.pylons[0], guards: { grunt: 2, blaster: 1, sniper: 1 } },
+                    { at: RELAY_SPOTS.pylons[1], guards: { blaster: 2, grenadier: 1, phalanx: 1 } },
+                    { at: RELAY_SPOTS.pylons[2], guards: { grunt: 2, blaster: 2, officer: 1 } } ],
+        time: 4, r: 2.6, hitLoss: 1.0,
+        trickle: { every: 12, cap: 8, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 1.0, -Math.PI / 2 + 1.0] },
+      { kind: 'duel', title: 'THE MARSHAL', start: [0, -4, 0], music: 'duel',
+        say: all('He is coming down the spire himself. No more running, for either of you. Remember how he fights.'),
+        task: all('Face the Marshal'),
+        enter: all('The Marshal walks out of the lift. His helmet is off.'),
+        foe: 'officer', name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0x9a7a2a, at: RELAY_SPOTS.duel,
+        line: all('It is not the Empire\'s order, brother. It never was. It is older than all of us. I only wanted to hear the end of it.'),
+        rage: 0.45, rageDuel: {},
+        trickle: { every: 14, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
+    ],
+    done: all('The Marshal is down, and the spire is quiet. But under it, something is still listening.'),
   },
 
   // TRIALS: the campaign's quiet one-on-ones between the battles (data/campaign.js). A master tests the hero before

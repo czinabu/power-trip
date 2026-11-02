@@ -5,7 +5,8 @@
 // Act II the card asks which pair of chapters comes first.
 
 import { autosave } from './autosave.js';
-import { G, shared } from '../state.js';
+import { G, shared, heroKey } from '../state.js';
+import { MISSIONS } from '../data/missions.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
@@ -16,10 +17,11 @@ import { startMission } from './mission.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint } from './upgrades.js';
 import { showBanner } from '../ui/banners.js';
-import { storyBeat, clearComms } from './story.js';
+import { storyBeat, clearComms, comms } from './story.js';
 import { playOpening, resetScenes, playScene } from './cutscene.js';
 import { recordChapters } from './sandbox-unlocks.js';
 import { choiceAfter, choose, resetStory, storyChoices, answer, storyWords } from './choices.js';
+import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
 
 const ROMAN = ['I', 'II', 'III'];
@@ -96,6 +98,8 @@ function chapterCleared(){
   chapterRewards();
   earnWavePoint();   // a mission chapter's skill point (game/upgrades.js), spent on the page that opens next
   storyBeat('clear', { quiet: !!G.mission });   // a mission's clear lines are already on its Chapter complete card (game/mission.js)
+  // a story whose last chapter is a mission (the trooper's broadcast): clearing it ends the campaign, as the last boss does
+  if (c && !chapterAt(G.chapter + 1)){ victory(); return; }
   if (G.coopGuest){ openSkillTree(); return; }
   shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6;   // the voice's last word, then the upgrade screen and the road on (game/flow.js)
 }
@@ -135,11 +139,16 @@ export function closeCard(quiet){
   releaseUnlockBanners();
 }
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
-// the act's chapters: ticked, the one you're on, and what's ahead
+// the act's chapters: ticked, the one you're on, and what's ahead. Folded to one line (a pip per chapter, and what's next);
+// the full list opens under it
 function roster(act, pos){
-  return '<ol class="cc-roster">' + chapters().map((c, i) => c.act !== act ? '' :
+  const list = chapters(), mine = list.map((c, i) => [c, i]).filter(([c]) => c.act === act), next = mine.find(([, i]) => i > pos);
+  const pips = mine.map(([, i]) => '<i class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"></i>').join('');
+  return '<details class="cc-more cc-chapters"><summary><span class="pips">' + pips + '</span>' +
+    (next ? 'NEXT · ' + esc(chapterTitle(next[0])) : 'LAST CHAPTER OF THE ACT') + '</summary>' +
+    '<ol class="cc-roster">' + mine.map(([c, i]) =>
     '<li class="' + (i < pos ? 'done' : i === pos ? 'now' : '') + '"><span class="n">' + (c.prologue ? '·' : chapterNo(i).replace('CHAPTER ', '')) + '</span>' + esc(chapterTitle(c)) +
-    (c.trial ? '<span class="tag">TRIAL</span>' : c.prologue ? '<span class="tag">PROLOGUE</span>' : '') + '<span class="w">' + esc(c.world) + '</span></li>').join('') + '</ol>';
+    (c.trial ? '<span class="tag">TRIAL</span>' : c.prologue ? '<span class="tag">PROLOGUE</span>' : '') + '<span class="w">' + esc(c.world) + '</span></li>').join('') + '</ol></details>';
 }
 function head(c, pos){
   return '<div class="cc-act">ACT ' + ROMAN[c.act] + ' · ' + esc(actTitle(c.act)) + '</div>' +
@@ -149,22 +158,41 @@ function head(c, pos){
 function voice(lines, who){
   return '<div class="cc-voice"><div class="cc-who">' + esc(who || storyVoice(undefined, chapterAt(G.chapter))) + '</div>' + lines.map(l => '<p>' + esc(l) + '</p>').join('') + '</div>';
 }
-// the scene between chapters (a story's own chapter `talk`): where it happens, then who says what, line by line
-function talk(t){
-  if (!t || !t.lines || !t.lines.length) return '';
-  return '<div class="cc-talk">' + (t.where ? '<div class="cc-where">' + esc(t.where) + '</div>' : '') +
-    t.lines.map(([who, say], i) => '<p style="--i:' + i + '"' + (who === 'YOU' ? ' class="you"' : '') + '><b>' + esc(who) + '</b>' + esc(say) + '</p>').join('') + '</div>';
+// WHAT TO DO, first and plain: a mission chapter's objectives by their short titles (data/missions.js), or a wave chapter's
+// count of waves. The story comes after it, and most of it waits behind a "more" line (lore below)
+function goals(c){
+  const def = c.kind === 'mission' && MISSIONS[c.mission], said = (v) => typeof v === 'string' ? v : heroKey(v);   // (a mission's words are plain, or one per hero)
+  const list = def ? def.objectives.map(o => said(o.title) || said(o.task)).filter(Boolean)
+    : c.waves ? ['HOLD OUT FOR ' + (c.waves[1] - c.waves[0]) + ' WAVES'] : [];
+  if (!list.length) return '';
+  return '<div class="cc-goals"><div class="cc-k">' + (list.length > 1 ? 'OBJECTIVES' : 'OBJECTIVE') + '</div><ol' + (list.length > 3 ? ' class="many"' : '') + '>' + list.map(t => '<li>' + esc(String(t).toUpperCase()) + '</li>').join('') + '</ol></div>';
+}
+// THE STORY, kept light: one line of it in view (keep: which), the rest of the voice's words and the scene between chapters
+// (a chapter's `talk`: where, then who says what) folded under "MORE STORY" for whoever wants it. A chapter's talk that
+// stays folded is heard on the comms strip once the fight starts instead (showCard)
+function lore(lines, who, opts = {}){
+  const keep = opts.keep === 'last' ? lines.length - 1 : opts.keep || 0, t = opts.talk, said = t && t.lines && t.lines.length;
+  const rest = lines.filter((l, i) => i !== keep);
+  return '<div class="cc-scene"><div class="cc-who">' + esc(who) + '</div><p class="nar">' + esc(lines[keep] || '') + '</p>' +
+    (rest.length || said ? '<details class="cc-more"><summary>MORE STORY</summary>' + rest.map(l => '<p class="nar">' + esc(l) + '</p>').join('') +
+      (said ? '<div class="cc-talk">' + (t.where && t.where !== opts.world ? '<div class="cc-where">' + esc(t.where) + '</div>' : '') +
+        t.lines.map(([w, say]) => '<p' + (w === 'YOU' ? ' class="you"' : '') + '><b>' + esc(w) + '</b><span>' + esc(say) + '</span></p>').join('') + '</div>' : '') +
+      '</details>' : '') + '</div>';
 }
 export function showCard(pos){
   const c = chapterAt(pos), list = chapters();
   const opensAct = !c.prologue && (pos === 0 || list[pos - 1].act !== c.act || list[pos - 1].prologue);   // (a prologue is before the act: its opening line waits for chapter 1)
   const lines = [...(opensAct && pos !== actTwoAt() ? [actOpen(c.act)] : []), ...forHero(c.brief, G.hero)];   // (Act II's opening line was on its pick)
-  openCard('<div class="cc-inner hero-' + G.hero + '">' + head(c, pos) + talk(c.talk) + voice(lines) + roster(c.act, pos) +
+  openCard('<div class="cc-inner cc-brief hero-' + G.hero + '">' + head(c, pos) + goals(c) + lore(lines, storyVoice(undefined, c), { talk: c.talk, world: c.world, keep: lines.length > 1 && opensAct && pos !== actTwoAt() ? 1 : 0 }) + roster(c.act, pos) +
     '<div class="cc-btns"><div class="btn primary go" data-go="1">' + (G.coopGuest ? 'READY' : 'BEGIN') + '</div></div>' +
     '<div class="cc-hint">Enter or click to begin</div></div>', () => {
+      const read = card.querySelector('.cc-more[open]');
       closeCard(); S.reward(1);
       playOpening(c.id, { k: c.prologue ? 'PROLOGUE' : chapterNo(pos) + ' · ACT ' + ROMAN[c.act], h: chapterTitle(c), p: c.world }, c.opening);   // the chapter's opening scene (game/cutscene.js)
       storyBeat('chapter');
+      // the scene's talk, unread on the card and not staged by the opening scene (G.talkStaged: game/cutscene.js): it plays on the
+      // comms strip as the chapter gets going (the host's goes to a co-op guest too)
+      if (!read && !G.coopGuest && G.talkStaged !== c.id && c.talk && c.talk.lines) comms(c.talk.lines.map(([who, say]) => ({ who, say })));
     });
   resetScenes();   // a new visit to the chapter: its scenes play again
   MUSIC.unlockSting();
@@ -174,7 +202,7 @@ function showPick(pos, sandboxOpened){
   const c = chapterAt(pos);
   openCard('<div class="cc-inner hero-' + G.hero + '">' +
     '<div class="cc-act">ACT ' + ROMAN[c.act] + '</div><h1 class="cc-title">' + esc(actTitle(c.act)) + '</h1>' +
-    voice([actOpen(c.act), ...(storyHero() === 'jedi' ? [JEDI_ACT_TWO_WARN] : []), 'Which first is yours to choose.']) +
+    lore([actOpen(c.act), ...(storyHero() === 'jedi' ? [JEDI_ACT_TWO_WARN] : []), 'Which first is yours to choose.'], storyVoice(undefined, chapterAt(G.chapter)), { keep: 'last' }) +
     (sandboxOpened ? '<div class="cc-unlock">★ SANDBOX UNLOCKED · try the foes and powers you have met so far, from the main menu</div>' : '') +
     '<div class="cc-pick">' + Object.keys(ACT_TWO).map(k => '<div class="cc-opt brk" data-go="' + k + '"><b>' + esc(actTwoLabel(k)) + '</b><span>' + esc(actTwoLine(k)) + '</span></div>').join('') + '</div>' +
     '</div>', (k) => { if (!ACT_TWO[k]) return; G.actTwo = k; S.reward(1); startChapter(pos); });
@@ -186,7 +214,7 @@ function showChoice(ch, then){
   const c = chapterAt(G.chapter);
   openCard('<div class="cc-inner cc-choice hero-' + G.hero + '">' +
     '<div class="cc-act">ACT ' + ROMAN[c ? c.act : 2] + ' · A CHOICE</div><h1 class="cc-title">' + esc(ch.title) + '</h1>' +
-    voice(storyWords(ch.lines), ch.who) +
+    lore(storyWords(ch.lines), ch.who || storyVoice(undefined, chapterAt(G.chapter))) +
     '<div class="cc-pick">' + ch.options.map(o => '<div class="cc-opt brk" data-go="' + o.key + '"><b>' + esc(o.label) + '</b><span>' + esc(o.line) + '</span></div>').join('') + '</div>' +
     '<div class="cc-hint">This choice stays with you for the rest of the story</div>' +
     '</div>', (k) => {
@@ -215,7 +243,7 @@ export function campaignWon(then){
 }
 function showEpilogue(then){
   openCard('<div class="cc-inner hero-' + G.hero + '">' +
-    '<div class="cc-act">EPILOGUE</div><div class="cc-num">' + chapters().filter(c => !c.prologue).length + ' CHAPTERS · ' + (G.actTwo === 'hoth' ? 'HOTH' : 'LOTHAL') + ' FIRST' +
+    '<div class="cc-act">EPILOGUE</div><div class="cc-num">' + chapters().filter(c => !c.prologue).length + ' CHAPTERS · ' + esc(actTwoLabel(G.actTwo || 'lothal')) +
     (choicesRecap() ? ' · ' + esc(choicesRecap()) : '') + '</div>' +
     '<h1 class="cc-title">' + esc(epilogueText('title')) + '</h1><div class="cc-world">' + esc(epilogueText('world')) + '</div>' +
     voice(epilogueText('lines')) +

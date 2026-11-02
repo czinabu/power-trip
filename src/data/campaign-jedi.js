@@ -49,8 +49,8 @@ export const JEDI_ACT_TWO_WARN = 'Whichever you leave for second will not wait w
 export const JEDI_CHAPTERS = {
   // ---------------- ACT I: THE FALL OF JEDHA ----------------
   'last-lesson': {
-    brief: ['Jedha, the night before. The temple is asleep, except for the dojo.', 'One more round with Ilsa before lights out. She has never let you win one.'],
-    talk: { where: 'THE TEMPLE DOJO, THE NIGHT BEFORE',
+    brief: ['The temple is asleep, except for the dojo.', 'One more round with Ilsa before lights out. She has never let you win one.'],
+    talk: { where: 'THE TEMPLE DOJO',
       lines: [[ILSA, 'Again. You drop your guard when you are tired. Vexis would have had your head twice tonight.'],
            [HERO, 'Vexis is a story Master Vael tells to keep us in the dojo.'],
            [ILSA, 'Is he? Then ask Vael why the Order hides, while the Empire hunts children in the open. Ask him why he never answers.']] },

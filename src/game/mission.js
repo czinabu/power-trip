@@ -22,6 +22,7 @@ import { heroesHere } from '../player/players.js';
 import { hurtPlayer } from '../player/damage.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { buildEnemyMesh } from '../enemies/mesh.js';
+import { castId, masterBlade } from '../data/saber-cast.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { spawnEnemy, makeBossBar } from '../enemies/spawn.js';
@@ -134,9 +135,9 @@ function sayLine(o){
 // a hold's evacuees, as the campaign chapter's story has them (the Jedi's Lothal: the pens' children, not prisoners)
 const evac = (o) => M.chapter && M.chapter.evacuees ? { ...o.evacuees, ...M.chapter.evacuees } : o.evacuees;
 function say(o, opts){ showPanel(missionVoice(), sayLine(o), '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7; }
-function fieldSpawn(type, x, z){
+function fieldSpawn(type, x, z, opts){
   const s = findClearSpawn(x, z, 1.0);
-  spawnEnemy(type, V3(s.x, 0, s.z));
+  spawnEnemy(type, V3(s.x, 0, s.z), opts);
   return enemies[enemies.length - 1];
 }
 // a story chapter played late (the Act II world left for second: a chapter's `harder`, data/campaign-jedi.js) has its foes dug in:
@@ -714,9 +715,9 @@ function sightBlocked(ax, ay, az, bx, by, bz){
   return false;
 }
 function makeQuarry(q = heroKey(M.def.quarry)){
-  const g = buildEnemyMesh(ENEMY_TYPES[q.foe], { seed: 7 });   // (one look, the same on both co-op screens)
+  const g = buildEnemyMesh(ENEMY_TYPES[q.foe], { look: castId(q.name, M.def.id), seed: 7 });   // (seed: the same look on both co-op screens)   // its own face and clothes (data/saber-cast.js)
   g.scale.multiplyScalar(q.scale || 1);
-  g.userData.bodyMat.color.lerp(new THREE.Color(q.tint), 0.5);
+  if (!g.userData.look) g.userData.bodyMat.color.lerp(new THREE.Color(q.tint), 0.5);
   const tag = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4),
     new THREE.MeshBasicMaterial({ color: RED, depthTest: false, transparent: true, opacity: 0.9, toneMapped: false }));
   tag.rotation.x = Math.PI; tag.renderOrder = 998; tag.visible = false;
@@ -911,8 +912,9 @@ function vipDown(){
 
 // the duel's opponent: an existing duellist, scaled up into a champion with its own bar and a sharper profile
 function spawnInquisitor(o, at = o.at, opts = {}){
-  const e = fieldSpawn(o.foe, at[0], at[1]);
+  const e = fieldSpawn(o.foe, at[0], at[1], { look: castId(o.name, M.def.id) });   // a saber wielder in its own look (data/saber-cast.js)
   e.champion = true;
+  const look = e.group.userData.look;
   e.hp = e.maxHp = Math.round(e.hp * o.hp * heroScale(SCALE.bossHp, heroesHere()));
   e.t = { ...e.t, dmg: e.t.dmg * o.dmg, score: 20 };   // a copy: never mutate the shared type
   // a FORM MASTER (the trials): it fights in the form it teaches (data/duel.js FORM_DUEL), its blade in that form's colour
@@ -921,10 +923,10 @@ function spawnInquisitor(o, at = o.at, opts = {}){
     e.form = o.form;
     initDuel(e, { ...F, ...o.duel });
     const glow = e.group.userData.bladeGlow;
-    if (glow) glow.material.color.setHex(STANCES[o.form].blade);
+    if (glow) glow.material.color.setHex(masterBlade(look, STANCES[o.form].blade));   // (an enemy master still burns red)
   } else if (e.dp) e.dp = { ...e.dp, ...o.duel };
   e.group.scale.multiplyScalar(o.scale);
-  e.group.userData.bodyMat.color.lerp(new THREE.Color(o.tint), 0.5);
+  if (!look) e.group.userData.bodyMat.color.lerp(new THREE.Color(o.tint), 0.5);   // (a cast look wears its own colours)
   makeBossBar(e);
   burst(V3(e.group.position.x, 1.2, e.group.position.z), o.tint, 24, 8, 5, 1);
   G.shake = Math.max(G.shake, 0.7);

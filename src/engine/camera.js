@@ -58,27 +58,6 @@ function updateDuelSide(pp, f, rv, dt){
   return duelSide;
 }
 
-/* CENTRED AT REST (Jedi): with nobody ahead the lens sits square behind the hero, Jedi Academy's idle framing, and the
-   aim point rides over his head so the crosshair floats above it. A foe coming up in front (or a lock-on) eases it out
-   over the shoulder and down to the fight framing, so your own back never hides the foe or covers the crosshair, and
-   where the crosshair sits on a body (the cut's height, player/aim.js aimBand) reads the same as before. */
-let jaEngage = 0;
-function updateEngage(pp, f, dt){
-  const C = CFG.camera.ja, R = C.engageRange;
-  let want = player.lockTarget ? 1 : 0;
-  if (!want && G.mode === 'play' && !G.cutscene){
-    const B = shared.boss;
-    if (B && B.hp > 0 && B.group) want = 1;
-    else for (const e of enemies){
-      if (e.dead || e.converted || !e.group) continue;
-      const dx = e.group.position.x - pp.x, dz = e.group.position.z - pp.z, d = Math.hypot(dx, dz);
-      if (d < R && (dx*f.x + dz*f.z) > -1.5){ want = 1; break; }
-    }
-  }
-  jaEngage += (want - jaEngage) * Math.min(1, dt * (want > jaEngage ? 2.2 : 0.9));
-  return jaEngage * jaEngage * (3 - 2 * jaEngage);
-}
-
 function crowdAround(pp){
   const R = CFG.camera.crowdRadius;
   let n = 0;
@@ -254,8 +233,7 @@ export function updateCamera(dt){
     // the hero, looking up swings it down behind). Each then closes a fixed share of its gap per 50 ms -----
     const J = C.ja, k = dt / 0.05;
     const fy = -sinP, fx = f.x*cosP, fz = f.z*cosP;   // JA's camerafwd (our pitch is + looking down)
-    const eng = updateEngage(pp, f, dt);
-    const itx = pp.x, ity = pp.y + J.eye + J.vertOffset + (1 - eng) * J.restRise + camLift + dk*3, itz = pp.z;
+    const itx = pp.x, ity = pp.y + J.eye + J.vertOffset + camLift + dk*3, itz = pp.z;
     TMP.set(itx - fx*d, ity - fy*d, itz - fz*d);
     // turning fast stiffens the lens so it doesn't cut across the orbit (JA: yaw speed in degrees per ms, 1 → 2.5)
     let dy = Math.abs(G.yaw - jaYaw) * 180 / Math.PI % 360; if (dy > 180) dy = 360 - dy;
@@ -272,13 +250,14 @@ export function updateCamera(dt){
       const lr = df >= 1 ? 0 : Math.pow(1 - df, k);
       jaLoc.set(TMP.x - (TMP.x - jaLoc.x)*lr, TMP.y - (TMP.y - jaLoc.y)*lr, TMP.z - (TMP.z - jaLoc.z)*lr);
     }
-    // JA's horizontal offset slides lens and aim together, so the view direction is unchanged
-    // (plus the duel side-on slide: the lens all the way, the aim point part of it, so the view turns back toward the pair)
-    const hz = J.horz * eng, hl = hz + side, ha = hz + side * CFG.camera.duelSideTurn;
-    TMP.set(jaLoc.x + rv.x*hl, jaLoc.y, jaLoc.z + rv.z*hl);
+    // JA's horizontal offset slides lens and aim together, so the view direction is unchanged. It is 0, as in JA: the
+    // lens sits square behind the hero, and the only thing that puts him off to one side is the lag above, while he
+    // moves (a run, a strafe, a roll pulls him ahead of the lens until it catches up). No duel side-on slide either.
+    const ha = J.horz;
+    TMP.set(jaLoc.x + rv.x*ha, jaLoc.y, jaLoc.z + rv.z*ha);
     LOOK.set(jaTarget.x + rv.x*ha, jaTarget.y, jaTarget.z + rv.z*ha);
     ox = jaTarget.x; oy = jaTarget.y; oz = jaTarget.z;
-    jaAim.set(itx + rv.x*ha, ity, itz + rv.z*ha); jaAim.live = true;   // the aim point as it rides on the hero, before the lag (player/aim.js heroCrosshair)
+    jaAim.set(itx + rv.x*ha, pp.y + J.eye, itz + rv.z*ha); jaAim.live = true;   // the hero's eye, no lag: JA traces the crosshair from it (player/aim.js heroCrosshair)
   } else {
     jaLive = false; jaAim.live = false;
     TMP.set(tx - f.x*d*cosP + rv.x*ots, ty + camHi + camLift + dk*3 + d*sinP, tz - f.z*d*cosP + rv.z*ots);

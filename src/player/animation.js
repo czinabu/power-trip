@@ -8,6 +8,7 @@ import { clamp, dampAngle, wrapAngle, V3 } from '../utils.js';
 import { chargeFrac } from './jedi/palm.js';
 import { burst } from '../fx/particles.js';
 import { G, keys, player, isGunner, isTrooper } from '../state.js';
+import { strafing as isStrafing } from './strafe.js';
 import { MANDO, MANDO_WEAPONS } from '../data/mando.js';
 import { gunLook } from '../data/trooper.js';
 import { MANDO_MELEE } from '../data/duel.js';
@@ -87,7 +88,7 @@ function poseBody(dt, dr, vis, planted, POSE, moving){
   // The one exception: running AWAY from the reticle he turns and runs like the Jedi does (backRun), shooting back
   // over his shoulder one-handed (anim/guns.js) instead of backpedalling square to the camera.
   const mandoAimLock = isGunner() && (player.aiming > 0 || player.zoom || player.firing);
-  const strafing = !!keys['alt'];   // HOLD ALT: squared to the crosshair whatever you do, Force Unleashed style
+  const strafing = isStrafing();   // ALT (toggle or hold: player/strafe.js): squared to the crosshair whatever you do, Force Unleashed style
   const inCombatPose = strafing || player.atkT > 0 || player.dashT > 0 || player.blockHeld || player.judgeT > 0 || player.castT > 0 || player.palmT > 0 || mandoAimLock;
   const wasBackRun = player.backRun;
   player.backRun = !strafing && mandoBackRun();

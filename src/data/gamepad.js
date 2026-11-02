@@ -6,8 +6,8 @@
    with it.
      key:   a KeyboardEvent key, lower case (' ' is SPACE)
      mouse: 0 = LMB, 2 = RMB
-   'base' is the plain layout; 'lb' is what a face button / bumper / D-pad does while LB is held (LB itself is the
-   strafe hold, so the layer and the strafe go together). Anything not in 'lb' falls through to 'base'.
+   'base' is the plain layout; 'lb' is what a face button / bumper / D-pad does while LB is held (LB itself is
+   strafe: held, the layer and the strafe go together; a lone tap toggles strafe, player/strafe.js). Anything not in 'lb' falls through to 'base'.
    SLOTS: D-pad left / up / right are the three loadout slots (keys 1 / 2 / 3: the Jedi's forms, the Mando's weapons).
    A form loadout or a fourth slot only has to change the key here.
    The ARC trooper has its own layout (the Mandalorian's shape with its kit on it): padLayout picks. */
@@ -43,7 +43,7 @@ export const PAD_BINDS = {
       RB: { key: 'e', label: 'Kick', note: 'Cracks a duellist\'s guard · in a saber lock, kicks out · holstered: mid-string a spin kick, in the air a stomp' },
       RT: { mouse: 0, label: 'Saber combo', note: 'The left stick picks the cut, as W A S D do · in a saber lock, mash it · holstered: Force strikes, the stick picks the finisher, hold to charge a palm' },
       LT: { mouse: 2, label: 'Block · tap to parry', note: 'Hold LT and pull RT to throw the saber' },
-      LB: { key: 'alt', label: 'Strafe (hold)', note: 'Face the crosshair while you move · also opens the LB powers' },
+      LB: { key: 'alt', label: 'Strafe', note: 'Hold: face the crosshair while you move and open the LB powers · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'z', label: 'Force slide', note: 'Out of a run' },
       R3: { key: 't', label: 'Lock on', note: 'Again to release' },
       ...SLOTS,
@@ -70,7 +70,7 @@ export const PAD_BINDS = {
       RB: { key: 'q', label: 'Wrist rocket' },
       RT: { mouse: 0, label: 'Fire', note: 'Headshots deal far more' },
       LT: { mouse: 2, label: 'Brace / shield / scope', note: 'Tap LT as a bolt arrives: a beskar parry sends it back · Darksaber in hand: hold LT and pull RT to throw it · in the air, hover' },
-      LB: { key: 'alt', label: 'Strafe (hold)', note: 'Stay square to the crosshair · also opens the LB gadgets' },
+      LB: { key: 'alt', label: 'Strafe', note: 'Hold: stay square to the crosshair and open the LB gadgets · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'c', label: 'Slide', note: 'Out of any run' },
       R3: { key: 'e', label: 'Close quarters', note: 'Forward + R3 jet charges, in the air a dive kick, on a floored foe a takedown · hold R3 through a blow to grab: R3 headbutts, RT throws' },
       ...SLOTS,
@@ -98,7 +98,7 @@ export const PAD_BINDS = {
       RB: { key: 'q', label: 'Recon scan', note: 'Marks every foe nearby' },
       RT: { mouse: 0, label: 'Fire', note: 'DC-15: a burst (the auto barrel: hold) · twin DC-17s: each pull fires the other pistol' },
       LT: { mouse: 2, label: 'Aim', note: 'A tight cone and a steady reticle · the marksman scope raises the scope' },
-      LB: { key: 'alt', label: 'Strafe (hold)', note: 'Stay square to the crosshair · also opens the LB powers' },
+      LB: { key: 'alt', label: 'Strafe', note: 'Hold: stay square to the crosshair and open the LB powers · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'c', label: 'Slide', note: 'Out of a run, firing as you go' },
       R3: { key: 'e', label: 'Rifle bash', note: 'Staggers whoever is in front and cracks a duellist\'s guard' },
       LEFT:  { key: '1', label: 'DC-15 rifle', note: 'Again with the rifle in hand: its next module' },

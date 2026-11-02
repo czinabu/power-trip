@@ -53,8 +53,11 @@ import { diffDmgMul } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
 import { beginTwist, updateTwist, endTwist } from './twists.js';
-import { TAUNTS, SCARRED, SCARS, scarOf } from '../data/duel-taunts.js';
+import { TAUNTS, SCARRED, SCARS, scarOf, pickLine } from '../data/duel-taunts.js';
 import { punchIn } from '../engine/camera.js';
+import { scarBody, markHit } from '../enemies/scars.js';
+import { SCARS as CUTS } from '../enemies/kit.js';
+import { puppetOf } from '../net/foes.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -832,8 +835,8 @@ function breakAway(o, s){
 /* MID-DUEL STORY TURNS (data/duel-taunts.js) — at its rage threshold the foe says its one line, under its name, while
    the lens punches in on it for a beat (engine/camera.js punchIn): no letterbox, no lock, the fight never stops. */
 function tauntFor(o, scar){
-  const t = (scar && SCARRED[scar.key]) || TAUNTS[M.def.id] || TAUNTS[o.name] || TAUNTS[o.foe];
-  return heroText(t) || 'Enough. Now I fight.';
+  const k = scar && SCARRED[scar.key] ? 'scar:' + scar.key : TAUNTS[M.def.id] ? M.def.id : TAUNTS[o.name] ? o.name : o.foe;
+  return pickLine(k.startsWith('scar:') ? SCARRED[scar.key] : TAUNTS[k], heroText, k + ':' + G.hero) || 'Enough. Now I fight.';
 }
 let pnSeq = 0;   // (never reset, so a retry's punch-in still reads as new to a co-op guest)
 function rageTurn(o, s, e){
@@ -881,6 +884,24 @@ function woundFoe(e, o, sc){
   const cut = SCARS[sc.key].cut * sc.n, floor = e.maxHp * Math.min(0.95, (o.rage || 0.5) + 0.1);
   e.hp = Math.max(Math.min(floor, e.hp), Math.round(e.hp - e.maxHp * cut));
   e.scarred = sc.n;
+  wearScars(e.group, sc);
+}
+// and wears it where you can see it: a cooled saber cut across the chest per scar (a droid: a cracked head and a dented
+// chest plate). Visual only (enemies/scars.js); a co-op guest puts the same marks on its puppet of the foe
+function wearScars(g, sc){
+  const u = g.userData, W = u.bodyMat && u.bodyMat.userData.wear;
+  if (!u.bodySkin || !W) return;
+  const yaw = g.rotation.y, f = V3(-Math.sin(yaw), 0, -Math.cos(yaw)), H = g.scale.y || 1, p = g.position;   // f: a blow landing on its front
+  if (sc.fx === 'sparks'){
+    markHit(g, V3(p.x + Math.sin(yaw) * 0.2 * H, p.y + 1.72 * H, p.z + Math.cos(yaw) * 0.2 * H), f, 'crack', { heavy: true });
+    markHit(g, V3(p.x + Math.sin(yaw) * 0.25 * H, p.y + 1.3 * H, p.z + Math.cos(yaw) * 0.25 * H), f, 'dent');
+    return;
+  }
+  for (let i = 0; i < Math.min(3, sc.n + 1); i++){
+    scarBody(g, f, i % 2 ? 'left' : 'cut', i === 0);
+    const k = ((W.scarNext || 1) - 1) % CUTS;
+    if (W.uScar.value[k]) W.uScar.value[k].w -= 600;   // an old wound: already cooled to char, not glowing like a fresh cut
+  }
 }
 // the wound trails off it as it fights: smoke from a cut, sparks from a droid's torn plating
 function bleed(s, e, dt){
@@ -1259,7 +1280,8 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), pn: M.pn || undefined };
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), pn: M.pn || undefined,
+    sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }
 // guest: follow the host's mission
 export function coopMissionSync(ms){
@@ -1317,6 +1339,15 @@ function updateMissionGuest(dt){
     g.rotation.y += ang(g.rotation.y, w[3]) * k; g.rotation.x = 0;
     q.tag.visible = !!w[4]; q.tag.position.set(g.position.x, g.position.y + 2.7 * (q.def.scale || 1) + Math.sin(G.gt * 5) * 0.12, g.position.z);
     updateLegs(q, g, dt, 'ground'); updateUpper(q, g, dt, nearHero(g.position.x, g.position.z).pos);
+  }
+  if (ms.sw){   // the host's duel foe still carries its wounds: the same marks and trail on this screen's puppet of it
+    const e = puppetOf(ms.sw[0]);
+    if (e && !e.dead){
+      const sc = { fx: ms.sw[1], n: ms.sw[2] };
+      if (!e.scarWorn){ e.scarWorn = true; wearScars(e.group, sc); }
+      M.gBleed = M.gBleed && M.gBleed.e === e ? M.gBleed : { e, scar: sc };
+      bleed(M.gBleed, e, dt);
+    }
   }
   if (M.vip && ms.v){
     const v = M.vip, g = v.g, w = ms.v;

@@ -12,7 +12,8 @@
 //   BOSS                   in the campaign, as Darth Vexis or the Iron Magistrate arrives on Exegol.
 //   SCENES[id]             any other scene, played by id from game code: playScene(id, { mark: [x, z] })
 //                          (the Inquisitor's escape, the epilogue: the story beats in game/story.js call these).
-// Every scene skips with Enter, Space or Esc (A or MENU on a pad); in co-op either player's skip ends it for both.
+// A tap of Space or Enter (A on a pad) moves a scene on a line; holding it (or MENU on a pad) skips the scene. In co-op
+// a skip is a vote: the scene ends once everyone watching has asked.
 
 import { VOICE } from './campaign.js';
 import { MARSHAL as MARSHAL_DRESS } from './allies.js';

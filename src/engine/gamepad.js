@@ -297,7 +297,7 @@ function menu(btn, down, lx, ly, ry, dt){
   if (dir !== navHold.dir){ navHold.dir = dir; navHold.t = PAD_TUNE.navRepeat[0]; if (dir) step(dir); }
   else if (dir && (navHold.t -= dt) <= 0){ navHold.t = PAD_TUNE.navRepeat[1]; step(dir); }
 
-  if (G.cutscene) holdSkip(!!btn[0]);   // A — HOLD to skip a cutscene (game/cutscene.js: it's jump too, so a tap won't)
+  if (G.cutscene){ if (down(0)) holdSkip(true); else if (!btn[0]) holdSkip(false); }   // A — tap: the next line of a cutscene; hold: skip it (game/cutscene.js)
   else if (down(0)){   // A — pick
     const list = candidates(); ensureFocus(list);
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }

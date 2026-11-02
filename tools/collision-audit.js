@@ -41,6 +41,8 @@ import { buildFrigateArena } from '../src/world/arenas/frigate.js';
 import { buildKaminoArena } from '../src/world/arenas/kamino.js';
 import { buildChipworksArena } from '../src/world/arenas/chipworks.js';
 import { buildWarcampArena } from '../src/world/arenas/warcamp.js';
+import { buildCanyonArena } from '../src/world/arenas/canyon.js';
+import { buildRelayArena } from '../src/world/arenas/relay.js';
 import { buildSithArena } from '../src/world/arenas/sith.js';
 import { CHAPTERS } from '../src/data/campaign.js';
 import { TROOPER_CHAPTERS } from '../src/data/campaign-trooper.js';
@@ -53,7 +55,8 @@ const BUILDERS = { temple: buildTempleArena, foundry: buildFoundryArena, plains:
   grassland: buildGrasslandArena, icefront: buildIcefrontArena, graveyard: buildGraveyardArena,
   approach: buildGrasslandArena, archive: buildArchiveArena, prison: buildPrisonArena, hangar: buildHangarArena, sith: buildSithArena,
   jungle: buildJungleArena, outpost: buildOutpostArena, covert: buildCovertArena, shipyard: buildShipyardArena, garrison: buildGarrisonArena, frigate: buildFrigateArena,
-  kamino: buildKaminoArena, chipworks: buildChipworksArena, warcamp: buildWarcampArena };
+  kamino: buildKaminoArena, chipworks: buildChipworksArena, warcamp: buildWarcampArena,
+  canyon: buildCanyonArena, relay: buildRelayArena };
 
 const STEP = 0.4;          // sample spacing
 const SINK = 0.45;         // a visible top this far over the collision top is a miss (thin caps and trims sit under it)

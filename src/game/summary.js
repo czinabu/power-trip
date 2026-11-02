@@ -11,6 +11,8 @@ import { overlay, survivalUnlocked, refreshSurvivalLock, setOverlayState } from 
 import { closeReadout } from './readout.js';
 import { readoutSummaryHtml } from '../ui/readout-ui.js';
 import { campaignWon } from './campaign.js';
+import { storyHero } from '../data/campaign.js';
+import { TROOPER_VICTORY } from '../data/campaign-trooper.js';
 import { isArcadeId } from '../data/arcade.js';
 
 /* ---------- END-OF-RUN SUMMARY + SCORE ---------- */
@@ -79,6 +81,6 @@ export function victory(afterEpilogue){
     // always raise the win screen (not just in the embedded fallback)
     overlay.style.display = 'flex';
     setOverlayState('victory');
-    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : 'THE HERALD OF THE VOID IS NO MORE';
+    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : storyHero() === 'trooper' ? TROOPER_VICTORY : 'THE HERALD OF THE VOID IS NO MORE';
   }, 1400);
 }

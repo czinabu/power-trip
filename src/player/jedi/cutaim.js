@@ -4,18 +4,21 @@
 
 import { CUT_AIM, CUT_ANGLE, SWING_PATTERNS } from '../../data/stances.js';
 import { G, keys, player, isGunner } from '../../state.js';
+import { aimBand } from '../aim.js';
 
 const D2R = Math.PI / 180;
 
-/* 'high' | 'mid' | 'low' — how far the view is tipped up or down from where it sits in a fight. (The view orbits the hero
-   from behind, so the crosshair's line crosses a foe close in front LOWER as you look up: the tip of the view is the
-   honest read of where you mean to cut, the way the crosshair rises over a foe's head as you look up.) */
-export function cutHeight(pitch = aimPitch()){
-  return pitch < CUT_AIM.pitchHigh ? 'high' : pitch > CUT_AIM.pitchLow ? 'low' : 'mid';
+/* 'high' | 'mid' | 'low' — where the crosshair sits on the foe you're cutting at: head and shoulders, chest, legs
+   (player/aim.js aimBand). With nobody under it or near the line, or locked on, how far the view is tipped up or down
+   from where it sits in a fight. During a mouse flick: the height you were aiming at before it began. */
+const pitchBand = pitch => pitch < CUT_AIM.pitchHigh ? 'high' : pitch > CUT_AIM.pitchLow ? 'low' : 'mid';
+export function cutHeight(){
+  if (flickAngle() != null) return FL.calmH || pitchBand(FL.calm);
+  return aimBand() || pitchBand(G.pitch);
 }
 
 /* ---------------- the mouse flick (engine/input.js feeds it every mouse move) ---------------- */
-const FL = { x: 0, y: 0, at: 0, calm: 0.2 };
+const FL = { x: 0, y: 0, at: 0, calm: 0.2, calmH: null };
 const now = () => performance.now() / 1000;
 function decayed(){
   const k = Math.exp(-(now() - FL.at) / CUT_ANGLE.flick.tau);
@@ -24,7 +27,7 @@ function decayed(){
 export function noteFlick(dx, dy){
   const d = decayed();
   // the view's tilt from before this flick began: that's the height you were aiming at
-  if (Math.hypot(d.x, d.y) < CUT_ANGLE.flick.min * 0.5) FL.calm = G.pitch;
+  if (Math.hypot(d.x, d.y) < CUT_ANGLE.flick.min * 0.5){ FL.calm = G.pitch; FL.calmH = G.cutMouse && G.mode === 'play' ? aimBand() : null; }
   FL.x = d.x + dx; FL.y = d.y + dy; FL.at = now();
 }
 // the angle a flick right now would cut from, or null (no flick worth reading)
@@ -35,7 +38,6 @@ export function flickAngle(){
   // the blade travels the way the mouse went (screen y runs down); the cut comes from the opposite side
   return ((Math.atan2(d.y, -d.x) / D2R) + 360) % 360;
 }
-const aimPitch = () => (flickAngle() != null ? FL.calm : G.pitch);
 
 /* a cut from `ang` degrees at height h, as a swing pattern: the side it comes in on (yF / yT: the body's turn, and the
    line a guard has to cover: enemies/duel.js patLine), and the hips' drop into a low flat cut */

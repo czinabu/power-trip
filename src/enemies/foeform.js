@@ -123,6 +123,7 @@ function makeTag(e){
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
   s.scale.set(2.1, 2.1 * H / W, 1); s.renderOrder = 999;
   s.userData.canvas = c;
+  s.raycast = () => {};   // a label, not a body: the camera's see-through, aim and hit rays pass straight through it
   e.group.add(s); e.formTag = s;
   return s;
 }

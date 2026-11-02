@@ -38,10 +38,11 @@ import { MOVE } from '../data/movement.js';
 import { foeAllyTarget, hurtAlly } from '../allies/squad.js';
 import { heroFor } from './targets.js';
 import { hooks } from '../net/run.js';
+import { CIV, CIV_TUNE, civSteer, civSeparate, civTarget } from '../game/civilians.js';
 
 const NAV_EVERY = 0.1;      // seconds between a foe's route checks (the field itself refreshes in nav.js)
 const STUCK_AFTER = 0.5;    // window (s) over which a chasing foe must make headway, or it sidesteps to work itself free
-const steer = { x: 0, z: 0 }, appr = { x: 0, z: 0 };
+const steer = { x: 0, z: 0 }, appr = { x: 0, z: 0 }, civNudge = { x: 0, z: 0 }, CIV_AIM = V3(0, 0, 0);
 
 // a ranged foe lets fly at its target's TORSO including height — so a foe on a ledge gets shot AT, and bolts arc up to
 // reach you (rather than skimming the ground and hitting you on top by accident). spread jitters a burst's later shots
@@ -115,6 +116,18 @@ export function updateEnemies(dt){
     // only the rank and file, and never more than a share of them). It fights it straight: no attack turns, no tricks.
     const tgtAlly = foeAllyTarget(e, hp), onAlly = !!tgtAlly;
     if (onAlly) tgtPos = tgtAlly.group.position;
+    // THE PEOPLE BEING GOT OUT — a trooper sent at them (game/mission.js civHunt) shoots at the line instead, until the
+    // hero comes close enough to make it deal with them first (game/civilians.js)
+    let tgtCiv = null;
+    if (e.civHunt && !e.converted && !onAlly && t.ranged && Math.hypot(hp.x - g.position.x, hp.z - g.position.z) > CIV_TUNE.hunt.aggro){
+      tgtCiv = civTarget(g.position.x, g.position.z, 80, CIV_AIM);
+      if (tgtCiv){
+        const lead = Math.hypot(CIV_AIM.x - g.position.x, CIV_AIM.z - g.position.z) / (t.boltSpeed || 20) * CIV_TUNE.hunt.lead;
+        CIV_AIM.x += (tgtCiv.vx || 0) * lead; CIV_AIM.z += (tgtCiv.vz || 0) * lead;
+        CIV_AIM.y = -0.45;   // (fireAt aims 1.4 up from here: a child's chest, not over its head)
+        tgtPos = CIV_AIM;
+      }
+    }
     let tx = 0, tz = 0, dist = 999;
     if (tgtPos){
       TMP.subVectors(tgtPos, g.position); TMP.y = 0;
@@ -171,7 +184,7 @@ export function updateEnemies(dt){
         const er = 0.7 * (t.scale || 1);
         let pathing = false, wx = tx, wz = tz;
         // (the flow field leads to this browser's hero: a foe after a partner goes straight in and steers round cover)
-        if (tgtPos && !t.fly && !e.converted && !onAlly && !remote){
+        if (tgtPos && !t.fly && !e.converted && !onAlly && !remote && !tgtCiv){
           if ((e.navT = (e.navT || 0) - dt) <= 0){
             e.navT = NAV_EVERY * rand(0.8, 1.2);
             e.navDirect = navSteer(g.position.x, g.position.z, tgtPos.x, tgtPos.z, navClass(er), steer);
@@ -269,6 +282,8 @@ export function updateEnemies(dt){
             if (Math.abs(threatPerp) < threatRad * 0.5 && threatOd < threatRad + 1.6){ mx -= hx * 0.7; mz -= hz * 0.7; }
           } else e.avoid = null;
         }
+        // THE PEOPLE BEING GOT OUT — a grounded foe gives them room and goes round them, never through (game/civilians.js)
+        if (!t.fly && CIV.list.length){ civSteer(e, g.position.x, g.position.z, mx, mz, er, civNudge); mx += civNudge.x; mz += civNudge.z; }
         // JET TROOPER ORBIT — strafe perpendicular to the player so it's a moving aerial threat, not a turret
         if (t.fly){
           if (e.orbit === undefined) e.orbit = Math.random() < 0.5 ? 1 : -1;
@@ -315,7 +330,7 @@ export function updateEnemies(dt){
           // DISARMED (Shii-Cho's Disarming Slash, player/jedi/combat.js): its blaster is on the ground for a few seconds
           else if (t.ranged && !e.converted && e.disarmUntil > G.gt){ /* empty-handed — keeps its distance */ }
           // RANGED SLOTS: only a few troopers aim at once, so a firing line staggers its shots
-          else if (t.ranged && !e.converted && !onAlly && !rangedSlotFree(t, hero)){ /* hold — sidestep and wait */ }
+          else if (t.ranged && !e.converted && !onAlly && !tgtCiv && !rangedSlotFree(t, hero)){ /* hold — sidestep and wait */ }
           // the Warbringer out of breath can't swing: it stands blowing until it has recovered (duel.js)
           else if (e.winded && !e.converted){ /* catching its breath */ }
           // MELEE WINDUP STAGGER: hostile (non-converted) melee foes share a cooldown so a crowd doesn't all coil &
@@ -331,6 +346,10 @@ export function updateEnemies(dt){
             if (onAlly) e.plan = null;   // a plain blow or a plain shot at a squadmate
             else if (e.dp && !e.dp.brace && !t.ranged && !e.converted) planAttack(e);   // (the Warbringer keeps the brute's held overhead: tactics.js)
             else { e.plan = null; if (t.ranged) planShot(e); else planTroopMelee(e); }
+            // a shot at the people being got out: one bolt, a slow wind-up and a line painted all the way to them, so
+            // there's time to get in its way or put it down (game/civilians.js)
+            e.civShot = !!tgtCiv;
+            if (tgtCiv){ e.burstPlan = 0; e.troop = null; e.wu = e.st = e.wu * CIV_TUNE.hunt.tell; if (CIV.onAim) CIV.onAim(e, tgtCiv); }
             if (!t.ranged && !e.converted && !onAlly) G.lastMeleeWindupT = G.gt;
           }
           // else: another melee foe just committed to a swing — hold in chase this frame and retry next frame
@@ -387,7 +406,7 @@ export function updateEnemies(dt){
         if (coil > 0.6 && Math.random() < (heavy ? 0.5 : 0.32))
           burst(V3(g.position.x + tx*0.3, g.position.y + (heavy?3.0:2.3), g.position.z + tz*0.3), heavy ? 0xff5522 : t.eye, 1, 3, 4, 0.7);
         // MARKSMAN — paint a laser sight on the player that brightens to white as the shot charges (the dodge tell)
-        if (t.sniper && tgtPos)
+        if ((t.sniper || e.civShot) && tgtPos)
           updateAimLine(e, V3(g.position.x, g.position.y+1.4, g.position.z), V3(tgtPos.x, tgtPos.y+1.4, tgtPos.z), wk);
         if (e.st <= 0){
           if (t.ranged){
@@ -399,7 +418,7 @@ export function updateEnemies(dt){
               if (g.userData.weaponArm) g.userData.weaponArm.rotation.x = 0.5;   // the arm follows through
             } else if (tgtPos){
               fireAt(e, tgtPos, 0);
-              if (e.burstPlan){ e.burstLeft = e.burstPlan; e.burstT = TROOP_FIRE.burstGap; }   // a double-tap: one more behind it
+              if (e.burstPlan && !e.civShot){ e.burstLeft = e.burstPlan; e.burstT = TROOP_FIRE.burstGap; }   // a double-tap: one more behind it
             }
             e.volley = false;
             if (!e.dead){ e.state = 'recover'; e.st = t.recover; }
@@ -679,6 +698,7 @@ export function updateEnemies(dt){
     // flying). climb=true lets them MOUNT shallow steps (the temple dais) so they pursue you up it; the support
     // height is then applied so they STAND on the surface underfoot (flat floor = 0). Tall sheer crates still block.
     if (!e.dead && !e.t.fly && e.state !== 'ragdoll' && e.state !== 'knockdown' && e.state !== 'fade' && e.state !== 'spawn' && e.state !== 'leap' && e.state !== 'grasped'){
+      if (CIV.list.length) civSeparate(g, 0.7 * (e.t.scale || 1));   // (never through someone being got out: game/civilians.js)
       const sup = collideSolids(g.position, 0.7 * (e.t.scale || 1), true);
       g.position.y = sup + (e.flipY || 0);   // (the stride's bob is the legs': enemies/gait.js; an Ataru master's backflip lifts it: duel.js)
     }

@@ -58,6 +58,7 @@ import { punchIn } from '../engine/camera.js';
 import { scarBody, markHit } from '../enemies/scars.js';
 import { SCARS as CUTS } from '../enemies/kit.js';
 import { puppetOf } from '../net/foes.js';
+import { CIV, CIV_TUNE } from './civilians.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -123,7 +124,8 @@ function clearMission(){
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
   for (const p of M.props) scene.remove(p);
-  M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1; M.pn = null; M.pnSeen = undefined;
+  M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1; M.pn = null; M.pnSeen = undefined; M.gk = null;
+  CIV.list.length = 0; CIV.onAim = null;
   endTwist(true);
   stopBattleFx();
   if (M.on) hidePanel();
@@ -197,7 +199,7 @@ const KINDS = {
     cue: 'defend',
     music: (o, s) => ({ urgency: s.prog / o.time, danger: s.rate === 0, focus: s.inZone }),
     begin(o, s){
-      s.prog = 0; s.pulse = 0; s.pulseT = 2.5; s.stage = 0;
+      s.prog = 0; s.pulse = 0; CIV.onAim = o.evacuees ? (e) => huntAim(o, s, e) : null; s.pulseT = 2.5; s.stage = 0;
       if (o.twist && o.twist.zones) o.at = o.twist.zones[0];   // a hold that falls back (the heat twist): its first stand (o is this run's copy)
       M.markers.push(s.zone = makeBeacon(o.at[0], o.at[1], 0, heroKey(MISSION_COLOR), o.r / 0.9));
       if (o.evacuees) beginEvacuees(evac(o), s);
@@ -210,7 +212,13 @@ const KINDS = {
         s.pulseT = o.every[officers ? 0 : 1];
         if (alive < o.cap){
           const goal = { pos: V3(o.at[0], 0, o.at[1]), aggro: o.aggro };   // they come for the ramp, not for you
-          queueGroup(o.pulses[s.pulse++ % o.pulses.length], { at: o.from && (() => arcSpawn(o.from[0], o.from[1])), then: e => { if (e) e.goal = goal; } });
+          const wave = ++s.pulse;
+          queueGroup(o.pulses[(wave - 1) % o.pulses.length], { at: o.from && (() => arcSpawn(o.from[0], o.from[1])), then: e => {
+            if (!e) return;
+            e.goal = goal;
+            // from the second wave on, one rifle at a time is sent at the people being got out (game/civilians.js)
+            if (s.kids && wave >= CIV_TUNE.hunt.every && e.t.ranged && !e.t.grenade && !enemies.some(f => f !== e && !f.dead && !f.converted && f.civHunt)) e.civHunt = true;
+          } });
           if (s.pulse > 1) showBanner('', officers ? 'AN OFFICER CALLS IN REINFORCEMENTS' : 'REINFORCEMENTS', 1.4);
         }
       }
@@ -220,6 +228,9 @@ const KINDS = {
       let rate = inZone ? 1 : mates ? o.squadRate * (foes ? 0.5 : 1) : foes ? 0 : o.awayRate;
       const gate = o.twist && twistGate(o.at[0], o.at[1], twistCtx);   // its twist can hold it up (game/twists.js)
       if (gate) rate *= gate.rate;
+      // one of the line is down (shot, or caught in a blast): nobody gets aboard until they're up again
+      const hurt = s.kids ? s.kids.filter(k => k.down > 0).length : 0;
+      if (hurt) rate = 0;
       s.prog += dt * rate; s.rate = rate; s.inZone = inZone;
       if (s.kids) updateEvacuees(evac(o), s, dt, Math.min(1, s.prog / o.time), rate);
       setMarkerColor(s.zone, rate === 0 ? RED : heroKey(MISSION_COLOR));
@@ -228,10 +239,11 @@ const KINDS = {
       const total = alive ? ' · ' + alive + ' HOSTILE' + (alive === 1 ? '' : 'S') : '';
       const who = o.evacuees ? heroKey(evac(o).name) + ' ' + (evac(o).verb || 'ABOARD') + ' ' + s.aboard + ' / ' + evac(o).count : (o.holding || 'HOLDING');
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: s.prog / o.time,
-        status: (gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
+        status: (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
                : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || 'RAMP UNGUARDED') + ' ' + mmss(o.time - s.prog)) + total,
         warn: rate === 0 || !!(gate && gate.warn) });
       if (s.prog >= o.time){
+        for (const e of enemies) e.civHunt = false;
         showBanner(o.doneLine || 'TRANSPORT AWAY', o.doneLine ? (o.doneSub || '') : 'Its guns clear the field as it climbs.', 2.4);
         G.shake = Math.max(G.shake, 0.6);
         if (shared.refugeShip) liftOff();
@@ -618,34 +630,97 @@ function pathPoint(P, d){
     d -= len;
   }
 }
+// the hold's evacuees are people on the field (game/civilians.js): the foes go round them, a bolt or blast meant for
+// you that meets one of them puts them down, and the line can't move on until they're up
+const EVAC_HIT = {
+  down: 2.6,       // seconds a hit one is on the ground (half that with a hero beside them)
+  setback: 2.0,    // seconds of the hold's progress each hit costs (never below who's already aboard)
+  gap: 0.8,        // a second hit this soon after the last costs no more ground (a burst, a blast through the line)
+  shoveBack: 1.4,  // m/s a pushed-aside evacuee steps back into the line
+};
 function beginEvacuees(ev, s){
   s.path = ev.path; s.len = 0;
   for (let i = 0; i < ev.path.length - 1; i++) s.len += Math.hypot(ev.path[i+1][0] - ev.path[i][0], ev.path[i+1][1] - ev.path[i][1]);
   s.aboard = 0;
   s.kids = [];
+  const kind = ev.kind || (isMando() ? 'foundling' : 'youngling'), grown = kind === 'prisoner' || kind === 'archivist';
   for (let i = 0; i < ev.count; i++){
-    const m = makeEvacuee(ev.kind || (isMando() ? 'foundling' : 'youngling'), i);
+    const m = makeEvacuee(kind, i);
+    m.rotation.order = 'YXZ';   // (a lean or a fall tips them along the way they face)
     scene.add(m); M.props.push(m);
     // the head of the line is already at the ramp; the rest queue back toward the shelter door
-    s.kids.push({ m, d: s.len - i * ev.spacing - ev.spacing, ph: Math.random() * 6 });
+    const k = { m, d: s.len - i * ev.spacing - ev.spacing, ph: Math.random() * 6,
+                r: grown ? 0.34 : 0.32, h: grown ? 1.95 : 1.6, down: 0, fall: 0, fy: 0, ox: 0, oz: 0, vx: 0, vz: 0, flinch: 0 };
+    k.shove = (dx, dz) => { k.ox += dx; k.oz += dz; k.flinch = 0.5; };
+    k.hit = (by, how) => hitEvacuee(s, k, by, how);
+    s.kids.push(k);
   }
+}
+const hurtName = (ev) => { const n = heroKey(ev.name) || 'EVACUEES'; return n === 'CHILDREN' ? 'A CHILD' : (/^[AEIOU]/.test(n) ? 'AN ' : 'A ') + n.replace(/S$/, ''); };
+function hurtStatus(ev, n){ return (n > 1 ? n + ' ' + (heroKey(ev.name) || 'EVACUEES') + ' ARE' : hurtName(ev) + ' IS') + ' DOWN · STAND BY THEM'; }
+// a hostile bolt or blast found one of the line (game/civilians.js): down they go, and the hold loses ground
+function hitEvacuee(s, k, by, how){
+  if (k.down > 0 || !M.o || !M.o.evacuees) return;
+  const o = M.o, ev = evac(o), p = k.m.position;
+  k.down = EVAC_HIT.down; k.flinch = 0;
+  const dir = by && by.dir ? by.dir : null;
+  k.fy = dir ? Math.atan2(dir.x, dir.z) : how === 'blast' && by && by.ball ? Math.atan2(p.x - by.ball.position.x, p.z - by.ball.position.z) : k.m.rotation.y + Math.PI;
+  if (G.gt - (s.hitAt ?? -9) > EVAC_HIT.gap) s.prog = Math.max(s.aboard / ev.count * o.time, s.prog - EVAC_HIT.setback);
+  s.hitAt = G.gt;
+  floater(V3(p.x, k.h + 0.4, p.z), hurtName(ev) + ' IS HIT', '#ff8a7a');
+  burst(V3(p.x, k.h * 0.6, p.z), 0xff6a4a, 8, 4, 3, 0.7);
+  sfx(520, 0.16, 'triangle', 0.05, 300);
+  if (!s.hitTold){ s.hitTold = true; showBanner(hurtName(ev) + ' IS DOWN', 'The line stops until they are up. Keep them out of the line of fire.', 3, { kicker: 'THE LINE STOPS' }); }
+}
+// a trooper sent at the line has started its shot (enemies/ai.js): the first time, say so
+function huntAim(o, s, e){
+  if (e.civTold) return;
+  e.civTold = true;
+  const p = e.group.position, n = heroKey(evac(o).name) || 'EVACUEES';
+  floater(V3(p.x, 2.6, p.z), 'AIMING AT THE ' + n, '#ff6a4a');
+  if (!s.huntTold){ s.huntTold = true; showBanner('THEY ARE SHOOTING AT THE ' + n, 'Follow the red line: get in its way, or drop the shooter.', 3, { kicker: 'PROTECT THE LINE' }); }
 }
 function updateEvacuees(ev, s, dt, frac, rate){
   const boarded = frac * ev.count;
   s.aboard = Math.min(ev.count, Math.floor(boarded + 1e-6));
   s.kids.forEach((k, i) => {
-    const want = s.len - (i - boarded) * ev.spacing - ev.spacing;   // where this one's place in the line has moved to
-    const step = Math.min(Math.max(0, want - k.d), dt * ev.speed);
-    k.d += step;
-    const out = k.d > 0 && k.d < s.len;
-    k.m.visible = out;
-    if (!out) return;
-    const [x, z, yaw] = pathPoint(s.path, k.d);
-    const walking = step > dt * 0.1;
-    k.ph += dt * (walking ? 11 : rate === 0 ? 20 : 2);
-    k.m.position.set(x, (walking ? Math.abs(Math.sin(k.ph)) * 0.06 : 0) + (ev.ramp !== false && k.d > s.len - 3 ? (k.d - (s.len - 3)) * 0.33 : 0), z);   // (up the ramp at the end)
-    k.m.rotation.set(rate === 0 && !walking ? 0.25 : 0, yaw, rate === 0 && !walking ? Math.sin(k.ph) * 0.05 : 0);   // huddled and trembling while the ramp is overrun
+    const ahead = s.kids[i - 1];
+    if (k.down > 0){
+      // on the ground: up on their own in a moment, sooner with a hero beside them
+      const p = k.m.position;
+      k.down -= dt * (heroIn(p.x, p.z, 2.4) ? 2 : 1);
+      if (k.down <= 0){ k.down = 0; floater(V3(p.x, k.h + 0.3, p.z), 'UP', '#7bffae'); }
+    } else {
+      let want = s.len - (i - boarded) * ev.spacing - ev.spacing;   // where this one's place in the line has moved to
+      if (ahead && ahead.d < s.len) want = Math.min(want, ahead.d - ev.spacing * 0.75);   // (never through the one in front)
+      const step = Math.min(Math.max(0, want - k.d), dt * ev.speed);
+      k.d += step; k.step = step;
+    }
+    // pushed aside by a foe going past: back into the line at a walk
+    const ol = Math.hypot(k.ox, k.oz);
+    if (ol > 1.6){ k.ox *= 1.6 / ol; k.oz *= 1.6 / ol; }
+    if (ol > 1e-3 && !(k.down > 0)){ const back = Math.min(ol, dt * EVAC_HIT.shoveBack) / ol; k.ox -= k.ox * back; k.oz -= k.oz * back; }
+    if (k.flinch > 0) k.flinch -= dt;
   });
+  poseEvacuees(ev, s, dt, rate);
+}
+// set each one where they stand, walking, cowering or down (the host's and a co-op guest's picture alike)
+function poseEvacuees(ev, s, dt, rate){
+  for (const k of s.kids){
+    const out = k.d > 0 && k.d < s.len;
+    const px = k.m.position.x, pz = k.m.position.z;
+    k.m.visible = out;
+    if (!out){ k.vx = k.vz = 0; continue; }
+    const [x0, z0, yaw] = pathPoint(s.path, k.d), x = x0 + k.ox, z = z0 + k.oz;
+    const walking = (k.step || 0) > dt * 0.1 && !(k.down > 0);
+    k.fall += ((k.down > 0.4 ? 1 : 0) - k.fall) * Math.min(1, dt * (k.down > 0.4 ? 9 : 5));
+    k.ph += dt * (walking ? 11 : rate === 0 || k.flinch > 0 ? 20 : 2);
+    const cower = !walking && (rate === 0 || k.flinch > 0) && k.fall < 0.1;
+    k.m.position.set(x, (walking ? Math.abs(Math.sin(k.ph)) * 0.06 : 0) + (ev.ramp !== false && k.d > s.len - 3 ? (k.d - (s.len - 3)) * 0.33 : 0), z);   // (up the ramp at the end)
+    if (dt > 0){ k.vx = (x - px) / dt; k.vz = (z - pz) / dt; }
+    if (k.fall > 0.02) k.m.rotation.set(k.fall * 1.45, k.fy, 0);   // knocked flat, the way the shot was going
+    else k.m.rotation.set(cower ? 0.25 : 0, yaw, cower ? Math.sin(k.ph) * 0.05 : 0);   // huddled and trembling while the ramp is overrun (or a foe shoves past)
+  }
 }
 // the transport raises its ramp, climbs and is gone (the field is open where it stood)
 function liftOff(){
@@ -1187,7 +1262,17 @@ export function updateMission(dt){
   bannerTap.fn = hooks.mbanner;   // co-op: what this banner says, the guest's screen says too
   try { updateMissionHost(dt); } finally { bannerTap.fn = null; }
 }
+// who's on the field to be got out, this frame (game/civilians.js): the hold's line, and the escort (a twist adds its own)
+function listCivilians(){
+  CIV.list.length = 0;
+  if (M.o && M.o.kind === 'hold' && M.s && M.s.kids) for (const k of M.s.kids) CIV.list.push(k);
+  if (M.vip && M.vip.g.visible !== false){
+    if (!M.vipCiv || M.vipCiv.m !== M.vip.g) M.vipCiv = { m: M.vip.g, r: 0.45 * (M.vip.def.scale || 1), h: 2.2 * (M.vip.def.scale || 1) };   // (room only: its own fire rules are the escort's)
+    CIV.list.push(M.vipCiv);
+  }
+}
 function updateMissionHost(dt){
+  listCivilians();
   M.fx = M.fx.filter(f => f(dt));
   if (M.pn && (M.pnT -= dt) <= 0) M.pn = null;   // (the guest only needs the punch-in while it's happening)
   updateBattleFx(dt);
@@ -1300,8 +1385,33 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
+}
+// the hold's line as the guest draws it: per evacuee, how far along, pushed aside how far, and down which way (99: up)
+function evacSnap(){
+  const s = M.s;
+  if (!M.o || M.o.kind !== 'hold' || !s || !s.kids) return undefined;
+  const out = [];
+  for (const k of s.kids) out.push(r2(k.d), r2(k.ox), r2(k.oz), k.down > 0.4 ? r2(k.fy) : 99, (k.step || 0) > 0 ? 1 : 0);
+  return out;
+}
+// guest: the line the host is getting out, drawn from its snapshot (built when it first arrives, gone when it stops)
+function guestEvacuees(ms, dt){
+  const w = ms && ms.ev, o = M.o;
+  if (M.gk && (!w || M.gk.o !== o)){ for (const k of M.gk.kids) scene.remove(k.m); const gone = new Set(M.gk.kids.map(k => k.m)); M.props = M.props.filter(p => !gone.has(p)); M.gk = null; }
+  if (!w || !o || !o.evacuees) return;
+  const ev = evac(o);
+  if (!M.gk){ M.gk = { o }; beginEvacuees(ev, M.gk); for (let i = 0; i < M.gk.kids.length; i++) if (i * 5 < w.length) M.gk.kids[i].d = w[i * 5]; }
+  const g = M.gk, kk = 1 - Math.exp(-12 * dt);
+  g.kids.forEach((k, i) => {
+    const j = i * 5;
+    if (j + 4 >= w.length) return;
+    k.d += (w[j] - k.d) * kk; k.ox += (w[j+1] - k.ox) * kk; k.oz += (w[j+2] - k.oz) * kk;
+    k.down = w[j+3] < 90 ? 1 : 0; if (k.down) k.fy = w[j+3];
+    k.step = w[j+4] ? dt : 0;
+  });
+  poseEvacuees(ev, g, dt, ms.hud && ms.hud[2] ? 0 : 1);
 }
 // guest: follow the host's mission
 export function coopMissionSync(ms){
@@ -1310,7 +1420,7 @@ export function coopMissionSync(ms){
     for (const m of M.markers) removeMarker(m);
     M.markers = [];
     for (const p of M.props) scene.remove(p);
-    M.props = []; M.quarry = null; M.vip = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
+    M.props = []; M.quarry = null; M.vip = null; M.gk = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
     endTwist(true);
   }
   if (ms.i !== M.i){
@@ -1351,6 +1461,7 @@ function updateMissionGuest(dt){
   const ms = M.net;
   guestCtx.frac = ms && ms.hud && ms.hud[1] >= 0 ? ms.hud[1] : guestCtx.frac;
   updateTwist(dt, guestCtx);
+  guestEvacuees(ms, dt);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);
   const k = 1 - Math.exp(-14 * dt), ang = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));

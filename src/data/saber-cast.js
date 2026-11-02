@@ -49,6 +49,9 @@ export const CAST = {
                    colors: { tunic: 0xa49c8c, tabard: 0x5a5448, under: 0x3a3832, trim: 0x2e8a62 } },      // straight out of a prison cell
   'THE KNIGHT':  { side: 'jedi', build: 'f', w: 1.02, height: 1.02, face: { skin: 0xc49a7c, hair: 0x8a8478, style: 'bun', scar: true, lip: 0x9a6458 },
                    armour: 'general', cloak: true, colors: { cloak: 0x6a5642, trim: 0xb8962e } },        // General Rhenna Kast, in Hoth gear
+  // the ARC trooper's Hoth chapter: a Jedi fighting beside the squad (a squadmate whose def names this look: data/allies.js)
+  'MASTER IRO':  { side: 'jedi', build: 'm', w: 1.02, face: { skin: 0xb07a56, hair: 0x2a2018, style: 'topknot', beard: 'goatee' },
+                   cloak: true, colors: { cloak: 0x5a4632, trim: 0x2e8a52 }, blade: 0x3aff8c },
   // ---- the Empire's blades ----
   'THE INQUISITOR':   { side: 'inq', build: 'f', face: { ...ILSA_FACE, sith: true }, mask: 'half', armour: 'inq', cloak: true },   // Ilsa, masked
   'THE SEVENTH BLADE': { side: 'inq', build: 'f', face: ILSA_FACE, armour: 'inq', cloak: true },     // Ilsa again, the mask gone

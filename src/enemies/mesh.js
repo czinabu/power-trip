@@ -669,6 +669,7 @@ const HOLDS = {
    face, so a bare-headed trooper is bare-headed for both players */
 const seeded = n => { let x = (n * 2654435761) >>> 0; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; }; };
 export function buildEnemyMesh(t, o = {}){
+  if (o.look == null && t.look) o = { ...o, look: t.look };   // (a squadmate's def can name its look: allies/squad.js)
   const rnd = o.seed != null ? seeded(o.seed + 1) : Math.random;
   const v = o.variant ?? pickVariant(t, rnd);
   const faces = facesOf(t, v), fi = o.face ?? faces[Math.floor(rnd() * faces.length)];

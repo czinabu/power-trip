@@ -31,6 +31,7 @@ export const WEAPON_MODELS = {
       blade.position.y = 0.95;
       const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 1.6, 8), glowMat(0x33bbff, 0.45));
       glow.position.y = 0.95;
+      glow.userData.saberTrail = { hilt: -1 };   // its streak (fx/trail.js) follows this glow, emitter end down
       const light = new THREE.PointLight(0x44bbff, SABER_LIGHT * glow.light, 9); light.position.y = 0.9;
       root.add(blade, glow, light);
       /* THE SABER STAFF (data/forms.js staff): the hilt runs on past the pommel to a second emitter, STAFF.end below the
@@ -49,6 +50,7 @@ export const WEAPON_MODELS = {
       blade2.rotation.x = glow2.rotation.x = Math.PI;
       blade.add(blade2); glow.add(glow2);
       blade2.visible = glow2.visible = false;
+      glow2.userData.saberTrail = { hilt: -1 };   // flipped, so its local -y is still the end at its emitter
       const staffParts = { hilt: staff, blade2, glow2 };
       root.userData.staffParts = staffParts;
       fitStaffBlades(blade, glow, staffParts, 1);
@@ -208,6 +210,8 @@ export const WEAPON_MODELS = {
       const blade = new THREE.Mesh(plate([[-0.035,0],[0.035,0],[0.04,1.1],[0,1.2],[-0.04,1.1]], 0.02, 0), new THREE.MeshBasicMaterial({ color: 0x07060c }));
       blade.position.y = 0.12;
       const edge = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.24, 0.012), glowMat(0xe7dcff, 0.9)); edge.position.y = 0.72;
+      edge.userData.saberTrail = { hilt: -1, dark: 1 };   // the ink streak (fx/trail.js)
+      g.userData.trailAlways = true;   // thrown (attached to the scene on its own), it streaks the whole flight
       const glow = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.3, 0.02), glowMat(0x9a5cff, 0.4)); glow.position.y = 0.72;
       const light = new THREE.PointLight(0x9a6cff, DARK_LIGHT * glow.light, 7); light.position.y = 0.7;
       g.add(glow, edge, blade, light);

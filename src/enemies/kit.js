@@ -99,6 +99,7 @@ function makeBuilder(colors){
       m.position.set(...p); m.rotation.set(...r);
       if (o.scale) Array.isArray(o.scale) ? m.scale.set(...o.scale) : m.scale.setScalar(o.scale);
       m.userData.live = { tag: o.tag, unique: !!o.unique };
+      if (o.trail) m.userData.saberTrail = o.trail;   // a lightsaber's glow: it leaves a streak (fx/trail.js)
       parent.add(m);
       return m;
     },

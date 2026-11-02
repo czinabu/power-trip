@@ -225,6 +225,7 @@ const thrownBlade = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 1.7, 
 const thrownGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 1.75, 8),
   new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
 thrownSaber.add(thrownBlade, thrownGlow);
+thrownGlow.userData.saberTrail = { hilt: -1 }; thrownSaber.userData.trailAlways = true;   // a streak the whole flight (fx/trail.js)
 thrownSaber.visible = false;
 scene.add(thrownSaber);
 export function hideThrownSaber(){ thrownSaber.visible = false; _throwLight.intensity = 0; }

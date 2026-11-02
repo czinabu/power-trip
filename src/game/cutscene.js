@@ -234,9 +234,13 @@ function calmHero(){
   player.flaming = false; if (player.flameLight) player.flameLight.intensity = 0;
 }
 const showBolts = (on) => { for (const b of bolts) if (b.mesh) b.mesh.visible = on; };
+// can a scene start now (none up, in play, not seen this visit)? A caller asks before it builds anyone for the set
+const canStart = (key) => !C.on && G.mode === 'play' && !(key && seen.has(key));
+// a scene that won't play: the figures built for it leave the field (a stand-in left behind would stand there for good,
+// beside the real foe: the duel foe's double after a retry, which keeps the duel's intro marked as seen)
+function discard(actors){ for (const a of actors || []){ if (a.kind) dropFigure(a); else if (a.own && a.g) scene.remove(a.g); } }
 function start(opts){
-  if (C.on || G.mode !== 'play') return false;
-  if (opts.key && seen.has(opts.key)) return false;
+  if (!canStart(opts.key)){ discard(opts.actors); return false; }
   if (opts.key) seen.add(opts.key);
   const pp = playerPos();
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
@@ -749,15 +753,15 @@ export function playOpening(id, title, own){
                beat(ONE.back, { kind: 'back' }));
   } else shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
   C.building = null;
-  const ok = start({ key: 'open:' + id, shots, actors, face: first, one });
-  if (!ok){ for (const a of actors) if (a.kind) dropFigure(a); }
-  else if (talk.length) G.talkStaged = id;
+  const ok = start({ key: 'open:' + id, shots, actors, face: first, one });   // (if it can't, start drops the cast it was given)
+  if (ok && talk.length) G.talkStaged = id;
   return ok;
 }
 
 // a mission duel's entrance (game/mission.js, before its foe steps in). spec: { mid, foe, name, kicker, tint, scale,
 // at: [x, z], line, quarry } as the host's hero sees the foe. Returns false when no scene plays (seen, or one is up).
 export function playDuelIntro(spec, share = true){
+  if (!canStart('duel:' + spec.mid)) return false;   // (a retry: seen already, so no stand-in is built for it)
   const jedi = G.chapter >= 0 && storyHero() === 'jedi' && JEDI_DUELS[spec.mid];   // (the Jedi's story has its own words for some)
   const lines = ((jedi && storyWords(jedi)) || (DUELS[spec.mid] && pick(DUELS[spec.mid])) || (spec.line ? [[null, spec.line]] : [])).slice();
   const actors = [];

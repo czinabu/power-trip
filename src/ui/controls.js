@@ -40,6 +40,7 @@ const CONTROLS = {
       ['H', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): on me, hold here, move there, attack target, take cover, grenade, spread / stack, get them up · point and let go · 1-4 while it is open orders one squadmate · stand by a downed squadmate to get them up · while one stands, a killing blow downs you instead and they come to get you up', 1],
       ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
+      ['HOLD O', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
       ['RMB + SPACE', 'Evasive leap', 'Jump while blocking to vault clear · in a fight it spends a dash charge and is only safe at its start', 1],
     ]},
     { title: 'FORCE POWERS', rows: [
@@ -82,6 +83,7 @@ const CONTROLS = {
       ['H', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): on me, hold here, move there, attack target, take cover, grenade, spread / stack, get them up · point and let go · 1-4 while it is open orders one squadmate · stand by a downed squadmate to get them up · while one stands, a killing blow downs you instead and they come to get you up', 1],
       ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
+      ['HOLD O', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
       ['4', 'Holster', 'Take a fighting stance with fists and gadgets: LMB / E swing hook, hook, uppercut, haymaker, hold RMB for the gauntlet shield (LMB behind it cuts shield and blade), and gadget power refills faster · 4 or 1 / 2 / 3 draws', 1],
     ]},
     { title: 'GADGETS', rows: [
@@ -121,6 +123,7 @@ const CONTROLS = {
       ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['T', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
+      ['HOLD O', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
     ]},
   ],
 };

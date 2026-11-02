@@ -73,7 +73,8 @@ export const TROOPER_CHAPTERS = {
         [rival(MARSHAL, 'Eight years on a dock. Is this what you refused the order for, brother?'), 'That voice. The Marshal. Do not answer him. Hold the yard.'],
       ],
       clear: ['The yard is ours, for a moment.', say(VANT, 'Captain, Brisk is gone. They dragged him onto a speeder, toward the garrison block.'),
-              'Then that is where we are going.'],
+              'Then that is where we are going.',
+              'And brother: you ran that yard like a sergeant. Wear the green.'],   // (a promotion: game/wardrobe.js PROMOTIONS)
     } },
   archive: {
     title: 'THE KILL HOUSE', world: 'THE GARRISON BLOCK, VORRAN',
@@ -107,7 +108,8 @@ export const TROOPER_CHAPTERS = {
     lines: {
       duel: [rival('CAPTAIN VORN', 'The Marshal said you would come here. He said you always come back for the paperwork.')],
       clear: ['The files are ours, and they say what I was afraid they would.',
-              'Your chip did not fail, brother. Someone switched it off, the night before the order. Someone who wanted a few of us to say no.'],
+              'Your chip did not fail, brother. Someone switched it off, the night before the order. Someone who wanted a few of us to say no.',
+              'You got us through a dead ship without losing anyone. That is a lieutenant\'s work. Wear the blue.'],   // (a promotion)
     } },
   'trial-first': {
     title: 'BROTHERS IN ARMS', world: 'THE HALCYON, AFTER',
@@ -174,6 +176,7 @@ export const TROOPER_CHAPTERS = {
               [KAST, 'Because you three asked questions. Show me you still do.']] },
     lines: {
       clear: ['Kast lowers her blade, and laughs.', say(KAST, 'Someone else had the code, trooper. He used it the other way. Find out who switched the Marshal on, and you will find out who wants the order given again.'),
+              say(KAST, 'The Republic is gone, but I still hold a commission, and I am giving you one. Commander. Wear the yellow.'),   // (a promotion)
               'Hammer joins the squad. He held Kast\'s line for eight years. He says he is owed a better war.'],
     } },
   jakku: {

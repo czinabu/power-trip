@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { CAST } from '../data/cast.js';
 // the cast's own base look: a field-worn Mando in the Hunter helmet (the player's starting basics differ: data/customize.js)
-const CAST_BASE = { jedi: { wear: 'field' }, mando: { helmet: 'tvisor', wear: 'field' }, trooper: { wear: 'field' } };
+const CAST_BASE = { jedi: { wear: 'field' }, mando: { helmet: 'tvisor', wear: 'field' }, trooper: { wear: 'field', legion: 'blue' } };
 import { buildHeroModel } from '../player/model/index.js';
 import { MIRROR } from '../player/model/rig.js';
 import { stepCloth, settleCloth } from '../player/model/cloth.js';

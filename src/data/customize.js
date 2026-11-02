@@ -193,16 +193,18 @@ export const CUSTOMIZE = {
       { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'mustafar' },
       { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
     ] },
-    // the legion's colour: the pauldron, the visor paint, the knees and the bands
+    // the legion's colour: the pauldron, the visor paint, the knees and the bands. A plain trooper's are grey; each rank
+    // he earns brings its own (the Legends ranks: green sergeant, blue lieutenant, red captain, yellow commander), listed
+    // highest first so the newest rank's colour goes on by itself unless one is picked (game/wardrobe.js PROMOTIONS)
     { id: 'legion', label: 'LEGION', kind: 'color', options: [
-      { id: 'blue',   name: 'Legion blue',  set: pal({ mark: 0x2f7fd6 }) },
-      { id: 'orange', name: 'Gold-orange',  set: pal({ mark: 0xd8822a }), unlock: 'siege' },
-      { id: 'red',    name: 'Guard red',    set: pal({ mark: 0xb0302a }), unlock: 'archive' },
-      { id: 'yellow', name: 'Yellow',       set: pal({ mark: 0xd6b23a }), unlock: 'lothal' },
-      { id: 'green',  name: 'Jungle green', set: pal({ mark: 0x4a7a3a }), unlock: 'refuge' },
-      { id: 'grey',   name: 'Wolf grey',    set: pal({ mark: 0x8a949e }) },
-      { id: 'violet', name: 'Violet',       set: pal({ mark: 0x6a4a9a }), unlock: 'hoth' },
-      { id: 'black',  name: 'Black',        set: pal({ mark: 0x1f2126 }), unlock: 'chase' },
+      { id: 'yellow', name: 'Commander yellow', set: pal({ mark: 0xd6b23a }), unlock: 'trial-knight' },
+      { id: 'red',    name: 'Captain red',      set: pal({ mark: 0xb0302a }), unlock: 'trial-first' },
+      { id: 'blue',   name: 'Lieutenant blue',  set: pal({ mark: 0x2f7fd6 }), unlock: 'refuge' },
+      { id: 'green',  name: 'Sergeant green',   set: pal({ mark: 0x4a7a3a }), unlock: 'siege' },
+      { id: 'grey',   name: 'Trooper grey',     set: pal({ mark: 0x8a949e }) },
+      { id: 'orange', name: 'Gold-orange',      set: pal({ mark: 0xd8822a }), unlock: 'archive' },
+      { id: 'violet', name: 'Violet',           set: pal({ mark: 0x6a4a9a }), unlock: 'jakku' },
+      { id: 'black',  name: 'Black',            set: pal({ mark: 0x1f2126 }), unlock: 'chase' },
     ] },
     { id: 'plate', label: 'PLATES', kind: 'color', options: [
       { id: 'white',  name: 'White',   set: pal({ plate: 0xe8e8e3 }) },

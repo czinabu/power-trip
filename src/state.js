@@ -45,7 +45,7 @@ export const G = {
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)
   missionForms: null,    // the three forms chosen before a mission (ui/forms-ui.js)
   strafeMode: 'toggle',  // player preference: ALT strafe is a 'toggle' (press on, press off) or a 'hold' (player/strafe.js)
-  swingMarker: true,    // player preference: the arc on the floor where the Jedi's next cut lands (fx/swingmark.js); off for a challenge
+  swingMarker: true,    // player preference: the slash on a foe where the Jedi's next cut lands on its body (fx/swingmark.js); off for a challenge
   swingMirror: false,   // player preference: flips which way strafe-L/R directional cuts sweep
   cutMouse: false,       // player preference: a mouse flick just before a cut picks its angle (off by default: the keys do)
   mouseSens: 1,          // player preference: mouse look sensitivity multiplier

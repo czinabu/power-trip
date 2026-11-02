@@ -257,7 +257,7 @@ export function updateHud(){
     // the centre dot turns gold over a foe: that's who a power aimed now would reach, in the air or on the ground (player/aim.js)
     const xh = $('xh');
     if (xh){ const on = G.mode === 'play' && !player.lockTarget && (crosshairPoint(0, 0), !!lastAim.target); xh.classList.toggle('on', on);
-      // with the SWING MARKER up the floor shows the cut (fx/swingmark.js): the free-aim dot steps back to a faint point,
+      // with the SWING MARKER up a foe shows the cut (fx/swingmark.js): the free-aim dot steps back to a faint point,
       // and comes up for what it aims (a foe under it for a power, RMB held for the throw, the saber on the belt)
       xh.classList.toggle('quiet', !on && swingMarkerOn() && !player.blockHeld && !player.holstered); }
   }

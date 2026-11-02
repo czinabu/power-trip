@@ -186,7 +186,7 @@ function tick(){
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
-  updateSwingMarker(rawDt);   // the Jedi's swing marker: where the next cut lands, on the floor (fx/swingmark.js)
+  updateSwingMarker(rawDt);   // the Jedi's swing marker: where the next cut lands on a foe's body (fx/swingmark.js)
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
   // cutscene: frozen, they'd hang in its shots as a still of the last action beat
   const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;

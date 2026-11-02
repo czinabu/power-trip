@@ -576,9 +576,13 @@ body.has-checklist #waveinfo{display:none}
 #basics{padding:4px 8px;border-radius:var(--r-chip);background:rgba(4,10,20,.5)}
 #squadhud{padding:7px 9px;border-radius:var(--r-chip);background:linear-gradient(90deg,rgba(4,10,20,.6),rgba(4,10,20,.15))}
 /* the mission voice at the bottom (#tutor.drill) stays clear of the action bar on the right: narrower, and on screens
-   too narrow for the two to sit side by side it rides just above the bar's top row */
+   too narrow for the two to sit side by side it rides just above the bar's top row. The HUD stage (ui/hud-stage.js)
+   measures that each beat and sets the card's and the comms strip's height as one column; these are only where they
+   start, before its first measure */
 #tutor.drill{width:min(560px,calc(100vw - 32px))}
 @media (max-width:1500px){ #tutor.drill{bottom:178px} }
+/* a closing card (Chapter / Mission complete) has the stage: the form hint by the action bar stays down under it */
+body.stage-card #stancesyn{opacity:0 !important;transition:opacity .2s}
 /* the vitals and the XP line sit on the floor of the shot, which is often the brightest sand or snow in it */
 #status{padding:8px 10px 9px;margin:-8px -10px;border-radius:var(--r-chip);background:linear-gradient(90deg,rgba(4,10,20,.62),rgba(4,10,20,.3) 75%,rgba(4,10,20,0))}
 .barlabel,#waveinfo .wi-l{color:#c4dbec}

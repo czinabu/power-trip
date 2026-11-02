@@ -110,6 +110,7 @@ import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrd
 import { updateWheel, wheelOpen } from './allies/wheel.js';
 import { downed } from './game/revive.js';
 import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/story.js';
+import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
@@ -179,6 +180,7 @@ function tick(){
   updateSquadHud();
   renderObjectiveView();   // HOLD O (a pad: LB + D-pad right): the objective, its step and the progress (ui/objective-view.js)
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
+  updateHudStage(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt, G.mode === 'play');   // the words on the lower middle keep one column and take turns (ui/hud-stage.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run

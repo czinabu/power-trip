@@ -373,3 +373,107 @@ export function navClearance(x, z){
 }
 
 export const NAV = nav;   // debug handle (window.GAME.nav)
+
+/* ============================================================
+   ROUTES TO ANY SPOT — the flow field only leads to the player; a squadmate making for its own spot (a formation
+   slot, a hold or cover spot, a MOVE THERE beacon) asks for a route there instead. A* over the same clearance grid,
+   capped at `budget` cells, then pulled taut into the few corners a body has to turn (allies/squad.js)
+   ============================================================ */
+const R = { g: null, came: null, seen: null, gen: 0, f: null, heap: null, n: 0 };
+function rPush(k){
+  const H = R.heap, f = R.f; let i = R.n++;
+  H[i] = k;
+  while (i > 0){ const p = (i - 1) >> 1; if (f[H[p]] <= f[k]) break; H[i] = H[p]; H[p] = k; i = p; }
+}
+function rPop(){
+  const H = R.heap, f = R.f, top = H[0], last = H[--R.n];
+  let i = 0;
+  if (R.n > 0){
+    H[0] = last;
+    for (;;){
+      const l = i*2 + 1, r = l + 1; let m = i;
+      if (l < R.n && f[H[l]] < f[H[m]]) m = l;
+      if (r < R.n && f[H[r]] < f[H[m]]) m = r;
+      if (m === i) break;
+      const tmp = H[i]; H[i] = H[m]; H[m] = tmp; i = m;
+    }
+  }
+  return top;
+}
+const cellOpen = (cls, k) => nav.clear[k] >= CLASSES[cls];
+/* is (x, z) open ground for a body of this class? */
+export const navOpenAt = (x, z, cls = 0) => !nav.n || openPoint(cls, x, z);
+/* the nearest open ground to (x, z) within `reach` m (itself when it is open), written into out; false if none */
+export function navNearestOpen(x, z, cls, reach, out){
+  if (!nav.n || openPoint(cls, x, z)){ out.x = x; out.z = z; return true; }
+  for (let r = 0.6; r <= reach; r += 0.6){
+    let best = -1, bx = 0, bz = 0;
+    const steps = Math.max(8, Math.round(r * 6));
+    for (let s = 0; s < steps; s++){
+      const a = s / steps * Math.PI * 2, px = x + Math.sin(a) * r, pz = z + Math.cos(a) * r;
+      if (!openPoint(cls, px, pz)) continue;
+      const c = nav.clear[cellOfZ(pz) * nav.n + cellOf(px)];
+      if (c > best){ best = c; bx = px; bz = pz; }
+    }
+    if (best >= 0){ out.x = bx; out.z = bz; return true; }
+  }
+  return false;
+}
+/* a walking route a → b: an array of [x, z] corners ending at b, or null (no grid, or no way there in budget) */
+export function navRoute(ax, az, bx, bz, cls = 0, budget = 5000){
+  if (!nav.n) return null;
+  const n = nav.n, N = n * nav.nz;
+  if (!R.g || R.g.length !== N){ R.g = new Float32Array(N); R.f = new Float32Array(N); R.came = new Int32Array(N); R.seen = new Uint32Array(N); R.heap = new Int32Array(N * 9 + 64); R.gen = 0; }
+  const gen = ++R.gen;
+  // start and goal: the nearest open cells (a body pressed to cover stands in a closed one)
+  const near = (x, z) => {
+    const ix = clamp(cellOf(x), 0, n - 1), iz = clamp(cellOfZ(z), 0, nav.nz - 1);
+    if (cellOpen(cls, iz*n + ix)) return iz*n + ix;
+    for (let r = 1; r <= 4; r++) for (let oz = -r; oz <= r; oz++) for (let ox = -r; ox <= r; ox++){
+      const jx = ix + ox, jz = iz + oz;
+      if (inGrid(jx, jz) && cellOpen(cls, jz*n + jx)) return jz*n + jx;
+    }
+    return -1;
+  };
+  const s = near(ax, az), t = near(bx, bz);
+  if (s < 0 || t < 0) return null;
+  const tx = t % n, tz = (t - tx) / n;
+  const h = k => { const ix = k % n, iz = (k - ix) / n, dx = Math.abs(ix - tx), dz = Math.abs(iz - tz); return CS * (Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz)); };
+  R.n = 0; R.g[s] = 0; R.f[s] = h(s); R.came[s] = -1; R.seen[s] = gen * 2; rPush(s);
+  let found = false, spent = 0;
+  while (R.n && spent++ < budget){
+    const k = rPop();
+    if (R.seen[k] === gen * 2 + 1) continue;   // already closed
+    R.seen[k] = gen * 2 + 1;
+    if (k === t){ found = true; break; }
+    const ix = k % n, iz = (k - ix) / n, gk = R.g[k];
+    for (let q = 0; q < 8; q++){
+      const ox = NBX[q], oz = NBZ[q], jx = ix + ox, jz = iz + oz;
+      if (jx < 0 || jz < 0 || jx >= n || jz >= nav.nz) continue;
+      const j = k + oz*n + ox;
+      if (!cellOpen(cls, j) || R.seen[j] === gen * 2 + 1) continue;
+      if (q >= 4 && (!cellOpen(cls, k + ox) || !cellOpen(cls, k + oz*n))) continue;   // no cutting a corner
+      let ng = gk + (q < 4 ? CS : CS * Math.SQRT2);
+      if (nav.hz[j] && nav.hotNow && nav.hotNow[nav.hz[j]]) ng += HOT_COST * CS;
+      if (R.seen[j] >= gen * 2 && ng >= R.g[j]) continue;
+      R.g[j] = ng; R.f[j] = ng + h(j); R.came[j] = k; R.seen[j] = gen * 2; rPush(j);
+    }
+  }
+  if (!found) return null;
+  // the cells back to the start, then pulled taut: keep only the corners a straight walk can't cut
+  const cells = [];
+  for (let k = t; k >= 0; k = R.came[k]) cells.push(k);
+  cells.reverse();
+  const pts = [];
+  let fx = ax, fz = az, i = 0;
+  while (i < cells.length - 1){
+    let j = cells.length - 1;
+    for (; j > i + 1; j--){ const c = cells[j], cx = c % n; if (navLineClear(fx, fz, centre(cx), centreZ((c - cx) / n), cls)) break; }
+    const c = cells[j], cx = c % n;
+    fx = centre(cx); fz = centreZ((c - cx) / n);
+    pts.push([fx, fz]);
+    i = j;
+  }
+  pts.push([bx, bz]);
+  return pts;
+}

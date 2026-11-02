@@ -27,7 +27,7 @@ import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
 import { damageEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from '../world/collision.js';
-import { navSteer, navClearance } from '../enemies/nav.js';
+import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
@@ -51,7 +51,8 @@ const guest = () => !!G.coopGuest && !!squadLink.order;
 // each squadmate carries its own order (a.ord: follow · hold · move · cover · revive) and may have a mark (a.mark: the foe
 // ATTACK TARGET put on it). The squad shares the formation (wide or tight), the grenade cooldown and fYaw, the
 // formation's facing, eased after yours
-const SQ = { formation: 'wide', moves: new Set(), grenadeAt: -99, fYaw: 0, fighting: false, saidYours: -99, tipped: false };
+const SQ = { formation: 'wide', moves: new Set(), grenadeAt: -99, fYaw: 0, fYawT: 0, fighting: false, saidYours: -99, tipped: false,
+             lv: { x: 0, z: 0 }, lp: null, pv: { x: 0, z: 0 }, pp: null, slotT: 0 };   // lv/pv: the hero's and the partner's own pace, measured
 const FOLLOW = { kind: 'follow' }, FOLLOW_PARTNER = { kind: 'follow', partner: true };
 const steer = { x: 0, z: 0 };
 const diffKey = () => (G.diff in SQUAD.dmg ? G.diff : 'knight');
@@ -97,7 +98,7 @@ export function addSquadmate(at, opts){
 }
 export function spawnSquad(n, at){
   for (let i = 0; i < n; i++) addSquadmate(at && { x: at[0] + (i % 2 ? 1.6 : -1.6) * (1 + (i >> 1)), z: at[1] - 1.2 * (i >> 1) });
-  SQ.fYaw = G.yaw;
+  SQ.fYaw = SQ.fYawT = G.yaw;
 }
 // the ARC trooper never fights alone: top its squad up to TROOPER.squadMin in every mode but the training grounds
 export function trooperSquad(){
@@ -111,8 +112,9 @@ export function regroupSquad(){
   allies.forEach((a, i) => {
     if (a.net) return;
     const s = findClearSpawn(pp.x - fx * 3 + (i % 2 ? 1.8 : -1.8) * (1 + (i >> 1)), pp.z - fz * 3, 0.9);
-    a.group.position.set(s.x, 0, s.z); a.mv.x = a.mv.z = 0; a.legs = null;
+    a.group.position.set(s.x, 0, s.z); a.mv.x = a.mv.z = 0; a.legs = null; a.rt = null; a.fSlot = null;
   });
+  SQ.fYaw = SQ.fYawT = G.yaw; SQ.lp = null;
   allies.forEach(a => { a.ord = FOLLOW; a.mark = null; a.flank = 0; });
 }
 // one particular squadmate goes (the battle setup taking back what it placed)
@@ -565,7 +567,35 @@ function findCover(a){
 // who a following squadmate forms up on: the hero here, or (told ON ME by them) the co-op partner while they're about
 function leader(a){
   const pt = a.ord.partner && squadLink.partner ? squadLink.partner(a.ord.partner === true ? 0 : a.ord.partner) : null;
-  return pt ? pt : { pos: playerPos(), yaw: SQ.fYaw };
+  return pt ? { pos: pt.pos, yaw: pt.yaw, vel: SQ.pv } : { pos: playerPos(), yaw: SQ.fYaw, vel: SQ.lv };
+}
+/* FORMATION SPOT i round a leader, on open ground: a spot that falls in a wall, a crate or off the arena's edge moves
+   to the nearest ground a squadmate can stand on (so nobody jogs into a wall beside you) */
+const _open = { x: 0, z: 0 };
+function slotAt(ld, i, out){
+  const sl = (SQ.formation === 'tight' ? SQUAD.tightSlots : SQUAD.slots)[i % SQUAD.slots.length], fx = Math.sin(ld.yaw), fz = Math.cos(ld.yaw);
+  const x = ld.pos.x - fz * sl[0] + fx * sl[1], z = ld.pos.z + fx * sl[0] + fz * sl[1];
+  if (navNearestOpen(x, z, 0, 4, _open)){ out.x = _open.x; out.z = _open.z; } else { out.x = x; out.z = z; }
+  return out;
+}
+/* who takes which spot: the arrangement that walks the squad the least, kept until another is clearly shorter. So a
+   turn on the spot mirrors the formation instead of sending everyone on a lap round you */
+const PERMS = (() => { const out = [], go = (pre, left) => { if (!left.length) out.push(pre); left.forEach((v, i) => go([...pre, v], left.filter((_, j) => j !== i))); }; go([], [0, 1, 2, 3]); return out; })();
+const _sp = [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }];
+function assignSlots(){
+  for (const partner of [false, true]){
+    const list = allies.filter(a => !a.net && standing(a) && a.ord.kind === 'follow' && !!a.ord.partner === partner);
+    if (!list.length) continue;
+    if (list.length > SQUAD.slots.length){ list.forEach((a, i) => { a.fSlot = i; }); continue; }   // a battle setup's big squad: in order
+    const ld = leader(list[0]);
+    for (let i = 0; i < SQUAD.slots.length; i++) slotAt(ld, i, _sp[i]);
+    const cost = perm => list.reduce((c, a, i) => { const q = _sp[perm[i]], p = a.group.position; return c + (q.x - p.x) ** 2 + (q.z - p.z) ** 2; }, 0);
+    let best = null, bc = 1e18;
+    for (const pm of PERMS){ const c = cost(pm); if (c < bc){ bc = c; best = pm; } }
+    const now = list.map(a => a.fSlot);
+    const valid = now.every(v => v != null && v < SQUAD.slots.length) && new Set(now).size === now.length;
+    if (!valid || cost(now) - bc > SQUAD.reslot) list.forEach((a, i) => { a.fSlot = best[i]; });
+  }
 }
 // the spot this squadmate is making for, and whether it's on revive duty
 function wantSpot(a, medic, dt){
@@ -606,8 +636,8 @@ function wantSpot(a, medic, dt){
     const s = SQUAD.holdSlots[(a.moveI || 0) % SQUAD.holdSlots.length], k = o.n > 1 ? SQUAD.moveSpread[SQ.formation] : 0;
     return { x: o.at.x + s[0] * k, z: o.at.z + s[1] * k, r: 1.0 };
   }
-  const ld = leader(a), sl = (SQ.formation === 'tight' ? SQUAD.tightSlots : SQUAD.slots)[i], fx = Math.sin(ld.yaw), fz = Math.cos(ld.yaw);
-  return { x: ld.pos.x - fz * sl[0] + fx * sl[1], z: ld.pos.z + fx * sl[0] + fz * sl[1], r: SQ.formation === 'tight' ? SQUAD.leash * 0.6 : SQUAD.leash };
+  const ld = leader(a), q = slotAt(ld, a.fSlot != null ? a.fSlot : i, { x: 0, z: 0 });
+  return { x: q.x, z: q.z, r: SQ.formation === 'tight' ? SQUAD.leash * 0.6 : SQUAD.leash, form: ld.vel };
 }
 /* CAMERA LANE — the strip of ground from the lens to the hero. Returns a unit push out of it (sideways, toward the
    nearer edge) for a body standing in it, else null */
@@ -622,11 +652,29 @@ function laneOffset(p, pp){
   const sg = side >= 0 ? 1 : -1;
   return { x: -uz * sg, z: ux * sg };
 }
+// a leader's walking pace (m/s, smoothed) from where they were last frame; a jump (a teleport, a respawn) doesn't count
+function pace(v, o, key, at, dt){
+  const last = o[key];
+  o[key] = { x: at.x, z: at.z };
+  if (!last || !(dt > 0)) return;
+  const vx = (at.x - last.x) / dt, vz = (at.z - last.z) / dt;
+  if (vx * vx + vz * vz > 400){ v.x = v.z = 0; return; }
+  const k = 1 - Math.exp(-8 * dt);
+  v.x += (vx - v.x) * k; v.z += (vz - v.z) * k;
+}
 export function updateSquad(dt){
   if (!allies.length){ if (markTag) markTag.visible = false; if (downed.length || G.coopRevive) updateRevive(dt, []); return; }
   const pp = playerPos();
-  SQ.fYaw = dampAngle(SQ.fYaw, G.yaw, 1.6, dt);
+  // the pace of whoever they follow (the hero, the co-op partner), measured: a squadmate in its spot keeps it
+  pace(SQ.lv, SQ, 'lp', pp, dt);
+  const ptNow = squadLink.partner && squadLink.partner();
+  if (ptNow && ptNow.pos) pace(SQ.pv, SQ, 'pp', ptNow.pos, dt); else SQ.pp = null;
+  // the formation faces where you look, but not every flick of the aim: only a clear turn (sooner on the move) swings it
+  const look = Math.atan2(Math.sin(G.yaw - SQ.fYawT), Math.cos(G.yaw - SQ.fYawT));
+  if (Math.abs(look) > (Math.hypot(SQ.lv.x, SQ.lv.z) > 1.5 ? SQUAD.turnMove : SQUAD.turnStill)) SQ.fYawT = G.yaw;
+  SQ.fYaw = dampAngle(SQ.fYaw, SQ.fYawT, 2.4, dt);
   allies.forEach((a, i) => { a.slot = i; });
+  if ((SQ.slotT -= dt) <= 0){ SQ.slotT = 0.25; assignSlots(); }
   // a wave or objective cleared: everyone up, patched, and the hero's second chance back
   const hostiles = enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!shared.boss;
   if (hostiles) SQ.fighting = true;
@@ -698,6 +746,28 @@ function medicTend(a, dt, pp){
     if (v){ a.prevOrd = a.ord; a.ord = { kind: 'revive', who: v }; say(a, 'MEDIC ON THE WAY, ' + v.name + '!', 'MEDIC ON THE WAY.'); }
   }
 }
+/* the next leg of a squadmate's route to its spot w, as a unit direction (or null: no route there). The route is drawn
+   again when the spot has moved off its end, every so often as the fight moves, or when it got stuck */
+const _dir = { x: 0, z: 0 };
+function route(a, w, dt){
+  const p = a.group.position;
+  let rt = a.rt;
+  if (!rt || Math.hypot(rt.gx - w.x, rt.gz - w.z) > 1.5 || (rt.t -= dt) <= 0){
+    const pts = navRoute(p.x, p.z, w.x, w.z, 0);
+    rt = a.rt = pts ? { pts, i: 0, gx: w.x, gz: w.z, t: 1.2 } : { pts: null, gx: w.x, gz: w.z, t: 0.6 };
+  }
+  if (!rt.pts) return null;
+  // on to the next corner once this one is reached, or once the one after it is in a straight line
+  while (rt.i < rt.pts.length - 1){
+    const c = rt.pts[rt.i], nx = rt.pts[rt.i + 1];
+    if (Math.hypot(c[0] - p.x, c[1] - p.z) < 0.7 || navLineClear(p.x, p.z, nx[0], nx[1], 0)) rt.i++;
+    else break;
+  }
+  const c = rt.pts[rt.i], dx = c[0] - p.x, dz = c[1] - p.z, l = Math.hypot(dx, dz);
+  if (l < 0.05) return null;
+  _dir.x = dx / l; _dir.z = dz / l;
+  return _dir;
+}
 function updateAlly(a, dt, medic, pp){
   const g = a.group, u = g.userData, p = g.position;
   // the hit flash
@@ -737,20 +807,39 @@ function updateAlly(a, dt, medic, pp){
     p.set(s.x, 0, s.z); a.mv.x = a.mv.z = 0;
   }
   let wantX = 0, wantZ = 0;
-  if (dist > (a.moving ? w.r * 0.5 : w.r)){
+  const lv = w.form, lsp = lv ? Math.hypot(lv.x, lv.z) : 0;
+  // IN FORMATION: keep the leader's own pace and close on the spot as you go, easing in as it nears (no stop-start
+  // accordion while you walk; standing, a loose spot is close enough). Off on anything else: out to the spot and stop
+  const settle = lv ? (lsp > 0.8 ? 0.25 : w.r * 0.5) : a.moving ? w.r * 0.5 : w.r;
+  if (dist > settle){
     a.moving = true;
-    let hx = dx / dist, hz = dz / dist;
-    if (segBlockedBySolids(p.x, p.z, w.x, w.z)){
-      // following: the foes' flow field already leads to the hero · holding: work round the cover's more open side
-      if ((a.ord.kind === 'follow' && !w.chase) || medic){ navSteer(p.x, p.z, w.x, w.z, 0, steer); hx = steer.x; hz = steer.z; }
+    let hx = dx / dist, hz = dz / dist, routed = false;
+    if (!navLineClear(p.x, p.z, w.x, w.z, 0, 0.6)){
+      // the way is blocked: a route round whatever is in it (enemies/nav.js navRoute), kept a moment and redrawn as the
+      // spot moves; the foes' flow field to the hero if there's none (it already leads to you)
+      const r = route(a, w, dt);
+      if (r){ hx = r.x; hz = r.z; routed = true; }
+      else if ((a.ord.kind === 'follow' && !w.chase) || medic){ navSteer(p.x, p.z, w.x, w.z, 0, steer); hx = steer.x; hz = steer.z; routed = true; }
       else {
         if ((a.sideT -= dt) <= 0){ a.sideT = 1.2; a.side = navClearance(p.x - hz * 1.6, p.z + hx * 1.6) >= navClearance(p.x + hz * 1.6, p.z - hx * 1.6) ? 1 : -1; }
         const ox = hx, oz = hz; hx = ox * 0.4 - oz * a.side; hz = oz * 0.4 + ox * a.side; const l = Math.hypot(hx, hz); hx /= l; hz /= l;
       }
+    } else a.rt = null;
+    const base = a.role.speed;
+    if (lv && !medic){
+      // as fast as the leader goes (and a little over, to close up), faster still the further back it has fallen
+      const top = Math.min(base * SQUAD.paceMax, Math.max(base, lsp * SQUAD.pace) * (1 + clamp((dist - 3) / 10, 0, SQUAD.catchUp)));
+      if (routed || dist > 6){ wantX = hx * top; wantZ = hz * top; }
+      else {
+        const close = Math.min(top, dist * 2.2);
+        wantX = lv.x + hx * close; wantZ = lv.z + hz * close;
+        const l = Math.hypot(wantX, wantZ); if (l > top){ wantX *= top / l; wantZ *= top / l; }
+      }
+    } else {
+      const sp = base * (dist > 14 || medic ? 1.3 : dist < 3 ? 0.6 : 1);
+      wantX = hx * sp; wantZ = hz * sp;
     }
-    const sp = a.role.speed * (dist > 14 || medic ? 1.3 : dist < 3 ? 0.6 : 1);
-    wantX = hx * sp; wantZ = hz * sp;
-  } else a.moving = false;
+  } else { a.moving = false; a.rt = null; if (lv && lsp > 0.8){ wantX = lv.x; wantZ = lv.z; } }
   // keep out of each other's and the hero's way
   for (const o of allies){
     if (o === a) continue;
@@ -764,13 +853,13 @@ function updateAlly(a, dt, medic, pp){
   const ac = 16 * dt;
   a.mv.x += clamp(wantX - a.mv.x, -ac, ac); a.mv.z += clamp(wantZ - a.mv.z, -ac, ac);
   p.x += a.mv.x * dt; p.z += a.mv.z * dt;
-  p.y = collideSolids(p, 0.7 * a.t.scale, true);
+  p.y = collideSolids(p, 0.7 * a.t.scale, true, SQUAD.stepUp);   // (a crate the nav grid walks over is one they can step onto)
   clampToArena(p, null, null);
   // pinned (a corner, a crowd): sidestep for a moment
   if (a.moving){
     a.stuckT += dt;
     if (a.stuckT > 0.6){
-      if (Math.hypot(p.x - a.lastX, p.z - a.lastZ) < 0.5){ a.side = -a.side; a.sideT = 1.2; a.mv.x += -dz / (dist || 1) * a.side * 4; a.mv.z += dx / (dist || 1) * a.side * 4; }
+      if (Math.hypot(p.x - a.lastX, p.z - a.lastZ) < 0.5){ a.rt = null; a.side = -a.side; a.sideT = 1.2; a.mv.x += -dz / (dist || 1) * a.side * 4; a.mv.z += dx / (dist || 1) * a.side * 4; }
       a.stuckT = 0; a.lastX = p.x; a.lastZ = p.z;
     }
   }

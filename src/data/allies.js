@@ -75,6 +75,11 @@ export const SQUAD = {
   slots: [[-3.4, 0.6], [3.4, 0.6], [-5.8, -1.2], [5.8, -1.2]],
   holdSlots: [[-1.8, 0.4], [1.8, 0.4], [-0.9, -1.6], [0.9, -1.6]],
   leash: 3.0,                // further than this from its spot and it moves
+  // FOLLOWING (allies/squad.js): in its spot a squadmate walks at your pace; up to `pace` × your speed to close a gap,
+  // and up to `catchUp` more (a share) the further back it is, never past `paceMax` × its own run (a Jedi's dash outruns them). The formation turns with your view only past `turnStill`
+  // (standing) or `turnMove` (on the move) radians, and two squadmates swap spots only when that saves `reslot` m² of walking
+  pace: 1.15, catchUp: 0.35, paceMax: 1.9, turnStill: 1.1, turnMove: 0.6, reslot: 4,
+  stepUp: 0.7,               // the tallest top a squadmate steps up onto (the nav grid walks them over low crates)
   tightSlots: [[-1.7, 0.2], [1.7, 0.2], [-2.6, -1.4], [2.6, -1.4]],   // STACK UP: the same spots, pulled in close
   holdReach: 32,             // how far ahead H can point the hold spot (m)
   moveSpread: { wide: 1, tight: 0.45 },     // MOVE THERE: how far apart they stand round the point (× holdSlots), by formation

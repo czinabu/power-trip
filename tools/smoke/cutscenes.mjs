@@ -3,7 +3,8 @@
 //   · a chapter's opening plays when its card closes, holds the fight still, and hands back to play on its own
 //   · Enter skips one (a tap of Space doesn't: it has to be held), and a chapter's talk plays on set in its opening
 //   · a mission duel's entrance plays before its foe, and the foe steps in once it ends
-//   · co-op: the host's duel entrance plays for the guest too, and the guest's skip ends it for both
+//   · co-op: the host's duel entrance plays for the guest too; a skip is a vote: the guest's alone shows the host
+//     "<NAME> WANTS TO SKIP" and keeps both watching, and the host's agreeing ends it for both
 //   npm run build && npm run smoke:cutscenes
 
 import { chromium } from 'playwright';
@@ -106,12 +107,17 @@ try {
   await host.waitForFunction(() => GAME.G.cutscene, null, poll);
   await guest.waitForFunction(() => GAME.G.cutscene, null, poll);
   await host.waitForFunction(() => GAME.coopRun.guestScene, null, poll);   // the host's foes hold for the guest's scene too
-  await guest.keyboard.press('Enter');
+  await guest.keyboard.press('Enter');   // the guest asks to skip: nothing ends until the host agrees
+  await host.waitForFunction(() => /WANTS TO SKIP/.test(document.querySelector('#cutscene .cs-vote').textContent), null, poll);
+  if (!(await host.evaluate(() => GAME.G.cutscene)) || !(await guest.evaluate(() => GAME.G.cutscene))) fail('one player\'s skip ended a co-op scene alone');
+  if (!/WAITING FOR YOUR PARTNER/.test(await guest.evaluate(() => document.querySelector('#cutscene .cs-vote').textContent))) fail('the guest is not told it is waiting on the host');
+  if (process.env.SHOT) await host.screenshot({ path: process.env.SHOT });
+  await host.keyboard.press('Enter');   // the host agrees: both scenes end
   await host.waitForFunction(() => !GAME.G.cutscene, null, poll);
-  if (await guest.evaluate(() => GAME.G.cutscene)) fail('the guest\'s skip did not end its own scene');
+  await guest.waitForFunction(() => !GAME.G.cutscene, null, poll);
   await host.waitForFunction(() => !GAME.coopRun.guestScene, null, poll);
   await host.waitForFunction(() => GAME.enemies.some(e => e.champion), null, poll);
-  console.log('co-op: shared duel entrance and skip OK');
+  console.log('co-op: shared duel entrance and skip vote OK');
 
   if (errors.length) fail('page errors:\n  ' + errors.slice(0, 8).join('\n  '));
   ok = true;

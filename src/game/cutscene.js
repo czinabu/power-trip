@@ -2,7 +2,8 @@
 // CUTSCENES: short in-engine scenes in the campaign and the missions (their words: data/cutscenes.js). A scene is a run of
 // shots: the lens eases from one spot to another around the hero, a spot on the field or an actor (a stand-in figure that
 // walks on, or a foe already there), with a line of dialogue or a title under a letterbox. The fight holds still while one
-// plays (in co-op, the host's foes hold for both heroes), the hero idles, and Enter, Space, Esc or a pad's A or MENU skips.
+// plays (in co-op, the host's foes hold for both heroes), the hero idles, and Enter (or holding Space, a pad's A or MENU)
+// skips. In co-op a skip is a vote: the scene ends once everyone watching it has pressed skip (skipping below).
 //
 // Who calls what: game/campaign.js plays a chapter's opening when its card closes, game/mission.js a duel's entrance
 // before its foe steps in, game/flow.js the boss's arrival on Exegol. Anything else plays a SCENES entry by id.
@@ -27,6 +28,7 @@ import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { resetCameraRig } from '../engine/camera.js';
 import { net, on, send, connected } from '../net/session.js';
+import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
 import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
@@ -47,7 +49,7 @@ el.innerHTML = '<div class="cs-bar top"></div><div class="cs-bar bot"></div>' +
   '<div class="cs-title"><div class="cs-k"></div><div class="cs-h"></div><div class="cs-p"></div></div>' +
   '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div>' +
   '<div class="cs-where"></div><div class="cs-goal"><div class="cs-gk">OBJECTIVE</div><div class="cs-gh"></div></div>' +
-  '<div class="cs-skip"><span class="cs-sk"></span><i class="cs-fill"></i></div>';
+  '<div class="cs-skip"><span class="cs-sk"></span><i class="cs-fill"></i><div class="cs-vote"></div></div>';
 document.body.appendChild(el);
 el.style.setProperty('--bars', (CUT.bars * 100) + 'vh');
 const $ = (c) => el.querySelector(c);
@@ -237,8 +239,10 @@ function start(opts){
   stillHero();
   document.body.classList.add('cutscene');
   el.classList.add('on'); el.classList.toggle('mando', isGunner());
-  $('.cs-sk').innerHTML = padUsed() ? 'hold <b>A</b> to skip' : '<b>ENTER</b> skip · hold <b>SPACE</b>';
+  skipHint();
   holdSkip(false);
+  voted = false; lastTally = null; showVote(null);
+  if (net.role === 'host' && connected()) tally();   // (a guest may already be asking to skip what they're watching)
   if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share });
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 1 });
   showShot();
@@ -256,11 +260,23 @@ function finish(skipped){
   setLine(null); setTitle(null); setWhere(null); setGoal(null);
   resetCameraRig();
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 0 });
-  if (skipped && connected()) send({ t: 'csk', k: C.key });
+  if (skipped && connected() && net.role === 'host') send({ t: 'csk', k: C.key });
+  voted = false; lastTally = null; showVote(null);
+  if (net.role === 'host'){ votes.delete(0); tally(); }   // (the host's own scene is over: it no longer has a say)
   if (done) done();
 }
-export function skipScene(){ if (C.on) finish(true); }
+// a skip press: alone it ends the scene; in co-op it is this player's vote (skipping below)
+export function skipScene(){
+  if (!C.on) return;
+  if (!connected()) return void finish(true);
+  if (voted) return;
+  voted = true;
+  if (net.role === 'host'){ votes.add(0); tally(); }
+  else send({ t: 'csv' });
+  if (C.on) showVote(lastTally);
+}
 const padUsed = () => document.body.classList.contains('pad');
+const skipHint = () => { $('.cs-sk').innerHTML = padUsed() ? 'hold <b>A</b> to skip' : '<b>ENTER</b> skip · hold <b>SPACE</b>'; };
 
 /* ---------- the subtitle and the title ---------- */
 function setLine(ln, comms = false){
@@ -700,6 +716,63 @@ on('csp', (m) => {
 });
 on('csk', (m) => { if (C.on && (!m.k || m.k === C.key)) finish(false); });
 const watching = new Set();   // the guests whose cutscene is playing
-on('cso', (m) => { if (net.role !== 'host') return; if (m.o) watching.add(m.from); else watching.delete(m.from); coopRun.guestScene = watching.size > 0; });
-on('closed', (slot) => { if (slot < 0) watching.clear(); else watching.delete(slot); coopRun.guestScene = watching.size > 0; });
-on('status', (n) => { if (n.status !== 'connected'){ watching.clear(); coopRun.guestScene = false; } });
+on('cso', (m) => {
+  if (net.role !== 'host') return;
+  if (m.o) watching.add(m.from); else { watching.delete(m.from); votes.delete(m.from); }
+  coopRun.guestScene = watching.size > 0;
+  tally();
+});
+on('closed', (slot) => {
+  if (slot < 0){ watching.clear(); votes.clear(); } else { watching.delete(slot); votes.delete(slot); }
+  coopRun.guestScene = watching.size > 0;
+  if (net.role === 'host') tally();
+});
+on('status', (n) => {
+  if (n.status === 'connected') return;
+  watching.clear(); votes.clear(); coopRun.guestScene = false;
+  voted = false; lastTally = null; showVote(null);   // alone again: the next press just skips
+});
+
+/* ---------- co-op: SKIP VOTES — a scene ends only when every player watching it has pressed skip ----------
+   The host keeps the count: its own vote (seat 0) while its scene plays, and each watching guest's (csv). Whenever it
+   changes, every player is told who has voted (csvs), so the others see "<NAME> WANTS TO SKIP" and can agree. When
+   the last one votes, the host ends the scene for everybody (csk with no key: whatever each of them is watching). */
+let voted = false, lastTally = null;   // this player's vote · the last count heard
+const votes = new Set();               // host: the seats that pressed skip
+const voters = () => { const v = new Set(watching); if (C.on) v.add(0); return v; };
+function tally(){
+  if (net.role !== 'host') return;
+  const v = voters();
+  for (const s of [...votes]) if (!v.has(s)) votes.delete(s);
+  if (!v.size){ votes.clear(); lastTally = null; return; }
+  if (votes.size && votes.size >= v.size){   // everyone watching wants out
+    votes.clear(); lastTally = null;
+    send({ t: 'csk' });
+    if (C.on) finish(false);
+    return;
+  }
+  lastTally = { who: [...votes], of: v.size };
+  if (connected()) send({ t: 'csvs', who: lastTally.who, of: lastTally.of });
+  if (C.on) showVote(lastTally);
+}
+on('csv', (m) => { if (net.role !== 'host' || m.from == null) return; if (!watching.has(m.from) && !C.on) return; votes.add(m.from); tally(); });
+on('csvs', (m) => {
+  if (net.role !== 'guest' || !Array.isArray(m.who)) return;
+  lastTally = { who: m.who.filter(s => Number.isInteger(s)).slice(0, 4), of: Math.max(1, Math.min(4, m.of | 0)) };
+  if (C.on) showVote(lastTally);
+});
+// the line under the skip hint: who has asked to skip, and what this player can do about it
+function showVote(t){
+  const box = $('.cs-vote');
+  const others = t ? t.who.filter(s => s !== net.slot) : [];
+  if (!C.on || (!voted && !others.length)){ box.classList.remove('on'); el.classList.remove('voted'); box.textContent = ''; if (C.on) skipHint(); return; }
+  const n = (voted ? 1 : 0) + others.length, of = Math.max(n, t ? t.of : 2);
+  let html;
+  if (voted) html = 'WAITING FOR ' + (of - n === 1 && of === 2 ? 'YOUR PARTNER' : (of - n) + ' MORE') + ' · <span>' + n + ' / ' + of + '</span>';
+  else html = (others.length === 1 ? esc(nameOf(others[0])) + ' WANTS' : others.length + ' PLAYERS WANT') + ' TO SKIP · <span>' + n + ' / ' + of + '</span>';
+  box.innerHTML = html;
+  box.classList.add('on');
+  el.classList.toggle('voted', voted);
+  $('.cs-sk').innerHTML = voted ? 'skip asked' : padUsed() ? 'hold <b>A</b> to agree' : '<b>ENTER</b> to agree';
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

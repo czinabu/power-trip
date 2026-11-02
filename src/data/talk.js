@@ -38,6 +38,8 @@ export const TALK = {
   // ---------- guests and escorts ----------
   'THE MANDALORIAN': ['Same wrecks, same cores, different reasons. For now we want the same thing.', 'You Jedi talk to your swords?',
                       'I have a clan to feed. You have whatever it is Jedi have. Let\'s both get out of here.'],
+  'MASTER IRO': ['A clone who refused the order. I did not think I would live to meet one.', 'Keep your rifle on the left flank. I will keep the bolts off your right.',
+                 'The Force is quiet in this cold. That is not the same as gone.'],
   'RX-4': ['Statement: cell codes intact. Query: why are they shooting at the cell codes?', 'Observation: you are more effective than my previous owner. He was a toaster.',
            'Walking resumes when the shooting stops. This is not cowardice. This is arithmetic.'],
   SCRAP: ['Codes are safe. Scrap is mostly safe. Scrap would like to be entirely safe.', 'You hit them, they fall down. Scrap likes this plan.',

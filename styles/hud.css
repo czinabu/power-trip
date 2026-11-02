@@ -219,10 +219,6 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
 #cutdial.live{opacity:1}
 #cutdial i{position:absolute;left:-1px;top:-24px;width:2px;height:48px;border-radius:1px;background:linear-gradient(to bottom,rgba(210,242,255,.95),rgba(210,242,255,0) 70%);transform-origin:1px 24px}
 #cutdial.live i{box-shadow:0 0 6px var(--accent)}
-#cuth{position:fixed;top:50%;left:50%;width:7px;height:22px;margin:-11px 0 0 14px;pointer-events:none;z-index:7}
-#cuth i{position:absolute;left:0;width:7px;height:2px;border-radius:1px;background:rgba(210,242,255,.22);transition:background .08s,width .08s}
-#cuth .ch-high{top:0}#cuth .ch-mid{top:10px}#cuth .ch-low{top:20px}
-#cuth[data-h=high] .ch-high,#cuth[data-h=mid] .ch-mid,#cuth[data-h=low] .ch-low{background:rgba(210,242,255,.95);width:10px;box-shadow:0 0 6px var(--accent)}
 /* floaters */
 /* barks: a mid-fight line over the speaker's head (fx/barks.js) */
 #barks{position:fixed;inset:0;pointer-events:none;z-index:6}

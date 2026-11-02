@@ -45,6 +45,7 @@ import { updateVents, updateBarrels, hazardContains, updateHazardZones } from '.
 import { spawnBoss, damageBoss, bossStagger, updateBoss, updateRings } from './boss/boss.js';
 import { FOCUS, focusTier, focusDmgMul, focusRegenMul, addFocus, updateFocus } from './player/jedi/focus.js';
 import { tryAttack, applySwingDamage } from './player/jedi/combat.js';
+import { cutHeight } from './player/jedi/cutaim.js';
 import {
   castGesture, saberThrow, forcePush, forceSlam, updateSaberThrow, forceRepulse, forceBarrier, forceMend
 } from './player/jedi/force.js';
@@ -231,7 +232,7 @@ import { arenaInfo } from './world/arena.js';
 import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
-Object.assign(window.GAME, { pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
+Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';
 import { openBattleSetup } from './ui/battlesim-ui.js';

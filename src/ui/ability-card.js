@@ -16,7 +16,12 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&
 export const hasAbilityCard = (u) => !!ABILITY_CARDS[u.key];
 export const abilityCardUp = () => el.classList.contains('open');
 
-export function queueAbilityCards(list){ for (const u of list) if (ABILITY_CARDS[u.key] && !pending.includes(u)) pending.push(u); }
+export function queueAbilityCards(list){
+  for (const u of list) if (ABILITY_CARDS[u.key] && !pending.includes(u)){
+    pending.push(u);
+    const c = ABILITY_CARDS[u.key].clip; if (c) new Image().src = c;   // start fetching its clip now, so it plays the moment the card opens
+  }
+}
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickAbilityCards(){
   if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene) return;
@@ -28,7 +33,7 @@ export function clearAbilityCards(){ pending.length = 0; if (abilityCardUp()) cl
 function open(u){
   const C = ABILITY_CARDS[u.key], name = u.name || C.name, hud = u.hud != null ? u.hud : C.hud;
   el.innerHTML = '<div class="ac-inner hero-' + (isGunner() ? 'mando' : 'jedi') + '">' +
-    (C.clip ? '<div class="ac-clip"><img src="' + C.clip + '" alt=""></div>' : '') +   // (a card with no clip yet: its words alone)
+    (C.clip ? '<div class="ac-clip"><img src="' + C.clip + '" alt="" onerror="this.parentNode.remove()"></div>' : '') +   // (a card with no clip yet, or the page opened without its files: its words alone)
     '<div class="ac-body"><div class="cc-act">ABILITY UNLOCKED</div><h2 class="ac-title">' + esc(name) + '</h2>' +
     (hud ? '<div class="ac-key">' + esc(hud) + '</div>' : '') +
     C.lines.map(t => '<p>' + esc(t) + '</p>').join('') +

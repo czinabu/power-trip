@@ -33,7 +33,7 @@ export const TROOPER_AUTO = [
   { key:'modScope', stage:4, chapter:'mustafar', hud:'1', name:'DC-15 MARKSMAN SCOPE · 1 AGAIN TO SWAP',
     has:()=>!!G.unlocked.modScope, grant(){ G.unlocked.modScope = true; } },
   // the company finds him: one more clone on the line from here on (allies/squad.js trooperSquad)
-  { key:'squad3', stage:4, chapter:'hoth', hud:'H', name:'HAMMER JOINS · SQUAD OF 3',
+  { key:'squad3', stage:4, chapter:'hoth', hud:'MMB', name:'HAMMER JOINS · SQUAD OF 3',
     has:()=>(player.up.squadExtra || 0) >= 1, grant(){ player.up.squadExtra = 1; if (squadSize() < SQUAD.max) addSquadmate(); } },
 ];
 

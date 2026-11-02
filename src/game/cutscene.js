@@ -31,6 +31,7 @@ import { resetCameraRig, updateCamera } from '../engine/camera.js';
 import { net, on, send, connected } from '../net/session.js';
 import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
+import { allies } from '../allies/squad.js';
 import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
 import { missionState } from './mission.js';
@@ -39,6 +40,7 @@ import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
 import { meetNamed } from './codex.js';
+import { TAUNTS } from '../data/duel-taunts.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -50,7 +52,7 @@ const el = document.createElement('div');
 el.id = 'cutscene';
 el.innerHTML = '<div class="cs-bar top"></div><div class="cs-bar bot"></div>' +
   '<div class="cs-title"><div class="cs-k"></div><div class="cs-h"></div><div class="cs-p"></div></div>' +
-  '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div>' +
+  '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div><div class="cs-mark"><i></i></div>' +
   '<div class="cs-where"></div><div class="cs-goal"><div class="cs-gk">OBJECTIVE</div><div class="cs-gh"></div></div>' +
   '<div class="cs-skip"><svg class="cs-ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="8"/>' +
   '<circle class="fg" cx="10" cy="10" r="8"/></svg><span class="cs-sk"></span><div class="cs-vote"></div></div>';
@@ -178,13 +180,14 @@ function lensView(ax, ay, az, x, y, z){
 // ...and nothing else drawn in the way either: a canyon wall, a building or a ship's hull isn't a prop (a ray through the
 // scene; the hero, the cast and anything see-through don't count)
 const ray = new THREE.Raycaster(), RA = new THREE.Vector3(), RD = new THREE.Vector3();
+let raySkip = null;   // (a scene without cuts counts the rest of the cast, and squadmates, as in the way: oneClear)
 const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
 function rayClear(ax, ay, az, x, y, z){
   RA.set(ax, ay, az); RD.set(x - ax, y - ay, z - az);
   const len = RD.length() + 0.4;   // (a little past the lens: it can't sit inside a wall either)
   if (len < 0.5) return 1;
   ray.set(RA, RD.normalize()); ray.near = 0.3; ray.far = len;
-  const skip = new Set([player.group, ...C.actors.map(a => a.g), ...(C.building || [])].filter(Boolean));
+  const skip = raySkip || new Set([player.group, ...C.actors.map(a => a.g), ...(C.building || [])].filter(Boolean));
   for (const h of ray.intersectObjects(scene.children, true)){
     const o = h.object, m = o.material;
     if (!(o.isMesh) || !m || [].concat(m).some(mm => mm.transparent || mm.depthWrite === false) || !shown(o)) continue;
@@ -321,6 +324,7 @@ function finish(skipped){
   document.body.classList.remove('cutscene');
   el.classList.remove('on', 'fade');
   setLine(null); setTitle(null); setWhere(null); setGoal(null);
+  C.talker = null; $('.cs-mark').classList.remove('on');
   resetCameraRig();
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 0 });
   if (skipped && connected() && net.role === 'host') send({ t: 'csk', k: C.key });
@@ -342,10 +346,12 @@ const padUsed = () => document.body.classList.contains('pad');
 const skipHint = () => { $('.cs-sk').innerHTML = padUsed() ? '<b>A</b> next · hold <b>A</b> to skip' : '<b>SPACE</b> next · hold to skip'; };
 
 /* ---------- the subtitle and the title ---------- */
-function setLine(ln, comms = false){
+// tone: whose colour the name wears: 'hero' (the hero's own accent), 'ally' (a friend's gold) or 'foe' (red)
+function setLine(ln, comms = false, tone = 'hero'){
   const box = $('.cs-line');
   if (!ln){ box.classList.remove('on'); return; }
   box.classList.toggle('comms', comms);   // a voice in the hero's ear, not someone on set
+  box.classList.toggle('ally', tone === 'ally'); box.classList.toggle('foe', tone === 'foe');
   $('.cs-who').textContent = ln[0] || '';
   $('.cs-say').textContent = ln[1] || '';
   box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
@@ -369,12 +375,25 @@ function setGoal(t){
 }
 // the hero speaks a line of its own (not a voice in its ear, nor one of the story's cast)
 const heroLine = (ln) => !!(ln && ln[0] && !Object.values(VOICE).includes(ln[0]) && !JEDI_CAST.includes(ln[0]) && !MANDO_CAST.has(ln[0]) && !castOf(ln[0]) && ln[0] !== storyVoice());
+// whose side a speaker is on, by name: one of the story's cast (data/cast.js `foe`), a duel foe or the boss (a stand-in
+// built from a foe type, or a foe already on the field), or anyone else who talks (a friend: the voice in the ear too)
+const foeNamed = (name) => { const c = castOf(name); return c ? !!c.foe : !!TAUNTS[name]; };
+function toneOf(ln, who){
+  if (who === 'hero') return 'hero';
+  if (who) return who.kind ? (castOf(who.name) && castOf(who.name).foe ? 'foe' : 'ally') : who.bind === 'boss' || who.bind === 'quarry' || who.own ? 'foe' : 'ally';
+  if (!ln || !ln[0]) return 'hero';
+  return foeNamed(ln[0]) ? 'foe' : heroLine(ln) && !castOf(ln[0]) ? 'hero' : 'ally';
+}
 function showShot(){
   const s = C.shots[C.i];
-  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms); C.shown = s.line; }
+  // who says this shot's line: an actor on set, the hero, or nobody we can see (a voice in the ear)
+  const spk = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
+  const heroTalks = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
+  C.talker = !s.line || s.comms ? null : spk >= 0 && C.actors[spk] && C.actors[spk].g ? C.actors[spk] : heroTalks ? 'hero' : null;
+  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms, toneOf(s.line, C.talker)); C.shown = s.line; }
   if (s.title) setTitle(s.title); else if (C.i > 0 && C.shots[C.i - 1].title) setTitle(null);
   if (s.where !== undefined) setWhere(s.where);
-  if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; setWhere(null); }
+  if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; C.talker = null; setWhere(null); }
   if (s.dropCast) dropCast();
   if (s.pair != null) C.pair = s.pair;
   // the hero turns to someone else on set (the one watching from across the field, after the talk)
@@ -392,7 +411,9 @@ function showShot(){
     else a.g.userData.talk = talk;
   });
   // the hero speaks a line of its own: the Jedi's jaw works (player/model/life.js express)
-  player.talking = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
+  player.talking = heroTalks;
+  const mk = $('.cs-mark'), tone = C.talker ? toneOf(s.line, C.talker) : '';
+  mk.classList.toggle('ally', tone === 'ally'); mk.classList.toggle('foe', tone === 'foe');
   if (C.one){ if (s.kind === 'goal') oneExit(); return; }   // (a scene without cuts frames its own way: oneLens)
   pickSide(s);
 }
@@ -493,7 +514,7 @@ export function updateCutscene(){
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
-  if (C.one){ oneLens(s, dt, now); return; }
+  if (C.one){ oneLens(s, dt, now); placeMark(); return; }
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
   const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
   lensAt(s, k, s.side || 1, P);
@@ -513,6 +534,27 @@ export function updateCutscene(){
   // fade in from black at the start, out at the very end
   const total = C.shots.length - 1, last = C.i === total && s.t - C.t < CUT.fadeOut;
   el.classList.toggle('fade', last);
+  placeMark();
+}
+// who speaks, in the shot: a small mark over their head (hidden when they are out of the frame, or their head is up
+// against its top edge: a close-up already says who it is)
+const MK = new THREE.Vector3();
+function headOf(who, out){
+  const head = who === 'hero' ? player.rig && player.rig.head : who.kind === 'hero' ? who.target.rig.head : who.g.userData.head;
+  if (head){ head.getWorldPosition(out); out.y += 0.42 * (who === 'hero' ? 1 : who.scale || 1); return out; }
+  const p = who === 'hero' ? playerPos() : who.g.position;
+  return out.set(p.x, p.y + 2.1 * (who === 'hero' ? 1 : who.scale || 1), p.z);
+}
+function placeMark(){
+  const mk = $('.cs-mark'), who = C.talker;
+  if (!who || (who !== 'hero' && (!who.g || !who.g.parent || !who.g.visible))){ mk.classList.remove('on'); return; }
+  camera.updateMatrixWorld();
+  headOf(who, MK).project(camera);
+  const W = innerWidth, H = innerHeight, x = (MK.x * 0.5 + 0.5) * W, y = (-MK.y * 0.5 + 0.5) * H;
+  const top = H * (C.one ? 0 : CUT.bars) + 26;
+  const inFrame = MK.z < 1 && x > W * 0.04 && x < W * 0.96 && y > top && y < H * 0.8;
+  mk.classList.toggle('on', inFrame);
+  if (inFrame) mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
 }
 
 /* ---------- a scene without cuts (data/cutscene-stage.js `oneshot`) ---------- */
@@ -560,9 +602,10 @@ function oneTarget(s, out){
   const O = C.one, pp = playerPos(), b = C.actors[0], sd = O.sd;
   const eh = eyeOf('hero'), eb = b && b.g ? eyeOf(b) : eh, mid = (eh + eb) / 2;
   // a point k of the way from the pair's middle to someone's face (0: between them; 1: on the face)
-  const at = (who, k) => { const q = who === 'hero' ? pp : b && b.g ? b.g.position : pp, y = who === 'hero' ? eh : eb;
+  // (who: 'hero', or one of the cast on set)
+  const at = (who, k) => { const f = who === 'hero' ? null : who && who.g ? who : b, q = f ? f.g.position : pp, y = f ? eyeOf(f) : eh;
     return TL.set(O.px + (q.x - O.px) * k, mid + (y - mid) * k, O.pz + (q.z - O.pz) * k); };
-  const orbit = (a, d, h, L, fov) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; return out; };
+  const orbit = (a, d, h, L, fov, face = null) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; out.face = face; return out; };
   const fromWorld = (P, L, fov) => orbit(Math.atan2(P.x - O.px, P.z - O.pz), Math.hypot(P.x - O.px, P.z - O.pz), P.y - O.py, L, fov);
   if (s.kind === 'back'){ const pc = playCamera(); out.P = pc.P; return fromWorld(pc.P, pc.L, pc.fov); }
   out.P = null;
@@ -577,13 +620,45 @@ function oneTarget(s, out){
   const speaker = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
   // a line holds while the lens creeps in a little (a still lens reads as a cut you didn't notice)
   const creep = 1 - 0.08 * Math.min(1, C.t / s.t);
-  if (speaker >= 0 && C.actors[speaker] && C.actors[speaker].g) return orbit(O.Y + sd * 2.3, 4.3 * creep, eh - O.py + 0.12, at('actor', 0.8), 42);   // over the hero, on them
-  if (s.line) return orbit(O.Y + sd * 0.9, 4.0 * creep, eh - O.py + 0.05, at('hero', 0.8), 42);   // round past them to the hero's face
+  const sp = speaker >= 0 && C.actors[speaker];
+  if (sp && sp.g){   // over the hero's shoulder, on whoever speaks (in a group, turned toward that one)
+    const Ys = yawTo(pp.x, pp.z, sp.g.position.x, sp.g.position.z);
+    return orbit(Ys + sd * 2.3, 4.9 * creep, eh - O.py + 0.15, at(sp, 0.6), 44, sp);   // (aimed between them: the hero's head stays in frame)
+  }
+  if (s.line) return orbit(O.Y + sd * 0.9, 4.4 * creep, eh - O.py + 0.08, at('hero', 0.65), 44);   // round past them to the hero's face
   return orbit(O.Y + sd * 1.75, 4.8, mid - O.py + 0.3, at('hero', 0), 46);   // the pair
+}
+// which way round from a beat's angle has nothing standing between the lens and the face it frames (a squadmate, or
+// another of the cast): tried once a beat, so the lens commits to it instead of hunting frame to frame
+function oneClear(s, tg, face){
+  if (s.oneDa != null) return s.oneDa;
+  const O = C.one, sd = O.sd;
+  raySkip = new Set([player.group, face && face.g].filter(Boolean));
+  let best = 0, bestK = -1;
+  for (const da of [0, 0.3, -0.3, 0.6, -0.6, 0.9].map(v => v * sd)){
+    const a = tg.a + da, x = O.px + Math.sin(a) * tg.d, y = O.py + tg.h, z = O.pz + Math.cos(a) * tg.d;
+    const k = lensView(tg.L.x, tg.L.y, tg.L.z, x, y, z) - 0.5 * inWay(x, z, tg.L, face);
+    if (k > bestK + 0.02){ bestK = k; best = da; }
+    if (k > 0.97) break;
+  }
+  raySkip = null;
+  return (s.oneDa = best);
+}
+// how many figures (squadmates, the rest of the cast) stand on the line from the lens at (x, z) to the point L it looks at
+// (people aren't props: the see-through fade and the ray miss them)
+function inWay(x, z, L, face){
+  const dx = L.x - x, dz = L.z - z, L2 = dx * dx + dz * dz || 1;
+  let n = 0;
+  const test = (g) => { if (!g || !g.visible) return; const o = g.position, t = ((o.x - x) * dx + (o.z - z) * dz) / L2;
+    if (t > 0.04 && t < 0.92 && Math.hypot(x + dx * t - o.x, z + dz * t - o.z) < 0.6) n++; };
+  for (const a of allies) test(a.group);
+  for (const a of C.actors) if (a !== face) test(a.g);
+  return n;
 }
 const OT = {};
 function oneLens(s, dt, now){
   const O = C.one, tg = oneTarget(s, OT), back = s.kind === 'back', st = back ? ONE.backLag : ONE.lag;
+  if (!back && s.kind !== 'goal') tg.a += oneClear(s, tg, tg.face);
   smooth(O, 'a', O.a + wrapA(tg.a - O.a), st, dt); smooth(O, 'd', tg.d, st, dt); smooth(O, 'h', tg.h, st, dt);
   smooth(O, 'lx', tg.L.x, st, dt); smooth(O, 'ly', tg.L.y, st, dt); smooth(O, 'lz', tg.L.z, st, dt); smooth(O, 'fov', tg.fov, st, dt);
   P.set(O.px + Math.sin(O.a) * O.d, O.py + O.h, O.pz + Math.cos(O.a) * O.d);
@@ -610,7 +685,7 @@ function oneLens(s, dt, now){
 function oneExit(){
   const O = C.one;
   for (const a of C.actors){
-    if (!a.g || !a.own || a.bound || a.holo || a.walk) continue;
+    if (!a.g || !a.own || a.bound || a.holo || a.walk || a.stays) continue;   // (whoever stays on set stays at the hero's side: game/onset.js)
     const p = a.g.position;
     for (const da of [0, 0.4, -0.4, 0.8, -0.8]){
       const yaw = O.goalYaw + O.sd * 1.95 + da * O.sd, c = findClearSpawn(p.x + Math.sin(yaw) * 12, p.z + Math.cos(yaw) * 12, 0.6);
@@ -767,7 +842,7 @@ export function playOpening(id, title, own){
   let castFace = null;
   // a scene without cuts (data/cutscene-stage.js `oneshot`; for now only where nobody is already on the field): the cast
   // stands off to one side, so the hero turns to them to talk and back to the field for the objective
-  const one = stage.oneshot && !actors.length ? { sd: 1, goalYaw: G.yaw } : null;
+  let one = stage.oneshot && !actors.length ? { sd: 1, goalYaw: G.yaw } : null;
   if (cast.length){
     let spots = castSpots(cast.length, pp, one ? ONE.castOff : 0);
     if (one && spots.miss){ const alt = castSpots(cast.length, pp, -ONE.castOff); if ((alt.miss || 0) < spots.miss){ spots = alt; one.sd = -1; } }
@@ -790,6 +865,9 @@ export function playOpening(id, title, own){
   shots.push(...setShots(talk, plan, who2i, sideOf, where), ...later, ...setShots(lines, plan, who2i, sideOf));
   if (later.length && castFace && lines.length){ const k = shots.length - lines.length; shots[k].faceActor = who2i.values().next().value; }   // (back to the cast for the rest)
   const endYaw = face ? yawTo(pp.x, pp.z, face[0], face[1]) : heroYaw;
+  // ...but only when it is the hero and the people talking: squadmates crowding round would keep stepping in front of the
+  // faces of an unbroken shot, so with a squad about it plays with its cuts (a squadmate who is one of the cast is fine)
+  if (one){ const own = new Set(actors.map(a => a.g)); if (allies.some(a => a.group && !own.has(a.group) && Math.hypot(a.group.position.x - pp.x, a.group.position.z - pp.z) < 10)) one = null; }
   C.building = actors.map(a => a.g);   // (the cast on set doesn't block the objective's view: rayClear)
   if (one){
     // no wide shot and no cut to the objective: the title comes up as the lens drifts off the play camera, the objective

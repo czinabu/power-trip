@@ -1,9 +1,10 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// AIM — where every aimed ability points, pitch included: the crosshair ray (the Jedi's fixed centre dot, the Mando's
-// drifting reticle) and a height-aware cone test, so a power only reaches a foe in the air when it is aimed up at it.
+// AIM — where every aimed ability points, pitch included: the crosshair ray (the Jedi's, cast from the hero; the Mando's
+// drifting reticle, from the lens) and a height-aware cone test, so a power only reaches a foe in the air when it is aimed up at it.
 
 import * as THREE from 'three';
 import { camera } from '../engine/renderer.js';
+import { jaAim } from '../engine/camera.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
 import { sweepHit, bodyRadius, bodyHeight, chestPos } from '../enemies/bodyshape.js';
 import { groundAt, solidAt } from '../world/collision.js';
@@ -19,17 +20,21 @@ export const lastAim = { target: null, floor: false };
 export function crosshairPoint(ox = 0, oy = 0){
   _ndc.set(ox * 2 / innerWidth, -oy * 2 / innerHeight);
   _ray.setFromCamera(_ndc, camera);
-  const o = _ray.ray.origin, d = _ray.ray.direction;
+  return castAim(_ray.ray.origin, _ray.ray.direction, 1);
+}
+/* cast a ray from `o` along unit `d` (not before `t0` metres): the first foe body, the boss, the floor or a prop it meets,
+   else the arena wall or far out. Fills lastAim. */
+function castAim(o, d, t0, pad = 0){
   let bestT = 1e9, target = null;
   // foes: the shot converges a hand's depth INTO the body, so a bolt from the gun (a little off the camera ray) still
   // lands where the crosshair was
   _far.copy(o).addScaledVector(d, AIM_FAR);
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
-    const h = sweepHit(e, o, _far, 0);
+    const h = sweepHit(e, o, _far, pad);
     if (!h) continue;
     const t = h.t * AIM_FAR + 0.15;
-    if (t >= 1 && t < bestT){ bestT = t; target = e; }
+    if (t >= t0 && t < bestT){ bestT = t; target = e; }
   }
   // the boss: an upright column the crosshair has to be over
   const B = shared.boss;
@@ -38,14 +43,19 @@ export function crosshairPoint(ox = 0, oy = 0){
     if (dh2 > 1e-6){
       const t = ((p.x - o.x)*d.x + (p.z - o.z)*d.z) / dh2;
       const rx = o.x + d.x*t - p.x, rz = o.z + d.z*t - p.z, ry = o.y + d.y*t;
-      if (t >= 1 && t < bestT && rx*rx + rz*rz < 1.7*1.7 && ry > p.y + 0.3 && ry < p.y + 3.6){ bestT = t; target = B; }
+      if (t >= t0 && t < bestT && rx*rx + rz*rz < 1.7*1.7 && ry > p.y + 0.3 && ry < p.y + 3.6){ bestT = t; target = B; }
     }
   }
   // the floor or a prop in the way, marched along the ray (before whatever foe it found)
   let floor = false;
-  for (let t = 1; t < Math.min(bestT, FLOOR_FAR); t += FLOOR_STEP){
+  for (let t = t0; t < Math.min(bestT, FLOOR_FAR); t += FLOOR_STEP){
     _p.copy(o).addScaledVector(d, t);
-    if (solidAt(_p.x, _p.y, _p.z)){ bestT = t; target = null; floor = true; break; }
+    if (solidAt(_p.x, _p.y, _p.z)){
+      // back up to the surface (a step is half a metre: the reticle sat visibly under the floor's edge)
+      let lo = t - FLOOR_STEP, hi = t;
+      for (let i = 0; i < 6; i++){ const m = (lo + hi) / 2; _p.copy(o).addScaledVector(d, m); if (solidAt(_p.x, _p.y, _p.z)) hi = m; else lo = m; }
+      bestT = hi; target = null; floor = true; break;
+    }
   }
   lastAim.target = target; lastAim.floor = floor;
   // open air: the ray ends at the arena's wall (what the bolt will really hit), else far out along it. A short fallback
@@ -61,7 +71,34 @@ export function crosshairPoint(ox = 0, oy = 0){
   return new THREE.Vector3(o.x + d.x*t, o.y + d.y*t, o.z + d.z*t);
 }
 
-/* where the hero is aiming right now: the Mando through his reticle; the Jedi through the centre dot, or straight at
+/* THE JEDI'S CROSSHAIR, Jedi Academy style: cast from the hero along the way the view looks, not from the lens. It lands
+   where your aim from the hero really meets a foe, the floor or a wall, so it sits on what a cut or a power would
+   reach, and it rides along with the hero through a roll, a flip or a dash. The HUD draws the reticle where this
+   point falls on screen (ui/hud.js); the Jedi's powers, throw and ping aim at the same point. */
+const _hd = new THREE.Vector3(), _ho = new THREE.Vector3();
+const HERO_PAD = 0.15;   // a hand's width round a body still counts as on it: a lean droid side-on was a pixel-perfect target
+const _hh = new THREE.Vector3();
+let restHead = -1;   // the head's height over the feet when standing (a slow running top)
+export function heroCrosshair(){
+  // JA (CG_DrawCrosshair with the dynamic crosshair): the trace runs along the view from the hero, not the lens. Here it
+  // starts at the hero's own aim point, the one the lens is chasing, carried along with his head: at rest the lens has
+  // caught up and it lands mid-screen; a dash that outruns the lens, a roll or a flip that tucks the body down and round
+  // takes the crosshair with him
+  camera.getWorldDirection(_hd);
+  const p = player.group.position;
+  if (jaAim.live) _ho.copy(jaAim);
+  else _ho.set(p.x, p.y + 1.4, p.z);
+  const head = player.rig && player.rig.head;
+  if (head){
+    head.getWorldPosition(_hh);
+    const hy = _hh.y - p.y;
+    restHead = restHead < 0 ? hy : restHead + (hy - restHead) * (hy > restHead ? 1 : 0.004);
+    _ho.x += _hh.x - p.x; _ho.z += _hh.z - p.z; _ho.y += hy - restHead;
+  }
+  return castAim(_ho, _hd, 0.3, HERO_PAD);
+}
+
+/* where the hero is aiming right now: the Mando through his reticle; the Jedi along his own crosshair (heroCrosshair), or straight at
    the foe he's locked onto (the lock frames it, so that's where he means) */
 export function aimPoint(){
   const lt = player.lockTarget;
@@ -69,7 +106,7 @@ export function aimPoint(){
     lastAim.target = lt; lastAim.floor = false;
     return lt.t ? chestPos(lt) : lt.group.position.clone().setY(lt.group.position.y + 1.8);
   }
-  return isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : crosshairPoint(0, 0);
+  return isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : heroCrosshair();
 }
 
 /* the aim from a point on the hero (a hand, the chest): the unit direction toward what the crosshair is over, plus

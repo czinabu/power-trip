@@ -39,12 +39,13 @@ export function closeSandboxPanel(relock = true){
 
 function pill(id, on){ const el = $(id); el.classList.toggle('on', on); el.querySelector('.setval').textContent = on ? 'ON' : 'OFF'; }
 const LATER = 'Later in the campaign';
+const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
 function render(){
   const full = sandboxIsFull(), prog = sandboxProgress();
   $('sbstory').style.display = full ? 'none' : '';
   $('sbstory').textContent = 'THE STORY SO FAR · ' + prog.n + ' OF ' + prog.of + ' CHAPTERS · beat the campaign to open everything';
   $('sbmap').innerHTML = SANDBOX_MAPS.map(m => { const ok = mapOffered(m.id);
-    return `<span data-map="${m.id}" class="${m.id === SB.map ? 'on' : ''}${ok ? '' : ' locked'}"${ok ? '' : ` title="${LATER}"`}>${typeof m.nm === 'object' ? heroKey(m.nm) : m.nm}</span>`; }).join('');
+    return `<span data-map="${m.id}" class="${m.id === SB.map ? 'on' : ''}${ok ? '' : ' locked'}"${ok ? '' : ` title="${LATER}"`}>${!ok ? HIDDEN : typeof m.nm === 'object' ? heroKey(m.nm) : m.nm}</span>`; }).join('');
   $('sbcount').innerHTML = SANDBOX_COUNTS.map(n => `<span data-n="${n}" class="${n === SB.count ? 'on' : ''}">×${n}</span>`).join('');
   $('sbreplay').classList.toggle('off', !battleArmed());
   const mapNm = (id) => { const m = SANDBOX_MAPS.find(o => o.id === id); return m ? (typeof m.nm === 'object' ? heroKey(m.nm) : m.nm) : ''; };
@@ -57,7 +58,7 @@ function render(){
   pill('sbelite', SB.elite); pill('sbdummy', SB.dummy); pill('sbgod', !!G.sandboxGod); pill('sbreadout', readoutOn());
   $('sbsquadn').textContent = squadSize() + ' / ' + SQUAD.max;
   $('sbfoes').innerHTML = SANDBOX_FOES.map(f => {
-    const ok = foeOffered(f.id), nm = !ok && f.special ? '? ? ?' : typeof f.nm === 'object' ? heroKey(f.nm) : f.nm;   // a boss not met yet keeps its name
+    const ok = foeOffered(f.id), nm = !ok ? HIDDEN : typeof f.nm === 'object' ? heroKey(f.nm) : f.nm;   // a foe not met yet keeps its name
     return `<div class="sb-chip${f.special ? ' special' : ''}${ok ? '' : ' locked'}" data-foe="${f.id}"${ok ? '' : ` title="${LATER}"`}>${nm}<span class="k">${!ok ? 'LATER' : f.id === 'boss' ? 'BOSS' : f.special ? 'MID-BOSS' : ''}</span></div>`;
   }).join('');
   const jedi = !isGunner();
@@ -67,8 +68,8 @@ function render(){
     return `<div class="sb-chip${f ? ' on' : ''}" data-slot="${i}">${f ? 'FORM ' + f.no + ' · ' + f.name : 'EMPTY'}<span class="k">${i + 1}</span></div>`;
   }).join('');
   $('sbkit').innerHTML = (heroKey(SANDBOX_KIT) || []).map(r => {
+    if (!kitOffered(r)) return `<div class="sb-chip locked" title="${LATER}">${HIDDEN}<span class="k">LATER</span></div>`;   // a power not earned yet keeps its name
     const nm = typeof r.nm === 'function' ? r.nm() : r.nm;
-    if (!kitOffered(r)) return `<div class="sb-chip locked" title="${LATER}">${nm}<span class="k">LATER</span></div>`;
     const can = kitAvailable(r);
     return `<div class="sb-chip${r.has() ? ' on' : ''}${can ? '' : ' off-needs'}" data-kit="${r.id}" title="${can ? '' : 'Needs ' + r.needs}">${nm}<span class="k">${r.key}</span></div>`;
   }).join('');

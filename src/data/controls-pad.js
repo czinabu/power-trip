@@ -27,7 +27,7 @@ export const PAD_CONTROLS = {
       ['{shift}', 'Landing roll', 'Just before a hard landing, or you stagger', 1],
     ]},
     { title: 'FIGHT', rows: [
-      ['{lmb}', 'Saber combo', 'The way you push {LS} picks the cut (the needle through the crosshair shows the next one): left or right sweeps sideways, forward chops overhead (a thrust aimed low), a diagonal cuts down or up, back whirls behind you; the stick at rest walks your form\'s string of cuts. Where you aim picks its height: aim up for a high cut at the head, down for a low one at the legs (the ticks by the crosshair). The arc on the floor shows how far and which way it will cut, and lights up when it will reach a foe (Settings · SWING MARKER turns it off). A cut that starts where the last one finished flows on quicker. Every third is a finisher'],
+      ['{lmb}', 'Saber combo', 'The way you push {LS} picks the cut (the needle through the crosshair shows the next one): left or right sweeps sideways, forward chops overhead (a thrust aimed low), a diagonal cuts down or up, back whirls behind you; the stick at rest walks your form\'s string of cuts. Where you aim picks its height: aim up for a high cut at the head, down for a low one at the legs (the ticks by the crosshair). The crosshair sits where your aim from the hero lands and turns red on a foe (Settings · AIM HINT turns the red off). A cut that starts where the last one finished flows on quicker. Every third is a finisher'],
       ['HOLD {rmb}', 'Block', 'Soaks most of a blow; heavy hits drain stamina'],
       ['TAP {rmb}', 'Parry and deflect', 'Time it as a blow or bolt lands; a missed parry can\'t be retried for a moment'],
       ['{e}', 'Kick', 'Shoves a foe back and cracks a duellist\'s guard'],

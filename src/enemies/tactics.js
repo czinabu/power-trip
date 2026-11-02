@@ -10,6 +10,7 @@ import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, dampToward } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
+import { bark } from '../fx/barks.js';
 import { spawnGroundShock } from '../fx/vfx.js';
 import { G, enemies, player } from '../state.js';
 import { heroPosOf } from './targets.js';
@@ -117,6 +118,13 @@ export function tickTactics(e, dt){
   if (e.t.officer){ if (e.orderCd === undefined) e.orderCd = rand(ORDERS.firstCd[0], ORDERS.firstCd[1]); else e.orderCd -= dt; }
   if (e.t.lancer){ if (e.lungeCd === undefined) e.lungeCd = rand(LUNGE.firstCd[0], LUNGE.firstCd[1]); else e.lungeCd -= dt; }
 }
+// what an officer shouts as it calls an order (each starts with the order's word, so the tell still reads at a glance)
+const ORDER_BARKS = {
+  volley: ['VOLLEY! ON MY MARK!', 'VOLLEY! ALL GUNS ON THEM!', 'VOLLEY, TOGETHER! FIRE!'],
+  flank:  ['FLANK THEM! GO WIDE!', 'FLANK! CUT THEM OFF!', 'FLANK LEFT AND RIGHT!'],
+};
+let barkN = 0;
+const pickBark = (order) => { const l = ORDER_BARKS[order] || ['MOVE!']; return l[barkN++ % l.length]; };
 // in chase: maybe call an order (returns true when it starts one: the state is 'order')
 export function tryOrder(e, dt, dist, pp){
   if (e.converted || !(e.orderCd <= 0)) return false;
@@ -130,7 +138,7 @@ export function tryOrder(e, dt, dist, pp){
   e.orderCd = rand(ORDERS.cd[0], ORDERS.cd[1]);
   G.orderBusy = G.gt + ORDERS.tell + 1.2;
   const g = e.group;
-  floater(V3(g.position.x, g.position.y + 1.6, g.position.z), e.order === 'volley' ? 'VOLLEY!' : 'FLANK!', '#ffc040');
+  bark(g, pickBark(e.order), { color: '#ffc040' });   // (shouted over its head, and it follows the officer: fx/barks.js)
   spawnGroundShock(g.position, 0xffc040, 3, 0.45, 0.55);
   sfx(1250, 0.1, 'square', 0.045, 1550); setTimeout(() => sfx(1550, 0.14, 'square', 0.04, 1250), 120);   // a two-note whistle
   if (!G.seenOrder){ G.seenOrder = true; if (G.mode === 'play' && !G.training) foeTipToast('ORDERS', 'An officer is calling the shots. Hit it while its arm is up to cut the order off, or drop it and its squad falters.'); }

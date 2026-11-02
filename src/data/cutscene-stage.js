@@ -13,7 +13,10 @@
 //   where  replaces the talk's own place line under the scene (null: none). The talk's `where` was written for the card;
 //          a scene staged on the chapter's own ground drops a "where" that would contradict it
 //   oneshot  true: the scene never cuts (God of War style): the lens drifts off the play camera to whoever speaks and
-//          settles back onto it, with no letterbox (game/cutscene.js oneLens). A prototype: only the Jedi's siege for now
+//          settles back onto it, with no letterbox (game/cutscene.js oneLens). Set on the openings that are a talk face
+//          to face, on the ground the fight is on, with nobody walking on from across the field. Left off: the trials
+//          (the one you talk to is the one you fight next), a rival's entrance or a chase (they want their cuts), a talk
+//          held aboard a ship or over comms (a wide look at a new place reads better), and hologram calls
 // Anyone in the lines not listed stands there in person, if data/cast.js has a figure for them.
 
 export const STAGE = {
@@ -25,20 +28,20 @@ export const STAGE = {
     'trial-first': { goal: 'Trial: break the Wall\'s guard and beat Tarn Odo.', off: ['MASTER VAEL'] },
     lothal: { goal: 'Walk RX-4 to the gate and open the pens.', off: ['MASTER VAEL'] },
     'trial-acrobat': { goal: 'Trial: ground Sera Quill and beat her.', off: ['MASTER VAEL'] },
-    hoth: { goal: 'Hold the trenches until the transports clear the shield.', off: ['MASTER VAEL'] },
+    hoth: { goal: 'Hold the trenches until the transports clear the shield.', off: ['MASTER VAEL'], oneshot: true },
     'trial-knight': { goal: 'Trial: parry General Kast and beat her.', off: ['MASTER VAEL'] },
     jakku: { goal: 'Pull the nav cores from the wrecks before the salvage crews burn them.', off: ['MASTER VAEL'] },
-    mustafar: { goal: 'Break the academy and get its children out.', on: ['MASTER VAEL'] },
+    mustafar: { goal: 'Break the academy and get its children out.', on: ['MASTER VAEL'], oneshot: true },
     chase: { goal: 'Run Ilsa down before she reaches her ship.', off: ['GENERAL KAST'] },
-    return: { goal: 'Break the three seals and open the Sith gate.', where: 'JEDHA, THE TEMPLE STEPS AT NIGHT' },
-    spearhead: { goal: 'Take the forward posts and break the line before the Citadel door.', on: ['GENERAL KAST'] },
-    chains: { goal: 'Break the chains and get the children out.', off: ['MASTER VAEL'] },
-    exegol: { goal: 'Fight through his guard to the throne. End Darth Vexis.', on: ['GENERAL KAST'] },
+    return: { goal: 'Break the three seals and open the Sith gate.', where: 'JEDHA, THE TEMPLE STEPS AT NIGHT', oneshot: true },
+    spearhead: { goal: 'Take the forward posts and break the line before the Citadel door.', on: ['GENERAL KAST'], oneshot: true },
+    chains: { goal: 'Break the chains and get the children out.', off: ['MASTER VAEL'], oneshot: true },
+    exegol: { goal: 'Fight through his guard to the throne. End Darth Vexis.', on: ['GENERAL KAST'], oneshot: true },
   },
   mando: {
     siege: { goal: 'It is an ambush. Fight your way to the landing pad.', holo: ['ROOK'], where: 'SALT HOLLOW, ORVANE' },
     archive: { goal: 'Clear the upper yard so the clan can reach the hangar.', where: 'THE CANYON, AT DUSK' },
-    refuge: { goal: 'Hold the ramp, kill the jammers, then deal with the droid.' },
+    refuge: { goal: 'Hold the ramp, kill the jammers, then deal with the droid.', oneshot: true },
     'trial-first': { goal: 'Answer Kael Varr\'s challenge. Put him on the ground.' },
     lothal: { goal: 'Open the three locks, free the prisoners, and take the warden.', holo: ['THE ARMORER'], where: 'THE GALLOWS, IN THE STORM' },
     'trial-acrobat': { goal: 'Keep Skye on the ground, and beat her.' },
@@ -52,15 +55,16 @@ export const STAGE = {
   },
   trooper: {
     order: { goal: 'Get General Kast to the ship. Hold off the company.' },
-    siege: { goal: 'Hold the yard. Keep the purge troopers off the freighter.' },
-    archive: { goal: 'Breach all three rooms and bring Brisk home.' },
+    siege: { goal: 'Hold the yard. Keep the purge troopers off the freighter.', oneshot: true },
+    archive: { goal: 'Breach all three rooms and bring Brisk home.', oneshot: true },
     refuge: { goal: 'Get the Halcyon\'s power back up and pull the chip files.', where: 'THE HALCYON, ADRIFT' },
-    'trial-first': { goal: 'Take every post as one squad.' },
+    'trial-first': { goal: 'Take every post as one squad.', oneshot: true },
     lothal: { goal: 'Reach the archive and get the batch file before the sea does.', where: 'TIPOCA CITY\'S LOWER LEVELS' },
     'trial-acrobat': { goal: 'Run the Marshal\'s old course and beat his time.', off: ['THE CAPTAIN'] },
-    hoth: { goal: 'Hold the forward trench beside Kast\'s clones.' },
+    hoth: { goal: 'Hold the forward trench beside Kast\'s clones.', oneshot: true },
     'trial-knight': { goal: 'Trial: beat General Kast.' },
     jakku: { goal: 'Find out what the foundry makes, and shut it down.', off: ['THE CAPTAIN'] },
     mustafar: { goal: 'Take the gate, hold it, and reach his command post.', off: ['THE CAPTAIN'] },
+    spearhead: { oneshot: true },
   },
 };

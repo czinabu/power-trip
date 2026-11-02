@@ -74,7 +74,8 @@ function underSlab(c, pos, over){
   if (over && pos.y + BODY_H > c.y0) ceilHit = Math.min(ceilHit, c.y0);
   return true;
 }
-export function collideSolids(pos, radius, climb){
+// `step`: how tall a top a body may step up onto (the squad's is a little taller than yours: allies/squad.js)
+export function collideSolids(pos, radius, climb, step = STEP_UP){
   let support = 0;
   ceilHit = Infinity;
   for (const c of solids){
@@ -89,7 +90,7 @@ export function collideSolids(pos, radius, climb){
       if (!((insideX && insideZ) || d2 < radius*radius)) continue;
       if (c.soft){ if (climb && pos.y >= c.y0 - 0.4 && top > support) support = top; continue; }   // a canopy only catches a body coming down onto it
       if (c.y0 && underSlab(c, pos, insideX && insideZ)) continue;
-      if (climb && pos.y >= top - STEP_UP){ if (top > support) support = top; continue; }
+      if (climb && pos.y >= top - step){ if (top > support) support = top; continue; }
       if (pos.y >= top) continue;   // feet already clear of the top (jumping off it): nothing to push out of
       if (insideX && insideZ){   // deep inside — eject through the nearest face
         const dl = pos.x - minX, dr = maxX - pos.x, db = pos.z - minZ, df = maxZ - pos.z;
@@ -105,7 +106,7 @@ export function collideSolids(pos, radius, climb){
       if (d >= rr) continue;
       if (c.soft){ if (climb && pos.y >= c.y0 - 0.4 && top > support) support = top; continue; }
       if (c.y0 && underSlab(c, pos, d < c.r)) continue;
-      if (climb && pos.y >= top - STEP_UP){ if (top > support) support = top; continue; }
+      if (climb && pos.y >= top - step){ if (top > support) support = top; continue; }
       if (pos.y >= top) continue;
       if (d > 0.001){ const push = rr - d; pos.x += dx/d*push; pos.z += dz/d*push; }
     }

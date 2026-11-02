@@ -44,6 +44,8 @@ import { buildFrigateArena } from './arenas/frigate.js';
 import { buildKaminoArena } from './arenas/kamino.js';
 import { buildChipworksArena } from './arenas/chipworks.js';
 import { buildWarcampArena } from './arenas/warcamp.js';
+import { buildCanyonArena } from './arenas/canyon.js';
+import { buildRelayArena } from './arenas/relay.js';
 import { resetDoors } from './doors.js';
 import { buildNav } from '../enemies/nav.js';
 import { clearScorch } from '../fx/scorch.js';
@@ -165,6 +167,8 @@ export function buildArena(L){
   else if (L.layout === 'kamino'){ buildKaminoArena(LP); }
   else if (L.layout === 'chipworks'){ buildChipworksArena(LP); }
   else if (L.layout === 'warcamp'){ buildWarcampArena(LP); }
+  else if (L.layout === 'canyon'){ buildCanyonArena(LP); }
+  else if (L.layout === 'relay'){ buildRelayArena(LP); }
   else {
   // pick a spot at least `gap` clear of every other obstacle so cover stays SPREAD OUT — clustered obstacles
   // form walls that trap the enemy AI. Returns null if no open spot is found (so we just place fewer).

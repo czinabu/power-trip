@@ -109,9 +109,10 @@ export function closeCustomizer(){
   if (!overlay.classList.contains('customizing')) return;
   overlay.classList.remove('customizing');
   focusShowcase(false);
-  setOverlayState('menu');   // restores the headline
-  savePicks(picks);
+  savePicks(picks);   // saved BEFORE the menu comes back: the menu reloads the saved picks (refreshWornLook), and saving
+                      // after it wrote the old picks back over the new ones, so DONE kept nothing
   if (wornKey(picks) !== saved) dressPlayer();
+  setOverlayState('menu');   // restores the headline
 }
 // a loaded save brings its own look (ui/saves-ui.js): pick it up and dress the player in it
 export function reloadLook(){
@@ -124,6 +125,7 @@ export function reloadLook(){
 // it. game/campaign.js calls this as the next chapter starts, so the new gear is on when the hero walks in
 export function refreshWornLook(){
   if (!czReady) return false;   // (the menu can ask while the modules are still loading)
+  if (overlay.classList.contains('customizing')) return false;   // mid-edit: the unsaved picks are the ones that count
   picks = loadPicks();
   syncHeroNames();
   if (wornKey(picks) === saved) return false;

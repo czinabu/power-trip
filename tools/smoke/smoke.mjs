@@ -92,8 +92,9 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     if (mode === 'sandbox'){
       await page.keyboard.press('b');
       await page.click('[data-n="3"]'); await page.click('[data-foe="grunt"]'); await page.click('[data-foe="acolyte"]');
-      await page.click('[data-kit="birds"]'); await page.click('[data-foe="boss"]');
-      await page.click('#sbsquadadd'); await page.click('#sbsquadadd');   // two squadmates fight beside the hero
+      await page.click('[data-foe="boss"]');
+      await page.click('[data-sbtab="you"]'); await page.click('[data-kit="birds"]');   // the panel's tabs (ui/sandbox-ui.js)
+      await page.click('[data-sbtab="squad"]'); await page.click('#sbsquadadd'); await page.click('#sbsquadadd');   // two squadmates fight beside the hero
       await page.click('#sbdone');
     }
     await page.evaluate(() => { window.__frames = 0; const f = () => { window.__frames++; requestAnimationFrame(f); }; requestAnimationFrame(f); });

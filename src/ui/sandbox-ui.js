@@ -1,5 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // The sandbox panel (B in the sandbox): call in any foe, switch powers on and off, clear the floor, god mode.
+// Four tabs keep it to one screen: ARENA & BATTLES, FOES (with the duellists' form and rank), YOU (forms, powers or
+// gear, restore, god mode) and SQUAD & READOUT. Q / E (LB / RB on a pad) step through them; the last tab stays picked.
 // Before the campaign is beaten, what the story hasn't reached yet shows dimmed and locked (game/sandbox-unlocks.js).
 // It holds the game still while it's open and frees the cursor, the same way the upgrade screen does.
 
@@ -39,11 +41,21 @@ export function closeSandboxPanel(relock = true){
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
 }
 
+const TABS = ['arena', 'foes', 'you', 'squad'];
+let tab = 'foes';   // calling in foes is what the panel is opened for most
+function showTab(t){
+  tab = t;
+  for (const el of panel.querySelectorAll('[data-sbtab]')) el.classList.toggle('on', el.dataset.sbtab === t);
+  for (const el of panel.querySelectorAll('[data-sbpage]')) el.classList.toggle('on', el.dataset.sbpage === t);
+}
+function stepTab(d){ showTab(TABS[(TABS.indexOf(tab) + d + TABS.length) % TABS.length]); }
+
 const SB_FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo'];   // (a magnaguard always fights with its staff)
 function pill(id, on){ const el = $(id); el.classList.toggle('on', on); el.querySelector('.setval').textContent = on ? 'ON' : 'OFF'; }
 const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
 function render(){
+  showTab(tab);
   const full = sandboxIsFull(), prog = sandboxProgress();
   $('sbstory').style.display = full ? 'none' : '';
   $('sbstory').textContent = 'THE STORY SO FAR · ' + prog.n + ' OF ' + prog.of + ' CHAPTERS · beat the campaign to open everything';
@@ -69,6 +81,8 @@ function render(){
   }).join('');
   const jedi = !isGunner();
   $('sbformslbl').style.display = $('sbforms').style.display = jedi ? '' : 'none';
+  $('sbtabyou').textContent = jedi ? '· FORMS & POWERS' : '· GEAR';
+  $('sbkitlbl').firstChild.textContent = jedi ? 'POWERS ' : 'GEAR ';
   if (jedi) $('sbforms').innerHTML = Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
     const id = G.loadout[i], f = id && FORMS[id];
     return `<div class="sb-chip${f ? ' on' : ''}" data-slot="${i}">${f ? (f.no ? 'FORM ' + f.no + ' · ' : '') + f.name : 'EMPTY'}<span class="k">${i + 1}</span></div>`;
@@ -84,6 +98,8 @@ function render(){
 panel.addEventListener('click', (e) => {
   e.stopPropagation();   // nothing in here may reach the overlay's launch/resume handler
   const t = e.target;
+  const tb = t.closest('[data-sbtab]');
+  if (tb){ showTab(tb.dataset.sbtab); return; }
   const slot = t.closest('[data-slot]');
   if (slot){ cycleSandboxSlot(+slot.dataset.slot); render(); return; }
   const n = t.closest('[data-n]'), foe = t.closest('[data-foe]'), kit = t.closest('[data-kit]'), map = t.closest('[data-map]');
@@ -118,5 +134,8 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (k === 'b'){ if (isOpen()) closeSandboxPanel(); else openSandboxPanel(); }
+  else if ((k === 'q' || k === 'e') && isOpen()) stepTab(k === 'e' ? 1 : -1);
   else if (k === 'escape' && isOpen()){ e.preventDefault(); closeSandboxPanel(); }
 });
+// LB / RB on a pad (engine/gamepad.js)
+document.addEventListener('sb-tab', (e) => { if (isOpen()) stepTab(e.detail); });

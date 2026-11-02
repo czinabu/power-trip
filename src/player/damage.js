@@ -261,7 +261,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
           player.ripLine = (opts && opts.line) || null;
           floater(pp, 'FLUID RIPOSTE', '#c9a0ff');
         }
-        const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets nothing through)
+        const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets only a sliver through)
         if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul, null, true, false, true);
         addFury(stance().furyBlock);
         return 'blocked';

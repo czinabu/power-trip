@@ -59,6 +59,7 @@ import { scarBody, markHit } from '../enemies/scars.js';
 import { SCARS as CUTS } from '../enemies/kit.js';
 import { puppetOf } from '../net/foes.js';
 import { CIV, CIV_TUNE } from './civilians.js';
+import { LANE, pickLanes, setLanes, clearLanes, warnLane, updateLanes, laneSpawn, safeSpot, firstWarning, lanesSnap, lanesSync } from './lanes.js';
 import { meetNamed } from './codex.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
@@ -127,6 +128,7 @@ function clearMission(){
   for (const p of M.props) scene.remove(p);
   M.props = []; M.fx = []; M.quarry = null; M.vip = null; M.guest = false; M.net = null; M.begun = -1; M.pn = null; M.pnSeen = undefined; M.gk = null;
   CIV.list.length = 0; CIV.onAim = null;
+  clearLanes();
   endTwist(true);
   stopBattleFx();
   if (M.on) hidePanel();
@@ -160,8 +162,9 @@ function queueGroup(g, opts){
   const first = Object.keys(g)[0];
   if (M.chapter && M.chapter.harder && first) queueSpawn(first, opts);
 }
-// a clear spot on the edge ring, within an arc of it
-function arcSpawn(a0, a1){
+// a clear spot on the edge ring, within an arc of it, never in reach of a hero or the people being protected (game/lanes.js)
+function arcSpawn(a0, a1){ return safeSpot(() => arcPoint(a0, a1)); }
+function arcPoint(a0, a1){
   const a = a0 + Math.random() * (a1 - a0);
   let x, z;
   if (shared.arenaBig){   // a battle map's edge is a minute's run away: come in from that side of the hero instead
@@ -204,29 +207,49 @@ const KINDS = {
       if (o.twist && o.twist.zones) o.at = o.twist.zones[0];   // a hold that falls back (the heat twist): its first stand (o is this run's copy)
       M.markers.push(s.zone = makeBeacon(o.at[0], o.at[1], 0, heroKey(MISSION_COLOR), o.r / 0.9));
       if (o.evacuees) beginEvacuees(evac(o), s);
+      // the routes its waves come in by, well away from the people being got out (game/lanes.js), and the waves on their way
+      s.lanes = pickLanes(o, o.evacuees ? evac(o).path : null); s.laneAt = o.at; s.inc = []; s.lastLane = -1;
+      setLanes(s.lanes);
     },
     update(o, s, dt){
       if (o.twist && o.twist.zones) fallBack(o, s);
+      if (o.twist && o.twist.zones && s.laneAt !== o.at){ s.laneAt = o.at; s.lanes = pickLanes(o, o.evacuees ? evac(o).path : null); setLanes(s.lanes); }   // (the stand moved: so do its lanes)
       const officers = enemies.some(e => !e.dead && !e.converted && e.type === 'officer');
-      const alive = hostilesAlive() + G.spawnQueue.length;
+      const alive = hostilesAlive() + G.spawnQueue.length + s.inc.reduce((n, w) => n + w.n, 0);
       if ((s.pulseT -= dt) <= 0){
         s.pulseT = o.every[officers ? 0 : 1];
-        if (alive < o.cap){
-          const goal = { pos: V3(o.at[0], 0, o.at[1]), aggro: o.aggro };   // they come for the ramp, not for you
-          const wave = ++s.pulse;
-          queueGroup(o.pulses[(wave - 1) % o.pulses.length], { at: o.from && (() => arcSpawn(o.from[0], o.from[1])), then: e => {
-            if (!e) return;
-            e.goal = goal;
-            // from the second wave on, one rifle at a time is sent at the people being got out (game/civilians.js)
-            if (s.kids && wave >= CIV_TUNE.hunt.every && e.t.ranged && !e.t.grenade && !enemies.some(f => f !== e && !f.dead && !f.converted && f.civHunt)) e.civHunt = true;
-          } });
-          if (s.pulse > 1) showBanner('', officers ? 'AN OFFICER CALLS IN REINFORCEMENTS' : 'REINFORCEMENTS', 1.4);
+        if (alive < o.cap && s.lanes.length){
+          // the wave is called in: its lane lights up first, and the troops step out of it LANE.warn seconds later
+          const wave = ++s.pulse, g = o.pulses[(wave - 1) % o.pulses.length];
+          const pick = s.lanes.length > 1 ? s.lanes.filter(l => l.i !== s.lastLane) : s.lanes, lane = pick[Math.floor(Math.random() * pick.length)];
+          s.lastLane = lane.i;
+          warnLane(lane);
+          s.inc.push({ lane, wave, g, t: LANE.warn, n: Object.values(g).reduce((a, b) => a + b, 0) });
+          const who = o.evacuees ? heroKey(evac(o).name) || 'LINE' : '';
+          if (firstWarning()) showBanner('INCOMING', 'The red lane is where they come in. Meet them there' + (who ? ', before they reach the ' + who.toLowerCase() : '') + '.', 3, { kicker: 'WATCH THE LANES' });
+          else showBanner('', officers ? 'AN OFFICER CALLS IN REINFORCEMENTS' : 'REINFORCEMENTS INCOMING', 1.4);
         }
       }
+      for (let i = s.inc.length - 1; i >= 0; i--){
+        const w = s.inc[i];
+        if ((w.t -= dt) > 0) continue;
+        s.inc.splice(i, 1);
+        const goal = { pos: V3(o.at[0], 0, o.at[1]), aggro: o.aggro };   // they come for the ramp, not for you
+        queueGroup(w.g, { at: () => laneSpawn(w.lane), then: e => {
+          if (!e) return;
+          e.goal = goal;
+          // from the second wave on, one rifle at a time is sent at the people being got out (game/civilians.js)
+          if (s.kids && w.wave >= CIV_TUNE.hunt.every && e.t.ranged && !e.t.grenade && !enemies.some(f => f !== e && !f.dead && !f.converted && f.civHunt)) e.civHunt = true;
+        } });
+      }
+      updateLanes(dt, G.gt);
       const inZone = heroIn(o.at[0], o.at[1], o.r), foes = hostilesIn(o.at[0], o.at[1], o.r);
+      // the zone covers the people too: a hero standing by someone in the line (outside the zone) is holding it, so
+      // guarding them never costs the hold (a foe left standing in the zone still halves it)
+      const byLine = !inZone && s.kids && s.kids.some(k => k.m.visible && heroIn(k.m.position.x, k.m.position.z, EVAC_HIT.guard));
       // squadRate: squadmates ordered onto the zone (H) keep it ticking while you're away; a foe in it halves that
       const mates = o.squadRate ? squadIn(o.at[0], o.at[1], o.r) : 0;
-      let rate = inZone ? 1 : mates ? o.squadRate * (foes ? 0.5 : 1) : foes ? 0 : o.awayRate;
+      let rate = inZone ? 1 : byLine ? (foes ? 0.5 : 1) : mates ? o.squadRate * (foes ? 0.5 : 1) : foes ? 0 : o.awayRate;
       const gate = o.twist && twistGate(o.at[0], o.at[1], twistCtx);   // its twist can hold it up (game/twists.js)
       if (gate) rate *= gate.rate;
       // one of the line is down (shot, or caught in a blast): nobody gets aboard until they're up again
@@ -241,6 +264,7 @@ const KINDS = {
       const who = o.evacuees ? heroKey(evac(o).name) + ' ' + (evac(o).verb || 'ABOARD') + ' ' + s.aboard + ' / ' + evac(o).count : (o.holding || 'HOLDING');
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: s.prog / o.time,
         status: (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
+               : byLine ? 'GUARDING THE LINE · ' + who + ' · ' + mmss(o.time - s.prog)
                : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || 'RAMP UNGUARDED') + ' ' + mmss(o.time - s.prog)) + total,
         warn: rate === 0 || !!(gate && gate.warn) });
       if (s.prog >= o.time){
@@ -638,6 +662,7 @@ const EVAC_HIT = {
   setback: 2.0,    // seconds of the hold's progress each hit costs (never below who's already aboard)
   gap: 0.8,        // a second hit this soon after the last costs no more ground (a burst, a blast through the line)
   shoveBack: 1.4,  // m/s a pushed-aside evacuee steps back into the line
+  guard: 3.2,      // m: a hero this close to someone in the line, outside the zone, holds the hold as if in it
 };
 function beginEvacuees(ev, s){
   s.path = ev.path; s.len = 0;
@@ -1178,6 +1203,7 @@ const guestCtx = { guest: true, frac: 0, get o(){ return M.o; }, s: null, get vi
 } };
 function completeObjective(){
   endTwist();   // (it eases off over the breather)
+  clearLanes();
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
   MUSIC.objectiveSting();
@@ -1387,7 +1413,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }
 // the hold's line as the guest draws it: per evacuee, how far along, pushed aside how far, and down which way (99: up)
@@ -1423,6 +1449,7 @@ export function coopMissionSync(ms){
     M.markers = [];
     for (const p of M.props) scene.remove(p);
     M.props = []; M.quarry = null; M.vip = null; M.gk = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
+    clearLanes();
     endTwist(true);
   }
   if (ms.i !== M.i){
@@ -1439,6 +1466,7 @@ export function coopMissionSync(ms){
   }
   M.net = ms;
   if (ms.tw) twistSync(ms.tw);
+  lanesSync(ms.ln);   // the host's approach lanes, lit as its waves are called in
   if (ms.pn && ms.pn[0] !== M.pnSeen){ M.pnSeen = ms.pn[0]; punchIn({ x: ms.pn[1], y: 0, z: ms.pn[2] }, ms.pn[3]); }   // the host's foe hit its rage: this lens punches in too
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached
   while (M.markers.length > ms.mk.length) removeMarker(M.markers.pop());
@@ -1464,6 +1492,7 @@ function updateMissionGuest(dt){
   guestCtx.frac = ms && ms.hud && ms.hud[1] >= 0 ? ms.hud[1] : guestCtx.frac;
   updateTwist(dt, guestCtx);
   guestEvacuees(ms, dt);
+  updateLanes(dt, G.gt);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);
   const k = 1 - Math.exp(-14 * dt), ang = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));

@@ -17,6 +17,9 @@
 //               seconds between pulses (officers call them in, so drop the officers) · cap: most foes on the field
 //               from: [a0, a1] the arc of the edge they arrive from (radians, 0 = east, -π/2 = south) · aggro: a foe
 //               marches on the zone and only fights you when you're this close to it
+//               lanes (optional): [[a0, a1]…] arcs for its approach lanes instead of `from` (game/lanes.js): each wave is
+//               called down one of two or three lanes picked in them, lit red a few seconds before it steps out. A lane
+//               is never within 13 m of the evacuees' path (if the arcs have none that far, the whole ring is searched)
 //               squadRate (optional): progress speed with only squadmates (allies/squad.js) in the zone
 //               evacuees: { count, path: [[x, z]…] (from their shelter to the ship's hatch), spacing, speed, name } the
 //               people being saved, filing aboard as the timer runs (they stop and huddle while it stalls)
@@ -260,11 +263,13 @@ export const MISSIONS = {
         say: { jedi: 'The archivists are coming out of the north stacks with whatever they can carry. Hold the middle of the hall until every one of them reaches the doors.',
                mando: 'Robed folk with their arms full of scrolls, coming through the fire. Hold the hall until they are out.' },
         task: { jedi: 'Hold the hall while the archivists get out', mando: 'Hold the hall while the archivists get out' },
-        at: [0, 6], r: 7, time: 60, awayRate: 0.5, unguarded: 'HALL UNGUARDED',
+        // the archivists come down the east side of the hall, past the dais and through the zone, to the south doors;
+        // the troops come in from the west (behind the west stacks), so the hold stands between them and the line
+        at: [1, 3], r: 8, time: 60, awayRate: 0.5, unguarded: 'HALL UNGUARDED',
         evacuees: { kind: 'archivist', count: 10, spacing: 1.6, speed: 2.4, ramp: false, verb: 'OUT', name: { jedi: 'ARCHIVISTS', mando: 'ARCHIVISTS' },
-                    path: [[-3, -21], [-3, -13], [-12, -6], [-12, 4], [-4, 11], [0, 16], [0, 23]] },
+                    path: [[2.5, -21], [2.5, -13], [4.5, -6], [4.5, 3.5], [1.5, 9.5], [0, 16], [0, 23]] },
         pulses: [ { grunt: 2, blaster: 1 }, { grunt: 2, grenadier: 1 }, { grunt: 2, blaster: 1, officer: 1 }, { grunt: 1, duelist: 1, blaster: 1 } ],
-        every: [10, 15], cap: 6, from: [0.4, Math.PI - 0.4], aggro: 8 },
+        every: [10, 15], cap: 6, from: [Math.PI - 1.05, Math.PI + 1.05], aggro: 8 },
 
       { kind: 'sabotage', title: 'BREAK INTO THE VAULT', consoleName: 'VAULT SEAL', consoleDone: 'OPEN', doneLine: 'THE VAULT IS OPEN', doneSub: 'Someone has already been down there.',
         start: [0, 10, Math.PI],
@@ -968,7 +973,8 @@ export const MISSIONS = {
                     path: [[0, -22], [0, -12], [0, -2], [0, 8]] },
         overrun: 'CLEAR THE FLOOR', unguarded: 'FLOOR UNGUARDED', doneLine: 'THE CHILDREN ARE OUT', doneSub: 'Kast\'s troopers have them at the gate.',
         pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, lancer: 1, grenadier: 1 }, { grunt: 2, officer: 1, flyer: 1 }, { grunt: 2, phalanx: 1, sniper: 1 } ],
-        every: [8, 12], cap: 9, from: [-Math.PI + 0.3, -0.3], aggro: 8 },
+        // (the children run up the middle of the floor from the throne: the troops come down off the stands either side)
+        every: [8, 12], cap: 9, from: [-0.8, 0.8], lanes: [[-0.8, 0.8], [Math.PI - 0.8, Math.PI + 0.8]], aggro: 8 },
 
       { kind: 'duel', title: 'DEFEAT THE GRAND INQUISITOR', music: 'duel', start: [0, -4, Math.PI],
         say: 'His Grand Inquisitor. Every hunter who came for the children answered to it. It answers to you now.',

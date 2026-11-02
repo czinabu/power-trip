@@ -96,3 +96,24 @@ cover in practice; new cover should still be 1.5 m or more where it's meant to s
 6. Hazards with the amber warning, placed to punish camping or reward luring, never on the only route.
 7. Fuel drums where foes bunch up, not by the spawn.
 8. It works in every mode that can load it (campaign, survival, missions, sandbox, co-op).
+
+## Protect missions (holds with people to get out: game/lanes.js)
+
+A hold with evacuees (the refuge's younglings, the archivists, the pens' children, the barge's prisoners) is only fair
+if the player can stand in the zone and still protect the line. Every hold now follows these rules, checked by
+`npm run smoke:holds`:
+
+- **Lanes away from the walk.** Each hold's waves come in by two or three approach lanes (`lanes` or `from` in
+  data/missions.js), spread at least ~45° apart round the zone. No lane mouth is within 13 m of any point of the
+  evacuees' path, from the shelter door to the hatch; if a mission's arcs have none that far, the whole ring is
+  searched instead, so bad data can't put a wave on top of the line. No mission spawn of any kind (a trickle, an
+  ambush, a twist's group) lands within 11 m of anyone being protected or 8 m of a hero.
+- **The zone stands between the lanes and the line.** Lay the path so it runs through or beside the zone and put the
+  lanes on the far side of the zone from it. Then the troops have to come through the player to reach the line.
+- **Out of sight.** Lanes behind tall cover (as seen from the zone) are preferred, so troops step out from behind a
+  stack or a wall instead of popping in in the open.
+- **Telegraphed.** A wave's lane lights up red for 3.2 s before it steps out: a ring at the mouth, chevrons running
+  to the zone and a red arrow at the screen edge when the lane is behind the camera. Between waves the lanes stay
+  faintly marked, so the routes are learnable.
+- **The zone covers the line.** A hero within 3.2 m of someone in the line counts as holding the zone (half speed if a
+  foe stands in the zone), so leaving the circle to guard them never costs the hold.

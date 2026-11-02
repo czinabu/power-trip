@@ -43,6 +43,8 @@ export function renderThreats(){
     if (col) threats.push({ pos: e.group.position, col });
   }
   if (shared.boss && shared.boss.hp > 0) threats.push({ pos: shared.boss.group.position, col: '#ff5a5a' });
+  // a hold's lane that's lit: a wave is about to step out of it (game/lanes.js)
+  if (shared.incoming) for (const pos of shared.incoming) threats.push({ pos, col: '#ff4a2a' });
   // --- where a SURGE is coming in: one pale marker per direction for foes that arrived in the last few seconds
   // off-screen (the spawn director brings each surge in from one side: world/collision.js edgeSpawn) ---
   const t = G.gt, arrivals = [];

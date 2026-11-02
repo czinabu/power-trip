@@ -69,7 +69,7 @@ export const JEDI_CHAPTERS = {
            [HERO, 'Ilsa had the watch.'],
            [VAEL, 'I know.']] },
     opening: { lines: [[VAEL, 'Listen. That is the sound of a thousand years ending, unless you stand in its way.'],
-              [VAEL, 'And Ilsa is not at her post.']] },
+              [VAEL, 'Hold the steps, Knight. I will find out who opened that gate. Do not go looking for her yourself.']] },
     lines: {
       wave: [
         ['They came up the pilgrim road. Nobody stopped them at the gate. Meet them on the steps.'],
@@ -80,7 +80,8 @@ export const JEDI_CHAPTERS = {
     title: 'THE BURNING ARCHIVE', kind: 'mission', mission: 'vault', steps: 2,
     brief: ['The archive is burning. The Ledger of Names is in the vault below it.',
             'Twenty years of hidden children, written down in one place. Get the archivists out, then get to the vault before anyone else does.'],
-    opening: { lines: [[VAEL, 'Smoke in the archive. And there, above the stair. An Inquisitor.']],
+    opening: { lines: [[VAEL, 'The archive is burning, and the Ledger of Names is in the vault beneath it. Twenty years of hidden children.'],
+                       [VAEL, 'That Inquisitor knows the way down. Get the archivists out, and get to the vault first.']],
                rival: { ...INQ, line: ['THE INQUISITOR', 'Hold the hall if you like, Knight. I already know the way down.'] } },
     escapeLines: [[ILSA, 'Do not look at me like that. Somebody had to stop hiding.'], [VAEL, 'Ilsa. No.']],
     lines: {
@@ -122,7 +123,8 @@ export const JEDI_CHAPTERS = {
       lothal: [{ by: 'ledger', saved: 'The Ledger marks a moon called Tessaril: the pens, where the Inquisitors keep the children they catch until the ships come for them.', burned: 'Tarn has heard of a moon called Tessaril: the pens, where the Inquisitors keep the children they catch until the ships come for them.' },
                'A year ago Sera Quill tried to empty it, and they caught her. RX-4 has the cell codes. Walk it in, open the pens, and finish what she started.'],
       hoth: ['We are late. A ship came for half the children while we were on Hoth. The rest are still in the pens, and so is Sera.', 'Walk RX-4 in, open what is left of the cells, and get every one of them out.'] },
-    opening: { lines: [[VAEL, 'Tessaril. No sun, no grass, rain that never stops. They chose a moon where nobody would hear the children cry.']] },
+    opening: { lines: [[VAEL, 'Tessaril. No sun, no grass, rain that never stops. They chose a moon where nobody would hear the children cry.'],
+                       [VAEL, 'RX-4 has the cell codes. Walk it to the gate, and every pen opens at once.']] },
     says: [null, null, 'The children are running for the ship. Hold the gate until the last of them is past you. Sera is with them. She will not leave until they are clear.',
            'The Warden of the pens. It never hunted a Jedi in its life: it only kept what the others caught. It wants its list back.'],
     lines: {

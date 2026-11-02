@@ -16,6 +16,7 @@ import { JEDI_BOSS, JEDI_DUELS, JEDI_CAST } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
 import { playerPos, stance, fwd, rightV } from '../player/helpers.js';
 import { animatePlayer } from '../player/animation.js';
+import { syncHolster } from '../player/holster.js';
 import { cameraClearance, sightClear, updatePropFade } from '../world/camblock.js';
 import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
@@ -30,6 +31,9 @@ import { coopRun } from '../net/run.js';
 import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
 import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
 import { missionState } from './mission.js';
+import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
+import { STAGE } from '../data/cutscene-stage.js';
+import { chapterOrder, storyVoice } from '../data/campaign.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -42,7 +46,8 @@ el.id = 'cutscene';
 el.innerHTML = '<div class="cs-bar top"></div><div class="cs-bar bot"></div>' +
   '<div class="cs-title"><div class="cs-k"></div><div class="cs-h"></div><div class="cs-p"></div></div>' +
   '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div>' +
-  '<div class="cs-skip"><b>ENTER</b> skip</div>';
+  '<div class="cs-where"></div><div class="cs-goal"><div class="cs-gk">OBJECTIVE</div><div class="cs-gh"></div></div>' +
+  '<div class="cs-skip"><span class="cs-sk"></span><i class="cs-fill"></i></div>';
 document.body.appendChild(el);
 el.style.setProperty('--bars', (CUT.bars * 100) + 'vh');
 const $ = (c) => el.querySelector(c);
@@ -82,6 +87,8 @@ function boundActor(name){
 // the actor walks from where it stands to (x, z) over `t` seconds, then turns to the hero
 function walkTo(a, x, z, t){ a.walk = { x0: a.g.position.x, z0: a.g.position.z, x1: x, z1: z, t, k: 0 }; }
 function updateActor(a, dt){
+  if (!a.g) return;   // (gone from the set)
+  if (a.kind){ stepFigure(a, dt); return; }   // one of the story's cast (game/cast.js)
   if (!a.own){ const g = a.bind && binders[a.bind] && binders[a.bind](); if (g) a.g = g; }   // (a foe on the field keeps its pose, and only turns to you)
   const g = a.g, pp = playerPos();
   if (!a.own){ const want = yawTo(g.position.x, g.position.z, pp.x, pp.z); g.rotation.y += Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y)) * Math.min(1, dt * 4); return; }
@@ -103,28 +110,74 @@ function updateActor(a, dt){
 function dropActors(){
   player.talking = false;
   for (const a of C.actors) if (a.g) a.g.userData.talk = false;
-  for (const a of C.actors) if (a.own) scene.remove(a.g);
+  for (const a of C.actors){ if (a.kind) dropFigure(a); else if (a.own) scene.remove(a.g); }
   C.actors = [];
+}
+// the cast leaves the set (the objective's look out over the field doesn't want them in it): a cut hides it
+function dropCast(){
+  C.actors = C.actors.map(a => { if (!a.kind) return a; dropFigure(a); return { g: null, gone: true }; });
 }
 
 /* ---------- anchors: what a shot's lens circles. Each gives a spot and the way it faces ---------- */
 const P = new THREE.Vector3(), L = new THREE.Vector3();
+// eye level (world height) of the hero or an actor: off its head joint, so a close frames the face whatever its size
+const EV = new THREE.Vector3();
+function eyeOf(a){
+  if (a === 'hero'){ if (player.rig && player.rig.head){ player.rig.head.getWorldPosition(EV); return EV.y + 0.18; } return playerPos().y + 2.1; }
+  const head = a.kind === 'hero' ? a.target.rig.head : a.g && a.g.userData.head;
+  if (head){ head.getWorldPosition(EV); return EV.y + (a.kind === 'hero' ? 0.18 : 0.12) * (a.scale || 1); }
+  return a.g.position.y + 1.72 * (a.scale || 1);
+}
 function anchor(on){
-  if (on === 'hero'){ const p = playerPos(); return { x: p.x, y: p.y, z: p.z, yaw: C.heroYaw }; }
+  if (on === 'hero'){ const p = playerPos(); return { x: p.x, y: p.y, z: p.z, yaw: C.heroYaw, eye: eyeOf('hero') }; }
   if (on === 'mark') return { x: C.mark.x, y: 0, z: C.mark.z, yaw: C.mark.yaw };
+  if (on === 'pair'){   // the hero and the one they talk to, side by side: the middle of them, facing across the line between them
+    const p = playerPos(), b = C.actors[C.pair || 0];
+    if (!b || !b.g) return anchor('hero');
+    const q = b.g.position;
+    return { x: (p.x + q.x) / 2, y: Math.min(p.y, q.y), z: (p.z + q.z) / 2, yaw: yawTo(p.x, p.z, q.x, q.z) + Math.PI / 2, eye: (eyeOf('hero') + eyeOf(b)) / 2 };
+  }
   const a = C.actors[on === 'actor' ? 0 : on] || C.actors[0];
-  if (!a) return anchor('hero');
+  if (!a || !a.g) return anchor('hero');
   const g = a.g.position, p = playerPos();
-  return { x: g.x, y: g.y, z: g.z, yaw: yawTo(g.x, g.z, p.x, p.z), scale: a.scale };
+  return { x: g.x, y: g.y, z: g.z, yaw: yawTo(g.x, g.z, p.x, p.z), scale: a.scale, get eye(){ return eyeOf(a); } };
 }
 // where a shot looks: { on, h } a height over an anchor, or { on, ahead, h } a point that far along the anchor's facing
 function lookPoint(look, out){
-  const a = anchor(look.on), s = look.on === 'hero' || look.on === 'mark' ? 1 : (a.scale || 1);
+  const a = anchor(look.on), s = look.on === 'hero' || look.on === 'mark' || look.on === 'pair' ? 1 : (a.scale || 1);
   const f = look.ahead || 0;
-  return out.set(a.x + Math.sin(a.yaw) * f, a.y + look.h * s, a.z + Math.cos(a.yaw) * f);
+  return out.set(a.x + Math.sin(a.yaw) * f, look.eye ? a.eye + look.h : a.y + look.h * s, a.z + Math.cos(a.yaw) * f);   // (look.eye: h is over or under eye level)
 }
 
 /* ---------- building shots ---------- */
+// can a lens stand at (x, y, z) and see the point (ax, ay, az)? 0 (no) to 1 (a clear view): inside the arena's walls,
+// out of every prop, and nothing solid between
+const HALF = () => [shared.arenaHalf - 0.6, (shared.arenaHalfZ || shared.arenaHalf) - 0.6];
+function lensView(ax, ay, az, x, y, z){
+  const [hx, hz] = HALF();
+  if (Math.abs(x) > hx || Math.abs(z) > hz) return 0;
+  const k = Math.min(sightClear(ax, ay, az, x, y, z), cameraClearance(ax, ay, az, x, y, z) >= 0.999 ? 1 : 0);
+  return k < 0.98 ? k : rayClear(ax, ay, az, x, y, z);
+}
+// ...and nothing else drawn in the way either: a canyon wall, a building or a ship's hull isn't a prop (a ray through the
+// scene; the hero, the cast and anything see-through don't count)
+const ray = new THREE.Raycaster(), RA = new THREE.Vector3(), RD = new THREE.Vector3();
+const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+function rayClear(ax, ay, az, x, y, z){
+  RA.set(ax, ay, az); RD.set(x - ax, y - ay, z - az);
+  const len = RD.length() + 0.4;   // (a little past the lens: it can't sit inside a wall either)
+  if (len < 0.5) return 1;
+  ray.set(RA, RD.normalize()); ray.near = 0.3; ray.far = len;
+  const skip = new Set([player.group, ...C.actors.map(a => a.g), ...(C.building || [])].filter(Boolean));
+  for (const h of ray.intersectObjects(scene.children, true)){
+    const o = h.object, m = o.material;
+    if (!(o.isMesh) || !m || [].concat(m).some(mm => mm.transparent || mm.depthWrite === false) || !shown(o)) continue;
+    let mine = false; for (let q = o; q; q = q.parent) if (skip.has(q)){ mine = true; break; }
+    if (mine) continue;
+    return Math.max(0, (h.distance - 0.3) / len);
+  }
+  return 1;
+}
 // shot(on, from, to, t, look, extra): from/to are [angle off the anchor's facing (0: in front, PI: behind), distance, height]
 const shot = (on, from, to, t, look, extra = {}) => ({ on, from, to, t, look, ...extra });
 // the hero speaks or listens: a close three-quarter, alternating sides line by line
@@ -148,7 +201,7 @@ const settle = (look) => shot('hero', [Math.PI, 5.6, 2.7], [Math.PI, 4.8, 2.4], 
 // (in a narrow place, like the chase's alleys, it comes in closer and swings round until no wall stands in the way)
 function wide(t, title){
   const pp = playerPos(), Y = G.yaw, W0 = Math.max(14, Math.min(30, shared.arenaHalf * 0.55));
-  const clear = (a, d, h) => sightClear(pp.x, pp.y + 1.4, pp.z, pp.x + Math.sin(Y + a) * d, pp.y + h, pp.z + Math.cos(Y + a) * d);
+  const clear = (a, d, h) => lensView(pp.x, pp.y + 1.4, pp.z, pp.x + Math.sin(Y + a) * d, pp.y + h, pp.z + Math.cos(Y + a) * d);
   let best = null, bestK = -1;
   search: for (const W of [W0, W0 * 0.7, W0 * 0.5, W0 * 0.35]) for (const a of [0.7, -0.7, 0.35, -0.35, 0, 1.1, -1.1]){
     const H = W * 0.5, k = Math.min(clear(Math.PI + a, W, H), clear(Math.PI + a * 0.5, W * 0.85, H * 0.8));
@@ -173,14 +226,18 @@ function start(opts){
   const pp = playerPos();
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], heroYaw: G.yaw,
-                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null });
+                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0 });
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
   G.cutscene = true;
+  // a scene with people on set: the Jedi's blade goes back on the belt while they talk (and comes out again after)
+  C.unholster = false;
+  if (opts.actors && opts.actors.some(a => a.kind) && !isGunner() && !player.holstered){ player.holstered = true; C.unholster = true; syncHolster(); }
   player.firing = false; player.trigHeld = false; player.blockHeld = false;
   stillHero();
   document.body.classList.add('cutscene');
   el.classList.add('on'); el.classList.toggle('mando', isGunner());
-  $('.cs-skip').innerHTML = '<b>' + (padUsed() ? 'A' : 'ENTER') + '</b> skip';
+  $('.cs-sk').innerHTML = padUsed() ? 'hold <b>A</b> to skip' : '<b>ENTER</b> skip · hold <b>SPACE</b>';
+  holdSkip(false);
   if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share });
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 1 });
   showShot();
@@ -190,11 +247,12 @@ function finish(skipped){
   if (!C.on) return;
   const done = C.onDone;
   dropActors();
+  if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
   C.on = false; C.onDone = null;
   G.cutscene = false;
   document.body.classList.remove('cutscene');
   el.classList.remove('on', 'fade');
-  setLine(null); setTitle(null);
+  setLine(null); setTitle(null); setWhere(null); setGoal(null);
   resetCameraRig();
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 0 });
   if (skipped && connected()) send({ t: 'csk', k: C.key });
@@ -204,9 +262,10 @@ export function skipScene(){ if (C.on) finish(true); }
 const padUsed = () => document.body.classList.contains('pad');
 
 /* ---------- the subtitle and the title ---------- */
-function setLine(ln){
+function setLine(ln, comms = false){
   const box = $('.cs-line');
   if (!ln){ box.classList.remove('on'); return; }
+  box.classList.toggle('comms', comms);   // a voice in the hero's ear, not someone on set
   $('.cs-who').textContent = ln[0] || '';
   $('.cs-say').textContent = ln[1] || '';
   box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
@@ -217,28 +276,112 @@ function setTitle(t){
   $('.cs-k').textContent = t.k || ''; $('.cs-h').textContent = t.h || ''; $('.cs-p').textContent = t.p || '';
   box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
 }
+// the place under a scene, and the objective at its end
+function setWhere(t){
+  const box = $('.cs-where');
+  if (!t){ box.classList.remove('on'); return; }
+  box.textContent = t; box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
+}
+function setGoal(t){
+  const box = $('.cs-goal');
+  if (!t){ box.classList.remove('on'); return; }
+  $('.cs-gh').textContent = t; box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
+}
+// the hero speaks a line of its own (not a voice in its ear, nor one of the story's cast)
+const heroLine = (ln) => !!(ln && ln[0] && !Object.values(VOICE).includes(ln[0]) && !JEDI_CAST.includes(ln[0]) && !MANDO_CAST.has(ln[0]) && !castOf(ln[0]) && ln[0] !== storyVoice());
 function showShot(){
   const s = C.shots[C.i];
-  if (s.line !== C.shown){ setLine(s.line || null); C.shown = s.line; }
+  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms); C.shown = s.line; }
   if (s.title) setTitle(s.title); else if (C.i > 0 && C.shots[C.i - 1].title) setTitle(null);
-  if (s.walk){ const a = C.actors[0]; if (a && a.own) walkTo(a, s.walk[0], s.walk[1], s.walk[2]); }
-  // the speaker works its jaw (or nods under its helmet) while its line is up (enemies/upper.js talking)
-  C.actors.forEach((a, i) => { if (a.g) a.g.userData.talk = !!(s.line && s.on === 'actor' && i === 0); });
-  // the hero speaks a line of its own (not the voice in its ear): the Jedi's jaw works (player/model/life.js express)
-  player.talking = !!(s.line && s.on === 'hero' && s.line[0] && !Object.values(VOICE).includes(s.line[0]) && !JEDI_CAST.includes(s.line[0]) && !MANDO_CAST.has(s.line[0]));   // (a voice or the story's cast isn't the hero)
+  if (s.where !== undefined) setWhere(s.where);
+  if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; setWhere(null); }
+  if (s.dropCast) dropCast();
+  if (s.pair != null) C.pair = s.pair;
+  // the hero turns to someone else on set (the one watching from across the field, after the talk)
+  if (s.faceYaw != null) G.yaw = C.heroYaw = s.faceYaw;
+  if (s.faceActor != null){ const a = C.actors[s.faceActor], p = playerPos(); if (a && a.g){ G.yaw = C.heroYaw = yawTo(p.x, p.z, a.g.position.x, a.g.position.z); } }
+  if (s.walk){ const a = C.actors[0]; if (a && a.own) (a.kind ? Object.assign(a, { walk: { x0: a.g.position.x, z0: a.g.position.z, x1: s.walk[0], z1: s.walk[1], t: s.walk[2], k: 0 } }) : walkTo(a, s.walk[0], s.walk[1], s.walk[2])); }
+  // who talks: the speaker works its jaw (or nods under its helmet, or talks with its hands) while its line is up
+  // (enemies/upper.js talking, game/cast.js). Everyone else on set turns to the speaker; the speaker turns to the hero.
+  const speaker = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
+  const pp = playerPos();
+  C.actors.forEach((a, i) => {
+    if (!a.g) return;
+    const talk = !!(s.line && i === speaker);
+    if (a.kind){ a.talk = talk; const b = !talk && speaker >= 0 && C.actors[speaker] && C.actors[speaker].g; a.look = b ? b.position : pp; }
+    else a.g.userData.talk = talk;
+  });
+  // the hero speaks a line of its own: the Jedi's jaw works (player/model/life.js express)
+  player.talking = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
   pickSide(s);
 }
+// what's on screen now, for the shot tools (tools/shots/cutscene.mjs)
+export const shotInfo = () => { if (!C.on) return ''; const s = C.shots[C.i], A = anchor(s.on);
+  const f = (v) => v ? v.x.toFixed(1) + ',' + v.y.toFixed(1) + ',' + v.z.toFixed(1) : '-';
+  return C.i + ':' + (s.kind || '') + ':' + (s.line ? s.line[0] : '') + ' lens ' + f(camera.position) + ' hero ' + f(playerPos()) + ' cast ' + C.actors.map(a => (a.name || '?') + '@' + f(a.g && a.g.position)).join(' '); };
 
 // where shot s puts the lens at ease k, on side `side` (+1, or -1 mirrored across the anchor's facing)
+const onActor = (on) => on === 'actor' || typeof on === 'number';
 function lensAt(s, k, side, out){
-  const A = anchor(s.on), sc = s.on === 'actor' ? Math.max(1, A.scale || 1) : 1;
-  const ang = (s.from[0] + (s.to[0] - s.from[0]) * k) * side, d = s.from[1] + (s.to[1] - s.from[1]) * k, h = s.from[2] + (s.to[2] - s.from[2]) * k;
+  const A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
+  const ang = s.kind === 'two' ? (s.from[0] + (s.to[0] - s.from[0]) * k) + (side < 0 ? Math.PI : 0)   // (a two-shot's other side is across the pair)
+                                : (s.from[0] + (s.to[0] - s.from[0]) * k) * side, d = s.from[1] + (s.to[1] - s.from[1]) * k, h = s.from[2] + (s.to[2] - s.from[2]) * k;
+  if (s.eye) return out.set(A.x + Math.sin(A.yaw + ang) * d, A.eye + h, A.z + Math.cos(A.yaw + ang) * d);   // (an eye-level shot: heights from the eyes, not scaled)
   return out.set(A.x + Math.sin(A.yaw + ang) * d * sc, A.y + h * sc, A.z + Math.cos(A.yaw + ang) * d * sc);
 }
 // a close shot takes whichever side of its subject has the clearer view (a crate between lens and face mirrors it)
 const Q = new THREE.Vector3();
+// how many of the others on set stand between the lens (at shot s, side) and the two it frames
+function crowded(s, side){
+  lensAt(s, 0.5, side, Q);
+  const p = playerPos(), b = C.actors[C.pair || 0], ends = [p, b && b.g && b.g.position].filter(Boolean);
+  let n = 0;
+  for (const a of C.actors){
+    if (!a.g || a === b) continue;
+    const o = a.g.position;
+    for (const e of ends){
+      const dx = e.x - Q.x, dz = e.z - Q.z, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((o.x - Q.x) * dx + (o.z - Q.z) * dz) / L2));
+      if (t > 0.05 && t < 0.95 && Math.hypot(Q.x + dx * t - o.x, Q.z + dz * t - o.z) < 0.65) n++;
+    }
+  }
+  return n;
+}
 function pickSide(s){
   s.side = 1;
+  if (s.kind === 'two'){
+    // a two-shot from whichever side of the pair nobody else on set stands in front of, with a clear view of both faces
+    // (a wall or a hull behind swings it round, or in closer)
+    const b = C.actors[C.pair || 0], p = playerPos();
+    if (!s.base) s.base = [s.from.slice(), s.to.slice()];
+    const [f0, t0] = s.base, ey = eyeOf('hero'), eb = b && b.g ? eyeOf(b) : ey;
+    const view = (side) => { let v = 1; for (const k of [0, 1]){ lensAt(s, k, side, Q);
+      v = Math.min(v, lensView(p.x, ey - 0.1, p.z, Q.x, Q.y, Q.z), b && b.g ? lensView(b.g.position.x, eb - 0.1, b.g.position.z, Q.x, Q.y, Q.z) : 1); } return v; };
+    let best = null, bestK = -9;
+    search: for (const m of [1, 0.78, 0.6]) for (const da of [0, 0.35, -0.35]) for (const side of [1, -1]){
+      s.from = [f0[0] + da, f0[1] * m, f0[2]]; s.to = [t0[0] + da, t0[1] * m, t0[2]];
+      const k = view(side) - crowded(s, side) * 0.5;
+      if (k > bestK){ bestK = k; best = [s.from, s.to, side]; }
+      if (k > 0.98) break search;
+    }
+    [s.from, s.to, s.side] = best;
+    return;
+  }
+  if (s.single){
+    // a single on someone in a scene on set: from beside the one listening, wherever round them has a clear view of the
+    // face (a crate or a wall there swings it wider, or in closer)
+    lookPoint(s.look, L);
+    const sd = Math.sign(s.from[0]) || 1, h0 = s.from[2], h1 = s.to[2], d0 = s.from[1];
+    const view = (k) => { lensAt(s, k, 1, Q); return lensView(L.x, L.y, L.z, Q.x, Q.y, Q.z); };
+    let best = null, bestK = -1;
+    search: for (const d of [d0, d0 * 0.86, d0 * 0.72]) for (const a of [0.58, 0.8, 0.4, 1.05]) for (const side of [sd, -sd]){
+      s.from = [a * side, d, h0]; s.to = [a * 0.82 * side, d * 0.87, h1];
+      const k = Math.min(view(0), view(1));
+      if (k > bestK){ bestK = k; best = [s.from, s.to]; }
+      if (k > 0.98) break search;
+    }
+    [s.from, s.to] = best;
+    return;
+  }
   if (!s.mirror) return;
   lookPoint(s.look, L);
   const A = anchor(s.look.on);   // (the face, and the body under it)
@@ -254,7 +397,9 @@ export function updateCutscene(){
   lastAt = now;
   if (!C.on) return;
   if (G.mode !== 'play'){ finish(false); return; }
-  if (G.paused) return;   // the pause screen's own cuts take the lens until it closes
+  if (G.paused){ holdSkip(false); return; }   // the pause screen's own cuts take the lens until it closes
+  stepHold(dt);
+  if (!C.on) return;
   const s = C.shots[C.i];
   C.t += dt;
   if (C.t >= s.t){
@@ -268,12 +413,16 @@ export function updateCutscene(){
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
-  const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = s.on === 'actor' ? Math.max(1, A.scale || 1) : 1;
+  const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
   lensAt(s, k, s.side || 1, P);
   lookPoint(s.look, L);
-  const oy = A.y + 1.3 * sc, cl = cameraClearance(A.x, oy, A.z, P.x, P.y, P.z);
+  const oy = s.eye ? A.eye - 0.3 : A.y + 1.3 * sc, cl = cameraClearance(A.x, oy, A.z, P.x, P.y, P.z);
   if (cl < 1) P.set(A.x + (P.x - A.x) * cl, oy + (P.y - oy) * cl, A.z + (P.z - A.z) * cl);
   if (P.y < 0.35) P.y = 0.35;
+  // a camera operator's hands: the lens breathes a little (more on a close-up, none on a locked-off shot)
+  const hand = s.still ? 0 : (s.fov && s.fov < 45 ? 0.022 : 0.012), T = now / 1000;
+  P.x += Math.sin(T * 0.83) * hand; P.y += Math.sin(T * 1.13 + 1) * hand * 0.7; P.z += Math.sin(T * 0.71 + 2) * hand;
+  L.x += Math.sin(T * 0.57 + 3) * hand * 0.6; L.y += Math.sin(T * 0.91 + 4) * hand * 0.5;
   camera.position.copy(P);
   camera.lookAt(L);
   updatePropFade(P, L.x, L.y - 1, L.z, dt);   // a prop still between the lens and the subject turns see-through (world/camblock.js)
@@ -298,34 +447,159 @@ function watchSpot(pp){
   return { ...c, yaw: G.yaw };
 }
 
-// a chapter's opening (game/campaign.js, when its card closes): the place, its title, then the hero and the voice.
-// own: a story's own opening for the chapter (data/campaign-mando.js `opening`: plain lines, whoever is playing)
+/* ---------- a scene on set: the story's people standing there with the hero (data/cast.js, data/cutscene-stage.js) ---------- */
+// where the cast stands: in front of the hero, spread across their view, on open ground in plain sight
+function castSpots(n, pp){
+  const fan = n === 1 ? [0] : n === 2 ? [-0.42, 0.42] : [-0.62, 0, 0.62], d0 = n === 1 ? 2.7 : 2.9, spots = [];
+  for (const a0 of fan){
+    let pick = null;
+    for (const d of [d0, d0 * 1.2, d0 * 0.85, d0 * 1.45]) for (const da of [0, 0.22, -0.22, 0.45, -0.45]){
+      if (pick) break;
+      const yaw = G.yaw + a0 + da, c = findClearSpawn(pp.x + Math.sin(yaw) * d, pp.z + Math.cos(yaw) * d, 0.6);
+      if (Math.hypot(c.x - pp.x, c.z - pp.z) < 1.8 || spots.some(q => Math.hypot(q.x - c.x, q.z - c.z) < 1.1)) continue;
+      if (segBlockedBySolids(pp.x, pp.z, c.x, c.z) || Math.abs(groundAt(c.x, c.z, pp.y + 1.5) - pp.y) > 0.45) continue;
+      if (sightClear(pp.x, pp.y + 1.5, pp.z, c.x, pp.y + 1.5, c.z) < 0.95) continue;
+      pick = c;
+    }
+    if (!pick){ const yaw = G.yaw + a0; pick = findClearSpawn(pp.x + Math.sin(yaw) * d0, pp.z + Math.cos(yaw) * d0, 0.6); }
+    spots.push(pick);
+  }
+  return spots;
+}
+// how each speaker in the lines is staged: 'hero' (the hero's own line), a figure on set ('on' / 'holo'), or 'off' (comms)
+function castPlan(lines, stage, inTalk, skip){
+  const voice = storyVoice(), plan = new Map();
+  for (const [who] of lines){
+    if (!who || plan.has(who)) continue;
+    if (who === 'YOU' || heroLine([who])) plan.set(who, 'hero');
+    else if (who === skip || !castOf(who) || (stage.off || []).includes(who)) plan.set(who, 'off');
+    else if ((stage.holo || []).includes(who)) plan.set(who, 'holo');
+    // the story's voice is in the hero's ear, unless the scene before the fight has them there in person
+    else if (who === voice && !inTalk.has(who) && !(stage.on || []).includes(who)) plan.set(who, 'off');
+    else plan.set(who, 'on');
+  }
+  let n = 0;
+  for (const [who, how] of plan) if ((how === 'on' || how === 'holo') && ++n > 3) plan.set(who, 'off');   // three on set at most
+  return plan;
+}
+// a close on a figure, from beside the hero (side: which side), and its reverse, on the hero from beside the figure. (Not
+// over the shoulder: the hero's guard puts an arm in the frame, and a wall behind them pushes the lens into their back.)
+const overHero = (i, ln, side, t) => shot(i, [0.58 * side, 2.7, 0.04], [0.47 * side, 2.35, 0.02], t, { on: i, h: -0.12, eye: true }, { line: ln, speaker: i, fov: 38, kind: 'close', single: true, eye: true });
+const onHero = (ln, side, t, speaks) => shot('hero', [-0.6 * side, 2.75, -0.04], [-0.5 * side, 2.4, -0.06], t, { on: 'hero', h: -0.14, eye: true }, { line: ln, heroSpeaks: speaks, fov: 38, kind: 'reverse', single: true, eye: true });
+// the two of them side by side, from across the line between them
+const twoShot = (i, ln, t, extra = {}) => shot('pair', [-0.15, 6.2, -0.1], [0.12, 5.4, -0.2], t, { on: 'pair', h: -0.45, eye: true }, { eye: true, mirror: true, line: ln, speaker: ln ? i : -1, pair: i, fov: 42, kind: 'two', ...extra });
+// the lines, shot by shot: on set, each speaker gets its close (now and then the pair, for air); the hero's lines play on
+// the hero; anyone off set is a voice in the hero's ear, on the hero listening
+function setShots(lines, plan, who2i, sideOf, where){
+  const shots = [], main = who2i.size ? who2i.values().next().value : 0;
+  lines.forEach((ln, k) => {
+    const how = plan.get(ln[0]) || 'off', t = lineTime(ln), first = k === 0 && where !== undefined;
+    let sh;
+    if (how === 'on' || how === 'holo'){
+      const i = who2i.get(ln[0]);
+      sh = (k === 0 || k % 4 === 3) ? twoShot(i, ln, t + (k === 0 ? 0.6 : 0)) : overHero(i, ln, sideOf(i), t);
+    } else if (k === 0 && who2i.size){ sh = twoShot(main, ln, t + 0.6, { speaker: -1, heroSpeaks: how === 'hero', comms: how !== 'hero' }); }
+    else if (how === 'hero') sh = who2i.size ? onHero(ln, sideOf(main), t, true) : heroLines([ln])[0];
+    else { sh = who2i.size ? onHero(ln, sideOf(main), t, false) : heroLines([ln])[0]; sh.comms = true; sh.kind = 'comms'; }
+    if (first) sh.where = where;
+    shots.push(sh);
+  });
+  return shots;
+}
+// the end of a chapter's opening: the lens rises behind the hero and looks out over the field, and the objective comes up
+// (from wherever behind the hero has a clear line: a shop wall or a crate stack behind them swings the lens round, or in)
+function goalShot(goal, yaw){
+  const pp = playerPos();
+  const clear = (a, d, h) => lensView(pp.x, pp.y + 1.5, pp.z, pp.x + Math.sin(yaw + a) * d, pp.y + h, pp.z + Math.cos(yaw + a) * d);
+  let best = null, bestK = -1;
+  search: for (const d of [7.2, 5.6, 4.4]) for (const a of [0.55, -0.55, 0.3, -0.3, 0.85, -0.85, 0]){
+    const k = Math.min(clear(Math.PI + a, d, d * 0.5), clear(Math.PI + a * 0.25, d * 0.74, d * 0.36), clear(Math.PI + a * 0.6, d * 0.87, d * 0.43));
+    if (k > bestK){ bestK = k; best = [a, d]; }
+    if (k > 0.98) break search;
+  }
+  const [a, d] = best;
+  return shot('hero', [Math.PI + a, d, d * 0.5], [Math.PI + a * 0.25, d * 0.74, d * 0.36], Math.max(3.6, goal.length / CUT.readRate + 1.6),
+    { on: 'hero', ahead: 12, h: 1.0 }, { goal, dropCast: true, kind: 'goal', faceYaw: yaw });
+}
+
+// the chapter the run is on, as its story tells it (its talk, its opening, its stage)
+function chapterNow(id){
+  const c = G.chapter >= 0 && chapterOrder(G.actTwo)[G.chapter];
+  return c && c.id === id ? c : null;
+}
+
+// a chapter's opening (game/campaign.js, when its card closes): the place and the chapter's title, then the scene before
+// the fight played on set (the chapter's `talk`: the people in it stand there with the hero, or call in as holograms),
+// the chapter's own opening lines, and last the objective, over the field. Sets G.talkStaged to the chapter's id when its
+// talk played here (the card's own retelling of it then stays quiet: game/campaign.js).
+// own: a story's own opening for the chapter (its `opening`: plain lines, whoever is playing)
 const everyHero = (v) => ({ jedi: v, mando: v });
 export function playOpening(id, title, own){
-  const o = own ? { ...everyHero(own.lines), rival: own.rival && { ...everyHero(own.rival), line: own.rival.line }, quarry: own.quarry } : OPENINGS[id];
-  if (!o) return false;
-  let lines = (pick(o) || []).slice();
-  const shots = [wide(3.4, title)], actors = [];
+  if (!C.on) G.talkStaged = null;   // (set again below if this chapter's talk plays here)
+  const c = chapterNow(id);
+  // (the shared openings are the Jedi's and the Mando's words: a story of the trooper's own doesn't borrow them, bar its prologue's)
+  const o = own ? { ...everyHero(own.lines), rival: own.rival && { ...everyHero(own.rival), line: own.rival.line }, quarry: own.quarry }
+                : (c && c.story === 'trooper' && !OPENINGS[id]?.trooper && id !== 'order') ? null : OPENINGS[id];
+  const stage = (c && STAGE[c.story || ''] && STAGE[c.story][id]) || {};
+  const talk = c && c.talk && Array.isArray(c.talk.lines) ? c.talk.lines.filter(l => Array.isArray(l) && l[1]) : [];
+  if ((!o && !talk.length && !stage.goal) || C.on || G.mode !== 'play' || seen.has('open:' + id)) return false;
+  let lines = ((o && pick(o)) || []).slice();
+  const shots = [wide(3.4, title)], actors = [], later = [];
   const pp = playerPos();
-  let face = null;
-  if (o.quarry){   // the chase: its quarry already stands up ahead
+  let face = null, quarryName = null;
+  // someone already in the chapter's way: the chase's quarry up ahead, or a rival watching from across the field. Their
+  // shots come after the talk (the hero turns to them then); they are actor 0, the cast after them
+  if (o && o.quarry){
     const q = boundActor('quarry');
     if (q){
       actors.push(q);
       const g = q.g.position; face = [g.x, g.z];
-      shots.push(overShoulder(2.2), ...actorLines(lines.slice(0, 1)));
+      quarryName = lines[0] && lines[0][0];
+      const ov = overShoulder(2.2); ov.faceActor = 0;
+      later.push(ov, ...actorLines(lines.slice(0, 1)));
       lines = lines.slice(1);
     }
-  } else if (o.rival){   // someone watching from across the field: it walks into view, says its piece, and stays to watch
+  } else if (o && o.rival){   // it walks into view, says its piece, and stays to watch
     const r = pick(o.rival), spot = watchSpot(pp), side = { x: Math.cos(spot.yaw), z: -Math.sin(spot.yaw) };
     face = [spot.x, spot.z];
     const a = makeActor(r, spot.x - side.x * 3.2, spot.z - side.z * 3.2, 0);
     actors.push(a);
-    const ov = overShoulder(2.6); ov.walk = [spot.x, spot.z, 2.4];
-    shots.push(ov, ...actorLines([pick(o.rival.line)], r.name));
+    const ov = overShoulder(2.6); ov.walk = [spot.x, spot.z, 2.4]; ov.faceActor = 0;
+    later.push(ov, ...actorLines([pick(o.rival.line)], r.name));
   }
-  shots.push(...heroLines(lines), settle());
-  return start({ key: 'open:' + id, shots, actors, face });
+  // the scene on set: the talk, then the opening's own lines, with whoever is in them standing there (the opening's lines
+  // after the one watching has had its say)
+  const all = [...talk, ...lines], inTalk = new Set(talk.map(l => l[0]));
+  const plan = castPlan(all, stage, inTalk, quarryName);
+  const cast = [...plan].filter(([, how]) => how === 'on' || how === 'holo').map(([who, how]) => ({ who, holo: how === 'holo' }));
+  const who2i = new Map();
+  let castFace = null;
+  if (cast.length){
+    const spots = castSpots(cast.length, pp), base = actors.length;
+    cast.forEach((m, k) => {
+      const sp = spots[k], F = makeFigure(m.who, sp.x, sp.z, yawTo(sp.x, sp.z, pp.x, pp.z), { holo: m.holo });
+      if (!F){ plan.set(m.who, 'off'); return; }
+      F.look = pp;
+      who2i.set(m.who, actors.length);
+      actors.push(F);
+    });
+    if (who2i.size){ const g = actors[base].g.position; castFace = [g.x, g.z]; }
+  }
+  // the hero faces whoever they talk to first; which side of them a close is shot from: the side the figure stands on
+  const first = castFace || face;
+  const heroYaw = first ? yawTo(pp.x, pp.z, first[0], first[1]) : G.yaw;
+  const sideOf = (i) => { const a = actors[i]; if (!a || !a.g) return 1; const r = Math.sin(yawTo(pp.x, pp.z, a.g.position.x, a.g.position.z) - heroYaw); return r >= 0 ? -1 : 1; };
+  const where = talk.length ? (stage.where !== undefined ? stage.where : (c.talk.where || null)) : undefined;
+  shots.push(...setShots(talk, plan, who2i, sideOf, where), ...later, ...setShots(lines, plan, who2i, sideOf));
+  if (later.length && castFace && lines.length){ const k = shots.length - lines.length; shots[k].faceActor = who2i.values().next().value; }   // (back to the cast for the rest)
+  const endYaw = face ? yawTo(pp.x, pp.z, face[0], face[1]) : heroYaw;
+  C.building = actors.map(a => a.g);   // (the cast on set doesn't block the objective's view: rayClear)
+  shots.push(stage.goal ? goalShot(stage.goal, endYaw) : settle());
+  C.building = null;
+  const ok = start({ key: 'open:' + id, shots, actors, face: first });
+  if (!ok){ for (const a of actors) if (a.kind) dropFigure(a); }
+  else if (talk.length) G.talkStaged = id;
+  return ok;
 }
 
 // a mission duel's entrance (game/mission.js, before its foe steps in). spec: { mid, foe, name, kicker, tint, scale,
@@ -344,14 +618,18 @@ export function playDuelIntro(spec, share = true){
     const from = findClearSpawn(at[0] + Math.sin(away) * 5, at[1] + Math.cos(away) * 5, 1.0);
     actors.push(makeActor(spec, from.x, from.z, away + Math.PI));
   }
-  const ov = overShoulder(spec.quarry ? 1.8 : 2.5);
-  if (!spec.quarry) ov.walk = [at[0], at[1], 2.3];
+  const ov = overShoulder(spec.quarry ? 1.8 : 1.3);
+  if (!spec.quarry) ov.walk = [at[0], at[1], 2.4];
+  // it comes on: low and in front of it, the lens backing off as it walks up (the quarry is already standing: none)
+  const track = !spec.quarry && shot('actor', [0.75, 4.6, 0.45], [0.45, 3.5, 0.75], 1.3, { on: 'actor', h: 1.45 }, { fov: 44, mirror: true, kind: 'walk' });
   const foeLines = [], rest = [];
   for (const ln of lines) (ln[0] ? rest : foeLines).push(ln);
   const close = actorLines(foeLines.length ? foeLines : [[spec.name, '']], spec.name);
   close[0].title = { k: spec.kicker || 'DUEL', h: spec.name };
   if (!foeLines.length){ close[0].line = null; close[0].t = 2.2; }
-  const shots = [ov, ...close, ...heroLines(rest), settle({ on: 'actor', h: 1.2 })];
+  // the hero squares up to it: a beat on their face, low, before the fight (unless they have a line of their own)
+  const ready = rest.length ? [] : [shot('hero', [0.5, 2.9, 0.0], [0.38, 2.5, -0.05], 1.2, { on: 'hero', h: -0.12, eye: true }, { eye: true, fov: 40, mirror: true, kind: 'ready' })];
+  const shots = [ov, ...(track ? [track] : []), ...close, ...heroLines(rest), ...ready, settle({ on: 'actor', h: 1.2 })];
   return start({ key: 'duel:' + spec.mid, shots, actors, face: at, share: share ? { k: 'duel', spec } : null });
 }
 
@@ -387,11 +665,29 @@ export function playScene(id, opts = {}){
 }
 
 /* ---------- skipping ---------- */
+// Enter (and a pad's MENU) skips at once: nobody presses it by accident. Space (and a pad's A) is jump too, and mashing
+// jump as a fight ends shouldn't throw away a scene nobody has seen: it has to be HELD (SKIP_HOLD seconds, the hint fills).
+// Esc doesn't skip: it pauses, and the scene waits under the pause screen.
+const SKIP_HOLD = 0.6;
+const hold = { on: false, t: 0 };
+export function holdSkip(on){
+  if (!C.on){ hold.on = false; hold.t = 0; return; }
+  if (on && !hold.on) hold.t = 0;
+  hold.on = !!on;
+  el.classList.toggle('holding', hold.on);
+}
+function stepHold(dt){
+  if (!hold.on){ hold.t = Math.max(0, hold.t - dt * 3); }
+  else if ((hold.t += dt) >= SKIP_HOLD){ hold.on = false; hold.t = 0; el.classList.remove('holding'); skipScene(); return; }
+  $('.cs-fill').style.transform = 'scaleX(' + (hold.t / SKIP_HOLD).toFixed(3) + ')';
+}
 window.addEventListener('keydown', (e) => {
-  if (!C.on || e.repeat || (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Escape')) return;
-  if (e.key !== 'Escape'){ e.preventDefault(); e.stopPropagation(); }   // (Esc goes on to the browser: it frees the cursor, and the pause screen follows)
-  skipScene();
+  if (!C.on || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault(); e.stopPropagation();
+  if (e.repeat) return;
+  if (e.key === 'Enter') skipScene(); else holdSkip(true);
 }, true);
+window.addEventListener('keyup', (e) => { if (e.key === ' ') holdSkip(false); }, true);
 
 /* ---------- co-op: the host's scenes play for the guest too; either side's skip ends both; foes hold while either watches ---------- */
 on('csp', (m) => {

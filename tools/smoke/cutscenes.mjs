@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // CUTSCENES SMOKE TEST — the campaign's in-engine scenes (game/cutscene.js) on the BUILT game, as both heroes:
 //   · a chapter's opening plays when its card closes, holds the fight still, and hands back to play on its own
-//   · Enter skips one
+//   · Enter skips one (a tap of Space doesn't: it has to be held), and a chapter's talk plays on set in its opening
 //   · a mission duel's entrance plays before its foe, and the foe steps in once it ends
 //   · co-op: the host's duel entrance plays for the guest too, and the guest's skip ends it for both
 //   npm run build && npm run smoke:cutscenes
@@ -55,9 +55,14 @@ try {
     if (await page.evaluate((g) => GAME.G.gt !== g, gt)) fail(hero + ': the fight ran on under the opening scene');
     await page.waitForFunction(() => !GAME.G.cutscene, null, poll);   // it ends on its own...
     if (await page.evaluate(() => document.body.classList.contains('cutscene'))) fail(hero + ': the letterbox stayed up');
+    if (hero === 'jedi' && !(await page.evaluate(() => GAME.G.talkStaged === 'last-lesson'))) fail(hero + ': chapter 1\'s scene with Ilsa was not staged in the opening');
     // ...and Enter skips one (chapter 2's opening, with the Inquisitor or VX-7 watching)
     await page.evaluate(() => GAME.startChapter(1)); await begin(page);
     if (!(await page.evaluate(() => GAME.G.cutscene))) fail(hero + ': chapter 2 opened without its scene');
+    // a tap of Space (jump) doesn't throw the scene away: Space has to be held
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(200);
+    if (!(await page.evaluate(() => GAME.G.cutscene))) fail(hero + ': a tap of Space skipped the scene');
     await page.keyboard.press('Enter');
     if (await page.evaluate(() => GAME.G.cutscene)) fail(hero + ': Enter did not skip the scene');
     // a mission duel: its entrance, then the foe

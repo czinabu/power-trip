@@ -230,6 +230,7 @@ export const MANDO_CHAPTERS = {
       lines: [['YOU', 'Rook.'],
               [ROOK, '...You came.'],
               [MAG, 'He wears your covert\'s beskar now. Every foundling I take, I take from a Mandalorian, and every one of them will be mine. Starting with yours.']] },
+    opening: { lines: [[A, 'Duren. His citadel, his throne, his Iron Guard. Every helmet on that throne was a clan once.'], [A, 'Bring the boy home.']] },
     brief: ['The Magistrate holds his citadel with everything he has left. Rook stands beside a throne built out of the helmets of every covert he has broken.',
             'Through the Iron Guard, then through him. This is the Way.'],
     lines: {

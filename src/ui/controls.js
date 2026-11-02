@@ -158,7 +158,7 @@ const TIPS = {
     '<b>Sith acolytes</b> bat blaster fire back. Close in: punch through their guard, charge them with W + E, catch their cuts with E and finish them with a takedown.',
     'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>skill point</b>: spend them on weapon upgrades when a chapter ends.',
   ],  trooper: [
-    '<b>The ARC trooper\'s powers</b> come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
+    '<b>The trooper\'s powers</b> come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
     '<b>Pause</b> with TAB (or ESC); TAB or ENTER resumes.',
     '<b>Heat</b> is the gauge beside your reticle. Overheat, and R pressed in the beat clears it at once.',
     'Your squad of clones holds ground while you lead: tap <b>H</b> on a foe to focus it, hold H for every order.',
@@ -167,6 +167,7 @@ const TIPS = {
   ],
 };
 
+import { heroName } from '../game/wardrobe.js';
 import { TELLS, tellCss } from '../fx/tells.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
 import { PAD_GLYPHS, PAD_MENU, padLayout } from '../data/gamepad.js';
@@ -233,7 +234,7 @@ export function renderControls(hero){
   if (tabs){
     tabs.innerHTML = '<span data-h="jedi" class="' + (hero === 'jedi' ? 'on' : '') + '">JEDI</span>' +
                      '<span data-h="mando" class="' + (hero === 'mando' ? 'on' : '') + '">MANDALORIAN</span>' +
-                     '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">ARC TROOPER</span>';
+                     '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">' + heroName('trooper') + '</span>';
     const devs = document.getElementById('howtodev');
     if (devs) devs.innerHTML = '<span data-dev="kb" class="' + (device === 'kb' ? 'on' : '') + '">KEYBOARD</span>' +
                                '<span data-dev="pad" class="' + (device === 'pad' ? 'on' : '') + '">CONTROLLER</span>';

@@ -119,7 +119,9 @@ export const TROOPER_CHAPTERS = {
     brief: ['The Captain has set the old training droids up on the decks, stun settings on.',
             'Take every post with your squad, not in front of it.'],
     lines: {
-      clear: ['That is a squad.',
+      // the promotion (game/wardrobe.js PROMOTION): from here he is an ARC, in the Captain's old kit (game/look-unlocks.js)
+      clear: ['That is a squad. And you led it, brother.',
+              'As of tonight you are ARC. My old kit is in the locker: the helmet, the pauldron, the kama. It fits you better than it fits me now.',
               'One more thing in those files. The officer who switched our chips off signed it: General Rhenna Kast. She knew, brother. She always knew.'],
     } },
 

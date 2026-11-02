@@ -10,7 +10,8 @@ import { buildHeroModel } from '../player/model/index.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
-import { lookOf, loadPicks, disposeTree } from '../player/mesh.js';
+import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
+import { heroName } from '../game/wardrobe.js';
 import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
 import { FORMS, formGrip, forkClosed } from '../data/forms.js';
@@ -36,9 +37,9 @@ const THEMES = {
     halo: '#fff0c2', ink: '#1c0608', far: '#4b1212', glow: 0xff8a3a, rim: 0xff5a2a, key: 0xfff0dc,
     stars: false, planet: { c: '#ffe2b0', shade: '#a33a1c', ring: false }, skyline: 'mesas', suns: 2,
   },
-  // the clone ARC trooper: a stormy dusk over a city of spires, in the legion's blue
+  // the clone trooper: a stormy dusk over a city of spires, in the legion's blue. TROOPER until his promotion to ARC
   trooper: {
-    word: 'ARC TROOPER',
+    get word(){ return heroName('trooper'); },
     sky: ['#05101c', '#123a5c', '#2f7fd6', '#c8e6ff'],
     halo: '#e8f4ff', ink: '#040a12', far: '#0e2236', glow: 0x4aa8ff, rim: 0x2f7fd6, key: 0xf2f6ff,
     stars: true, planet: { c: '#cfe0f0', shade: '#2a4a6a', ring: false }, skyline: 'spires', suns: 0,
@@ -205,7 +206,7 @@ function updateCpuSkin(){
 }
 function build(picks){
   if (fig.vis){ fig.group.remove(fig.vis); disposeTree(fig.vis); }
-  fig.group.add(buildHeroModel(fig, lookOf(picks)));
+  fig.group.add(buildHeroModel(fig, wornLook(picks)));
   cpuSkin(fig.vis);
   fig.blade.light.intensity = 2.2;   // the saber's real light floods a close-up; keep it low so the model reads
   const crystal = fig.look.jedi.saber;
@@ -219,6 +220,7 @@ export function restyleShowcase(picks){
   rot.on = false; saberPose.live = false;   // the new figure starts its rotation afresh
   build(picks);
   if (shown) dress(shown);
+  for (const k in painted) if (painted[k] !== THEMES[k].word) paint(k);   // (the trooper's name follows his rank)
 }
 
 let shown = null;   // hero currently on the stand
@@ -336,7 +338,9 @@ function paint(k){
   skyline(T.ink, hz + H * 0.07, H * 0.07, 5, true);
   x.fillStyle = T.ink; x.fillRect(0, hz + H * 0.07, W, H);
   textures[k].needsUpdate = true;
+  painted[k] = T.word;
 }
+const painted = {};
 function paintAll(){ paint('jedi'); paint('mando'); paint('trooper'); }
 paintAll();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(paintAll);   // the hero name needs the display font

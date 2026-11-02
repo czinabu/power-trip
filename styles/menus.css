@@ -344,6 +344,16 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
   padding:8px 13px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);transition:color .15s,border-color .15s,background .15s}
 .cz-chip:hover{color:var(--ink-soft);border-color:var(--edge-mid)}
 .cz-chip.sel{color:var(--ink);border-color:rgba(255,210,74,.7);background:linear-gradient(90deg,rgba(54,42,10,.8),rgba(24,20,8,.7))}
+/* a LOCKED option (game/wardrobe.js): dimmed, with a lock, and the chapter that opens it in its tooltip and below the rows */
+.cz-chip.locked{color:var(--ink-faint);border-style:dashed;background:rgba(8,18,33,.45);display:inline-flex;align-items:center;gap:5px}
+.cz-chip.locked:hover{color:var(--ink-dim)}
+.cz-chip .lk{width:12px;height:12px;opacity:.8}
+.cz-sw.locked{position:relative;filter:saturate(.35) brightness(.55);border-style:dashed;display:inline-flex;align-items:center;justify-content:center}
+.cz-sw.locked:hover{transform:none}
+.cz-sw .lk{width:13px;height:13px;color:#fff;opacity:.9}
+.cz-lock{font:500 13px/1.5 var(--font-body);color:var(--ink-dim);display:flex;align-items:center;gap:6px;min-height:20px}
+.cz-lock .lk{width:14px;height:14px;flex:none}
+.cz-lock b{color:var(--ink-soft);font-weight:600;letter-spacing:.5px}
 .cz-actions{display:flex;gap:10px;margin-top:6px}
 .cz-actions .btn{flex:1;box-sizing:border-box}
 .cz-actions .btn.primary{flex:1.6}

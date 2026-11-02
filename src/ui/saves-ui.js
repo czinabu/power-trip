@@ -2,6 +2,7 @@
 // NEW GAME / SAVE GAME / LOAD GAME: the buttons on the main menu (campaign tile) and pause screen, and the save-slot panel (game/saves.js).
 
 import { G } from '../state.js';
+import { heroName } from '../game/wardrobe.js';   // (the trooper's rank, as that slot has it)
 import { SLOTS, AUTO, readSlot, writeSlot, deleteSlot, loadSlotProgress, clearProgress, slotSummary } from '../game/saves.js';
 import { setHero } from '../player/hero.js';
 import { audioInit, S } from '../audio/sfx.js';
@@ -27,7 +28,7 @@ function render(){
     const d = readSlot(i);
     if (i === AUTO && !d) continue;
     if (i === AUTO && mode === 'save') continue;   // the autosave is written by the game, not by hand
-    const title = (i === AUTO ? 'AUTOSAVE · ' : '') + (d ? (d.hero === 'trooper' ? 'ARC TROOPER' : d.hero === 'mando' ? 'MANDALORIAN' : 'JEDI') + ' · ' + esc(d.where || 'MAIN MENU') : 'EMPTY SLOT');
+    const title = (i === AUTO ? 'AUTOSAVE · ' : '') + (d ? heroName(d.hero, d.progress || {}) + ' · ' + esc(d.where || 'MAIN MENU') : 'EMPTY SLOT');
     const desc = d ? esc(slotSummary(d)) + ' · ' + when(d.at) : mode === 'save' ? 'Save here' : 'Nothing saved yet';
     let btn = '';
     if (mode === 'save'){
@@ -108,6 +109,7 @@ document.getElementById('newYes').addEventListener('click', (e) => {
   e.stopPropagation();
   overlay.classList.remove('newconfirming');
   clearProgress();
+  reloadLook();   // (back to the basics the wardrobe opens with: game/wardrobe.js)
   G.resumeRun = null;
   setModeSel('campaign');
   refreshMenu();

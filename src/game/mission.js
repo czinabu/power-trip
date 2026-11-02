@@ -678,7 +678,7 @@ function huntAim(o, s, e){
   e.civTold = true;
   const p = e.group.position, n = heroKey(evac(o).name) || 'EVACUEES';
   floater(V3(p.x, 2.6, p.z), 'AIMING AT THE ' + n, '#ff6a4a');
-  if (!s.huntTold){ s.huntTold = true; showBanner('THEY ARE SHOOTING AT THE ' + n, 'Follow the red line: get in its way, or drop the shooter.', 3, { kicker: 'PROTECT THE LINE' }); }
+  if (!s.huntTold){ s.huntTold = true; showBanner('THEY ARE SHOOTING AT THE ' + n, 'Follow the aim line: get in its way, or drop the shooter.', 3, { kicker: 'PROTECT THE LINE' }); }
 }
 function updateEvacuees(ev, s, dt, frac, rate){
   const boarded = frac * ev.count;

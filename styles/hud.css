@@ -423,6 +423,17 @@ body.sandbox #xpmeter,body.sandbox #xphud{display:none !important}   /* the sand
 #comms.rival .cm-say{font-style:italic}
 @media (max-width:620px){ #comms{bottom:26%} #comms .cm-say{font-size:17px} }
 
+/* ---------- WALK-UP LINES (game/talk.js): the TALK prompt, under the crosshair, by someone on your side in a lull ---------- */
+#talkp{position:fixed;left:50%;top:calc(50% + 46px);transform:translate(-50%,4px);display:flex;align-items:center;gap:8px;
+  padding:5px 12px 5px 6px;border-radius:var(--r-lg);background:rgba(4,10,20,.6);box-shadow:0 4px 16px rgba(0,0,0,.3);
+  font:700 12px/1 var(--font-ui);letter-spacing:2.2px;color:var(--ink);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;white-space:nowrap}
+#talkp.on{opacity:1;transform:translate(-50%,0)}
+#talkp.up{top:calc(50% - 74px)}
+#talkp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,210,90,.7);border-radius:5px;color:var(--gold);background:rgba(255,210,90,.08)}
+#talkp b{color:var(--gold);font-weight:700}
+body.cutscene #talkp{opacity:0 !important}
+
 /* ---------- CUTSCENES (game/cutscene.js): letterbox bars, the chapter's title, a subtitle, the skip hint ---------- */
 body.cutscene #hud,body.cutscene #boonstrip,body.cutscene #threats,body.cutscene #comms{opacity:0 !important;transition:opacity .2s}
 #cutscene{position:fixed;inset:0;z-index:18;pointer-events:none;display:none}

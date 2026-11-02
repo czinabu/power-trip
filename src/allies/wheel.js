@@ -4,6 +4,7 @@
 // whole squad; right click (B) or Esc puts the wheel away. A quick tap of H skips the wheel: the smart order
 // (allies/squad.js squadOrder). The orders and timings are data/allies.js ORDERS and COMMAND.
 
+import { talkTap } from '../game/talk.js';
 import { G, player, isTrooper } from '../state.js';
 import { ordersFor, COMMAND } from '../data/allies.js';
 import { orderCost, commandPoints } from '../player/trooper/command.js';
@@ -26,7 +27,7 @@ export function wheelKeyUp(){
     const sel = W.sel, who = W.who;
     close();
     if (sel >= 0) giveOrder(list()[sel].id, who);
-  } else if (G.mode === 'play') squadOrder();   // a tap: the smart order
+  } else if (G.mode === 'play' && !talkTap()) squadOrder();   // a tap: the smart order (or, by someone on your side in a lull, talk to them: game/talk.js)
 }
 // the mouse while the wheel is open points at an order instead of turning the camera
 export function wheelLook(dx, dy){

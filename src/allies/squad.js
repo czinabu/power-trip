@@ -22,7 +22,8 @@ import { heroesHere } from '../player/players.js';
 import { buildEnemyMesh } from '../enemies/mesh.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
-import { sweepHit } from '../enemies/bodyshape.js';
+import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
+import { damageEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from '../world/collision.js';
 import { navSteer, navClearance } from '../enemies/nav.js';
@@ -74,7 +75,7 @@ export function addSquadmate(at, opts){
     : full.filter(d => !d.need || G.unlocked[d.need]);   // (a specialist the run hasn't earned yet waits)
   const def = (opts && opts.def) || roster.find(d => !allies.some(a => a.def === d)) || roster[allies.length % roster.length];
   const role = SQUAD.roles[def.role];
-  const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: true };
+  const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
   const g = buildEnemyMesh(t);
   const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
   const want = at || { x: pp.x - fx * 3 + rand(-2, 2), z: pp.z - fz * 3 + rand(-2, 2) };
@@ -330,6 +331,11 @@ export const grenadeLeft = () => SQ.netGren != null && guest() ? SQ.netGren : Ma
    ============================================================ */
 export function hurtAlly(a, dmg, from){
   if (!a || a.net || !standing(a) || !(dmg > 0)) return;   // (a co-op guest's puppet: the host's browser does the harm)
+  if (a.role.deflect && Math.random() < a.role.deflect){   // a Jedi turns it on the blade
+    const p = a.group.position, at = V3(p.x + Math.sin(a.group.rotation.y) * 0.5, p.y + 1.4 * a.t.scale, p.z + Math.cos(a.group.rotation.y) * 0.5);
+    burst(at, a.t.eye, 5, 6, 3, 0.6); sfx(1500, 0.05, 'square', 0.03, 900);
+    return;
+  }
   a.hp -= dmg * SQUAD.takeDmg * diffDmgMul() * (a.inCover ? COMMAND.coverTake : 1) * (player.up.squadDr || 1);   // (the trooper's LEAD FROM THE FRONT)
   a.hitAt = G.gt; a.flash = 0.14;
   if (a.hp <= 0) downAlly(a);
@@ -491,6 +497,41 @@ function shoot(a, e){
   S.enemyShot(muzzle, false);
   if (squadLink.shot) squadLink.shot(muzzle, dir, a.role.boltSpeed);   // co-op: the guest sees it fly
 }
+// THE JEDI's CUT (a melee squadmate: data/allies.js SQUAD.roles.jedi): close to its foe and facing it, a short wind-up
+// (the sword arm coils overhead, as an enemy's does: enemies/ai.js), then the blade comes down on it and anyone else of
+// the rank and file in front. It lands as a squadmate's blow (half XP, no streak: enemies/damage.js opts.ally)
+function meleeAlly(a, e, dt, dy){
+  const R = a.role, g = a.group, arm = g.userData.weaponArm;
+  a.fireT -= dt;
+  if (a.cutT > 0){
+    a.cutT -= dt;
+    const k = clamp(1 - a.cutT / R.windup, 0, 1);
+    if (arm){ arm.rotation.x = -0.35 - k * 2.1; arm.rotation.z = k * 0.6; }
+    if (a.cutT <= 0) allyCut(a);
+    return;
+  }
+  if (arm){ arm.rotation.x += (-0.35 - arm.rotation.x) * Math.min(1, dt * 6); arm.rotation.z += (0 - arm.rotation.z) * Math.min(1, dt * 6); }
+  if (!e || a.fireT > 0 || Math.abs(dy) > 0.5) return;
+  const p = g.position, tp = e.group.position;
+  if (Math.hypot(tp.x - p.x, tp.z - p.z) - bodyRadius(e) > R.reach) return;
+  a.cutT = R.windup; a.fireT = rand(R.every[0], R.every[1]);
+  sfx(160, R.windup, 'sawtooth', 0.025, 260);   // the blade's hum rises into the cut
+}
+function allyCut(a){
+  const R = a.role, g = a.group, p = g.position, fy = g.rotation.y, fx = Math.sin(fy), fz = Math.cos(fy);
+  const arm = g.userData.weaponArm; if (arm){ arm.rotation.x = 0.5; arm.rotation.z = 0; }
+  let hit = 0;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || !isFodder(e)) continue;   // the duellists stay the hero's
+    const dx = e.group.position.x - p.x, dz = e.group.position.z - p.z, d = Math.hypot(dx, dz);
+    if (d - bodyRadius(e) > R.reach || (d > 0.3 && (dx * fx + dz * fz) / d < 0.2)) continue;
+    damageEnemy(e, R.dmg * (SQUAD.dmg[diffKey()] || 1) * (player.up.squadDmg || 1), V3(dx / (d || 1), 0, dz / (d || 1)), 4, false, false, { ally: true });
+    hit++;
+  }
+  const at = V3(p.x + fx * 1.2, p.y + 1.2 * a.t.scale, p.z + fz * 1.2);
+  burst(at, a.t.eye, hit ? 8 : 3, hit ? 7 : 4, 3, 0.6);
+  sfx(hit ? 520 : 300, 0.09, 'sawtooth', 0.04, hit ? 140 : 120);
+}
 // TAKE COVER: a spot near this squadmate, hard by a wall, with the wall between it and the fight
 function findCover(a){
   const p = a.group.position;
@@ -528,6 +569,11 @@ function wantSpot(a, medic, dt){
   if (medic) return { x: medic.x, z: medic.z, r: 1.3 };
   const i = a.slot % SQUAD.slots.length;
   if (o.kind === 'revive'){ const v = o.who.group.position; return { x: v.x, z: v.z, r: 1.2 }; }
+  // a MELEE fighter (the Jedi) on a follow order goes in to its foe, blade's length short of it, on a leash to the hero
+  if (a.role.melee && o.kind === 'follow' && a.target && !a.target.dead){
+    const tp = a.target.group.position, p0 = a.group.position, d = Math.hypot(tp.x - p0.x, tp.z - p0.z) || 1, k = Math.min(1, a.role.reach * 0.75 / d);
+    if (Math.hypot(tp.x - pp.x, tp.z - pp.z) < a.role.leash) return { x: tp.x + (p0.x - tp.x) * k, z: tp.z + (p0.z - tp.z) * k, r: 0.4, chase: true };
+  }
   // ATTACK TARGET: a mark out of reach or out of sight draws them in, then they go back to their order
   const m = markLive(a), p = a.group.position;
   // FLANK (the ARC trooper's ATTACK TARGET): the first two swing wide to the mark's sides while the hero holds its front
@@ -718,6 +764,7 @@ function updateAlly(a, dt, medic, pp){
              : sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : a.ord.kind !== 'follow' ? g.rotation.y : SQ.fYaw;
   const dy = Math.atan2(Math.sin(face - g.rotation.y), Math.cos(face - g.rotation.y));
   g.rotation.y += clamp(dy, -9 * dt, 9 * dt);
+  if (a.role.melee){ meleeAlly(a, e, dt, dy); updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }
   if (a.burstLeft > 0 && e && (a.burstT -= dt) <= 0){ a.burstLeft--; a.burstT = a.role.burstGap; shoot(a, e); }
   if ((a.fireT -= dt) <= 0 && e && Math.abs(dy) < 0.3){
     a.fireT = rand(a.role.every[0], a.role.every[1]) * (a.inCover ? COMMAND.coverFire : 1) * (G.suppress && G.suppress.until > G.gt ? TROOPER.command.suppress.fire : 1);
@@ -777,7 +824,7 @@ export function syncNetSquad(m, foeOf){
 }
 function addSquadmateNet(def, r){
   const role = SQUAD.roles[def.role];
-  const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: true };
+  const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
   const g = buildEnemyMesh(t);
   g.position.set(r[1], r[2], r[3]); g.rotation.y = r[4];
   scene.add(g);

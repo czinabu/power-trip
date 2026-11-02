@@ -718,7 +718,7 @@ function sightBlocked(ax, ay, az, bx, by, bz){
   return false;
 }
 function makeQuarry(q = heroKey(M.def.quarry)){
-  const g = buildEnemyMesh(ENEMY_TYPES[q.foe], { look: castId(q.name, M.def.id) });   // its own face and clothes (data/saber-cast.js)
+  const g = buildEnemyMesh(ENEMY_TYPES[q.foe], { look: castId(q.name, M.def.id), seed: 7 });   // (seed: the same look on both co-op screens)   // its own face and clothes (data/saber-cast.js)
   g.scale.multiplyScalar(q.scale || 1);
   if (!g.userData.look) g.userData.bodyMat.color.lerp(new THREE.Color(q.tint), 0.5);
   const tag = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4),
@@ -874,7 +874,7 @@ function leadHero(P){
   return best || players[0];
 }
 function buildVip(d){
-  const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 });
+  const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.person ? { person: d.person } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
   const tag = makeFriendTag(1.2); addFriendRing(g);
   scene.add(g, tag); M.props.push(g, tag);
   return M.vip = { g, tag, def: d, hp: d.hp, maxHp: d.hp };
@@ -1116,9 +1116,9 @@ export function missionChecklist(){
     const same = objs.filter(x => x.title === o.title);
     const now = k === M.i && !M.won;
     return { text: o.title + (same.length > 1 ? ' (' + (same.indexOf(o) + 1) + '/' + same.length + ')' : ''), done: k < M.i || M.won, now,
-             sub: now ? [o.task && heroKey(o.task), live && live.status].filter(Boolean) : null, frac: now && live ? live.frac : null };
+             sub: now ? [o.task && heroKey(o.task), live && live.status].filter(Boolean) : null, frac: now && live ? live.frac : null, warn: now && live && live.warn };
   });
-  return { title: 'MISSION OBJECTIVES', items };
+  return { kicker: M.kick, title: 'OBJECTIVES', items };
 }
 // the people on your side the mission has on the field, for walk-up lines (game/talk.js): the escort, and anyone being
 // got out by a hold (one of the line speaks for them all). { key, name, kind, pos, g }

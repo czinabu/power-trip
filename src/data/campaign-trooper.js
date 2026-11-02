@@ -151,10 +151,12 @@ export const TROOPER_CHAPTERS = {
     title: 'THE GENERAL\'S LINE', world: 'HOTH, AN ENCLAVE UNDER THE ICE',
     brief: ['General Kast is on Hoth, holding a trench line while transports carry hidden children off the ice. She is the one who switched our chips off.',
             'Hold the line beside her clones first. Then ask her why.'],
+    // the Jedi on the right flank fights beside the band (a melee squadmate: data/allies.js SQUAD.roles.jedi)
+    guests: [{ name: 'MASTER IRO', role: 'jedi', model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e }],
     talk: { where: 'HOTH, THE COMMAND TRENCH',
       lines: [[KAST, 'I would know that armour anywhere. Eight years, trooper.'],
               [YOU, 'You switched our chips off, General. The night before the order.'],
-              [KAST, 'I did. Hold the forward trench with me, and I will tell you why. There is a Jedi on the right flank. Do not shoot it.']] },
+              [KAST, 'I did. Hold the forward trench with me, and I will tell you why. There is a Jedi on the line with us, Master Iro. Do not shoot him.']] },
     lines: {
       chapter: [say(KAST, 'Clones on the left, rebels on the right. You take the middle, trooper. Just like old times.')],
       duel: [say(KAST, 'Their siege trooper. I have the left. Take it.')],
@@ -189,7 +191,8 @@ export const TROOPER_CHAPTERS = {
     lines: {
       chapter: ['His company is forming up. Our old company, brother, painted black.'],
       duel: [rival(MARSHAL, 'You were always a step behind me, brother. Today too.')],
-      clear: ['He has the Captain.', 'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.'],
+      clear: ['He has the Captain.', 'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.',
+              'Tally pulled a marksman scope out of his armoury and fitted it to your DC-15. You will want it in the canyons.'],
     } },
 
   // ---------------- ACT III: NO MORE ORDERS ----------------

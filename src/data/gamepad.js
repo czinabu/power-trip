@@ -10,7 +10,7 @@
    strafe hold, so the layer and the strafe go together). Anything not in 'lb' falls through to 'base'.
    SLOTS: D-pad left / up / right are the three loadout slots (keys 1 / 2 / 3: the Jedi's forms, the Mando's weapons).
    A form loadout or a fourth slot only has to change the key here.
-   The ARC trooper plays on the Mandalorian's binds (engine/gamepad.js picks by isGunner); its keys land on its own kit. */
+   The ARC trooper has its own layout (the Mandalorian's shape with its kit on it): padLayout picks. */
 
 // standard mapping (https://w3c.github.io/gamepad/#remapping) button index → name
 export const PAD_BUTTONS = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'L3', 'R3', 'UP', 'DOWN', 'LEFT', 'RIGHT'];
@@ -81,12 +81,42 @@ export const PAD_BINDS = {
       X:  { key: 'x', label: 'Grapple / Jetpack Slam', note: 'Whichever you earned' },
       RB: { key: 'z', label: 'Jetpack missile' },
       DOWN: { key: 'g', label: 'Bacta stim' },
-      R3: { key: 't', label: 'Battlefield call', note: 'The ARC trooper (the Mandalorian has nothing on T)' },
+      UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
+      VIEW: { key: 'h', label: 'Squad orders' },
+    },
+  },
+  // the clone ARC trooper (player/trooper/kit.js): the Mandalorian's shape, so a gunner's hands carry over, with its own
+  // kit on it. D-pad down (the Mando's holster) is the frag grenade: the trooper never holsters.
+  trooper: {
+    base: {
+      A:  { key: ' ', label: 'Jump', note: 'Run and jump at low cover to vault it · no jetpack' },
+      B:  { key: 'shift', label: 'Combat roll', note: 'Any way you push the stick, invulnerable through the throw' },
+      X:  { key: 'r', label: 'Vent', note: 'Overheated: press it in the beat for a perfect vent · too early or late and it jams' },
+      Y:  { key: 'f', label: 'Ion grenade / breach charge', note: 'Whichever you earned' },
+      RB: { key: 'q', label: 'Recon scan', note: 'Marks every foe nearby' },
+      RT: { mouse: 0, label: 'Fire', note: 'DC-15: a burst (the auto barrel: hold) · twin DC-17s: each pull fires the other pistol' },
+      LT: { mouse: 2, label: 'Aim', note: 'A tight cone and a steady reticle · the marksman scope raises the scope' },
+      LB: { key: 'alt', label: 'Strafe (hold)', note: 'Stay square to the crosshair · also opens the LB powers' },
+      L3: { key: 'c', label: 'Slide', note: 'Out of a run, firing as you go' },
+      R3: { key: 'e', label: 'Rifle bash', note: 'Staggers whoever is in front and cracks a duellist\'s guard' },
+      LEFT:  { key: '1', label: 'DC-15 rifle', note: 'Again with the rifle in hand: its next module' },
+      UP:    { key: '2', label: 'Twin DC-17s' },
+      RIGHT: { key: '3', label: 'AT launcher', note: 'The Commando' },
+      DOWN: { key: 'g', label: 'Frag grenade' },
+      VIEW: { key: 'h', label: 'Squad orders', note: 'Tap for the smart order · hold for the command wheel: the right stick picks, the D-pad picks one squadmate, let go to give it · in the sandbox, opens the sandbox panel (LB + VIEW gives orders there)', sandbox: 'b' },
+    },
+    lb: {
+      Y:  { key: 'v', label: 'Bubble shield' },
+      X:  { key: 'x', label: 'Gunship strafing run' },
+      RB: { key: 'z', label: 'Artillery barrage', note: 'The Commander' },
+      R3: { key: 't', label: 'Battlefield call', note: 'For command points: reinforce, or a supply drop' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
       VIEW: { key: 'h', label: 'Squad orders' },
     },
   },
 };
+// which layout a hero plays on
+export const padLayout = (hero) => hero === 'trooper' ? 'trooper' : hero === 'mando' ? 'mando' : 'jedi';
 
 // glyphs per pad family: the layout names buttons the Xbox way; a PlayStation pad shows its own shapes
 export const PAD_GLYPHS = {

@@ -43,7 +43,7 @@ import { catchDarksaber } from '../player/mando/darksaber.js';
 import { resetGrasp } from '../player/jedi/grasp.js';
 import { resetAirCut } from '../player/jedi/aerial.js';
 import { hideThrownSaber, stowHandSaber } from '../player/jedi/force.js';
-import { clearSquad, trooperSquad } from '../allies/squad.js';
+import { clearSquad, trooperSquad, addSquadmate } from '../allies/squad.js';
 import { clearDowned } from './revive.js';
 import { playBossIntro } from './cutscene.js';
 import { coopRun } from '../net/run.js';
@@ -213,6 +213,9 @@ export function startLevel(idx, opts){
     spawnBossWhenReady(() => G.mode === 'play' && G.levelIdx === idx && shared.levelPhase === 'bossfight' && !shared.boss, 2600);
   }
   trooperSquad();   // the ARC trooper's clones (allies/squad.js)
+  // a story's guest fighters for a wave chapter (the ARC trooper's Hoth: a Jedi on the line), beside the squad and not
+  // counted in it (a mission chapter's are game/mission.js's)
+  if (opts && opts.guests && !G.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
 }
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)
 export function retryLevel(){ if (G.chapter >= 0) retryChapter(); else startLevel(G.levelIdx, { retry: true }); }

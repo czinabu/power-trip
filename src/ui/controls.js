@@ -166,7 +166,7 @@ const TIPS = {
 
 import { TELLS, tellCss } from '../fx/tells.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
-import { PAD_GLYPHS, PAD_MENU } from '../data/gamepad.js';
+import { PAD_GLYPHS, PAD_MENU, padLayout } from '../data/gamepad.js';
 import { PAD_CONTROLS } from '../data/controls-pad.js';
 import { pad, padKey } from '../engine/gamepad.js';
 import { TROOPER_TEST, isGunner } from '../state.js';
@@ -177,7 +177,7 @@ export function setControlsDevice(d){ device = d; }
 
 /* the controller page: the keyboard page's panels (data/controls-pad.js), every {key} looked up in the pad binds
    (data/gamepad.js) so it says the button that really sends it, in this pad's glyphs */
-const bindsFor = (hero) => isGunner(hero) ? 'mando' : 'jedi';   // the ARC trooper plays on the Mandalorian's binds
+const bindsFor = (hero) => padLayout(hero);   // each hero's own pad layout (the ARC trooper's: data/gamepad.js)
 function padTok(k, hero){
   const gl = PAD_GLYPHS[pad.family];
   if (gl[k]) return gl[k];                    // {LS} {RS} {MENU}: a stick or button by name

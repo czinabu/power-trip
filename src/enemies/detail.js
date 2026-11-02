@@ -88,7 +88,7 @@ export function face(k, h, o = {}){
     k.add(shard(0.022, 0.05, 0.022), 'horn', h, [x, y, z], [-0.2, 0, r]);
   if (o.beard) beard(k, h, jaw, o.beard);
   if (o.hair === false) return;
-  hairdo(k, h, o.style || 'crop');
+  hairdo(k, h, o.style || 'crop', o.bulk);
 }
 
 /* THE FINE FACE (o.fine: the saber cast, seen close in duel entrances): an almond eye with a coloured iris ('iris')
@@ -113,7 +113,7 @@ function nose(k, h, f){
 }
 
 // the hair over the crown: a skull-hugging cap (buzz) or a fuller one (crop), and what hangs from it
-function hairdo(k, h, style){
+function hairdo(k, h, style, bk){
   if (style === 'bald') return;
   if (style === 'buzz'){
     k.add(loft([{ y:0.16, w:0.222, d:0.214, z:-0.03 }, { y:0.22, w:0.224, d:0.246, z:-0.012 }, { y:0.27, w:0.214, d:0.244, z:-0.008 },
@@ -131,10 +131,10 @@ function hairdo(k, h, style){
   if (style === 'ponytail' || style === 'braid'){
     // tied at the back of the crown, the tail hanging down the back of the neck (a braid in links, longer)
     k.add(loft([{ y:-0.025, w:0.045, d:0.045 }, { y:0.025, w:0.05, d:0.05 }], ngon(8, PI/8)), 'black', h, [0, 0.25, -0.125], [-1.1, 0, 0], NO_INK);   // the tie
-    if (style === 'ponytail') k.add(loft([{ y:-0.3, w:0.03, d:0.03 }, { y:-0.18, w:0.07, d:0.06 }, { y:-0.04, w:0.08, d:0.07 }, { y:0.02, w:0.06, d:0.06 }], SOFT_LIMB), 'hair', h, [0, 0.25, -0.15], [0.32, 0, 0]);
+    if (style === 'ponytail') k.add(loft([{ y:-0.3, w:0.03, d:0.03 }, { y:-0.18, w:0.07, d:0.06 }, { y:-0.04, w:0.08, d:0.07 }, { y:0.02, w:0.06, d:0.06 }], SOFT_LIMB), 'hair', bulk(k, h, [0, 0.25, -0.15], [0.32, 0, 0], bk));
     else for (let i = 0; i < 8; i++) k.add(block(0.05 - i*0.003, 0.055, 0.045, 0.45), 'hair', h, [0, 0.21 - i*0.05, -0.155 - i*0.012], [0.2 + 0.15*(i % 2 ? 1 : -1), 0, 0]);
   }
-  if (style === 'bun') k.add(loft([{ y:-0.05, w:0.06, d:0.06 }, { y:-0.01, w:0.1, d:0.1 }, { y:0.04, w:0.09, d:0.09 }, { y:0.065, w:0.04, d:0.04 }], SOFT_HEAD), 'hair', h, [0, 0.27, -0.13], [-1.0, 0, 0]);
+  if (style === 'bun') k.add(loft([{ y:-0.05, w:0.06, d:0.06 }, { y:-0.01, w:0.1, d:0.1 }, { y:0.04, w:0.09, d:0.09 }, { y:0.065, w:0.04, d:0.04 }], SOFT_HEAD), 'hair', bulk(k, h, [0, 0.27, -0.13], [-1.0, 0, 0], bk));
   if (style === 'topknot') k.add(loft([{ y:-0.03, w:0.06, d:0.06 }, { y:0.02, w:0.085, d:0.085 }, { y:0.06, w:0.07, d:0.07 }, { y:0.08, w:0.03, d:0.03 }], SOFT_HEAD), 'hair', h, [0, 0.36, -0.03]);
 }
 
@@ -257,4 +257,11 @@ export function strap(k, key, a, b, width = 0.035, thick = 0.012, parent = k.roo
 export function rifleSling(k, w){
   strap(k, 'leather', [0.24, 1.38, 0.22], [0.04, 1.56, 0.24]);
   strap(k, 'leather', [0.04, 1.56, 0.24], [-0.21*w, 1.86, 0.15]);
+}
+
+// o.bulk (face): a fuller bun or tail (an enemy seen from the game's camera), scaled about where it's tied on
+function bulk(k, h, at, rot, b = 1){
+  const g = k.group(h, at, rot);
+  if (b !== 1) g.scale.set(b, b * 1.15, b);
+  return g;
 }

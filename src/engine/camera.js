@@ -7,6 +7,10 @@ import { shared, G, player, enemies, isGunner } from '../state.js';
 import { fwd, rightV, playerPos, stance } from '../player/helpers.js';
 import { cameraClearance, updatePropFade } from '../world/camblock.js';
 import { CFG } from '../data/config.js';
+import * as THREE from 'three';
+/* the Jedi rig's aim point fixed to the hero (no lag): Jedi Academy draws its crosshair along the view from here, so it
+   sits mid-screen at rest and rides out with the hero when a roll or a flip outruns the lens (player/aim.js) */
+export const jaAim = Object.assign(new THREE.Vector3(), { live: false });
 
 /* ============================================================
    CAMERA — third person follow
@@ -252,8 +256,9 @@ export function updateCamera(dt){
     TMP.set(jaLoc.x + rv.x*hl, jaLoc.y, jaLoc.z + rv.z*hl);
     LOOK.set(jaTarget.x + rv.x*ha, jaTarget.y, jaTarget.z + rv.z*ha);
     ox = jaTarget.x; oy = jaTarget.y; oz = jaTarget.z;
+    jaAim.set(itx + rv.x*ha, ity, itz + rv.z*ha); jaAim.live = true;   // the aim point as it rides on the hero, before the lag (player/aim.js heroCrosshair)
   } else {
-    jaLive = false;
+    jaLive = false; jaAim.live = false;
     TMP.set(tx - f.x*d*cosP + rv.x*ots, ty + camHi + camLift + dk*3 + d*sinP, tz - f.z*d*cosP + rv.z*ots);
   }
   // aiming up swings the lens down behind the hero; never let it sink below `minLensY` over their feet, so the

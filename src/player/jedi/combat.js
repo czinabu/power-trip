@@ -4,6 +4,7 @@
 import { CFG } from '../../data/config.js';
 import { stamDelay } from '../stamina.js';
 import { SWING_PATTERNS, backLineMul, swordMul } from '../../data/stances.js';
+import { edgeMul } from '../../enemies/foeform.js';
 import { SWING_SPINS, DEFLECT_SPINS } from '../../data/poses.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../../utils.js';
@@ -299,7 +300,7 @@ export function applySwingDamage(step, only){
       // VAAPAD — SHATTERPOINT: the foe whose attack you parried takes the next cut ×2, and it floors it
       const shat = !!(st.shatter && e.shatterUntil > G.gt);
       if (shat){ e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.1); tutEvent('shatter'); }
-      damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
+      damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
       foesHit++;
       addFury(st.furyHit);   // JUYO (and a little VAAPAD): every cut that lands feeds the fury
       if (shat && !e.dead) staggerEnemy(e, f.x, f.z);
@@ -322,7 +323,7 @@ export function applySwingDamage(step, only){
   if (finisher && foesHit) tutEvent('finisher');
   if (foesHit && sw0 && sw0.dir !== 'neutral') tutEvent('cutHit', { dir: sw0.dir });   // which key picked the cut that landed (the training's cut lesson)
   if (foesHit && sw0 && sw0.h && !finisher && !riposte) tutEvent('cutHeight', { h: sw0.h });   // and how high you aimed it (the aim lesson)
-  if (shared.boss && shared.boss.hp > 0) tryHit(shared.boss.group.position, () => { scarBody(shared.boss.group, f, sw0 && sw0.dir, finisher || isDark); return damageBoss(dmg * st.heavyDmg); }, shared.boss);
+  if (shared.boss && shared.boss.hp > 0) tryHit(shared.boss.group.position, () => { scarBody(shared.boss.group, f, sw0 && sw0.dir, finisher || isDark); return damageBoss(dmg * st.heavyDmg * edgeMul(shared.boss)); }, shared.boss);   // (× the form counter: enemies/foeform.js)
   for (let i = barrels.length-1; i >= 0; i--){
     const b = barrels[i];
     tryHit(b.mesh.position, () => { if (b.fuse < 0) b.fuse = 0.1; }, b);

@@ -474,7 +474,7 @@ export function updateEnemies(dt){
             } else {
               // a THRUST drives through a held guard: parry it or get out of the way
               const line = e.dp && e.plan ? e.plan.side : null;   // a duellist's strike comes in on a line: your guard meets it there (player/jedi/guardline.js)
-              const rip = e.riposteNext && e.dp && e.dp.riposte || 1; e.riposteNext = false;   // a Djem So master's answer to a block (data/duel.js FORM_DUEL)
+              const rip = e.riposteNext && e.dp && e.dp.riposte || 1; e.riposteNext = false;   // a Djem So master's answer to a block (data/foe-forms.js)
               const res = hurtPlayer(t.dmg * enemyDmgScale() * (thrust ? DUEL.thrustDmg : 1) * (e.plan && e.plan.dmg || 1) * rip, g.position, false, true, false, { unblockable, line, by: e });   // melee — blocked by high ground
               if (res === 'parried'){
                 // perfectly parried — the weapon is knocked wide and the foe STUMBLES, wide open
@@ -662,7 +662,7 @@ export function updateEnemies(dt){
         break;
     }
     if (e.dp && !e.dead) updateDuel(e, dt, dist);   // guard, posture, the guard arc (duel.js)
-    else if (e.postBar) e.postBar.visible = false;  // the dead don't keep a posture bar up through the ragdoll
+    else { if (e.postBar) e.postBar.visible = false; if (e.formTag) e.formTag.visible = false; }  // the dead don't keep a posture bar (or a form tag) up through the ragdoll
     if (e.lungeLine && e.lungeLine.visible && !LUNGING[e.state]) dropLungeLine(e);   // knocked out of a lunge: the line goes
     // ranged-hit recoil — a quick backward flinch that reads as "I felt that"
     if (e.flinch > 0){

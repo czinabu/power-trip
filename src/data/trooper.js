@@ -1,15 +1,14 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// CLONE ARC TROOPER kit tuning (testing only: the hero shows on the menu with ?trooper in the URL). Edit freely.
+// CLONE ARC TROOPER kit tuning. Edit freely.
 // The trooper is a GUNNER like the Mando (state.js isGunner): it shares the reticle, bolts, heat and hit markers, but
 // it fights on foot with no jetpack, leads a clone squad, and its guns are its own (TROOPER_WEAPONS below).
-// STILL TO BUILD before it leaves testing: gamepad binds (the Mando's for now), its cutscene and mission lines (the
-// Mando's for now), its own DC-15 model (the carbine's for now),
-// a heat bar per pistol, and its story's Act II and III (data/campaign-trooper.js: Act I is built).
+// STILL TO BUILD: its cutscene lines (the Mando's for now) and its own DC-15 model (the
+// carbine's for now).
 
 /* WEAPONS — the same fields as data/mando.js MANDO_WEAPONS (heat, cool, spreads, falloff), plus:
      fire 'burst'  the DC-15 rifle: one click fires `burst` bolts `burstGap` apart. RMB aims (the steady stance)
      fire 'twin'   the twin DC-17s, semi-auto: each LMB click fires the other pistol (each on its own `fireCd`, no two
-                   shots closer than `twinGap`), one heat bar; RMB aims
+                   shots closer than `twinGap`), a heat bar each (one cooks off, the other fires on); RMB aims
      col           the bolt colour (clone blue, where the Mando's run orange) */
 export const TROOPER_WEAPONS = {
   rifle:   { name: 'DC-15 RIFLE', short: 'DC-15', fire: 'burst', burst: 3, burstGap: 0.075, fireCd: 0.36, dmg: 15, dual: false, col: 0x4aa8ff,

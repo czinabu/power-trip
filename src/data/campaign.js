@@ -20,7 +20,7 @@ import { storyWords, answer } from '../game/choices.js';
 // `arena` stages the chapter on its own map: { layout, arena } laid over the level or mission's own (world/arena.js).
 // `story` on a base chapter keeps it to that story alone (chapterOrder: a run telling another story skips it).
 // `prologue: true` (with a `story`): a chapter before chapter 1 that goes by PROLOGUE, not a number (chapterNo), and counts
-// no step deeper into the run (`steps: 0`). The ARC trooper's (testing) is the first; any story can have one.
+// no step deeper into the run (`steps: 0`). The ARC trooper's is the first; any story can have one.
 // `lines` is what's said during the chapter, on the comms strip (game/story.js), per hero. `wave` has one entry per wave
 // of the chapter; the rest are story beats: duel (a mission's duel foe steps in) · escape (it breaks off) · boss · clear.
 // A line is a string (the voice: VOICE) or { who, say } for anyone else; `rival: true` marks the enemy talking.
@@ -51,7 +51,7 @@ export const ACT_TWO = {
 };
 
 export const CHAPTERS = [
-  // ---------------- PROLOGUE (the ARC trooper's story's own, testing: data/campaign-trooper.js has its words) ----------------
+  // ---------------- PROLOGUE (the ARC trooper's story's own: data/campaign-trooper.js has its words) ----------------
   { id: 'order', act: 0, kind: 'mission', mission: 'order66', world: 'THE JUNGLE, EIGHT YEARS AGO', story: 'trooper', prologue: true, steps: 0,
     title: 'THE NIGHT OF THE ORDER',
     brief: { jedi: ['Eight years ago, in a jungle on the edge of the war, the order came.', 'Get the General out.'],
@@ -242,5 +242,5 @@ export const epilogueText = (key, story = storyHero()) => own(story) ? storyWord
 export const actTwoAt = (story = storyHero()) => chapterOrder(null, story).findIndex(c => c.pair);
 // a save from before the chapters (data/levels.js index) picks up on the chapter that opens that level
 export const CHAPTER_OF_LEVEL = ((o) => [0, o.findIndex(c => c.id === 'mustafar'), o.findIndex(c => c.id === 'exegol')])(chapterOrder(null, false));
-// (a hero with no entry of its own yet, the trooper in testing, falls back to the Mando's words: state.js heroKey)
+// (a hero with no entry of its own yet, such as a trooper line not written yet, falls back to the Mando's words: state.js heroKey)
 export const forHero = (v, hero) => v && typeof v === 'object' && !Array.isArray(v) ? heroKey(v, hero) : v;

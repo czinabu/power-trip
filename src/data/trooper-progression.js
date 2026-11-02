@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE CLONE ARC TROOPER's progression (testing only), in the same shapes as data/store.js and data/skills.js:
+// THE CLONE ARC TROOPER's progression, in the same shapes as data/store.js and data/skills.js:
 //   TROOPER_AUTO   handed over by the run (no choice): the recon scan, a third frag, power cells, a third clone
 //   TROOPER_STORE  the choices: fork I (defence or sustain), fork II (control), the signature fork (Commander or
 //                  Commando, at Mustafar like the Mando's), and the final power at the Spearhead
@@ -30,7 +30,7 @@ export const TROOPER_AUTO = [
   // THE MODULAR DC-15 (data/trooper.js RIFLE_MODS): press 1 again with the rifle in hand to swap
   { key:'modAuto', stage:2, chapter:'refuge', hud:'1', name:'DC-15 AUTO BARREL · 1 AGAIN TO SWAP',
     has:()=>!!G.unlocked.modAuto, grant(){ G.unlocked.modAuto = true; } },
-  { key:'modScope', stage:4, chapter:'lothal', hud:'1', name:'DC-15 MARKSMAN SCOPE · 1 AGAIN TO SWAP',
+  { key:'modScope', stage:4, chapter:'mustafar', hud:'1', name:'DC-15 MARKSMAN SCOPE · 1 AGAIN TO SWAP',
     has:()=>!!G.unlocked.modScope, grant(){ G.unlocked.modScope = true; } },
   // the company finds him: one more clone on the line from here on (allies/squad.js trooperSquad)
   { key:'squad3', stage:4, chapter:'hoth', hud:'H', name:'HAMMER JOINS · SQUAD OF 3',

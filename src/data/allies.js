@@ -23,11 +23,17 @@ export const SQUAD = {
   roles: {
     rifle: { hp: 110, speed: 6.0, dmg: 9, range: 20, every: [1.5, 2.3], spread: 0.045, burst: 1, burstGap: 0, boltSpeed: 30 },
     heavy: { hp: 150, speed: 5.3, dmg: 5, range: 17, every: [2.8, 3.6], spread: 0.07, burst: 3, burstGap: 0.13, boltSpeed: 28 },
-    /* the ARC trooper's SPECIALISTS (testing). MEDIC: patches the hero and the squad within `healR` (`heal` hp a second,
+    /* the ARC trooper's SPECIALISTS. MEDIC: patches the hero and the squad within `healR` (`heal` hp a second,
        once clear of a hit for `healDelay` s) and runs to get a downed squadmate up on its own. SCOUT: a long rifle that
        picks off the far line first (`far`) */
     medic: { hp: 100, speed: 6.2, dmg: 6, range: 16, every: [1.8, 2.6], spread: 0.05, burst: 1, burstGap: 0, boltSpeed: 30, heal: 4, healR: 7, healDelay: 2 },
     scout: { hp: 90, speed: 6.4, dmg: 20, range: 32, every: [2.6, 3.4], spread: 0.012, burst: 1, burstGap: 0, boltSpeed: 46, far: true },
+    /* a JEDI fighting beside the squad (a story's guest: the ARC trooper's Hoth). MELEE: no bolts; it runs at the rank
+       and file within `range` of where it stands (on a follow order, never past `leash` m from the hero) and cuts them
+       down with a saber at `reach`, a cut every `every` s (a wind-up of `windup` s first). DEFLECT: that share of the
+       bolts and blows that reach it are turned on the blade */
+    jedi:  { hp: 240, speed: 7.4, dmg: 34, range: 13, reach: 2.3, every: [0.8, 1.1], windup: 0.22, leash: 16, melee: true, deflect: 0.6,
+             spread: 0, burst: 1, burstGap: 0, boltSpeed: 0 },
   },
   // who comes when the hero calls: in this order (looks: enemies/mesh.js MODELS · cloth = the unit markings)
   roster: {
@@ -43,7 +49,7 @@ export const SQUAD = {
       { name: 'BRUN',  role: 'heavy', model: 'mandalorian', color: 0x8c8f94, eye: 0xffa040, cloth: 0x3a2a4a, scale: 1.06 },
       { name: 'ARLA',  role: 'rifle', model: 'mandalorian', color: 0x4e6e5a, eye: 0xffa040, cloth: 0x6a5a2a },
     ],
-    // the clone trooper's own fire team (testing): the same brothers who fight beside the Jedi, in the legion's blue,
+    // the clone trooper's own fire team: the same brothers who fight beside the Jedi, in the legion's blue,
     // now the trooper's band of deserters
     // Specialists: HAMMER's rotary PINS whatever it hits (as SUPPRESS does), PATCH the medic comes with the FIELD MEDIC
     // pick (`need`), TALLY is the scout. `tag` is the mark by the name in the squad panel
@@ -90,6 +96,9 @@ export const TURNED = { blaster: TURNED_CLONE, grenadier: TURNED_CLONE, sniper: 
 // missions it plays). Clone armour painted black, visors lit red; the baton troopers are the purge model already.
 const PURGE_CLONE = { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x5a1a1a };
 export const PURGE = { blaster: PURGE_CLONE, grenadier: PURGE_CLONE, sniper: PURGE_CLONE, officer: { ...PURGE_CLONE, cloth: 0x8a1a1a } };
+// THE MARSHAL: the trooper story's rival, a clone commander in black-and-gold purge armour (enemies/mesh.js marshal).
+// Dress the officer type in it ({ ...ENEMY_TYPES.officer, ...MARSHAL }); only the look changes, the officer's numbers stay
+export const MARSHAL = { model: 'marshal', color: 0x1f2026, eye: 0xff3a2a, cloth: 0xc9a040 };
 // THE CAPTAIN'S DRILL (BROTHERS IN ARMS): the band's old training droids, on stun settings
 const DRILL_DROID = { model: 'b1', color: 0x9a9284, eye: 0x7ad8ff };
 export const DRILL = { blaster: DRILL_DROID, grenadier: DRILL_DROID, sniper: DRILL_DROID, officer: { ...DRILL_DROID, color: 0xb0a070 } };
@@ -104,7 +113,7 @@ export const ORDERS = [
   { id: 'cover',     name: 'TAKE COVER',     note: 'Behind the nearest wall: hit less, fire slower', icon: '▙' },
   { id: 'hold',      name: 'HOLD HERE',      note: 'Stop where they stand',                       icon: '■' },
 ];
-// the ARC trooper's wheel (testing): SUPPRESS takes SPREAD / STACK's place (the trooper's squad stays spread)
+// the ARC trooper's wheel: SUPPRESS takes SPREAD / STACK's place (the trooper's squad stays spread)
 export const SUPPRESS_ORDER = { id: 'suppress', name: 'SUPPRESS', note: 'Pin the foes round the crosshair: they slow and hold their fire', icon: '≋' };
 export const TROOPER_ORDERS = ORDERS.map(o => o.id === 'formation' ? SUPPRESS_ORDER : o);
 export const ordersFor = (trooper) => trooper ? TROOPER_ORDERS : ORDERS;

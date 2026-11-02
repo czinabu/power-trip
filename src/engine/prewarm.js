@@ -5,8 +5,9 @@ import * as THREE from 'three';
 import { scene, compileLive } from './renderer.js';
 import { arenaBuilt } from '../world/arena.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
-import { SQUAD, TURNED, PURGE, DRILL } from '../data/allies.js';
+import { SQUAD, TURNED, PURGE, DRILL, MARSHAL } from '../data/allies.js';
 import { buildEnemyMesh, variantsOf, facesOf } from '../enemies/mesh.js';
+import { lookPool } from '../data/foe-looks.js';
 import { buildBoss } from '../boss/mesh.js';
 import { CAST_IDS } from '../data/saber-cast.js';
 import { inkProbe } from '../fx/ink.js';
@@ -68,9 +69,14 @@ arenaBuilt.push(prewarmShaders);
    hitch), and whatever is still left when an arena is built gets built right there, under the load, so no spawn mid-
    fight pays for it. */
 const jobs = [];
-for (const t of Object.values(ENEMY_TYPES)) for (const variant of variantsOf(t)) for (const face of facesOf(t, variant)) jobs.push(() => buildEnemyMesh(t, { variant, face }));   // every marking and face
+for (const t of Object.values(ENEMY_TYPES)){
+  const pool = lookPool(t.model);
+  if (pool) pool.forEach((_, lookIndex) => jobs.push(() => buildEnemyMesh(t, { lookIndex })));   // every look in its pool (data/foe-looks.js)
+  else for (const variant of variantsOf(t)) for (const face of facesOf(t, variant)) jobs.push(() => buildEnemyMesh(t, { variant, face }));   // every marking and face
+}
 for (const t of Object.values(TURNED)) jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES.blaster, ...t }));   // the prologue's turned company (data/allies.js)
 for (const t of [...Object.values(PURGE), ...Object.values(DRILL)]) jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES.blaster, ...t }));   // the trooper's story: the purge companies, the drill's droids
+jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES.officer, ...MARSHAL }));   // the trooper story's rival
 for (const roster of Object.values(SQUAD.roster)) for (const d of roster) jobs.push(() => buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: true }));
 for (const look of CAST_IDS) jobs.push(() => buildEnemyMesh(ENEMY_TYPES.acolyte, { look }));   // the saber cast's named faces (data/saber-cast.js)
 jobs.push(() => buildBoss('sith'), () => buildBoss('mando'));

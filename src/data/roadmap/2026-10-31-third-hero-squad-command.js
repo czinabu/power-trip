@@ -1,7 +1,7 @@
 // (kept vague: the hero is still under wraps, ?trooper only)
 export default {
   title: 'The third hero: leading the squad',
-  status: 'now',
+  status: 'done',
   date: '2026-10-31',
   items: [
     'Points earned in the fight, spent on the orders that matter',

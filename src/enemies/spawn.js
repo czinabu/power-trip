@@ -46,10 +46,11 @@ function maybeTip(typeName){
 }
 let nextNid = 0;   // every foe's number, the same on both screens in co-op (net/foes.js)
 // opts.look: a saber wielder's look (data/saber-cast.js castId: a named duel foe), sent on to co-op guests (net/foes.js)
+// opts.dress: a named foe's own look over its type ({ model, color, eye, cloth }: data/allies.js MARSHAL); only the look changes
 export function spawnEnemy(typeName, pos, opts = {}){
   const t = ENEMY_TYPES[typeName];
   const nid = ++nextNid;
-  const g = buildEnemyMesh(foeType(typeName), { seed: nid, look: opts.look });   // (dressed as the mission has it: enemies/look.js) (its marking and face follow its number: the same on both co-op screens)
+  const g = buildEnemyMesh(opts.dress ? { ...foeType(typeName), ...opts.dress } : foeType(typeName), { seed: nid, look: opts.look });   // (dressed as the mission has it: enemies/look.js) (its marking and face follow its number: the same on both co-op screens)
   g.position.copy(pos);
   scene.add(g);
   const hp = Math.round(t.hp * enemyHpScale());

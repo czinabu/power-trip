@@ -69,7 +69,7 @@ export const MASTERY_MANDO = [
     ranks:[ { ds:'+40% damage · +20% blast radius', mul:{ dmg:1.4, radius:1.2 } },
             { ds:'−35% cooldown · −20% Force cost', mul:{ cd:0.65, cost:0.8 } } ] },
 ];
-// the ARC trooper's powers (testing only: player/trooper/abilities.js)
+// the ARC trooper's powers (player/trooper/abilities.js)
 export const MASTERY_TROOPER = [
   { id:'scan', nm:'RECON SCAN', ico:'◎', cost:[250, 500], uses:[12, 28], r2:3, base:()=>TROOPER.scan, owned:()=>!!G.unlocked.scan,
     ranks:[ { ds:'Marks foes 40% further away · lasts 3s longer', mul:{ range:1.4 }, add:{ time:3 } },

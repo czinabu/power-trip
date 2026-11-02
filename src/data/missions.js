@@ -90,7 +90,7 @@ import { CHIPWORKS_SPOTS } from '../world/arenas/chipworks.js';
 import { WARCAMP_SPOTS } from '../world/arenas/warcamp.js';
 import { CANYON_SPOTS } from '../world/arenas/canyon.js';
 import { RELAY_SPOTS } from '../world/arenas/relay.js';
-import { TURNED, PURGE, DRILL } from './allies.js';
+import { TURNED, PURGE, DRILL, MARSHAL } from './allies.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
 export const MISSION_COLOR = { jedi: 0x5ad2ff, mando: 0xffa040, trooper: 0x4aa8ff };
@@ -414,7 +414,7 @@ export const MISSIONS = {
       { kind: 'duel', title: 'DEFEAT THE WARDEN',
         say: { jedi: 'Their commander takes the field himself. Your men will keep his troops off you. He is yours.',
                mando: 'Their commander wants you himself. The clan will keep his troops busy. Take him.' },
-        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds' },
+        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         // the last duel before the throne in the campaign (SPEARHEAD on Exegol), so one of the toughest
         foe: 'acolyte', name: 'THE WARDEN', hp: 5, dmg: 1.25, scale: 1.2, tint: 0x8a2a1a, at: [0, -28],   // the open grass before the gate
         duel: { block: 0.78, posture: 170, feint: 0.4, chain: 2, counter: 0.6 },
@@ -489,7 +489,8 @@ export const MISSIONS = {
     blurb: 'hold two trench lines and bring down a walker',
     level: { ...BATTLE_MAPS.icefront.level, name: 'MISSION — THE ICE FRONT ON HOTH',
              sub: { jedi: 'The shield generator must stand until the last transport is away.',
-                    mando: 'The clan\'s ships are still in the ice hangar. Buy them the time to launch.' } },
+                    mando: 'The clan\'s ships are still in the ice hangar. Buy them the time to launch.',
+                    trooper: 'The transports carry the enclave\'s children off the ice. Hold until the last one is away.' } },
     start: ICEFRONT_SPOTS.allyStart,
     kit: 5,
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
@@ -497,8 +498,9 @@ export const MISSIONS = {
     objectives: [
       { kind: 'hold', title: 'HOLD THE FORWARD TRENCH', music: 'battle',
         say: { jedi: 'Here they come, General. Hold the forward trench. The troopers are the squad\'s; the shields and the brutes are yours.',
-               mando: 'They\'re coming over the snow. Hold the forward trench. Your clan takes the troopers; you take the heavies.' },
-        task: { jedi: 'Hold the forward trench (H puts the squad on it)', mando: 'Hold the forward trench (H puts the clan on it)' },
+               mando: 'They\'re coming over the snow. Hold the forward trench. Your clan takes the troopers; you take the heavies.',
+               trooper: 'Here they come, brother. Hold the forward trench. The band and Master Iro take the line troops; the heavies are yours.' },
+        task: { jedi: 'Hold the forward trench (H puts the squad on it)', mando: 'Hold the forward trench (H puts the clan on it)', trooper: 'Hold the forward trench (H puts the band on it)' },
         at: [0, 14], r: 7, time: 45, awayRate: 0.3, squadRate: 0.6, holding: 'TRENCH HELD',
         overrun: 'CLEAR THE TRENCH', unguarded: 'TRENCH UNGUARDED', doneLine: 'THE FIRST WAVE BREAKS', doneSub: 'But the walker is still firing.',
         pulses: [ { grunt: 3, blaster: 2 }, { grunt: 2, blaster: 1, phalanx: 1 }, { grunt: 2, blaster: 2, grenadier: 1 },
@@ -507,7 +509,8 @@ export const MISSIONS = {
 
       { kind: 'sabotage', title: 'BRING DOWN THE WALKER', start: [0, 18, Math.PI], consoleName: 'CHARGE', doneLine: 'THE WALKER FALLS', doneSub: 'Its guns go quiet.',
         say: { jedi: 'That walker is shelling the trench. Get out to it and set charges on its legs. The squad will cover you.',
-               mando: 'The walker\'s guns will level the trench. Fly out and plant charges on it. Don\'t stop to trade shots.' },
+               mando: 'The walker\'s guns will level the trench. Fly out and plant charges on it. Don\'t stop to trade shots.',
+               trooper: 'That walker is shelling the trench. Run out to it and set charges on its legs. The band will cover you.' },
         task: { jedi: 'Stand at each leg to set a charge', mando: 'Stand at each leg to set a charge' },
         consoles: [ { at: [16, -16], guards: { grunt: 2, blaster: 1 } },
                     { at: [28, -24], guards: { phalanx: 1, grunt: 1, blaster: 1 } },
@@ -517,7 +520,8 @@ export const MISSIONS = {
 
       { kind: 'hold', title: 'FALL BACK TO THE REAR TRENCH', music: 'battle', start: [0, 40, Math.PI],
         say: { jedi: 'The transports are launching. Fall back to the rear trench and hold it until the last one clears the shield.',
-               mando: 'The ships are lifting. Back to the rear trench. Nothing reaches the hangar till they\'re gone.' },
+               mando: 'The ships are lifting. Back to the rear trench. Nothing reaches the hangar till they\'re gone.',
+               trooper: 'The transports are lifting. Fall back to the rear trench and hold it until the last one clears the shield.' },
         task: { jedi: 'Hold the rear trench until the transports are away', mando: 'Hold the rear trench until the ships are away' },
         at: [0, 36], r: 7, time: 45, awayRate: 0.25, squadRate: 0.6, holding: 'TRANSPORTS LAUNCHING',
         overrun: 'CLEAR THE TRENCH', unguarded: 'TRENCH UNGUARDED', doneLine: 'THE LAST TRANSPORT IS AWAY', doneSub: 'Something big is coming through the snow.',
@@ -528,12 +532,13 @@ export const MISSIONS = {
       { kind: 'duel', title: 'STOP THE AVALANCHE', start: [0, 34, Math.PI],
         say: { jedi: 'Their siege trooper walks through blaster fire like snow. Your men will hold off the rest. Don\'t trade blows with it: read the swing, then punish it.',
                mando: 'A siege trooper, built like a walker. Rifles won\'t stop it. Keep moving, hit it when it overcommits.' },
-        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds' },
+        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         foe: 'brute', name: 'THE AVALANCHE', hp: 3.2, dmg: 1.1, scale: 1.3, tint: 0xc8d4e0, at: [0, 22],
         rage: 0.45, trickle: { every: 13, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI + 0.4, -0.4] },
     ],
     done: { jedi: 'The transports are clear and the line held. The generator can fall now. It bought what it had to.',
-            mando: 'The ships are away and the clan stands. This is the Way.' },
+            mando: 'The ships are away and the clan stands. This is the Way.',
+            trooper: 'The transports are clear and the line held. Every child is off the ice.' },
   },
 
   // JAKKU: a raid with no squad. Pull the cores out of the wrecks before the salvage crews do, then hold the
@@ -640,7 +645,7 @@ export const MISSIONS = {
       { kind: 'duel', title: 'DEFEAT THE OUTRIDER', start: [8, 50, Math.PI],
         say: { jedi: 'The outpost sent its outrider after the codes. It closes fast with that lance and lunges from range. Sidestep the charge, then make it pay.',
                mando: 'Their outrider\'s on us. Lance, and a lunge that covers ground. Don\'t stand in its line. Make it miss, then hit it.' },
-        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds' },
+        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         enter: { jedi: 'Something comes over the sandbags at a run, lance first.', mando: 'Something comes over the sandbags at a run, lance first.' },
         foe: 'lancer', name: 'THE OUTRIDER', hp: 4.5, dmg: 1.15, scale: 1.15, tint: 0x6a7a3a, at: [6, 36],
         duel: { feint: 0.35, chain: 2, counter: 0.45 },
@@ -702,7 +707,7 @@ export const MISSIONS = {
       { kind: 'duel', title: 'DEFEAT THE SHIELD CAPTAIN', start: [0, -38, Math.PI],
         say: { jedi: 'The outpost\'s captain held the keys to those cells, and it wants its prisoners back. It fights behind a riot shield. Go around it, or break it with the Force.',
                mando: 'The captain wants its prisoners back. Riot shield, stun baton. Get behind it, or blow it off its feet.' },
-        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds' },
+        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         foe: 'phalanx', name: 'THE SHIELD CAPTAIN', hp: 4, dmg: 1.2, scale: 1.22, tint: 0x5a6472, at: [8, -47],
         duel: { posture: 130, feint: 0.3, chain: 2, counter: 0.45 },
         rage: 0.5, rageDuel: { feint: 0.45, delay: 0.4, chain: 3 },
@@ -764,7 +769,7 @@ export const MISSIONS = {
       { kind: 'duel', title: 'DEFEAT THE WARDEN', start: [0, -8, Math.PI],
         say: { jedi: 'The Warden of the pens. An Inquisitor who never hunted: it only kept what the others caught. It will not let them go easily.',
                mando: 'The Warden. Red blade, and it thinks those kids are its property. Show it otherwise.' },
-        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds' },
+        task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         enter: { jedi: 'The Warden walks out of the gate, its blade already lit.', mando: 'The Warden comes out of the gate.' },
         line: { jedi: 'Every one of them is on my list. I will have them back.', mando: 'Those are mine.' },
         foe: 'acolyte', form: 'djemso', name: 'THE WARDEN', hp: 4, dmg: 1.1, scale: 1.12, tint: 0x8a2a30, at: [0, -16],
@@ -955,7 +960,7 @@ export const MISSIONS = {
     done: { jedi: 'The forge is ash. But it fell too easily. This was never his army.',
             mando: 'The forge is ash, and it was too easy. This was bait.' },
   },
-  // THE NIGHT OF THE ORDER: the ARC trooper's prologue (testing), eight years before the campaign. A jungle firebase at
+  // THE NIGHT OF THE ORDER: the ARC trooper's prologue, eight years before the campaign. A jungle firebase at
   // night; the order has come, the company has turned, and the trooper and two brothers who refused it get their
   // wounded General out. Campaign only (the trooper's first chapter, data/campaign.js); one voice for every hero, so a
   // co-op partner of any kind hears the same story. The foes wear the turned company's armour (`foeLook`).
@@ -971,7 +976,8 @@ export const MISSIONS = {
     grant: all([]),
     squad: 2, squadCap: 2,       // VANT and BRISK: the two who refused it with you (and no more: the trooper's run tops up to its own size)
     foeLook: TURNED,
-    escort: all({ model: 'officer', name: 'GENERAL KAST', kicker: 'JEDI · WOUNDED', color: 0x8a7458, eye: 0x5ad2ff, cloth: 0x5a4030, hp: 360 }),   // General Rhenna Kast: the Knight of the Jedi's Hoth chapter, years later
+    escort: all({ model: 'officer', name: 'GENERAL KAST', kicker: 'JEDI · WOUNDED', color: 0x8a7458, eye: 0x5ad2ff, cloth: 0x5a4030, hp: 360,
+                 person: { fem: true, cap: false, face: { skin: 0xc49a7c, hair: 0x5a4a3a, style: 'bun', fem: true, scar: true } } }),   // General Rhenna Kast: the Knight of the Jedi's Hoth chapter, years later (her face as saber-cast.js has it, hair not yet grey)
     objectives: [
       { kind: 'sabotage', title: 'CUT THE COMPANY\'S COMMS', consoleName: 'RELAY', consoleDone: 'CUT',
         doneLine: 'THE RELAYS ARE DOWN', doneSub: 'No gunship will find the General tonight.', music: 'battle',
@@ -1004,7 +1010,7 @@ export const MISSIONS = {
         say: all('The Marshal. Same batch, same tank, same instructors. He is the one who gave the order to fire. Put him down, or at least make him run.'),
         task: all('Beat the Marshal while the squad holds the pad'),
         enter: all('The company falls back. One of them keeps walking.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4, dmg: 1.1, scale: 1.12, tint: 0x9a7a2a, at: JUNGLE_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4, dmg: 1.1, scale: 1.12, tint: 0xc9a040, at: JUNGLE_SPOTS.duel,
         line: all('Good soldiers follow orders, brother. You were the best of us.'),
         rage: 0.5, rageDuel: {},
         // he breaks off instead of falling: the trooper's campaign is where it ends
@@ -1297,7 +1303,7 @@ export const MISSIONS = {
         say: all('He came down himself. Brother, he is not here to win. Watch the gunship.'),
         task: all('Face the Marshal while the squad holds the yard'),
         enter: all('The Marshal walks down off his deck, rifle low.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4.5, dmg: 1.15, scale: 1.12, tint: 0x9a7a2a, at: WARCAMP_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 4.5, dmg: 1.15, scale: 1.12, tint: 0xc9a040, at: WARCAMP_SPOTS.duel,
         line: all('You came all this way to read my orders, brother. You could have asked.'),
         rage: 0.5, rageDuel: {},
         escape: 0.3, escapeLine: all('He breaks off, and his gunship lifts from behind the barracks. The Captain is aboard it.'),
@@ -1333,7 +1339,7 @@ export const MISSIONS = {
         say: all('He is right there, brother. He waited for you. Squad, keep his men off the trooper.'),
         task: all('Face the Marshal while the squad holds his rear guard'),
         enter: all('The Marshal steps out from behind the rocks. He has the Captain\'s helmet on his belt.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 5, dmg: 1.2, scale: 1.12, tint: 0x9a7a2a, at: CANYON_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'COMMANDER · YOUR BATCH', hp: 5, dmg: 1.2, scale: 1.12, tint: 0xc9a040, at: CANYON_SPOTS.duel,
         line: all('You were always good at following, brother. Keep up.'),
         rage: 0.5, rageDuel: {},
         escape: 0.3, escapeLine: all('He breaks for his ship at the canyon\'s head. The Captain is bound in the last camp, alive.'),
@@ -1413,7 +1419,7 @@ export const MISSIONS = {
         say: all('He is coming down the spire himself. No more running, for either of you. Remember how he fights.'),
         task: all('Face the Marshal'),
         enter: all('The Marshal walks out of the lift. His helmet is off.'),
-        foe: 'officer', name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0x9a7a2a, at: RELAY_SPOTS.duel,
+        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0xc9a040, at: RELAY_SPOTS.duel,
         line: all('It is not the Empire\'s order, brother. It never was. It is older than all of us. I only wanted to hear the end of it.'),
         rage: 0.45, rageDuel: {},
         trickle: { every: 14, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },

@@ -38,6 +38,7 @@ const CONTROLS = {
       ['HOLSTERED E', 'Force kicks', 'Mid-string: a spin kick that clears the ring round you · in the air: a Force stomp straight down · otherwise the front kick', 1],
       ['HOLSTERED F / C', 'Strike into power', 'Push or Pull right after a blow lands flows out of it for less Force: Push becomes a Palm Push that hits the nearest hard, Pull drags them onto your next strike', 1],
       ['H', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): on me, hold here, move there, attack target, take cover, grenade, spread / stack, get them up · point and let go · 1-4 while it is open orders one squadmate · stand by a downed squadmate to get them up · while one stands, a killing blow downs you instead and they come to get you up', 1],
+      ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
       ['RMB + SPACE', 'Evasive leap', 'Jump while blocking to vault clear · in a fight it spends a dash charge and is only safe at its start', 1],
     ]},
@@ -79,6 +80,7 @@ const CONTROLS = {
       ['1 / 2 / 3', 'Switch weapon', '1 your sidearm, 2 your primary, 3 the Disruptor or Darksaber · or the mouse wheel · choose the sidearm and primary in the ARMORY'],
       ['RMB + LMB', 'Darksaber throw', 'Darksaber in hand: hurl it, and the grappling line reels it back through anything in its path', 1],
       ['H', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): on me, hold here, move there, attack target, take cover, grenade, spread / stack, get them up · point and let go · 1-4 while it is open orders one squadmate · stand by a downed squadmate to get them up · while one stands, a killing blow downs you instead and they come to get you up', 1],
+      ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
       ['4', 'Holster', 'Take a fighting stance with fists and gadgets: LMB / E swing hook, hook, uppercut, haymaker, hold RMB for the gauntlet shield (LMB behind it cuts shield and blade), and gadget power refills faster · 4 or 1 / 2 / 3 draws', 1],
     ]},
@@ -91,7 +93,7 @@ const CONTROLS = {
       ['Z', 'Jetpack missile', 'The final upgrade'],
     ]},
   ],
-  // the clone ARC trooper (testing only: player/trooper/kit.js)
+  // the clone ARC trooper (player/trooper/kit.js)
   trooper: [
     { title: 'MOVE', rows: [
       ['W A S D', 'Move'],
@@ -116,6 +118,7 @@ const CONTROLS = {
       ['3', 'AT launcher', 'The Commando: a heavy rocket off the rifle', 1],
       ['X', 'Gunship strafing run', 'A gunship lays a line of blasts from you toward the crosshair', 1],
       ['H', 'Squad orders', 'TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows) · ATTACK, GRENADE and SUPPRESS cost COMMAND POINTS, earned by your kills and the squad\'s · SUPPRESS pins the foes round the crosshair: they crawl and slow their shots · ATTACK sends two round the target\'s sides to FLANK it: they hit it harder from there'],
+      ['H', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['T', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
     ]},
@@ -152,7 +155,7 @@ const TIPS = {
     '<b>Sith acolytes</b> bat blaster fire back. Close in: punch through their guard, charge them with W + E, catch their cuts with E and finish them with a takedown.',
     'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>skill point</b>: spend them on weapon upgrades when a chapter ends.',
   ],  trooper: [
-    '<b>The ARC trooper is in testing.</b> Its powers come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
+    '<b>The ARC trooper\'s powers</b> come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
     '<b>Pause</b> with TAB (or ESC); TAB or ENTER resumes.',
     '<b>Heat</b> is the gauge beside your reticle. Overheat, and R pressed in the beat clears it at once.',
     'Your squad of clones holds ground while you lead: tap <b>H</b> on a foe to focus it, hold H for every order.',
@@ -163,10 +166,10 @@ const TIPS = {
 
 import { TELLS, tellCss } from '../fx/tells.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
-import { PAD_GLYPHS, PAD_MENU } from '../data/gamepad.js';
+import { PAD_GLYPHS, PAD_MENU, padLayout } from '../data/gamepad.js';
 import { PAD_CONTROLS } from '../data/controls-pad.js';
 import { pad, padKey } from '../engine/gamepad.js';
-import { TROOPER_TEST, isGunner } from '../state.js';
+import { isGunner } from '../state.js';
 
 let showAll = false, device = 'kb';
 export function toggleControlsDetail(hero){ showAll = !showAll; renderControls(hero); }
@@ -174,7 +177,7 @@ export function setControlsDevice(d){ device = d; }
 
 /* the controller page: the keyboard page's panels (data/controls-pad.js), every {key} looked up in the pad binds
    (data/gamepad.js) so it says the button that really sends it, in this pad's glyphs */
-const bindsFor = (hero) => isGunner(hero) ? 'mando' : 'jedi';   // the ARC trooper plays on the Mandalorian's binds
+const bindsFor = (hero) => padLayout(hero);   // each hero's own pad layout (the ARC trooper's: data/gamepad.js)
 function padTok(k, hero){
   const gl = PAD_GLYPHS[pad.family];
   if (gl[k]) return gl[k];                    // {LS} {RS} {MENU}: a stick or button by name
@@ -227,7 +230,7 @@ export function renderControls(hero){
   if (tabs){
     tabs.innerHTML = '<span data-h="jedi" class="' + (hero === 'jedi' ? 'on' : '') + '">JEDI</span>' +
                      '<span data-h="mando" class="' + (hero === 'mando' ? 'on' : '') + '">MANDALORIAN</span>' +
-                     (TROOPER_TEST ? '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">ARC TROOPER</span>' : '');   // (testing only)
+                     '<span data-h="trooper" class="' + (hero === 'trooper' ? 'on' : '') + '">ARC TROOPER</span>';
     const devs = document.getElementById('howtodev');
     if (devs) devs.innerHTML = '<span data-dev="kb" class="' + (device === 'kb' ? 'on' : '') + '">KEYBOARD</span>' +
                                '<span data-dev="pad" class="' + (device === 'pad' ? 'on' : '') + '">CONTROLLER</span>';

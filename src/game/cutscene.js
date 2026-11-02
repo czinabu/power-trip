@@ -71,10 +71,11 @@ const binders = {
 export function bindActor(name, fn){ binders[name] = fn; }
 function makeActor(def, x, z, yaw){
   // (in the mission's uniform: enemies/look.js) (a saber wielder in its own face and clothes: data/saber-cast.js)
-  const g = buildEnemyMesh(foeType(ENEMY_TYPES[def.foe] ? def.foe : 'duelist'), { look: castId(def.name, def.mid) });
+  const base = foeType(ENEMY_TYPES[def.foe] ? def.foe : 'duelist');
+  const g = buildEnemyMesh(def.dress ? { ...base, ...def.dress } : base, { look: castId(def.name, def.mid) });   // (dress: a named foe's own model)
   const look = g.userData.look;
   g.scale.multiplyScalar(def.scale || 1);
-  if (def.tint != null && g.userData.bodyMat && !look) g.userData.bodyMat.color.lerp(new THREE.Color(def.tint), 0.5);
+  if (def.tint != null && g.userData.bodyMat && !look && !def.dress) g.userData.bodyMat.color.lerp(new THREE.Color(def.tint), 0.5);
   if (def.blade != null && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(masterBlade(look, def.blade));   // a form master's blade (game/mission.js)
   g.position.set(x, groundAt(x, z, 3.2), z); g.rotation.y = yaw;
   scene.add(g);

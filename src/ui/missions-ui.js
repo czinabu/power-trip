@@ -8,7 +8,7 @@
 // ARCADE (data/arcade.js) heads the page: a board of random contracts with no story, open to every hero from the start.
 // SHUFFLE deals a new board; SURPRISE ME begins a random one straight away.
 
-import { G, TROOPER_TEST } from '../state.js';
+import { G } from '../state.js';
 import { missionDone, missionTitle } from '../game/mission.js';
 import { missionUnlocked, missionChapterNo } from '../game/sandbox-unlocks.js';
 import { MISSIONS } from '../data/missions.js';
@@ -18,7 +18,7 @@ import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName
 import { overlay, setOverlayState, isMenuState, beginFromMenu, panelOpen } from './menus.js';
 
 const listEl = document.getElementById('mplist'), infoEl = document.getElementById('mpinfo');
-const HEROES = () => ['jedi', 'mando', ...(TROOPER_TEST ? ['trooper'] : [])];
+const HEROES = () => ['jedi', 'mando', 'trooper'];
 const HERO_NAME = { jedi: 'Jedi', mando: 'Mando', trooper: 'ARC' };
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 

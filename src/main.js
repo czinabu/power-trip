@@ -95,6 +95,7 @@ import './data/difficulty.js';
 import './engine/input.js';
 import './engine/gamepad.js';
 import { updateCamera } from './engine/camera.js';
+import { updateCharFade, charFadeState, CHAR_SEE } from './world/charfade.js';
 import { updateCutscene } from './game/cutscene.js';
 import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist } from './enemies/nav.js';
@@ -105,7 +106,9 @@ import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partne
 import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft } from './allies/squad.js';
 import { updateWheel, wheelOpen } from './allies/wheel.js';
 import { downed } from './game/revive.js';
-import { updateComms, clearComms, commsBusy, storyBeat } from './game/story.js';
+import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/story.js';
+import { updateGlance } from './game/glance.js';
+import { updateTalk } from './game/talk.js';
 import './ui/coop-ui.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import './net/foefire.js';
@@ -144,6 +147,7 @@ function tick(){
       updatePlayer(dt);
       updateFlow(wdt);
       updateMission(dt);
+      updateGlance(dt);   // an objective's hand-off turns the view to the next one, for a moment (game/glance.js)
       updateSandbox(dt);
       updateSquad(dt);   // the hero's squad, and anyone downed waiting to be got up (allies/squad.js, game/revive.js)
     }
@@ -167,6 +171,7 @@ function tick(){
   }
   updateSquadHud();
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
+  updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
@@ -181,6 +186,8 @@ function tick(){
   updateVFX(dt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
+  // squadmates, foes, a boss or a partner standing between the lens and the hero turn see-through (world/charfade.js)
+  { const pp = player.group.position; updateCharFade(camera.position, pp.x, pp.y, pp.z, rawDt, G.mode === 'play' && !G.cutscene && !G.paused && !G.sbPlan && !G.sbMenu); }
   MUSIC.updateState();   // adaptive score follows the fight (menu → combat → boss surge → victory/death)
   updateAudio(rawDt);    // saber hum, jetpack, flamethrower, ambience, muffle
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
@@ -192,7 +199,7 @@ tick();
 /* expose configs + API for live tweaking and future edits (dev console) */
 window.GAME = { shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
-  openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE,
+  openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,
   spawnBoss, updateBoss, bossStagger, BOSS_CFG, BOSS_MANDO, rings,
   BOONS, BOON_BY_ID, rollBoons, pickBoon, hurtPlayer, abil, MASTERY_JEDI, MASTERY_MANDO, trainAbility, masteryNext, earnWavePoint,
@@ -217,7 +224,7 @@ import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, sta
 import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
-Object.assign(window.GAME, { clearComms, commsBusy, storyBeat });   // the story's voice lines (game/story.js), for tests
+Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
 

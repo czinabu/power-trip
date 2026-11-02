@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE ARC TROOPER'S COMMAND POINTS (testing only): earned in the fight (kills, the squad's kills), spent on the orders
+// THE ARC TROOPER'S COMMAND POINTS: earned in the fight (kills, the squad's kills), spent on the orders
 // that matter (ATTACK, GRENADE, SUPPRESS on the command wheel) and on the battlefield calls (T: allies/calls.js).
 // The tuning is data/trooper.js TROOPER.command. Only state and data here, so the squad and the damage code can both
 // reach it without a loop.

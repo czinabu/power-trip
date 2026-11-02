@@ -1,7 +1,7 @@
 // (kept vague: the hero is still under wraps, ?trooper only)
 export default {
   title: 'The third hero: a story of its own',
-  status: 'now',
+  status: 'done',
   date: '2026-10-31',
   items: [
     'Its campaign tells its own story now, with its first act built',

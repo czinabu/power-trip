@@ -22,7 +22,8 @@ const hex = c => '#' + c.toString(16).padStart(6, '0');
 
 function render(){
   const hero = G.hero, mine = picks[hero] || {};
-  for (const t of document.querySelectorAll('#czhero span')) t.classList.toggle('on', t.dataset.h === hero);
+  const tabs = document.getElementById('czhero');
+  for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
   rowsEl.innerHTML = CUSTOMIZE[hero].map(row => {
     const cur = pickedOption(row, mine);
     const opts = row.options.map(o => row.kind === 'color'

@@ -42,6 +42,7 @@ export const PAD_CONTROLS = {
       ['HOLSTERED {e}', 'Force kicks', 'Mid-string: a spin kick that clears the ring round you · in the air: a Force stomp straight down · otherwise the front kick', 1],
       ['HOLSTERED {f} / {c}', 'Strike into power', 'Push or Pull right after a blow lands flows out of it for less Force: Push becomes a Palm Push that hits the nearest hard, Pull drags them onto your next strike', 1],
       ['{h}', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks, the D-pad orders one squadmate, let go to give it · stand by a downed squadmate to get them up · in the sandbox it opens the sandbox panel, and {alt} + {h} gives orders', 1],
+      ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
       ['{rmb} + {space}', 'Evasive leap', 'Jump while blocking to vault clear · in a fight it spends a dash charge and is only safe at its start', 1],
     ]},
@@ -83,6 +84,7 @@ export const PAD_CONTROLS = {
       ['{1} / {2} / {3}', 'Switch weapon', '{1} your sidearm, {2} your primary, {3} the Disruptor or Darksaber · choose the sidearm and primary in the ARMORY'],
       ['{rmb} + {lmb}', 'Darksaber throw', 'Darksaber in hand: hurl it, and the grappling line reels it back through anything in its path', 1],
       ['{h}', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks, the D-pad orders one squadmate, let go to give it · stand by a downed squadmate to get them up · in the sandbox it opens the sandbox panel, and {alt} + {h} gives orders', 1],
+      ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players, in your colour, with an arrow on their screens when it is out of view · works solo too'],
       ['{4}', 'Holster', 'Take a fighting stance with fists and gadgets: {lmb} / {e} swing hook, hook, uppercut, haymaker, hold {rmb} for the gauntlet shield ({lmb} behind it cuts shield and blade), and gadget power refills faster · {4} or a weapon slot draws', 1],
     ]},
@@ -95,7 +97,7 @@ export const PAD_CONTROLS = {
       ['{z}', 'Jetpack missile', 'The final upgrade'],
     ]},
   ],
-  // the clone ARC trooper (testing only: player/trooper/kit.js) plays on the Mandalorian's pad binds
+  // the clone ARC trooper (player/trooper/kit.js) on its own pad layout (data/gamepad.js PAD_BINDS.trooper)
   trooper: [
     { title: 'MOVE', rows: [
       ['{LS}', 'Move', 'Steers any way, at the stick\'s angle'],
@@ -110,8 +112,10 @@ export const PAD_CONTROLS = {
       ['HOLD {rmb}', 'Aim', 'Up to the eye: a tight cone and a steady reticle, with either gun'],
       ['{r}', 'Vent', 'Overheated: press it in the beat (a moment after the overheat) for a perfect vent that clears the gun at once · too early or late and it jams · not overheated: a plain vent'],
       ['{1} / {2}', 'Switch gun', 'DC-15 rifle or the twin DC-17s'],
+      ['{1} (again)', 'Rifle module', 'With the DC-15 in hand: swap its module · BURST · AUTO BARREL (hold {lmb}) · MARKSMAN SCOPE ({rmb} raises the scope) · the run hands them over'],
       ['{e}', 'Rifle bash', 'A shove with the stock: staggers whoever is right in front and cracks a duellist\'s guard'],
       ['{h}', 'Squad orders', 'TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks · ATTACK, GRENADE and SUPPRESS cost COMMAND POINTS, earned by your kills and the squad\'s · SUPPRESS pins the foes round the crosshair: they crawl and slow their shots · ATTACK sends two round the target\'s sides to FLANK it: they hit it harder from there'],
+      ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],
       ['{t}', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
     ]},

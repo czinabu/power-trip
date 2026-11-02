@@ -21,7 +21,7 @@ export const SANDBOX_LEVELS = {
            arena: 48, floor: 0x6a3020, fog: 0x2a1a14, sky: 0x1a0e0a, layout: 'dojo', waves: [], hazards: {} },
   mando: { name: 'SANDBOX — THE THRONE ROOM', sub: 'No waves, no clock. Press B to call in foes and choose your gear.',
            arena: 48, floor: 0x3a4c46, fog: 0x1e2826, sky: 0x10161a, layout: 'throne', waves: [], hazards: {} },
-  // the clone trooper (testing): a hangar to drill in until it has a room of its own
+  // the clone trooper: a hangar to drill in until it has a room of its own
   trooper: { name: 'SANDBOX — THE HANGAR', sub: 'No waves, no clock. Press B to call in foes and your squad.',
            arena: 48, floor: 0x3c4148, fog: 0x18202a, sky: 0x0a0e14, layout: 'hangar', waves: [], hazards: {} },
 };
@@ -105,7 +105,7 @@ export const SANDBOX_KIT = {
     { id: 'bacta',      nm: 'BACTA STIM',      key: 'G',        ...flag('bacta') },
     { id: 'jetmissile', nm: 'JETPACK MISSILE', key: 'Z',        ...flag('jetmissile') },
   ],
-  // the ARC trooper (testing): its powers (data/trooper-progression.js); the guns and frags are always in hand
+  // the ARC trooper: its powers (data/trooper-progression.js); the guns and frags are always in hand
   trooper: [
     { id: 'modAuto',   nm: 'DC-15 AUTO BARREL', key: '1',       ...flag('modAuto') },
     { id: 'modScope',  nm: 'DC-15 MARKSMAN SCOPE', key: '1',    ...flag('modScope') },

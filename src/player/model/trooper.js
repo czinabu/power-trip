@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// The CLONE ARC TROOPER outfit (testing only), modelled on an ARC trooper like Fives or Captain Rex: Phase II plastoid
+// The CLONE ARC TROOPER outfit, modelled on an ARC trooper like Fives or Captain Rex: Phase II plastoid
 // over a black bodysuit, an ARC pauldron, the black collar yoke with its ammo pouches, the white utility belt, a cloth
 // kama open at the front, legion markings and the bucket with its rangefinder. Slots and variants work like mando.js;
 // its own palette keys (appearance.js DEFAULT_LOOK.trooper) are styled apart from the Mando's, so the two never share

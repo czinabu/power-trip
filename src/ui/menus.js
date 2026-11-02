@@ -206,7 +206,7 @@ function setSwingMirror(on){
 }
 setSwingMirror(localStorage.getItem('sw_swingmirror') === '1');
 document.getElementById('swingctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSwingMirror(!G.swingMirror); });
-// SWING MARKER — the arc on the floor where the Jedi's next cut lands (fx/swingmark.js); on by default, off for a challenge
+// SWING MARKER — the slash on a foe showing where on its body the Jedi's next cut lands (fx/swingmark.js); on by default, off for a challenge
 function setSwingMarker(on){
   G.swingMarker = on; try { localStorage.setItem('sw_swingmarker', on ? '1' : '0'); } catch(e){}
   const v = document.getElementById('swingmarkval'); if (v) v.textContent = on ? 'ON' : 'OFF';

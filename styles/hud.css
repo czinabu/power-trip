@@ -203,7 +203,7 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
 /* ---------- crosshair, reticle, gauges ---------- */
 #xh{position:fixed;top:50%;left:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:rgba(210,242,255,.92);box-shadow:0 0 8px var(--accent)}
 #xh{transition:opacity .2s,transform .2s}
-#xh.quiet{opacity:.22;transform:scale(.7)}   /* the swing marker is up (fx/swingmark.js): the floor shows the cut, the dot only aims powers */
+#xh.quiet{opacity:.22;transform:scale(.7)}   /* the swing marker is up (fx/swingmark.js): a foe shows the cut, the dot only aims powers */
 #xh.on{background:rgba(255,207,74,.98);box-shadow:0 0 8px rgba(255,207,74,.9)}   /* over a foe: a power aimed now reaches it (player/aim.js) */
 /* cut height: three short ticks right of the crosshair; the lit one is the height of your next cut (player/jedi/cutaim.js) */
 /* the cut dial (player/jedi/cutaim.js): a needle through the crosshair along the next cut, bright end where it comes from */

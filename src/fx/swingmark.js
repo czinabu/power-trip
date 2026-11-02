@@ -1,10 +1,13 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// SWING MARKER — the Jedi's crosshair for the blade: a faint arc on the floor where the next saber cut will land. It is
-// as long as the form's real reach (the blade's sweep plus the step into the cut, longer when the lunge will close on a
-// foe), as wide as the cut sweeps (a side cut wide, an overhead or a thrust narrow, a spinning finisher all the way
-// round), and a band runs across it the way the blade will travel, so it flips with the combo. A foe the cut will reach
-// gets a ring at its feet and the arc lights up. It fades out with nothing near, and in cutscenes. Settings · SWING
-// MARKER turns it off (G.swingMarker). Local to each player: every browser draws its own hero's.
+// SWING MARKER — Jedi Academy style: on each foe the next saber cut will reach, a glowing slash shows WHERE on its body
+// the blade will land and HOW: at the height you aim (high at the head and shoulders, middle across the chest, low at the
+// legs: player/jedi/cutaim.js cutHeight) and at the cut's angle on the clock as you see it, thick and bright where the
+// blade comes in, tapering to a point where it leaves, with a pulse running the way it travels. A thrust is a point; a
+// spinning finisher a level line. It flips with the combo, the keys and the mouse flick, because it reads the same pick
+// the swing will (pickCut). Who it reaches follows the swing's own reach: the form's blade, the step and the lunge onto the
+// nearest foe in front (combat.js tryAttack). The foe the lunge closes on is brightest. Nothing in reach, nothing shows;
+// never in cutscenes. Settings · SWING MARKER turns it off (G.swingMarker). Local to each player: every browser draws its
+// own hero's.
 
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
@@ -14,97 +17,75 @@ import { SWING_STYLE } from '../data/poses.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
 import { stance, bladeColor } from '../player/helpers.js';
 import { pickCut } from '../player/jedi/cutaim.js';
-import { bodyRadius } from '../enemies/bodyshape.js';
-import { groundAt } from '../world/collision.js';
+import { bodyRadius, bodyHeight, headPos, chestPos } from '../enemies/bodyshape.js';
 
 /* the numbers. blade: how far the blade reaches round the hero through a cut, per metre of blade length (measured in
    the sandbox, every form in both grips: the tip crosses the front about 2.1 m out, a thrust's point ~0.6 m further, the
-   step into the cut on top). step: how far the cut's root
-   motion carries with nothing to close on (combat.js stepIntoCut: 7 × lunge ÷ the ground drag). near: how close a foe
-   has to be for the marker to come up. */
+   step into the cut on top). half: how far either side of the cut's line it sweeps (degrees). len / wide: the slash on
+   the body (m, scaled with the foe). fade: how fast it comes and goes. */
 export const SWING_MARK = {
-  blade: 2.05, thrust: 0.6, inner: 0.45, near: 7.5, fade: 7, opacity: 0.6,
-  half: { side: 78, overhead: 22, thrust: 18, back: 74 },   // degrees either side of the cut's line
-  dirOff: 0.12,   // a cut's line leans this far (radians) toward the side it sweeps to
-  rings: 4,
+  blade: 2.05, thrust: 0.6, fade: 9, max: 4,
+  half: { side: 78, overhead: 22, thrust: 18, back: 74 },
+  len: 1.3, wide: 0.34, point: 0.5, front: 0.2,
 };
 const D2R = Math.PI / 180, GROUND_DRAG = 9;
 
-/* ---------- the arc: a flat sector bent in the vertex shader, so one mesh serves any width and reach ---------- */
-const SEG = 64;
-function sectorGeometry(){
-  const g = new THREE.BufferGeometry(), pos = [], uv = [], idx = [];
-  for (let i = 0; i <= SEG; i++) for (let j = 0; j <= 1; j++){ pos.push(0, 0, 0); uv.push(i / SEG, j); }
-  for (let i = 0; i < SEG; i++){ const a = i * 2, b = a + 1, c = a + 2, d = a + 3; idx.push(a, c, b, b, c, d); }
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  return g;
-}
-const arcMat = new THREE.ShaderMaterial({
-  transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
-  polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
-  uniforms: { uHalf: { value: 1 }, uIn: { value: 0.4 }, uOut: { value: 2.5 }, uCol: { value: new THREE.Color(0x66ccff) },
-              uOp: { value: 0 }, uHot: { value: 0 }, uDir: { value: 1 }, uT: { value: 0 }, uFull: { value: 0 } },
-  vertexShader: `
-    uniform float uHalf, uIn, uOut; varying vec2 vUv;
-    void main(){
-      vUv = uv;
-      float a = mix(-uHalf, uHalf, uv.x), r = mix(uIn, uOut, uv.y);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(sin(a) * r, 0.0, cos(a) * r, 1.0);
-    }`,
+/* ---------- the slash: a quad drawn as a blade stroke ---------- */
+const slashMat = () => new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false,
+  uniforms: { uCol: { value: new THREE.Color(0x66ccff) }, uOp: { value: 0 }, uT: { value: 0 }, uPoint: { value: 0 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    uniform vec3 uCol; uniform float uOp, uHot, uDir, uT, uFull, uIn, uOut; varying vec2 vUv;
+    uniform vec3 uCol; uniform float uOp, uT, uPoint; varying vec2 vUv;
     void main(){
-      float v = vUv.y, u = vUv.x;
-      // the near end fades into the hero's feet; the far edge is a bright rim: that's how far the blade gets
-      float fill = 0.24 * smoothstep(0.0, 0.45, v);
-      float rim = exp(-pow((v - 0.92) / 0.05, 2.0));
-      // a thin dark line just outside the rim, so the edge reads on a pale floor as well as a dark one
-      float dark = exp(-pow((v - 0.985) / 0.022, 2.0));
-      // the sides fade off, unless it goes all the way round
-      float side = uFull > 0.5 ? 1.0 : smoothstep(0.0, 0.025, u) * smoothstep(1.0, 0.975, u);
-      // and the same dark line down the two sides, fading in from the hero's feet
-      float sideDark = uFull > 0.5 ? 0.0 : (exp(-pow(u / 0.012, 2.0)) + exp(-pow((1.0 - u) / 0.012, 2.0))) * smoothstep(0.15, 0.6, v) * 0.6;
-      // the way the blade travels: across (a side cut, uDir ±1) or out from the hero (an overhead or a thrust, 0)
-      float along = abs(uDir) > 0.5 ? (uDir > 0.0 ? u : 1.0 - u) : v;
-      float lead = mix(0.22, 1.0, along);
-      float p = fract(uT * 1.4);
-      float band = exp(-pow((along - p) / 0.07, 2.0)) * (abs(uDir) > 0.5 ? smoothstep(0.2, 0.7, v) : 1.0);
-      float a = ((fill + rim * 0.9) * lead + band * 0.35) * side * uOp * (1.0 + uHot * 0.6);
-      float d = ((dark * side + sideDark) * 0.5 + 0.16 * smoothstep(0.0, 0.45, v) * side) * uOp;   // (and a faint shade under the fill)
-      vec3 c = mix(uCol, vec3(1.0), clamp(rim * 0.4 + uHot * 0.2, 0.0, 1.0));
-      float A = clamp(a + d, 0.0, 1.0);
-      c = mix(c, vec3(0.02, 0.03, 0.06), d / max(a + d, 1e-3));
-      gl_FragColor = vec4(c, A);
+      vec3 dark = vec3(0.02, 0.03, 0.06);
+      if (uPoint > 0.5){
+        // a thrust: where the point goes in, a bright core in a ring that closes on it
+        vec2 q = vUv * 2.0 - 1.0; float r = length(q);
+        float core = exp(-pow(r / 0.16, 2.0));
+        float ringR = mix(0.95, 0.35, fract(uT * 1.6));
+        float ring = exp(-pow((r - ringR) / 0.07, 2.0)) * 0.8;
+        float halo = exp(-pow((r - 0.72) / 0.12, 2.0)) * 0.35;
+        float a = (core + ring + halo) * uOp * smoothstep(1.0, 0.9, r);
+        float d = exp(-pow((r - 0.2) / 0.12, 2.0)) * 0.45 * uOp;
+        vec3 c = mix(uCol, vec3(1.0), core * 0.7);
+        gl_FragColor = vec4(mix(c, dark, d / max(a + d, 1e-3)), clamp(a + d, 0.0, 1.0));
+        return;
+      }
+      // x: 0 where the blade comes in, 1 where it leaves; y across the stroke
+      float x = vUv.x, y = abs(vUv.y - 0.5) * 2.0;
+      float w = mix(1.25, 0.08, pow(x, 0.8));          // thick at the entry, tapering to a point
+      float ends = smoothstep(0.0, 0.08, x) * smoothstep(1.0, 0.94, x);
+      float core = exp(-pow(y / (0.2 * w), 2.0));
+      float glow = exp(-pow(y / (0.8 * w), 2.0)) * 0.5;
+      float lead = mix(1.15, 0.35, x);
+      float band = exp(-pow((x - fract(uT * 1.5)) / 0.08, 2.0)) * exp(-pow(y / (0.6 * w), 2.0)) * 0.7;
+      float a = ((core + glow) * lead + band) * ends * uOp;
+      float d = exp(-pow(y / (0.95 * w), 2.0)) * 0.55 * ends * uOp;   // a dark edge, so it reads on a pale foe or wall
+      vec3 c = mix(uCol, vec3(1.0), core * 0.65 + band * 0.3);
+      gl_FragColor = vec4(mix(c, dark, d / max(a + d, 1e-3) * (1.0 - core)), clamp(a + d, 0.0, 1.0));
     }`,
 });
-const arc = new THREE.Mesh(sectorGeometry(), arcMat);
-arc.frustumCulled = false; arc.renderOrder = 5; arc.visible = false;
-scene.add(arc);
-
-/* ---------- the rings at the feet of the foes the cut will reach ---------- */
-const ringMat = () => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, side: THREE.DoubleSide,
-  polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
-const rings = [];
-for (let i = 0; i < SWING_MARK.rings; i++){
-  const r = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40), ringMat());
-  r.rotation.x = -Math.PI / 2; r.visible = false; r.renderOrder = 6; r.frustumCulled = false;
-  scene.add(r); rings.push(r);
+const quad = new THREE.PlaneGeometry(1, 1);
+const slashes = [];
+for (let i = 0; i < SWING_MARK.max; i++){
+  const m = new THREE.Mesh(quad, slashMat());
+  m.matrixAutoUpdate = false; m.frustumCulled = false; m.renderOrder = 20; m.visible = false;
+  scene.add(m); slashes.push({ mesh: m, foe: null, op: 0, ang: 0 });
 }
 
 /* ---------- what the next cut is, and what it will reach ---------- */
 // the cut a press right now would throw (combat.js tryAttack, without spending it): the combo step, the pattern, the lunge
 function nextCut(){
   const st = stance(), sw = player.swing;
-  if (player.atkT > 0 && sw) return { step: sw.step, pat: sw.pat, dir: sw.dir, back: sw.back, rip: sw.riposte, fin: sw.step === 2 && sw.dir === 'neutral' && !sw.riposte, spin: !!sw.spin };
+  if (player.atkT > 0 && sw) return { step: sw.step, pat: sw.pat, dir: sw.dir, h: sw.h, back: sw.back, rip: sw.riposte, fin: sw.step === 2 && sw.dir === 'neutral' && !sw.riposte, spin: !!sw.spin };
   const step = (G.gt - player.lastAtkEnd < 0.9 * (st.comboGap || 1)) ? (player.comboStep + 1) % 3 : 0;
   if (player.riposteT > 0) return { step, pat: SWING_PATTERNS.forward, dir: 'forward', rip: true };
   const c = pickCut(step, false);
-  return { step, pat: c.pat, dir: c.dir, back: c.dir === 'back', fin: step === 2 && c.dir === 'neutral' };
+  return { step, pat: c.pat, dir: c.dir, h: c.h, back: c.dir === 'back', fin: step === 2 && c.dir === 'neutral' };
 }
-/* the cut's shape on the floor: its centre line (radians off the view's heading), how wide either side, which way the
-   blade travels across it, and whether it goes all the way round */
+/* the cut's sweep round the hero (what it can reach): its centre line (radians off the view's heading), how wide either
+   side, and whether it goes all the way round */
 function cutShape(cut){
   const H = SWING_MARK.half, style = SWING_STYLE[G.stance] || SWING_STYLE.niman;
   if (cut.back) return { yaw: Math.PI, half: H.back * D2R, dir: 0, full: false };
@@ -131,8 +112,6 @@ function lungeOf(cut){
   return ((cut.step === 2 && st.finisherLunge) ? st.finisherLunge : st.lunge) * (cut.pat.lunge || 1);
 }
 
-const _white = new THREE.Color(0xffffff);
-let hotT = 0, shownOp = 0, radius = 2.5, half = 1, lineYaw = 0;
 const hits = [];
 /* what the cut will reach: the foe the lunge closes on (combat.js tryAttack: the nearest in front, within the form's
    range) and everything else within the blade's reach from where the step leaves the hero, inside the cut's sweep */
@@ -177,70 +156,100 @@ function predict(cut, shape, yaw){
   }
   const B = shared.boss;
   if (B && B.hp > 0 && Math.hypot(B.group.position.x - ox, B.group.position.z - oz) - 0.75 <= blade) hits.push(B);
-  // how far the arc reaches along its line: the blade from where the step leaves the hero
-  const along = sx * Math.sin(yaw + shape.yaw) + sz * Math.cos(yaw + shape.yaw);
-  return { reach: blade + step * Math.max(0, along), tgt };
+  return { tgt };
 }
 
-// anything to fight close enough for the marker to matter
-function foeNear(pp){
-  const n2 = SWING_MARK.near * SWING_MARK.near;
-  for (const e of enemies){
-    if (e.dead || e.converted || e.state === 'spawn') continue;
-    const dx = e.group.position.x - pp.x, dz = e.group.position.z - pp.z;
-    if (dx * dx + dz * dz < n2) return true;
+/* ---------- the slash on the body ---------- */
+/* the cut's angle on the clock as the hero sees it, where it comes FROM (0 from the right, 90 from above, 180 from the
+   left, 270 from below), or null for a thrust (a point) */
+const KEYED = { left: 0, right: 180, forward: 90, back: 270, diagL: 45, diagR: 135, leftHigh: 0, rightHigh: 180, leftLow: 0, rightLow: 180, riseL: 315, riseR: 225 };
+function cutAngle(cut){
+  const style = SWING_STYLE[G.stance] || SWING_STYLE.niman;
+  if (cut.rip) return 90;   // the riposte: a committed overhead
+  if (cut.fin){ const id = style.finisher.pattern; return id === 'thrust' ? null : KEYED[id] ?? 180; }
+  if (cut.back) return 180;   // the back strike whirls the blade round behind, level
+  if (cut.pat.id === 'thrust') return null;
+  if (cut.pat.ang != null) return cut.pat.ang;
+  return KEYED[cut.pat.id] ?? 180;
+}
+// how high on the foe it lands: the height you aimed (a riposte and an overhead come down on the head and shoulders)
+const _h = new THREE.Vector3(), _c = new THREE.Vector3();
+function landY(e, h){
+  if (e === shared.boss){ const y = e.group.position.y; return y + (h === 'high' ? 2.7 : h === 'low' ? 0.9 : 1.9); }
+  headPos(e, _h); chestPos(e, _c);
+  if (h === 'high') return _c.y + (_h.y - _c.y) * 0.75;
+  if (h === 'low') return e.group.position.y + bodyHeight(e) * 0.3;
+  return _c.y;
+}
+const _m = new THREE.Matrix4(), _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _p = new THREE.Vector3();
+function placeSlash(s, e, ang, h, pp){
+  const p = e.group.position, r = e === shared.boss ? 0.8 : bodyRadius(e), k = e === shared.boss ? 1.6 : Math.max(0.8, (e.group.scale.x || 1));
+  let dx = p.x - pp.x, dz = p.z - pp.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+  // through the body's middle, square to the hero (drawn over the body: on the near face it sank below the height it
+  // marks, seen from the lens up behind the hero)
+  _p.set(p.x - dx * r * SWING_MARK.front, landY(e, h), p.z - dz * r * SWING_MARK.front);
+  _z.set(-dx, 0, -dz);
+  const U = s.mesh.material.uniforms;
+  if (ang == null){
+    U.uPoint.value = 1;
+    const sz = SWING_MARK.point * k;
+    _x.set(-dz, 0, dx).multiplyScalar(sz); _y.set(0, sz, 0);
+  } else {
+    U.uPoint.value = 0;
+    // the hero's right as he faces the foe, and up: the entry end sits at `ang` on that clock, the stroke runs across
+    const a = ang * D2R, c = Math.cos(a), sn = Math.sin(a), rx = -dz, rz = dx;
+    const L = SWING_MARK.len * k * (Math.abs(sn) > 0.9 ? 0.85 : 1);
+    _x.set(-(c * rx), -sn, -(c * rz)).normalize();         // entry → exit
+    _y.crossVectors(_z, _x).normalize().multiplyScalar(SWING_MARK.wide * k);
+    _x.multiplyScalar(L);
   }
-  const B = shared.boss;
-  return !!(B && B.hp > 0 && B.group.position.distanceTo(pp) < SWING_MARK.near + 2);
+  _m.makeBasis(_x, _y, _z.clone().multiplyScalar(1)).setPosition(_p);
+  s.mesh.matrix.copy(_m); s.mesh.matrixWorldNeedsUpdate = true;
 }
 
-// is the marker up right now (the HUD reads it: the free-aim dot steps back while the floor shows the cut)
-export const swingMarkerOn = () => shownOp > 0.05;
-// the marker's live read, for tests: how far and how wide, and who it says the cut will reach
-export const swingMarkInfo = () => ({ on: swingMarkerOn(), op: +shownOp.toFixed(2), reach: +radius.toFixed(2), half: Math.round(half / D2R),
-  full: arcMat.uniforms.uFull.value > 0.5, dir: arcMat.uniforms.uDir.value, hot: hotT > 0.5, hits: hits.length });
+let shownAny = 0, last = { ang: null, h: 'mid', hits: 0 };
+// is the marker up right now (the HUD reads it: the free-aim dot steps back while a slash shows on a foe)
+export const swingMarkerOn = () => shownAny > 0.05;
+// the marker's live read, for tests: who it says the cut reaches, the angle it comes from and the height it lands
+export const swingMarkInfo = () => ({ on: swingMarkerOn(), hits: last.hits, ang: last.ang, h: last.h,
+  shown: slashes.filter(s => s.mesh.visible).length });
 
 /* ---------- per frame ---------- */
 export function updateSwingMarker(dt){
   const pp = player.group.position;
   const able = G.swingMarker !== false && G.mode === 'play' && !G.cutscene && !G.paused && !G.skillSelect && !G.sbMenu && !G.sbPlan && !isGunner() && !player.holstered
     && !shared.saberProj && !player.blockHeld && !(player.hp <= 0) && !player.downed && !player.hang && !player.mantle && player.judgeT <= 0 && player.mendT <= 0;
-  let want = 0;
+  hits.length = 0;
+  let ang = null, h = 'mid', tgt = null;
   if (able){
-    const gy = groundAt(pp.x, pp.z, pp.y + 0.3);
-    const lift = pp.y - gy;
-    if (lift < 2.5 && (foeNear(pp) || player.atkT > 0)) want = SWING_MARK.opacity * (lift > 0.8 ? 0.5 : 1);
-    if (want > 0 || shownOp > 0.01){
-      const cut = nextCut(), shape = cutShape(cut), yaw = G.yaw;
-      const pr = predict(cut, shape, yaw);
-      const k = 1 - Math.exp(-14 * dt);
-      radius += (Math.max(SWING_MARK.inner + 0.6, pr.reach) - radius) * k;
-      half += (shape.half - half) * Math.min(1, k * 1.4);
-      const ty = yaw + shape.yaw + (shape.full ? 0 : -shape.dir * SWING_MARK.dirOff);
-      let dy = ty - lineYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); lineYaw += dy * Math.min(1, k * 1.6);
-      hotT += ((hits.length ? 1 : 0) - hotT) * Math.min(1, 12 * dt);
-      const U = arcMat.uniforms;
-      U.uHalf.value = Math.min(Math.PI, half); U.uIn.value = SWING_MARK.inner; U.uOut.value = radius;
-      U.uDir.value = shape.dir; U.uFull.value = shape.full ? 1 : 0; U.uHot.value = hotT;
-      U.uT.value = (U.uT.value + dt * (player.atkT > 0 ? 2.2 : 1)) % 1000;
-      U.uCol.value.setHex(bladeColor(stance()));
-      arc.position.set(pp.x, gy + 0.03, pp.z);
-      // the sector's u runs from local -x (the hero's right, looking down +z after the turn) to +x
-      arc.rotation.set(0, lineYaw, 0);
-      // a ring under each foe it will reach (the lunge's target brightest)
-      for (let i = 0; i < rings.length; i++){
-        const r = rings[i], e = hits[i];
-        if (!e || want <= 0){ r.visible = false; continue; }
-        const p = e.group.position, br = e === shared.boss ? 1.0 : bodyRadius(e) + 0.22;
-        r.visible = true; r.position.set(p.x, groundAt(p.x, p.z, p.y + 0.3) + 0.04, p.z); r.scale.setScalar(br);
-        r.material.color.setHex(bladeColor(stance())).lerp(_white, 0.35);
-        r.material.opacity = shownOp * (e === pr.tgt ? 1.4 : 0.9);
-      }
-    }
+    const cut = nextCut(), shape = cutShape(cut);
+    tgt = predict(cut, shape, G.yaw).tgt;
+    ang = cutAngle(cut);
+    h = cut.rip || (cut.fin && ang === 90) ? 'high' : cut.h || 'mid';
+    if (ang === 90 && h === 'low') h = 'mid';   // an overhead can't come in under the belt
+    hits.sort((a, b) => (a === tgt ? -1 : b === tgt ? 1 : 0));
   }
-  if (!(want > 0)) for (const r of rings) r.visible = false;
-  shownOp += (want - shownOp) * Math.min(1, SWING_MARK.fade * dt);
-  if (want <= 0 && shownOp < 0.01) shownOp = 0;
-  arcMat.uniforms.uOp.value = shownOp;
-  arc.visible = shownOp > 0.005;
+  last = { ang, h, hits: hits.length };
+  const t = performance.now() / 1000, col = bladeColor(stance());
+  // keep each slash on the foe it was on, so it fades out where it was rather than jumping
+  for (const s of slashes){
+    const want = s.foe && hits.includes(s.foe) ? (s.foe === tgt || hits.length === 1 ? 1 : 0.6) : 0;
+    s.op += (want - s.op) * Math.min(1, SWING_MARK.fade * dt);
+    if (want === 0 && s.op < 0.02){ s.op = 0; s.foe = null; }
+  }
+  for (const e of hits){
+    if (slashes.some(s => s.foe === e)) continue;
+    const free = slashes.find(s => !s.foe); if (free){ free.foe = e; free.op = 0; }
+  }
+  shownAny = 0;
+  for (const s of slashes){
+    const e = s.foe, alive = e && (e === shared.boss ? e.hp > 0 : !e.dead);
+    s.mesh.visible = !!alive && s.op > 0.01;
+    if (!s.mesh.visible){ if (!alive) { s.foe = null; s.op = 0; } continue; }
+    if (able) { s.ang = ang; s.h = h; }
+    placeSlash(s, e, s.ang, s.h || 'mid', pp);
+    const U = s.mesh.material.uniforms;
+    U.uOp.value = s.op; U.uT.value = t * (player.atkT > 0 ? 1.6 : 1); U.uCol.value.setHex(col);
+    shownAny = Math.max(shownAny, s.op);
+  }
 }

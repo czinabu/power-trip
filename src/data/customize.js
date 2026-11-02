@@ -171,25 +171,26 @@ export const CUSTOMIZE = {
     ] },
   ],
   // the clone trooper (player/model/trooper.js): the gear, the legion and its colours, the kama. He starts a plain
-  // trooper in Phase II plates and earns the ARC kit at his promotion (game/wardrobe.js PROMOTION), the Captain's later
+  // trooper in Phase II plates, earns a captain's helmet and pauldron at his first promotion and the ARC kit at his second
+  // (game/wardrobe.js PROMOTIONS)
   trooper: [
     { id: 'helmet', label: 'HELMET', kind: 'part', options: [
-      { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'trial-first' },
-      { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'mustafar' },
+      { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'mustafar' },
+      { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
     ] },
     { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
-      { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }), unlock: 'trial-first' },
-      { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }), unlock: 'mustafar' },
+      { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }), unlock: 'mustafar' },
+      { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Bare',         set: parts({ arms: 'phase2' }) },
     ] },
     // the ARC's black collar yoke and pouches, and the legion paint on the legs: on, or plain Phase II plates
     { id: 'gear', label: 'GEAR', kind: 'part', options: [
-      { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }), unlock: 'trial-first' },
+      { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }), unlock: 'mustafar' },
       { id: 'phase2', name: 'Phase II', set: parts({ torso: 'phase2', legs: 'phase2' }) },
     ] },
     { id: 'kama', label: 'KAMA', kind: 'part', options: [
-      { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'trial-first' },
+      { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'mustafar' },
       { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
     ] },
     // the legion's colour: the pauldron, the visor paint, the knees and the bands
@@ -211,10 +212,10 @@ export const CUSTOMIZE = {
     ] },
     { id: 'cloth', label: 'KAMA COLOUR', kind: 'color', options: [
       { id: 'black', name: 'Black', set: pal({ cloth: 0x141518 }) },
-      { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }), unlock: 'trial-first' },
-      { id: 'red',   name: 'Red',   set: pal({ cloth: 0x6a1d1a }), unlock: 'trial-knight' },
-      { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }), unlock: 'trial-acrobat' },
-      { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }), unlock: 'mustafar' },
+      { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }), unlock: 'mustafar' },
+      { id: 'red',   name: 'Red',   set: pal({ cloth: 0x6a1d1a }), unlock: 'spearhead' },
+      { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }), unlock: 'chase' },
+      { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }), unlock: 'won' },
     ] },
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },

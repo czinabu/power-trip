@@ -6,7 +6,7 @@
 
 import { G } from '../state.js';
 import { CUSTOMIZE } from '../data/customize.js';
-import { optionOpen, recordLooks, PROMOTION } from './wardrobe.js';
+import { optionOpen, recordLooks, PROMOTIONS } from './wardrobe.js';
 
 const cap = (t) => t.charAt(0) + t.slice(1).toLowerCase();
 const openSet = (hero) => {
@@ -24,9 +24,9 @@ export function chapterLooks(id){
   for (const row of CUSTOMIZE[hero]) for (const o of row.options) if (!before.has(row.id + ':' + o.id) && optionOpen(hero, row, o)) fresh.push({ row, o });
   const out = [];
   let rest = fresh;
-  if (hero === 'trooper' && id === PROMOTION){
-    out.push({ key: 'promotion', name: 'PROMOTED · ARC TROOPER', hud: '' });   // its own card (ui/ability-card.js)
-    rest = fresh.filter(f => f.o.unlock !== PROMOTION || f.row.kind === 'color');   // (the kit is on the card; the kama colours are news)
+  if (hero === 'trooper' && PROMOTIONS[id]){
+    out.push({ key: 'promote-' + PROMOTIONS[id], hud: '' });   // its own card (ui/ability-card.js, data/ability-cards.js)
+    rest = fresh.filter(f => f.o.unlock !== id || f.row.kind === 'color');   // (the kit is on the card; its colours are news)
   }
   if (rest.length){
     const names = rest.map(({ row, o }) => row.kind === 'color' ? o.name + ' ' + row.label.toLowerCase() : cap(row.label) + ': ' + o.name);

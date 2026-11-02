@@ -95,9 +95,12 @@ export const ABILITY_CARDS = {
   breach:   { clip: at('t-breach'), name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },
   commander:{ clip: at('t-commander'), name: 'COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line.'] },
   commando: { clip: at('t-commando'), name: 'COMMANDO', hud: '3', lines: ['The rifle\'s AT launcher is on key 3: one heavy rocket a pull.', 'You hit 18% harder.'] },
-  // the trooper's promotion at the close of BROTHERS IN ARMS (game/look-unlocks.js): his ARC kit, not a power
-  promotion:{ clip: at('t-promotion'), kicker: 'RANK EARNED', name: 'PROMOTED · ARC TROOPER',
-              lines: ['The Captain has made you an ARC. His old kit is yours: the ARC helmet, the pauldron, the collar gear and the kama.',
+  // the trooper's promotions (game/wardrobe.js PROMOTIONS, game/look-unlocks.js): his kit, not a power
+  'promote-captain': { clip: at('t-captain'), kicker: 'RANK EARNED', name: 'PROMOTED · CAPTAIN',
+              lines: ['The Captain has made you a captain. His spare helmet and pauldron are yours.',
+                      'You wear them from the next chapter, and the customizer has them from now on.'] },
+  'promote-arc': { clip: at('t-promotion'), kicker: 'RANK EARNED', name: 'PROMOTED · ARC TROOPER',
+              lines: ['You are an ARC now. The Captain\'s old kit is yours: the ARC helmet, the pauldron, the collar gear and the kama.',
                       'You wear it from the next chapter, and the customizer has it from now on.'] },
   strafe:   { clip: at('t-strafe'), name: 'GUNSHIP STRAFING RUN', hud: 'X', lines: ['Press X to call a gunship: it lays a line of blasts from you toward the crosshair.'] },
 };

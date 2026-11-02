@@ -119,9 +119,9 @@ export const TROOPER_CHAPTERS = {
     brief: ['The Captain has set the old training droids up on the decks, stun settings on.',
             'Take every post with your squad, not in front of it.'],
     lines: {
-      // the promotion (game/wardrobe.js PROMOTION): from here he is an ARC, in the Captain's old kit (game/look-unlocks.js)
+      // the first promotion (game/wardrobe.js PROMOTIONS): a captain's helmet and pauldron (game/look-unlocks.js)
       clear: ['That is a squad. And you led it, brother.',
-              'As of tonight you are ARC. My old kit is in the locker: the helmet, the pauldron, the kama. It fits you better than it fits me now.',
+              'As of tonight you are a captain, same as me. My spare helmet and pauldron are in the locker. Paint them how you like.',
               'One more thing in those files. The officer who switched our chips off signed it: General Rhenna Kast. She knew, brother. She always knew.'],
     } },
 
@@ -193,7 +193,10 @@ export const TROOPER_CHAPTERS = {
     lines: {
       chapter: ['His company is forming up. Our old company, brother, painted black.'],
       duel: [rival(MARSHAL, 'You were always a step behind me, brother. Today too.')],
-      clear: ['He has the Captain.', 'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.',
+      // the second promotion (game/wardrobe.js PROMOTIONS): ARC, in the Captain's old ARC kit (game/look-unlocks.js)
+      clear: ['He has the Captain.',
+              say(VANT, 'He kept his old ARC kit in the gunship. He said it was yours the day you held a line without him. You just did. You are ARC now, brother.'),
+              'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.',
               'Tally pulled a marksman scope out of his armoury and fitted it to your DC-15. You will want it in the canyons.'],
     } },
 

@@ -126,7 +126,10 @@ export const CFG = {
       targetDamp: 0.5,        // cg_thirdPersonTargetDamp: share of the gap the aim point closes every 50 ms
       cameraDamp: 0.3,        // cg_thirdPersonCameraDamp: the same for the lens; JA stiffens it toward 1 as the view
                               // tips toward straight up/down ((pitch / 115°)²) and on fast turns (over 1° per ms)
-      horz: 0.6,              // cg_thirdPersonHorzOffset (0 in JA): over the right shoulder, so a foe dead ahead isn't hidden behind your back
+      horz: 0.6,              // cg_thirdPersonHorzOffset (0 in JA): in a fight, over the right shoulder, so a foe dead ahead isn't hidden behind your back...
+      restRise: 0.9,          // ...but at rest (nobody within engageRange ahead, no lock, no boss) the lens is centred like JA's, and the
+                              // aim point rides this much higher so the crosshair floats over the head (engine/camera.js updateEngage)
+      engageRange: 14,        // a foe nearer than this, in front of or beside you, eases the fight framing in
       frame: 0.4,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
                               // moves); a boss still gets its full pull-back
     },

@@ -20,6 +20,7 @@ import { storyBeat, clearComms } from './story.js';
 import { playOpening, resetScenes, playScene } from './cutscene.js';
 import { recordChapters } from './sandbox-unlocks.js';
 import { choiceAfter, choose, resetStory, storyChoices, answer, storyWords } from './choices.js';
+import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
 
 const ROMAN = ['I', 'II', 'III'];
@@ -96,6 +97,8 @@ function chapterCleared(){
   chapterRewards();
   earnWavePoint();   // a mission chapter's skill point (game/upgrades.js), spent on the page that opens next
   storyBeat('clear', { quiet: !!G.mission });   // a mission's clear lines are already on its Chapter complete card (game/mission.js)
+  // a story whose last chapter is a mission (the trooper's broadcast): clearing it ends the campaign, as the last boss does
+  if (c && !chapterAt(G.chapter + 1)){ victory(); return; }
   if (G.coopGuest){ openSkillTree(); return; }
   shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6;   // the voice's last word, then the upgrade screen and the road on (game/flow.js)
 }
@@ -215,7 +218,7 @@ export function campaignWon(then){
 }
 function showEpilogue(then){
   openCard('<div class="cc-inner hero-' + G.hero + '">' +
-    '<div class="cc-act">EPILOGUE</div><div class="cc-num">' + chapters().filter(c => !c.prologue).length + ' CHAPTERS · ' + (G.actTwo === 'hoth' ? 'HOTH' : 'LOTHAL') + ' FIRST' +
+    '<div class="cc-act">EPILOGUE</div><div class="cc-num">' + chapters().filter(c => !c.prologue).length + ' CHAPTERS · ' + esc(actTwoLabel(G.actTwo || 'lothal')) +
     (choicesRecap() ? ' · ' + esc(choicesRecap()) : '') + '</div>' +
     '<h1 class="cc-title">' + esc(epilogueText('title')) + '</h1><div class="cc-world">' + esc(epilogueText('world')) + '</div>' +
     voice(epilogueText('lines')) +

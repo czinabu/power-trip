@@ -16,9 +16,9 @@
 // failed: somebody switched it off. Act II goes back to where you were made and to Kast; Act III to the relay spire,
 // where the Marshal means to give the order again, and where you learn the order was never only the Empire's.
 //
-// Built so far: the prologue, Act I (the yards, the garrison, the frigate, the Captain's drill) and Act II (Kamino,
-// Kast's line on Hoth, the chip foundry, the Marshal's war camp). Act III still plays the first draft's chapters
-// (below) on the shared maps, until it's rebuilt.
+// Built: the prologue, Act I (the yards, the garrison, the frigate, the Captain's drill), Act II (Kamino, Kast's line on
+// Hoth, the chip foundry, the Marshal's war camp) and Act III (the hunt up the canyon, the assault on the relay spire,
+// the broadcast and the Marshal), with one choice at the end (TROOPER_CHOICES) and an epilogue for each answer.
 
 import { PURGE } from './allies.js';
 
@@ -192,38 +192,68 @@ export const TROOPER_CHAPTERS = {
       clear: ['He has the Captain.', 'His orders name a relay spire. He means to give the order again, to every clone with a chip still in his head.'],
     } },
 
-  // ---------------- ACT III: NO MORE ORDERS (the first draft's, until the hunt and the relay spire are built) ----------------
+  // ---------------- ACT III: NO MORE ORDERS ----------------
   chase: {
-    brief: ['The Marshal\'s hunter droid has the band\'s trail in its memory. It is at Khel Dar, making for its ship.',
-            'Run it down. That trail does not leave the spaceport.'],
+    title: 'THE HUNT', world: 'THE RED CANYONS OF KESH',
+    mission: 'hunt',
+    brief: ['The Marshal\'s gunship put down in the canyons of Kesh to refuel, and he is not in a hurry. He wants to be followed.',
+            'So follow him. Every camp he leaves, we take. At the top, he turns around.'],
+    talk: { where: 'THE GUNSHIP, OVER THE CANYONS',
+      lines: [[VANT, 'He is leaving a trail a cadet could follow.'],
+              [BRISK, 'Then it is a trap.'],
+              [YOU, 'It is an invitation. He wants me to see something. Squad, on me.']] },
     lines: {
-      clear: ['The trail dies with the droid.', 'Now we go to him.'],
+      duel: [rival(MARSHAL, 'Not yet, brother. You have not seen the spire.')],
+      clear: ['The Captain is free, bruised and furious.', say(CAPT, 'He talked the whole time, brother. About the spire, and about a voice under it.')],
     } },
   spearhead: {
-    brief: ['The General is with us, and the masters the Jedi gathered. Our company leads the push.',
-            'Break the line before the gate. The Marshal is waiting behind it.'],
+    title: 'THE LAST ASSAULT', world: 'THE RELAY SPIRE, THE OUTER DEFENCES',
+    mission: 'lastassault',
+    brief: ['Every brother we pulled out of a cell, a pod or a trench is on the beach below the spire. Kast is with them, and the Jedi she brought.',
+            'Take the guns. Open the door. Then it is you and him.'],
+    talk: { where: 'THE BEACH BELOW THE SPIRE',
+      lines: [[KAST, 'You asked me once why I chose the three of you. This is why.'],
+              [CAPT, 'The company is yours, brother. For today.'],
+              [YOU, 'Not mine. Ours. Nobody here is following an order.']] },
     lines: {
-      clear: ['The gate is open. Every brother we have is behind you.'],
+      clear: ['The lift door is open. Every brother you have is behind you.'],
     } },
   exegol: {
-    brief: ['An army stands before the throne, and the Marshal stands in front of it.',
-            'Whatever he says to you out there, remember who you chose to be.'],
+    title: 'THE BROADCAST', world: 'THE RELAY SPIRE, IN THE STORM',
+    kind: 'mission', mission: 'broadcast', arena: null, steps: 4,   // (it stands for the shared slot's four waves and its boss)
+    brief: ['The spire is counting down. When it reaches zero, every clone with a chip in his head hears the order again.',
+            'Hold it. Cut it. Then the Marshal.'],
+    talk: { where: 'THE SPIRE\'S LIFT, GOING UP',
+      lines: [[CAPT, 'Whatever he says to you up there, remember who you chose to be.'],
+              [YOU, 'I remember.']] },
     lines: {
-      wave: [
-        ['His purge troopers. All of them. Squad, on the trooper.'],
-        ['The General holds the left. The Acrobat has the high ground.'],
-        ['He is sending everything. That means he is afraid of you.'],
-        [{ who: 'THE MARSHAL', rival: true, say: 'Enough. You and me, brother. The way they made us.' }],
-      ],
-      boss: ['There he is. Do not let him make it about Kamino. Make it about the ones behind you.'],
+      duel: [rival(MARSHAL, 'Listen to it, brother. Can you hear it? It has been calling since before Kamino.')],
+      clear: ['The spire is dark.'],
     } },
 };
 
+// the win screen's line under VICTORY (game/summary.js)
+export const TROOPER_VICTORY = 'THE ORDER WAS NEVER GIVEN';
+
+// THE CHOICE (game/choices.js): what becomes of the Marshal, asked after his fall
+export const TROOPER_CHOICES = [
+  { id: 'marshal', after: 'end', default: 'home', title: 'THE MARSHAL',
+    who: CAPT,
+    lines: ['He is down. His chip is still in his head, and it is still listening.',
+            'Patch can take it out. He might wake up as the brother we lost, or as nobody at all. Or we end it here, and the voice under the spire loses its loudest friend.'],
+    options: [
+      { key: 'home', label: 'BRING HIM HOME', line: 'Patch takes the chip out. Whoever wakes up is coming with us.' },
+      { key: 'ended', label: 'END IT', line: 'The Marshal falls at the foot of the spire, and the order dies with him.' } ] },
+];
+
 // the ending, with the door left open for the three heroes' last fight (the Jedi's and the Mando's stories point the same way)
 export const TROOPER_EPILOGUE = {
-  title: 'NO MORE ORDERS',
+  title: { by: 'marshal', home: 'BROTHERS', ended: 'NO MORE ORDERS' },
   world: 'THE VORRAN YARDS, ONE YEAR LATER',
-  lines: ['The band has its own ship now, and nobody on it takes an order they did not choose.',
-          'Kast came to the yards last week. She says the signal the Marshal meant to send was older than the chips, and older than the Republic, and that it was not finished.',
+  lines: [{ by: 'marshal',
+            home: 'The Marshal woke up three days after Patch took the chip out. He did not remember the last eight years, and he cried when he saw you. He works the docks with us now. Some nights he still hears it.',
+            ended: 'We buried the Marshal on Kamino, in the rain, where we were made. Brisk said the words. Nobody else could.' },
+          'The band has its own ship now, and nobody on it takes an order they did not choose.',
+          'Kast came to the yards last week. She says the signal under the spire was older than the chips, and older than the Republic, and that it was not finished.',
           'A Jedi heard the same signal on Jedha. A Mandalorian heard it out past the Rim. Something is coming, brother. When it does, nobody gives us the order. We choose.'],
 };

@@ -556,7 +556,8 @@ function oneTarget(s, out){
   const O = C.one, pp = playerPos(), b = C.actors[0], sd = O.sd;
   const eh = eyeOf('hero'), eb = b && b.g ? eyeOf(b) : eh, mid = (eh + eb) / 2;
   // a point k of the way from the pair's middle to someone's face (0: between them; 1: on the face)
-  const at = (who, k) => { const q = who === 'hero' ? pp : b && b.g ? b.g.position : pp, y = who === 'hero' ? eh : eb;
+  // (who: 'hero', or one of the cast on set)
+  const at = (who, k) => { const f = who === 'hero' ? null : who && who.g ? who : b, q = f ? f.g.position : pp, y = f ? eyeOf(f) : eh;
     return TL.set(O.px + (q.x - O.px) * k, mid + (y - mid) * k, O.pz + (q.z - O.pz) * k); };
   const orbit = (a, d, h, L, fov) => { out.a = a; out.d = d; out.h = h; out.L = L; out.fov = fov; return out; };
   const fromWorld = (P, L, fov) => orbit(Math.atan2(P.x - O.px, P.z - O.pz), Math.hypot(P.x - O.px, P.z - O.pz), P.y - O.py, L, fov);
@@ -573,7 +574,11 @@ function oneTarget(s, out){
   const speaker = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
   // a line holds while the lens creeps in a little (a still lens reads as a cut you didn't notice)
   const creep = 1 - 0.08 * Math.min(1, C.t / s.t);
-  if (speaker >= 0 && C.actors[speaker] && C.actors[speaker].g) return orbit(O.Y + sd * 2.3, 4.3 * creep, eh - O.py + 0.12, at('actor', 0.8), 42);   // over the hero, on them
+  const sp = speaker >= 0 && C.actors[speaker];
+  if (sp && sp.g){   // over the hero's shoulder, on whoever speaks (in a group, turned toward that one)
+    const Ys = yawTo(pp.x, pp.z, sp.g.position.x, sp.g.position.z);
+    return orbit(Ys + sd * 2.3, 4.3 * creep, eh - O.py + 0.12, at(sp, 0.8), 42);
+  }
   if (s.line) return orbit(O.Y + sd * 0.9, 4.0 * creep, eh - O.py + 0.05, at('hero', 0.8), 42);   // round past them to the hero's face
   return orbit(O.Y + sd * 1.75, 4.8, mid - O.py + 0.3, at('hero', 0), 46);   // the pair
 }
@@ -606,7 +611,7 @@ function oneLens(s, dt, now){
 function oneExit(){
   const O = C.one;
   for (const a of C.actors){
-    if (!a.g || !a.own || a.bound || a.holo || a.walk) continue;
+    if (!a.g || !a.own || a.bound || a.holo || a.walk || a.stays) continue;   // (whoever stays on set stays at the hero's side: game/onset.js)
     const p = a.g.position;
     for (const da of [0, 0.4, -0.4, 0.8, -0.8]){
       const yaw = O.goalYaw + O.sd * 1.95 + da * O.sd, c = findClearSpawn(p.x + Math.sin(yaw) * 12, p.z + Math.cos(yaw) * 12, 0.6);

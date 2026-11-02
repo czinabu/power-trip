@@ -11,7 +11,7 @@
 // Pose sets key off hold + grip + form (docs/animation-guidelines.md), so a new weapon or form is new data here.
 
 /* each stance in data/stances.js names its form; the darksaber is its own (Mando) form */
-export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu', ataru: 'ataru', niman: 'niman', djemso: 'djemso', shien: 'shien', juyo: 'juyo', vaapad: 'vaapad', darksaber: 'darksaber' };
+export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu', ataru: 'ataru', niman: 'niman', djemso: 'djemso', shien: 'shien', juyo: 'juyo', vaapad: 'vaapad', staff: 'staff', darksaber: 'darksaber' };
 
 /* FOOTWORK per form — crouch (hip drop), splay (feet apart), lead (staggered feet), lean (forward pitch),
    width (robe flare). Read when the hero is settled and planted. (atEase is the cutscene stand: anim/ease.js) */
@@ -25,6 +25,7 @@ export const FOOTWORK = {
   shien:     { crouch: -0.22, splay: 0.42, lead: 0.3,  lean: 0.14, width: 1.2 },    // low and coiled, weight forward over the lead foot
   juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15 },   // pitched forward and low, a predator about to spring
   vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
+  staff:     { crouch: -0.18, splay: 0.58, lead: 0.16, lean: 0.06, width: 1.3 },    // the saber staff: the Inquisitor's wide, square, planted stance
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
@@ -121,6 +122,21 @@ export const SABER_GUARDS = {
       ready: { hand: [0.16, 0.3, 0.2], blade: [0.2, 0.8, -0.56], two: true, twist: 0.2, torso: 0.05, pole: [0.7, -0.6, -0.2] },
       // Vader's wall: blade near level across the face, two hands, leaning into the hit (hilt central so both hands reach)
       block: { hand: [0.0, 0.34, 0.4], blade: [-0.95, 0.3, 0.05], two: true, twist: 0.05, lean: 0.24, pole: [0.6, -0.8, 0] },
+    },
+    /* THE SABER STAFF (data/forms.js staff) — both hands on the long hilt, the right one at the near blade's end
+       (model/weapons.js STAFF: the left closes STAFF.off further down). Every pose keeps the far blade, which leaves the
+       hilt the other way, clear of the body (anim/saber.js keepClear turns the staff about the fist if it isn't).
+       READY: the Inquisitor's guard: feet planted wide, the staff gripped one-handed at the weapon hip and slanted up
+       across the front of the body, the near blade rising past the off shoulder and the far one low out past the
+       weapon-side knee; the free hand hangs loose and ready. (Moving, it's carried as Maul carries it: data/agility.js
+       AIR_GUARDS run.) */
+    staff: {
+      ready: { hand: [0.42, -0.36, 0.42], blade: [-0.7, 0.7, -0.12], twist: 0.08, torso: 0.04, lean: 0.04, pole: [0.75, -0.6, -0.25],
+               off: { hand: [-0.36, -0.3, 0.16], pole: OFF_POLE } },
+      // BLOCK 1: the staff held level across the chest, a bar from shoulder to shoulder and past
+      block: { hand: [0.22, 0.26, 0.46], blade: [0.97, 0.08, 0.2], two: true, twist: 0.04, lean: 0.1, pole: [0.5, -0.8, -0.2] },
+      // BLOCK 2 (they alternate): stood upright before the body, the near blade over the head, the far one down past the knees
+      block2: { hand: [0.14, 0.16, 0.46], blade: [0.14, 0.97, 0.18], two: true, twist: 0.06, lean: 0.06, pole: [0.6, -0.75, -0.25] },
     },
     darksaber: {
       // a heavy blade held with effort: two hands, cocked up by the weapon shoulder, tip wavering
@@ -332,6 +348,58 @@ export const SABER_SWINGS = {
       { hand: [0.08, 0.08, 0.52],  blade: [0, -0.08, 1],        twist: 0.15, pole: [1, 0.25, 0.05] },
     ],
   },
+  /* THE SABER STAFF (data/forms.js staff; SWING_STYLE.staff picks this set) — every cut is two: the near blade takes the
+     cut's line and the far one, leaving the other end of the hilt, sweeps the opposite way round, so the wind-up already
+     brings the far blade through the front and the follow-through carries it on out behind. The hands stay close in
+     and low on the centre line (both on the hilt) and the blade stays flatter than a saber's, wheeling the staff about
+     its middle; each key keeps the far blade clear of the body (it passes beside the hip, never through it). */
+  staff: {
+    left:  [
+      { hand: [0.34, 0.12, 0.12],  blade: [0.74, 0.18, -0.64],  twist: 0.6 },
+      { hand: [0.06, 0.06, 0.52],  blade: [-0.45, 0.1, 0.89],   twist: -0.05 },
+      { hand: [-0.22, 0.02, 0.36], blade: [-0.92, -0.04, -0.38], twist: -0.7 },
+    ],
+    right: [
+      { hand: [-0.2, 0.1, 0.32],   blade: [-0.86, 0.2, -0.46],  twist: -0.6 },
+      { hand: [0.08, 0.06, 0.52],  blade: [0.45, 0.1, 0.89],    twist: 0.05 },
+      { hand: [0.36, 0.0, 0.22],   blade: [0.9, -0.04, -0.44],  twist: 0.7 },
+    ],
+    forward: [   // over the top: the near blade comes down through the front, the far one rises up behind
+      { hand: [0.14, 0.44, 0.2],   blade: [0.3, 0.5, -0.81],    twist: 0.15 },
+      { hand: [0.08, 0.16, 0.54],  blade: [0.22, 0.6, 0.77],    twist: 0 },
+      { hand: [0.06, -0.16, 0.5],  blade: [0.34, -0.5, 0.8],    twist: -0.1 },
+    ],
+    back: [      // the far blade drives back past the weapon hip as the near one rises in front
+      { hand: [0.14, -0.1, 0.46],  blade: [-0.55, -0.3, 0.78],  twist: -0.2 },
+      { hand: [0.2, 0.08, 0.44],   blade: [-0.7, 0.3, 0.65],    twist: 0.35 },
+      { hand: [0.24, 0.24, 0.4],   blade: [-0.55, 0.62, 0.56],  twist: 0.6 },
+    ],
+    diagL: [
+      { hand: [0.34, 0.36, 0.12],  blade: [0.62, 0.56, -0.55],  twist: 0.5 },
+      { hand: [0.08, 0.14, 0.54],  blade: [-0.42, 0.42, 0.8],   twist: 0 },
+      { hand: [-0.2, -0.16, 0.38], blade: [-0.7, -0.45, -0.55], twist: -0.55 },
+    ],
+    diagR: [
+      { hand: [-0.18, 0.34, 0.3],  blade: [-0.66, 0.56, -0.5],  twist: -0.5 },
+      { hand: [0.08, 0.14, 0.54],  blade: [0.42, 0.42, 0.8],    twist: 0 },
+      { hand: [0.34, -0.16, 0.3],  blade: [0.72, -0.45, -0.52], twist: 0.55 },
+    ],
+    riseL: [
+      { hand: [0.3, -0.2, 0.3],    blade: [0.62, -0.6, 0.5],    twist: 0.45 },
+      { hand: [0.08, 0.02, 0.54],  blade: [-0.35, 0.3, 0.89],   twist: 0 },
+      { hand: [-0.18, 0.3, 0.34],  blade: [-0.6, 0.66, -0.45],  twist: -0.5 },
+    ],
+    riseR: [
+      { hand: [-0.12, -0.2, 0.38], blade: [-0.62, -0.6, 0.5],   twist: -0.45 },
+      { hand: [0.08, 0.02, 0.54],  blade: [0.35, 0.3, 0.89],    twist: 0 },
+      { hand: [0.34, 0.3, 0.24],   blade: [0.62, 0.66, -0.42],  twist: 0.5 },
+    ],
+    thrust: [    // the staff drawn back along the body, then driven straight out: near blade first, the far one trailing behind
+      { hand: [0.26, -0.02, 0.0],  blade: [0.12, 0.08, 0.99],   twist: 0.5 },
+      { hand: [0.1, 0.06, 0.6],    blade: [-0.02, 0.04, 1],     twist: -0.15 },
+      { hand: [0.08, 0.06, 0.66],  blade: [-0.04, 0.02, 1],     twist: -0.2 },
+    ],
+  },
 };
 
 /* ---------------- how each FORM performs a swing ----------------
@@ -387,6 +455,11 @@ export const SWING_STYLE = {
   vaapad:    { tc: 0.22, ts: 0.4, tf: 0.72, reach: 1.05, two: true, spinHop: 0, drop: 0.06, offFlare: 0, overshoot: 0.05,
                twist: 1.0, finisher: { pattern: 'forward', spin: 0, hop: 0.1 },
                load: 0.06, accel: 2.8, lag: 0.25, recover: 0.6, weight: 0.08 },   // still, then sudden: short draws, explosive strokes
+  // THE SABER STAFF: quick two-handed cuts that wheel the hilt about its middle and carry well round (its own key set)
+  staff:     { tc: 0.2, ts: 0.39, tf: 0.74, reach: 1.0, two: true, spinHop: 0.06, drop: 0.04, offFlare: 0, overshoot: 0, set: 'staff',
+               twist: 1.2, finisher: { pattern: 'right', spin: 1, hop: 0.2 },
+               load: 0.08, accel: 2.4, lag: 0.25, recover: 0.5, weight: 0.07 },   // both ends always moving
+    // the staff finishes with a spinning sweep: a full turn, both blades out, through everything around you
   darksaber: { tc: 0.34, ts: 0.46, tf: 0.72, reach: 1.2, two: true, spinHop: 0, drop: 0.16, offFlare: 0, overshoot: 0.35,
                twist: 0.8, finisher: { pattern: 'forward', spin: 0, hop: 0.1 },
                load: 0.1, accel: 2.6, lag: 0.08, recover: 0.4, weight: 0.08 },
@@ -432,6 +505,8 @@ export const SWING_SPINS = {
             move: { turns: 1, twirl: 0, travel: 1.5, reach: 1.4, dur: 1.25, stam: 0.4, cd: 2 } },
   vaapad: { mid: { turns: 0, twirl: 1, travel: 1.0, reach: 0.7, dur: 1.2, stam: 0.3, cd: 3 },                   // a sudden wheel of the blade
             move: null },
+  staff:  { mid: { turns: 0, twirl: 1, travel: 1.1, reach: 0.8, dur: 1.2, stam: 0.3, cd: 2 },                   // the staff wheeled in one hand between cuts
+            move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.3, dur: 1.25, stam: 0.4, cd: 2.5 } },           // and a strafing cut turns right round with it
 };
 
 /* ---------------- DEFLECT SPINS: turning a catch into a spin ----------------
@@ -451,6 +526,7 @@ export const DEFLECT_SPINS = {
             anticipate: 0.5 },
   shiicho: { turns: 0, twirl: 0, dur: 0.4, cd: 2.5, volley: 0.9, step: 0.5 },
   shien:   { turns: 1, twirl: 0, dur: 0.42, cd: 1.3, volley: 0.9, step: 0.4 },
+  staff:   { turns: 0, twirl: 1, dur: 0.36, cd: 0.9, volley: 0.9, step: 0, anticipate: 0.6 },   // the staff's whirl: wheeled into a volley, both ends catching
   vaapad:  { turns: 0, twirl: 1, dur: 0.38, cd: 1.4, volley: 0.9, step: 0, anticipate: 0.6 },   // Mace's economy: a wheel of the blade meets the volley   // the bolt-hunter turns through a volley on the blade laid along its arm   // taught early and kept simple: a step into the catch   // on a share of catches the twirl starts BEFORE the bolt lands, so it strikes the blade at the bottom of the wheel
 };
 
@@ -514,6 +590,36 @@ export const SABER_DEFLECTS = {
     lowL: [
       { hand: [-0.06, 0.04, 0.42], blade: [-0.15, -0.85, 0.5], twist: -0.3, flick: [-0.1, -0.04, 0.04], pole: [0.9, 0.2, -0.4] },
       { hand: [0.0, 0.06, 0.46],  blade: [-0.12, -0.72, 0.68], twist: -0.25, flick: [-0.08, -0.04, 0.06], pole: [0.9, -0.2, -0.4] },
+    ],
+  },
+  /* THE SABER STAFF (SWING_STYLE.staff set) — two blades to catch with: a bolt high or low across the body is taken on
+     the FAR blade (the near one dropped or raised out the weapon side, the staff turned so the far end stands in the
+     line), so the hands stay near the middle and never cross. Its catches are bars and upright walls, not a single
+     blade's angles. */
+  staff: {
+    highR: [
+      { hand: [0.24, 0.5, 0.38],  blade: [0.92, 0.3, 0.25],   twist: 0.1,   flick: [0.08, 0.06, 0.04] },   // a bar over the brow, near blade out
+      { hand: [0.3, 0.4, 0.4],    blade: [0.55, 0.78, 0.3],   twist: 0.18,  flick: [0.1, 0.04, 0] },      // tipped up the weapon side
+    ],
+    highL: [
+      { hand: [0.08, 0.46, 0.42], blade: [0.9, -0.32, 0.28],  twist: -0.15, flick: [-0.08, 0.06, 0.02] },  // the far blade raised across the head
+      { hand: [0.12, 0.3, 0.44],  blade: [0.72, -0.62, 0.3],  twist: -0.2,  flick: [-0.1, 0.04, 0.04] },
+    ],
+    midR: [
+      { hand: [0.34, 0.12, 0.4],  blade: [0.16, 0.96, 0.22],  twist: 0.2,   flick: [0.1, 0, 0.04] },        // upright down the weapon side
+      { hand: [0.3, 0.06, 0.46],  blade: [0.6, 0.65, 0.45],   twist: 0.26,  flick: [0.08, 0.04, 0.06] },   // angled out, tip forward
+    ],
+    midL: [
+      { hand: [0.06, 0.06, 0.46], blade: [0.75, -0.6, 0.27],  twist: -0.25, flick: [-0.1, 0, 0.04] },      // far blade up the off side
+      { hand: [-0.02, 0.26, 0.44], blade: [0.08, 0.97, 0.22], twist: -0.3,  flick: [-0.1, 0.02, 0.04] },   // stood upright in front
+    ],
+    lowR: [
+      { hand: [0.3, -0.08, 0.44], blade: [0.5, -0.8, 0.32],   twist: 0.2,   flick: [0.1, -0.04, 0.04] },   // near blade swept down the weapon side
+      { hand: [0.24, 0.24, 0.42], blade: [0.2, -0.95, 0.22],  twist: 0.15,  flick: [0.1, 0, 0.04], pole: [0.9, -0.1, -0.3] },   // hung down from a high fist
+    ],
+    lowL: [
+      { hand: [0.16, 0.1, 0.46],  blade: [0.65, 0.7, 0.28],   twist: -0.2,  flick: [-0.1, -0.04, 0.04] },  // far blade down past the off knee
+      { hand: [0.1, 0.26, 0.44],  blade: [0.3, 0.93, 0.2],    twist: -0.25, flick: [-0.08, -0.04, 0.06] },
     ],
   },
 };

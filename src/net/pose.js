@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { setFistGlow } from '../player/jedi/palm.js';
-import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod } from '../player/model/weapons.js';
+import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod, setSaberStaff, saberIsStaff } from '../player/model/weapons.js';
 
 // the rig joints, in a fixed order (model/rig.js): their rotations travel as quaternions
 const JOINTS = ['vis', 'hips', 'torso', 'chest', 'head', 'back', 'cape', 'skirt', 'flaps.F', 'flaps.B', 'flaps.L', 'flaps.R',
@@ -38,6 +38,7 @@ export function readPose(hero){
   const B = hero.blade, jet = hero.jetGlow && hero.jetGlow[0];
   const fx = {
     blade: B && B.blade.visible ? 1 : 0, bc: B ? B.glow.material.color.getHex() : 0,
+    staff: saberIsStaff(hero) ? 1 : 0,   // the saber staff's long hilt and second blade (model/weapons.js)
     dark: hero.darkBlades && hero.darkBlades[0].visible ? 1 : 0,
     jet: jet ? r3(jet.material.opacity) : 0, jetS: jet ? r3(jet.scale.y) : 1,
     miss: hero.jetMissileMesh && hero.jetMissileMesh.visible ? 1 : 0,
@@ -109,6 +110,7 @@ function applyGear(hero, pose){
     B.blade.visible = B.glow.visible = !!fx.blade;
     if (fx.bc){ B.glow.material.color.setHex(fx.bc); B.light.color.setHex(fx.bc); }
     B.light.intensity = fx.blade ? PARTNER_LIGHT : 0;   // dimmed, never hidden: a light switching off recompiles shaders
+    setSaberStaff(hero, !!fx.staff, false);   // (their staff, not ours: the local hero's own state is left alone)
   }
   if (hero.darkBlades) for (const b of hero.darkBlades) b.visible = !!fx.dark;
   if (hero.darkLight) hero.darkLight.intensity = fx.dark ? PARTNER_LIGHT * 0.8 : 0;

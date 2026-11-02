@@ -289,6 +289,13 @@ export const AIR_GUARDS = {
       plunge: { hand: [0.06, -0.06, 0.4], blade: [0.02, -0.92, 0.38], two: true, twist: -0.05, pole: [0.6, -0.4, -0.6] },
       run:    { hand: [0.3, -0.3, -0.04], blade: [0.2, -0.58, -0.79], twist: -0.08, off: { hand: [-0.28, -0.12, 0.22], pole: OFF } },
     },
+    // THE SABER STAFF moves as Maul does on Naboo: one hand on the middle of the hilt, the arm down and out at the
+    // weapon side, the staff held level along the line of travel, near blade out in front and the far one trailing
+    // past the hip; the free hand swings with the stride
+    staff: {
+      run:    { hand: [0.44, -0.1, 0.16], blade: [0.06, 0.04, 1], twist: 0.04, pole: [0.9, -0.4, -0.1],
+                off: { hand: [-0.3, -0.12, 0.22], pole: OFF } },
+    },
     // Makashi runs like Dooku crossing a courtyard: upright, the saber carried light and close in one hand before the
     // chest, blade angled up and forward like a fencer's point, the free hand clasped at the small of the back and
     // held still (sway 0.12) while the legs do the running

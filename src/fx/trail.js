@@ -6,13 +6,13 @@ import { scene } from '../engine/renderer.js';
 import { G, player, isGunner } from '../state.js';
 import { stance, bladeColor } from '../player/helpers.js';
 import { FORM_OF } from '../data/poses.js';
+import { STAFF, fitStaffBlades, saberIsStaff } from '../player/model/weapons.js';
 
 /* ---------- saber motion trail ----------
    A ribbon from hilt to tip, sampled once a frame and smoothed with Catmull-Rom so even a fast Ataru cut reads as a
    clean arc. The leading edge burns white-hot and cools to the blade colour as it fades, like the films' blade
    streaks. Each form leaves its own trail: Ataru short and whippy, Djem So long and heavy, the darksaber a pale
    cold edge. */
-const trailGeo = new THREE.BufferGeometry();
 const glowTrailMat = new THREE.MeshBasicMaterial({
   color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide,
   blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true });
@@ -20,10 +20,15 @@ const glowTrailMat = new THREE.MeshBasicMaterial({
 // white crackling edge, alpha-blended so the dark actually shows
 const darkTrailMat = new THREE.MeshBasicMaterial({
   color: 0xffffff, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false, vertexColors: true });
-export const trailMesh = new THREE.Mesh(trailGeo, glowTrailMat);
-trailMesh.frustumCulled = false;
-trailMesh.visible = false;
-scene.add(trailMesh);
+/* a RIBBON: one blade's streak (its own samples, geometry and mesh). The saber draws one; the saber staff's second
+   blade draws a second, along the far blade (data/forms.js staff). */
+function makeRibbon(){
+  const geo = new THREE.BufferGeometry(), mesh = new THREE.Mesh(geo, glowTrailMat);
+  mesh.frustumCulled = false; mesh.visible = false; scene.add(mesh);
+  return { geo, mesh, pts: [] };
+}
+const RIB = [makeRibbon(), makeRibbon()];
+export const trailMesh = RIB[0].mesh;
 const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (how far down the blade the ribbon starts)
   shiicho:   { life: 0.22, core: 0.65, base: 0.12 },   // broad, sweeping arcs
   makashi:   { life: 0.11, core: 0.95, base: 0.4 },    // a thin, precise flick
@@ -34,10 +39,10 @@ const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (
   shien:     { life: 0.2, core: 0.7, base: 0.18 },
   juyo:      { life: 0.16, core: 0.95, base: 0.22 },   // hot, ragged streaks
   vaapad:    { life: 0.19, core: 0.8, base: 0.16 },
+  staff:     { life: 0.18, core: 0.8, base: 0.2 },     // two wheeling streaks, one off each end
   darksaber: { life: 0.2, core: 0.35, base: 0.15 },
 };
 const SUB = 4;   // Catmull-Rom subdivisions between frame samples
-const trailPts = [];
 const _ca = [0, 0, 0, 1], _cb = [0, 0, 0, 1];
 const TRB = new THREE.Vector3(), TRT = new THREE.Vector3(), _c = new THREE.Color(), _cw = new THREE.Color(0xffffff);
 let trailCol = new THREE.Color(0x55ccff), trailCfg = TRAIL.niman, tipSpeed = 0;
@@ -50,8 +55,7 @@ const cr = (p0, p1, p2, p3, t, out) => {   // centripetal-free uniform Catmull-R
 };
 export function updateTrail(dt){
   updateBladeFX(dt);
-  for (const p of trailPts) p.age += dt;
-  while (trailPts.length && trailPts[0].age > trailCfg.life) trailPts.shift();
+  for (const r of RIB){ for (const p of r.pts) p.age += dt; while (r.pts.length && r.pts[0].age > trailCfg.life) r.pts.shift(); }
   // follow whichever blade is actually swinging — the Jedi saber OR the Mando darksaber (the swing or the
   // ability slash) — so the ribbon traces the real arc, in either grip
   const bladeNode = (player.saberHand && player.saberHand.visible) ? player.saberHand
@@ -59,22 +63,34 @@ export function updateTrail(dt){
   const swinging = player.atkT > 0 || player.darkT > 0;
   if (swinging && bladeNode){
     const dark = bladeNode === player.darksaberMesh;
-    trailCfg = TRAIL[dark ? 'darksaber' : (FORM_OF[G.stance] || 'niman')];
-    trailMesh.material = dark ? darkTrailMat : glowTrailMat;
-    const len = dark ? 1.3 : 0.18 + 1.6 * (stance().bladeLen || 1);   // to the blade tip
+    trailCfg = TRAIL[dark ? 'darksaber' : (FORM_OF[G.stance] || 'niman')] || TRAIL.niman;
+    for (const r of RIB) r.mesh.material = dark ? darkTrailMat : glowTrailMat;
+    const bl = stance().bladeLen || 1, len = dark ? 1.3 : 0.18 + 1.6 * bl;   // to the blade tip
     const sampleNode = dark ? bladeNode : (player.saberBladeRoot || bladeNode);
     sampleNode.updateWorldMatrix(true, false);
     TRB.set(0, 0.1 + len * trailCfg.base, 0); sampleNode.localToWorld(TRB);
     TRT.set(0, len, 0);                        sampleNode.localToWorld(TRT);   // sample along the blade toward the tip
-    const last = trailPts[trailPts.length - 1];
+    const R0 = RIB[0], last = R0.pts[R0.pts.length - 1];
     tipSpeed = last && dt > 0 ? last.t.distanceTo(TRT) / dt : 0;
-    trailPts.push({ b: TRB.clone(), t: TRT.clone(), age: 0 });
-    if (trailPts.length > 24) trailPts.shift();
+    R0.pts.push({ b: TRB.clone(), t: TRT.clone(), age: 0 });
+    if (R0.pts.length > 24) R0.pts.shift();
+    // the saber staff's far blade: the same streak, mirrored past the far emitter
+    if (!dark && saberIsStaff(player)){
+      const R1 = RIB[1], e = STAFF.end, l2 = 1.6 * bl;
+      TRB.set(0, -(e + 0.04 + l2 * trailCfg.base), 0); sampleNode.localToWorld(TRB);
+      TRT.set(0, -(e + l2), 0);                        sampleNode.localToWorld(TRT);
+      R1.pts.push({ b: TRB.clone(), t: TRT.clone(), age: 0 });
+      if (R1.pts.length > 24) R1.pts.shift();
+    }
     trailCol.setHex((player.swing && player.swing.riposte) ? 0xffe27a     // a riposte cuts a brilliant GOLD arc
       : dark ? 0xd9ccff : bladeColor());
   } else tipSpeed = 0;
-  if (trailPts.length < 2){ trailMesh.visible = false; return; }
-  trailMesh.visible = true;
+  for (const r of RIB) drawRibbon(r);
+}
+function drawRibbon(R){
+  const trailPts = R.pts;
+  if (trailPts.length < 2){ R.mesh.visible = false; return; }
+  R.mesh.visible = true;
   // densify: Catmull-Rom between each pair of frame samples
   const pts = [];
   const n0 = trailPts.length;
@@ -92,7 +108,7 @@ export function updateTrail(dt){
   const col = new Float32Array((n-1)*24);
   // per sample: brightness fades with age and toward the tail; the newest edge burns toward white. The fade is
   // QUANTISED into cel bands (like the toon ramp on the models), so the streak reads as flat painted arcs.
-  const dark = trailMesh.material === darkTrailMat;
+  const dark = R.mesh.material === darkTrailMat;
   const band = (x) => Math.ceil(x * 4) / 4;
   const shade = (p, i, out) => {
     const f = Math.max(0, 1 - p.age / trailCfg.life), lead = i / (n-1);
@@ -112,8 +128,8 @@ export function updateTrail(dt){
     const ca = shade(a, i, _ca), cb = shade(b, i+1, _cb);
     tint(ca); tint(ca); tint(cb); tint(ca); tint(cb); tint(cb);
   }
-  trailGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  trailGeo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+  R.geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  R.geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
 }
 
 /* ---------- blade FX ----------
@@ -141,4 +157,5 @@ function updateBladeFX(dt){
 function setBladeLen(B, s){
   B.blade.scale.y = s; B.glow.scale.y = s;
   B.blade.position.y = 0.17 + 0.78 * s; B.glow.position.y = 0.15 + 0.8 * s;
+  fitStaffBlades(B.blade, B.glow, B.staff, s);   // the saber staff's far blade stays on its own emitter
 }

@@ -11,7 +11,7 @@ import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
-import { FORMS, FORM_CODEX, LOADOUT_SLOTS, STARTING_FORMS, cleanLoadout, forkClosed } from '../data/forms.js';
+import { FORMS, FORM_CODEX, LOADOUT_SLOTS, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { setLoadout, setStanceHud } from '../player/jedi/stance.js';
 import { previewStance } from '../ui/showcase.js';
@@ -100,7 +100,7 @@ function renderUnlock(){
   el.innerHTML = '<div class="cc-inner hero-jedi" style="--c:' + hex(STANCES[id].blade) + '"><div class="cc-act">STANCE UNLOCKED' +
       (learnedNow.length > 1 ? '<span class="su-count">' + (learnedNow.length - cards.length + 1) + ' / ' + learnedNow.length + '</span>' : '') + '</div>' +
     '<h1 class="cc-title">' + esc(F.name) + '</h1>' +
-    '<div class="cc-world">FORM ' + F.no + ' · ' + esc(F.tag) + '</div>' +
+    '<div class="cc-world">' + formTitle(id) + ' · ' + esc(F.tag) + '</div>' +
     '<p class="su-lore">' + esc(C.lore || '') + (C.who ? ' <i>' + esc(C.who) + '</i>' : '') + '</p>' +
     (C.best ? '<div class="su-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<div class="su-cols"><div class="good"><h4>GOOD AT</h4><ul>' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>' +
@@ -128,7 +128,7 @@ function renderSlots(learned = learnedNow){
   const k = known();
   const head = learned.length
     ? '<div class="cc-act">FORM LEARNED</div><h1 class="cc-title">' + learned.map(id => esc(FORMS[id].name)).join(' · ') + '</h1>' +
-      '<div class="cc-world">' + learned.map(id => 'FORM ' + FORMS[id].no + ' · ' + formLine(id)).join('<br>') + '</div>'
+      '<div class="cc-world">' + learned.map(id => formTitle(id) + ' · ' + formLine(id)).join('<br>') + '</div>'
     : '<div class="cc-act">MEDITATION</div><h1 class="cc-title">YOUR FORMS</h1>';
   el.innerHTML = '<div class="cc-inner hero-jedi">' + head +
     '<div class="cc-voice"><div class="cc-who">MEDITATION</div><p>Choose the three forms you carry into the fight. You can change them again when you next learn a form.</p></div>' +
@@ -139,7 +139,7 @@ function renderSlots(learned = learnedNow){
         (x ? '<div class="fm-clear" data-clear="' + i + '" title="Empty this slot" aria-label="Empty slot ' + (i + 1) + '">✕</div>' : '') + '</div>';
     }).join('') + '</div>' +
     '<div class="md-forms">' + k.map(id => '<div class="md-form' + (draft.includes(id) ? ' in' : '') + (learned.includes(id) ? ' new' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-      '<b>' + esc(FORMS[id].name) + '</b><i>FORM ' + FORMS[id].no + ' · ' + esc(FORMS[id].tag) + '</i></div>').join('') + '</div>' +
+      '<b>' + esc(FORMS[id].name) + '</b><i>' + formTitle(id) + ' · ' + esc(FORMS[id].tag) + '</i></div>').join('') + '</div>' +
     '<div class="cc-btns"><div class="btn primary go" data-go="1">RISE</div></div>' +
     '<div class="cc-hint">Pick a slot, then a form for it · ✕ leaves a slot empty · Enter to rise</div></div>';
 }

@@ -15,6 +15,7 @@ import { V3, rand, clamp, dampAngle } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { groundRing } from '../fx/ink.js';
 import { floater } from '../fx/floaters.js';
+import { bark } from '../fx/barks.js';
 import { shared, G, enemies, bolts, player, isGunner, isMando, heroKey, isTrooper } from '../state.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { SCALE } from '../data/coop.js';
@@ -174,7 +175,8 @@ function aimedFoe(){
   }
   return best;
 }
-const say = (a, jedi, mando) => { if (a) floater(V3(a.group.position.x, 2.6, a.group.position.z), isMando() ? mando : jedi, '#bfe8ff'); };   // (the trooper's clones talk like the Jedi's)
+// a squadmate's line: a bark over their head that follows them (fx/barks.js), with their name
+const say = (a, jedi, mando) => { if (a && a.group) bark(a.group, isMando() ? mando : jedi, { who: a.name, color: '#bfe8ff' }); };   // (the trooper's clones talk like the Jedi's)
 const who = (i) => i == null ? allies : allies[i] ? [allies[i]] : [];
 const lead = (list) => list.find(standing) || null;
 const LABEL = { follow: 'ON ME', hold: 'HOLD', move: 'MOVING', cover: 'COVER', revive: 'REVIVING', attack: 'ATTACK' };
@@ -641,7 +643,7 @@ export function updateSquad(dt){
   // the hero picked a fight that's theirs: the squad says so, once in a while
   if (G.squadFocus && !G.squadFocus.dead && !isFodder(G.squadFocus) && G.gt - G.squadFocusT < 0.2 && G.gt - SQ.saidYours > 25){
     const lead = allies.find(standing);
-    if (lead){ SQ.saidYours = G.gt; floater(V3(lead.group.position.x, 2.6, lead.group.position.z), isMando() ? 'THAT ONE IS YOURS.' : isTrooper() ? "THAT ONE'S YOURS, SIR!" : "THAT ONE'S YOURS, GENERAL!", '#bfe8ff'); }
+    if (lead){ SQ.saidYours = G.gt; say(lead, isTrooper() ? "THAT ONE'S YOURS, SIR!" : "THAT ONE'S YOURS, GENERAL!", 'THAT ONE IS YOURS.'); }
   }
   for (const o of SQ.moves) pulseMarker(o.beacon, dt, G.gt);
   updateMarkTag(dt);

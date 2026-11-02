@@ -99,6 +99,7 @@ import './engine/gamepad.js';
 import { updateCamera } from './engine/camera.js';
 import { updateCharFade, charFadeState, CHAR_SEE } from './world/charfade.js';
 import { updateCutscene } from './game/cutscene.js';
+import { updateBarks } from './fx/barks.js';
 import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist } from './enemies/nav.js';
 import { DUEL, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
@@ -199,6 +200,7 @@ function tick(){
   updateVFX(fxDt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
+  updateBarks(G.paused || G.skillSelect ? 0 : rawDt, G.mode === 'play' && !G.cutscene && !G.paused && !G.skillSelect && !showcaseActive());   // mid-fight lines over the speakers' heads (fx/barks.js)
   // squadmates, foes, a boss or a partner standing between the lens and the hero turn see-through (world/charfade.js)
   { const pp = player.group.position; updateCharFade(camera.position, pp.x, pp.y, pp.z, rawDt, G.mode === 'play' && !G.cutscene && !G.paused && !G.sbPlan && !G.sbMenu); }
   MUSIC.updateState();   // adaptive score follows the fight (menu → combat → boss surge → victory/death)

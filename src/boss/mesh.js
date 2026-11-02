@@ -128,7 +128,7 @@ function weaponArm(k, L, kind){
   // the blade itself stays exactly as before: white core, coloured glow, and its light
   const blade = k.glow(new THREE.CylinderGeometry(0.05, 0.035, 2.1, 8), 0xffffff, hand, [0, 1.25, 0]);
   blade.material.toneMapped = true;
-  k.glow(new THREE.CylinderGeometry(0.13, 0.1, 2.15, 8), L.weapon, hand, [0, 1.25, 0], [0,0,0], { opacity: 0.5 });
+  k.glow(new THREE.CylinderGeometry(0.13, 0.1, 2.15, 8), L.weapon, hand, [0, 1.25, 0], [0,0,0], { opacity: 0.5, trail: { hilt: -1 } });
   const sl = new THREE.PointLight(L.weapon, 5 * glow.light, 10); sl.position.y = 1.2; k.live(sl, hand);   // softer than before: cel bands blow out under a strong close light
 }
 

@@ -120,13 +120,13 @@ export const CFG = {
     // chase their ideal spot on their own damping, which is what gives JA its soft swing when you turn
     ja: {
       eye: 2.5,               // focus: the hero's eye (JA: origin + viewheight, 60 of 64 units up)
-      vertOffset: -0.35,      // SCALE PASS: the aim point sits at the shoulder, under the eye (JA rides it 16 units over),
-                              // so the lens looks out level past the hero and the city rises out of frame, not down on a diorama...
+      vertOffset: 0.67,       // cg_thirdPersonVertOffset 16: the aim point rides over the head, so the hero sits low in the frame and the
+                              // crosshair (traced from his eye, player/aim.js heroCrosshair) floats just above him at rest...
       range: 3.8,             // cg_thirdPersonRange 80 is 3.4 m: ...the lens sits this far behind it, along the line of sight
       targetDamp: 0.5,        // cg_thirdPersonTargetDamp: share of the gap the aim point closes every 50 ms
       cameraDamp: 0.3,        // cg_thirdPersonCameraDamp: the same for the lens; JA stiffens it toward 1 as the view
                               // tips toward straight up/down ((pitch / 115°)²) and on fast turns (over 1° per ms)
-      horz: 0.6,              // cg_thirdPersonHorzOffset (0 in JA): over the right shoulder, so a foe dead ahead isn't hidden behind your back
+      horz: 0,                // cg_thirdPersonHorzOffset 0, as in JA: square behind the hero; only moving (the lag) puts him off to a side
       frame: 0.4,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
                               // moves); a boss still gets its full pull-back
     },
@@ -149,7 +149,7 @@ export const CFG = {
     mandoShoulderFly: 1.05,   // ...and in the air
     duelPull: 0.18,           // LOCK-ON: per metre to the locked foe, the lens backs off so both duelists stay framed...
     duelMax: 1.6,             // ...up to this much
-    duelSide: 1.5,            // DUEL SIDE-ON (engine/camera.js): with one foe squared up straight ahead, the lens slides this far sideways...
+    duelSide: 1.5,            // DUEL SIDE-ON (engine/camera.js, the Mando's camera; the Jedi's never slides, like JA's): with one foe squared up straight ahead, the lens slides this far sideways...
     duelSideTurn: 0.35,       // ...and the aim point this share of it, so the view turns back toward the pair
     duelSideLat: 1.6,         // fully on while the foe is within this of the view's centre line (sideways, metres), easing off by here
     duelSideFar: 11,          // and while it is nearer than this (easing in over the last 4 m)

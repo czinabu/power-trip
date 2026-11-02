@@ -26,7 +26,7 @@ import './fx/lights.js';
 import './engine/prewarm.js';
 import './player/mesh.js';
 import { setHero } from './player/hero.js';
-import { updateTrail } from './fx/trail.js';
+import { updateTrail, trailInfo, TRAIL_TUNE } from './fx/trail.js';
 import { stance } from './player/helpers.js';
 import { switchStance } from './player/jedi/stance.js';
 import { updateJudgeFX } from './player/jedi/judgement-fx.js';
@@ -193,7 +193,6 @@ function tick(){
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
   // cutscene: frozen, they'd hang in its shots as a still of the last action beat
   const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;
-  updateTrail(fxDt);
   updateJudgeFX();
   updateAmbient(G.paused ? 0 : rawDt);
   updateScorch(dt);
@@ -207,6 +206,9 @@ function tick(){
   { const pp = player.group.position; updateCharFade(camera.position, pp.x, pp.y, pp.z, rawDt, G.mode === 'play' && !G.cutscene && !G.paused && !G.sbPlan && !G.sbMenu); }
   MUSIC.updateState();   // adaptive score follows the fight (menu → combat → boss surge → victory/death)
   updateAudio(rawDt);    // saber hum, jetpack, flamethrower, ambience, muffle
+  // the blades' streaks last of all, off every blade where it is now (posed, cut-scened, framed), so a streak never
+  // lags the blade the eye sees (fx/trail.js)
+  updateTrail(fxDt);
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
   if (showcaseActive()) renderShowcase(rawDt); else { leaveShowcase(); composer.render(); }
   qualityGovernor(!showcaseActive() && !G.paused && !G.skillSelect && !G.cutscene && G.mode === 'play');
@@ -245,7 +247,8 @@ Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: ca
 Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
-Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });   // HOLD O: the objective view (ui/objective-view.js), for tests
+Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });
+Object.assign(window.GAME, { trails: { info: trailInfo, tune: TRAIL_TUNE } });   // every blade's streak (fx/trail.js), for tests and tuning   // HOLD O: the objective view (ui/objective-view.js), for tests
 
 /* the form loadout (data/forms.js): the seven forms and what sits on 1 / 2 / 3 */
 import { FORMS } from './data/forms.js';

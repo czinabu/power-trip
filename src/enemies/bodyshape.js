@@ -34,12 +34,14 @@ export function headPos(e, out = new THREE.Vector3()){
   e.group.updateMatrix();
   return out.applyMatrix4(e.group.matrix);
 }
-/* how high on this foe's body a world point sits, as a cut height: 'high' at the shoulders and head, 'low' at the hips
+/* how high on this foe's body a world point sits, as a cut height: 'high' at the head and neck, 'low' at the hips
    and legs, 'mid' between (player/aim.js aimBand: the crosshair picks the Jedi's cut height). A floored body is low. */
 export function bandAt(e, pt){
   if (DOWN[e.state]) return 'low';
   const P = partsOf(e), legs = P[0], t = P[1] || P[0], y = toLocal(e, pt, A).y;
-  return y >= t.y0 + (t.y1 - t.y0) * 0.8 ? 'high' : y < legs.y1 + 0.12 ? 'low' : 'mid';
+  // (the crosshair is traced from the hero's eye, JA's way, so a level look meets a foe up at the head: high is the
+  // head and neck only, and the shoulders and chest are a middle cut)
+  return y >= t.y1 - 0.1 ? 'high' : y < legs.y1 + 0.12 ? 'low' : 'mid';
 }
 export function chestPos(e, out = new THREE.Vector3()){
   const P = partsOf(e), t = P[1] || P[0];

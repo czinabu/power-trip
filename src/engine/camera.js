@@ -250,13 +250,14 @@ export function updateCamera(dt){
       const lr = df >= 1 ? 0 : Math.pow(1 - df, k);
       jaLoc.set(TMP.x - (TMP.x - jaLoc.x)*lr, TMP.y - (TMP.y - jaLoc.y)*lr, TMP.z - (TMP.z - jaLoc.z)*lr);
     }
-    // JA's horizontal offset slides lens and aim together, so the view direction is unchanged
-    // (plus the duel side-on slide: the lens all the way, the aim point part of it, so the view turns back toward the pair)
-    const hl = J.horz + side, ha = J.horz + side * CFG.camera.duelSideTurn;
-    TMP.set(jaLoc.x + rv.x*hl, jaLoc.y, jaLoc.z + rv.z*hl);
+    // JA's horizontal offset slides lens and aim together, so the view direction is unchanged. It is 0, as in JA: the
+    // lens sits square behind the hero, and the only thing that puts him off to one side is the lag above, while he
+    // moves (a run, a strafe, a roll pulls him ahead of the lens until it catches up). No duel side-on slide either.
+    const ha = J.horz;
+    TMP.set(jaLoc.x + rv.x*ha, jaLoc.y, jaLoc.z + rv.z*ha);
     LOOK.set(jaTarget.x + rv.x*ha, jaTarget.y, jaTarget.z + rv.z*ha);
     ox = jaTarget.x; oy = jaTarget.y; oz = jaTarget.z;
-    jaAim.set(itx + rv.x*ha, ity, itz + rv.z*ha); jaAim.live = true;   // the aim point as it rides on the hero, before the lag (player/aim.js heroCrosshair)
+    jaAim.set(itx + rv.x*ha, pp.y + J.eye, itz + rv.z*ha); jaAim.live = true;   // the hero's eye, no lag: JA traces the crosshair from it (player/aim.js heroCrosshair)
   } else {
     jaLive = false; jaAim.live = false;
     TMP.set(tx - f.x*d*cosP + rv.x*ots, ty + camHi + camLift + dk*3 + d*sinP, tz - f.z*d*cosP + rv.z*ots);

@@ -39,6 +39,7 @@ import { keepCast } from './onset.js';
 import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
 import { meetNamed } from './codex.js';
+import { TAUNTS } from '../data/duel-taunts.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -50,7 +51,7 @@ const el = document.createElement('div');
 el.id = 'cutscene';
 el.innerHTML = '<div class="cs-bar top"></div><div class="cs-bar bot"></div>' +
   '<div class="cs-title"><div class="cs-k"></div><div class="cs-h"></div><div class="cs-p"></div></div>' +
-  '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div>' +
+  '<div class="cs-line"><div class="cs-who"></div><div class="cs-say"></div></div><div class="cs-mark"><i></i></div>' +
   '<div class="cs-where"></div><div class="cs-goal"><div class="cs-gk">OBJECTIVE</div><div class="cs-gh"></div></div>' +
   '<div class="cs-skip"><svg class="cs-ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="8"/>' +
   '<circle class="fg" cx="10" cy="10" r="8"/></svg><span class="cs-sk"></span><div class="cs-vote"></div></div>';
@@ -321,6 +322,7 @@ function finish(skipped){
   document.body.classList.remove('cutscene');
   el.classList.remove('on', 'fade');
   setLine(null); setTitle(null); setWhere(null); setGoal(null);
+  C.talker = null; $('.cs-mark').classList.remove('on');
   resetCameraRig();
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 0 });
   if (skipped && connected() && net.role === 'host') send({ t: 'csk', k: C.key });
@@ -342,10 +344,12 @@ const padUsed = () => document.body.classList.contains('pad');
 const skipHint = () => { $('.cs-sk').innerHTML = padUsed() ? '<b>A</b> next · hold <b>A</b> to skip' : '<b>SPACE</b> next · hold to skip'; };
 
 /* ---------- the subtitle and the title ---------- */
-function setLine(ln, comms = false){
+// tone: whose colour the name wears: 'hero' (the hero's own accent), 'ally' (a friend's gold) or 'foe' (red)
+function setLine(ln, comms = false, tone = 'hero'){
   const box = $('.cs-line');
   if (!ln){ box.classList.remove('on'); return; }
   box.classList.toggle('comms', comms);   // a voice in the hero's ear, not someone on set
+  box.classList.toggle('ally', tone === 'ally'); box.classList.toggle('foe', tone === 'foe');
   $('.cs-who').textContent = ln[0] || '';
   $('.cs-say').textContent = ln[1] || '';
   box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
@@ -369,12 +373,25 @@ function setGoal(t){
 }
 // the hero speaks a line of its own (not a voice in its ear, nor one of the story's cast)
 const heroLine = (ln) => !!(ln && ln[0] && !Object.values(VOICE).includes(ln[0]) && !JEDI_CAST.includes(ln[0]) && !MANDO_CAST.has(ln[0]) && !castOf(ln[0]) && ln[0] !== storyVoice());
+// whose side a speaker is on, by name: one of the story's cast (data/cast.js `foe`), a duel foe or the boss (a stand-in
+// built from a foe type, or a foe already on the field), or anyone else who talks (a friend: the voice in the ear too)
+const foeNamed = (name) => { const c = castOf(name); return c ? !!c.foe : !!TAUNTS[name]; };
+function toneOf(ln, who){
+  if (who === 'hero') return 'hero';
+  if (who) return who.kind ? (castOf(who.name) && castOf(who.name).foe ? 'foe' : 'ally') : who.bind === 'boss' || who.bind === 'quarry' || who.own ? 'foe' : 'ally';
+  if (!ln || !ln[0]) return 'hero';
+  return foeNamed(ln[0]) ? 'foe' : heroLine(ln) && !castOf(ln[0]) ? 'hero' : 'ally';
+}
 function showShot(){
   const s = C.shots[C.i];
-  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms); C.shown = s.line; }
+  // who says this shot's line: an actor on set, the hero, or nobody we can see (a voice in the ear)
+  const spk = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
+  const heroTalks = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
+  C.talker = !s.line || s.comms ? null : spk >= 0 && C.actors[spk] && C.actors[spk].g ? C.actors[spk] : heroTalks ? 'hero' : null;
+  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms, toneOf(s.line, C.talker)); C.shown = s.line; }
   if (s.title) setTitle(s.title); else if (C.i > 0 && C.shots[C.i - 1].title) setTitle(null);
   if (s.where !== undefined) setWhere(s.where);
-  if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; setWhere(null); }
+  if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; C.talker = null; setWhere(null); }
   if (s.dropCast) dropCast();
   if (s.pair != null) C.pair = s.pair;
   // the hero turns to someone else on set (the one watching from across the field, after the talk)
@@ -392,7 +409,9 @@ function showShot(){
     else a.g.userData.talk = talk;
   });
   // the hero speaks a line of its own: the Jedi's jaw works (player/model/life.js express)
-  player.talking = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
+  player.talking = heroTalks;
+  const mk = $('.cs-mark'), tone = C.talker ? toneOf(s.line, C.talker) : '';
+  mk.classList.toggle('ally', tone === 'ally'); mk.classList.toggle('foe', tone === 'foe');
   if (C.one){ if (s.kind === 'goal') oneExit(); return; }   // (a scene without cuts frames its own way: oneLens)
   pickSide(s);
 }
@@ -493,7 +512,7 @@ export function updateCutscene(){
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
-  if (C.one){ oneLens(s, dt, now); return; }
+  if (C.one){ oneLens(s, dt, now); placeMark(); return; }
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
   const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
   lensAt(s, k, s.side || 1, P);
@@ -513,6 +532,27 @@ export function updateCutscene(){
   // fade in from black at the start, out at the very end
   const total = C.shots.length - 1, last = C.i === total && s.t - C.t < CUT.fadeOut;
   el.classList.toggle('fade', last);
+  placeMark();
+}
+// who speaks, in the shot: a small mark over their head (hidden when they are out of the frame, or their head is up
+// against its top edge: a close-up already says who it is)
+const MK = new THREE.Vector3();
+function headOf(who, out){
+  const head = who === 'hero' ? player.rig && player.rig.head : who.kind === 'hero' ? who.target.rig.head : who.g.userData.head;
+  if (head){ head.getWorldPosition(out); out.y += 0.42 * (who === 'hero' ? 1 : who.scale || 1); return out; }
+  const p = who === 'hero' ? playerPos() : who.g.position;
+  return out.set(p.x, p.y + 2.1 * (who === 'hero' ? 1 : who.scale || 1), p.z);
+}
+function placeMark(){
+  const mk = $('.cs-mark'), who = C.talker;
+  if (!who || (who !== 'hero' && (!who.g || !who.g.parent || !who.g.visible))){ mk.classList.remove('on'); return; }
+  camera.updateMatrixWorld();
+  headOf(who, MK).project(camera);
+  const W = innerWidth, H = innerHeight, x = (MK.x * 0.5 + 0.5) * W, y = (-MK.y * 0.5 + 0.5) * H;
+  const top = H * (C.one ? 0 : CUT.bars) + 26;
+  const inFrame = MK.z < 1 && x > W * 0.04 && x < W * 0.96 && y > top && y < H * 0.8;
+  mk.classList.toggle('on', inFrame);
+  if (inFrame) mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
 }
 
 /* ---------- a scene without cuts (data/cutscene-stage.js `oneshot`) ---------- */

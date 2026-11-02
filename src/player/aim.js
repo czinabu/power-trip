@@ -81,14 +81,15 @@ const HERO_PAD = 0.15;   // a hand's width round a body still counts as on it: a
 const _hh = new THREE.Vector3();
 let restHead = -1;   // the head's height over the feet when standing (a slow running top)
 export function heroCrosshair(){
-  // JA (CG_DrawCrosshair with the dynamic crosshair): the trace runs along the view from the hero, not the lens. Here it
-  // starts at the hero's own aim point, the one the lens is chasing, carried along with his head: at rest the lens has
-  // caught up and it lands mid-screen; a dash that outruns the lens, a roll or a flip that tucks the body down and round
-  // takes the crosshair with him
-  camera.getWorldDirection(_hd);
+  // JA (CG_ScanForCrosshairEntity, cg_dynamicCrosshair 1): the trace starts at the hero's EYE (CG_CalcMuzzlePoint: origin
+  // + viewheight; a saber has no muzzle offset) and runs along his view angles, not the lens's line. The lens aims over
+  // his head and trails him, so at rest the crosshair floats just above him; a run, a dash, a roll or a flip pulls him
+  // ahead of the lens and the crosshair goes with him (the eye is carried along with the head, so a roll tucks it down)
+  const cp = Math.cos(G.pitch);
+  _hd.set(Math.sin(G.yaw) * cp, -Math.sin(G.pitch), Math.cos(G.yaw) * cp);
   const p = player.group.position;
   if (jaAim.live) _ho.copy(jaAim);
-  else _ho.set(p.x, p.y + 1.4, p.z);
+  else _ho.set(p.x, p.y + 2.5, p.z);
   const head = player.rig && player.rig.head;
   if (head){
     head.getWorldPosition(_hh);

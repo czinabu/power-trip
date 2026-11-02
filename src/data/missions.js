@@ -67,6 +67,8 @@
 //               breachLine / breachSub: the blast's banner; lines.breach in a chapter (one entry per door) on the comms
 // Any objective can set `doors`: how many of the arena's doors are open when it begins (a retry rebuilds them
 // shut), and `squad`: the squad's size by then (someone freed on the way joined it).
+// Any objective can set `twist`: its one signature hook, taught then tested ({ kind: 'blackout' | 'sandstorm' | 'heat', … },
+// game/twists.js has each kind's fields). It plays wherever the objective does: Missions page, story, arcade, co-op.
 // Text a kind shows can be renamed per objective: sabotage `consoleName` ('UPLINK'), `doneLine` / `doneSub` (the
 // banner when it's done; hold and capture take them too).
 // On the big battle maps an objective after the first can have `start`: [x, z, yaw], where a retry of it begins.
@@ -234,6 +236,9 @@ export const MISSIONS = {
         foe: 'acolyte', name: 'THE INQUISITOR', hp: 3.5, dmg: 1.1, scale: 1.18, tint: 0xa01a22, at: [0, -9],
         duel: { block: 0.72, posture: 150, feint: 0.3, chain: 2, counter: 0.5 },
         rage: 0.55, rageDuel: { feint: 0.45, delay: 0.4, chain: 3, thrust: 0.2 },
+        // the twist (game/twists.js): the lights die once it's in, and the duel is fought by the blades' light
+        twist: { kind: 'blackout', line: { jedi: 'The smoke has taken the lights. Watch its blade, not its body. Yours lights the ground around you.',
+                                           mando: 'Lights are out. Its blade gives it away, and your lamp shows the floor.' } },
         // it breaks off: the refuge is where it comes back, and the chase where it ends
         escape: 0.3, escapeLine: { jedi: 'The mask is off. It runs for the refuge.', mando: 'Wounded, and gone into the smoke.' } },
     ],
@@ -569,6 +574,10 @@ export const MISSIONS = {
         task: { jedi: 'Hold the camp while the freighter warms up', mando: 'Hold the camp while the freighter warms up' },
         at: [4, 46], r: 7, time: 45, awayRate: 0.4, holding: 'ENGINES WARMING',
         overrun: 'CLEAR THE CAMP', unguarded: 'CAMP UNGUARDED', doneLine: 'ENGINES HOT', doneSub: 'One more shadow in the wrecks.',
+        // the twist: a sandstorm rolls in after the first push, and the rest come out of it close
+        twist: { kind: 'sandstorm', at: 9, ramp: 9, near: 3, far: 24,
+                 line: { jedi: 'A storm off the dunes. You will not see them until they are close. Stay on the camp.',
+                         mando: 'Storm\'s coming in. You won\'t see them till they\'re on you. Stay on the camp.' } },
         pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, bomber: 1, blaster: 1 }, { grunt: 2, officer: 1, sniper: 1 },
                   { grunt: 2, lancer: 1, flyer: 1 }, { grunt: 2, blaster: 1, grenadier: 1 }, { grunt: 1, duelist: 1, blaster: 2 } ],
         every: [9, 13], cap: 8, from: [-Math.PI + 0.4, -0.4], aggro: 8 },
@@ -928,12 +937,17 @@ export const MISSIONS = {
         time: 4.5, r: 2.4, hitLoss: 1.2,
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1, flyer: 1 } } },
 
-      { kind: 'hold', title: 'HOLD THE WAY OUT', music: 'battle', start: [0, 12, Math.PI],
-        say: { jedi: 'The charges are burning. Hold the north lane until they blow, and do not let the guard reach them.',
+      // the charges are on a clock (it runs whether you stand in the zone or not: only a foe in it with you away stops
+      // it), and the floor floods with heat from the south as it runs: the hold falls back up the north lane ahead of it
+      { kind: 'hold', title: 'HOLD THE WAY OUT', music: 'battle', start: [0, -4, Math.PI],
+        say: { jedi: 'The charges are on a clock. Keep the guard off them, and fall back up the north lane as the heat comes.',
                mando: 'Charges are lit. Hold the lane till they go. Nobody gets near them.' },
-        task: { jedi: 'Hold the north lane until the charges blow', mando: 'Hold the north lane until the charges blow' },
-        at: [0, 14], r: 6, time: 40, awayRate: 0.35, holding: 'CHARGES BURNING',
-        overrun: 'CLEAR THE LANE', unguarded: 'LANE UNGUARDED', doneLine: 'THE FORGE GOES UP', doneSub: 'Every mould on Mustafar is slag.',
+        task: { jedi: 'Hold each stand, and fall back ahead of the heat', mando: 'Hold each stand, and fall back ahead of the heat' },
+        at: [0, 14], r: 6, time: 40, awayRate: 1, holding: 'CHARGES ON THE CLOCK',
+        overrun: 'THEY\'RE AT THE CHARGES', unguarded: 'CHARGES ON THE CLOCK', doneLine: 'THE FORGE GOES UP', doneSub: 'Every mould on Mustafar is slag.',
+        twist: { kind: 'heat', zones: [[0, -10], [0, 6.5], [0, 14]], steps: [0.3, 0.65], fronts: [-40, -17, -0.5, 7.5], dps: 14, foeDps: 8,
+                 line: { jedi: 'The charges are on a clock, and the floor floods behind them. Fall back with the line. It burns anything it catches.',
+                         mando: 'Charges are on the clock and the floor\'s going molten. Fall back with the line. Don\'t get caught behind it.' } },
         pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, brute: 1 }, { grunt: 2, sniper: 1, blaster: 1 },
                   { grunt: 2, lancer: 1, bomber: 1 }, { grunt: 2, duelist: 1, officer: 1 } ],
         every: [8, 12], cap: 9, from: [-Math.PI + 0.3, -0.3], aggro: 8 },

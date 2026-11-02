@@ -43,6 +43,15 @@ function placeStrike(m, half){
 }
 const _c = new THREE.Color(), _d = new THREE.Color();
 
+/* A MISSION TWIST's mood over the theme (game/twists.js): the lights cut for a duel, a sandstorm closing the view, the
+   floor flooding with heat. k (0 → 1) eases from the theme's own look to the twist's: each figure is a multiplier on
+   the theme's (fill: the ambient, sun, rim, sky; near/far: the fog's distances, or nearTo/farTo in metres; blade: the hero's
+   blade light) and
+   fog the colour the fog and the clear colour lean to. Visual only, like the rest of this file. */
+export const MOOD = { k: 0, fill: 1, sun: 1, rim: 1, sky: 1, near: 1, far: 1, blade: 1, fog: null, nearTo: null, farTo: null };
+export function setMood(m){ Object.assign(MOOD, { fill: 1, sun: 1, rim: 1, sky: 1, near: 1, far: 1, blade: 1, fog: null, nearTo: null, farTo: null }, m || {}); if (!m) MOOD.k = 0; }
+const lerp = (a, b, k) => a + (b - a) * k;
+
 /* how bright the arena reads, 0 (dark: lava basalt, night ash) → 1 (bright: Jedha's sunlit stone, Ilum's ice): the
    floor's luminance under the key + fill light, the bulk of every frame. Drives the bloom and blade-light easing
    (setSceneGlow in engine/renderer.js). A theme can pin it with `glow: 0..1`. */
@@ -105,7 +114,8 @@ export function applyAtmosphere(T, L, sky){
   A.strike = null;
   if (T.storm){ A.strike = makeStrike(T.storm.color ?? 0xeae4ff); shared.arenaGroup.add(A.strike); }
   A.nextBolt = T.storm ? rand(T.storm.every[0], T.storm.every[1]) : 0;
-  A.base = { fog: new THREE.Color(T.fog), fill: lt.fill, sunI: lt.sunI };
+  A.base = { fog: new THREE.Color(T.fog), fill: lt.fill, sunI: lt.sunI, rimI: rim.intensity, near: scene.fog.near, far: scene.fog.far, clear: new THREE.Color(T.clear ?? T.fog) };
+  setMood(null); A.moodOn = false;
   applyGlow(brightness(T));
 }
 
@@ -113,7 +123,7 @@ export function applyAtmosphere(T, L, sky){
 /* how far the fight has climbed, 0 → 1, eased (the battle beyond the walls follows it: world/warfront.js) */
 export const fightMood = () => A.p || 0;
 
-export function clearAtmosphere(){ applyGlow(0); setGrade(); aoFade.near = 18; aoFade.far = 46; A.T = null; A.sky = null; A.strike = null; A.long = false; sun.target.position.set(0, 0, 0); }
+export function clearAtmosphere(){ setMood(null); A.moodOn = false; applyGlow(0); setGrade(); aoFade.near = 18; aoFade.far = 46; A.T = null; A.sky = null; A.strike = null; A.long = false; sun.target.position.set(0, 0, 0); }
 
 /* how far into this level's fight we are, 0 (first wave) → 1 (final wave / boss) */
 function progress(){
@@ -153,6 +163,23 @@ export function updateAtmosphere(dt){
       if (T.storm.fogFlash && scene.fog) scene.fog.color.lerp(_d.setHex(0xaab8e0), k * T.storm.fogFlash);   // the fog lights up with the bolt
       skyK += k * (T.storm.sky ?? 0.9);
     }
+  }
+  // a mission twist's mood laid over it all (MOOD, above)
+  const mk = MOOD.k;
+  if (mk > 0 || A.moodOn){
+    A.moodOn = mk > 0;
+    fill *= lerp(1, MOOD.fill, mk); skyK *= lerp(1, MOOD.sky, mk);
+    sun.intensity = A.base.sunI * lerp(1, MOOD.sun, mk);
+    rim.intensity = A.base.rimI * lerp(1, MOOD.rim, mk);
+    if (scene.fog){
+      if (MOOD.fog != null) scene.fog.color.lerp(_d.setHex(MOOD.fog), mk);
+      scene.fog.near = MOOD.nearTo != null ? lerp(A.base.near, MOOD.nearTo, mk) : A.base.near * lerp(1, MOOD.near, mk);
+      scene.fog.far = MOOD.farTo != null ? lerp(A.base.far, MOOD.farTo, mk) : A.base.far * lerp(1, MOOD.far, mk);
+    }
+    _c.copy(A.base.clear); if (MOOD.fog != null) _c.lerp(_d.setHex(MOOD.fog), mk);
+    renderer.setClearColor(_c);
+    if (player.blade && player.blade.light.intensity > 0) player.blade.light.intensity = SABER_LIGHT * glow.light * lerp(1, MOOD.blade, mk);
+    if (player.darkLight && player.darkLight.intensity > 0) player.darkLight.intensity = DARK_LIGHT * glow.light * lerp(1, MOOD.blade, mk);
   }
   hemi.intensity = fill;
   if (A.long){

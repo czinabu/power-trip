@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // hurtPlayer() and kill streaks.
 
+import { matchup } from '../enemies/foeform.js';
 import { CFG } from '../data/config.js';
 import { stamDelay } from './stamina.js';
 import { abil } from '../data/mastery.js';
@@ -153,6 +154,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (player.downed){ hitDownedHero(); return 'none'; }   // down: a blow drains the time left instead (game/revive.js)
   if (G.gt < (player.reviveGuardT || 0)) return 'none';   // just got up: a moment's grace
   if (player.dashT > 0){ if (!silent) perfectDodge(fromPos); return 'none'; }
+  if (melee && opts && opts.by && opts.by.ff) dmg *= matchup(opts.by).hurt;   // the form counter: a blade whose form beats yours cuts deeper (enemies/foeform.js)
   const raw = dmg;
   const open = player.gbT > 0;   // guard just broken: no soak, catch, block or parry until it passes
   // an empty guard (dry, or already shattered by running dry) meets a heavy melee blow from the front

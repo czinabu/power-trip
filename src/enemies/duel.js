@@ -24,6 +24,7 @@ import { dropToken } from './director.js';
 import { tellFx } from '../fx/tells.js';
 import { heroesHere } from '../player/players.js';
 import { hooks } from '../net/run.js';
+import { matchup, sealOf, updateFormTag, updateFormSwitch } from './foeform.js';
 import { pushKnock } from '../player/jedi/force.js';
 import { foeBlade } from '../player/jedi/clash.js';
 
@@ -182,7 +183,7 @@ export function updateDuel(e, dt, dist){
   // a slipped cut: the backstep carries it clear
   if (e.dodgeT > 0){
     e.dodgeT -= dt;
-    if (p.flip){   // ATARU: a backflip clear, up and over (FORM_DUEL flip)
+    if (p.flip){   // ATARU: a backflip clear, up and over (data/foe-forms.js FORM_STYLE flip)
       const k = clamp(1 - e.dodgeT / DUEL.flipTime, 0, 1), step = (DUEL.dodgeStep * 0.3 + p.flip) / DUEL.flipTime;
       g.position.x += e.dodgeX * step * dt; g.position.z += e.dodgeZ * step * dt;
       e.flipY = Math.sin(k * Math.PI) * DUEL.flipHeight;   // (ai.js puts it on top of the ground under it)
@@ -252,10 +253,14 @@ export function updateDuel(e, dt, dist){
       br.material.color.setHex(e.winded ? 0x3a5a8a : 0x9fd8ff);
     }
   } else if (e.postBar) e.postBar.visible = false;
+  // its form and rank, and whether your form counters it (enemies/foeform.js)
+  updateFormSwitch(e, dt);   // a master changes form on you (enemies/foeform.js)
+  updateFormTag(e, !e.dead && !e.converted && dist < DUEL.guardRange * 1.6);
 }
 
 export function cleanupDuel(e){
   if (e.postBar){ scene.remove(e.postBar); e.postBar = null; }
+  if (e.formTag){ e.formTag.material.map.dispose(); e.formTag.material.dispose(); e.formTag = null; }   // (it rides the body, which goes with it)
 }
 
 function makeGuardArc(e){
@@ -461,7 +466,7 @@ export function planAttack(e, quick){
     e.measT = null;   // its next turn measures the distance afresh (FOOTWORK)
     plan.thrust = Math.random() < p.thrust * m;
     const r = p.ramp ? tacticsRamp() : 1;   // the rank and file pick up their tricks as the run deepens (tactics.js)
-    const rd = !isGunner() ? stance().readMul || 1 : 1;   // Makashi reads intent: fewer feints and held strikes get through
+    const rd = (!isGunner() ? stance().readMul || 1 : 1) * matchup(e).tricks;   // Makashi reads intent: fewer feints and held strikes get through; so does a form that counters its own (enemies/foeform.js)
     plan.feint = !plan.thrust && Math.random() < p.feint * m * r * rd;
     plan.hold = Math.random() < p.delay * m * r * rd ? rand(DUEL.delayHold[0], DUEL.delayHold[1]) : 0;
     plan.chain = stringLen(e);
@@ -636,7 +641,7 @@ export function duelDefend(e, line, kind, heavy, at){
   e.lineStreak = same ? e.lineStreak + 1 : 1;
   e.lastLine = line; e.lastAng = ang; e.guard = line;
   const P = DUEL.posture;
-  const cost = (kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1);   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
+  const cost = (kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * matchup(e).posture;   // (× the form counter: a form that beats its own breaks it faster)   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
   // the flash goes where the blades cross (`at`, from player/jedi/clash.js), else just in front of the foe
   const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
   if (addPosture(e, cost, dx / dl, dz / dl)) return 'break';
@@ -661,7 +666,8 @@ function decide(e, line, kind, rhyN){
   const p = e.dp, m = diffMul() * skill(e), R = DUEL.rhythm;
   const has = amt => e.breath == null || (!e.winded && e.breath >= amt);
   if (p.dodge && (kind === 'cut' || kind === 'punch') && Math.random() < p.dodge * m && has(DUEL.breath.dodge)) return 'dodge';
-  if (p.parry && rhyN > R.after && kind !== 'finisher' && Math.random() < p.parry * m && has(DUEL.breath.block)) return 'parry';
+  const M = matchup(e);   // the form counter (enemies/foeform.js): your form against its form
+  if (p.parry && rhyN > R.after && kind !== 'finisher' && Math.random() < p.parry * m * M.parry && has(DUEL.breath.block)) return 'parry';
   // how squarely the guard covers it: on the line, or (an angle cut) how far inside its arc it arrives (DUEL.arc)
   const ang = kind === 'cut' || kind === 'finisher' ? arrival(player.swing) : null;
   let cover = line === e.guard ? 1 : 0;
@@ -671,9 +677,10 @@ function decide(e, line, kind, rhyN){
   }
   // SEALED ARC — a cut that arrives inside the glowing crescent (the side it is guarding) never gets through: flank it to the
   // open side, or break its guard (kick, parry, saber lock, posture) / wait out its shift. Winded or caught open it has no arc.
+  // (its rank's seal: an initiate's crescent can be beaten even on its line; a form that counters its own gets through more)
   const onLine = cover > 0.5;
-  if (onLine && has(DUEL.breath.block)) return 'block';
-  let chance = p.block * (DUEL.offLine + (1 - DUEL.offLine) * cover);
+  if (onLine && has(DUEL.breath.block) && Math.random() < sealOf(e)) return 'block';
+  let chance = p.block * (DUEL.offLine + (1 - DUEL.offLine) * cover) * M.block;
   if (onLine && e.lineStreak >= DUEL.adaptAfter) chance = 0.95;   // it has your rhythm: same cut, same answer
   if (kind === 'finisher') chance *= 0.75;
   if (!isGunner()) chance *= stance().duelBlockMul || 1;   // Shii-Cho's broad cuts are easy to read
@@ -1073,7 +1080,8 @@ function netDefend(e, line, kind, heavy, at){
   e.rhyN = G.gt - (e.rhyAt ?? -9) < R.gap ? (e.rhyN || 0) + 1 : 1; e.rhyAt = G.gt;
   if ((Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl < 0.35) return null;   // the flank or the back always lands
   const P = DUEL.posture;
-  const mul = !isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1;
+  const M = matchup(e);   // the form counter (enemies/foeform.js), from the puppet's form
+  const mul = (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * (n[NG.brace] ? 1 : M.posture);
   if (n[NG.brace]){ if (hooks.guard) hooks.guard(e, kind, mul, line); return null; }   // the Warbringer braces: the strain builds on the host
   if (!n[NG.up]) return null;
   const p = e.dp || {}, m = diffMul() * (p.elite ? eliteRamp() : 1), fresh = !n[NG.winded];
@@ -1085,7 +1093,7 @@ function netDefend(e, line, kind, heavy, at){
     return 'dodge';
   }
   // a mash is read and thrown off, whatever line it comes in on
-  if (p.parry && e.rhyN > R.after && kind !== 'finisher' && fresh && Math.random() < p.parry * m){
+  if (p.parry && e.rhyN > R.after && kind !== 'finisher' && fresh && Math.random() < p.parry * m * M.parry){
     if (hooks.guard) hooks.guard(e, 'parry', 0, line);
     e.rhyN = 0;
     punishMash(at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7), e.form);
@@ -1097,10 +1105,10 @@ function netDefend(e, line, kind, heavy, at){
   let cover = line === guard ? 1 : 0;
   if (ang != null){ const A = DUEL.arc, d = angDist(ang, GUARD_ANG[guard] ?? 90); cover = 1 - THREE.MathUtils.smoothstep(d, A.cover, A.cover + A.feather); }
   const onLine = cover > 0.5;   // the SEALED ARC: inside the crescent it is always turned
-  let chance = n[NG.block] / 100 * (DUEL.offLine + (1 - DUEL.offLine) * cover) * m;
+  let chance = n[NG.block] / 100 * (DUEL.offLine + (1 - DUEL.offLine) * cover) * m * M.block;
   if (kind === 'finisher') chance *= 0.75;
   if (!isGunner()) chance *= stance().duelBlockMul || 1;
-  if (!onLine && !(Math.random() < Math.min(0.95, chance))) return null;
+  if (onLine ? !(Math.random() < sealOf(e)) : !(Math.random() < Math.min(0.95, chance))) return null;
   if (hooks.guard) hooks.guard(e, kind, mul, line);
   e.arcFlash = 0.6;
   const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
@@ -1146,7 +1154,7 @@ export function netGuardHit(e, kind, amt, line, ax, az){
 // guest: the crescent and the posture bar over a host's duellist, from the snapshot (updateDuel draws them for the host)
 export function updatePuppetDuel(e, dt){
   const n = e.ng, g = e.group, a = g.userData.guardArc;
-  if (!n){ if (a) a.visible = false; if (e.postBar) e.postBar.visible = false; return; }
+  if (!n){ if (a) a.visible = false; if (e.postBar) e.postBar.visible = false; updateFormTag(e, false); return; }
   const pp = playerPos(), dist = Math.hypot(pp.x - g.position.x, pp.z - g.position.z);
   if (n[NG.block] >= 40){
     if (!a) makeGuardArc(e);
@@ -1181,4 +1189,5 @@ export function updatePuppetDuel(e, dt){
       br.material.color.setHex(n[NG.winded] ? 0x3a5a8a : 0x9fd8ff);
     }
   } else if (e.postBar) e.postBar.visible = false;
+  updateFormTag(e, !e.dead && dist < DUEL.guardRange * 1.6);   // its form and rank (the host's, from the snapshot)
 }

@@ -42,25 +42,13 @@ export const DUEL_PROFILES = {
              stam: 130, parry: 0.7, elite: true, rally: 0.65, moves: 'niman', finisher: 0.7, footwork: true, side: 0.5 },
 };
 
-/* A FORM MASTER — a duel objective with a `form` (the trials in data/missions.js) is a master of that lightsaber form
-   and fights the way the form does in the lore. Its form's profile below takes the place of its foe type's (the
-   mission's own `duel` tuning goes on top), its blade burns in the form's colour (data/stances.js), and its swings
-   and clashes take the form's sound (audio/sfx.js FORM_SOUND). On top of the profile keys above:
+/* SABER DUELLISTS IN FORMS — the acolytes, the magnaguards and every named duellist fight in one of the hero's forms
+   at a rank (data/foe-forms.js builds their profile from the keys above). On top of those keys a form adds:
      tire     each of your cuts it blocks costs you this much stamina (Soresu outlasts an attacker)
-     riposte  a counter after a block lands this much harder, and comes as often as `counter` says (Djem So)
+     riposte  a counter after a block lands this much harder, and comes as often as `counter` says (Djem So, Shien)
      flip     its slip is a backflip clear, carried `flip` m further than a backstep (Ataru)
-   The Mandalorian's champions keep their own weapons and profiles (missions' hero.mando). */
-export const FORM_DUEL = {
-  // the Wall: barely strikes, turns nearly everything, sends every bolt home and wears you out
-  soresu: { block: 0.82, posture: 180, feint: 0.1, delay: 0.2, chain: 1, counter: 0.3, thrust: 0, dodge: 0.05, deflect: 1,
-            lock: true, push: 0.45, stam: 190, parry: 0.55, elite: true, rally: 0.5, tire: 6, moves: 'soresu', finisher: 0.5, footwork: true, side: 0.3 },
-  // the Acrobat: a light guard, flips out of your cuts and comes back in long, quick strings
-  ataru:  { block: 0.42, posture: 80, feint: 0.4, delay: 0.15, chain: 3, counter: 0.5, thrust: 0.2, dodge: 0.45, deflect: 0.35,
-            lock: true, push: 0.35, stam: 120, parry: 0.4, elite: true, rally: 0.55, flip: 2.2, moves: 'ataru', finisher: 0.85, footwork: true, side: 0.5 },
-  // the Knight: meets a blow on the guard and answers it at once, harder; drives a saber lock
-  djemso: { block: 0.7, posture: 170, feint: 0.25, delay: 0.3, chain: 2, counter: 0.75, thrust: 0.15, dodge: 0.05, deflect: 0.6,
-            lock: true, push: 0.7, stam: 150, parry: 0.55, elite: true, rally: 0.6, riposte: 1.35, moves: 'djemso', finisher: 0.75, footwork: true, side: 0.25 },
-};
+     seal     the chance its sealed guard holds a cut that lands inside the crescent (its rank: an initiate's can be beaten)
+   The duelist and acolyte entries above are the fallback for a foe that has no form. */
 
 /* THE WARBRINGER (survival's champion, game/survival.js spawnChampion; the sandbox and campaign mid-bosses call the
    same function). A brute with a POSTURE bar instead of a guard: it never turns a blow, but a good parry or a heavy
@@ -144,7 +132,7 @@ export const DUEL = {
   counterCd: 1.6,         // a foe counters at most this often
   thrustDmg: 1.35,        // a thrust hits this much harder than a cut
   dodgeStep: 7,           // backstep speed when it slips a cut
-  flipTime: 0.5, flipHeight: 1.3,   // an Ataru master's slip is a backflip this long and this high (FORM_DUEL flip)
+  flipTime: 0.5, flipHeight: 1.3,   // an Ataru master's slip is a backflip this long and this high (data/foe-forms.js FORM_STYLE flip)
   // SABER LOCK — blades bind; mash LMB to drive through, or break it with a kick (E) or a Force push (F)
   /* reach: the blades meet this far out in front of you (m); clear: the foe's blade keeps this far off your body at the
      bind; armDist: a foe whose blade runs on from its arm (not a staff) stands this much further off than the kind's dist */
@@ -245,6 +233,10 @@ export const FOE_STRINGS = {
   soresu: { cuts: ['diagR', 'riseR', 'diagL', 'riseL'], fin: 'thrust', finAfter: 2 },  // short cuts that come back to the guard
   ataru:  { cuts: ['flatR', 'riseL', 'diagR', 'flatL', 'sweepLo', 'riseR'], fin: 'spin', finAfter: 2 },       // whipped side to side, then the spin
   djemso: { cuts: ['diagR', 'riseL', 'overhead', 'diagL', 'riseR'], fin: 'slam', finAfter: 2 },               // heavy diagonals, then the slam
+  shiicho: { cuts: ['flatR', 'flatL', 'flatR', 'flatL', 'overhead'], fin: 'spin', finAfter: 2 },             // big flat sweeps back and forth, then down the middle
+  makashi: { cuts: ['thrust', 'diagR', 'thrust', 'diagL', 'riseR'], fin: 'thrust', finAfter: 2 },            // the fencer: thrust, a short cut off it, thrust again
+  shien:   { cuts: ['flatL', 'flatR', 'riseR', 'riseL', 'diagR'], fin: 'slam', finAfter: 2 },                // reverse-grip backhands whipped out and back across
+  juyo:    { cuts: ['diagL', 'riseR', 'flatR', 'riseL', 'flatL', 'overhead', 'diagR'], fin: 'spin', finAfter: 2 },   // savage, broken: no two alike
   reset: 1.6,             // seconds without swinging before it starts a fresh string (somewhere new in the order)
 };
 /* FOOTWORK — a duellist fights at the edge of your reach, the way a real duel is spaced: with its attack turn it

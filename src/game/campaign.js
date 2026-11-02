@@ -4,6 +4,7 @@
 // a chapter card: where you are in the story, the voice's briefing and the act's chapters so far. Between Act I and
 // Act II the card asks which pair of chapters comes first.
 
+import { refreshWorn } from './wardrobe.js';
 import { autosave } from './autosave.js';
 import { G, shared, heroKey } from '../state.js';
 import { MISSIONS } from '../data/missions.js';
@@ -51,6 +52,7 @@ export function startChapter(pos, opts = {}){
   const c = chapterAt(pos);
   if (!c) return;
   G.chapter = pos; G.chapterClosed = null;   // (set again when it closes: game/flow.js chapterClosed)
+  refreshWorn();   // the looks the last chapter unlocked go on as this one starts (the trooper's ARC kit: game/look-unlocks.js)
   endCalm(true);   // (a calm still running from the last chapter, or a retry from inside one: game/aftermath.js)
   resetSet(pos, !!opts.retry);   // the story's voice that stayed on set (game/onset.js): back behind the hero on a retry of this chapter
   if (!opts.guest) recordChapters(pos);   // the sandbox follows the story (a co-op guest's is followChapter's)

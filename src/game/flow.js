@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Level and wave flow: startLevel, startWave, updateFlow, ability unlock gates.
 
+import { chapterLooks } from './look-unlocks.js';
 import { autosave } from './autosave.js';
 import { endLock } from '../enemies/duel.js';
 import { removeEnemy } from '../enemies/cleanup.js';
@@ -292,6 +293,7 @@ export function checkUnlocks(bannerDelay, closing){
     } else setLoadout(autoLoadout());
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox) return;   // the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
+  if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
   announceUnlocks(announce, bannerDelay, closing);
@@ -317,7 +319,7 @@ function announceUnlocks(announce, bannerDelay, closing){
   if (closing && announce.length && shared.levelPhase === 'chapterdone') shared.phaseT = Math.max(shared.phaseT, (bannerDelay || 0) / 1000 + announce.length * 3.2);
   announce.forEach((u, i) => {
     setTimeout(() => { if (G.mode !== 'play') return;
-      showBanner(u.name, /^HOLD /.test(u.hud) ? '' : 'PRESS', 3.0, { kicker: 'UNLOCKED', key: u.hud });
+      showBanner(u.name, u.sub != null ? u.sub : /^HOLD /.test(u.hud) ? '' : 'PRESS', 3.0, { kicker: u.kicker || 'UNLOCKED', key: u.hud });
       MUSIC.unlockSting(); S.reward(1);
     }, (bannerDelay || 0) + i * 3200);   // stagger 3.2s apart (just past the 3.0s display dur) so each gets its own beat
   });

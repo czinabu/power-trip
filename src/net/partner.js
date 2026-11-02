@@ -13,6 +13,7 @@ import { stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { footDust } from '../fx/footdust.js';
 import { lookOf, loadPicks, disposeTree } from '../player/mesh.js';
+import { wornPicks } from '../data/customize.js';
 import { playerPos } from '../player/helpers.js';
 import { heroAim } from '../player/aim.js';
 import { addPlayer, removePlayer, worldKey } from '../player/players.js';
@@ -108,7 +109,7 @@ on('s', (m) => {
   P.fx.cur = m.fx || null; P.fx.curAt = performance.now();
 });
 // a player came in: say hello to them (the host's hello reaches every guest, and each guest's reaches the host and, through it, the rest)
-on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: loadPicks(), name: savedName() }); });
+on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: wornPicks(loadPicks()), name: savedName() }); });
 function leaves(slot){
   const P = partners.get(slot);
   if (!P) return;
@@ -131,7 +132,7 @@ export function updateCoop(dt){
         pose: player.rig ? readPose(player) : null, fx: fxOut() };
       const dn = heroDownState();   // down: how far along getting this hero up is, and how long they have (game/revive.js)
       if (dn) m.dn = [Math.round(dn.prog * 100), +dn.left.toFixed(1), dn.by ? 1 : 0];
-      if (sent++ % NET.picksEvery === 0){ m.picks = loadPicks(); m.name = savedName(); }
+      if (sent++ % NET.picksEvery === 0){ m.picks = wornPicks(loadPicks()); m.name = savedName(); }   // (the picks as worn: the partner builds them as they come)
       return m;
     });
   }

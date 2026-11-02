@@ -23,7 +23,9 @@
 //   mask     'half' (a rebreather over the mouth and jaw) | 'helm' (the full Inquisitor helm)
 //   hood     true: the hood is up (else it lies on the shoulders, if the look has a cloak)
 //   cloak    true: a long cloak from the shoulders (a hood comes with it)
-//   armour   'inq' (Inquisitor plates and pauldrons) | 'general' (a Jedi general's breastplate and one pauldron)
+//   armour   'inq' (Inquisitor plates and pauldrons) | 'warden' (the jailer's lopsided plate: one great pauldron, a
+//            half-cape, a gorget and a chain) | 'general' (a Jedi general's breastplate and one pauldron)
+//   mantle   true: a short shoulder cape over the robe (in the cloak's colour, trimmed)
 //   colors   over the side's palette: tunic (the main layer), tabard, under (trousers, gloves), cloak, belt, trim
 //   blade    the blade's colour (else its form's, else the type's red)
 
@@ -55,7 +57,8 @@ export const CAST = {
   // ---- the Empire's blades ----
   'THE INQUISITOR':   { side: 'inq', build: 'f', face: { ...ILSA_FACE, sith: true }, mask: 'half', armour: 'inq', cloak: true },   // Ilsa, masked
   'THE SEVENTH BLADE': { side: 'inq', build: 'f', face: ILSA_FACE, armour: 'inq', cloak: true },     // Ilsa again, the mask gone
-  'THE WARDEN':  { side: 'inq', build: 'm', w: 1.06, face: { skin: 0xb88a6a, hair: 0x6a6660, style: 'buzz', beard: 'stubble', scar: true, sith: true }, armour: 'inq' },
+  'THE WARDEN':  { side: 'inq', build: 'm', w: 1.12, height: 1.04, face: { skin: 0xb88a6a, hair: 0x6a6660, style: 'buzz', beard: 'stubble', scar: true, sith: true },
+                   armour: 'warden', colors: { cloak: 0x2e2824 } },                                     // the pens' jailer: one great pauldron, a half-cape, a chain
   'THE GRAND INQUISITOR': { side: 'inq', build: 'm', w: 1.04, height: 1.04, face: { skin: 0xa8a49e, hair: 0x101010, style: 'bald', sith: true },
                    mask: 'helm', armour: 'inq', cloak: true, colors: { trim: 0xc01c24 } },
   'THE ECHO':    { side: 'echo', build: 'm', face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xc49aff }, cloak: true, hood: true },
@@ -70,16 +73,18 @@ export const MISSION_CAST = {
                             armour: 'inq', cloak: true, hood: true } },
 };
 
-// the rank and file: Sith acolytes in the waves, picked by the foe's number. All of them Sith-eyed, on the Sith side
+// the rank and file: Sith acolytes in the waves, picked by the foe's number. All of them Sith-eyed, on the Sith side.
+// Their outlines differ at a distance too: cloaked, hooded, a short mantle or bare-robed, some in oxblood or with bronze or
+// silver trim
 export const ACOLYTES = [
-  { build: 'm', face: { skin: 0x9c7a62, hair: 0x2a2018, style: 'crop', beard: 'stubble' } },
+  { build: 'm', face: { skin: 0x9c7a62, hair: 0x2a2018, style: 'crop', beard: 'stubble' }, cloak: false, mantle: true, colors: { tunic: 0x2a2a2f, cloak: 0x121115 } },
   { build: 'f', face: { skin: 0xc49a7c, hair: 0x140e0a, style: 'bun', lip: 0x9a5a50 }, hood: true },
-  { build: 'm', w: 1.06, face: { skin: 0x4a3226, hair: 0x0e0a08, style: 'bald', beard: 'goatee' } },
-  { build: 'f', face: { skin: 0x6e4a36, hair: 0x140e0a, style: 'long', lip: 0x6a3a30 } },
-  { build: 'm', face: { skin: 0xb06a52, hair: 0x140e0a, style: 'bald', horns: 0xd0c0a0, marks: 0x1a0c0c, markStyle: 'lines' }, hood: true },
-  { build: 'f', face: { skin: 0xe0b898, hair: 0xd8d4cc, style: 'ponytail', lip: 0xa8645a, scar: true } },
+  { build: 'm', w: 1.06, face: { skin: 0x4a3226, hair: 0x0e0a08, style: 'bald', beard: 'goatee' }, colors: { trim: 0x9a7228 } },
+  { build: 'f', face: { skin: 0x6e4a36, hair: 0x140e0a, style: 'long', lip: 0x6a3a30 }, cloak: false, colors: { tunic: 0x2c1416, tabard: 0x140a0b } },
+  { build: 'm', face: { skin: 0xb06a52, hair: 0x140e0a, style: 'bald', horns: 0xd0c0a0, marks: 0x1a0c0c, markStyle: 'lines' }, hood: true, colors: { cloak: 0x2a0e10 } },
+  { build: 'f', face: { skin: 0xe0b898, hair: 0xd8d4cc, style: 'ponytail', lip: 0xa8645a, scar: true }, cloak: false, mantle: true, colors: { trim: 0x8a8c96, cloak: 0x1c1c22 } },
   { build: 'm', face: { skin: 0xb88a6a, hair: 0x5a4026, style: 'part', beard: 'full' }, hood: true },
-  { build: 'f', w: 0.95, face: { skin: 0x8a5a40, hair: 0x2a2018, style: 'buzz', marks: 0x2a0e12, markStyle: 'bars' } },
+  { build: 'f', w: 0.95, face: { skin: 0x8a5a40, hair: 0x2a2018, style: 'buzz', marks: 0x2a0e12, markStyle: 'bars' }, cloak: false, colors: { tunic: 0x2c1416, tabard: 0x140a0b, trim: 0x9a7228 } },
 ].map(a => ({ side: 'sith', cloak: true, ...a, face: { sith: true, ...a.face } }));
 
 // the look for a duel foe or a cutscene figure (spec: { foe, name } and the mission's id), or null to keep its type's

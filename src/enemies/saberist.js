@@ -49,10 +49,18 @@ export function buildSaberist(k, t, L, H){
     H.cape(k, [[-0.3*w,0],[0.3*w,0],[0.4*w,-1.5],[0.14,-1.62],[-0.14,-1.62],[-0.4*w,-1.5]], [0, 1.86, -0.2], 0.07);
     // the cloak's fall over the shoulders, and the hood lying back below the collar
     k.add(loft([{ y:1.7, w:0.6*w, d:0.2, z:-0.1 }, { y:1.84, w:0.5*w, d:0.18, z:-0.11 }, { y:1.9, w:0.3, d:0.12, z:-0.12 }], SOFT), 'cloth');
+    // over plain shoulders the cloak wraps forward onto them, so it reads from the front too; a clasp and its chain hold it
+    if (!inq && !L.mantle){
+      for (const s of [-1, 1]) k.add(loft([{ y:-0.05, w:0.24*w, d:0.34 }, { y:0.04, w:0.22*w, d:0.32 }, { y:0.09, w:0.14*w, d:0.24 }], ngon(12)), 'cloth', k.root, [0.36*w*s, 1.76, -0.03], [0, 0, -0.42*s]);
+      for (const s of [-1, 1]) k.add(loft([{ y:-0.022, w:0.045, d:0.02 }, { y:0.022, w:0.045, d:0.02 }], ngon(10)), 'metal', k.root, [0.15*w*s, 1.8, 0.16], [0.2, 0, 0], NO_INK);
+      k.add(block(0.2*w, 0.012, 0.012, 0.3), 'metal', k.root, [0, 1.79, 0.165], [0,0,0], NO_INK);
+    }
     if (!L.hood && L.mask !== 'helm') k.add(loft([{ y:-0.1, w:0.3, d:0.1, z:-0.03 }, { y:0.0, w:0.34, d:0.14, z:-0.02 }, { y:0.06, w:0.26, d:0.1, z:-0.02 }], ngon(10)), 'cloth', k.root, [0, 1.9, -0.17], [-0.25, 0, 0]);
   }
   if (L.hood) cowl(k, w);
-  if (inq) inqPlates(k, w);
+  if (L.mantle) mantle(k, w, L.mantle);
+  if (L.armour === 'inq') inqPlates(k, w);
+  if (L.armour === 'warden') wardenPlates(k, w);
   if (L.armour === 'general') generalPlates(k, w);
   H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5 });
   H.weaponArm(k, t, w);
@@ -89,12 +97,19 @@ function hipsAndSkirt(k, w, L, thighs){
     return;
   }
   const len = 0.74;
-  k.add(plate([[-0.24*w,0],[0.24*w,0],[0.34*w,-len],[0.2*w,-len - 0.03],[-0.2*w,-len - 0.03],[-0.34*w,-len]], 0.016, 0.004), 'armor', k.root, [0, 1.03, -0.165], [0.1, 0, 0], NO_INK);
+  /* the back: three pleats, the outer two angled forward round the hips, flaring as they fall */
+  for (const [x, ry, z] of [[-0.2, 0.5, -0.12], [0, 0, -0.17], [0.2, -0.5, -0.12]]){
+    const c = x === 0;
+    k.add(plate([[-0.13*w,0],[0.13*w,0],[(c ? 0.16 : 0.19)*w,-len],[0,-len - 0.03],[-(c ? 0.16 : 0.19)*w,-len]], 0.016, 0.004), 'armor', k.root, [x*w, 1.03, z], [0.1, ry, 0], NO_INK);
+  }
   thighs.forEach((T, i) => {
     const s = i ? 1 : -1;   // (left, then right)
-    // in the thigh's frame: its top at the hip (thigh y 0 = hip), hanging past the knee to the shin
-    k.add(plate([[-0.03*s,0.09],[0.21*s,0.09],[0.24*s,-len + 0.1],[-0.01*s,-len + 0.06]].map(([x, y]) => [x - 0.08*s, y]), 0.014, 0.004), 'armor', T, [0, 0, 0.145], [-0.06, 0, 0], NO_INK);
-    if (L.side === 'jedi') k.add(plate([[-0.045,0.085],[0.045,0.085],[0.05,-len + 0.03],[-0.05,-len + 0.03]], 0.016, 0.004), 'armor2', T, [0.0, 0, 0.158], [-0.06, 0, 0], NO_INK);
+    /* in the thigh's frame (its top at the hip, y 0): a front panel folded once down its length, so it catches the light
+       as cloth does, narrow at the waist and flaring to the hem past the knee; a Jedi's tabard runs down it, tapering */
+    k.add(plate([[0,0.09],[0.12*s,0.09],[0.15*s,-len + 0.08],[0,-len + 0.05]], 0.014, 0.004), 'armor', T, [-0.08*s, 0, 0.14], [-0.06, 0.28*s, 0], NO_INK);
+    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.06],[0,-len + 0.05]], 0.014, 0.004), 'armor', T, [-0.08*s, 0, 0.14], [-0.06, -0.38*s, 0], NO_INK);
+    k.add(plate([[0,0.09],[0.1*s,0.09],[0.12*s,-len + 0.09],[0,-len + 0.08]], 0.014, 0.004), 'armor', T, [0.04*s, 0, 0.1], [-0.06, 0.9*s, 0], NO_INK);   // its side, round the leg
+    if (L.side === 'jedi') k.add(plate([[-0.05,0.085],[0.05,0.085],[0.036,-len*0.82],[0,-len*0.82 - 0.03],[-0.036,-len*0.82]], 0.016, 0.004), 'armor2', T, [0.0, 0, 0.165], [-0.06, 0, 0], NO_INK);
   });
 }
 
@@ -126,6 +141,35 @@ function inqPlates(k, w){
   k.add(loft([{ y:1.48, w:0.5*w, d:0.06, z:0.15 }, { y:1.62, w:0.56*w, d:0.07, z:0.165 }, { y:1.78, w:0.48*w, d:0.06, z:0.15 }], SOFT), 'armor2');   // breastplate
   k.add(plate([[0,0.05],[0.05,0],[0,-0.05],[-0.05,0]], 0.01, 0.003), 'trim', k.root, [0, 1.63, 0.205], [0,0,0], NO_INK);   // its sigil
   for (const s of [-1, 1]) k.add(plate([[-0.06,0],[0.06,0],[0.05,-0.2],[-0.05,-0.2]], 0.02, 0.005), 'armor2', k.root, [0.13*s, 0.98, 0.18], [-0.05, 0, 0]);   // tassets
+}
+
+// THE WARDEN, the pens' jailer: a lopsided brute. One great stacked pauldron on the off shoulder under a hanging
+// half-cape, a high armoured gorget, a chain across the chest and a heavy studded belt; the sword arm bare to the sleeve
+function wardenPlates(k, w){
+  const P = [-0.42*w, 1.8, 0];
+  for (const [i, sc] of [[0, 1.12], [1, 0.95], [2, 0.78]].map(([i, sc]) => [i, sc])){
+    const y = P[1] - i * 0.075;
+    k.add(loft([{ y:-0.07, w:0.29*w*sc, d:0.29*sc }, { y:0.02, w:0.29*w*sc, d:0.29*sc }, { y:0.07, w:0.22*w*sc, d:0.23*sc }, { y:0.1, w:0.12*w*sc, d:0.13*sc }], SOFT), 'armor2', k.root, [P[0] - i*0.025, y + 0.04, 0], [0, 0, 0.38 + i*0.1]);
+    k.add(loft([{ y:-0.08, w:0.295*w*sc, d:0.295*sc }, { y:-0.06, w:0.295*w*sc, d:0.295*sc }], SOFT), 'trim', k.root, [P[0] - i*0.025, y + 0.04, 0], [0, 0, 0.38 + i*0.1], NO_INK);
+  }
+  // the half-cape, hung from under the pauldron down the off side and back
+  k.add(plate([[-0.2,0],[0.2,0],[0.26,-1.05],[0.05,-1.12],[-0.22,-1.0]], 0.02, 0.006), 'cloth', k.root, [-0.36*w, 1.8, -0.05], [0.06, -0.9, 0.08]);
+  k.add(loft([{ y:1.74, w:0.34*w, d:0.3 }, { y:1.86, w:0.36, d:0.3 }, { y:2.0, w:0.3, d:0.27 }], ngon(12)), 'armor2');   // gorget
+  k.add(loft([{ y:1.48, w:0.48*w, d:0.06, z:0.15 }, { y:1.62, w:0.54*w, d:0.07, z:0.165 }, { y:1.76, w:0.46*w, d:0.06, z:0.15 }], SOFT), 'armor2');   // breastplate
+  // the chain: links from the off shoulder down across the chest to the hip
+  const link = new THREE.TorusGeometry(0.02, 0.007, 4, 8);
+  for (let i = 0; i < 20; i++){
+    const u = i / 19;
+    k.add(link, 'metal', k.root, [-0.3*w + u * 0.5*w, 1.8 - u * 0.62, 0.235 - u*0.03 + Math.sin(u * PI) * 0.015], [0, i % 2 ? PI/2 : 0, 0.68], NO_INK);
+  }
+  k.add(loft([{ y:0.99, w:0.53, d:0.35 }, { y:1.09, w:0.53, d:0.35 }], SOFT_BODY), 'leather', k.root, [0,0,0], [0,0,0], NO_INK);   // the heavy belt
+  for (const x of [-0.18, -0.09, 0.09, 0.18]) k.add(block(0.03, 0.03, 0.02, 0.4), 'metal', k.root, [x, 1.04, 0.18], [0,0,0], NO_INK);
+}
+
+// a short shoulder cape (a mantle) over the robe: a rank-and-file acolyte's, in its cloth colour
+function mantle(k, w){
+  k.add(loft([{ y:1.48, w:0.7*w, d:0.42, z:-0.02 }, { y:1.62, w:0.72*w, d:0.42, z:-0.01 }, { y:1.76, w:0.66*w, d:0.38 }, { y:1.88, w:0.42*w, d:0.3 }, { y:1.96, w:0.26, d:0.22 }], ngon(14)), 'cloth');
+  k.add(loft([{ y:1.47, w:0.705*w, d:0.425, z:-0.02 }, { y:1.5, w:0.705*w, d:0.425, z:-0.02 }], ngon(14)), 'trim', k.root, [0,0,0], [0,0,0], NO_INK);
 }
 
 // A JEDI GENERAL in the field: a dull breastplate over the tunic and one plate on the sword shoulder

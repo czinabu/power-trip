@@ -83,7 +83,7 @@ if (SET === 'bosses'){
     g.scale.multiplyScalar(sc);
     if (q.get('talk')) g.userData.talk = true;
     pose(g, false);
-    figs.push({ g, label: id.replace('strike:THE ', 'EXEGOL ').replace('THE ', ''), w: 1.6 });
+    figs.push({ g, label: (id.includes(':') ? id.split(':')[0] + ' · ' : '') + id.replace(/^[^:]*:/, '').replace('THE ', ''), w: 1.6 });
   }
   if (q.get('acolytes') !== '0') ACOLYTES.forEach((_, i) => {
     const g = buildEnemyMesh(ENEMY_TYPES.acolyte, NO ? {} : { face: i });

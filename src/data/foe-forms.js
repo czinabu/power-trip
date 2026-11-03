@@ -130,6 +130,14 @@ export const FOE_FORMS = {
   ] },
   duelist: { rank: 'adept', form: 'staff' },   // the magnaguard: its electrostaff fights as the saber staff does
 };
+/* THE CAMPAIGN'S CURVE — in the campaign (its wave levels, and the run's own foes in its mission chapters) the rank
+   and file follow the acts, not just the wave count: acolytes stay ADEPTS through Jedha and Mustafar and fight as
+   KNIGHTS on Exegol, by the level being played (G.levelIdx); an elite still fights one rank up. Survival, the Missions
+   page and arcade contracts go by depth alone. */
+export const CAMPAIGN_RANK_CAP = ['adept', 'adept', 'knight'];
+/* MASTERS ARE RARE — at most this many rank-and-file masters (late elites) on the field at once; another elite that
+   would make master fights as a knight instead. Named duellists and bosses don't count. */
+export const MASTER_CAP = 1;
 /* the named: a mission's own `form` wins (a trial's form master, at `master` unless it says `rank`); otherwise its
    name here; otherwise its type's form at `knight`. */
 export const NAMED_FORMS = {

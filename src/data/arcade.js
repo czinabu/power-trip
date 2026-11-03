@@ -49,6 +49,7 @@ const FOE_TIERS = [
   ['brute', 'sniper'],
   ['acolyte'],
 ];
+const DUELLISTS = { acolyte: 1, duelist: 1 };   // the blades among them (reroll keeps a group to one or two)
 const KIT_AT = [3, 4, 5, 6, 7];             // the kit a contract hands you (data/store.js stages), by threat
 const FOE_TIER_AT = [0, 1, 3, 5, 7];       // how many waves deep its foes are scaled, by threat (enemies/elites.js)
 const DUEL_HP_AT = [0.75, 0.9, 1.0, 1.15, 1.3];   // a duellist's health, times its mission's
@@ -96,6 +97,12 @@ function reroll(g, r, threat, swarm){
   let n = 0;
   for (const t in g) for (let k = 0; k < g[t]; k++){ const pick = r() < 0.5 ? r.pick(open) : t; out[pick] = (out[pick] || 0) + 1; n++; }
   if (swarm){ const add = Math.max(1, Math.round(n * 0.3)); for (let k = 0; k < add; k++){ const t = r.pick(open); out[t] = (out[t] || 0) + 1; } }
+  // at most one acolyte and two duellists in all to a group (a pack of blades is the fight that overwhelms: data/enemies.js
+  // ENGAGE.duelSlots); the rest become other troops open at this threat, the count kept
+  const troops = open.filter(t => !DUELLISTS[t]);
+  for (const [t, most] of [['acolyte', 1], ['duelist', 2 - Math.min(1, out.acolyte || 0)]])
+    while ((out[t] || 0) > most){ out[t]--; const o = r.pick(troops); out[o] = (out[o] || 0) + 1; }
+  for (const t in out) if (!out[t]) delete out[t];
   return out;
 }
 function rerollObjective(o, r, threat, swarm){

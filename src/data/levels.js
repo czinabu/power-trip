@@ -22,7 +22,7 @@ export const LEVELS = [
   { name: 'LEVEL 3 — THRONE OF EXEGOL', sub: 'An army stands before you. Something darker stands behind it.',
     arena: 86, floor: 0x3b2f31, fog: 0x401a22, sky: 0x1a080c, skyTop: 0x090103, sun: 0xffb0a0, ember: 0xff4a55,
     fill: 0.98, sunI: 1.9, fogStart: 0.6, layout: 'plains',
-    waves: [ {grunt:4, blaster:3, brute:1, duelist:2, flyer:1, phalanx:1, bomber:1, acolyte:1, officer:1, grenadier:1, lancer:1}, {grunt:4, blaster:3, brute:2, duelist:2, flyer:1, phalanx:1, sniper:1, acolyte:2, officer:1, grenadier:1, lancer:1}, {grunt:5, blaster:3, brute:2, duelist:2, flyer:2, phalanx:1, sniper:1, bomber:1, warbringer:1, acolyte:2, officer:1, grenadier:1, lancer:1}, {grunt:5, blaster:3, brute:2, duelist:3, flyer:2, phalanx:1, sniper:1, bomber:1, acolyte:3, officer:1, grenadier:1, lancer:1} ],
+    waves: [ {grunt:4, blaster:3, brute:1, duelist:2, flyer:1, phalanx:1, bomber:1, acolyte:1, officer:1, grenadier:1, lancer:1}, {grunt:4, blaster:3, brute:2, duelist:2, flyer:1, phalanx:1, sniper:1, acolyte:2, officer:1, grenadier:1, lancer:1}, {grunt:5, blaster:3, brute:2, duelist:2, flyer:2, phalanx:1, sniper:1, bomber:1, warbringer:1, acolyte:2, officer:1, grenadier:1, lancer:1}, {grunt:5, blaster:3, brute:2, duelist:2, flyer:2, phalanx:1, sniper:1, bomber:1, acolyte:2, officer:1, grenadier:1, lancer:1} ],   // (BALANCE: was 3 magnaguards and 3 acolytes, a pack no one could read; data/enemies.js ENGAGE.duelSlots)
     lullWaves: [0, 1, 2, 3],
     hazards: { vents: 4, barrels: 7 }, boss: true },
 ];

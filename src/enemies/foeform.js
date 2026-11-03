@@ -3,9 +3,9 @@
 // and the hero's, and the tag over its head that shows both (▲ your form counters it · ▼ its form counters yours).
 
 import * as THREE from 'three';
-import { FAMILIES, FORM_FAMILY, FOE_FORM_NAMES, MATCHUP, RANKS, RANK_ORDER, FOE_FORMS, NAMED_FORMS, BOSS_FORM, FORM_SWITCH, formEdge, foeProfile } from '../data/foe-forms.js';
+import { FAMILIES, FORM_FAMILY, FOE_FORM_NAMES, MATCHUP, RANKS, RANK_ORDER, FOE_FORMS, NAMED_FORMS, BOSS_FORM, FORM_SWITCH, CAMPAIGN_RANK_CAP, MASTER_CAP, formEdge, foeProfile } from '../data/foe-forms.js';
 import { STANCES } from '../data/stances.js';
-import { G, isGunner } from '../state.js';
+import { G, isGunner, enemies } from '../state.js';
 import { floater } from '../fx/floaters.js';
 import { foeTipToast } from '../game/upgrades.js';
 import { V3 } from '../utils.js';
@@ -30,10 +30,20 @@ export function foeFormFor(e){
   let base = def.rank;
   for (const r of def.ranks || []) if (d >= r.from) base = r.rank;
   const form = (G.sandbox && !def.form && G.sbFoeForm) || pickForm(def);
-  const rank = (G.sandbox && G.sbFoeRank) || (e.elite ? rankUp(base) : base);   // (the sandbox's picks: ui/sandbox-ui.js)
+  const cap = campaignCap();
+  if (cap && RANK_ORDER.indexOf(base) > RANK_ORDER.indexOf(cap)) base = cap;   // the campaign's curve (data/foe-forms.js CAMPAIGN_RANK_CAP)
+  let rank = (G.sandbox && G.sbFoeRank) || (e.elite ? rankUp(base) : base);   // (the sandbox's picks: ui/sandbox-ui.js)
+  if (rank === 'master' && !(G.sandbox && G.sbFoeRank) && mastersOut() >= MASTER_CAP) rank = 'knight';   // one rank-and-file master at a time
   const tier = def.pool ? def.pool.filter(t => (G.sandbox ? Infinity : depth()) >= t.from).pop() : null;
   return { form, rank, profile: foeProfile(form, rank), repertoire: rank === 'master' && tier ? tier.forms.slice() : null };
 }
+// the campaign's rank ceiling for the rank and file right now (null: none): its wave levels and its mission chapters
+function campaignCap(){
+  if (G.sandbox || G.endless || (G.mission && !(G.chapter >= 0))) return null;
+  return CAMPAIGN_RANK_CAP[Math.min(CAMPAIGN_RANK_CAP.length - 1, G.levelIdx || 0)] || null;
+}
+// rank-and-file masters standing now (a named champion doesn't count)
+const mastersOut = () => enemies.reduce((n, o) => n + (!o.dead && !o.champion && o.rank === 'master' ? 1 : 0), 0);
 // a named duellist (game/mission.js spawnInquisitor): the mission's own form wins, else its name's, else its type's
 export function namedForm(o, type){
   const N = NAMED_FORMS[o.name] || {}, def = FOE_FORMS[type] || {};

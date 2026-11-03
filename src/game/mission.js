@@ -50,7 +50,7 @@ import { spawnSquad, addSquadmate, squadIn, squadStanding, allies } from '../all
 import { SQUAD } from '../data/allies.js';
 import { collideSolids } from '../world/collision.js';
 import { players, targetable } from '../player/players.js';
-import { diffDmgMul } from '../data/difficulty.js';
+import { diffDmgMul, diffBossCheckpoint } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
 import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
@@ -83,6 +83,7 @@ export function missionDone(id, hero){ try { return localStorage.getItem('sw_mis
 export function startMission(id = 'refuge', fromObjective = 0, guest = false, opts = {}){
   const def = missionById(id) || MISSIONS.refuge, ch = opts.chapter || null;   // a story mission, or an arcade contract (data/arcade.js)
   clearMission();
+  if (!opts.retry) rageCk = null;   // (a fresh start fights every duel from the top: retryMission)
   if (!opts.retry) resetScenes();   // a fresh start plays the mission's scenes again (a retry after a death or an escape doesn't)
   const sub = def.level.sub && typeof def.level.sub === 'object' ? heroKey(def.level.sub) : def.level.sub;
   if (ch){
@@ -120,7 +121,13 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   setObjectiveHud({ kicker: M.kick, title: forHero(def.objectives[fromObjective]).title, status: 'STAND READY', frac: null });
 }
 export function startCoopMission(id){ startMission(id, 0, true); }
-export function retryMission(){ startMission(M.def ? M.def.id : (G.missionId || 'refuge'), M.def ? M.i : 0, false, { chapter: M.chapter, retry: true }); }
+/* THE DUEL'S SECOND HALF IS A CHECKPOINT — fall after a duel foe's rage and the retry begins it already raged, at its
+   rage threshold (on the difficulties that keep a boss checkpoint: data/difficulty.js). The first half stays won. */
+let rageCk = null;   // { id, i }: the mission and the duel objective whose rage was reached
+export function retryMission(){
+  const s = M.s, o = M.o;
+  rageCk = M.def && o && o.kind === 'duel' && s && s.raged && o.rage && diffBossCheckpoint() ? { id: M.def.id, i: M.i } : null;
+  startMission(M.def ? M.def.id : (G.missionId || 'refuge'), M.def ? M.i : 0, false, { chapter: M.chapter, retry: true }); }
 export function missionTitle(id, hero = G.hero){ const t = (missionById(id) || MISSIONS.refuge).title; return typeof t === 'object' ? heroKey(t, hero) : t; }   // (a hero with no title of its own takes heroKey's fallback)
 function clearMission(){
   cancelGlance(); M.told = -1;
@@ -628,6 +635,11 @@ const KINDS = {
         const scarKick = sc && (kick ? kick + ' · ' : '') + 'WOUNDED AT ' + sc.where.toUpperCase();
         s.foe = o.quarry ? spawnQuarryFoe(o, null, scarKick) : spawnInquisitor(o, o.at, { line: heroText(o.line), kicker: scarKick || o.kicker });
         if (sc) woundFoe(s.foe, o, sc);
+        if (rageCk && rageCk.id === M.def.id && rageCk.i === M.i){   // the second half, again (retryMission)
+          rageCk = null;
+          s.foe.hp = Math.min(s.foe.hp, Math.max(1, s.foe.maxHp * o.rage));
+          floater(V3(s.foe.group.position.x, 3.2 * s.foe.group.scale.y, s.foe.group.position.z), 'CHECKPOINT · ITS SECOND HALF', '#ffd45a');
+        }
         if (o.escape) s.foe.hpFloor = Math.max(1, s.foe.maxHp * o.escape);   // it won't fall here: at this much left it breaks off (escapeDuel)
         storyBeat('duel', { name: o.name, quarry: !!o.quarry });
       }

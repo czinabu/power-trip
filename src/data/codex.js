@@ -75,7 +75,7 @@ const TROOPS = [
   { id: 'duelist', name: 'MAGNAGUARD', kicker: 'DROID DUELIST', threat: 3,
     lore: 'An old war droid with a spinning electrostaff.',
     weapons: ['Electrostaff'],
-    watch: ['The pale arc shows the side it guards', 'Mash and it parries you'],
+    watch: ['Its weapon sits on the side it guards (the ring shows it while you learn)', 'Mash and it parries you'],
     beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', 'Its staff is a SPEED form: a GUARD form (Soresu, Makashi, Vaapad) counters it'] },
   { id: 'brute', name: 'BRUTE', kicker: 'HEAVY', threat: 3,
     lore: 'A wall of muscle and plate behind a vibro-maul.',

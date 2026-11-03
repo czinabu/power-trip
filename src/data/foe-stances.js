@@ -22,30 +22,30 @@ export const FOE_STANCE = {
   // II — the fencer: side-on, weapon side leading, arm out long toward you, the point angled up at your eyes, the free
   // hand raised behind for balance
   makashi: { twist: -0.6, lean: 0.04, off: 'fencer',
-             guard: { R: [-1.35, 0.35], L: [-1.45, -0.35], H: [-1.95, 0.1], Lo: [-1.0, -0.05] },
-             wrist: { R: [-0.55, 0], L: [-0.55, 0], H: [-0.25, -0.9], Lo: [0.2, 0] } },
+             guard: { R: [-1.35, 0.55], L: [-1.45, -0.35], H: [-1.95, 0.1], Lo: [-1.0, -0.05] },
+             wrist: { R: [-0.7, 0.6], L: [-0.55, 0], H: [-0.25, -0.9], Lo: [0.2, 0] } },
   // III — the wall: square, the blade held high and forward in front of the face, the free hand out ahead of it
   soresu:  { twist: 0.05, lean: 0.06, drop: 0.06, off: 'ward',
              guard: { R: [-1.5, 0.3], L: [-1.55, -0.5], H: [-2.2, 0.0], Lo: [-1.05, -0.3] },
              wrist: { R: [-1.35, 0.2], L: [-1.35, -0.2], H: [0.1, -1.45], Lo: [0.4, 0] } },
   // IV — the acrobat: low and coiled, weight forward, the blade drawn back alongside the body, the free hand out
   ataru:   { twist: 0.4, lean: 0.22, drop: 0.2, off: 'spring',
-             guard: { R: [-0.65, 0.4], L: [-0.85, -0.7], H: [-1.9, 0.3], Lo: [-0.45, -0.25] },
-             wrist: { R: [-2.3, 0], L: [-2.1, 0], H: [-0.4, -1.2], Lo: [0.2, 0] }, wind: [0.25, 0.1] },
+             guard: { R: [-0.65, 0.4], L: [-1.5, -1.2], H: [-2.5, -0.2], Lo: [-0.55, -0.6] },
+             wrist: { R: [-2.3, 0], L: [-1.6, -0.9], H: [-0.1, -1.3], Lo: [0.5, 0] }, wind: [0.25, 0.1] },
   // V — the knight: both hands on the hilt, the blade raised high, square to you and heavy
   djemso:  { twist: 0.12, drop: 0.05, off: 'hilt',
              guard: { R: [-1.45, 0.05], L: [-1.45, -0.75], H: [-2.1, -0.45], Lo: [-0.95, -0.6] },
              wrist: { R: [-1.05, 0], L: [-1.05, 0], H: [0.0, -1.3], Lo: [0.5, 0] }, wind: [-0.25, 0] },
   // V — Shien: the reverse grip, the arm held low and forward with the blade running back up along it
   shien:   { grip: 'reverse', twist: 0.25, lean: 0.08, drop: 0.08, off: 'ward',
-             guard: { R: [-0.95, 0.55], L: [-1.1, -0.7], H: [-1.9, 0.2], Lo: [-0.55, -0.35] },
-             wrist: { R: [0.35, 0], L: [0.35, 0], H: [0.25, 0.7], Lo: [0.1, 0] } },
+             guard: { R: [-0.95, 0.55], L: [-1.4, -0.7], H: [-2.4, 0.1], Lo: [-1.6, -0.5] },
+             wrist: { R: [0.35, 0], L: [0.35, -1.4], H: [0.25, -1.4], Lo: [0.2, 0.4] } },
   // VI — the balance of them all: the plain guard
   niman:   { wrist: UP, off: 'rest' },
   // VII — savage: pitched forward, the blade cocked high and back, the free hand clawed out
   juyo:    { twist: 0.45, lean: 0.18, drop: 0.08, off: 'claw',
-             guard: { R: [-2.3, 0.55], L: [-2.2, -0.6], H: [-2.75, 0.3], Lo: [-1.0, -0.2] },
-             wrist: { R: [0.75, 0.2], L: [0.75, -0.2], H: [0.05, -1.35], Lo: [0.4, 0.2] }, wind: [-0.2, 0.15] },
+             guard: { R: [-2.3, 0.55], L: [-2.0, -1.0], H: [-2.6, 0.3], Lo: [-1.0, -0.2] },
+             wrist: { R: [0.75, 0.2], L: [0.4, -0.6], H: [0.3, -1.5], Lo: [0.4, 0.2] }, wind: [-0.2, 0.15] },
   // VII — Vaapad: Juyo's poise held back, the blade up and waiting
   vaapad:  { twist: 0.2, lean: 0.08, drop: 0.06, off: 'claw', arm: [-0.25, 0.1], wrist: UP },
   // THE SABER STAFF on a one-bladed body: carried two-handed and low across the body
@@ -68,9 +68,12 @@ export const TWO_HAND = { at: [0, 0.13, 0.0], reach: 0.86, rate: 12, tw: 0.4 };
 
 /* THE STAFF (the magnaguard's electrostaff, held in both hands): its guard held ACROSS the body, one end high and one
    low, instead of upright at its side. [rotation.z, rotation.x] per line, in place of data/duel.js GUARD_POSE.staff,
-   and the staff drawn in toward the body's middle (`at`, m: [across −, up, forward]) while it guards. */
+   and the staff drawn in toward the body's middle (`at`, m: [across −, up, forward]) while it guards. Read from the
+   front like a saber's guard: R stood up on its weapon side, L leant across the other way, H level over the head, Lo
+   level across the knees (`lift`, m: how far the staff is raised or lowered on that line). */
 export const STAFF_STANCE = {
-  guard: { R: [0.75, 0.35], L: [2.2, 0.45], H: [-1.0, 0.45], Lo: [1.2, -0.45] },
+  guard: { R: [-0.3, 0.35], L: [0.75, 0.45], H: [1.57, 0.3], Lo: [1.57, -0.2] },
+  lift: { H: 0.55, Lo: -0.45 },
   at: [-0.3, 0.02, 0.12],
   twist: 0.15, drop: 0.06,
 };

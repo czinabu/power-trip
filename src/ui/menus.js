@@ -38,6 +38,7 @@ import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/ca
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { openArmoryPrefight } from './armory-ui.js';
+import { GUARD_RINGS } from '../data/guard-rings.js';
 
 /* ============================================================
    INPUT
@@ -213,6 +214,14 @@ function setAimHint(on){
 }
 { let v; try { v = localStorage.getItem('sw_aimhint'); } catch(e){} setAimHint(v !== '0'); }
 document.getElementById('aimhintctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setAimHint(!G.aimHint); });
+// GUARD RINGS — a duellist's guard crescent: fading as you learn to read the blade, always, or off (enemies/guardcue.js)
+function setGuardRings(m){
+  G.guardRings = GUARD_RINGS.modes.includes(m) ? m : 'fading';
+  try { localStorage.setItem('sw_guardrings', G.guardRings); } catch(e){}
+  const v = document.getElementById('guardringval'); if (v) v.textContent = G.guardRings.toUpperCase();
+}
+{ let v; try { v = localStorage.getItem('sw_guardrings'); } catch(e){} setGuardRings(v); }
+document.getElementById('guardringctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); const M = GUARD_RINGS.modes; setGuardRings(M[(M.indexOf(G.guardRings) + 1) % M.length]); });
 // STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
 setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');
 document.getElementById('strafectl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setStrafeMode(G.strafeMode === 'hold' ? 'toggle' : 'hold'); });

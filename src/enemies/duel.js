@@ -28,6 +28,7 @@ import { matchup, sealOf, updateFormTag, updateFormSwitch, arcColor } from './fo
 import { pushKnock } from '../player/jedi/force.js';
 import { foeBlade } from '../player/jedi/clash.js';
 import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
+import { ringOpacity, bladeCue } from './guardcue.js';
 
 const LINES = ['L', 'R', 'H', 'Lo'];   // the lines a guard covers (Lo: the legs)
 const SIDES = ['L', 'R', 'H'];         // the lines a foe strikes from
@@ -220,18 +221,21 @@ export function updateDuel(e, dt, dist){
   } else if (e.flourishT > 0 || e.fl0) endFlourish(e);
   // its form's stance: the body's turn and crouch, the saber in its fist, the free hand (enemies/foestance.js)
   if (e.ff) updateStance(e, dt, guarding && !(e.dodgeT > 0) && !e.winded, e.blockLine && G.gt - e.blockAt < DUEL.read.hold ? e.blockLine : e.guard);
-  // the guard arc: a crescent on the covered side in its form family's colour, brighter as you close in
+  // the guard arc: a crescent on the covered side in its form family's colour, brighter as you close in. The blade is
+  // the real tell (data/foe-stances.js), so the crescent fades as you learn to read it (GUARD RINGS: enemies/guardcue.js)
   if (showsGuard(e)){
     if (!g.userData.guardArc) makeGuardArc(e);
-    const a = g.userData.guardArc;
-    a.visible = guarding && !e.dead && !e.winded;   // winded: the guard is down
-    if (a.visible){
+    const a = g.userData.guardArc, up = guarding && !e.dead && !e.winded;   // winded: the guard is down
+    const read = up && e.lineStreak >= DUEL.adaptAfter;
+    e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
+    if (up){
       const want = e.guard === 'R' ? 0 : e.guard === 'L' ? Math.PI : e.guard === 'Lo' ? -Math.PI / 2 : Math.PI / 2;
       a.rotation.z = dampToward(a.rotation.z, want, dt, 14);
-      e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
-      a.material.opacity = clamp(1 - dist / DUEL.guardRange, 0.15, 0.6) + e.arcFlash;
-      a.material.color.copy(arcColor(e, e.lineStreak >= DUEL.adaptAfter, dt));   // its form's family; white-hot and pulsing: it has read your cut
+      a.material.opacity = ringOpacity(clamp(1 - dist / DUEL.guardRange, 0.15, 0.6), e.arcFlash);
+      a.material.color.copy(arcColor(e, read, dt));   // its form's family; white-hot and pulsing: it has read your cut
     }
+    a.visible = up && a.material.opacity > 0.01;
+    bladeCue(e, read, e.arcFlash / 0.6, dt);   // the same tells on the blade itself: it swells hot when it has read you
   }
   // posture bar over the head while the guard is under pressure, and its breath under it once it has spent some
   const spent = e.breath != null && e.breath < e.breathMax - 0.5;
@@ -1163,16 +1167,17 @@ export function updatePuppetDuel(e, dt){
   const pp = playerPos(), dist = Math.hypot(pp.x - g.position.x, pp.z - g.position.z);
   if (n[NG.block] >= 40){
     if (!a) makeGuardArc(e);
-    const arc = g.userData.guardArc;
-    arc.visible = !!n[NG.up] && !e.dead && dist < DUEL.guardRange;
-    if (arc.visible){
+    const arc = g.userData.guardArc, up = !!n[NG.up] && !e.dead && dist < DUEL.guardRange, read = up && !!n[NG.read];
+    e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
+    if (up){
       const L = LINES[n[NG.line]];
       const want = L === 'R' ? 0 : L === 'L' ? Math.PI : L === 'Lo' ? -Math.PI / 2 : Math.PI / 2;
       arc.rotation.z = dampToward(arc.rotation.z, want, dt, 14);
-      e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
-      arc.material.opacity = clamp(1 - dist / DUEL.guardRange, 0.15, 0.6) + e.arcFlash;
-      arc.material.color.copy(arcColor(e, !!n[NG.read], dt));
+      arc.material.opacity = ringOpacity(clamp(1 - dist / DUEL.guardRange, 0.15, 0.6), e.arcFlash);   // (this player's own GUARD RINGS setting)
+      arc.material.color.copy(arcColor(e, read, dt));
     }
+    arc.visible = up && arc.material.opacity > 0.01;
+    bladeCue(e, read, e.arcFlash / 0.6, dt);
   }
   if (e.ff) updateStance(e, dt, !!n[NG.up] && !e.dead && !n[NG.winded], LINES[n[NG.line]] || 'H');   // its form's stance, as the host's (enemies/foestance.js)
   const brace = !!n[NG.brace], hasBreath = n[NG.breath] >= 0, spent = hasBreath && n[NG.breath] < 99;

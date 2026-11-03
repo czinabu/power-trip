@@ -21,6 +21,7 @@ import { dropToken } from './director.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { officerDown } from './tactics.js';
 import { hideIndicators } from './cleanup.js';
+import { duelWon } from './guardcue.js';
 import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
@@ -132,6 +133,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     e.dead = true; e.state = 'ragdoll'; e.st = 0;
     hideIndicators(e);   // bars, laser sight, lunge line: gone with the life, not a frame later (cleanup.js)
     tutEvent('kill', e);
+    if (e.dp) duelWon(e);   // a duellist down: its guard ring fades a little more as you learn the blade (enemies/guardcue.js)
     if (blownUp) flyerBlowUp(e);
     if (e.t.bomber && !e._blew) bomberExplode(e);   // a SABOTEUR killed before its fuse still goes off — don't kill it point-blank
     if (e.t.officer) officerDown(e);   // an OFFICER down: the squad around it falters (tactics.js)

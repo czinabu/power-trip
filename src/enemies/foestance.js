@@ -49,7 +49,8 @@ export function updateStance(e, dt, on, line){
   if (u.staff){
     if (!u.staff0) u.staff0 = u.staff.position.clone();
     const A = e.ff ? STAFF_STANCE.at : NONE;
-    u.staff.position.set(u.staff0.x + (A[0] || 0) * k, u.staff0.y + (A[1] || 0) * k, u.staff0.z + (A[2] || 0) * k);
+    e.staffLift = damp(e.staffLift || 0, e.ff && on && !cut ? STAFF_STANCE.lift[line] || 0 : 0, dt, STANCE_RATE.wrist);   // high or low on its line
+    u.staff.position.set(u.staff0.x + (A[0] || 0) * k, u.staff0.y + (A[1] || 0) * k + e.staffLift, u.staff0.z + (A[2] || 0) * k);
   }
   // the saber in the fist: its form's grip always, its guard's wrist only while it guards (straight for a cut or a bind)
   if (u.saber && u.weaponArm){   // (an arm a cut took off carries its saber away with it)

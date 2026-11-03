@@ -21,18 +21,31 @@ export function meleeSlots(){
   return Math.max(1, Math.min(ENGAGE.maxSlots, ENGAGE.meleeSlots[G.diff] ?? ENGAGE.meleeSlots.knight));
 }
 const handoff = () => ENGAGE.handoff[G.diff] ?? ENGAGE.handoff.knight;
+// a duellist: a saber or staff fighter in a form (enemies/foeform.js) or a named champion (game/mission.js)
+export const isDuellist = e => !!(e.ff || e.champion);
+const duelSlots = () => ENGAGE.duelSlots[G.diff] ?? ENGAGE.duelSlots.knight;
+const duelHandoff = () => ENGAGE.duelHandoff[G.diff] ?? ENGAGE.duelHandoff.knight;
+// may this waiting foe take a turn now? (one duellist at a time, a breath between them; no trooper turns beside a champion)
+const mayStep = (e, l) => isDuellist(e) ? l.duel < duelSlots() && G.gt >= l.duelGap : !l.champ;
 /* one queue per hero: solo there is just this browser's; in online co-op each hero gets their own attack turns, so a
    partner doesn't use up yours. held = tokens held this frame · gap = no new turn is handed out before this game time */
 const lanes = new Map();
-const laneOf = (e) => { const h = e.hero || localPlayer; let l = lanes.get(h); if (!l) lanes.set(h, l = { held: 0, gap: 0 }); return l; };
+const laneOf = (e) => { const h = e.hero || localPlayer; let l = lanes.get(h); if (!l) lanes.set(h, l = { held: 0, gap: 0, duel: 0, duelGap: 0, champ: false }); return l; };
 
 // once per frame, before the AI runs: drop tokens from foes that can't use them, then hand free ones to the
 // closest waiting foes
 export function updateDirector(dt){
   for (const [h, l] of lanes){
     if (!players.includes(h)){ lanes.delete(h); continue; }   // a partner who left
-    l.held = 0; l.waiting = null;
+    l.held = 0; l.duel = 0; l.champ = false; l.waiting = null;
     if (l.gap > G.gt + 5) l.gap = 0;   // the clock restarted with a new run
+    if (l.duelGap > G.gt + 5) l.duelGap = 0;
+  }
+  // a champion close to its hero makes that hero's fight one on one (ENGAGE.championRing)
+  for (const e of enemies){
+    if (!e.champion || e.dead || e.converted) continue;
+    const pp = (e.hero || localPlayer).pos, p = e.group.position;
+    if (pp && Math.hypot(p.x - pp.x, p.z - pp.z) < ENGAGE.championRing) laneOf(e).champ = true;
   }
   for (const e of enemies){
     if (e.tokenRest > 0) e.tokenRest -= dt;
@@ -43,7 +56,8 @@ export function updateDirector(dt){
       e.tokenT += dt;
       // a holder that never got its swing off (blocked, kited, boxed in) gives way so the queue keeps moving
       if (e.tokenT > ENGAGE.tokenHold && !ACTIVE[e.state]){ dropToken(e); continue; }
-      l.held++;
+      if (!e.champion && !isDuellist(e) && l.champ){ dropToken(e); continue; }   // a champion stepped in: the troops give it the floor
+      l.held++; if (isDuellist(e)) l.duel++;
     } else if (e.state === 'chase' && !(e.tokenRest > 0)){
       // closest by WALKING distance, so a foe right behind a wall doesn't take a turn it can't use
       // (the walking field leads to this browser's hero: a partner's queue goes by straight-line distance)
@@ -57,17 +71,21 @@ export function updateDirector(dt){
     const free = meleeSlots() - l.held;
     if (free <= 0 || !l.waiting || G.gt < l.gap) continue;
     l.waiting.sort((a, b) => a.d - b.d);
-    // one foe steps in per beat, so two free slots still fill one after the other
-    grant(l.waiting[0].e);
+    // one foe steps in per beat, so two free slots still fill one after the other; the closest that may step in goes
+    const w = l.waiting.find(x => mayStep(x.e, l));
+    if (!w) continue;
+    grant(w.e);
     if (free > 1) l.gap = G.gt + handoff() * 0.5;
   }
 }
-function grant(e){ const l = laneOf(e); e.token = true; e.tokenT = 0; e.tokenLane = l; l.held++; assignApproach(e); }
+function grant(e){ const l = laneOf(e); e.token = true; e.tokenT = 0; e.tokenLane = l; l.held++; if (isDuellist(e)) l.duel++; assignApproach(e); }
 
 export function dropToken(e, rest){
   e.token = false; e.tokenT = 0;
   if (rest) e.tokenRest = rand(ENGAGE.tokenRest[0], ENGAGE.tokenRest[1]);
-  (e.tokenLane || laneOf(e)).gap = G.gt + handoff();   // a breath before the next one steps in
+  const l = e.tokenLane || laneOf(e);
+  l.gap = G.gt + handoff();   // a breath before the next one steps in
+  if (isDuellist(e)) l.duelGap = G.gt + duelHandoff();   // ...and a longer one before the next duellist does
   e.tokenLane = null;
 }
 
@@ -75,7 +93,9 @@ export function dropToken(e, rest){
 // foe holds, or take a free one at once. False means the slots are full and it backs off instead
 export function claimToken(e){
   if (e.token) return true;
-  if (!usesToken(e) || laneOf(e).held >= meleeSlots()) return false;
+  const l = laneOf(e);
+  if (!usesToken(e) || l.held >= meleeSlots()) return false;
+  if (isDuellist(e) ? l.duel >= duelSlots() : l.champ) return false;   // (a free turn, but not this foe's: see mayStep)
   grant(e);
   return true;
 }

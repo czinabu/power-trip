@@ -83,6 +83,15 @@ export const ENGAGE = {
   meleeSlots: { padawan: 1, knight: 2, master: 2 },   // melee attackers at once, by difficulty (deeper runs don't add more)
   maxSlots: 2,              // hard cap, whatever the mode
   handoff: { padawan: 0.9, knight: 0.55, master: 0.3 },   // after a turn ends, the next foe waits this long (s) to step in
+  /* DUELLISTS TAKE TURNS TOO — a saber or staff fighter (an acolyte, a magnaguard, a named champion) is a duel of its own,
+     so a pack of them is the fight that overwhelms. At most `duelSlots` of them hold a turn at once (the other slot goes
+     to a trooper), and after a duellist's turn ends the next duellist waits `duelHandoff` s (a trooper can still step in).
+     Balance: scripted fights (tools/duel-sim) of two Knight acolytes and a magnaguard went from 30% to 83% won. */
+  duelSlots: { padawan: 1, knight: 1, master: 2 },
+  duelHandoff: { padawan: 1.1, knight: 0.9, master: 0.55 },
+  /* A NAMED DUEL IS ONE ON ONE — while a champion (a mission's duel foe) is alive and this close to its hero, the troops
+     trickling in around it stalk and shoot but never take a melee turn: the squad's to hold off, the blade is yours. */
+  championRing: 14,
   lateAt: 8,                // ranged pools below grow from this many cumulative waves on (campaign: Exegol)
   rangedSlots: 2,           // blaster / jet trooper wind-ups at once
   rangedSlotsLate: 3,       // ...from `lateAt` on

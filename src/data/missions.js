@@ -479,9 +479,10 @@ export const MISSIONS = {
                mando: 'Their commander wants you himself. The clan will keep his troops busy. Take him.' },
         task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         // the last duel before the throne in the campaign (SPEARHEAD on Exegol), so one of the toughest
-        foe: 'acolyte', name: 'THE WARDEN', hp: 5, dmg: 1.25, scale: 1.2, tint: 0x8a2a1a, at: [0, -28],   // the open grass before the gate
+        foe: 'acolyte', name: 'THE WARDEN', hp: 4.5, dmg: 1.15,   // (BALANCE: was 5 / 1.25: a Knight's ranks now stack under it)
+        scale: 1.2, tint: 0x8a2a1a, at: [0, -28],   // the open grass before the gate
         duel: { block: 0.78, posture: 170, feint: 0.4, chain: 2, counter: 0.6 },
-        rage: 0.5, rageDuel: { feint: 0.5, delay: 0.35, chain: 3, thrust: 0.3 },
+        rage: 0.5, rageDuel: { feint: 0.42, delay: 0.35, chain: 3, thrust: 0.2 },
         trickle: { every: 12, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI + 0.35, -0.35],
         hero: { mando: { foe: 'duelist', name: 'THE IRON WARDEN', tint: 0x4a4a52, hp: 6,
                          duel: { block: 0.7, posture: 155, feint: 0.3, chain: 2, counter: 0.5 } } } },
@@ -866,9 +867,9 @@ export const MISSIONS = {
         task: 'Win the trial',
         enter: 'Sera drops off the prison wall and lands without a sound.', kicker: 'TRIAL',
         line: 'Too slow. Again.',
-        foe: 'acolyte', form: 'ataru', name: 'SERA QUILL', hp: 4, dmg: 1.0, scale: 1.0, tint: 0x3ad28a, at: [0, -5],
+        foe: 'acolyte', form: 'ataru', name: 'SERA QUILL', hp: 3.6, dmg: 1.0, scale: 1.0, tint: 0x3ad28a, at: [0, -5],
         duel: { feint: 0.4, chain: 3, counter: 0.4 },
-        rage: 0.5, rageDuel: { chain: 4, delay: 0.3 } },
+        rage: 0.5, rageDuel: { chain: 3, delay: 0.3, feint: 0.45 } },   // (BALANCE: a master's Ataru already strings long: the rage was chain 4)
     ],
     done: 'Sera laughs for the first time in a year. She will come.',
   },
@@ -983,7 +984,7 @@ export const MISSIONS = {
         line: 'Every name in that Ledger was mine to collect.',
         foe: 'acolyte', form: 'djemso', name: 'THE GRAND INQUISITOR', hp: 4.5, dmg: 1.2, scale: 1.22, tint: 0x8a1a22, at: [0, -18],
         duel: { posture: 170, feint: 0.35, chain: 3, counter: 0.5 },
-        rage: 0.5, rageDuel: { feint: 0.5, delay: 0.3, chain: 4 },
+        rage: 0.5, rageDuel: { feint: 0.42, delay: 0.3, chain: 3 },   // (BALANCE: was feint 0.5, chain 4: the finale's hardest duel, not its unfairest)
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
     ],
     done: 'Vael is free and the children are out. Only Vexis is left.',
@@ -1564,9 +1565,9 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the fight' },
         enter: { jedi: 'Something drops off the guard tower and lands without a sound.', mando: 'The ace drops in from the guard walk.' }, kicker: 'TRIAL',
         line: { jedi: 'Too slow. Again.', mando: 'Let\'s see the armour move.' },
-        foe: 'acolyte', form: 'ataru', name: 'THE ACROBAT', hp: 4, dmg: 1.0, scale: 1.0, tint: 0x3ad28a, at: [0, -6],   // an Ataru master
+        foe: 'acolyte', form: 'ataru', name: 'THE ACROBAT', hp: 3.6, dmg: 1.0, scale: 1.0, tint: 0x3ad28a, at: [0, -6],   // an Ataru master
         duel: { feint: 0.4, chain: 3, counter: 0.4 },
-        rage: 0.5, rageDuel: { chain: 4, delay: 0.3 },
+        rage: 0.5, rageDuel: { chain: 3, delay: 0.3, feint: 0.45 },   // (BALANCE: as Sera's)
         hero: { mando: { foe: 'lancer', form: null, name: 'THE JET ACE', tint: 0xd2a03a } } },
     ],
     done: { jedi: 'The Acrobat laughs for the first time in a year. It will come.',
@@ -1589,9 +1590,9 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the fight' },
         enter: { jedi: 'The Knight walks out past the last transport.', mando: 'The champion steps out past the last transport.' }, kicker: 'TRIAL',
         line: { jedi: 'Show me what you learned out there.', mando: 'Beskar to beskar.' },
-        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 5, dmg: 1.15, scale: 1.15, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
+        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 4.5, dmg: 1.1, scale: 1.15, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
         duel: { block: 0.75, posture: 160, feint: 0.3, chain: 2, counter: 0.7 },
-        rage: 0.45, rageDuel: { chain: 3, counter: 0.8 },
+        rage: 0.45, rageDuel: { chain: 3, counter: 0.72 },   // (BALANCE: was hp 5, dmg 1.15, counter 0.8)
         hero: { mando: { foe: 'duelist', form: null, name: 'THE CLAN CHAMPION', tint: 0x6a7a8a } } },
     ],
     done: { jedi: 'The Knight sheathes its blade. Where you go now, it goes too.',

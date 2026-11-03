@@ -48,7 +48,7 @@ for (const hero of HEROES) for (const [name, code] of RUNS){
   await page.goto(page_url);
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
   await page.waitForTimeout(8000);   // the title screen's warm-up and the idle-time model builds, as a player gets
-  await page.click('#hero-' + hero);
+  await page.$eval('#hero-' + hero, el => el.click());
   if (process.env.HITCH_TRACE) await browser.startTracing(page, { path: process.env.HITCH_TRACE, categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8', 'v8.execute', 'gpu', 'blink.user_timing', 'disabled-by-default-v8.gc', 'gpu.service', 'viz', 'cc', 'skia', 'benchmark', 'blink', 'disabled-by-default-skia', 'disabled-by-default-v8.cpu_profiler'] });
   let cdp = null;
   // HITCH_CPU=4: a CPU this many times slower (a laptop rather than this machine), from the fight on

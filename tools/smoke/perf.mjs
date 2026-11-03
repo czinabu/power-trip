@@ -36,7 +36,7 @@ const boot = await page.evaluate(() => ({ dcl: performance.getEntriesByType('nav
 console.log(`boot: ${Date.now() - tBoot} ms to GAME (DOMContentLoaded ${boot.dcl} ms)`);
 // sit on the title screen a while, as a player does: its warm-up and the idle-time model builds finish there
 await page.waitForTimeout(+(process.env.PERF_SETTLE ?? 8000));
-await page.click('#hero-jedi');
+await page.$eval('#hero-jedi', el => el.click());
 
 // timing hooks: the composer's render (the draw) and the shadow pass inside it
 await page.evaluate(() => {

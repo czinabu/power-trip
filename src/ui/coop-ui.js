@@ -20,7 +20,14 @@ const nameIn = document.getElementById('coopname');
 const rosterEl = document.getElementById('cooproster');
 const runBtn = document.getElementById('coopjoinrun');
 
-const setOpen = (open) => { panel.classList.toggle('open', open); if (open) render(); };
+const setOpen = (open) => { panel.classList.toggle('open', open); if (open){ render(); markHero(); } };
+// YOUR HERO: the title screen picks the hero on its second step, so the co-op panel (opened from the first) has its own
+// tabs; they click the menu's hero cards, so the stand and every mark follow as they do there
+const heroTabs = document.querySelectorAll('#coopheroes span');
+const markHero = () => { for (const t of heroTabs) t.classList.toggle('on', t.dataset.h === G.hero); };
+for (const t of heroTabs) t.addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit(); const card = document.getElementById('hero-' + t.dataset.h); if (card) card.click(); markHero();
+});
 for (const id of ['coopBtn', 'mode-coop']) document.getElementById(id).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setOpen(true); });
 document.getElementById('coopclose').addEventListener('click', (e) => { e.stopPropagation(); setOpen(false); });
 panel.addEventListener('click', (e) => { e.stopPropagation(); if (e.target === panel) setOpen(false); });   // never launches or resumes the game

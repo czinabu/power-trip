@@ -49,7 +49,7 @@ for (const [hero, full, lessons] of RUNS){
   try {
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-    await page.click('#hero-' + hero);
+    await page.$eval('#hero-' + hero, el => el.click());
     await page.click('#mode-training');
     await page.click('#goText');
     // training never opens Before the Fight: its lessons pick the form between lessons

@@ -140,77 +140,79 @@
       <div id="ovctx"></div>
     </header>
     <div id="runsummary"></div>
+    <!-- the title screen in two steps (ui/menus.js showMenuStep): pick a MODE first, then the HERO and DIFFICULTY for it.
+         MISSIONS and CO-OP open their own page and panel from the first step -->
     <section id="setup" class="camp">
-      <div class="sec-label">HERO<span class="cz-open" id="cztoggle" title="Change how your hero looks">CUSTOMIZE</span></div>
-      <div id="heroselect">
-        <div class="herocard brk sel" id="hero-jedi">
-          <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="gj" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7fe3ff"/><stop offset="1" stop-color="#e9fbff"/></linearGradient></defs>
-            <line x1="14" y1="50" x2="52" y2="12" stroke="#35c8ff" stroke-width="7" stroke-linecap="round" opacity=".35"/>
-            <line x1="16" y1="48" x2="52" y2="12" stroke="url(#gj)" stroke-width="3" stroke-linecap="round"/>
-            <rect x="6" y="47" width="14" height="6" rx="1.5" transform="rotate(-45 13 50)" fill="#b9c6d2"/><rect x="11" y="45" width="2" height="9" transform="rotate(-45 13 50)" fill="#4a5866"/></svg>
-          <div class="htext">
-            <div class="hn">JEDI</div>
-            <div class="hrole">Melee duelist</div>
-            <ul class="hd">
-              <li>Three saber forms for crowds, all-round or brutes</li>
-              <li>Time your block to parry blows and deflect bolts</li>
-              <li>Force powers: push, pull and more as you grow</li>
-            </ul>
-          </div>
-        </div>
-        <div class="herocard brk" id="hero-mando">
-          <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 30c0-12 8-20 18-20s18 8 18 20v18c0 3-2 5-5 5H19c-3 0-5-2-5-5z" fill="#b8c4cf"/><path d="M14 30c0-12 8-20 18-20s18 8 18 20" fill="none" stroke="#e6eef5" stroke-width="1.5" opacity=".7"/>
-            <path d="M20 26h24v6H35v16h-6V32h-9z" fill="#0b1118"/><circle cx="18" cy="40" r="1.6" fill="#7d8b97"/></svg>
-          <div class="htext">
-            <div class="hn">MANDALORIAN</div>
-            <div class="hrole">Ranged hunter</div>
-            <ul class="hd">
-              <li>Blasters: aim for the head, mind the heat</li>
-              <li>Jetpack flight, boosts and diving strikes</li>
-              <li>Gadgets: flame, rockets and more as you grow</li>
-            </ul>
-          </div>
-        </div>
-        <!-- the clone ARC trooper -->
-        <div class="herocard brk" id="hero-trooper">
-          <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><path d="M15 32c0-13 7-21 17-21s17 8 17 21v8c0 4-3 8-7 9l-4 4h-12l-4-4c-4-1-7-5-7-9z" fill="#e8ebee"/>
-            <path d="M18 27h28v5h-11v12l-3 3-3-3V32H18z" fill="#0b1118"/><path d="M32 11v15" stroke="#2f7fd6" stroke-width="4"/><circle cx="25" cy="50" r="2.4" fill="#9aa4ae"/><circle cx="39" cy="50" r="2.4" fill="#9aa4ae"/>
-            <path d="M46 20l3-12" stroke="#7d8b97" stroke-width="2"/></svg>
-          <div class="htext">
-            <div class="hn">ARC TROOPER</div>
-            <div class="hrole">Squad leader</div>
-            <ul class="hd">
-              <li>DC-15 bursts, or a twin DC-17 on each mouse button</li>
-              <li>On foot: roll, slide, frag grenades, R in the beat to vent</li>
-              <li>Leads a squad of clones (H)</li>
-            </ul>
-          </div>
+      <div id="modestep">
+        <div class="sec-label">MODE</div>
+        <div id="modeselect">
+          <div class="modeopt brk major sel" id="mode-campaign"><span class="mt">CAMPAIGN</span><span class="md">13 chapters, three acts</span></div>
+          <div class="modeopt brk major" id="mode-mission"><span class="mt">MISSIONS</span><span class="md">Story missions and a random arcade</span></div>
+          <div class="modeopt brk" id="mode-training"><span class="mt">TRAINING</span><span class="md">Learn the controls and powers</span></div>
+          <div class="modeopt brk" id="mode-sandbox"><span class="mt">SANDBOX</span><span class="md">Any foe, any power</span></div>
+          <div class="modeopt brk" id="mode-endless"><span class="mt">SURVIVAL</span><span class="md">Endless waves, one high score</span></div>
+          <div class="modeopt brk wide" id="mode-coop"><span class="mt">CO-OP</span><span class="md">Play the story online with up to 3 friends</span></div>
         </div>
       </div>
-      <div class="setup-row">
-        <div class="setup-col">
-          <div class="sec-label">MODE</div>
-          <div id="modeselect">
-            <div class="modeopt brk major sel" id="mode-campaign"><span class="mt">CAMPAIGN</span><span class="md">13 chapters, three acts</span></div>
-            <div class="modeopt brk major" id="mode-mission"><span class="mt">MISSIONS ›</span><span class="md">Story missions and a random arcade</span></div>
-            <div class="modeopt brk" id="mode-endless"><span class="mt">SURVIVAL</span><span class="md">Endless waves, one high score</span></div>
-            <div class="modeopt brk" id="mode-training"><span class="mt">TRAINING</span><span class="md">Learn the controls and powers</span></div>
-            <div class="modeopt brk" id="mode-sandbox"><span class="mt">SANDBOX</span><span class="md">Any foe, any power</span></div>
-            <div class="modeopt brk wide" id="mode-coop"><span class="mt">CO-OP</span><span class="md">Play the story online with up to 3 friends</span></div>
+      <div id="herostep">
+        <div class="step-head"><div class="btn step-back" id="stepBack">‹ MODES</div><div class="step-mode"><span class="step-k">MODE</span><span id="stepMode">CAMPAIGN</span></div></div>
+        <div class="sec-label">HERO<span class="cz-open" id="cztoggle" title="Change how your hero looks">CUSTOMIZE</span></div>
+        <div id="heroselect">
+          <div class="herocard brk sel" id="hero-jedi">
+            <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="gj" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7fe3ff"/><stop offset="1" stop-color="#e9fbff"/></linearGradient></defs>
+              <line x1="14" y1="50" x2="52" y2="12" stroke="#35c8ff" stroke-width="7" stroke-linecap="round" opacity=".35"/>
+              <line x1="16" y1="48" x2="52" y2="12" stroke="url(#gj)" stroke-width="3" stroke-linecap="round"/>
+              <rect x="6" y="47" width="14" height="6" rx="1.5" transform="rotate(-45 13 50)" fill="#b9c6d2"/><rect x="11" y="45" width="2" height="9" transform="rotate(-45 13 50)" fill="#4a5866"/></svg>
+            <div class="htext">
+              <div class="hn">JEDI</div>
+              <div class="hrole">Melee duelist</div>
+              <ul class="hd">
+                <li>Three saber forms for crowds, all-round or brutes</li>
+                <li>Time your block to parry blows and deflect bolts</li>
+                <li>Force powers: push, pull and more as you grow</li>
+              </ul>
+            </div>
           </div>
-          <div id="campsaves">
-            <div class="btn" id="campNewBtn">NEW GAME</div>
-            <div class="btn" id="campSaveBtn">SAVE GAME</div>
-            <div class="btn" id="campLoadBtn">LOAD GAME</div>
+          <div class="herocard brk" id="hero-mando">
+            <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 30c0-12 8-20 18-20s18 8 18 20v18c0 3-2 5-5 5H19c-3 0-5-2-5-5z" fill="#b8c4cf"/><path d="M14 30c0-12 8-20 18-20s18 8 18 20" fill="none" stroke="#e6eef5" stroke-width="1.5" opacity=".7"/>
+              <path d="M20 26h24v6H35v16h-6V32h-9z" fill="#0b1118"/><circle cx="18" cy="40" r="1.6" fill="#7d8b97"/></svg>
+            <div class="htext">
+              <div class="hn">MANDALORIAN</div>
+              <div class="hrole">Ranged hunter</div>
+              <ul class="hd">
+                <li>Blasters: aim for the head, mind the heat</li>
+                <li>Jetpack flight, boosts and diving strikes</li>
+                <li>Gadgets: flame, rockets and more as you grow</li>
+              </ul>
+            </div>
+          </div>
+          <!-- the clone ARC trooper -->
+          <div class="herocard brk" id="hero-trooper">
+            <svg class="hi" viewBox="0 0 64 64" aria-hidden="true"><path d="M15 32c0-13 7-21 17-21s17 8 17 21v8c0 4-3 8-7 9l-4 4h-12l-4-4c-4-1-7-5-7-9z" fill="#e8ebee"/>
+              <path d="M18 27h28v5h-11v12l-3 3-3-3V32H18z" fill="#0b1118"/><path d="M32 11v15" stroke="#2f7fd6" stroke-width="4"/><circle cx="25" cy="50" r="2.4" fill="#9aa4ae"/><circle cx="39" cy="50" r="2.4" fill="#9aa4ae"/>
+              <path d="M46 20l3-12" stroke="#7d8b97" stroke-width="2"/></svg>
+            <div class="htext">
+              <div class="hn">ARC TROOPER</div>
+              <div class="hrole">Squad leader</div>
+              <ul class="hd">
+                <li>DC-15 bursts, or a twin DC-17 on each mouse button</li>
+                <li>On foot: roll, slide, frag grenades, R in the beat to vent</li>
+                <li>Leads a squad of clones (H)</li>
+              </ul>
+            </div>
           </div>
         </div>
-        <div class="setup-col">
-          <div class="sec-label">DIFFICULTY</div>
-          <div id="diffselect">
-            <div class="modeopt brk" id="diff-padawan"><span class="mt">PADAWAN</span><span class="md">Forgiving</span></div>
-            <div class="modeopt brk sel" id="diff-knight"><span class="mt">KNIGHT</span><span class="md">As intended</span></div>
-            <div class="modeopt brk" id="diff-master"><span class="mt">MASTER</span><span class="md">Brutal</span></div>
-          </div>
+        <ul id="herobio" class="hd"></ul>
+        <div class="sec-label">DIFFICULTY</div>
+        <div id="diffselect">
+          <div class="modeopt brk" id="diff-padawan"><span class="mt">PADAWAN</span><span class="md">Forgiving</span></div>
+          <div class="modeopt brk sel" id="diff-knight"><span class="mt">KNIGHT</span><span class="md">As intended</span></div>
+          <div class="modeopt brk" id="diff-master"><span class="mt">MASTER</span><span class="md">Brutal</span></div>
+        </div>
+        <div id="campsaves">
+          <div class="btn" id="campNewBtn">NEW GAME</div>
+          <div class="btn" id="campSaveBtn">SAVE GAME</div>
+          <div class="btn" id="campLoadBtn">LOAD GAME</div>
         </div>
       </div>
     </section>
@@ -323,6 +325,7 @@
   <div id="coop">
     <div class="howto-panel">
       <div class="howto-head"><div class="howto-title">ONLINE CO-OP</div><div class="rm-sub">Early test: see your partner move and fight</div><div class="howto-x" id="coopclose">✕</div></div>
+      <div class="coop-name"><label>YOUR HERO</label><div class="cz-tabs" id="coopheroes"><span data-h="jedi">JEDI</span><span data-h="mando">MANDALORIAN</span><span data-h="trooper">ARC TROOPER</span></div></div>
       <div class="coop-name"><label for="coopname">YOUR NAME</label><input id="coopname" autocomplete="off" spellcheck="false" placeholder="PLAYER"></div>
       <div class="coop-grid">
         <div class="coop-col">

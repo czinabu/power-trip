@@ -49,6 +49,19 @@ export const overlay = document.getElementById('overlay');
    the primary button's label and which blocks show (hero/mode setup only where picking makes sense). */
 let _ovState = 'menu';
 export const isMenuState = () => _ovState === 'menu';
+/* THE TITLE SCREEN'S TWO STEPS — 'mode' (pick a mode: CAMPAIGN, MISSIONS, CO-OP...) and then 'hero' (the hero, the
+   difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
+let _step = 'mode';
+export const menuStep = () => _step;
+const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION' };
+export function showMenuStep(step){
+  _step = step === 'hero' ? 'hero' : 'mode';
+  overlay.classList.toggle('step-mode', _step === 'mode');
+  overlay.classList.toggle('step-hero', _step === 'hero');
+  document.getElementById('stepMode').textContent = STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  if (_ovState === 'menu') setOverlayState('menu');   // the headline and BEGIN follow the step
+  overlay.scrollTop = 0;
+}
 export function setOverlayState(state){
   _ovState = state;
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming');
@@ -65,8 +78,11 @@ export function setOverlayState(state){
   document.getElementById('formsBtn').style.display = isTrooper() ? 'none' : '';   // (the trooper has neither yet)
   document.getElementById('formsBtn').textContent = G.hero === 'mando' ? 'ARMORY' : 'LIGHTSABER FORMS';   // the Jedi's forms page (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
   const go = document.getElementById('goText'), sub = document.getElementById('ovsub');
+  const firstStep = _step === 'mode' && !overlay.classList.contains('mpage');   // (the Missions page opens from the first step and names its mission)
   if (state === 'menu' && G.modeSel === 'campaign' && canResume()){   // a loaded save picks the campaign up where it was
-    go.textContent = 'CONTINUE CAMPAIGN'; sub.textContent = resumeLabel();
+    go.textContent = 'CONTINUE CAMPAIGN'; sub.textContent = firstStep ? 'CHOOSE YOUR LEGEND' : resumeLabel();
+  } else if (state === 'menu' && firstStep){
+    go.textContent = 'BEGIN'; sub.textContent = 'CHOOSE YOUR LEGEND';
   } else if (state === 'menu'){
     go.textContent = G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : 'BEGIN CAMPAIGN';
     sub.textContent = G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
@@ -137,18 +153,19 @@ export function refreshSurvivalLock(){
   if (md){
     if (un){ md.textContent = 'Endless waves, one high score'; el.title = ''; }
     else { const j = localStorage.getItem('sw_camp_jedi') === '1', m = localStorage.getItem('sw_camp_mando') === '1';
-      const mark = (ok) => ok ? '<span class="ok">✓</span>' : '<span class="no">✗</span>';
-      md.innerHTML = svgIcon('lock', 'lk') + 'Jedi ' + mark(j) + ' · Mando ' + mark(m);
+      // what's left to do, not a row of red crosses: a LOCKED tag and the one line that opens it
+      md.innerHTML = lockTag() + (j && !m ? 'Now beat the campaign as the Mando' : m && !j ? 'Now beat the campaign as the Jedi' : 'Beat the campaign as Jedi and Mando');
       el.title = 'Survival unlocks once you have beaten the campaign with both heroes'; }
   }
 }
+const lockTag = () => '<span class="lockt">' + svgIcon('lock', 'lk') + 'LOCKED</span>';
 // SANDBOX is LOCKED until Act I of the campaign has been cleared with either hero, then offers the story so far, and
 // everything once the campaign is beaten (game/sandbox-unlocks.js)
 export function refreshSandboxLock(){
   const el = document.getElementById('mode-sandbox'); if (!el) return;
   const un = sandboxUnlocked(), full = un && sandboxFull(), md = el.querySelector('.md');
   el.classList.toggle('locked', !un);
-  if (md) md.innerHTML = full ? 'Any foe, any power' : un ? 'The story so far · ' + sandboxProgress().n + '/' + sandboxProgress().of : svgIcon('lock', 'lk') + 'Clear Act I';
+  if (md) md.innerHTML = full ? 'Any foe, any power' : un ? 'The story so far · ' + sandboxProgress().n + '/' + sandboxProgress().of : lockTag() + 'Clear Act I of the campaign';
   el.title = full ? '' : un ? 'The foes, powers and forms you have met in the campaign. Beat it to open everything'
                             : 'The sandbox unlocks once you have cleared Act I of the campaign with either hero';
 }
@@ -156,19 +173,33 @@ export function setModeSel(m){
   if ((m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked())){   // can't pick a locked mode
     S.uiDeny();
     const el = document.getElementById('mode-' + m); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
-    return;
+    return false;
   }
   G.modeSel = m;
   for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile();
+  document.getElementById('stepMode').textContent = STEP_NAME[m] || 'CAMPAIGN';
   if (_ovState === 'menu') setOverlayState('menu');   // headline + button follow the mode
+  return true;
 }
-document.getElementById('mode-campaign').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('campaign'); });
+// a mode tile picks the mode and moves on to the hero step (a locked one shakes and stays put)
+for (const m of ['campaign', 'endless', 'training', 'sandbox'])
+  document.getElementById('mode-' + m).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (setModeSel(m)) showMenuStep('hero'); });
 document.getElementById('mode-mission').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('mission'); openMissionPage(); });   // its own page: ui/missions-ui.js
-document.getElementById('mode-endless').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('endless'); });
-document.getElementById('mode-training').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('training'); });
-document.getElementById('mode-sandbox').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('sandbox'); });
+// back to the modes: the ‹ MODES button, Esc, or the pad's B (engine/gamepad.js). Runs in the capture phase so it sees the
+// screen before Esc closes the customizer or a panel on top of it (then that Esc is theirs, not a step back)
+document.getElementById('stepBack').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); showMenuStep('mode'); });
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || _step !== 'hero' || _ovState !== 'menu' || overlay.style.display === 'none' || panelOpen()) return;
+  if (/\b(customizing|mpage)\b/.test(overlay.className) || G.mode !== 'menu') return;
+  showMenuStep('mode');
+}, true);
+// the hero step names what the picked hero does, under the three name plates
+{ const bio = document.getElementById('herobio'), cards = document.getElementById('heroselect');
+  const fill = () => { const sel = cards.querySelector('.herocard.sel .hd'); bio.innerHTML = sel ? sel.innerHTML : ''; };
+  new MutationObserver(fill).observe(cards, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  fill(); }
 // CO-OP is a tile but not a mode: it opens the room panel (ui/coop-ui.js)
 // MISSIONS: the mode tile opens the Missions page (ui/missions-ui.js); the picked mission is remembered
 { let id; try { id = localStorage.getItem('sw_mission'); } catch(e){} setMission(id || G.missionId); }
@@ -394,7 +425,7 @@ settings.addEventListener('click', (e) => {
   if (e.target === settings) setSettings(false);   // click the backdrop to close
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && settings.classList.contains('open')) setSettings(false); });
-setOverlayState('menu');
+showMenuStep('mode');
 
 // UI SOUND — a soft tick when the pointer lands on something you can pick, a firmer blip when you pick it
 const UI_PICK = '.herocard, .modeopt, .btn, .setpill, .card, .howto-hero span, .howto-x, .cz-open, .cz-sw, .cz-chip, .cz-tabs span';
@@ -549,6 +580,7 @@ export function goHome(){
   startLevel(0);   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would
   G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0;
   overlay.style.display = 'flex';
+  showMenuStep('mode');   // the title screen opens on its first step
   refreshMenu();
   overlay.scrollTop = 0;
 }
@@ -562,6 +594,7 @@ setTrainingExit(() => {
   if (document.pointerLockElement) document.exitPointerLock();
   setModeSel('campaign');
   goHome();
+  showMenuStep('hero');   // the campaign picked and ready to begin
 });
 document.getElementById('skipBtn').addEventListener('click', () => skipStep());
 // LESSON BOARD: back into the fight's frame, then the board over it (game/tutorial.js)

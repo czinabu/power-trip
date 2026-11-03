@@ -164,6 +164,7 @@ export function refreshMissionMark(){ render(); refreshTile(); }
 
 export function openMissionPage(){
   overlay.classList.add('mpage');
+  if (isMenuState()) setOverlayState('menu');   // BEGIN MISSION and the mission's name, not the first step's headline
   render();
   overlay.scrollTop = 0;
   const sel = listEl.querySelector('.msn.sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -171,6 +172,7 @@ export function openMissionPage(){
 export function closeMissionPage(){
   if (!missionPageOpen()) return;
   overlay.classList.remove('mpage');
+  if (isMenuState()) setOverlayState('menu');
   refreshTile();
 }
 

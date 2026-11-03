@@ -54,9 +54,9 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     if (mode === 'mission') await page.evaluate(([m, h]) => localStorage.setItem('sw_mission_' + m + '_' + h, '1'), [mission, hero]);   // missions stay locked until the campaign clears them
-    await page.click('#hero-' + hero);
+    await page.$eval('#hero-' + hero, el => el.click());
     // restyle the hero in the customizer first, so the fight runs on a rebuilt player model
-    if (mode === 'campaign'){ await page.click('#cztoggle'); await page.click('#czrandom'); await page.click('#czdone'); }
+    if (mode === 'campaign'){ await page.$eval('#cztoggle', el => el.click()); await page.click('#czrandom'); await page.click('#czdone'); }
     // a story mission: MISSIONS on the mode row opens the Missions page (ui/missions-ui.js), then its card there
     if (mode === 'mission'){ await page.click('#mode-mission'); await page.click('#msn-' + mission); }
     else await page.click('#mode-' + mode);
@@ -209,7 +209,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
   try {
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-    await page.click('#hero-mando');
+    await page.click('#mode-campaign');   // a real click (the title screen's first step): fullscreen needs a user gesture
     const on = await page.waitForFunction(() => !!document.fullscreenElement, null, { timeout: 3000 }).then(() => true, () => false);
     if (!on) problems.push('the first click did not go fullscreen');
     await page.click('#settoggle');

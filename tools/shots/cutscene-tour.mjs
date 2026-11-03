@@ -16,7 +16,7 @@ await page.addInitScript(() => { try { localStorage.setItem('jpt_quality', 'low'
   Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('x', 'NotSupportedError')); }; });
 await page.goto(pathToFileURL(root + '/dist/index.html').href + (hero === 'trooper' ? '?trooper' : ''));
 await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
-await page.click('#hero-' + hero); await page.click('#mode-campaign');
+await page.$eval('#hero-' + hero, el => el.click()); await page.click('#mode-campaign');
 for (let i = 0; i < 8 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){
   if (await page.isVisible('#goText')) await page.click('#goText', { timeout: 2000 }).catch(() => {});
   if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});

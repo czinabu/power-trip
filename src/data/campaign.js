@@ -75,7 +75,7 @@ export const CHAPTERS = [
       { jedi: ['Heavier troops behind the first line. Do not let them reach the doors.', 'The archivists have begun to move the oldest texts. Keep the steps clear.'], mando: ['They brought shields. Go around them, or go through them.', 'The clan is carrying the forge tools down. Buy them the time.'] } ],
     clear: { jedi: ['The steps are ours, for now.', 'Smoke over the east wing. The archive is burning.'], mando: ['The stair holds.', 'They\'ve set the upper halls alight. Fall back to the forge level.'] } } },
   { id: 'archive', act: 0, kind: 'waves', level: 0, waves: [2, 4], world: 'JEDHA',
-    title: { jedi: 'THE BURNING ARCHIVE', mando: 'SMOKE AND STONE' }, arena: { layout: 'archive', arena: 48 },
+    title: { jedi: 'THE BURNING ARCHIVE', mando: 'SMOKE AND STONE' }, arena: { layout: 'archive', arena: 60 },
     brief: { jedi: ['The archive is burning. The archivists are carrying out what they can.', 'Buy them time. And be careful: something came with this army that is not a soldier.'],
              mando: ['They\'re burning the temple to smoke us out. The forge is still below.', 'Hold them while the clan carries out what it can.'] },
     lines: {

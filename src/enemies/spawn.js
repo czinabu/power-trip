@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { scene } from '../engine/renderer.js';
 import { V3, rand } from '../utils.js';
-import { G, enemies } from '../state.js';
+import { G, enemies, shared } from '../state.js';
+import { SNIPER_ROOM } from '../data/map-rules.js';
 import { buildEnemyMesh } from './mesh.js';
 import { enemyHpScale, applyElite } from './elites.js';
 import { attachHitboxDebug } from './bodyshape.js';
@@ -50,6 +51,8 @@ let nextNid = 0;   // every foe's number, the same on both screens in co-op (net
 // opts.look: a saber wielder's look (data/saber-cast.js castId: a named duel foe), sent on to co-op guests (net/foes.js)
 // opts.dress: a named foe's own look over its type ({ model, color, eye, cloth }: data/allies.js MARSHAL); only the look changes
 export function spawnEnemy(typeName, pos, opts = {}){
+  // a marksman needs room: on a narrow arena it comes as a blaster trooper (data/map-rules.js SNIPER_ROOM)
+  if (typeName === 'sniper' && !opts.keep && !G.sandbox && !G.training && !G.coopGuest && !shared.arenaBig && shared.arenaHalf * 2 < SNIPER_ROOM.minArena) typeName = SNIPER_ROOM.swap;
   const t = ENEMY_TYPES[typeName];
   const nid = ++nextNid;
   const g = buildEnemyMesh(opts.dress ? { ...foeType(typeName), ...opts.dress } : foeType(typeName), { seed: nid, look: opts.look });   // (dressed as the mission has it: enemies/look.js) (its marking and face follow its number: the same on both co-op screens)

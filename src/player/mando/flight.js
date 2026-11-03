@@ -6,7 +6,8 @@ import { sfx, S } from '../../audio/sfx.js';
 import { V3, clamp, dampToward } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater } from '../../fx/floaters.js';
-import { G, keys, player } from '../../state.js';
+import { G, keys, player, shared } from '../../state.js';
+import { JET_CEILING } from '../../data/map-rules.js';
 import { MANDO } from '../../data/mando.js';
 import { _look, _lh } from './weapons.js';
 import { thrust, jetIgnite } from '../../fx/ink.js';
@@ -32,7 +33,11 @@ export function updateMandoFlight(dt, pp, f, r){
     // (diving lives on SHIFT-boost). Horizontal momentum is whatever you carry / boost into.
     camera.getWorldDirection(_look);
     const climbExtra = Math.max(0, _look.y + 0.18) * MANDO.climbRange;
-    player.vy = dampToward(player.vy, (MANDO.climbBase + climbExtra) * jetPow, dt, 6);
+    let climb = (MANDO.climbBase + climbExtra) * jetPow;
+    // a small arena has a ceiling (data/map-rules.js JET_CEILING): the climb fades out under it, so the pack lifts you onto
+    // the highest deck there is and a little over, not three times higher than anything on the map
+    if (shared.jetCeiling){ const room = shared.jetCeiling - pp.y; if (room < JET_CEILING.fade) climb *= Math.max(0, room / JET_CEILING.fade); }
+    player.vy = dampToward(player.vy, climb, dt, 6);
     // DARKSABER jetpack synergy — the thrusters sip fuel while you're mid-swing (an aerial saber assault)
     const meleeEff = (player.weapon === 'darksaber' && player.atkT > 0) ? 0.45 : 1;
     player.jet = Math.max(0, player.jet - MANDO.jetDrain * fuelMul * meleeEff * dt);

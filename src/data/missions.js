@@ -253,9 +253,9 @@ export const MISSIONS = {
     blurb: 'get the archivists out, break into the vault, face the Inquisitor',
     story: 'campaign', act: 0, order: 1.5,   // (the Missions page: with the Burning Archive, the Jedi's chapter 2)
     level: { name: 'MISSION — THE BURNING ARCHIVE', sub: 'The archive is burning. The Ledger of Names is in the vault below it.',
-             arena: 48, floor: 0x4a4234, fog: 0x2a1a14, sky: 0x1a1010, skyTop: 0x060304, sun: 0xffc890, ember: 0xff8a3a,
+             arena: 60, floor: 0x4a4234, fog: 0x2a1a14, sky: 0x1a1010, skyTop: 0x060304, sun: 0xffc890, ember: 0xff8a3a,
              fill: 0.9, sunI: 1.6, fogStart: 0.62, layout: 'archive', waves: [], hazards: {} },
-    start: [0, 15, Math.PI],   // in from the south doors, looking north across the hall at the dais
+    start: [0, 19, Math.PI],   // in from the south doors, looking north across the hall at the dais
     kit: 1,
     grant: { jedi: ['throw'], mando: ['grapple'] },
     objectives: [
@@ -267,12 +267,12 @@ export const MISSIONS = {
         // the troops come in from the west (behind the west stacks), so the hold stands between them and the line
         at: [1, 3], r: 8, time: 60, awayRate: 0.5, unguarded: 'HALL UNGUARDED',
         evacuees: { kind: 'archivist', count: 10, spacing: 1.6, speed: 2.4, ramp: false, verb: 'OUT', name: { jedi: 'ARCHIVISTS', mando: 'ARCHIVISTS' },
-                    path: [[2.5, -21], [2.5, -13], [4.5, -6], [4.5, 3.5], [1.5, 9.5], [0, 16], [0, 23]] },
+                    path: [[3, -26], [3, -16], [5.5, -7.5], [5.5, 4.5], [2, 12], [0, 20], [0, 29]] },
         pulses: [ { grunt: 2, blaster: 1 }, { grunt: 2, grenadier: 1 }, { grunt: 2, blaster: 1, officer: 1 }, { grunt: 1, duelist: 1, blaster: 1 } ],
         every: [10, 15], cap: 6, from: [Math.PI - 1.05, Math.PI + 1.05], aggro: 8 },
 
       { kind: 'sabotage', title: 'BREAK INTO THE VAULT', consoleName: 'VAULT SEAL', consoleDone: 'OPEN', doneLine: 'THE VAULT IS OPEN', doneSub: 'Someone has already been down there.',
-        start: [0, 10, Math.PI],
+        start: [0, 12, Math.PI],
         say: { jedi: 'The vault is under the reading dais. Its seals are on the north and south steps. Cut through both before the fire reaches it.',
                mando: 'There is a vault under that dais. Cut the seals.' },
         task: { jedi: 'Stand at each seal to cut through it', mando: 'Stand at each seal to cut through it' },
@@ -281,11 +281,11 @@ export const MISSIONS = {
         time: 4.5, r: 2.2, hitLoss: 1.2,
         trickle: { every: 15, cap: 4, group: { grunt: 2, blaster: 1 } } },
 
-      { kind: 'duel', title: 'FACE THE INQUISITOR', start: [0, 8, Math.PI],
+      { kind: 'duel', title: 'FACE THE INQUISITOR', start: [0, 10, Math.PI],
         say: { jedi: 'It was in the vault before you. It knows how you fight. Do not let it out with the Ledger.',
                mando: 'A Jedi hunter, coming up out of the vault. Close the distance and break it.' },
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
-        foe: 'acolyte', name: 'THE INQUISITOR', hp: 3.5, dmg: 1.1, scale: 1.18, tint: 0xa01a22, at: [0, -9],
+        foe: 'acolyte', name: 'THE INQUISITOR', hp: 3.5, dmg: 1.1, scale: 1.18, tint: 0xa01a22, at: [0, -15],
         duel: { block: 0.72, posture: 150, feint: 0.3, chain: 2, counter: 0.5 },
         rage: 0.55, rageDuel: { feint: 0.45, delay: 0.4, chain: 3, thrust: 0.2 },
         // the twist (game/twists.js): the lights die once it's in, and the duel is fought by the blades' light
@@ -880,7 +880,7 @@ export const MISSIONS = {
     campaignOnly: true, heroes: ['jedi'],
     blurb: 'spar with Ilsa the night before the siege',
     level: { name: 'PROLOGUE — THE TEMPLE DOJO', sub: 'Jedha. The night before.',
-             arena: 48, floor: 0x6a3020, fog: 0x2a1a14, sky: 0x1a0e0a, layout: 'dojo', waves: [], hazards: {} },
+             arena: 60, floor: 0x6a3020, fog: 0x2a1a14, sky: 0x1a0e0a, layout: 'dojo', waves: [], hazards: {} },
     start: [0, 8, Math.PI],
     kit: 1,
     grant: { jedi: [], mando: [] },
@@ -912,9 +912,9 @@ export const MISSIONS = {
       { kind: 'sabotage', title: 'BREAK THE SEALS', consoleName: 'SEAL', consoleDone: 'BROKEN', doneLine: 'THE SEALS ARE BROKEN', doneSub: 'The dais is opening.', music: 'battle',
         say: 'The Inquisitors left three seals round the dais and a garrison to keep them. Stand at each seal until it breaks.',
         task: 'Stand at each seal to break it',
-        consoles: [ { at: [-9, 6], guards: { grunt: 2, blaster: 1 } },
-                    { at: [9, 6], guards: { grunt: 2, lancer: 1 } },
-                    { at: [0, -10], guards: { phalanx: 1, grunt: 1, officer: 1 } } ],
+        consoles: [ { at: [-15, 4], guards: { grunt: 2, blaster: 1 } },   // (spread out round the courtyard: the map-size pass)
+                    { at: [15, 4], guards: { grunt: 2, lancer: 1 } },
+                    { at: [0, -16], guards: { phalanx: 1, grunt: 1, officer: 1 } } ],
         time: 4.5, r: 2.4, hitLoss: 1.2,
         trickle: { every: 15, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
 
@@ -958,7 +958,7 @@ export const MISSIONS = {
       { kind: 'sabotage', title: 'BREAK VAEL\'S CHAINS', consoleName: 'CHAIN', consoleDone: 'BROKEN', doneLine: 'VAEL IS FREE', doneSub: 'He can barely stand. He stands anyway.', music: 'battle',
         say: 'Ilsa has the left chain. Break the other two. Stand at each anchor until it gives.',
         task: 'Stand at each chain anchor to break it',
-        consoles: [ { at: [10, -22], guards: { grunt: 2, lancer: 1, blaster: 1 } },
+        consoles: [ { at: [16, -24], guards: { grunt: 2, lancer: 1, blaster: 1 } },   // (east of the throne: the map-size pass spread the chains out)
                     { at: [0, -21], guards: { phalanx: 1, grunt: 2, officer: 1 } } ],
         time: 4.5, r: 2.4, hitLoss: 1.2,
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
@@ -1553,7 +1553,7 @@ export const MISSIONS = {
     title: { jedi: 'TRIAL OF THE ACROBAT', mando: 'THE JET ACE' },
     blurb: 'the master you freed wants to see what you are',
     level: { name: 'TRIAL — THE PRISON YARD ON LOTHAL', sub: { jedi: 'The Acrobat is free, and restless.', mando: 'The ace is free, and wants a word.' },
-             arena: 52, floor: 0x6a6e72, fog: 0xc8c4a0, sky: 0x3e6aa8, layout: 'prison', waves: [], hazards: {} },
+             arena: 60, floor: 0x6a6e72, fog: 0xc8c4a0, sky: 0x3e6aa8, layout: 'prison', waves: [], hazards: {} },
     start: [0, 16, Math.PI],
     kit: 5,
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
@@ -1578,7 +1578,7 @@ export const MISSIONS = {
     title: { jedi: 'TRIAL OF THE KNIGHT', mando: 'THE CLAN CHAMPION' },
     blurb: 'a general tests you blade to blade',
     level: { name: 'TRIAL — THE LAST HANGAR ON HOTH', sub: { jedi: 'The line held. The Knight is waiting.', mando: 'The champion is waiting.' },
-             arena: 48, floor: 0x8a98aa, fog: 0x3a4658, sky: 0x0e1218, layout: 'hangar', waves: [], hazards: {} },
+             arena: 60, floor: 0x8a98aa, fog: 0x3a4658, sky: 0x0e1218, layout: 'hangar', waves: [], hazards: {} },
     start: [0, 14, Math.PI],
     kit: 6,
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
@@ -1626,7 +1626,7 @@ export const MISSIONS = {
   MISSIONS['chains-alone'] = { ...C, id: 'chains-alone',
     objectives: [
       { ...chain, say: 'Three chains, and nobody left who knows them. Stand at each anchor until it gives.',
-        consoles: [ { at: [-10, -22], guards: { grunt: 2, blaster: 1, grenadier: 1 } }, ...chain.consoles ] },
+        consoles: [ { at: [-16, -24], guards: { grunt: 2, blaster: 1, grenadier: 1 } }, ...chain.consoles ] },
       { ...hold, time: 55, cap: 10,
         pulses: [ ...hold.pulses, { grunt: 2, lancer: 1, phalanx: 1 } ] },
       duel,

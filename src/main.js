@@ -265,7 +265,7 @@ const byLayout = id => Object.values(MISSIONS).find(m => m.level && m.level.layo
 Object.assign(window.GAME, { MISSIONS });   // dev console / tests: the story missions as data
 Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: () => ({
   temple: LEVELS[0], foundry: LEVELS[1], plains: LEVELS[2],
-  archive: { ...LEVELS[0], layout: 'archive', arena: 48 }, sith: { ...LEVELS[2], layout: 'sith', arena: 64 },
+  archive: { ...LEVELS[0], layout: 'archive', arena: 60 }, sith: { ...LEVELS[2], layout: 'sith', arena: 64 },
   hall: TRAINING_LEVELS.jedi, forge: TRAINING_LEVELS.mando, dojo: SANDBOX_LEVELS.jedi, throne: SANDBOX_LEVELS.mando,
   refuge: MISSIONS.refuge.level, pursuit: MISSIONS.pursuit.level, prison: byLayout('prison'), pens: MISSIONS.pens.level, jedhaNight: MISSIONS['jedha-night'].level,
   hangar: byLayout('hangar'), approach: MISSIONS['strike-exegol'].level,

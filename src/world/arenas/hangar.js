@@ -7,7 +7,7 @@ import { hazardZones, solids } from '../../state.js';
 import { spawnBarrel } from '../hazards.js';
 import { arenaKit, seeded } from './kit.js';
 
-/* THE HANGAR CAVE (half-size 24). The base's last hangar, half packed up: a duelling floor with its cover pushed to the
+/* THE HANGAR CAVE (half-size 30, from its level's arena). The base's last hangar, half packed up: a duelling floor with its cover pushed to the
    walls, so a blade-to-blade fight has room in the middle and somewhere to break off at the edges.
      · the CAVE WALLS just past the edge: ice slabs and rock, steel arches holding the roof up, the hangar's lit blast
        door in the north;
@@ -37,7 +37,8 @@ export function buildHangarArena(L){
   const skyO   = new THREE.MeshBasicMaterial({ color: pal.dusk ?? 0x5a6e8a, fog: false, side: THREE.DoubleSide });
   const mark   = new THREE.MeshBasicMaterial({ color: pal.mark ?? 0xd06a2a, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false });
   const K = arenaKit(), R = seeded(57);
-  const H = HANGAR.half, W = HANGAR.wallH, off = H + 1.0;
+  const H = (L.arena || HANGAR.half * 2) / 2, W = HANGAR.wallH, off = H + 1.0;   // (as big as its level says)
+  const S = H / HANGAR.half;   // the props were placed for a 48 m cave: a bigger one spreads them out by the same share (sizes stay)
 
   // ---- the CAVE WALLS: ice and rock slabs, steel arches; the blast door north, the open mouth south ----
   for (const side of ['n', 's', 'e', 'w']){
@@ -72,10 +73,10 @@ export function buildHangarArena(L){
     }
   }
   // the roof's steel ribs, high overhead (the dark above them is the cave's vault)
-  for (const z of [-16, -6, 4, 14]){ K.deco(new THREE.BoxGeometry(H*2 + 2.4, 0.9, 0.7), metalD, 0, W + 0.2, z); K.slab(0, z, H, 0.35, W - 0.25, W + 0.65); }
+  for (const z of [-16*S, -6*S, 4*S, 14*S]){ K.deco(new THREE.BoxGeometry(H*2 + 2.4, 0.9, 0.7), metalD, 0, W + 0.2, z); K.slab(0, z, H, 0.35, W - 0.25, W + 0.65); }
 
   // ---- the SNOWSPEEDERS: a low hull and stubby wings you vault, a gun pod at the nose ----
-  for (const [x, z, f] of [[-12, -2, 1], [12, 1, -1]]){
+  for (const [x, z, f] of [[-12*S, -2*S, 1], [12*S, 1*S, -1]]){
     K.box(x, z, 1.3, 2.6, 1.2, metal);
     K.deco(new THREE.BoxGeometry(4.6, 0.22, 1.6), metal, x, 0.95, z + 0.4);
     solids.push({ x, z: z + 0.4, hx: 2.3, hz: 0.8, h: 1.25, box: true });   // the wings stick out past the hull
@@ -85,22 +86,23 @@ export function buildHangarArena(L){
   }
 
   // ---- CARGO PODS by the walls, and the COOLANT TANK ----
-  const podAt = (x, z, hx, hz, y = 0) => {
+  const podAt = (x0, z0, hx, hz, y = 0) => {
+    const x = x0*S, z = z0*S;
     K.box(x, z, hx, hz, 2.4, pod, { y });
     K.deco(new THREE.BoxGeometry(hx*2 + 0.06, 0.24, hz*2 + 0.06), stripe, x, y + 1.9, z);
   };
   podAt(-18, -16, 1.6, 1.6); podAt(-14.6, -17.5, 1.4, 1.4); podAt(-18, -16, 1.4, 1.4, 2.4);
   podAt(18, 12, 1.6, 1.6); podAt(16, 15.6, 1.4, 1.4);
   podAt(-19, 10, 1.5, 2.6);
-  K.column(17, -6, 1.4, 4.4, metal, { seg: 14, taper: 1 });
-  K.deco(new THREE.CylinderGeometry(1.45, 1.45, 0.3, 14), stripe, 17, 3.2, -6);
-  K.deco(new THREE.CylinderGeometry(0.9, 1.4, 0.6, 14), metalD, 17, 4.7, -6);
+  K.column(17*S, -6*S, 1.4, 4.4, metal, { seg: 14, taper: 1 });
+  K.deco(new THREE.CylinderGeometry(1.45, 1.45, 0.3, 14), stripe, 17*S, 3.2, -6*S);
+  K.deco(new THREE.CylinderGeometry(0.9, 1.4, 0.6, 14), metalD, 17*S, 4.7, -6*S);
 
   // ---- the maintenance GANTRY (the overwatch climb) in the north-east ----
-  K.gantry(19, -20, { a: metalD, b: metal, strut: stripe, beacon: pal.lamp ?? 0xffc070 }, [-1, 1]);
+  K.gantry(19*S, -20*S, { a: metalD, b: metal, strut: stripe, beacon: pal.lamp ?? 0xffc070 }, [-1, 1]);
 
   // ---- the roof SHEDS ICE: two marked spots under the ribs where it comes down ----
-  [[-7, -6], [8, -16]].forEach(([x, z], i) => {
+  [[-7*S, -6*S], [8*S, -16*S]].forEach(([x, z], i) => {
     K.deco(new THREE.RingGeometry(1.8, 2.1, 24), mark, x, 0.03, z, -Math.PI/2);
     K.deco(new THREE.ConeGeometry(0.5, 2.2, 6), ice, x, W - 1.1, z, Math.PI, 0, 0).castShadow = false;
     hazardZones.push({ kind: 'point', cx: x, cz: z, r: 2.0, period: 10, warnDur: 1.6, activeDur: 0.8, dmg: 16, color: pal.shed ?? 0xbfe8ff, flash: true, t: i * 5 });
@@ -108,7 +110,7 @@ export function buildHangarArena(L){
 
   // ---- supply crates you step over, fuel drums ----
   for (const [x, z, s] of [[-5, 7, 0.45], [6, -3, 0.4], [-20, -4, 0.5], [9, 20, 0.45], [-8, -20, 0.45], [21, 4, 0.4]]){
-    K.box(x, z, s, s, s*1.4, crate, { climbable: true });
+    K.box(x*S, z*S, s, s, s*1.4, crate, { climbable: true });
   }
-  for (const [x, z] of [[-21, 3], [21, -12], [-10, 20]]) spawnBarrel(V3(x, 0, z));
+  for (const [x, z] of [[-21, 3], [21, -12], [-10, 20]]) spawnBarrel(V3(x*S, 0, z*S));
 }

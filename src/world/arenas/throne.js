@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { shared } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 
-/* THE THRONE ROOM (half-size 24). The Mandalorian's sandbox floor (game/sandbox.js), after the Clone Wars throne room
+/* THE THRONE ROOM (half-size 30, from its level's arena). The Mandalorian's sandbox floor (game/sandbox.js), after the Clone Wars throne room
    on Mandalore: one big open floor with nothing in the middle to snag a fight.
      · the FLOOR: dark green plates (the theme's 'deck' floor) with lit amber dashes set into the seams;
      · the WALLS just past the playable edge: weathered green panels between pilasters, each bay a tall window onto the
@@ -27,7 +27,7 @@ export function buildThroneArena(L){
   const amber  = new THREE.MeshBasicMaterial({ color: pal.lamp ?? 0xffd23a, side: THREE.DoubleSide });
   const glow   = new THREE.MeshBasicMaterial({ color: pal.glow ?? 0xe0703a, side: THREE.DoubleSide });
   const K = arenaKit(), R = seeded(73);
-  const H = THRONE.half, W = THRONE.wallH, off = H + 0.9;
+  const H = (L.arena || THRONE.half * 2) / 2, W = THRONE.wallH, off = H + 0.9;   // (as big as its level says: data/sandbox.js)
 
   // a bar from (a0, y0) to (a1, y1) laid in a wall's plane (a: along the wall), for the window frames' chamfers
   const bar = (put, a0, y0, a1, y1, t, mat, d) => {
@@ -76,7 +76,7 @@ export function buildThroneArena(L){
   shared.arenaWalled = true;   // the walls are only a picture to the movement clamp; bolts stop on them (enemies/bolts.js)
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(1.8, W, 1.8), greenD, sx*(H + 0.9), W/2, sz*(H + 0.9));
   // ceiling girders, high over the floor
-  for (const z of [-15, -5, 5, 15]){ K.deco(new THREE.BoxGeometry(H*2 + 2.4, 1.0, 0.8), frame, 0, W + 0.3, z); K.slab(0, z, H, 0.4, W - 0.2, W + 0.8); }
+  for (let z = -Math.floor((H - 4) / 10) * 10 + 5; z <= H - 6; z += 10){ K.deco(new THREE.BoxGeometry(H*2 + 2.4, 1.0, 0.8), frame, 0, W + 0.3, z); K.slab(0, z, H, 0.4, W - 0.2, W + 0.8); }
 
   // ---- the THRONE — a stepped dais against the north wall, the throne, its glowing back-panel and two lamps ----
   { const D = THRONE.dais, zb = H;   // the wall's face
@@ -132,11 +132,11 @@ export function buildThroneArena(L){
       K.deco(new THREE.BoxGeometry(0.04, 0.08, hz*2 - 0.3), amber, x + sx*(hx + 0.02), h - 0.22, z);
       K.deco(new THREE.BoxGeometry(0.04, 0.08, hz*2 - 0.3), amber, x + sx*(hx + 0.02), 0.22, z);
     };
-    planter(-19, -10, 1.0, 1.6, 0.75, { climbable: true });
-    planter(-19, 0, 0.5, 2.2, 1.6);
-    planter(-19, 10, 0.5, 2.2, 2.6);
-    planter(19, -8, 1.2, 1.2, 1.2);
-    planter(19.6, -4.2, 1.0, 1.0, 2.2);
-    planter(20.2, -0.8, 1.0, 1.0, 3.2);
+    planter(-(H - 5), -10, 1.0, 1.6, 0.75, { climbable: true });
+    planter(-(H - 5), 0, 0.5, 2.2, 1.6);
+    planter(-(H - 5), 10, 0.5, 2.2, 2.6);
+    planter(H - 5, -8, 1.2, 1.2, 1.2);
+    planter(H - 4.4, -4.2, 1.0, 1.0, 2.2);
+    planter(H - 3.8, -0.8, 1.0, 1.0, 3.2);
   }
 }

@@ -3,9 +3,9 @@
 
 import { CFG } from '../data/config.js';
 import { sfx, S } from '../audio/sfx.js';
-import { V3, clamp } from '../utils.js';
+import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { shared, G, solids, keys, player, isGunner } from '../state.js';
+import { G, keys, player, isGunner } from '../state.js';
 import { DJUMP_FORCE, WALLKICK_FORCE } from '../data/mando.js';
 import { fwd, rightV, playerPos, stance } from './helpers.js';
 import { cancelSwing } from './jedi/combat.js';
@@ -148,13 +148,10 @@ export function doJump(){
   const pp0 = playerPos();
   const ledge = findLedge(pp0, fwd(), STEP_UP, MOVE.reach);
   if (ledge){ startMantle(pp0, ledge, false); return; }
-  // airborne: a nearby wall/pillar lets you KICK OFF — light parkour to reposition mid-fight. Costs a SMALL Force
-  // fee (used to be free): cheap enough that one mid-fight reposition barely registers, but enough that spam-
-  // chaining kicks in a tight corridor (e.g. the Overwatch Gantry's climbing flue) for endless free altitude
-  // self-limits once Force runs dry, instead of being a truly unlimited climb the jetpack never gets to be.
-  // (Insufficient Force just silently falls through to the double-jump check below, same as that check's own
-  // silent low-Force fail — no new denial UI needed.)
-  const wn = player.wallRun ? V3(player.wallRun.nx, 0, player.wallRun.nz) : nearbyWallNormal();
+  // SPACE on a wall-run KICKS OFF the face: a flip out and up, refreshing the air options so a kick can carry onto the
+  // opposite wall for another run. Costs a small Force fee (data/mando.js WALLKICK_FORCE); without the Force it falls
+  // through to the double-jump check below. (The old kick off any nearby wall or pillar, without a wall-run, is gone.)
+  const wn = player.wallRun ? V3(player.wallRun.nx, 0, player.wallRun.nz) : null;
   if (wn && player.force >= WALLKICK_FORCE){
     player.force -= WALLKICK_FORCE;
     player.vy = CFG.player.jumpVel * 1.08;
@@ -194,30 +191,4 @@ export function doJump(){
     burst(playerPos().clone().setY(playerPos().y + 0.4), 0x88ddff, 6, 4, 2);
     S.dash();
   }
-}
-// returns a horizontal unit normal pointing AWAY from a nearby pillar or arena wall, or null
-function nearbyWallNormal(){
-  const pp = playerPos();
-  for (const c of solids){
-    // must be alongside the surface, and BELOW the mantle threshold (STEP_UP) — collideSolids already treats
-    // anything within STEP_UP of the top as a standable surface, so the wall-kick band stops just under that
-    // instead of overlapping it (the old +0.6 upper bound overlapped STEP_UP's 0.5, leaving an ambiguous sliver
-    // where a jump could resolve as either a mantle or a kick with no defined precedence).
-    if (c.mound || pp.y > c.h - STEP_UP || pp.y < c.h - 2.6) continue;
-    if (c.y0 && c.y0 > pp.y + 1.0) continue;   // an overhead slab: nothing to kick off at body height
-    if (c.box){
-      const nx = clamp(pp.x, c.x - c.hx, c.x + c.hx), nz = clamp(pp.z, c.z - c.hz, c.z + c.hz);
-      const dx = pp.x - nx, dz = pp.z - nz, d = Math.hypot(dx, dz);
-      if (d > 0.001 && d < 1.3) return V3(dx/d, 0, dz/d);
-    } else {
-      const dx = pp.x - c.x, dz = pp.z - c.z, d = Math.hypot(dx, dz);
-      if (d > 0.001 && d < c.r + 1.35) return V3(dx/d, 0, dz/d);
-    }
-  }
-  const h = shared.arenaHalf - 1, hz = shared.arenaHalfZ - 1;
-  if (pp.x >  h - 1.4) return V3(-1, 0, 0);
-  if (pp.x < -(h - 1.4)) return V3( 1, 0, 0);
-  if (pp.z >  hz - 1.4) return V3( 0, 0, -1);
-  if (pp.z < -(hz - 1.4)) return V3( 0, 0,  1);
-  return null;
 }

@@ -356,7 +356,7 @@ export function applySwingDamage(step, only){
   }
   // the blade bounced off a guard and found nothing else: it jars the arm, costs breath and breaks the string
   // (a guard that turned it stops the blade where they met and throws it back: player/jedi/clash.js)
-  if (turned && !hits) bounceOff(blocker, blockAt);
+  if (turned && !hits && !(sw0 && sw0.finBeat)) bounceOff(blocker, blockAt);   // (a finisher's beat rides through: jedi/finisher.js)
   if (hits > 0){
     if (mom && !sw0.momFx){ sw0.momFx = true; floater(playerPos(), MOM_LABEL[mom] || 'MOMENTUM', '#9fe0c8'); }
     G.shake = Math.max(G.shake, finisher ? 0.5 : 0.2);

@@ -119,7 +119,7 @@ function seatFoeBlade(e, from, to){
    than before) stops the cut dead and throws it back; a strike in flight clashes (both reel, nobody is hurt). A guard
    that fails lets the blade carry on through to the body. Returns true when the cut was stopped. */
 export function meetBlades(sw, pts){
-  if (sw.recoil) return false;
+  if (sw.recoil || sw.finBeat) return false;   // a FINISHER's beat is never stopped on a blade (jedi/finisher.js)
   const C = DUEL.clash, r2 = C.reach * C.reach, pp = playerPos();
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
@@ -171,7 +171,7 @@ export function recoilSwing(cp){
     clashSparks(cp, stance().blade, 2);
     sfx(2400, 0.09, 'triangle', 0.035, 1500);   // the bright ring of blade on blade, over the clash
   }
-  if (!sw || sw.recoil || player.atkT <= 0) return;
+  if (!sw || sw.recoil || sw.finBeat || player.atkT <= 0) return;   // (a FINISHER's beat rides through a blade it meets: jedi/finisher.js)
   const C = DUEL.clash;
   // a light blade snaps back off the other one, a heavy one is hauled back (Ataru quickest, Djem So and the darksaber slowest)
   sw.recoil = { t: 0, dur: C.recoil * formWeight(), from: sw.t, back: Math.min(sw.t, sw.dur * C.back) };

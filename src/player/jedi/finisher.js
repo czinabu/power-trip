@@ -304,7 +304,7 @@ export function updateFinisherCue(){
   const gp = t.group.position, sc = (t.group.scale && t.group.scale.y) || 1, top = t === shared.boss ? 3.6 : 2.95 * sc;
   cue.position.set(gp.x, gp.y + top, gp.z);
   const p = 0.5 + 0.5 * Math.sin(G.gt * 12);
-  cue.scale.setScalar(0.5 + 0.08 * p);
+  cue.scale.setScalar(0.75 + 0.1 * p);
   cue.material.opacity = 0.75 + 0.25 * p;
   cue.visible = true;
 }

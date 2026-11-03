@@ -213,6 +213,7 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
              linear-gradient(rgba(var(--xc),.9),rgba(var(--xc),.9)) center bottom/1.5px 7px no-repeat,
              linear-gradient(rgba(var(--xc),.9),rgba(var(--xc),.9)) left center/7px 1.5px no-repeat,
              linear-gradient(rgba(var(--xc),.9),rgba(var(--xc),.9)) right center/7px 1.5px no-repeat}
+body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!important}   /* the Darksaber: the dynamic crosshair */
 #xh.on{--xc:255,64,52}   /* on a foe: a cut or a power aimed now lands on it */
 /* the cut dial (player/jedi/cutaim.js): a needle through the crosshair along the next cut, bright end where it comes from */
 #cutdial{position:fixed;top:50%;left:50%;width:0;height:0;pointer-events:none;z-index:7;opacity:.35;transition:opacity .08s}

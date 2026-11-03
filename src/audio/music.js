@@ -130,6 +130,9 @@ export const CUES = {
 const BASE = { menu: 0.16, lull: 0.3, combat: 0.62, heavy: 0.84, boss: 1.0, victory: 0.2, dead: 0.0 };
 const FIGHTING = new Set(['lull', 'combat', 'heavy', 'boss']);
 const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is denser than the old synth score, so it sits lower
+// the title screen plays the theme softly (low intensity = few, quiet voices), which at LEVEL was all but silent
+// (about -55 dBFS). It gets its own lift so the menu theme is clearly heard; gameplay levels are unchanged.
+const MENU_LIFT = 7;
 
 export const MUSIC = (function(){
   let bus=null, comp=null, delay=null, timer=null, started=false;
@@ -336,6 +339,9 @@ export const MUSIC = (function(){
 
   /* ---------- the sequencer ---------- */
   // palette, section, tempo and hero only ever change on a downbeat
+  // keyed on `want`, not the playing palette: leaving the menu drops the lift at once, so a run's first stings
+  // never play at the title screen's level while the menu's last bar finishes
+  const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) : 0.0001;
   function barTop(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
     const hk = isGunner() ? 'mando' : 'jedi';
@@ -424,10 +430,12 @@ export const MUSIC = (function(){
       delay = AC().createDelay(); delay.delayTime.value = 0.27; const fb = AC().createGain(); fb.gain.value = 0.33; const wet = AC().createGain(); wet.gain.value = 0.25;
       delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
       started = true; nextTime = AC().currentTime + 0.08; step = 0;
-      bus.gain.setTargetAtTime(enabled ? LEVEL : 0.0001, AC().currentTime, 1.2);   // fade in
+      bus.gain.setTargetAtTime(level(), AC().currentTime, 1.2);   // fade in
       timer = setInterval(loop, 25);
     },
-    setPalette(name){ want = PALETTES[name] ? name : 'refuge'; },   // a world with no palette of its own marches to the refuge's
+    setPalette(name){ const w = PALETTES[name] ? name : 'refuge'; if (w === want) return;
+      const lifted = want === 'menu'; want = w;
+      if (bus && lifted !== (w === 'menu')) bus.gain.setTargetAtTime(level(), AC().currentTime, lifted ? 0.12 : 0.6); },   // a world with no palette of its own marches to the refuge's
     // a story-mission objective steering the score (see CUES); null when the mission ends
     setCue(name, d){
       cueName = name ? (CUES[name] ? name : 'battle') : null; cue = cueName && CUES[cueName];
@@ -439,7 +447,7 @@ export const MUSIC = (function(){
       else if (s === 'dead') this.deathSting();
     },
     setEnabled(on){ enabled = on; try { localStorage.setItem('sw_music', on ? '1' : '0'); } catch(e){}
-      if (bus) bus.gain.setTargetAtTime(on ? LEVEL : 0.0001, AC().currentTime, 0.3); },
+      if (bus) bus.gain.setTargetAtTime(level(), AC().currentTime, 0.3); },
     toggle(){ this.setEnabled(!enabled); return enabled; },
     isOn(){ return enabled; },
     ok(){ return !!(AC() && bus && enabled); },

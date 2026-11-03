@@ -299,11 +299,13 @@ export function updateWallRun(dt, pp){
     wr.t += dt;
     const n = wallBeside(pp, 1.5);
     // the face must stay the same one: rounding a corner or the wall ending drops you off
-    if (player.grounded || !keys['w'] || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || jets){
+    if (player.grounded || !keys['w'] || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || player.gliding || jets){
       if (!player.grounded && !player.mantle && !player.slamming){ player.vel.x += wr.nx * MOVE.wallRunPeel; player.vel.z += wr.nz * MOVE.wallRunPeel; }   // peel off the face, carrying the run's speed
       player.wallRun = null;
       return;
     }
+    // never rising faster than the catch's lift: the wall's light gravity is for running along it, not climbing it
+    if (player.vy > MOVE.wallRunLift) player.vy = MOVE.wallRunLift;
     // run along the face at a steady speed, the normal component pinned to zero so you hug it
     const ax = -n.z * wr.dir, az = n.x * wr.dir;
     player.moveVel.set(ax * MOVE.wallRunSpeed, 0, az * MOVE.wallRunSpeed);

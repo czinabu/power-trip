@@ -154,14 +154,16 @@ export function updateMovement(dt, pp, st, f, r){
 export function updateForceJump(dt, pp, f, r){
   // --- JEDI Force jump: only when you HOLD space (a tap is just a normal jump). The TAKEOFF eats the bulk of
   //     the Force up front, then it sips slowly while held; arcs up then glides down. Power auto-levels (fjTier).
-  if (G.hero === 'jedi' && !!keys[' '] && !player.grounded) player.jumpHoldT = (player.jumpHoldT || 0) + dt;
+  // (not on a wall-run: the wall-run is its own move, and a Force leap off its low gravity would float you up the wall.
+  //  The hold starts over once the run ends, so a held SPACE has to be held again to leap off the end of it.)
+  if (G.hero === 'jedi' && !!keys[' '] && !player.grounded && !player.wallRun) player.jumpHoldT = (player.jumpHoldT || 0) + dt;
   else player.jumpHoldT = 0;
   const wasGliding = player.gliding;
   player.gliding = false;
   // ASCENDING needs a held space (past the tap threshold) to trigger the TAKEOFF leap; once DESCENDING, holding
   // space simply FLOATS you down — engages instantly (no takeoff), and always costs Force.
   const descending = player.vy <= 0.3;
-  const forceJumpHeld = G.hero === 'jedi' && !!keys[' '] && !player.grounded && !player.slamming && G.mode === 'play' && player.force > 1
+  const forceJumpHeld = G.hero === 'jedi' && !!keys[' '] && !player.grounded && !player.slamming && !player.wallRun && G.mode === 'play' && player.force > 1
                         && (player.jumpHoldT > JUMP_HOLD_THRESH || (descending && wasGliding));
   if (forceJumpHeld){
     const pow = forceJumpPow();

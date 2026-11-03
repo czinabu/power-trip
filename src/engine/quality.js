@@ -38,6 +38,8 @@ function applyQuality(){
   const gv = document.getElementById('gfxval');   // keep the pause-menu selector label in sync
   if (gv) gv.textContent = QUALITY_LEVELS[qualityIdx].toUpperCase();
 }
+/* the tier in use right now ('low' | 'medium' | 'high'): for builders that scale how much they scatter (world/grass.js) */
+export const qualityLevel = () => QUALITY_LEVELS[qualityIdx];
 export function cycleQuality(){
   qualityIdx = (qualityIdx + 1) % QUALITY_LEVELS.length;
   manualQuality = true;   // the player has taken the wheel: the auto governor stands down

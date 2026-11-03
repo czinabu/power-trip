@@ -57,6 +57,7 @@ import { clearScorch } from '../fx/scorch.js';
 import { clearSevered } from '../enemies/scars.js';
 import { buildAir, clearAir } from './air.js';
 import { buildWarfront, clearWarfront } from './warfront.js';
+import { buildGrass, clearGrass } from './grass.js';
 
 /* ============================================================
    ARENA
@@ -110,7 +111,8 @@ export function buildArena(L){
   shared.ambient = null; shared.mist = null;
   shared.arenaWalled = false;    // a room walled in on all four sides (the sandbox rooms): bolts stop at its walls
   shared.dojoRemotes = null;      // the sandbox room's hovering remotes (world/arenas/dojo.js)
-  shared.templeBrazier = null;   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
+  shared.templeBrazier = null;
+  shared.grassClear = null; shared.grassMounds = null; clearGrass();   // (an arena builder may set these: world/grass.js)   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
   pillars.length = 0;
   solids.length = 0;              // (cleared before the world: its backdrop hills that run into the play space are ground)
 
@@ -277,6 +279,7 @@ export function buildArena(L){
   shared.perches = null;
   buildPerches(LP);
   shared.jetCeiling = jetCeilingFor(L);   // how high the Mando's pack climbs here (data/map-rules.js JET_CEILING)   // the second storey: raised decks round the outer ring of a campaign or story arena (world/perches.js)
+  if (T) buildGrass(T, L);   // tall grass in the wind, where the world has it (world/grass.js)
   buildNav();   // the enemy pathing grid follows the new layout (enemies/nav.js)
   // INK: cel-shade every static prop and merge them into a handful of draw calls (glows and hazards stay live)
   if (T) shared.arenaBake = bakeArena(shared.arenaGroup, T.ink ?? 0.045);

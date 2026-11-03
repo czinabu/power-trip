@@ -33,6 +33,7 @@ import { buildIcefrontArena } from '../src/world/arenas/icefront.js';
 import { buildGraveyardArena } from '../src/world/arenas/graveyard.js';
 import { buildArchiveArena } from '../src/world/arenas/archive.js';
 import { buildPrisonArena } from '../src/world/arenas/prison.js';
+import { buildPensArena } from '../src/world/arenas/pens.js';
 import { buildHangarArena } from '../src/world/arenas/hangar.js';
 import { buildJungleArena } from '../src/world/arenas/jungle.js';
 import { buildShipyardArena } from '../src/world/arenas/shipyard.js';
@@ -56,7 +57,7 @@ import { buildCitadelArena } from '../src/world/arenas/citadel.js';
 const BUILDERS = { temple: buildTempleArena, foundry: buildFoundryArena, plains: buildPlainsArena, hall: buildHallArena,
   forge: buildForgeArena, refuge: buildRefugeArena, pursuit: buildPursuitArena, dojo: buildDojoArena, throne: buildThroneArena,
   grassland: buildGrasslandArena, icefront: buildIcefrontArena, graveyard: buildGraveyardArena,
-  approach: buildGrasslandArena, archive: buildArchiveArena, prison: buildPrisonArena, hangar: buildHangarArena, sith: buildSithArena,
+  approach: buildGrasslandArena, archive: buildArchiveArena, prison: buildPrisonArena, pens: buildPensArena, hangar: buildHangarArena, sith: buildSithArena,
   jungle: buildJungleArena, outpost: buildOutpostArena, covert: buildCovertArena, shipyard: buildShipyardArena, garrison: buildGarrisonArena, frigate: buildFrigateArena,
   kamino: buildKaminoArena, chipworks: buildChipworksArena, warcamp: buildWarcampArena,
   canyon: buildCanyonArena, relay: buildRelayArena,

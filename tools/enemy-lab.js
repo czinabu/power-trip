@@ -26,6 +26,7 @@ import { GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS } from '../src/data/duel.js';
 import { CAST_IDS, ACOLYTES } from '../src/data/saber-cast.js';
 import { STANCES } from '../src/data/stances.js';
 import { guardArm, updateStance, stanceArms } from '../src/enemies/foestance.js';
+import { FOE_STANCE } from '../src/data/foe-stances.js';
 
 const q = new URLSearchParams(location.search);
 { const d = new URLSearchParams(location.search); if (d.has('rings')) DETAIL.rings = +d.get('rings'); if (d.has('round')) DETAIL.round = +d.get('round'); if (d.has('detail')) surfaceDetail.value = +d.get('detail'); }   // detail dial (player/model/shapes.js DETAIL)
@@ -98,12 +99,19 @@ if (SET === 'bosses'){
      &line=R|L|H|Lo (default R; &block=1 its block). &old=1: the shared guard every form held before. &live=1 has them breathe */
   const LINE = q.get('line') || 'R', BLK = q.get('block') === '1', OLD = q.get('old') === '1';
   const FORMS = (q.get('forms') || 'shiicho,makashi,soresu,ataru,djemso,shien,juyo,staff').split(',');
+  /* &tune={"shien2":{"base":"shien","wrist":{"L":[0.9,-1.4]}}} tries a stance out without editing the data: a new name
+     (or an existing one) built on `base`, its per-line keys merged line by line. Put the new name in &forms */
+  if (q.get('tune')) for (const [k, v] of Object.entries(JSON.parse(q.get('tune')))){
+    const b = FOE_STANCE[v.base || k] || {}, o = { ...b };
+    for (const [kk, vv] of Object.entries(v)) if (kk !== 'base') o[kk] = vv && typeof vv === 'object' && !Array.isArray(vv) ? { ...(b[kk] || {}), ...vv } : vv;
+    FOE_STANCE[k] = o;
+  }
   for (const ff of FORMS){
     const staff = ff === 'staff', t = staff ? ENEMY_TYPES.duelist : ENEMY_TYPES.acolyte;
     const g = buildEnemyMesh(t, { face: FORMS.indexOf(ff) % 5 });
     if (!staff && g.userData.bladeGlow && STANCES[ff]) g.userData.bladeGlow.material.color.setHex(STANCES[ff].blade);
     const e = { group: g, t, type: staff ? 'duelist' : 'acolyte', ff: OLD ? null : ff, state: 'chase', guard: LINE, st: 0 };
-    figs.push({ g, label: (STANCES[ff] ? STANCES[ff].name.split(' —')[0] : 'STAFF') + (OLD ? ' (before)' : ''), w: 1.7, e, line: LINE, blk: BLK });
+    figs.push({ g, label: (STANCES[ff] ? STANCES[ff].name.split(' —')[0] : FOE_STANCE[ff] && ff !== 'staff' ? ff : 'STAFF') + (OLD ? ' (before)' : ''), w: 1.7, e, line: LINE, blk: BLK });
   }
 } else if (SET === 'saber'){
   /* the saber cast (data/saber-cast.js): every named look, then the rank-and-file acolytes. &nolook=1 builds them the

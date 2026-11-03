@@ -45,6 +45,7 @@ export const G = {
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)
   missionForms: null,    // the three forms chosen before a mission (ui/forms-ui.js)
   strafeMode: 'toggle',  // player preference: ALT strafe is a 'toggle' (press on, press off) or a 'hold' (player/strafe.js)
+  guardRings: 'fading', // player preference: a duellist's guard ring, 'fading' | 'always' | 'off' (enemies/guardcue.js)
   aimHint: true,        // player preference: the Jedi's crosshair turns red on a foe (ui/hud.js); off for a challenge
   swingMirror: false,   // player preference: flips which way strafe-L/R directional cuts sweep
   cutMouse: false,       // player preference: a mouse flick just before a cut picks its angle (off by default: the keys do)

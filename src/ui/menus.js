@@ -278,6 +278,17 @@ function setShakeScale(v){
   const sl = document.getElementById('shakesl'); if (sl && +sl.value !== G.shakeScale) sl.value = G.shakeScale;
 }
 { let v; try { v = parseFloat(localStorage.getItem('sw_shake')); } catch(e){} setShakeScale(isNaN(v) ? 1 : v); }
+// CAMERA SWAY — how much the Jedi's camera trails him as he moves (engine/camera.js): 100% is Jedi Academy's lag
+function setCamSway(v){
+  G.camSway = Math.max(0, Math.min(1.5, isNaN(v) ? 0.8 : v));
+  try { localStorage.setItem('sw_sway', G.camSway); } catch(e){}
+  const sv = document.getElementById('swayval'); if (sv) sv.textContent = G.camSway ? Math.round(G.camSway * 100) + '%' : 'OFF';
+  const sl = document.getElementById('swaysl'); if (sl && +sl.value !== G.camSway) sl.value = G.camSway;
+}
+{ let v; try { v = parseFloat(localStorage.getItem('sw_sway')); } catch(e){} setCamSway(isNaN(v) ? 0.8 : v); }
+{ const sl = document.getElementById('swaysl');
+  if (sl){ sl.addEventListener('pointerdown', (e) => e.stopPropagation()); sl.addEventListener('click', (e) => e.stopPropagation());
+    sl.addEventListener('input', (e) => setCamSway(parseFloat(e.target.value))); } }
 // SCREEN FLASHES — scales every full-screen flash (fx/floaters.js screenFlash); 0 turns them off
 function setFlashScale(v){
   G.flashScale = Math.max(0, Math.min(1.5, isNaN(v) ? 1 : v));

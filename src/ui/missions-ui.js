@@ -17,7 +17,7 @@ import { MISSIONS } from '../data/missions.js';
 import { missionShelves, missionRank, missionShelf, missionForHero, STORIES } from '../data/mission-groups.js';
 import { audioInit } from '../audio/sfx.js';
 import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName, TWISTS, arcadeWins } from '../data/arcade.js';
-import { overlay, setOverlayState, isMenuState, beginFromMenu, panelOpen } from './menus.js';
+import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen } from './menus.js';
 
 const listEl = document.getElementById('mplist'), infoEl = document.getElementById('mpinfo');
 const HEROES = () => ['jedi', 'mando', 'trooper'];
@@ -38,7 +38,7 @@ export function setMission(id){
   for (const el of listEl.querySelectorAll('.msn')) el.classList.toggle('sel', el.dataset.mission === id);
   refreshInfo();
   refreshTile();
-  if (isMenuState()) setOverlayState('menu');   // the headline names the mission
+  refreshPicks();   // the headline (or the results screen's button and NEXT line) names the mission
 }
 
 /* ---------- the ARCADE board ---------- */
@@ -164,7 +164,7 @@ export function refreshMissionMark(){ render(); refreshTile(); }
 
 export function openMissionPage(){
   overlay.classList.add('mpage');
-  if (isMenuState()) setOverlayState('menu');   // BEGIN MISSION and the mission's name, not the first step's headline
+  refreshPicks();   // BEGIN MISSION and the mission's name, not the first step's headline
   render();
   overlay.scrollTop = 0;
   const sel = listEl.querySelector('.msn.sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -172,7 +172,7 @@ export function openMissionPage(){
 export function closeMissionPage(){
   if (!missionPageOpen()) return;
   overlay.classList.remove('mpage');
-  if (isMenuState()) setOverlayState('menu');
+  refreshPicks();
   refreshTile();
 }
 
@@ -195,7 +195,7 @@ for (const t of document.querySelectorAll('#mpheroes span')) t.addEventListener(
 });
 // keys: Esc goes back; the arrows move between the open missions (nearest card that way); Enter begins
 document.addEventListener('keydown', (e) => {
-  if (!missionPageOpen() || !isMenuState() || overlay.style.display === 'none') return;
+  if (!missionPageOpen() || !isPickingState() || overlay.style.display === 'none') return;
   if (panelOpen() || /\b(customizing|asktrain)\b/.test(overlay.className) || document.getElementById('armory')?.classList.contains('open')) return;
   if (e.key === 'Escape'){ closeMissionPage(); return; }
   const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];

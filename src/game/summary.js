@@ -58,7 +58,7 @@ function renderRunSummary(){
     '<div class="rs-title">' + title + '</div>' +
     '<div class="rs-score">SCORE <b>' + s.score.toLocaleString() + '</b>' +
       (s.newBest ? '<span class="rs-best new">★ NEW BEST</span>' : '<span class="rs-best">BEST ' + s.best.toLocaleString() + '</span>') + '</div>' +
-    '<div class="rs-grid c' + (s.acc >= 0 ? 4 : 3) + '">' + grid + '</div>' +
+    '<div class="rs-grid">' + grid + '</div>' +
     boonHtml + readoutSummaryHtml();
   el.style.display = 'block';
 }

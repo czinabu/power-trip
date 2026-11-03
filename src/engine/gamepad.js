@@ -314,7 +314,7 @@ function menu(btn, down, lx, ly, ry, dt){
   }
   if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — the sandbox panel's tabs (ui/sandbox-ui.js)
   if (down(1)){   // B — back: close what's on top, or resume from the pause screen
-    if (panelUp() || (ovUp() && /\bst-menu\b/.test(overlay.className) && /\b(mpage|step-hero)\b/.test(overlay.className))){ sendKey('escape', true); sendKey('escape', false); }   // (the Missions page or the hero step: back to the modes, ui/missions-ui.js and ui/menus.js)
+    if (panelUp() || (ovUp() && ((/\bst-menu\b/.test(overlay.className) && /\b(mpage|step-hero)\b/.test(overlay.className)) || /\bvpicking\b/.test(overlay.className)))){ sendKey('escape', true); sendKey('escape', false); }   // (the Missions page or the hero step: back to the modes; the results screen's CHANGE panel: closed, ui/missions-ui.js and ui/menus.js)
     else if (ovUp() && overlay.classList.contains('st-pause')){ sendKey('tab', true); sendKey('tab', false); }
   }
   if (down(9)){   // MENU — resume from pause; anywhere else on the overlay, the main button

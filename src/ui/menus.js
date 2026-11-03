@@ -49,6 +49,31 @@ export const overlay = document.getElementById('overlay');
    the primary button's label and which blocks show (hero/mode setup only where picking makes sense). */
 let _ovState = 'menu';
 export const isMenuState = () => _ovState === 'menu';
+/* THE RESULTS SCREEN'S CHANGE PANEL — the victory screen leads with the results and the next run's actions; the mode,
+   hero and difficulty pickers fold away behind one line (NEXT: MISSIONS · ARCADE · JEDI · KNIGHT   CHANGE) and open
+   as the title screen's own two steps. _endPick is what was just played, so PLAY AGAIN stays PLAY AGAIN until the
+   pick really changes (then the button names what it begins). */
+let _endPick = null;
+const pickKey = () => G.modeSel + '|' + (G.modeSel === 'mission' ? G.missionId : '');
+const pickChanged = () => _endPick !== null && pickKey() !== _endPick;
+export const isPickingState = () => _ovState === 'menu' || (_ovState === 'victory' && overlay.classList.contains('vpicking'));
+// the menu and the results screen both follow a new pick: the headline / button and the NEXT line
+export function refreshPicks(){ if (_ovState === 'menu' || _ovState === 'victory') setOverlayState(_ovState); }
+function setPicking(on){
+  overlay.classList.toggle('vpicking', on);
+  document.getElementById('vchange').textContent = on ? 'DONE' : 'CHANGE';
+  if (on){ closeMissionPage(); showMenuStep('mode'); document.getElementById('nextrun').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  else { closeMissionPage(); overlay.scrollTop = 0; }
+  refreshNextRun();
+}
+const DIFF_NAME = { padawan: 'PADAWAN', knight: 'KNIGHT', master: 'MASTER' };
+function refreshNextRun(){
+  const el = document.getElementById('nrWhat'); if (!el) return;
+  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'ARCADE · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'KNIGHT'].join(' · ');
+}
+// the title screen's BEGIN label for the picked mode (its second step and the Missions page)
+const beginLabel = () => G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
 /* THE TITLE SCREEN'S TWO STEPS — 'mode' (pick a mode: CAMPAIGN, MISSIONS, CO-OP...) and then 'hero' (the hero, the
    difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
 let _step = 'mode';
@@ -59,10 +84,12 @@ export function showMenuStep(step){
   overlay.classList.toggle('step-mode', _step === 'mode');
   overlay.classList.toggle('step-hero', _step === 'hero');
   document.getElementById('stepMode').textContent = STEP_NAME[G.modeSel] || 'CAMPAIGN';
-  if (_ovState === 'menu') setOverlayState('menu');   // the headline and BEGIN follow the step
-  overlay.scrollTop = 0;
+  if (_ovState === 'menu'){ setOverlayState('menu'); overlay.scrollTop = 0; }   // the headline and BEGIN follow the step
+  else refreshPicks();   // (the results screen's CHANGE panel stays where it is)
 }
 export function setOverlayState(state){
+  if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
+  if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
   _ovState = state;
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming');
   overlay.classList.add('st-' + state);
@@ -84,7 +111,7 @@ export function setOverlayState(state){
   } else if (state === 'menu' && firstStep){
     go.textContent = 'BEGIN'; sub.textContent = 'CHOOSE YOUR LEGEND';
   } else if (state === 'menu'){
-    go.textContent = G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : 'BEGIN CAMPAIGN';
+    go.textContent = beginLabel();
     sub.textContent = G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
@@ -94,7 +121,10 @@ export function setOverlayState(state){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
     sub.textContent = '';   // the run summary's own title carries the moment
   } else if (state === 'victory'){
-    go.textContent = G.mission && G.chapter < 0 && isArcadeId(G.missionId) && !G.coopWasGuest ? 'NEXT RANDOM MISSION' : 'PLAY AGAIN';   // the arcade deals another (beginPlay)
+    go.textContent = pickChanged() ? beginLabel()   // a new pick from CHANGE: name what it begins
+      : G.mission && G.chapter < 0 && isArcadeId(G.missionId) && !G.coopWasGuest ? 'NEXT RANDOM MISSION' : 'PLAY AGAIN';   // the arcade deals another (beginPlay)
+    document.getElementById('nextrun').style.display = G.coopWasGuest ? 'none' : '';   // (a co-op guest follows the host's pick)
+    refreshNextRun();
   }
   queueFit();
 }
@@ -121,11 +151,13 @@ function beginPlay(){
   // leaving the end screen → re-arm the summary for the next run
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
   document.getElementById('runsummary').style.display = 'none';
+  const repick = pickChanged();   // (read before the results screen lets go of what was played)
+  _endPick = null; overlay.classList.remove('vpicking');
   document.body.classList.remove('in-menu');
   setHowTo(false); setSettings(false);
   if (G.modeSel === 'mission' && !G.coopJoin && !missionOpen(G.missionId)) G.modeSel = 'campaign';   // a locked mission never launches
   if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked())) G.modeSel = 'campaign';   // safety — never launch a locked mode
-  if (G.mode === 'victory' && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
+  if (G.mode === 'victory' && !repick && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
   if (G.mode === 'menu' || G.mode === 'victory'){
     G.mode = 'play'; G.slowmo = 1;
     if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
@@ -140,9 +172,9 @@ function beginPlay(){
   G.paused = false;   // unfreeze the sim on (re)entering play
 }
 // hero picker — select only (don't ignite); the player clicks elsewhere / GO to launch
-document.getElementById('hero-jedi').addEventListener('click', (e) => { e.stopPropagation(); setHero('jedi'); refreshMissionMark(); });
-document.getElementById('hero-mando').addEventListener('click', (e) => { e.stopPropagation(); setHero('mando'); refreshMissionMark(); });
-document.getElementById('hero-trooper').addEventListener('click', (e) => { e.stopPropagation(); setHero('trooper'); refreshMissionMark(); });
+document.getElementById('hero-jedi').addEventListener('click', (e) => { e.stopPropagation(); setHero('jedi'); refreshMissionMark(); refreshNextRun(); });
+document.getElementById('hero-mando').addEventListener('click', (e) => { e.stopPropagation(); setHero('mando'); refreshMissionMark(); refreshNextRun(); });
+document.getElementById('hero-trooper').addEventListener('click', (e) => { e.stopPropagation(); setHero('trooper'); refreshMissionMark(); refreshNextRun(); });
 // mode picker — campaign vs survival
 // SURVIVAL is LOCKED until the campaign has been cleared as BOTH heroes (any difficulty).
 export function survivalUnlocked(){ try { return localStorage.getItem('sw_camp_jedi') === '1' && localStorage.getItem('sw_camp_mando') === '1'; } catch(e){ return false; } }
@@ -180,7 +212,7 @@ export function setModeSel(m){
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile();
   document.getElementById('stepMode').textContent = STEP_NAME[m] || 'CAMPAIGN';
-  if (_ovState === 'menu') setOverlayState('menu');   // headline + button follow the mode
+  refreshPicks();   // headline + button follow the mode
   return true;
 }
 // a mode tile picks the mode and moves on to the hero step (a locked one shakes and stays put)
@@ -189,10 +221,14 @@ for (const m of ['campaign', 'endless', 'training', 'sandbox'])
 document.getElementById('mode-mission').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('mission'); openMissionPage(); });   // its own page: ui/missions-ui.js
 // back to the modes: the ‹ MODES button, Esc, or the pad's B (engine/gamepad.js). Runs in the capture phase so it sees the
 // screen before Esc closes the customizer or a panel on top of it (then that Esc is theirs, not a step back)
+document.getElementById('vchange').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setPicking(!overlay.classList.contains('vpicking')); });
 document.getElementById('stepBack').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); showMenuStep('mode'); });
 window.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape' || _step !== 'hero' || _ovState !== 'menu' || overlay.style.display === 'none' || panelOpen()) return;
-  if (/\b(customizing|mpage)\b/.test(overlay.className) || G.mode !== 'menu') return;
+  const picking = _ovState === 'victory' && overlay.classList.contains('vpicking');
+  // the results screen's CHANGE panel on its first step: Esc (the pad's B) folds it away again, back to the results
+  if (e.key === 'Escape' && picking && _step === 'mode' && overlay.style.display !== 'none' && !panelOpen() && !/\bmpage\b/.test(overlay.className)){ setPicking(false); return; }
+  if (e.key !== 'Escape' || _step !== 'hero' || (_ovState !== 'menu' && !picking) || overlay.style.display === 'none' || panelOpen()) return;
+  if (/\b(customizing|mpage)\b/.test(overlay.className) || (G.mode !== 'menu' && !picking)) return;
   showMenuStep('mode');
 }, true);
 // the hero step names what the picked hero does, under the three name plates
@@ -227,6 +263,7 @@ function shouldOfferTraining(){
 export function setDiff(d){
   G.diff = d; try { localStorage.setItem('sw_diff', d); } catch(e){}
   for (const k in DIFFS) document.getElementById('diff-' + k).classList.toggle('sel', k === d);
+  refreshNextRun();
 }
 for (const k in DIFFS) document.getElementById('diff-' + k).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setDiff(k); });
 setDiff(localStorage.getItem('sw_diff') || 'knight');
@@ -546,6 +583,7 @@ document.addEventListener('pointerlockchange', () => {
 // RESTART RUN — wipe progress and drop back into level 1 from scratch
 function restartRun(toTraining){
   overlay.style.display = 'none';
+  _endPick = null; overlay.classList.remove('vpicking');
   document.getElementById('restartBtn').style.display = 'none';
   document.getElementById('banner').style.opacity = '0';
   document.getElementById('skilltree').style.display = 'none';

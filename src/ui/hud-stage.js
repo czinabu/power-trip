@@ -1,35 +1,32 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HUD STAGE: the words on the lower middle of the screen, kept in one column and taking turns.
+// THE HUD STAGE: the boxes of words that share the screen, kept in their places and taking turns.
 //
-// Three boxes share that spot, bottom up: the XP line (#xpmeter), the mission card (#tutor.drill: an objective's task, or
-// the Chapter / Mission complete card) and the voice in your ear (#comms). Before this they each had their own fixed spot
-// and their own clock, so the end of a chapter could put a voice line, the closing card, the form hint and the XP line on
-// screen at once. The rules now:
-//
-//  · ONE COLUMN: each box sits a set gap above the one under it, and the card also rises clear of the vitals, the squad
-//    list and the action bar when the screen is too narrow for them to sit side by side (measured each beat, so it holds
-//    for every hero's action bar and every screen size, not guessed per width)
+//  · PLACES: the voice in your ear (#comms) sits low in the middle, over the XP line (#xpmeter). The mission card (#tutor.drill:
+//    a power's "try it now", the Chapter / Mission complete card) sits in the top-right column, under the objectives list
+//    (#objlist) or the sandbox readout (#readout), out of the way of the hero and the fight. An objective's own task isn't a
+//    card at all: it is on the objectives list already (game/mission.js say). Measured each beat, so the card follows the
+//    list as it grows and shrinks, on every screen size
 //  · ONE VOICE AT A TIME: a closing card is the chapter's last words. It waits for a line already on the strip to finish,
 //    then the strip holds its next line until the card has been read (a line that cuts in still does: game/story.js asks
-//    stageHolds), and the upgrade screen waits for it too (game/flow.js, game/aftermath.js). An objective's line that comes
-//    while the strip is talking joins the strip instead of sitting in the card under it (game/mission.js say)
+//    stageHolds), and the upgrade screen waits for it too (game/flow.js, game/aftermath.js). A power's drill waits for the
+//    strip to go quiet (game/tutorial.js)
 //  · QUIET SIDES: while a closing card is up the form hint by the action bar stays down (body.stage-card, styles/hud.css)
 //
-// Every mode runs it: the mission card only appears in missions and campaign chapters, the strip in any of them, and with
-// neither up the column simply leaves the boxes on their own spots.
+// Every mode runs it: the mission card only appears in missions, campaign chapters and a run's power drills, the strip in any
+// of them, and with neither up the boxes simply keep their own spots.
 
 export const STAGE = {
-  gap: 12,            // px between boxes in the column
+  gap: 12,            // px between boxes
   waitMax: 4,         // s: the longest a closing card waits for a line already on the strip
   read: [5, 8],       // s: how long a closing card stays up (by how much it says: base + perChar, held to this range)
   base: 2.4, perChar: 0.035,
-  every: 0.1,         // s: how often the column is measured (and at once whenever a card goes up)
-  cardTop: 0.42,      // the card never rises past this share of the screen's height, however tall the side boxes are
+  every: 0.1,         // s: how often the boxes are measured (and at once whenever a card goes up)
+  cardLow: 0.55,      // the card's top never goes lower than this share of the screen's height, however long the list above it
 };
 
 const $ = (id) => document.getElementById(id);
 let els = null;
-const boxes = () => els || (els = { xp: $('xpmeter'), tutor: $('tutor'), comms: $('comms'), sides: ['status', 'actionbar', 'squadhud'].map($).filter(Boolean) });
+const boxes = () => els || (els = { xp: $('xpmeter'), tutor: $('tutor'), comms: $('comms'), above: ['objlist', 'readout'].map($).filter(Boolean) });
 
 /* ---------- the closing card's turn ---------- */
 let card = null;   // { show, hide, hold, wait, up }
@@ -64,28 +61,21 @@ export function updateHudStage(dt, playing){
   if ((measureT -= Math.max(dt, 1 / 60)) <= 0){ measureT = STAGE.every; layout(); }
 }
 
-/* ---------- the column ---------- */
-function setBottom(el, px){
+/* ---------- the places ---------- */
+function setPx(el, prop, px){
   const v = px == null ? '' : Math.round(px) + 'px';
-  if (el.style.bottom !== v) el.style.bottom = v;
+  if (el.style[prop] !== v) el.style[prop] = v;
 }
 export function layout(){
-  const { xp, tutor, comms, sides } = boxes(), H = innerHeight, W = innerWidth, gap = STAGE.gap;
-  let floor = 0;   // px up from the screen's foot that the column has used so far
-  const xr = xp.getBoundingClientRect();
-  if (xr.height) floor = H - xr.top;
+  const { xp, tutor, comms, above } = boxes(), H = innerHeight, W = innerWidth, gap = STAGE.gap;
+  // the card: under whatever the top-right column already shows
   if (tutor.classList.contains('drill')){
-    const w = tutor.offsetWidth, l = (W - w) / 2, r = l + w;
-    let f = floor;
-    for (const s of sides){
-      const b = s.getBoundingClientRect();
-      if (b.height && b.left < r + gap && b.right > l - gap) f = Math.max(f, H - b.top);   // it would sit on top of them: rise clear
-    }
-    const at = Math.min(f + gap, H * STAGE.cardTop - tutor.offsetHeight);
-    setBottom(tutor, Math.max(at, floor + gap));
-    if (tutor.classList.contains('on')) floor = Math.max(at, floor + gap) + tutor.offsetHeight;
-  } else setBottom(tutor, null);
-  // the strip keeps its own spot (styles/hud.css) unless something in the column reaches it
-  const own = H * (W <= 620 ? 0.26 : 0.21);
-  setBottom(comms, floor + gap > own ? floor + gap : null);
+    let top = 0, w = 0;
+    for (const a of above){ const b = a.getBoundingClientRect(); if (b.height && getComputedStyle(a).opacity !== '0'){ top = Math.max(top, b.bottom); w = Math.max(w, b.width); } }
+    setPx(tutor, 'top', Math.min(top ? top + gap : 44, H * STAGE.cardLow));
+    setPx(tutor, 'width', w || null);   // as wide as the list it hangs under
+  } else { setPx(tutor, 'top', null); setPx(tutor, 'width', null); }
+  // the strip keeps its own spot (styles/hud.css) unless the XP line would reach it (a very short screen)
+  const xr = xp.getBoundingClientRect(), floor = xr.height ? H - xr.top : 0, own = H * (W <= 620 ? 0.26 : 0.21);
+  setPx(comms, 'bottom', floor + gap > own ? floor + gap : null);
 }

@@ -98,7 +98,8 @@ export const otherVariant = (id, known) => {
 
 /* THE FORMS CODEX — what each form is, in the lore and in the fight: the Forms page (ui/forms-ui.js) shows a form
    once the hero has learned it. `who` names a famous user, `best` the fights it is made for. Keep the numbers here in
-   step with data/stances.js. */
+   step with data/stances.js. Its counter family (what it beats, what beats it) is drawn from data/foe-forms.js
+   FORM_FAMILY by ui/forms-ui.js, so it is not repeated here. */
 export const FORM_CODEX = {
   shiicho: { who: 'Kit Fisto', lore: 'The first form every initiate learns: wide, simple sweeps made to hold off many foes at once.',
     best: 'Crowds of troopers',
@@ -122,7 +123,7 @@ export const FORM_CODEX = {
     cons: ['Slow, stamina-hungry swings', 'Force powers cost 30% more', 'A narrow arc that crowds punish'] },
   shien: { who: 'Ahsoka Tano', lore: 'Form V\'s other road: a reverse grip built to send blaster fire straight back at the shooter.',
     best: 'Blaster troopers and turrets',
-    pros: ['Every deflect flies home and hits 50% harder', 'Strong cuts with a wider arc than Djem So'],
+    pros: ['Every deflect flies home and hits 50% harder', 'Cuts harder than Djem So on anything without armour, with a wider arc'],
     cons: ['Less raw power against armour than Djem So', 'Only one Form V fits in a loadout (G swaps them)'] },
   niman: { who: 'Jedi diplomats, the Jedi of Geonosis', lore: 'Form VI, the balanced form: a little of every other form, with saber and Force as one.',
     best: 'Anything: the all-rounder',
@@ -133,11 +134,11 @@ export const FORM_CODEX = {
     pros: ['Every hit builds fury, up to +35% damage', 'Fast, savage strings'],
     cons: ['Every swing burns Force as well as stamina', 'Blows land 25% harder on you', 'Choosing it closes Vaapad for the run'] },
   vaapad: { who: 'Mace Windu', lore: 'Form VII as Mace Windu made it: the attacker\'s own fury, turned back on them.',
-    best: 'Duellists and heavy hitters who come to you',
+    best: 'Fast duellists who keep attacking you',
     pros: ['Blocks and parries build fury, up to +40% damage', 'A parry finds the Shatterpoint: your next cut on that foe lands double and floors it'],
     cons: ['Blows land 10% harder on you', 'Weak when nobody attacks you', 'Choosing it closes Juyo for the run'] },
   staff: { who: 'The Jedi Temple Guard, Darth Maul', lore: 'Not a form but a weapon: one long hilt, a blade at each end, kept spinning in both hands. The Temple Guards carried it gold-bladed to hold a door against many; Maul made it a whirlwind. Every cut is two.',
     best: 'Crowds closing in from every side',
-    pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you'],
+    pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you', 'Its own acrobatics: a whirling cartwheel, handsprings and a pike leap with the staff level overhead'],
     cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },
 };

@@ -10,6 +10,7 @@
 import { G } from '../state.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
+import { FAMILIES, FORM_FAMILY, MATCHUP } from '../data/foe-forms.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
 import { canResume, oldNimanRun } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
@@ -33,6 +34,36 @@ const lockedChip = (id) => {
   return '<div class="fm-chip" title="' + (closed ? 'Closed for this run: you chose ' + esc(FORMS[ctx.closed].name) : 'Not learned yet') + '"><span>' + lockedName(id) + '</span>' + (closed ? esc(FORMS[id].name) : LOCK) + '</div>';
 };
 const lockedRow = () => { const l = ORDER.filter(id => !ctx.known.includes(id)); return l.length ? '<div class="fm-sec">NOT LEARNED YET</div><div class="fm-chips">' + l.map(lockedChip).join('') + '</div>' : ''; };
+
+/* THE COUNTER — each form's family in the POWER / GUARD / SPEED triangle (data/foe-forms.js): what it beats and what
+   beats it, against a duellist's form. Forms not learned yet aren't named ("a form still to learn"). The numbers under
+   it come straight from MATCHUP, so they stay true when it's tuned. */
+const famOf = (fam) => ORDER.filter(id => FORM_FAMILY[id] === fam);
+const pct = (m) => Math.round(Math.abs(m - 1) * 100) + '%';
+function famList(fam){
+  const all = famOf(fam), known = all.filter(id => ctx.known.includes(id)).map(id => FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-)(\w)/g, (m, a, b) => a + b.toUpperCase()));
+  const hidden = all.length - known.length;
+  return known.concat(hidden ? [hidden === 1 ? 'a form still to learn' : hidden + ' forms still to learn'] : []).join(', ');
+}
+function famTag(id){
+  const f = FAMILIES[FORM_FAMILY[id]];
+  return '<span class="fm-fam" style="--fc:' + (f ? f.color : 'var(--ink-dim)') + '">' + (f ? f.name : 'NEUTRAL') + '</span>';
+}
+function counterNote(){
+  const W = MATCHUP.win, L = MATCHUP.lose;
+  return '<div class="fm-ctr-note"><div>▲ You counter it: +' + pct(W.dmg) + ' damage, its guard turns ' + pct(W.block) + ' fewer cuts, its blows land ' + pct(W.hurt) + ' softer.</div>' +
+    '<div>▼ It counters you: −' + pct(L.dmg) + ' damage, its blows land ' + pct(L.hurt) + ' harder (only while one of your three could counter it).</div></div>';
+}
+// `note`: the numbers under it (the BEFORE THE FIGHT detail; the pause page shows them once, over the cards)
+function counterBlock(id, note){
+  const fam = FORM_FAMILY[id], F = FAMILIES[fam];
+  const rows = F
+    ? '<li class="up"><i>▲</i>Beats <em style="--fc:' + FAMILIES[F.beats].color + '">' + FAMILIES[F.beats].name + '</em> duellists: ' + esc(famList(F.beats)) + '</li>' +
+      (() => { const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam); return '<li class="dn"><i>▼</i>Beaten by <em style="--fc:' + FAMILIES[by].color + '">' + FAMILIES[by].name + '</em> duellists: ' + esc(famList(by)) + '</li>'; })()
+    : '<li class="eq"><i>•</i>Outside the triangle: no duellist\'s form counters it, and it counters none</li>';
+  return '<div class="fm-sub">COUNTERS · ' + famTag(id) + '</div><ul class="fm-ctr">' + rows + '</ul>' +
+    (F && note ? counterNote() : '');
+}
 
 const EDIT_HINT = ' Pick a slot, then a form for it. ✕ empties a slot.';
 let ctx = null;   // { prefight, edit, known: Set, loadout, slot, focus, note, closed: Set, onGo }
@@ -104,13 +135,13 @@ function card(id){
     '<b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id) + '</div>';
 }
 // BEFORE THE FIGHT shows small tiles and one form's detail beside them; the full cards stay on the pause page
 function tile(id){
   const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = ctx.loadout.indexOf(id);
   return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no">' + formTitle(id) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
+    '<div class="fm-no">' + formTitle(id) + ' · ' + famTag(id) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
     '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
 }
 function detail(){
@@ -120,7 +151,7 @@ function detail(){
   return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id, true) + '</div>';
 }
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';
@@ -139,7 +170,7 @@ function render(){
     '<div class="rm-sub">' + head + '</div><div class="howto-x" data-x="1">✕</div></div>' +
     '<div class="fm-sec">YOUR THREE</div>' + slotRow() +
     (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + (ctx.edit ? EDIT_HINT : '') + '</div>' : '') +
-    '<div class="fm-sec">THE FORMS</div><div class="fm-grid">' + ORDER.filter(id => ctx.known.includes(id)).map(card).join('') + '</div>' + lockedRow() +
+    '<div class="fm-sec">THE FORMS</div>' + counterNote() + '<div class="fm-grid">' + ORDER.filter(id => ctx.known.includes(id)).map(card).join('') + '</div>' + lockedRow() +
     (ctx.prefight ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') +
     '</div>';
 }

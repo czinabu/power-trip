@@ -806,15 +806,25 @@ export const BATTLE_WORLDS = {
     pal: { snow: 0x909eb2, snowD: 0x6a7a90, bag: 0x8a7a5e, ice: 0x7e96b0, rock: 0x5a6474, plank: 0x6a5a48, metal: 0x8a929c, metalD: 0x4a525c, imperial: 0x3a3e46,
            stripe: 0xd9a43a, lamp: 0xffc070, shield: 0x7ad8ff, scorch: 0x3a4252, blast: 0xff7a40, beacon: 0xff5040 },
     backdrop: [
-      { kind: 'cliffs', count: 20, r: [1.4, 2.2], h: [16, 32], w: 0.3, color: 0x6a7a92, color2: 0x58687e, skip: [[-1.0, 0.3]] },
-      { kind: 'dunes', count: 16, r: [1.06, 1.3], h: 4, color: 0x7a8aa0 },
-      { kind: 'walker', az: -1.0, r: 1.5, scale: 1.6, color: 0x7a8494, color2: 0x5e6878, glow: 0xff5a3a, stand: true },
-      { kind: 'walker', az: -2.3, r: 1.8, scale: 1.4, color: 0x7a8494, color2: 0x5e6878, glow: 0xff5a3a, stand: true },
+      // the cliffs leave the south open: that's where the walkers come from, and the far ones stand in the gap
+      { kind: 'cliffs', count: 20, r: [1.4, 2.2], h: [16, 32], w: 0.3, color: 0x6a7a92, color2: 0x58687e, skip: [[-1.57, 0.75]] },
+      { kind: 'dunes', count: 16, r: [1.06, 1.3], h: 4, color: 0x7a8aa0, skip: [[-0.3, 0.3], [Math.PI + 0.3, 0.3]] },   // (the flanks' soldier lines stand clear)
+      { kind: 'walker', az: -0.95, r: 2.5, scale: 1.6, color: 0x7a8494, color2: 0x5e6878, glow: 0xff5a3a, stand: true },   // the far layer: more of them coming
+      { kind: 'walker', az: -2.3, r: 2.8, scale: 1.4, color: 0x7a8494, color2: 0x5e6878, glow: 0xff5a3a, stand: true },
+      { kind: 'walker', az: -1.75, r: 3.4, scale: 1.3, color: 0x7a8494, color2: 0x5e6878, glow: 0xff5a3a, stand: true },
     ],
     ambient: { kind: 'snow', color: 0xf4f8ff, count: 420, size: 0.24, opacity: 0.8 },
     // the Battle of Hoth: AT-ATs marching on the shield generator from the south, snowspeeders circling their legs
-    warfront: { walkers: 2, walkerAz: -Math.PI/2, speedersPer: 2, walker: { color: 0x7a8494, color2: 0x5e6878 },
-      blasts: 0.6, tracers: { rate: 1.2, colors: [0xff3a2a, 0xff7a3a] }, columns: 3, smoke: 0x3a3e46, wind: [5, 0] },
+    // Three walkers stride in from the south and halt just past the edge, close enough to fill the sky: every footfall
+    // shakes the ground, and their cannons fire the crater strikes on the field. Rebel and Imperial lines fight it out on
+    // both flanks, speeders scream low over the trenches, and the smoke is soft grey that the light comes through.
+    warfront: { walkers: 3, walkerAz: -Math.PI/2, walkerSpread: 0.42, walkerRing: [2.6, 1.4], walkerSpeed: 1.3, walkerStride: 0.75,
+      stomp: true, walkerStrikes: true, speedersPer: 2, walker: { color: 0x7a8494, color2: 0x5e6878, scale: 1.2 },
+      flyers: [{ kind: 'speeder', count: 2, wing: 2, alt: [14, 26], speed: [48, 64], every: [5, 10], far: 3, spread: 0.9, fire: 0xff5a3a }],
+      troops: { fronts: [{ x: 92, z: -26, len: 16, ax: 1, gap: 26, n: 10 }, { x: -92, z: -26, len: 16, ax: 1, gap: 26, n: 10 },
+                         { x: 130, z: -44, len: 20, ax: 1, gap: 30, n: 9 }, { x: -130, z: -44, len: 20, ax: 1, gap: 30, n: 9 }],
+                colors: [0xa89a7a, 0xe8ecf2], fire: [0xff7a3a, 0xff3a2a], rate: 1, drop: 0.08 },
+      blasts: 0.75, tracers: { rate: 1.4, colors: [0xff3a2a, 0xff7a3a] }, columns: 4, smoke: { color: 0x737b88, opacity: 0.42 }, wind: [5, 0] },
     beats: { fog: 0x8a90a4, fill: 1.04, tint: 0xd8e0ff },
     hazards: { barrel: 0xa33820 },
     sound: 'plains',

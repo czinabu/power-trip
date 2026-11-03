@@ -791,12 +791,6 @@ body.pad .kbonly{display:none}
   border:1px solid transparent;border-radius:var(--r);font:700 13px/1 var(--font-ui);color:var(--ink-faint);cursor:pointer}
 .fm-clear:hover{color:var(--ink);border-color:var(--edge-lit);background:rgba(255,255,255,.05)}
 .fm-note{margin-top:8px;font-size:13px;line-height:1.4;color:var(--ink-dim)}
-.fm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.fm-card{padding:11px 13px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);background:var(--panel)}
-.fm-card.pick{cursor:pointer}
-.fm-card.pick:hover{background:var(--panel-hi);border-color:var(--c)}
-.fm-card.in{background:var(--panel-hi)}
-.fm-card{position:relative}
 .fm-i{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--edge-mid);border-radius:50%;font:italic 700 11px/1 var(--font-body);color:var(--ink-dim);cursor:help;outline:none}
 .fm-in + .fm-i{margin-left:8px}
 .fm-i:hover,.fm-i:focus,.fm-i.on{color:var(--ink);border-color:var(--edge-lit)}
@@ -807,10 +801,8 @@ body.pad .kbonly{display:none}
 .fm-slot.empty .fm-lock-ic{margin-left:2px}
 .fm-chips{display:flex;flex-wrap:wrap;gap:6px}
 .fm-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border:1px solid var(--edge);border-radius:var(--r-chip);background:rgba(255,255,255,.02);font:600 11px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-faint)}
-.fm-grid{align-items:stretch}
 .fm-no{display:flex;font:600 11px/1 var(--font-ui);letter-spacing:1.5px;color:var(--c,var(--ink-faint))}
 .fm-in{margin-left:auto;color:var(--gold)}
-.fm-card b{display:block;margin-top:5px;font:700 20px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
 .fm-lore{margin:6px 0 0;font-size:13px;line-height:1.35;color:var(--ink-soft)}
 .fm-lore i{color:var(--ink-faint)}
 .fm-lock{margin:6px 0 0;font-size:13px;color:var(--ink-faint)}
@@ -819,6 +811,19 @@ body.pad .kbonly{display:none}
 .fm-pros li,.fm-cons li{position:relative;padding-left:16px;margin:2px 0;color:var(--ink-soft)}
 .fm-pros li::before{content:'+';position:absolute;left:2px;color:#6fe39a;font-weight:700}
 .fm-cons li::before{content:'\2212';position:absolute;left:2px;color:#ff8a7a;font-weight:700}
+.fm-fam{margin-left:.35em;color:var(--fc)}
+.fm-tile .fm-no{flex-wrap:wrap;row-gap:3px}
+.fm-tile .fm-t,.fm-tile .fm-in{white-space:nowrap}
+.fm-tile .fm-in{padding-left:8px}
+.fm-sub{display:flex;margin-top:10px;padding-top:8px;border-top:1px solid var(--edge);font:600 11px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-dim)}
+.fm-ctr{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.35}
+.fm-ctr li{position:relative;padding-left:16px;margin:2px 0;color:var(--ink-soft)}
+.fm-ctr li i{position:absolute;left:0;font-style:normal;font-size:11px;top:1px}
+.fm-ctr li.up i{color:#5dff8a}
+.fm-ctr li.dn i{color:#ff5a4a}
+.fm-ctr li.eq i{color:var(--ink-dim)}
+.fm-ctr em{font-style:normal;font-weight:700;letter-spacing:.8px;color:var(--fc)}
+.fm-ctr-note{margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-faint)}
 .fm-actions{display:flex;justify-content:flex-end;gap:10px;margin:16px -26px 0;position:sticky;bottom:-24px;padding:12px 26px 4px;background:linear-gradient(180deg,rgba(6,14,26,0),rgba(6,14,26,.98) 30%)}
 #forms .howto-panel.fm-compact,#armory .howto-panel.fm-compact{width:min(1000px,100%);max-height:calc(100vh - 48px);overflow:hidden;display:flex;flex-direction:column}
 /* the Mando's ARMORY (ui/armory-ui.js): the same page in the menu's #forms panel, and in its own #armory over the fight */

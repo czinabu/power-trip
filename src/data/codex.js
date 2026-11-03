@@ -90,7 +90,7 @@ const TROOPS = [
 ].map(e => ({ ...e, tab: 'troops', kind: 'type' }));
 
 /* the form counter (data/foe-forms.js): which family of forms beats a duellist's form, as a codex line */
-const FAMILY_FORMS = { power: 'Djem So, Shien', guard: 'Soresu, Makashi, Vaapad', speed: 'Shii-Cho, Ataru, Juyo' };
+const FAMILY_FORMS = { power: 'Djem So, Shien', guard: 'Soresu, Makashi, Vaapad', speed: 'Shii-Cho, Ataru, Juyo, the saber staff' };
 function counterLine(form){
   const fam = FORM_FAMILY[form];
   if (!fam) return null;

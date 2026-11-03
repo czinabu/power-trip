@@ -95,6 +95,8 @@ export const WORLD_DIRECTIONS = {
         { kind: 'dunes', count: 10, r: [1.75, 2.0], h: 4, color: 0xbc9064 },
         // the Empire is already here: a Star Destroyer hangs over the holy city (the threat the campaign walks toward)
         { kind: 'destroyer', az: -1.8, r: 2.3, y: 22, scale: 1.2, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
+        // TOWERING (world/towering.js): the holy city's guardians, standing over the rooftops: you fight at their feet
+        { kind: 'colossi', az: [0.7, 2.05, -0.55], r: 1.95, h: [82, 96], color: 0xae8c64, color2: 0x987a56, dark: 0x4a3828, metal: 0x7a7266 },
       ],
       hazards: { vent: 0x5a4430, ventIdle: 0x2a1e12, barrel: 0xa33820 },
       ambient: { kind: 'dust', color: 0xffe2b0, count: 130, size: 0.3 },
@@ -122,6 +124,9 @@ export const WORLD_DIRECTIONS = {
         { kind: 'spires', count: 14, r: [1.6, 2.4], h: [10, 24], color: 0x241816, color2: 0x30201c, glow: 0xff5a14, skip: [[2.4, 0.4]] },
         { kind: 'stacks', count: 4, r: [1.6, 1.8], h: [18, 26], color: 0x2e2a2c, band: 0xd9a43a, glow: 0xff8a2a, smoke: 0x5a4440, skip: [[2.4, 0.5]] },
         { kind: 'lavaflows', count: 7, lava: 0xff6a1a, crust: 0x1a0c08, w: 1.4, reach: 3.0 },
+        // TOWERING (world/towering.js): black basalt walls climbing past the plant halls, and a crane spanning the floor
+        { kind: 'bluffs', count: 7, r: [1.6, 1.85], h: [70, 110], w: 0.32, color: 0x241816, color2: 0x30201c, glow: 0xff5a14, glows: 0.5, skip: [[2.4, 0.5]] },
+        { kind: 'gantry', axis: 'x', at: 0.25, y: 34, color: 0x3c424c, color2: 0x30363e, stripe: 0xd9a43a, lamp: 0xff5040 },
       ],
       // vents are lava geysers here: dark crust → amber warning → a molten burst
       hazards: { vent: 0x2e2626, ventIdle: 0x2a0e06, ventActive: 0xff8a2a, barrel: 0x8a3020 },
@@ -149,6 +154,9 @@ export const WORLD_DIRECTIONS = {
         { kind: 'district', h: [18, 36], w: [5, 10], d: [5, 9], color: 0x1a1620, color2: 0x241e2a, roof: 0x2c2634, spires: 0.35, slits: 0x7f8ee0, streets: 16, alleys: 0.35, gap: 12 },
         { kind: 'spires', count: 14, r: [1.5, 2.3], h: [14, 34], color: 0x221e2a, color2: 0x2c2634, skip: [[-Math.PI/2, 0.45]] },
         { kind: 'cliffs', count: 12, r: [1.8, 2.5], h: [10, 18], w: 0.35, color: 0x24202c, color2: 0x1c1822, skip: [[-Math.PI/2, 0.5]] },
+        // TOWERING (world/towering.js): Sith colossi over the dead city, and needles of black rock right at the edge
+        { kind: 'colossi', az: [0.35, 2.75], r: 1.85, h: [80, 95], color: 0x1a1620, color2: 0x241e2a, dark: 0x08060a, metal: 0x2c2634, blade: 0xff3a3a, eyes: 0xff3a3a },
+        { kind: 'spires', count: 6, r: [1.5, 1.7], h: [60, 90], w: [7, 11], depth: 1, color: 0x221e2a, color2: 0x2c2634, skip: [[-Math.PI/2, 0.5], [0.35, 0.25], [2.75, 0.25]] },
       ],
       // vents are Sith vents: violet when they fire
       hazards: { vent: 0x2a2632, ventIdle: 0x140c22, ventActive: 0x9aa6ee, barrel: 0x8a2a30 },
@@ -195,6 +203,9 @@ export const WORLD_DIRECTIONS = {
       backdrop: [
         { kind: 'cliffs', count: 18, r: [1.5, 2.2], h: [14, 26], w: 0.3, color: 0xa8bccf, color2: 0x8aa2b8 },
         { kind: 'stacks', count: 5, r: [1.15, 1.3], h: [16, 24], color: 0x3a4048, band: 0xd9a43a, glow: 0xff8a2a, smoke: 0x8a9098 },
+        // TOWERING (world/towering.js): the glacier walls the foundry is cut into, and its crane
+        { kind: 'bluffs', count: 8, r: [1.35, 1.6], h: [60, 100], w: 0.32, color: 0xa8bccf, color2: 0x8aa2b8, cap: 0xe8f0f8 },
+        { kind: 'gantry', axis: 'x', at: 0.25, y: 32, color: 0x3a4048, color2: 0x30363e, stripe: 0xd9a43a, lamp: 0xff5040 },
       ],
       ambient: { kind: 'snow', color: 0xffffff, count: 240, size: 0.22, opacity: 0.75 },
       beats: { fog: 0x7a7a8a, fill: 1.05, tint: 0xffb090 },
@@ -243,6 +254,8 @@ export const TRAINING_WORLDS = {
       { kind: 'temple', az: -1.6, r: 2.3, scale: 1.2, size: 600,   // the Jedi Temple's ziggurat, its tallest spire ~800 m up
       color: 0xb0aaa4, color2: 0xc4beb6, glow: 0x9ad8ff },
       { kind: 'crystals', count: 7, r: [1.15, 1.3], h: [3, 6], color: 0x8ad8ff, glow: 0x3aa8ff, skip: [[-1.6, 0.5]] },
+      // TOWERING (world/towering.js): the temple mountain's peaks, snow on their shoulders, high over the terrace
+      { kind: 'bluffs', count: 7, r: [1.4, 1.7], h: [80, 125], w: 0.34, color: 0x7c7c92, color2: 0x686a82, cap: 0xece8f4, skip: [[-1.6, 0.55]] },
     ],
     ambient: { kind: 'dust', color: 0xfff0d8, count: 110, size: 0.26 },
     // peacetime above the clouds: only a cruiser passing high over the temple now and then
@@ -263,6 +276,8 @@ export const TRAINING_WORLDS = {
     backdrop: [
       { kind: 'cliffs', count: 18, r: [1.4, 2.1], h: [14, 26], w: 0.34, color: 0x3a2a26, color2: 0x2e2220 },
       { kind: 'stacks', count: 3, r: [1.5, 1.7], h: [16, 22], color: 0x2e2a2c, band: 0xd9a43a, glow: 0xff8a2a, smoke: 0x4a3a38 },
+      // TOWERING (world/towering.js): the canyon's walls, sheer and black, closing over the yard
+      { kind: 'bluffs', count: 10, r: [1.25, 1.45], h: [60, 90], w: 0.32, color: 0x4e3a32, color2: 0x42302a, glow: 0xff8a3a, glows: 0.25 },
     ],
     ambient: { kind: 'embers', color: 0xff8a3a, count: 150 },
     beats: { fog: 0x5a2a1a, fill: 1.05, tint: 0xff8a50 },
@@ -313,6 +328,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'cliffs', count: 20, r: [1.8, 2.5], h: [18, 36], w: 0.3, color: 0x6c6a80, color2: 0x5a5a70 },
       { kind: 'destroyer', az: -1.2, r: 2.3, y: 26, scale: 1.0, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
+      // TOWERING (world/towering.js): the peaks the valley hides under, close enough to look up at
+      { kind: 'bluffs', count: 8, r: [1.35, 1.65], h: [85, 130], w: 0.34, color: 0x6c6a80, color2: 0x5a5a70, cap: 0xdcd4e4, skip: [[-1.2, 0.3]] },
     ],
     ambient: { kind: 'dust', color: 0xffe0c8, count: 110, size: 0.26 },
     // the Empire has found the refuge: TIEs strafing the valley, landers coming down, the defenders firing back
@@ -336,6 +353,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'cliffs', count: 22, r: [1.4, 2.0], h: [20, 34], w: 0.3, color: 0x10221a, color2: 0x0c1a14 },
       { kind: 'spires', count: 26, r: [1.2, 1.8], h: [22, 40], w: [1.5, 3], color: 0x1a2a1c, color2: 0x142218 },   // the jungle's giants, as silhouettes
+      // TOWERING (world/towering.js): the jungle's real giants: trunks wider than a gunship, the canopy reaching out over the firebase
+      { kind: 'giants', count: 10, r: [1.15, 1.35], h: [65, 95], trunk: [2.6, 4.2], crown: [13, 18], reach: [0.15, 0.32], bark: 0x30342a, leaf: 0x16302a, leaf2: 0x1e3c2c, vines: 0x22382a },
     ],
     ambient: { kind: 'dust', color: 0xc8ff7a, count: 140, size: 0.2, opacity: 0.7 },   // fireflies
     mist: { color: 0x5a8a7a, count: 40, size: 10, opacity: 0.14 },
@@ -359,6 +378,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'towers', count: 20, r: [1.4, 2.4], h: [14, 34], color: 0x20262e, color2: 0x2a3038, windows: 0xffc070 },
       { kind: 'stacks', count: 5, r: [1.3, 1.6], h: [20, 30], color: 0x2a3036, band: 0xd0a030, glow: 0xff8a2a, smoke: 0x3a4048 },
+      // TOWERING (world/towering.js): the yard's cranes, spanning the whole deck far overhead
+      { kind: 'gantry', axis: 'x', at: [-0.4, 0.45], y: [38, 46], color: 0x2a3038, color2: 0x20262e, stripe: 0xd0a030, lamp: 0xff3a2a },
     ],
     ambient: { kind: 'rain', color: 0xb8c8d8, count: 420, size: 0.12, opacity: 0.55 },
     mist: { color: 0x6a7a8a, count: 30, size: 10, opacity: 0.1 },
@@ -404,6 +425,10 @@ export const MISSION_WORLDS = {
     light: { sun: 0xd8e8f8, sunI: 1.35, dir: [20, 44, -16], hemiSky: 0xa8c0d8, hemiGround: 0x2a343c, fill: 1.0, rim: 0x8ad8ff, rimI: 0.5 },
     floor: { kind: 'deck', base: 0x9aa4ae, stripe: 0x5a8aa8, seed: 41 },
     outer: 0x22323e,
+    backdrop: [
+      // TOWERING (world/towering.js): Tipoca City over the drowned levels: domed pods on stilts out of the sea, the biggest high overhead
+      { kind: 'pods', count: 6, r: [1.6, 2.15], h: [38, 62], size: [12, 20], color: 0xd8dee4, color2: 0x8a98a6, glow: 0xd8f0ff },
+    ],
     pal: { wall: 0xd8dee4, wallD: 0x8a98a6, metal: 0x9aa6b2, metalD: 0x3e4852, glass: 0x9ad8f0, crate: 0x6a7480, gold: 0xc8a050,
            lamp: 0xd8f0ff, screen: 0x6ad8ff, red: 0xff4a3a, sea: 0x2a4a5a },
     ambient: { kind: 'rain', color: 0xc8d8e8, count: 460, size: 0.12, opacity: 0.55 },
@@ -424,6 +449,8 @@ export const MISSION_WORLDS = {
            glow: 0xff7a2a, red: 0xff3a2a, screen: 0x4ad2ff, chip: 0x8aff8a },
     backdrop: [
       { kind: 'stacks', count: 6, r: [1.3, 1.8], h: [18, 32], color: 0x2a2624, band: 0xd0a030, glow: 0xff7a2a, smoke: 0x3a302c },
+      // TOWERING (world/towering.js): the dead volcano's caldera walls, black and high round the floor
+      { kind: 'bluffs', count: 9, r: [1.3, 1.55], h: [70, 110], w: 0.32, color: 0x3e3430, color2: 0x342c28, glow: 0xff7a2a, glows: 0.5 },
     ],
     ambient: { kind: 'ash', color: 0xa8a098, count: 160, size: 0.14, opacity: 0.5 },
     beats: { fog: 0x4a2a20, fill: 1.1, tint: 0xffb08a },
@@ -439,6 +466,10 @@ export const MISSION_WORLDS = {
     light: { sun: 0xffc8b0, sunI: 1.4, dir: [-26, 30, 20], hemiSky: 0xa8b0c8, hemiGround: 0x3a3430, fill: 0.95, rim: 0xff8a6a, rimI: 0.55 },
     floor: { kind: 'flagstone', base: 0x5a5a5e, seed: 61 },
     outer: 0x3a3a40,
+    backdrop: [
+      // TOWERING (world/towering.js): the mountains round the plateau, snow on their tops
+      { kind: 'bluffs', count: 8, r: [1.35, 1.65], h: [50, 80], w: 0.32, color: 0x4a4e54, color2: 0x3a3e44, cap: 0xe8ecf0 },
+    ],
     pal: { wall: 0x4a4e54, wallD: 0x2a2e34, metal: 0x6a7078, metalD: 0x2e3238, sand: 0x6a6250, crate: 0x4a4a42, rock: 0x5a5a5e,
            red: 0xff3a2a, lamp: 0xffe0b0, cloth: 0x8a1a1a },
     ambient: { kind: 'snow', color: 0xe8ecf0, count: 220, size: 0.14, opacity: 0.6 },
@@ -456,6 +487,10 @@ export const MISSION_WORLDS = {
     light: { sun: 0xfff0d8, sunI: 1.8, dir: [16, 46, -10], hemiSky: 0xc0d0e8, hemiGround: 0x7a4a2a, fill: 0.8, rim: 0xffc890, rimI: 0.45 },
     floor: { kind: 'flagstone', base: 0xb08058, seed: 71 },
     outer: 0xa8704a,
+    backdrop: [
+      // TOWERING (world/towering.js): the canyon walls going up and up past the rock spurs (open up and down the riverbed)
+      { kind: 'bluffs', count: 12, r: [1.15, 1.35], h: [70, 110], w: 0.3, color: 0xa8704a, color2: 0x8a5838, skip: [[Math.PI/2, 0.5], [-Math.PI/2, 0.5]] },
+    ],
     pal: { rock: 0xa8704a, rockD: 0x8a5838, sand: 0xc8a070, crate: 0x4a4a42, metalD: 0x2e3238, tarp: 0x5a2a24, ember: 0xff8a3a },
     ambient: { kind: 'dust', color: 0xe8c8a0, count: 200, size: 0.16, opacity: 0.45 },
     beats: { fog: 0xc89068, fill: 1.0, tint: 0xffd0a0 },
@@ -470,6 +505,10 @@ export const MISSION_WORLDS = {
     light: { sun: 0xc8d0f0, sunI: 1.3, dir: [-14, 44, -20], hemiSky: 0x8a8ab0, hemiGround: 0x1e1c22, fill: 1.0, rim: 0x9a7aff, rimI: 0.6 },
     floor: { kind: 'flagstone', base: 0x3a3a40, seed: 83 },
     outer: 0x18181e,
+    backdrop: [
+      // TOWERING (world/towering.js): the black headland's sea stacks, high in the storm
+      { kind: 'bluffs', count: 6, r: [1.45, 1.8], h: [55, 85], w: 0.24, color: 0x14141c, color2: 0x1c1c26, skip: [[Math.PI/2, 0.5]] },
+    ],
     pal: { stone: 0x3a3a40, stoneD: 0x24242a, metal: 0x5a6068, metalD: 0x2a2e34, sand: 0x5a5648, glow: 0x8ad8ff, red: 0xff3a2a, old: 0x9a7aff },
     ambient: { kind: 'rain', color: 0xb8c0d8, count: 460, size: 0.12, opacity: 0.55 },
     mist: { color: 0x5a5a7a, count: 26, size: 10, opacity: 0.1 },
@@ -518,6 +557,9 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'district', h: [14, 26], w: [7, 13], color: 0xa8865e, color2: 0x8e7050, trim: 0x8a6a46, roof: 0x9a6a42, domes: 0.3, spires: 0.12, setback: 0.3, gap: 9 },
       { kind: 'destroyer', az: -1.8, r: 2.3, y: 24, scale: 1.2, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
+      // TOWERING (world/towering.js): what's left of the great hall: colossal columns round the stacks, and the guardians past them
+      { kind: 'colonnade', count: 14, r: [1.12, 1.18], h: [30, 42], radius: [1.8, 2.5], broken: 0.45, lintel: 0.35, color: 0xa8865e, color2: 0x8e7050 },
+      { kind: 'colossi', az: [0.7, 2.2], r: 1.95, h: [80, 92], color: 0xa8865e, color2: 0x8e7050, dark: 0x4a3828, metal: 0x7a7266 },
     ],
     ambient: { kind: 'embers', color: 0xff9a40, count: 180 },
     warfront: { flyers: [{ kind: 'tie', count: 2, wing: 2, alt: [35, 70], speed: [70, 100], every: [5, 10], fire: 0x5aff6a }],
@@ -541,6 +583,9 @@ export const MISSION_WORLDS = {
       { kind: 'spires', count: 16, r: [1.6, 2.4], h: [18, 36], w: [3, 6], color: 0x8a8070, color2: 0x7a705e },
       { kind: 'dunes', count: 12, r: [1.3, 1.6], h: 4, color: 0x767c44 },
       { kind: 'destroyer', az: -1.3, r: 2.2, y: 40, scale: 1.1, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
+      // TOWERING (world/towering.js): the outpost's command tower and Lothal's great rock spires, close in
+      { kind: 'tower', az: -0.5, r: 1.6, h: 140, w: 22, sides: 4, tiers: 4, color: 0x6a6e72, color2: 0x4e5258, glow: 0xff3a2a, windows: 0xfff0c8, beacon: 0xff3a2a },
+      { kind: 'spires', count: 5, r: [1.4, 1.65], h: [60, 85], w: [7, 11], depth: 1, color: 0x8a8070, color2: 0x7a705e, skip: [[-0.5, 0.3], [-1.3, 0.3]] },
     ],
     ambient: { kind: 'dust', color: 0xfff0c8, count: 120, size: 0.26 },
     warfront: { flyers: [{ kind: 'tie', count: 1, wing: 2, alt: [40, 90], speed: [70, 100], every: [8, 14], fire: 0x5aff6a }, { kind: 'dropship', count: 1, alt: [45, 70], speed: [22, 32], every: [12, 20] }] },
@@ -580,6 +625,8 @@ export const MISSION_WORLDS = {
       { kind: 'statue', az: -2.4, r: 2.1, scale: 1.3, color: 0x34303e, color2: 0x2a2634, dark: 0x16121c, metal: 0x3a3844 },
       { kind: 'towers', count: 30, r: [1.75, 2.6], h: [10, 22], color: 0x24202c, color2: 0x2a2632, windows: 0xffc070, skip: [[-2.4, 0.35], [-1.8, 0.2]] },
       { kind: 'mesas', count: 9, r: [2.2, 2.7], h: [20, 36], w: [18, 34], color: 0x221e2a, color2: 0x1e1a26, skip: [[-2.4, 0.45]] },
+      // TOWERING (world/towering.js): the guardians, dark against the moon
+      { kind: 'colossi', az: [0.7, 2.05, -0.55], r: 1.95, h: [82, 96], color: 0x34303e, color2: 0x2a2634, dark: 0x16121c, metal: 0x3a3844 },
     ],
     hazards: { vent: 0x3a2a4a, ventIdle: 0x1a1222, barrel: 0x8a2a30 },
     ambient: { kind: 'ash', color: 0xb8a8d8, count: 110, size: 0.22, opacity: 0.4 },
@@ -622,6 +669,9 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'pyramid', az: -Math.PI/2, r: 2.4, scale: 1.0, size: 1500, color: 0x1a1620, color2: 0x241e2a, glow: 0x8a98e8 },
       { kind: 'spires', count: 12, r: [1.8, 2.5], h: [20, 38], color: 0x221e2a, color2: 0x2c2634, skip: [[-Math.PI/2, 0.45]] },
+      // TOWERING (world/towering.js): the amphitheatre's colossal columns, and two Sith colossi either side of the Citadel
+      { kind: 'colonnade', count: 16, r: [1.15, 1.25], h: [42, 60], radius: [2.2, 3], broken: 0.25, lintel: 0.4, glow: 0x8a98e8, color: 0x221e2a, color2: 0x2c2634 },
+      { kind: 'colossi', az: [-0.85, -2.3], r: 1.7, h: [80, 90], color: 0x1a1620, color2: 0x241e2a, dark: 0x08060a, metal: 0x2c2634, blade: 0xff3a3a, eyes: 0xff3a3a },
     ],
     ambient: { kind: 'ash', color: 0xa0aac0, count: 120, size: 0.22, opacity: 0.45 },
       mist: { color: 0x7e8aa4, count: 46, size: 11, opacity: 0.16 },
@@ -650,6 +700,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'mesas', count: 9, r: [2.0, 2.8], h: [12, 26], w: [16, 30], color: 0xb87a5a, color2: 0xa06848 },
       { kind: 'district', h: [3, 6], w: [5, 9], color: 0xd8ccb6, color2: 0xb2a48a, trim: 0x7a5a3c, roof: 0xb2a48a, domes: 0.5, spires: 0.05, setback: 0.4, gap: 7 },
+      // TOWERING (world/towering.js): a few red buttes close behind the town (the flat itself stays flat: it's the open you feel here)
+      { kind: 'bluffs', az: [0.5, 1.2, 2.6], r: 1.75, h: [55, 75], w: 0.36, tiers: 2, color: 0xb87a5a, color2: 0xa06848 },
     ],
     ambient: { kind: 'dust', color: 0xfff8ec, count: 160, size: 0.24 },
     // the Magistrate's ambush: his dropships over the rooftops, a little trouble in the side streets
@@ -675,6 +727,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'cliffs', count: 22, r: [1.3, 1.9], h: [22, 40], w: 0.3, color: 0x5a2a1e, color2: 0x4a2218 },
       { kind: 'mesas', count: 5, r: [2.2, 2.8], h: [18, 30], w: [18, 30], color: 0x6a3222, color2: 0x582a1c },
+      // TOWERING (world/towering.js): the red canyon's walls, towering over the covert
+      { kind: 'bluffs', count: 12, r: [1.2, 1.4], h: [70, 110], w: 0.3, color: 0x5a2a1e, color2: 0x4a2218 },
     ],
     ambient: { kind: 'embers', color: 0xff8a3a, count: 200 },
     mist: { color: 0x7a4a3a, count: 30, size: 10, opacity: 0.14 },
@@ -700,6 +754,8 @@ export const MISSION_WORLDS = {
       { kind: 'dunes', count: 22, r: [1.15, 1.6], h: 3, color: 0x14222c },   // the swell
       { kind: 'cliffs', count: 7, r: [2.0, 2.6], h: [14, 26], w: 0.2, color: 0x1a242c, color2: 0x141c24 },   // sea stacks
       { kind: 'stacks', count: 2, r: [1.6, 1.9], h: [14, 18], color: 0x2a3038, band: 0xd9a43a, glow: 0xff3a2a, smoke: 0x2a3038 },   // the barge's own funnels
+      // TOWERING (world/towering.js): sea stacks rearing out of the swell, high as the storm
+      { kind: 'bluffs', count: 4, r: [1.7, 2.2], h: [55, 85], w: 0.22, tiers: 2, color: 0x1a242c, color2: 0x141c24 },
     ],
     ambient: { kind: 'snow', color: 0xb8c8d8, count: 320, size: 0.16, opacity: 0.6 },   // rain and spray
     mist: { color: 0x5a6a7a, count: 40, size: 12, opacity: 0.15 },
@@ -724,6 +780,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'spires', count: 40, r: [1.25, 1.9], h: [14, 26], w: [2, 3.5], color: 0x22361f, color2: 0x2c4228 },   // the cedars past the clearing
       { kind: 'cliffs', count: 10, r: [2.0, 2.6], h: [18, 30], w: 0.3, color: 0x4a5a4a, color2: 0x3e4e40 },
+      // TOWERING (world/towering.js): Thane's great cedars, a hundred metres tall round the clearing
+      { kind: 'giants', shape: 'cedar', count: 14, r: [1.15, 1.45], h: [70, 110], trunk: [2.2, 3.4], crown: [10, 14], tiers: 7, bark: 0x4a3226, leaf: 0x22361f, leaf2: 0x2c4228 },
     ],
     ambient: { kind: 'dust', color: 0xfff0c0, count: 140, size: 0.2 },
     mist: { color: 0xd8dcc8, count: 50, size: 12, opacity: 0.2 },
@@ -747,6 +805,8 @@ export const MISSION_WORLDS = {
     backdrop: [
       { kind: 'stacks', count: 8, r: [1.4, 2.0], h: [24, 38], color: 0x2a2426, band: 0x8a8e96, glow: 0xff7a2a, smoke: 0x3a2e2c },
       { kind: 'towers', count: 24, r: [1.6, 2.6], h: [14, 34], color: 0x2a2628, color2: 0x342e30, windows: 0xff7a3a },
+      // TOWERING (world/towering.js): the Citadel's keep itself, an iron mountain behind the throne
+      { kind: 'tower', az: -Math.PI/2, r: 1.5, h: 210, w: 34, sides: 4, tiers: 5, color: 0x2a2628, color2: 0x342e30, glow: 0xff7a2a, windows: 0xff7a3a, beacon: 0xff3a2a },
     ],
     ambient: { kind: 'ash', color: 0xc8a898, count: 160, size: 0.22, opacity: 0.5 },
     warfront: { flyers: [{ kind: 'dropship', count: 2, alt: [45, 80], speed: [20, 32], every: [7, 12] }],
@@ -876,6 +936,9 @@ export const BATTLE_WORLDS = {
       { kind: 'pyramid', az: -Math.PI/2, r: 2.2, scale: 1.0, size: 1500, color: 0x1a1620, color2: 0x241e2a, glow: 0x8a98e8 },
       { kind: 'spires', count: 22, r: [1.35, 2.3], h: [18, 40], w: [3, 6], color: 0x221e2a, color2: 0x2c2634, skip: [[-Math.PI/2, 0.4]] },
       { kind: 'dunes', count: 14, r: [1.08, 1.3], h: 4, color: 0x2c2834 },
+      // TOWERING (world/towering.js): Sith colossi flanking the road, and black needles right at the edge
+      { kind: 'colossi', az: [-1.15, -2.0], r: 1.3, h: [120, 140], color: 0x1a1620, color2: 0x241e2a, dark: 0x08060a, metal: 0x2c2634, blade: 0xff3a3a, eyes: 0xff3a3a },
+      { kind: 'spires', count: 8, r: [1.08, 1.25], h: [60, 100], w: [8, 13], depth: 1, color: 0x221e2a, color2: 0x2c2634, skip: [[-Math.PI/2, 0.7]] },
     ],
     ambient: { kind: 'ash', color: 0xa0aac0, count: 130, size: 0.24, opacity: 0.45 },
     mist: { color: 0x7e8aa4, count: 56, size: 12, opacity: 0.16 },
@@ -903,6 +966,8 @@ export const BATTLE_WORLDS = {
       { kind: 'stacks', count: 7, r: [1.8, 2.4], h: [26, 44], color: 0x2a2426, band: 0x8a8e96, glow: 0xff7a2a, smoke: 0x3a3032 },
       { kind: 'ramparts', r: 2.4, segments: 26, h: 12, color: 0x342e30, color2: 0x2a2426, roof: 0x1e1a1c, gaps: [] },
       { kind: 'dunes', count: 14, r: [1.08, 1.3], h: 4, color: 0x3a3234 },
+      // TOWERING (world/towering.js): the Iron Citadel's keep at the end of the road
+      { kind: 'tower', az: -Math.PI/2, r: 1.45, h: 280, w: 54, sides: 4, tiers: 5, color: 0x342e30, color2: 0x2a2426, glow: 0xff7a2a, windows: 0xff7a3a, beacon: 0xff3a2a },
     ],
     ambient: { kind: 'snow', color: 0xc8c0c0, count: 200, size: 0.22, opacity: 0.6 },
     mist: { color: 0x8a7e80, count: 50, size: 12, opacity: 0.15 },

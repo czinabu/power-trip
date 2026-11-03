@@ -14,7 +14,7 @@ import { arenaKit, seeded } from './kit.js';
        before a tall back-panel of glowing orange glass, two flower lamps either side;
      · dark ceiling girders overhead.
    The player spawns south of centre facing north, toward the throne. */
-export const THRONE = { half: 24, wallH: 13, dais: { z: 22.2, w: 5.2 } };
+export const THRONE = { half: 24, wallH: 21, dais: { z: 22.2, w: 5.2 } };
 
 export function buildThroneArena(L){
   const pal = L.pal || {};

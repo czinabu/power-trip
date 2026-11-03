@@ -3,7 +3,8 @@
 // saves gameplay-camera screenshots with a few troopers standing in front of the hero, so an art pass can be compared
 // before and after.
 //   npm run build && npm run shots:maps -- [outDir] [map,map,...]   (QUALITY=high|medium|low, default high; PW_CHROMIUM
-//   a Chromium binary, when Playwright's own isn't installed)
+//   a Chromium binary, when Playwright's own isn't installed; PITCH=-0.4 tips the camera up to look at what towers over
+//   the floor, saved as <map>-<view>-up.png)
 
 import { chromium } from 'playwright';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -25,6 +26,7 @@ await page.addInitScript(q => {
 }, q);
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
+await page.addInitScript(p => { window.__shotPitch = p; }, Number(process.env.PITCH || 0));
 await page.goto(pathToFileURL(path.join(root, 'dist/index.html')).href);
 await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
 await page.click('#hero-jedi'); await page.click('#mode-sandbox');
@@ -51,7 +53,7 @@ for (const id of maps){
       const [x, z, yaw] = L.arenaZ ? (side > 0 ? [0, -150, 0] : [0, -100, Math.PI]) : [0, side * d, side > 0 ? Math.PI : 0];
       const s = GAME.findClearSpawn(x, z, 1.6);
       player.group.position.set(s.x, 0, s.z); player.vel.set(0, 0, 0); player.moveVel.set(0, 0, 0);
-      G.yaw = player.faceYaw = yaw;
+      G.yaw = player.faceYaw = yaw; G.pitch = window.__shotPitch;
       return GAME.arena();
     }, [id, side]);
     await page.waitForTimeout(400);
@@ -66,7 +68,7 @@ for (const id of maps){
       });
     }, side);
     await page.waitForTimeout(2200);
-    await page.screenshot({ path: path.join(out, `${id}-${view}.png`) });
+    await page.screenshot({ path: path.join(out, `${id}-${view}${process.env.PITCH ? '-up' : ''}.png`) });
     console.log(id, view, JSON.stringify(info));
   }
 }

@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { mound } from './collision.js';
+import { TALL } from './towering.js';
 
 const PI = Math.PI;
 // seeded random so a theme's backdrop is the same every rebuild
@@ -436,18 +437,20 @@ function stretch(objs, k, half, halfZ, whole, size){
 
 /* build a theme's backdrop into its own group (baked by the caller with a thick outline). halfZ: a long arena's
    half-depth (the play space is half × halfZ). The hills that reach the play space come back in grp.userData.solids. */
-const PIECES = new Set(['district', 'mesas', 'spires', 'cliffs', 'towers', 'stacks', 'crystals', 'ramparts', 'wreck', 'lavaflows', 'dunes']);   // these keep each piece out themselves
+const PIECES = new Set(['district', 'mesas', 'spires', 'cliffs', 'towers', 'stacks', 'crystals', 'ramparts', 'wreck', 'lavaflows', 'dunes', ...Object.keys(TALL)]);   // these keep each piece out themselves
+// the helpers the towering pieces (world/towering.js) build with
+const KIT = { put, mat, glowMat, keepOut, since, angles, P, rand2, crag: s => crag(s), lim: () => LIM };
 export function buildBackdrop(list, half, seed = 1, halfZ = half){
   const grp = new THREE.Group();
   grp.userData.solids = [];
   const R = rng(seed);
   LIM = [half, halfZ];
   for (const o of list || []){
-    const fn = BUILD[o.kind];
+    const fn = BUILD[o.kind] || TALL[o.kind];
     if (!fn) continue;
     const n0 = grp.children.length;
     const s0 = grp.userData.solids.length;
-    fn(grp, o, half, R);
+    fn(grp, o, half, R, KIT);
     if (!PIECES.has(o.kind)) keepOut(since(grp, n0));   // a single landmark (a statue, a walker, a volcano…)
     const whole = !PIECES.has(o.kind) || o.kind === 'wreck';
     const f = stretch(since(grp, n0), o.depth ?? DEPTH[o.kind] ?? 1, half, halfZ, whole, o.size ?? SIZE[o.kind]);

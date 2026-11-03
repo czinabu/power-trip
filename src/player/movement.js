@@ -171,6 +171,7 @@ export function doJump(){
     sfx(420, 0.12, 'square', 0.06, 900); S.dash();
     return;
   }
+  if (player.wallRun) return;   // on the wall SPACE is the kick (no Force for it: nothing), never a double jump up the face
   // JUMP BUFFER — about to touch down: hold the press and jump on landing instead of burning the double jump
   if (player.vy < 0 && pp0.y - (player.groundY || 0) < Math.max(0.6, -player.vy * MOVE.jumpBuffer)){ player.jumpBufT = G.gt; return; }
   // DOUBLE JUMP is only available on the way UP — once you're descending, holding space FLOATS you down instead

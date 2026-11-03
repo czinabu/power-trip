@@ -46,7 +46,7 @@ export default {
       // its stretch: the sniper opens up from its nest
       if (!N.e && f >= N.from){
         const c = findClearSpawn(N.at[0], N.at[1], 1.0);
-        spawnEnemy('sniper', V3(c.x, 0, c.z));
+        spawnEnemy('sniper', V3(c.x, 0, c.z), { keep: true });   // (a nest's sniper is the point: never swapped, data/map-rules.js)
         N.e = enemies[enemies.length - 1]; N.e.marker = true;
         N.aim = S.n ? (tw.aim ? tw.aim[1] : 3) : (tw.aim ? tw.aim[0] : 5);
         if (!S.n++) showBanner('SNIPER', line(tw), 4, { kicker: 'SHE\'S MARKED' });

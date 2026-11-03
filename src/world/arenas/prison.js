@@ -7,7 +7,7 @@ import { hazardZones } from '../../state.js';
 import { spawnBarrel } from '../hazards.js';
 import { arenaKit } from './kit.js';
 
-/* THE PRISON YARD (half-size 26). A grey Imperial yard walled in cell blocks, built for a fight that never stays on the
+/* THE PRISON YARD (half-size 30, from its level's arena). A grey Imperial yard walled in cell blocks, built for a fight that never stays on the
    ground:
      · the CELL BLOCKS just past the edge: plated walls with a row of cell doors, a guard walk along the top and a
        searchlight tower at each corner; the yard's blast gate in the south wall, behind the player;
@@ -33,7 +33,8 @@ export function buildPrisonArena(L){
   const shock  = new THREE.MeshBasicMaterial({ color: shockC, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
   const paint  = new THREE.MeshBasicMaterial({ color: pal.paint ?? 0xc8c0a8, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false });
   const K = arenaKit();
-  const H = PRISON.half, W = PRISON.wallH, off = H + 1.0;
+  const H = (L.arena || PRISON.half * 2) / 2, W = PRISON.wallH, off = H + 1.0;   // (as big as its level says)
+  const S = H / PRISON.half;   // the yard was laid out for 52 m: a bigger one spreads it out by the same share (sizes stay)
 
   // ---- the CELL BLOCKS: plated walls, a row of cell doors, the guard walk along the top ----
   for (const side of ['n', 's', 'e', 'w']){
@@ -75,7 +76,8 @@ export function buildPrisonArena(L){
   });
 
   // ---- CARGO CONTAINERS: [x, z, half-length, alongX, colour] ----
-  const container = (x, z, hl, ax, mat, y = 0) => {
+  const container = (x0, z0, hl, ax, mat, y = 0) => {
+    const x = x0*S, z = z0*S;
     const hx = ax ? hl : 1.25, hz = ax ? 1.25 : hl, h = 2.5;
     K.box(x, z, hx, hz, h, mat, { y });
     for (let t = -hl + 0.5; t <= hl - 0.5 + 0.01; t += 0.75){   // corrugated ribs down both long sides
@@ -92,23 +94,24 @@ export function buildPrisonArena(L){
   container(-15, 14, 3.0, 1, conts[2]);
 
   // ---- the GUARD TOWERS (the overwatch climb) ----
-  K.gantry(-21, -21, { a: imp, b: wallD, strut: wall, beacon: pal.red ?? 0xff3a2a }, [1, 1]);
-  K.gantry(21, 21, { a: imp, b: wallD, strut: wall, beacon: pal.red ?? 0xff3a2a }, [-1, -1]);
+  K.gantry(-21*S, -21*S, { a: imp, b: wallD, strut: wall, beacon: pal.red ?? 0xff3a2a }, [1, 1]);
+  K.gantry(21*S, 21*S, { a: imp, b: wallD, strut: wall, beacon: pal.red ?? 0xff3a2a }, [-1, -1]);
 
   // ---- the HOLDING PENS along the east wall: short partitions you vault ----
-  for (const z of [-7, -1, 5]){
-    K.box(22.5, z, 3.0, 0.3, 1.3, wall);
-    K.deco(new THREE.BoxGeometry(6.06, 0.12, 0.66), stripe, 22.5, 1.3, z);
+  for (const z0 of [-7, -1, 5]){
+    const z = z0*S;
+    K.box(H - 3.5, z, 3.0, 0.3, 1.3, wall);
+    K.deco(new THREE.BoxGeometry(6.06, 0.12, 0.66), stripe, H - 3.5, 1.3, z);
   }
 
   // ---- supply crates you step over, lamp posts, fuel drums ----
   for (const [x, z, s] of [[-4, 8, 0.45], [5, -9, 0.4], [-20, 4, 0.5], [6, 21, 0.45], [-9, -22, 0.4], [17, -8, 0.45]]){
-    K.box(x, z, s, s, s*1.4, crate, { climbable: true });
+    K.box(x*S, z*S, s, s, s*1.4, crate, { climbable: true });
   }
-  for (const [x, z] of [[-6, -6], [6, 6], [-19, -10], [19, 12]]){
+  for (const [x, z] of [[-6, -6], [6, 6], [-19*S, -10*S], [19*S, 12*S]]){
     K.column(x, z, 0.18, 4.6, imp, { wallKick: false, seg: 8, taper: 1 });
     K.deco(new THREE.BoxGeometry(0.7, 0.24, 0.4), imp, x, 4.7, z);
     K.deco(new THREE.BoxGeometry(0.5, 0.08, 0.3), lamp, x, 4.56, z).userData.noBake = true;
   }
-  for (const [x, z] of [[-21, -13], [10, -22], [21, 9]]) spawnBarrel(V3(x, 0, z));
+  for (const [x, z] of [[-21, -13], [10, -22], [21, 9]]) spawnBarrel(V3(x*S, 0, z*S));
 }

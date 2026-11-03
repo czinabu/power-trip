@@ -7,7 +7,7 @@ import { hazardZones } from '../../state.js';
 import { spawnBarrel } from '../hazards.js';
 import { arenaKit, seeded } from './kit.js';
 
-/* THE BURNING ARCHIVE (half-size 24). The great reading hall under the temple, open to the sky now the roof has gone:
+/* THE BURNING ARCHIVE (half-size 30, from its level's arena). The great reading hall under the temple, open to the sky now the roof has gone:
      · the READING DAIS in the middle: a low stepped round of stone with the archive's holocron plinth on top;
      · the STACKS: eight tall shelf runs (3.4, too tall to vault: hard cover, wall-kick faces) in two rings, laid
        along the walls' grain so the lanes between them run straight to the dais. Three of them are BURNING: stand in
@@ -32,7 +32,8 @@ export function buildArchiveArena(L){
   const holo   = new THREE.MeshBasicMaterial({ color: pal.holo ?? 0x7ad8ff });
   const glass  = new THREE.MeshBasicMaterial({ color: pal.sky ?? 0x5a4a5a, side: THREE.DoubleSide });
   const K = arenaKit(), R = seeded(29);
-  const H = ARCHIVE.half, W = ARCHIVE.wallH, off = H + 1.0;
+  const H = (L.arena || ARCHIVE.half * 2) / 2, W = ARCHIVE.wallH, off = H + 1.0;   // (as big as its level says)
+  const S = H / ARCHIVE.half;   // the stacks were placed for a 48 m hall: a bigger one spreads them out by the same share (sizes stay)
 
   // ---- the hall's WALLS: sandstone bays and tall arched windows, the gallery's broken ledge above ----
   for (const side of ['n', 's', 'e', 'w']){
@@ -66,7 +67,8 @@ export function buildArchiveArena(L){
     [-9, -9, 3.2, 1, 0], [9, -9, 3.2, 1, 1], [-9, 9, 3.2, 1, 1], [9, 9, 3.2, 1, 0],
     [-16, -2, 3.6, 0, 0], [16, 2, 3.6, 0, 1], [-3, -17, 3.4, 1, 0], [4, 17.5, 2.8, 1, 0],
   ];
-  for (const [x, z, hl, ax, burn] of stacks){
+  for (const [x0, z0, hl, ax, burn] of stacks){
+    const x = x0*S, z = z0*S;
     const hx = ax ? hl : 0.55, hz = ax ? 0.55 : hl, h = 3.4;
     K.box(x, z, hx, hz, h, burn ? char : wood);
     // the shelves' faces: ledges full of scroll ends, both sides
@@ -93,15 +95,16 @@ export function buildArchiveArena(L){
   }
 
   // ---- FALLEN SHELVES (vault them) and scroll cases you step over ----
-  for (const [x, z, hl, ax] of [[-5, 4.5, 2.2, 1], [6, -4, 2.0, 0], [-12, 15, 2.4, 1], [13, -15, 2.2, 0], [17, 11, 1.8, 1]]){
+  for (const [x0, z0, hl, ax] of [[-5, 4.5, 2.2, 1], [6, -4, 2.0, 0], [-12, 15, 2.4, 1], [13, -15, 2.2, 0], [17, 11, 1.8, 1]]){
+    const x = x0*S, z = z0*S;
     K.box(x, z, ax ? hl : 0.5, ax ? 0.5 : hl, 1.1, woodD);
     for (let n = 0; n < 3; n++) K.deco(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 6), scroll, x + (R() - 0.5)*hl, 1.14, z + (R() - 0.5), Math.PI/2, R()*3, 0);
   }
-  for (const [x, z, len, ax] of [[-1, 11, 1.4, true], [11, 4, 1.2, false], [-13, -11, 1.5, true], [3, -12, 1.3, false]]) K.rubble(x, z, len, 0.28, stoneD, ax);
+  for (const [x, z, len, ax] of [[-1, 11, 1.4, true], [11, 4, 1.2, false], [-13, -11, 1.5, true], [3, -12, 1.3, false]]) K.rubble(x*S, z*S, len, 0.28, stoneD, ax);
 
   // ---- the archivists' SCAFFOLD (the overwatch climb) in the north-west ----
-  K.gantry(-18, -18, { a: wood, b: woodD, strut: trim, beacon: pal.fire ?? 0xff8a2a }, [1, 1]);
+  K.gantry(-18*S, -18*S, { a: wood, b: woodD, strut: trim, beacon: pal.fire ?? 0xff8a2a }, [1, 1]);
 
   // ---- FUEL DRUMS the Empire brought to burn it with, by the doors ----
-  for (const [x, z] of [[-20, 6], [20, -6], [8, -20]]) spawnBarrel(V3(x, 0, z));
+  for (const [x, z] of [[-20, 6], [20, -6], [8, -20]]) spawnBarrel(V3(x*S, 0, z*S));
 }

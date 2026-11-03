@@ -13,6 +13,11 @@ import { paintSky, paintFloor } from './paint.js';
 import { buildBackdrop } from './backdrop.js';
 import { bakeArena, toon, toonGround, farHaze } from './ink.js';
 import { resetCamBlockers } from './camblock.js';
+import { buildPerches } from './perches.js';
+import { ROOM } from '../data/coop.js';
+import { JET_CEILING } from '../data/map-rules.js';
+import { net } from '../net/session.js';
+import { coopRun } from '../net/run.js';
 import { applyAtmosphere, clearAtmosphere } from './atmosphere.js';
 import { buildTempleArena } from './arenas/temple.js';
 import { buildFoundryArena } from './arenas/foundry.js';
@@ -64,7 +69,31 @@ export const arenaBuilt = [];   // callbacks run when a build finishes (engine/p
 
 scene.add(shared.arenaGroup);
 
+/* how much wider than authored this build is: co-op with enough heroes builds a bigger room (data/coop.js ROOM) */
+export function arenaScaleFor(L){
+  if (!L || !(L.arena <= ROOM.upTo) || (L.arenaZ && L.arenaZ !== L.arena) || ROOM.keep.includes(L.layout)) return 1;
+  if (net.role === 'guest') return coopRun.on && coopRun.as > 0 ? coopRun.as : 1;   // the host's walls, whatever it built them for
+  if (net.role === 'host' && net.guests + 1 >= ROOM.from) return ROOM.scale;
+  return 1;
+}
+
+/* the jetpack's ceiling on this arena: its tallest standable top plus a margin; none on a battle map or the long route */
+function jetCeilingFor(L){
+  if (shared.arenaBig || (L.arenaZ && L.arenaZ > L.arena)) return null;
+  const hx = shared.arenaHalf, hz = shared.arenaHalfZ;
+  let top = 0;
+  for (const c of solids){
+    if (c.mound || c.h > 16 || Math.abs(c.x) > hx || Math.abs(c.z) > hz) continue;
+    if (c.box ? Math.max(c.hx, c.hz) > hx * 0.8 : false) continue;   // a ceiling beam spanning the room isn't somewhere to land
+    top = Math.max(top, c.h);
+  }
+  return Math.max(JET_CEILING.min, top + JET_CEILING.over);
+}
+
 export function buildArena(L){
+  { const s = arenaScaleFor(L);
+    shared.arenaScale = s;
+    if (s !== 1) L = { ...L, arena: Math.round(L.arena * s / 2) * 2 }; }
   clearScorch();   // last arena's burn marks
   clearSevered();  // and any severed arms still lying about
   clearAir();
@@ -245,6 +274,9 @@ export function buildArena(L){
       spawnBarrel(V3(Math.cos(a)*r, 0, Math.sin(a)*r));
     }
   }
+  shared.perches = null;
+  buildPerches(LP);
+  shared.jetCeiling = jetCeilingFor(L);   // how high the Mando's pack climbs here (data/map-rules.js JET_CEILING)   // the second storey: raised decks round the outer ring of a campaign or story arena (world/perches.js)
   buildNav();   // the enemy pathing grid follows the new layout (enemies/nav.js)
   // INK: cel-shade every static prop and merge them into a handful of draw calls (glows and hazards stay live)
   if (T) shared.arenaBake = bakeArena(shared.arenaGroup, T.ink ?? 0.045);

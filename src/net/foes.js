@@ -71,7 +71,7 @@ function snapshot(){
     bu.bodyMat ? bu.bodyMat.emissive.getHex() : 0, bu.bodyMat ? r2(bu.bodyMat.emissiveIntensity) : 0,
     bs.hero && !bs.hero.local ? [r2(bs.hero.pos.x), r2(bs.hero.pos.z)] : [r2(playerPos().x), r2(playerPos().z)],
     bu.pivot ? r2(bu.pivot.rotation.x) : 0, bu.pivot ? r2(bu.pivot.rotation.z) : 0] : null;   // (his shoulder: the cut he's swinging, boss/boss.js bossCut)
-  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission ? missionSnap() : undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, wf: G.waveFrom, ar: G.arenaRot, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
+  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission ? missionSnap() : undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, wf: G.waveFrom, ar: G.arenaRot, as: shared.arenaScale || 1, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
 }
 
 function hostTick(){
@@ -194,7 +194,7 @@ on('e', (m) => {
   }
   const ch = m.ch ?? -1;
   const changed = !coopRun.on || coopRun.w !== m.w || coopRun.ar !== m.ar || coopRun.k !== m.k || coopRun.lv !== m.lv || coopRun.ch !== ch || coopRun.mid !== (m.ms ? m.ms.id : '');
-  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, wf: m.wf || 0, ar: m.ar, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
+  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, wf: m.wf || 0, ar: m.ar, as: m.as || 1, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
   if (changed) runChanged();
   // this guest fell out of the shared fight without the host's run ending (died and retried, restarted): it was playing its
   // own foes and waves. Back in: its own foes go, and the host's take their place

@@ -18,12 +18,12 @@ export const SANDBOX_MAPS = [{ id: 'room', nm: { jedi: 'TRAINING ROOM', mando: '
 
 export const SANDBOX_LEVELS = {
   jedi:  { name: 'SANDBOX — THE TRAINING ROOM', sub: 'No waves, no clock. Press B to call in foes and choose your powers.',
-           arena: 48, floor: 0x6a3020, fog: 0x2a1a14, sky: 0x1a0e0a, layout: 'dojo', waves: [], hazards: {} },
+           arena: 60, floor: 0x6a3020, fog: 0x2a1a14, sky: 0x1a0e0a, layout: 'dojo', waves: [], hazards: {} },
   mando: { name: 'SANDBOX — THE THRONE ROOM', sub: 'No waves, no clock. Press B to call in foes and choose your gear.',
-           arena: 48, floor: 0x3a4c46, fog: 0x1e2826, sky: 0x10161a, layout: 'throne', waves: [], hazards: {} },
+           arena: 60, floor: 0x3a4c46, fog: 0x1e2826, sky: 0x10161a, layout: 'throne', waves: [], hazards: {} },
   // the clone trooper: a hangar to drill in until it has a room of its own
   trooper: { name: 'SANDBOX — THE HANGAR', sub: 'No waves, no clock. Press B to call in foes and your squad.',
-           arena: 48, floor: 0x3c4148, fog: 0x18202a, sky: 0x0a0e14, layout: 'hangar', waves: [], hazards: {} },
+           arena: 60, floor: 0x3c4148, fog: 0x18202a, sky: 0x0a0e14, layout: 'hangar', waves: [], hazards: {} },
 };
 
 /* FOES — every regular enemy type (data/enemies.js) in the order the panel lists them, with the names the game

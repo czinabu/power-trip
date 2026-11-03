@@ -6,7 +6,7 @@ import { shared } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { toon } from '../ink.js';
 
-/* THE TRAINING ROOM (half-size 24). One big open floor for the sandbox (game/sandbox.js), after the Jedi Temple's
+/* THE TRAINING ROOM (half-size 30, from its level's arena). One big open floor for the sandbox (game/sandbox.js), after the Jedi Temple's
    training rooms: nothing in the middle to snag a fight.
      · the DUELLING MAT: a pale circle across most of the floor, inlaid with two dark rings, a cross and a centre ring;
      · the WALLS just past the playable edge: cream panels in dark wood frames, a rail at head height and a second at
@@ -24,7 +24,7 @@ export function buildDojoArena(L){
   const metal  = new THREE.MeshStandardMaterial({ color: pal.metal ?? 0x8a8a86, roughness: 0.45, metalness: 0.6 });
   const crest  = new THREE.MeshStandardMaterial({ color: pal.crest ?? 0x2a140e, roughness: 0.6, metalness: 0.1 });
   const K = arenaKit(), R = seeded(57);
-  const H = DOJO.half, W = DOJO.wallH;
+  const H = (L.arena || DOJO.half * 2) / 2, W = DOJO.wallH;   // (the room is as big as its level says: data/sandbox.js)
 
   // ---- the DUELLING MAT — flat inlays on the wooden floor (live, not baked: a flat disc needs no outline) ----
   const flat = (geo, color, y, rz = 0) => {
@@ -62,7 +62,7 @@ export function buildDojoArena(L){
   // the corners: tall square posts where the walls meet
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(1.6, W, 1.6), woodD, sx*(H + 0.9), W/2, sz*(H + 0.9));
   // ceiling beams over the floor, high enough to stay out of a jetpack's way
-  for (const x of [-16, -8, 0, 8, 16]){ K.deco(new THREE.BoxGeometry(0.7, 0.9, H*2 + 2.4), woodD, x, W + 0.2, 0); K.slab(x, 0, 0.35, H, W - 0.25, W + 0.65); }
+  for (let x = -Math.floor((H - 6) / 8) * 8; x <= H - 6; x += 8){ K.deco(new THREE.BoxGeometry(0.7, 0.9, H*2 + 2.4), woodD, x, W + 0.2, 0); K.slab(x, 0, 0.35, H, W - 0.25, W + 0.65); }
 
   // ---- the JEDI CREST on the north wall, over the centre line ----
   { const z = H + 0.55, y = 8.6;
@@ -97,9 +97,9 @@ export function buildDojoArena(L){
   // ---- BENCHES — two tiers along the east and west walls, like the viewing benches round the old training rooms ----
   for (const sx of [-1, 1]){
     for (const z of [-DOJO.benchZ/2 - 0.5, DOJO.benchZ/2 + 0.5]){
-      K.box(sx*21.6, z, 0.55, 5.6, 0.45, wood, { climbable: true });   // the seat: steps straight up
-      K.box(sx*22.8, z, 0.65, 5.6, 0.95, woodD);                        // the back tier: a hop up
-      K.deco(new THREE.BoxGeometry(1.2, 0.08, 11.3), woodD, sx*21.6, 0.47, z);
+      K.box(sx*(H - 2.4), z, 0.55, 5.6, 0.45, wood, { climbable: true });   // the seat: steps straight up
+      K.box(sx*(H - 1.2), z, 0.65, 5.6, 0.95, woodD);                        // the back tier: a hop up
+      K.deco(new THREE.BoxGeometry(1.2, 0.08, 11.3), woodD, sx*(H - 2.4), 0.47, z);
     }
   }
 
@@ -108,7 +108,7 @@ export function buildDojoArena(L){
   const shell = toon(pal.remote ?? 0xb8b8b2), band = toon(0x3a3a3c);
   for (let i = 0; i < 6; i++){
     // they keep to the room's edge, over the benches and the corners, and well above head height: never in the fight
-    const g = new THREE.Group(), a = i / 6 * Math.PI*2 + Math.PI/6 + (R() - 0.5)*0.3, r = 19.5 + R()*2;
+    const g = new THREE.Group(), a = i / 6 * Math.PI*2 + Math.PI/6 + (R() - 0.5)*0.3, r = H - 4.5 + R()*2;
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), shell));
     const b = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.035, 6, 18), band); b.rotation.x = Math.PI/2; g.add(b);
     for (const s of [-1, 1]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 6), band); p.position.y = s*0.36; g.add(p); }

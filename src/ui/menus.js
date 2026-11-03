@@ -225,6 +225,8 @@ document.getElementById('vchange').addEventListener('click', (e) => { e.stopProp
 document.getElementById('stepBack').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); showMenuStep('mode'); });
 window.addEventListener('keydown', (e) => {
   const picking = _ovState === 'victory' && overlay.classList.contains('vpicking');
+  // the results screen's CHANGE panel on its first step: Esc (the pad's B) folds it away again, back to the results
+  if (e.key === 'Escape' && picking && _step === 'mode' && overlay.style.display !== 'none' && !panelOpen() && !/\bmpage\b/.test(overlay.className)){ setPicking(false); return; }
   if (e.key !== 'Escape' || _step !== 'hero' || (_ovState !== 'menu' && !picking) || overlay.style.display === 'none' || panelOpen()) return;
   if (/\b(customizing|mpage)\b/.test(overlay.className) || (G.mode !== 'menu' && !picking)) return;
   showMenuStep('mode');

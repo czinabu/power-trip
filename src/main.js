@@ -250,6 +250,10 @@ Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, 
 Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });
 Object.assign(window.GAME, { trails: { info: trailInfo, tune: TRAIL_TUNE } });   // every blade's streak (fx/trail.js), for tests and tuning   // HOLD O: the objective view (ui/objective-view.js), for tests
 
+/* the battle past the edge (world/warfront.js), for tests and the art capture: what it's running, and a step to run it on */
+import { warfrontInfo, updateWarfront } from './world/warfront.js';
+Object.assign(window.GAME, { warfront: { info: warfrontInfo, step: updateWarfront } });
+
 /* the form loadout (data/forms.js): the seven forms and what sits on 1 / 2 / 3 */
 import { FORMS } from './data/forms.js';
 import { setLoadout } from './player/jedi/stance.js';

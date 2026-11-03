@@ -6,6 +6,16 @@
 // films; a world without one (the training rooms) stays quiet. Purely visual: no collision, no damage, nothing the
 // hero can reach. Everything here stands outside the play space and takes the backdrop's far haze (world/ink.js).
 //
+// A world can also bring the battle in CLOSE (all of it data in its `warfront` entry, so any map can switch it on):
+//   · walkerRing [start, stop] (in half-widths of the play space): the walkers stride in from `start` and halt at
+//     `stop`, right over the edge; walkerSpeed, walkerSpread (radians between them). stomp: each footfall throws up
+//     snow, thuds, and shakes the camera by how close it landed. walkerStrikes: a map's crater strikes flagged
+//     `walker` (world/arenas/field.js strike) are fired by the nearest walker's cannon, timed to land as the blast
+//     goes off, and leave a scorch; the walkers' other fire stays out past the edge of the play space;
+//   · troops: fake soldier lines (one instanced mesh for all of them) trading fire just past the edge, dropping and
+//     being replaced: { fronts: [{ x, z, len, ax, gap, n }], colors: [sideA, sideB], fire: [boltA, boltB], rate };
+//   · smoke: a colour, or { color, opacity } for soft, see-through smoke (below 1 it's drawn blended).
+//
 // Sizes follow the backdrop's HERO_SCALE (everyone is ~1.5× life size): a TIE fighter is 11 m across, an X-wing
 // 19 m long, an AT-AT 34 m tall. Cost: a handful of merged ship meshes, two walkers, and three instanced pools
 // (tracers, flashes, smoke), so the whole battle is roughly 20-30 draw calls.
@@ -13,11 +23,12 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rand } from '../utils.js';
-import { shared, G } from '../state.js';
+import { shared, G, hazardZones } from '../state.js';
 import { farHaze } from './ink.js';
 import { fightMood } from './atmosphere.js';
 import { distantBoom } from '../audio/director.js';
 import { camera } from '../engine/renderer.js';
+import { scorchGround } from '../fx/scorch.js';
 
 const PI = Math.PI;
 const W = { on: false };   // the live battle (one per arena build)
@@ -101,7 +112,21 @@ function walker(o){
     const leg = new THREE.Mesh(legGeo, shipMat); leg.position.set(lx, 23, lz); leg.userData.ph = ph; g.add(leg); legs.push(leg);
   }
   g.userData.legs = legs; g.userData.head = new THREE.Vector3(0, 25.5, 23);
+  g.scale.setScalar(o.scale ?? 1);   // (a walker close in can stand a size up: it's the thing that sells the scale)
   return g;
+}
+
+/* ---------- a soldier far off (≈2.7 m, the hero scale): legs, torso, helmet and a rifle, one merged mesh, white
+   vertex colours so the instance colour tints it per side ---------- */
+let soldierCache = null;
+function soldierGeo(){
+  if (soldierCache) return soldierCache;
+  const L = [], w = 0xffffff, d = 0x8a8a8a;
+  part(L, new THREE.BoxGeometry(0.62, 1.15, 0.36), d, 0, 0.58, 0);
+  part(L, new THREE.BoxGeometry(0.78, 0.95, 0.46), w, 0, 1.62, 0);
+  part(L, new THREE.IcosahedronGeometry(0.3, 0), w, 0, 2.36, 0);
+  part(L, new THREE.BoxGeometry(0.14, 0.14, 1.1), 0x404040, 0.24, 1.7, 0.5);
+  return (soldierCache = mergeGeometries(L, false));
 }
 
 /* ---------- placement: a point on the battle ring, an ellipse round the (possibly long) play space ---------- */
@@ -139,10 +164,12 @@ export function buildWarfront(T, L){
   // WALKERS — AT-ATs marching slowly across the far field, speeders circling them
   for (let k = 0; k < (F.walkers || 0); k++){
     const g = walker(F.walker || {}); grp.add(g);
-    const a = (F.walkerAz ?? -PI/2) + (k - ((F.walkers || 1) - 1) / 2) * 0.5;
-    ringPoint(W.reach[1] * 0.75, W.reach[1] * 0.75, g.position, a);
+    const a = (F.walkerAz ?? -PI/2) + (k - ((F.walkers || 1) - 1) / 2) * (F.walkerSpread ?? 0.5);
+    const r0 = F.walkerRing ? F.walkerRing[0] + rand(-0.15, 0.15) : W.reach[1] * 0.75;
+    ringPoint(r0, r0, g.position, a);
     g.lookAt(W.cx, 0, W.cz);   // they march inward, toward the fight
-    W.walkers.push({ g, step: rand(0, PI*2), fireT: rand(1, 3) });
+    g.updateMatrixWorld();
+    W.walkers.push({ g, step: rand(0, PI*2), fireT: rand(1, 3), sway: 1, foot: -1 });
   }
   for (const w of W.walkers) for (let j = 0; j < (F.speedersPer || 0); j++){
     const s = shipGeo('speeder', {}), m = new THREE.Group();
@@ -150,17 +177,44 @@ export function buildWarfront(T, L){
     grp.add(m);
     W.ships.push({ orbit: w, wing: [m], ang: j * PI, rad: rand(38, 55), alt: rand(10, 18), spd: rand(0.35, 0.5) * (j % 2 ? -1 : 1), fireT: rand(0.5, 1.5) });
   }
+  // TROOPS — the fake ground war: two ranks per front facing each other across a gap, all in one instanced mesh
+  W.troops = []; W.troopIM = null;
+  const TP = F.troops;
+  if (TP && TP.fronts){
+    for (const fr of TP.fronts){
+      const n = fr.n ?? 10, ax = fr.ax ?? 1, gap = fr.gap ?? 24;
+      for (const side of [0, 1]){
+        const off = (side ? -1 : 1) * gap / 2;   // side 0 on the +perpendicular side (the north, or the east)
+        for (let i = 0; i < n; i++){
+          const t = -fr.len + (i + 0.5) * (fr.len * 2 / n) + rand(-1, 1);
+          const x = fr.x + (ax ? t : off + rand(-2.5, 2.5)), z = fr.z + (ax ? off + rand(-2.5, 2.5) : t);
+          const yaw = ax ? (side ? 0 : PI) : (side ? PI/2 : -PI/2);   // facing the other rank
+          W.troops.push({ x, z, x0: x, z0: z, yaw, side, ph: rand(0, PI*2), down: 0, gone: 0, crouch: Math.random() < 0.4, fireT: rand(0.5, 4), fr });
+        }
+      }
+    }
+    W.troopIM = new THREE.InstancedMesh(soldierGeo(), farHaze(new THREE.MeshToonMaterial({ vertexColors: true })), W.troops.length);
+    W.troopIM.frustumCulled = false; W.troopIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    W.troopIM.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(W.troops.length * 3), 3);
+    W.troops.forEach((s, i) => W.troopIM.setColorAt(i, _c.setHex((TP.colors || [0xd8dce4, 0x3a3e46])[s.side])));
+    grp.add(W.troopIM);
+  }
   // TRACERS, FLASHES, SMOKE — instanced pools; an unused slot is scaled to nothing
-  const tr = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), 40);
+  const tr = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), F.troops ? 72 : 40);
   const fl = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), 10);
-  const pf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), farHaze(new THREE.MeshToonMaterial({ color: 0xffffff })), 140);
+  const smoke = typeof F.smoke === 'object' ? F.smoke : { color: F.smoke }, sOp = smoke.opacity ?? 1;
+  const pf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, sOp < 1 ? 2 : 1),
+    // soft smoke is unlit and see-through, so overlapping puffs blend into one cloud instead of stacking as solid balls
+    farHaze(sOp < 1 ? new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: sOp, depthWrite: false }) : new THREE.MeshToonMaterial({ color: 0xffffff })), 140);
+  if (sOp < 1) pf.renderOrder = 2;   // soft smoke draws over the far layers it drifts in front of
   for (const im of [tr, fl, pf]){ im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); hideAll(im); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(im.count * 3), 3); grp.add(im); }
   W.tr = tr; W.fl = fl; W.pf = pf;
-  W.smokeCol = new THREE.Color(F.smoke ?? 0x3a3634);
+  W.smokeCol = new THREE.Color(smoke.color ?? 0x3a3634);
+  W.snowCol = new THREE.Color(F.stompColor ?? 0xe8eef6);
   // COLUMNS — fires already burning out there, each sending up a slow, leaning plume
   for (let k = 0; k < (F.columns || 0); k++) W.columns.push({ p: ringPoint(W.reach[0] + 0.3, W.reach[1], new THREE.Vector3()), every: rand(0.45, 0.8), t: rand(0, 1), size: rand(0.8, 1.4) });
 }
-const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _c = new THREE.Color();
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _c = new THREE.Color(), _e = new THREE.Euler();
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 function hideAll(im){ for (let i = 0; i < im.count; i++) im.setMatrixAt(i, ZERO); im.instanceMatrix.needsUpdate = true; }
 
@@ -178,9 +232,46 @@ function flash(p, size){
   if (G.mode === 'play' && !G.paused) distantBoom(d);
   for (let k = 0; k < 4; k++) puff(_v.set(p.x + rand(-3, 3) * size * 0.1, p.y + k * size * 0.25, p.z + rand(-3, 3) * size * 0.1), size * rand(0.35, 0.6), rand(5, 8), 3);
 }
-function puff(p, size, life, rise){
+function puff(p, size, life, rise, col = null){
   if (W.puffs.length >= W.pf.count) return;
-  W.puffs.push({ p: p.clone(), size, life, rise, t: 0, drift: rand(0.6, 1.4) });
+  W.puffs.push({ p: p.clone(), size, life, rise, t: 0, drift: rand(0.6, 1.4), col });
+}
+/* a shot landing: out past the edge a big blast; a walker's strike in the play space a tighter one that scorches the
+   crater and rocks the camera by how close it was */
+function land(h){
+  if (!h.near){ flash(h.p, rand(8, 13)); return; }
+  flash(h.p, h.near * 2.2);
+  scorchGround(h.p, h.near * 1.4);
+  const d = h.p.distanceTo(camera.position);
+  if (G.mode === 'play' && !G.paused && !G.cutscene) G.shake = Math.max(G.shake, Math.min(0.7, Math.max(0, 0.8 - d / 50)));
+}
+/* the soldier lines: they shuffle and crouch, trade bolts across the gap, and now and then one drops; a while later
+   another takes the spot */
+function updateTroops(dt, heat){
+  const T = W.troops, TP = W.F.troops, im = W.troopIM, cols = TP.fire || [0xff3a2a, 0xff3a2a];
+  for (let i = 0; i < T.length; i++){
+    const s = T[i];
+    if (s.gone > 0){ if ((s.gone -= dt) <= 0){ s.down = 0; s.x = s.x0 + rand(-1.5, 1.5); s.z = s.z0 + rand(-1.5, 1.5); s.crouch = Math.random() < 0.4; } else { im.setMatrixAt(i, ZERO); continue; } }
+    let fall = 0;
+    if (s.down > 0){ s.down += dt; fall = Math.min(1, s.down / 0.45); if (s.down > 5) s.gone = rand(3, 8); }
+    else if ((s.fireT -= dt) <= 0){
+      s.fireT = rand(1.2, 4) / ((TP.rate ?? 1) * heat);
+      // pick a mark in the other rank of the same front
+      let tg = null;
+      for (let k = 0; k < 6 && !tg; k++){ const o = T[(Math.random() * T.length) | 0]; if (o.fr === s.fr && o.side !== s.side && !o.down && !o.gone) tg = o; }
+      if (tg){
+        _v.set(s.x, s.crouch ? 1.3 : 1.8, s.z); _w.set(tg.x + rand(-1.5, 1.5), rand(0.6, 2.4), tg.z + rand(-1.5, 1.5));
+        tracer(_v, _w, cols[s.side], 180);
+        if (Math.random() < (TP.drop ?? 0.07)) tg.down = 0.001 - _v.distanceTo(_w) / 180;   // it lands, then it falls
+      }
+    }
+    if (s.down < 0) s.down = Math.min(0, s.down + dt) || 0.001;
+    const bob = Math.sin(W.t * 1.6 + s.ph);
+    _q.setFromEuler(_e.set(0, s.yaw + Math.sin(W.t * 0.4 + s.ph) * 0.25, fall * PI / 2));   // a hit one topples sideways
+    _v.set(s.x + Math.sin(W.t * 0.3 + s.ph) * 0.6, fall * 0.25, s.z);
+    im.setMatrixAt(i, _m.compose(_v, _q, _s.set(1, (s.crouch && !fall ? 0.72 : 1) * (1 + bob * 0.02), 1)));
+  }
+  im.instanceMatrix.needsUpdate = true;
 }
 /* a skirmish somewhere on the ring: two knots of fighters trading fire across a gap */
 function volley(){
@@ -242,26 +333,61 @@ export function updateWarfront(dt){
     if (k >= 1){ sh.dur = 0; sh.wait = rand(...(fl.every || [4, 12])) / heat; for (const m of sh.wing) m.visible = false; }
   }
   // walkers: a slow, heavy stride toward the fight, firing their chin guns into the lines
+  const stopAt = Math.max(W.half, W.halfZ) * (F.walkerRing ? F.walkerRing[1] : W.reach[0] + 0.6);
+  const live = G.mode === 'play' && !G.paused && !G.cutscene;
   for (const w of W.walkers){
-    w.step += dt * 0.9;
     const g = w.g, legs = g.userData.legs;
-    for (const l of legs) l.rotation.x = Math.sin(w.step + l.userData.ph) * 0.22;
-    g.position.y = Math.abs(Math.sin(w.step)) * 0.5;
-    const dist = Math.hypot(g.position.x - W.cx, g.position.z - W.cz);
-    if (dist > Math.max(W.half, W.halfZ) * (W.reach[0] + 0.6)) g.translateZ(dt * 4);   // they stop short of the walls
+    const dist = Math.hypot(g.position.x - W.cx, g.position.z - W.cz), marching = dist > stopAt;
+    w.sway += ((marching ? 1 : 0) - w.sway) * Math.min(1, dt * 0.6);   // a halted walker settles its legs square
+    w.step += dt * (F.walkerStride ?? 0.9) * (0.25 + w.sway * 0.75);
+    for (const l of legs) l.rotation.x = Math.sin(w.step + l.userData.ph) * 0.22 * w.sway;
+    g.position.y = Math.abs(Math.sin(w.step)) * 0.5 * w.sway;
+    if (marching) g.translateZ(dt * (F.walkerSpeed ?? 4));   // they stop short of the walls
+    // a FOOTFALL each half-stride: the leg pair that just planted throws up snow, and the ground thuds
+    const foot = Math.floor(w.step / PI);
+    if (F.stomp && foot !== w.foot && w.sway > 0.4){
+      w.foot = foot;
+      g.updateMatrixWorld();
+      for (const l of legs){
+        if (Math.cos(w.step + l.userData.ph) < 0) continue;   // the pair that's planting
+        _v.set(0, -22.5, 0).applyMatrix4(l.matrixWorld).setY(0.5);
+        for (let k = 0; k < 3; k++) puff(_w.set(_v.x + rand(-2, 2), 0.6, _v.z + rand(-2, 2)), rand(2.2, 3.4), rand(2.5, 3.5), 1.6, W.snowCol);
+      }
+      const d = g.position.distanceTo(camera.position);
+      if (live){ distantBoom(d * 0.8); G.shake = Math.max(G.shake, Math.min(0.4, Math.max(0, 0.55 - d / 450) * w.sway)); }
+    } else if (foot !== w.foot) w.foot = foot;
     if ((w.fireT -= dt) <= 0){
       w.fireT = rand(1.2, 3) / heat;
       _v.copy(g.userData.head).applyMatrix4(g.matrixWorld);
       g.getWorldDirection(_w);
-      const hit = _v.clone().addScaledVector(_w, rand(80, 160)).add(_s.set(rand(-30, 30), 0, rand(-30, 30))).setY(0);
+      // a walker close in keeps this fire out past the edge (the play space only takes the strikes it can read)
+      const ahead = F.walkerRing ? rand(0.25, 0.85) * Math.max(10, dist - Math.max(W.half, W.halfZ) * 1.12) : rand(80, 160);
+      const hit = _v.clone().addScaledVector(_w, ahead).add(_s.set(rand(-1, 1), 0, rand(-1, 1)).multiplyScalar(F.walkerRing ? 18 : 30)).setY(0);
       const col = F.tracers?.colors?.[0] ?? 0xff3a2a;
       tracer(_v, hit, col, 200);
       tracer(_v.add(_s.set(1.5, 0, 0)), hit, col, 200);
       if (Math.random() < 0.6) W.later.push({ t: hit.distanceTo(_v) / 200, p: hit.setY(2) });
     }
   }
+  // STRIKES the walkers fire: a crater strike in the play space (hazardZones, world/hazards.js) gets a bolt from the
+  // nearest walker's cannon, timed to land the moment the blast goes off
+  if (F.walkerStrikes && W.walkers.length) for (const hz of hazardZones){
+    if (!hz.walker) continue;
+    const cyc = hz.t % hz.period, until = hz.period - hz.activeDur - cyc, n = Math.floor(hz.t / hz.period);
+    if (until <= 0 || until > 0.85 || hz._wfShot === n) continue;
+    hz._wfShot = n;
+    let best = null, bd = Infinity;
+    for (const w of W.walkers){ const d = Math.hypot(w.g.position.x - hz.cx, w.g.position.z - hz.cz); if (d < bd){ bd = d; best = w; } }
+    best.g.updateMatrixWorld();
+    _v.copy(best.g.userData.head).applyMatrix4(best.g.matrixWorld);
+    const hit = new THREE.Vector3(hz.cx, 0.4, hz.cz), sp = _v.distanceTo(hit) / until, col = F.tracers?.colors?.[0] ?? 0xff3a2a;
+    tracer(_v, hit, col, sp);
+    tracer(_v.add(_s.set(1.5, 0, 0)), hit, col, sp);
+    W.later.push({ t: until, p: hit.setY(0.6), near: hz.r });
+  }
   // walker shots landing
-  W.later = W.later.filter(h => (h.t -= dt) > 0 || (flash(h.p, rand(8, 13)), false));
+  W.later = W.later.filter(h => (h.t -= dt) > 0 || (land(h), false));
+  if (W.troopIM) updateTroops(dt, heat);
   // the ground battle: blasts and volleys, faster as the fight climbs
   if (F.blasts && (W.nextBlast -= dt) <= 0){
     W.nextBlast = rand(0.6, 1.6) / (F.blasts * heat);
@@ -305,7 +431,8 @@ export function updateWarfront(dt){
     p.p.y += p.rise * dt * (1 - k * 0.5); p.p.x += wind[0] * p.drift * dt; p.p.z += wind[1] * p.drift * dt;
     const s = p.size * (0.5 + k * 1.3) * (k > 0.75 ? (1 - k) * 4 : 1);
     W.pf.setMatrixAt(i, _m.compose(p.p, _q.identity(), _s.setScalar(Math.max(0.01, s))));
-    W.pf.setColorAt(i, _c.copy(W.smokeCol).multiplyScalar(k < 0.08 ? 2.2 : 1));   // fresh smoke still lit by the fire
+    if (p.col) W.pf.setColorAt(i, p.col);   // kicked-up snow
+    else W.pf.setColorAt(i, _c.copy(W.smokeCol).multiplyScalar(k < 0.08 ? 2.2 : 1));   // fresh smoke still lit by the fire
     i++;
   }
   for (; i < W.pf.count; i++) W.pf.setMatrixAt(i, ZERO);
@@ -313,4 +440,5 @@ export function updateWarfront(dt){
 }
 
 /* for the smoke tests and the console: what the battle is running right now */
-export function warfrontInfo(){ return W.on ? { ships: W.ships.length, walkers: W.walkers.length, tracers: W.tracers.length, flashes: W.flashes.length, puffs: W.puffs.length } : null; }
+export function warfrontInfo(){ return W.on ? { ships: W.ships.length, walkers: W.walkers.length, tracers: W.tracers.length, flashes: W.flashes.length, puffs: W.puffs.length,
+  troops: W.troops ? W.troops.length : 0, walkerAt: W.walkers.map(w => [Math.round(w.g.position.x), Math.round(w.g.position.z)]) } : null; }

@@ -100,6 +100,10 @@ export function heroCrosshair(){
   return castAim(_ho, _hd, 0.3, HERO_PAD);
 }
 
+/* THE DYNAMIC CROSSHAIR (heroCrosshair) is the Jedi's, and the Mando's while the Darksaber is out: a blade is aimed
+   where the trace from the hero lands, not through the blaster's drifting reticle */
+export const dynamicCrosshair = () => !isGunner() || player.weapon === 'darksaber';
+
 /* where the hero is aiming right now: the Mando through his reticle; the Jedi along his own crosshair (heroCrosshair), or straight at
    the foe he's locked onto (the lock frames it, so that's where he means) */
 export function aimPoint(){
@@ -108,7 +112,7 @@ export function aimPoint(){
     lastAim.target = lt; lastAim.floor = false;
     return lt.t ? chestPos(lt) : lt.group.position.clone().setY(lt.group.position.y + 1.8);
   }
-  return isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : heroCrosshair();
+  return dynamicCrosshair() ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);
 }
 
 /* THE CUT'S HEIGHT from the crosshair (player/jedi/cutaim.js cutHeight), Jedi Academy style: where it sits on the foe
@@ -122,7 +126,7 @@ function bandOf(e, pt){
 }
 export function aimBand(){
   if (player.lockTarget || !player.group) return null;
-  const pt = isGunner() ? crosshairPoint(player.aimOff.x, player.aimOff.y) : heroCrosshair();
+  const pt = dynamicCrosshair() ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);
   if (lastAim.target) return bandOf(lastAim.target, pt);
   const o = lastAim.o, d = lastAim.d, dh2 = d.x*d.x + d.z*d.z, hp = player.group.position;
   if (dh2 < 1e-6) return null;

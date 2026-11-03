@@ -14,7 +14,7 @@ import { setLongGun, setRifleMod, longMuzzle, OWN_MODEL } from '../model/weapons
 import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
 import { fwd, rightV, playerPos, maxStam } from '../helpers.js';
-import { crosshairPoint, crosshairRay, lastAim, aimFrom, inAim, bossInAim } from '../aim.js';
+import { crosshairPoint, crosshairRay, lastAim, aimFrom, inAim, bossInAim, heroCrosshair } from '../aim.js';
 import { inReach, bodyRadius, sweepHit } from '../../enemies/bodyshape.js';
 import { damageEnemy } from '../../enemies/damage.js';
 import { updateMandoMelee } from './melee.js';
@@ -45,7 +45,8 @@ export const _look = new THREE.Vector3(), _lh = new THREE.Vector3();   // camera
 // the reticle's ray as mandoAimPoint last cast it (origin, direction)
 export const mandoAimRay = () => crosshairRay();   // (a call, not an alias: the dev server loads aim.js after this module)
 export function mandoAimPoint(){
-  const p = crosshairPoint(player.aimOff.x, player.aimOff.y);   // through the floating reticle
+  // through the floating reticle; with the Darksaber out, along the dynamic crosshair instead (player/aim.js)
+  const p = player.weapon === 'darksaber' ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);
   player.lockOn = !!lastAim.target;
   return p;
 }

@@ -34,7 +34,7 @@ import { objectiveKey } from './objective-view.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { pickCut } from '../player/jedi/cutaim.js';
-import { aimPoint, lastAim } from '../player/aim.js';
+import { aimPoint, lastAim, dynamicCrosshair } from '../player/aim.js';
 let gaugeFullAt = -9;   // when the crosshair-side gauge last stood below full (it hides once it's been full a moment)
 
 // give every power slot its icon once (key badge top-left, icon centre, name below)
@@ -47,7 +47,7 @@ for (const id in SLOT_ICON){ const el = document.getElementById(id); if (el) el.
 const _sp = new THREE.Vector3();
 let _jx = { tf: 'none', foe: false };
 function jediReticle(){
-  if (isGunner() || G.mode !== 'play'){ _jx = { tf: 'none', foe: false }; return _jx; }
+  if (!dynamicCrosshair() || G.mode !== 'play'){ _jx = { tf: 'none', foe: false }; return _jx; }
   const pt = aimPoint();
   const foe = !!lastAim.target;
   _sp.copy(pt).project(camera);
@@ -205,7 +205,7 @@ export function updateHud(){
       const lvl = saber ? player.stam / maxStam() : 1 - Math.max(player.heat || 0, player.hR || 0, player.hL || 0);
       if (lvl < 0.995 || em.classList.contains('over')) gaugeFullAt = G.gt;
       em.classList.toggle('full', G.gt - gaugeFullAt > 0.7);
-      em.style.transform = (isGunner()) ? 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)' : jx.tf;
+      em.style.transform = !dynamicCrosshair() ? 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)' : jx.tf;
     } }
   // bottom XP meter — fills toward the next skill point in the story (game/upgrades.js), else the next affordable ability
   { const goal = nextStoreGoal(), xm = document.getElementById('xpmeter');
@@ -272,7 +272,7 @@ export function updateHud(){
   { const on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
     const cd = $('cutdial');
     if (cd){
-      cd.style.transform = isGunner() ? '' : jx.tf;
+      cd.style.transform = dynamicCrosshair() ? jx.tf : '';
       const nx = on && player.atkT <= 0 ? pickCut(0, false) : null, ang = nx && nx.pat.ang;
       cd.style.display = ang != null ? '' : 'none';
       if (ang != null){ cd.firstChild.style.transform = 'rotate(' + (90 - ang).toFixed(0) + 'deg)'; cd.classList.toggle('live', !!nx.flick); }
@@ -280,10 +280,12 @@ export function updateHud(){
   if (!isGunner()){   // holstered (4): LMB is a Force strike and RMB a ward instead of saber and block
     setText($('ab-atk').querySelector('.an'), player.holstered ? 'FORCE STRIKE' : 'SABER');
     setText($('ab-block').querySelector('.an'), player.holstered ? 'WARD' : 'BLOCK');
-    // the crosshair turns red on a foe: that's who a cut or a power aimed now would land on (jediReticle)
-    const xh = $('xh');
-    if (xh){ xh.style.transform = jx.tf; xh.classList.toggle('on', G.mode === 'play' && jx.foe && G.aimHint !== false); }   // (Settings · AIM HINT)
   }
+  // the crosshair turns red on a foe: that's who a cut or a power aimed now would land on (jediReticle). The Mando
+  // draws it too while the Darksaber is out, in place of the blaster reticle
+  { const dyn = dynamicCrosshair(), xh = $('xh');
+    document.body.classList.toggle('dynxh', isGunner() && dyn);
+    if (xh && dyn){ xh.style.transform = jx.tf; xh.classList.toggle('on', G.mode === 'play' && jx.foe && G.aimHint !== false); } }   // (Settings · AIM HINT)
   if (isGunner()){
     // weapon + ammo readout
     const W = mandoWeapon();

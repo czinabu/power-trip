@@ -784,10 +784,17 @@ export const BATTLE_WORLDS = {
     // the GRASS SEA itself: waist-high grass in patches, green going gold, rippling under a steady westerly (world/grass.js)
     grass: { root: 0x4e5a26, tip: 0xa8b058, dry: 0xd0b060, height: [0.6, 1.5], cover: 0.5, density: 1.5, reach: 1.45,
              wind: 0.5, sway: 0.6, speed: 1, sheen: 0.4 },
-    // the liberation of Lothal: X-wings and TIEs dogfighting over the grass, the ground war along both flanks
-    warfront: { flyers: [{ kind: 'tie', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0x5aff6a }, { kind: 'xwing', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0xff3a2a },
+    // the liberation of Lothal: X-wings and TIEs dogfighting over the grass, rebel and Imperial lines trading fire out
+    // on both flanks (in the gaps the rolling hills leave east and west), two walkers grinding in behind the outpost,
+    // and soft grey smoke the evening light comes through
+    warfront: { walkers: 2, walkerAz: -Math.PI/2, walkerSpread: 0.5, walkerRing: [2.4, 1.55], walkerSpeed: 1, walkerStride: 0.7,
+      walker: { color: 0x8a909a, color2: 0x6a7078, scale: 1.1 },
+      troops: { fronts: [{ x: 96, z: 2, len: 14, ax: 1, gap: 24, n: 9 }, { x: -96, z: -4, len: 14, ax: 1, gap: 24, n: 9 },
+                         { x: 128, z: 14, len: 18, ax: 1, gap: 28, n: 8 }, { x: -128, z: 10, len: 18, ax: 1, gap: 28, n: 8 }],
+                colors: [0xc8b48a, 0xe8ecf2], fire: [0xff7a3a, 0xff3a2a], rate: 1, drop: 0.08 },
+      flyers: [{ kind: 'tie', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0x5aff6a }, { kind: 'xwing', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0xff3a2a },
       { kind: 'dropship', count: 1, alt: [50, 80], speed: [22, 32], every: [10, 18] }],
-      blasts: 0.7, tracers: { rate: 1.2, colors: [0xff3a2a, 0xff7a3a] }, columns: 4, smoke: 0x4a4436 },
+      blasts: 0.7, tracers: { rate: 1.2, colors: [0xff3a2a, 0xff7a3a] }, columns: 4, smoke: { color: 0x8a8678, opacity: 0.4 }, wind: [5, 1.5] },
     beats: { fog: 0xd0b088, fill: 1.06, tint: 0xffd0a0 },
     hazards: { barrel: 0xa33820 },
     sound: 'temple',

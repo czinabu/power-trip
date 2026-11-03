@@ -65,7 +65,7 @@ const PLAN = {
   // the GIANTS: a few huge needles at the field's edges that tower over everything (and give the Jedi a long wall-run)
   giants: [[-64, 47, 6.5, 64], [63, -47, 6, 56], [67, 9, 4, 38]],
   // the TITANS just past the edge (out of reach, so the field reads as one small corner of something vast)
-  titans: [[-30, 92, 9, 96], [-96, -20, 11, 120], [88, 52, 8, 84], [40, -100, 10, 104], [104, -64, 7, 70]],
+  titans: [[-30, 92, 9, 96], [-100, -48, 11, 120], [88, 52, 8, 84], [40, -100, 10, 104], [104, -64, 7, 70]],
   rocks: [[8, 12, 1.4, 1.8], [-50, 4, 1.6, 2.2], [54, 30, 1.5, 1.9], [6, -32, 1.3, 1.7], [-25, 3, 1.2, 1.6], [40, -32, 1.5, 2.0],
           [-30, -32, 1.4, 1.8], [64, -2, 1.3, 1.6], [-64, 8, 1.6, 2.1], [-8, 30, 1.1, 1.4], [30, 30, 1.2, 1.5],
           [4, -9, 1.2, 1.5], [7, -11.5, 0.8, 1.0], [48, -14, 1.4, 1.8], [-60, -14, 1.5, 1.9], [-61.5, -17.5, 0.9, 1.1]],
@@ -127,6 +127,7 @@ export function buildGrasslandArena(L){
   for (let i = 0; i < 9; i++){
     const a = (i / 9) * Math.PI * 2 + 0.3 + (R() - 0.5) * 0.4, r = 12 + R() * 14, h = 30 + R() * 34;
     const d = Math.max(135 + R() * 40, outside(a, r * 1.9, 4)), x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (Math.abs(Math.cos(a)) > 0.93) continue;   // (the flank gaps, as for the hills)
     // two stacked, twisted tiers and a broken cap: a butte worn by the wind, not a drum
     K.deco(new THREE.CylinderGeometry(r * 0.7, r, h * 0.62, 7), stoneD, x, h * 0.31 - 0.5, z, 0, R() * 3, 0);
     K.deco(new THREE.CylinderGeometry(r * 0.5, r * 0.66, h * 0.4, 6), i % 2 ? stone : stoneD, x + r * 0.08, h * 0.8 - 0.5, z - r * 0.06, 0, R() * 3, 0);
@@ -140,6 +141,7 @@ export function buildGrasslandArena(L){
   for (let i = 0; i < 26; i++){
     const a = (i / 26) * Math.PI * 2 + (R() - 0.5) * 0.18, rx = 14 + R() * 12, rz = 9 + R() * 7, h = 3 + R() * 9;
     const d = outside(a, Math.max(rx, rz) + 2, 6 + R() * 16), x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (Math.abs(Math.cos(a)) > 0.93) continue;   // (the east and west gaps where the flanking lines fight: data/worlds.js warfront.troops)
     const m = K.deco(new THREE.SphereGeometry(1, 20, 8, 0, Math.PI*2, 0, Math.PI/2), turf, x, -0.05, z, 0, -a + Math.PI/2, 0);
     m.scale.set(rx, h, rz); m.castShadow = false;
     hills.push({ x, z, rx: Math.max(rx, rz), rz: Math.max(rx, rz), h, a, sx: rx, sz: rz });

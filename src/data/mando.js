@@ -163,7 +163,7 @@ export const BESKAR_PARRY = { window: 0.2, lock: 0.4, dmg: 2.4, min: 34, speed: 
 export const JEDI_FORCE = { soarAccel: 20, soarMax: 11.5, riseGravity: 0.72, glideFall: 4.2 };
 export const JUMP_HOLD_THRESH = 0.14;   // hold space longer than this (airborne) to trigger the Force jump vs. a tap
 export const DJUMP_FORCE = 14;   // the Jedi double-jump spends this much Force (no Force → no second jump)
-export const WALLKICK_FORCE = 8;   // a wall-kick now spends this much Force — was free, let it be chained for unlimited altitude
+export const WALLKICK_FORCE = 8;   // kicking off a wall-run (SPACE) spends this much Force, so chaining kicks between two walls self-limits
 export const MELEE_WINDUP_GAP = 0.25;   // min seconds between two hostile melee foes starting a windup on the player
 export function forceJumpPow(){   // scales with the auto-leveled Force-jump tier (weak early, strong late)
   const t = player.up.fjTier || 0;

@@ -73,7 +73,8 @@ export const ELITES = {
 };
 
 /* ---------- ENGAGEMENT — how many foes press the attack at once ----------
-   ATTACK TURNS (Arkham / Fallen Order style): melee foes take turns, and never more than TWO swing at you at once.
+   ATTACK TURNS (Arkham / Fallen Order style): melee foes take turns, and never more than TWO swing at you at once
+   (and of those, one duellist on Padawan and Knight: `duelSlots` below).
    Only `meleeSlots` of them hold an ATTACK TOKEN and close in to swing. The rest stalk a ring well outside reach,
    circling and squaring up, until a token frees up (a holder swings, is staggered, floored, or dies); then, after a
    short `handoff` beat, the closest one steps in. A crowd becomes a string of duels, so feints, holds and parries

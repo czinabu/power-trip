@@ -10,6 +10,7 @@ import { AE } from '../src/audio/engine.js';
 import { updateAudio, thunder } from '../src/audio/director.js';
 import { shared, G, player } from '../src/state.js';
 import { camera } from '../src/engine/renderer.js';
+import { BLADE_AUDIO } from '../src/audio/saber.js';
 import { V3 } from '../src/utils.js';
 
 // a listener at the origin looking down -Z, so positioned sounds pan left/right as labelled
@@ -41,11 +42,13 @@ btn(st, 'thunder', () => thunder());
 // ── loops ──
 const lp = section('Loops (need a world other than Menu)');
 let swingT = 0;
-for (const f of ['ataru', 'niman', 'djemso']) btn(lp, 'saber hum: ' + f, () => { G.hero = 'jedi'; G.stance = f; }, true);
+for (const f of ['ataru', 'niman', 'djemso', 'staff']) btn(lp, 'saber hum: ' + f, () => { G.hero = 'jedi'; G.stance = f; }, true);
 btn(lp, 'darksaber hum', () => { G.hero = 'mando'; player.weapon = 'darksaber'; }, true);
 btn(lp, 'no hum', () => { G.hero = 'none'; player.weapon = 'single'; }, true);
 const lp2 = section('');
 btn(lp2, 'swing the blade', () => { swingT = 0.35; S.swing(G.hero === 'mando' ? 'dark' : G.stance); });
+let waveT = 0;
+toggle(lp2, 'wave the blade (slow figure-eights)', on => { waveT = on ? 0.001 : 0; });
 toggle(lp2, 'jetpack', on => { G.hero = 'mando'; player.jetActive = on; });
 toggle(lp2, 'boost', on => { G.hero = 'mando'; player.boosting = on; });
 toggle(lp2, 'flamethrower', on => { G.hero = 'mando'; player.flaming = on; });
@@ -56,6 +59,9 @@ toggle(lp2, 'paused (muffle)', on => { G.paused = on; });
 const pos = section('Play one-shots from');
 for (const [n, v] of [['left', -1], ['centre', 0], ['right', 1]]) btn(pos, n, () => { side = v; }, true);
 const groups = {
+  'Saber ignite': [['ignite', () => S.ignite(G.stance || 'niman', here())], ['retract', () => S.retract(G.stance || 'niman', here())], ['form change', () => S.reignite('ataru', 'djemso')],
+                   ['ignite staff', () => S.ignite('staff', here())], ['retract staff', () => S.retract('staff', here())], ['ignite darksaber', () => S.ignite('dark', here())], ['retract darksaber', () => S.retract('dark', here())],
+                   ['blade bites a wall', () => S.saberWall(here() || V3(0, 1.4, -2), true)], ['blade drags along a wall', () => { for (let i = 0; i < 6; i++) setTimeout(() => S.saberWall(here() || V3(0, 1.4, -2), i === 0), i * 110); }]],
   'Lightsaber': [['swing fast', () => S.swing('fast')], ['swing medium', () => S.swing('medium')], ['swing strong', () => S.swing('strong')], ['swing darksaber', () => S.swing('dark')],
                  ['saber hit', () => S.saberHit(here(), 1)], ['saber hit heavy', () => S.saberHit(here(), 1.7)], ['clash', () => S.clash(here())], ['big clash', () => S.clash(here(), true)],
                  ['deflect', () => S.deflect(here())], ['block', () => S.block(here())], ['parry', () => S.parry(here())], ['riposte', () => S.riposte()], ['heavy', () => S.heavy(here())]],
@@ -84,7 +90,11 @@ const stateEl = document.getElementById('state');
 (function tick(now){
   requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (swingT > 0){ swingT -= dt; player.atkT = swingT; } else player.atkT = 0;
+  // the hum follows the blade's tip speed (fx/trail.js BLADE_AUDIO); the lab fakes a blade moving
+  let sp = 0;
+  if (swingT > 0){ swingT -= dt; player.atkT = swingT; sp = 18 * Math.sin(Math.PI * (1 - swingT / 0.35)); } else player.atkT = 0;
+  if (waveT > 0){ waveT += dt; sp = Math.max(sp, 3 + 5 * Math.abs(Math.sin(waveT * 2.2))); }
+  BLADE_AUDIO.hero = BLADE_AUDIO.hero2 = BLADE_AUDIO.dark = sp;
   G.gt += dt;
   updateAudio(dt);
   if (AE.ready){ const m = MUSIC.debug(); stateEl.textContent = `score ${m.palette} · ${m.state} · intensity ${m.intensity}\nvoices ${AE.live}`; }

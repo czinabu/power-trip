@@ -3,7 +3,7 @@
 
 import { STANCES, stanceUnlocked } from '../../data/stances.js';
 import { FORMS, LOADOUT_SLOTS, cleanLoadout, otherVariant, isStaff } from '../../data/forms.js';
-import { sfx } from '../../audio/sfx.js';
+import { sfx, S } from '../../audio/sfx.js';
 import { V3 } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater } from '../../fx/floaters.js';
@@ -78,10 +78,10 @@ export function swapVariant(){
 }
 
 /* ---------- stance switching ---------- */
-const IGNITE = { shiicho: 380, makashi: 820, soresu: 600, ataru: 740, niman: 540, djemso: 320, shien: 440, juyo: 900, vaapad: 360, staff: 660 };   // the re-ignite's pitch
 export function switchStance(id, silent){
   if (!STANCES[id] || (G.stanceCd > 0 && !silent) || G.stance === id) return;
   if (!silent && !stanceUnlocked(id)){ floater(playerPos(), 'FORM LOCKED', '#ff9a66'); sfx(120, 0.1, 'square', 0.05, 70); return; }
+  const from = G.stance;
   G.stance = id;
   G.stanceCd = 0.35;
   const st = STANCES[id];
@@ -96,7 +96,6 @@ export function switchStance(id, silent){
     const pp = playerPos();
     burst(V3(pp.x, 1.6, pp.z), st.blade, 10, 4, 3);
     floater(pp, st.name, hex(st.blade));
-    sfx(IGNITE[id] || 540, 0.22, 'sine', 0.1, id === 'djemso' || id === 'shiicho' ? 160 : 1480);
-    sfx(90, 0.18, 'sawtooth', 0.06, 60);   // saber re-ignite growl
+    S.reignite(id, from);   // the snap-hiss: the blade drops and lights again, pitched to the new form's hum (audio/saber.js)
   }
 }

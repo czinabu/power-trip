@@ -2,7 +2,7 @@
 // Holstering (4): the Jedi clips his saber to his belt and fights with the Force alone; the Mando holsters his weapon and fights with his fists and gadgets.
 
 import { G, shared, player, isGunner, isMando, isTrooper } from '../state.js';
-import { sfx } from '../audio/sfx.js';
+import { sfx, S } from '../audio/sfx.js';
 import { floater } from '../fx/floaters.js';
 import { reigniteBlade } from '../fx/trail.js';
 import { showBanner } from '../ui/banners.js';
@@ -83,10 +83,10 @@ export function toggleHolster(){
   syncHolster();
   if (player.holstered){
     showBanner('', 'SABER HOLSTERED · THE FORCE ALONE', 1.0);
-    sfx(300, 0.12, 'sawtooth', 0.05, 70); sfx(900, 0.05, 'square', 0.03, 600);   // the blade dies, the hilt clicks onto the belt
+    S.retract(G.stance); sfx(900, 0.05, 'square', 0.03, 600);   // the blade sucks back into the hilt, the hilt clicks onto the belt
   } else {
     showBanner('', 'SABER DRAWN', 0.8);
     reigniteBlade();   // snap-hiss
-    sfx(360, 0.2, 'sine', 0.09, 1300); sfx(90, 0.16, 'sawtooth', 0.05, 60);
+    S.ignite(G.stance);
   }
 }

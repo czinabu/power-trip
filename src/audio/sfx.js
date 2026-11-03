@@ -163,11 +163,10 @@ export const S = {
   // form: whose blade rings (the hero's form, or a form master's): FORM_SOUND
   block: (pos, form) => SB.clash(pos, false, form),
   clash: (pos, big, form) => SB.clash(pos, big, form),
-  // a PERFECT parry: a big clash that rings up into a bright chime, and the world ducks out of its way
+  // a PERFECT parry: a big clash that flares into a surge of the hum and a spitting shower, and the world ducks out of its way
   parry: (pos, form) => {
     SB.clash(pos, true, form);
-    T({ type: 'sine', f: 1568, g: 0.05, a: 0.005, d: 0.8, verb: 0.55, jit: 0.005 });
-    T({ type: 'sine', f: 2349, at: 0.04, g: 0.035, a: 0.005, d: 0.7, verb: 0.55, jit: 0.005 });
+    SB.parryFlare(pos);
     duck(0.35, 0.1);
   },
   // the riposte answer — a heavy decisive slash

@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updatePlayer(): the per-frame player update, run as meters → movement → Mando weapons/flight → Force jump → gravity/landing → animation.
 
+import { updateFinisherCue } from './jedi/finisher.js';
 import { CFG } from '../data/config.js';
 import { stamRegen } from './stamina.js';
 import { updateFury } from './jedi/fury.js';
@@ -46,6 +47,7 @@ export function updatePlayer(dt){
   updateForceJump(dt, pp, f, r);
   updateGravityAndLanding(dt, pp);
   updateGuardLine();   // a held guard waits on a duellist's line (jedi/guardline.js)
+  updateFinisherCue();   // the hilt over a foe the next attack would finish (jedi/finisher.js)
   animatePlayer(dt, pp, st, f, r, moving);
 }
 

@@ -32,6 +32,9 @@ import { pickCut } from './cutaim.js';
 import { CUT_ANGLE } from '../../data/stances.js';
 import { lineCatch, ripostePattern } from './guardline.js';
 import { addFury, furyMul } from './fury.js';
+import { tryFinisher, finisherStrike, endFinisher, finishType } from './finisher.js';
+import { PERFECT } from '../../data/finishers.js';
+import { addPosture } from '../../enemies/duel.js';
 
 /* COMBO RHYTHM — fractions of a swing. A press before `open` is too early (and costs this link its flow); a single
    press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). */
@@ -44,6 +47,7 @@ export function tryAttack(flow = false){
     return;
   }
   if (G.mode !== 'play' || player.blockHeld || player.judgeT > 0 || player.mendT > 0 || player.swingLock > 0 || player.mantle || player.hang || player.flinchT > 0) return;
+  if (player.fin) return;   // a SABER FINISHER plays out on its own (jedi/finisher.js): nothing queues behind it
   // input buffering, but ONLY in the back half of the current swing — early mashing is ignored so
   // the combo flows on rhythm instead of spraying three swings off one frantic burst of clicks.
   // A press in the back half queues the next cut. If that was the ONLY press this swing (no early click), the
@@ -56,6 +60,8 @@ export function tryAttack(flow = false){
     else sw.rushed = true;
     return;
   }
+  // a foe reeling with its guard broken, in reach in front of you: this attack is the form's FINISHER (jedi/finisher.js)
+  if (tryFinisher()) return;
   const st = stance();
   const step = (G.gt - player.lastAtkEnd < 0.9 * (st.comboGap || 1)) ? (player.comboStep + 1) % 3 : 0;
   // both the Jedi saber and the Mando DARKSABER spend stamina per swing (medium-high for the heavy darksaber)
@@ -73,11 +79,16 @@ export function tryAttack(flow = false){
     if (fs && player.force >= fs) player.force -= fs;
   }
   player.comboStep = step;
+  // PERFECT STRING (data/finishers.js PERFECT): both links into the third cut struck in rhythm (single presses in the back
+  // half of the swing, never a mash) make its finisher the perfect version
+  player.flowRun = step === 0 ? 0 : flow ? (player.flowRun || 0) + 1 : 0;
+  const perfect = step === 2 && player.flowRun >= 2 && !(player.riposteT > 0);
+  const PF = perfect ? (PERFECT.forms[isGunner() ? 'darksaber' : st.form] || {}) : null;
   // a cut out of a SLIDE ends the skid in a low sweep (parkour.js); any cut struck out of a parkour move carries its momentum
   if (player.slideT > 0){ player.slideT = 0; if (!isGunner()) player.flip = null; }
   const mom = momentumStrike();
   // slightly longer arcs read as deliberate sword strokes rather than a twitchy flurry
-  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1));
+  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1)) * (PF && PF.dur || 1);
   player.atkT = dur;
   // Jedi Academy style: the movement key picks the cut's direction, where you aim picks its height (cutaim.js)
   const cut = pickCut(step);
@@ -102,14 +113,14 @@ export function tryAttack(flow = false){
   player.lastCut = ang != null ? { ang, at: G.gt } : null;
   const cutDur = flowCut ? dur * FL.speed : dur;
   player.atkT = cutDur;
-  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, flow, mom };
+  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, flow, mom, perfect, pf: PF };
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
   const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
     ripNow, backStrike, mom, flow, st });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur; }
   // cinematic lunge toward nearest target in view — STRONG's finisher lunges harder; a RIPOSTE drives in hardest
-  let lunge = ripNow ? 2.0 : ((step === 2 && st.finisherLunge) ? st.finisherLunge : st.lunge) * (pat.lunge || 1);
+  let lunge = ripNow ? 2.0 : ((step === 2 && st.finisherLunge) ? st.finisherLunge : st.lunge) * (pat.lunge || 1) * (PF && PF.lunge || 1);
   // HAWK-BAT SWOOP (Ataru): a cut out of a Force dash springs off the ground and drives in twice as far
   if (mom === 'swoop'){
     lunge *= 2; player.vy = Math.max(player.vy, 4.5); player.grounded = false;
@@ -134,6 +145,7 @@ export function tryAttack(flow = false){
   else if (ang != null && !backStrike) cutFootwork(ang);
   S.swing(isGunner() ? 'dark' : G.stance);   // the blade's whoosh, voiced by form
   if (flow && !isGunner()) sfx(1250, 0.06, 'sine', 0.022, 1900);   // a faint ring: the link landed in rhythm
+  if (perfect){ sfx(1660, 0.1, 'sine', 0.03, 2400); sfx(990, 0.14, 'sine', 0.025, 1500); }   // ...and a brighter one: the string was perfect
 }
 /* SPINS (data/poses.js SWING_SPINS) — which flourish, if any, this cut carries. Jedi only, on the ground, and never on a
    finisher (it has its own spin), a riposte, a back strike or a momentum strike. It must be a rhythm (flow) link, off
@@ -190,6 +202,7 @@ export function cancelSwing(){
   player.atkT = 0;
   player.swing = null;
   player.queuedAtk = false;
+  endFinisher();   // bailing out of a finisher lets the foe go
   player.lastAtkEnd = G.gt;
   player.cancelT = G.gt;   // timestamp — a parry landed just after this counts as a CANCEL-RIPOSTE (extra payoff)
   if (player.darkT > 0){ player.darkT = 0; player.darkApplied = false; }   // also checks the darksaber ability slash
@@ -213,6 +226,9 @@ export function applySwingDamage(step, only){
   const sw0 = player.swing;
   const fxPass = !only || only.length === 0;
   const isDark = isGunner() && player.weapon === 'darksaber';
+  // a FINISHER beat strikes the foe it is finishing itself, once, at the strike point (jedi/finisher.js)
+  const finFoe = sw0 && sw0.fin ? sw0.fin.e : null;
+  if (sw0 && sw0.finBeat && fxPass) finisherStrike(sw0);
   let dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul();   // FORCE FOCUS ramps saber damage; Form VII's FURY too
   const finisher = step === 2;
   let knock = (finisher ? 15 : 6) * st.knock * player.up.knock;
@@ -236,6 +252,9 @@ export function applySwingDamage(step, only){
     dmg *= 2 * (player.up.riposte || 1) * (cancelRip ? 1.6 : 1) * (sw0.fluid ? 0.75 : 1);
     knock *= cancelRip ? 1.8 : 1;
   }
+  // a PERFECT STRING's finisher lands harder (data/finishers.js PERFECT)
+  const perfect = finisher && !!(sw0 && sw0.perfect);
+  if (perfect){ dmg *= PERFECT.dmg; knock *= PERFECT.knock; }
   if (riposte && !sw0.ripFx && !rallied){
     sw0.ripFx = true;   // the flash and the sting play once, on the first thing the riposte meets
     masteryXp('riposte');
@@ -284,8 +303,12 @@ export function applySwingDamage(step, only){
   };
   let foesHit = 0, blocker = null, blockAt = null;
   for (const e of enemies){
-    if (e.dead || e.converted || e.state === 'spawn') continue;
+    if (e.dead || e.converted || e.state === 'spawn' || e === finFoe) continue;
     tryHit(e.group.position, () => {
+      // SANDBOX · BREAK GUARDS: any cut that reaches a finishable foe breaks its guard outright, to practise finishers
+      if (G.sandbox && G.sbBreak && !finFoe && finishType(e) && e.state !== 'stagger' && !e.net){
+        staggerEnemy(e, f.x, f.z, 'GUARD BROKEN'); e.st += 0.3; return false;
+      }
       // a duellist's guard may turn it (a riposte, the answer to a parry, always lands)
       // (a guard the blade already met on the way in has had its say: player/jedi/clash.js)
       if (riposte && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
@@ -295,7 +318,10 @@ export function applySwingDamage(step, only){
         const pre = sw0 && sw0.duel && sw0.duel.get(e);
         const at = pre === undefined && only && only.length ? contactPoint(e) : undefined;
         const dres = pre !== undefined ? pre : duelDefend(e, line, finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
-        if (dres === 'block' || dres === 'dodge'){ turned++; if (dres === 'block' && !blocker){ blocker = e; blockAt = at; } return false; }
+        if (dres === 'block' || dres === 'dodge'){
+          if (dres === 'block' && perfect) addPosture(e, DUEL.posture.finisher * (PERFECT.posture - 1), f.x, f.z);   // a perfect finisher strains the guard that turns it
+          turned++; if (dres === 'block' && !blocker){ blocker = e; blockAt = at; } return false;
+        }
       }
       // VAAPAD — SHATTERPOINT: the foe whose attack you parried takes the next cut ×2, and it floors it
       const shat = !!(st.shatter && e.shatterUntil > G.gt);
@@ -323,7 +349,7 @@ export function applySwingDamage(step, only){
   if (finisher && foesHit) tutEvent('finisher');
   if (foesHit && sw0 && sw0.dir !== 'neutral') tutEvent('cutHit', { dir: sw0.dir });   // which key picked the cut that landed (the training's cut lesson)
   if (foesHit && sw0 && sw0.h && !finisher && !riposte) tutEvent('cutHeight', { h: sw0.h });   // and how high you aimed it (the aim lesson)
-  if (shared.boss && shared.boss.hp > 0) tryHit(shared.boss.group.position, () => { scarBody(shared.boss.group, f, sw0 && sw0.dir, finisher || isDark); return damageBoss(dmg * st.heavyDmg * edgeMul(shared.boss)); }, shared.boss);   // (× the form counter: enemies/foeform.js)
+  if (shared.boss && shared.boss.hp > 0 && shared.boss !== finFoe) tryHit(shared.boss.group.position, () => { scarBody(shared.boss.group, f, sw0 && sw0.dir, finisher || isDark); return damageBoss(dmg * st.heavyDmg * edgeMul(shared.boss)); }, shared.boss);   // (× the form counter: enemies/foeform.js)
   for (let i = barrels.length-1; i >= 0; i--){
     const b = barrels[i];
     tryHit(b.mesh.position, () => { if (b.fuse < 0) b.fuse = 0.1; }, b);
@@ -335,6 +361,13 @@ export function applySwingDamage(step, only){
     if (mom && !sw0.momFx){ sw0.momFx = true; floater(playerPos(), MOM_LABEL[mom] || 'MOMENTUM', '#9fe0c8'); }
     G.shake = Math.max(G.shake, finisher ? 0.5 : 0.2);
     addFocus(finisher ? FOCUS.gainFin : FOCUS.gainHit);   // FORCE FOCUS — clean bladework builds the flow
+    if (perfect && !sw0.pfFx){
+      sw0.pfFx = true;
+      addFocus(FOCUS.gainFin * PERFECT.focus);
+      floater(V3(playerPos().x, playerPos().y + 0.3, playerPos().z), 'PERFECT STRING', '#fff2b0');
+      G.hitstop = Math.max(G.hitstop, 0.08);
+      tutEvent('perfectString');
+    }
     // UNLEASHED (max focus): every cut releases a Force shockwave that cleaves & knocks the surrounding crowd
     if (!isGunner() && focusTier() >= 3){
       const pp1 = playerPos(), wp = V3(pp1.x + f.x*1.4, 0.6, pp1.z + f.z*1.4);
@@ -375,7 +408,8 @@ export function applySwingDamage(step, only){
   const sw = player.swing;
   const turn = sw && sw.pat ? Math.sign(sw.pat.yT - sw.pat.yF) : 0;
   player.arcMesh.rotation.z = (sw && sw.back ? Math.PI : 0) + turn * 0.55;
-  player.arcMesh.material.opacity = 0.7;
+  player.arcMesh.material.opacity = sw && (sw.perfect || sw.finBeat) ? 1 : 0.7;   // a perfect string's finisher, and a finisher, burn brighter
+  if (sw && sw.perfect && sw.step === 2) player.arcMesh.scale.setScalar(Math.max(player.arcMesh.scale.x, 1.35));
   player.arcMesh.material.color.setHex((isGunner() && player.weapon === 'darksaber') ? 0xc9a6ff : st.blade);
 }
 

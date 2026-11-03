@@ -28,6 +28,8 @@ export const PAD_CONTROLS = {
     ]},
     { title: 'FIGHT', rows: [
       ['{lmb}', 'Saber combo', 'The way you push {LS} picks the cut (the needle through the crosshair shows the next one): left or right sweeps sideways, forward chops overhead (a thrust aimed low), a diagonal cuts down or up, back whirls behind you; the stick at rest walks your form\'s string of cuts. The crosshair sits where your aim from the hero lands and turns red on a foe, and where it sits on them picks how high the cut goes: head or shoulders for a high cut, chest for a middle one, legs for a low one (Settings · AIM HINT turns the red off). A cut that starts where the last one finished flows on quicker. Every third is a finisher'],
+      ['{lmb} ON A BROKEN GUARD', 'Saber finisher', 'A foe reeling with its guard broken shows a gold hilt over it: attack while it is up, square in front of you, and your form plays its finisher. Most foes die to it; a master duellist, a champion or a boss is floored and badly hurt. You still take half damage while it plays, and {rmb}, a dash or a Force power bails out of it'],
+      ['FLOW', 'Perfect string', 'Land both links into the third cut in rhythm (one press each, late in the swing, no mashing) and the third cut is the perfect finisher: bigger, harder, more Focus', 1],
       ['HOLD {rmb}', 'Block', 'Soaks most of a blow; heavy hits drain stamina'],
       ['TAP {rmb}', 'Parry and deflect', 'Time it as a blow or bolt lands; a missed parry can\'t be retried for a moment'],
       ['{e}', 'Kick', 'Shoves a foe back and cracks a duellist\'s guard'],
@@ -83,6 +85,7 @@ export const PAD_CONTROLS = {
       ['{rmb} + {e}', 'Shield and blade', 'Single blaster: vibroblade cuts and a shield bash with the shield kept up · costs stamina', 1],
       ['{e}', 'Takedown', 'On a staggered or floored foe: the vibroblade, up under the plate or driven down from one knee', 1],
       ['{1} / {2} / {3}', 'Switch weapon', '{1} your sidearm, {2} your primary, {3} the Disruptor or Darksaber · choose the sidearm and primary in the ARMORY'],
+      ['{lmb} ON A BROKEN GUARD', 'Darksaber finisher', 'Darksaber in hand, a foe reeling with its guard broken shows a gold hilt over it: attack and the darksaber finishes it ({e} is still the vibroblade takedown)', 1],
       ['{rmb} + {lmb}', 'Darksaber throw', 'Darksaber in hand: hurl it, and the grappling line reels it back through anything in its path', 1],
       ['{h}', 'Squad orders', 'With a squad · TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks, the D-pad orders one squadmate, let go to give it · stand by a downed squadmate to get them up · in the sandbox it opens the sandbox panel, and {alt} + {h} gives orders', 1],
       ['{h}', 'Talk', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it'],

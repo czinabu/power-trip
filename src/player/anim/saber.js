@@ -215,14 +215,18 @@ export function swingPose(R, held, grip, form, sw){
   if (!saberPose.live) seed(R, held);
   const style = SWING_STYLE[form] || SWING_STYLE.niman;
   if (!sw.anim){
-    const fin = sw.step === 2 && sw.dir === 'neutral' && !sw.riposte;
-    const pid = sw.riposte && !sw.ripLine ? 'forward' : fin ? style.finisher.pattern : (sw.pat.id || 'right');   // (a riposte on a line: jedi/guardline.js)
+    // a SABER FINISHER's beat (jedi/finisher.js) names its own cut, spin and hop; otherwise the 3rd hit is the form's finisher
+    const fb = sw.finBeat;
+    const fin = !!fb || (sw.step === 2 && sw.dir === 'neutral' && !sw.riposte);
+    const pid = fb ? fb.pat : sw.riposte && !sw.ripLine ? 'forward' : fin ? style.finisher.pattern : (sw.pat.id || 'right');   // (a riposte on a line: jedi/guardline.js)
     const set = (style.set && SWINGS[style.set]) || SWINGS[grip] || SWINGS.regular;   // (the saber staff swings its own two-ended set)
     const keys = sw.pat.ang != null && !sw.riposte && !fin ? angleKeys(set, grip, sw.pat.ang, sw.h) : (set[pid] || set.right);
+    const pf = fin && !fb && sw.pf;   // a PERFECT STRING's finisher: the same move, bigger (data/finishers.js PERFECT)
     // reach scales the chamber and follow-through out from the arc centre (committed forms swing bigger)
     const scaled = keys.map((kf, i) => i === 1 ? kf : { ...kf, hand: kf.hand.clone().sub(PIVOT).multiplyScalar(style.reach).add(PIVOT) });
     sw.anim = {
-      keys: scaled, fin, spin: fin ? style.finisher.spin : 0, hop: fin ? style.finisher.hop : style.spinHop,
+      keys: scaled, fin, spin: fb ? (fb.spin || 0) : fin ? style.finisher.spin + (pf && pf.spin || 0) : 0,
+      hop: fb ? (fb.hop || 0) : fin ? style.finisher.hop + (pf && pf.hop || 0) : style.spinHop,
       tc: style.tc * (sw.riposte ? 0.45 : sw.flowCut ? CUT_ANGLE.flow.chamber : 1), ts: style.ts, tf: style.tf,
       start: { hand: saberPose.hand.clone(), blade: saberPose.blade.clone(), twist: saberPose.twist, pole: saberPose.pole.clone() },
     };

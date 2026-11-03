@@ -15,6 +15,7 @@ import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
 import { stance, maxStam, heldGrip } from './helpers.js';
 import { tryAttack, applySwingDamage, FLOW } from './jedi/combat.js';
+import { finisherNext } from './jedi/finisher.js';
 import { inCombat } from './mobility.js';
 import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
@@ -444,6 +445,8 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       return;
     }
     if (player.atkT <= 0){
+      // a FINISHER beat hands straight on to the next one (jedi/finisher.js), carrying the body's turn and hop with it
+      if (player.fin && !sw.recoil && finisherNext()) return;
       player.lastAtkEnd = G.gt;
       if (!sw.recoil) vis.rotation.y = 0;   // (a recoil ends partway round: the guard eases the body back square, no pop)
       player._swingDrop = 0;

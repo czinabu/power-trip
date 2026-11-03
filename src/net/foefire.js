@@ -211,6 +211,8 @@ on('lw', (m) => {
 hooks.ring = (pos, r0) => { if (asHost()) send({ t: 'ring', x: r2(pos.x), z: r2(pos.z), r: r0 }); };
 on('ring', (m) => { if (asGuest()) spawnBossRing(m.x, m.z, m.r); });
 hooks.bctl = (k) => { if (asGuest()) send({ t: 'bctl', k }); };
+// the guest is finishing one of the host's foes: keep it reeling that long (net/foes.js 'ctl', jedi/finisher.js)
+hooks.hold = (e, st) => { if (asGuest()) send({ t: 'ctl', n: e.nid, s: 'stagger', st: Math.round(st * 100) / 100, v: [0, 0, 0] }); };
 hooks.bossDead = () => { if (asHost()) send({ t: 'bdead' }); };
 // story missions: the host's banners reach the guest, and its mission ending ends theirs
 hooks.mbanner = (a, b, c, o) => { if (asHost()) send({ t: 'mbn', a, b, c, k: o && o.kicker }); };

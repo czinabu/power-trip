@@ -25,8 +25,9 @@ export function readoutSummaryHtml(){
   const rows = waves.slice(-SUMMARY_ROWS).map((w) =>
     '<tr><td>' + w.label + '</td><td>' + fmtLen(w.len) + '</td><td>' + Math.round(dmgSum(w)) + '</td><td>' + (top(w) ? foeLabel(top(w)) : '–') +
     '</td><td>' + w.lowStam.toFixed(1) + 's</td><td>' + w.parries + ' / ' + w.deflects + ' / ' + w.blocks + '</td></tr>').join('');
-  return '<div class="rs-readout"><div class="rs-bl">COMBAT READOUT</div>' + totals(total) + '<div class="ro-bars">' + bars(total) + '</div>' +
-    (rows ? '<table class="ro-tab"><tr><th>WAVE</th><th>TIME</th><th>DMG</th><th>MOST FROM</th><th>LOW STAM</th><th>PARRY / DEFL / BLOCK</th></tr>' + rows + '</table>' : '') + '</div>';
+  // one wave (a mission, a short run) says nothing the totals and bars don't; two or more fold away behind WAVE BY WAVE
+  const table = waves.length > 1 ? '<details class="ro-more"><summary>WAVE BY WAVE</summary><table class="ro-tab"><tr><th>WAVE</th><th>TIME</th><th>DMG</th><th>MOST FROM</th><th>LOW STAM</th><th>PARRY / DEFL / BLOCK</th></tr>' + rows + '</table></details>' : '';
+  return '<div class="rs-readout"><div class="rs-bl">COMBAT READOUT</div>' + totals(total) + '<div class="ro-bars">' + bars(total) + '</div>' + table + '</div>';
 }
 
 // the sandbox's live box: this stretch so far, then the totals since the last reset

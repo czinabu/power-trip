@@ -24,17 +24,17 @@
 #overlay.st-pause .ov-head h2{font:700 44px/1 var(--font-display);letter-spacing:6px;color:var(--ink);margin-top:26px}
 /* run setup: hero, then mode + difficulty */
 #setup{width:100%;margin-top:28px;display:flex;flex-direction:column;gap:18px}
-#overlay.st-pause #setup,#overlay.st-dead #setup{display:none}
+#overlay.st-pause #setup,#overlay.st-dead #setup,#overlay.st-victory:not(.vpicking) #setup{display:none}
 .sec-label{font:600 12px/1 var(--font-ui);letter-spacing:2.5px;color:var(--ink-dim);margin:0 0 8px;text-align:left;display:flex;align-items:center;gap:10px}
 .sec-label::after{content:'';flex:1;height:1px;background:var(--edge)}
 #heroselect{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 /* the main menu keeps every row on one screen: the heroes side by side as name plates (the turntable shows the rest),
    short mode lines, and ui/menus.js fitMenu() scales the column down when a short window still can't hold it */
-#overlay.st-menu #heroselect{grid-template-columns:1fr 1fr;gap:8px}
-#overlay.st-menu .herocard{align-items:center;gap:12px;padding:10px 12px}
-#overlay.st-menu .herocard .hi{width:38px;height:38px}
-#overlay.st-menu .herocard .hn{font-size:21px}
-#overlay.st-menu #setup{margin-top:20px;gap:14px}
+#overlay:is(.st-menu,.vpicking) #heroselect{grid-template-columns:1fr 1fr;gap:8px}
+#overlay:is(.st-menu,.vpicking) .herocard{align-items:center;gap:12px;padding:10px 12px}
+#overlay:is(.st-menu,.vpicking) .herocard .hi{width:38px;height:38px}
+#overlay:is(.st-menu,.vpicking) .herocard .hn{font-size:21px}
+#overlay:is(.st-menu,.vpicking) #setup{margin-top:20px;gap:14px}
 #overlay.st-menu .ov-head h2{margin-top:10px}
 #overlay.st-menu .ov-foot{margin-top:12px}
 .herocard{--bc:var(--accent);display:flex;gap:14px;align-items:flex-start;text-align:left;padding:14px 16px;border-radius:var(--r);
@@ -50,7 +50,7 @@
 .herocard .hrole{font:600 13px/1 var(--font-ui);letter-spacing:2px;color:var(--accent);margin-top:5px;text-transform:uppercase}
 #hero-mando .hrole{color:#c9d6e2}
 .herocard .hd{margin:10px 0 0;padding:0;list-style:none;font:500 14px/1.4 var(--font-body);color:var(--ink-soft)}
-#overlay.st-menu .herocard .hd{display:none}
+#overlay:is(.st-menu,.vpicking) .herocard .hd{display:none}
 .herocard .hd li{position:relative;padding-left:14px;margin-top:2px}
 .herocard .hd li::before{content:'';position:absolute;left:0;top:.6em;width:5px;height:5px;transform:rotate(45deg);background:var(--edge-mid)}
 .herocard.sel .hd li::before{background:var(--accent)}
@@ -71,17 +71,17 @@
 /* ---------- THE TITLE SCREEN'S TWO STEPS (ui/menus.js showMenuStep): MODE first, then HERO + DIFFICULTY + BEGIN ---------- */
 #modestep,#herostep{display:flex;flex-direction:column;gap:10px;animation:rise .25s var(--ease)}
 #modestep .sec-label,#herostep .sec-label{margin:0}
-#overlay.st-menu.step-mode #herostep,#overlay.st-menu.step-hero #modestep{display:none}
+#overlay:is(.st-menu,.vpicking).step-mode #herostep,#overlay:is(.st-menu,.vpicking).step-hero #modestep{display:none}
 #overlay.st-menu.step-mode:not(.mpage) .ov-actions .go{display:none}   /* the first step has nothing to BEGIN yet */
 /* step one: the modes get the room the whole column used to share, their lines wrap instead of cutting off */
-#overlay.st-menu #modeselect{gap:8px;grid-template-columns:1fr 1fr}
-#overlay.st-menu #modeselect .modeopt,#overlay.st-menu #modeselect .modeopt.major,#overlay.st-menu #modeselect .modeopt.wide{grid-column:auto}
-#overlay.st-menu #modeselect .modeopt{opacity:1;padding:15px 34px 14px 16px;min-height:62px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}
-#overlay.st-menu #modeselect .modeopt.major{min-height:96px;padding:18px 36px 18px 18px}
-#overlay.st-menu #modeselect .modeopt.major .mt{font:700 26px/1 var(--font-display);letter-spacing:2.5px}
-#overlay.st-menu #modeselect .modeopt.major .md{font-size:14px;margin-top:7px}
-#overlay.st-menu #modeselect .modeopt:not(.major) .mt{font-size:17px}
-#overlay.st-menu #modeselect .modeopt .md{line-height:1.35}
+#overlay:is(.st-menu,.vpicking) #modeselect{gap:8px;grid-template-columns:1fr 1fr}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt,#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.major,#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.wide{grid-column:auto}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt{opacity:1;padding:15px 34px 14px 16px;min-height:62px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.major{min-height:96px;padding:18px 36px 18px 18px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.major .mt{font:700 26px/1 var(--font-display);letter-spacing:2.5px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.major .md{font-size:14px;margin-top:7px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt:not(.major) .mt{font-size:17px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt .md{line-height:1.35}
 /* a quiet chevron: every tile leads on (to the hero step, the Missions page or the co-op panel) */
 #modeselect .modeopt .mt::after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 26px/1 var(--font-ui);color:var(--ink-faint);transition:color .15s,transform .15s}
 #modeselect .modeopt:hover .mt::after{color:var(--ink-soft);transform:translate(3px,-50%)}
@@ -95,37 +95,37 @@
 .modeopt .lockt .ic.lk{margin:0;font-size:11px;width:1em;height:1em}
 /* step two: a back button and the mode it is setting up */
 .step-head{display:flex;align-items:center;gap:14px;margin-bottom:4px}
-#overlay:not(.st-menu) .step-head{display:none}   /* (the victory screen keeps its pickers on one page, as before) */
+#overlay:not(.st-menu):not(.vpicking) .step-head{display:none}   /* (the results screen's CHANGE panel keeps it too) */
 .step-head .step-back{padding:8px 14px;font-size:13px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .step-mode{display:flex;flex-direction:column;gap:4px}
 .step-mode .step-k{font:600 11px/1 var(--font-ui);letter-spacing:2.5px;color:var(--ink-faint)}
 #stepMode{font:700 24px/1 var(--font-display);letter-spacing:2.5px;color:var(--gold)}
 /* the three heroes side by side as name plates, and what the picked one does under them */
-#overlay.st-menu.step-hero #heroselect{grid-template-columns:repeat(3,1fr)}
-#overlay.st-menu.step-hero .herocard{flex-direction:column;align-items:flex-start;gap:9px;padding:12px 12px 13px}
-#overlay.st-menu.step-hero .herocard .hn{font-size:20px;white-space:nowrap}
-#overlay.st-menu.step-hero .herocard .hrole{font-size:12px}
+#overlay:is(.st-menu,.vpicking).step-hero #heroselect{grid-template-columns:repeat(3,1fr)}
+#overlay:is(.st-menu,.vpicking).step-hero .herocard{flex-direction:column;align-items:flex-start;gap:9px;padding:12px 12px 13px}
+#overlay:is(.st-menu,.vpicking).step-hero .herocard .hn{font-size:20px;white-space:nowrap}
+#overlay:is(.st-menu,.vpicking).step-hero .herocard .hrole{font-size:12px}
 #herobio{display:none;list-style:none;margin:2px 0 4px;padding:10px 14px 11px;border-left:2px solid var(--accent);background:rgba(8,18,33,.55);border-radius:0 var(--r) var(--r) 0}
-#overlay.st-menu.step-hero #herobio{display:block}
-#overlay.st-menu.step-hero #hero-trooper{grid-column:auto}
+#overlay:is(.st-menu,.vpicking).step-hero #herobio{display:block}
+#overlay:is(.st-menu,.vpicking).step-hero #hero-trooper{grid-column:auto}
 #herobio li{position:relative;padding-left:14px;margin-top:2px}
 #herobio li:first-child{margin-top:0}
 #herobio li::before{content:'';position:absolute;left:0;top:.6em;width:5px;height:5px;transform:rotate(45deg);background:var(--accent)}
 #herostep #campsaves{margin-top:2px}
 @media (max-width:520px){
   /* a phone: the modes two to a row, on solid plates so the hero behind them doesn't show through */
-  #overlay.st-menu :is(#modeselect,#diffselect) .modeopt,#overlay.st-menu .herocard,#herobio{background-color:rgba(6,13,24,.9)}
-  #overlay.st-menu.step-hero .herocard .hi{display:none}
-  #overlay.st-menu.step-hero .herocard .hn{font-size:17px;letter-spacing:1px}
-  #overlay.st-menu.step-hero .herocard{padding:10px 9px}
-  #overlay.st-menu #modeselect .modeopt.major{min-height:80px}
+  #overlay:is(.st-menu,.vpicking) :is(#modeselect,#diffselect) .modeopt,#overlay:is(.st-menu,.vpicking) .herocard,#herobio{background-color:rgba(6,13,24,.9)}
+  #overlay:is(.st-menu,.vpicking).step-hero .herocard .hi{display:none}
+  #overlay:is(.st-menu,.vpicking).step-hero .herocard .hn{font-size:17px;letter-spacing:1px}
+  #overlay:is(.st-menu,.vpicking).step-hero .herocard{padding:10px 9px}
+  #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.major{min-height:80px}
 }
 /* ---------- THE MISSIONS PAGE: swaps in for the menu column while MISSIONS is open (ui/missions-ui.js) ---------- */
 #missionpage{display:none;width:100%;margin-top:22px;flex-direction:column;gap:12px;cursor:default;animation:rise .25s var(--ease)}
-#overlay.st-menu.mpage #missionpage{display:flex}
-#overlay.st-menu.mpage #setup,#overlay.st-menu.mpage .ov-foot,#overlay.st-menu.mpage #trainconfirm,
-#overlay.st-menu.mpage .ov-actions .btn:not(.go){display:none}
-#overlay.st-menu.mpage .ov-actions{margin-top:14px}
+#overlay:is(.st-menu,.vpicking).mpage #missionpage{display:flex}
+#overlay:is(.st-menu,.vpicking).mpage #setup,#overlay:is(.st-menu,.vpicking).mpage .ov-foot,#overlay:is(.st-menu,.vpicking).mpage #trainconfirm,
+#overlay:is(.st-menu,.vpicking).mpage .ov-actions .btn:not(.go){display:none}
+#overlay:is(.st-menu,.vpicking).mpage .ov-actions{margin-top:14px}
 .mp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .mp-head .mp-back{padding:8px 14px;font-size:13px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .mp-head .cz-tabs{margin-left:auto}
@@ -348,16 +348,14 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .ctl .tips b{color:var(--ink)}
 
 /* ---------- RUN SUMMARY (fallen / victory / survival end) ---------- */
-#runsummary{display:none;width:min(640px,100%);margin-top:22px}
+#runsummary{display:none;width:min(700px,100%);margin-top:22px}
 #runsummary .rs-title{font:700 56px/1 var(--font-display);letter-spacing:5px;color:var(--gold);text-shadow:0 0 22px #a06000;margin-bottom:18px}
 #overlay.st-dead #runsummary .rs-title{color:#ff8f7a;text-shadow:0 0 22px #7a1000}
 #runsummary .rs-score{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:16px;font-size:13px;letter-spacing:2.4px;color:var(--ink-dim)}
 #runsummary .rs-score b{font:700 46px/1 var(--font-ui);letter-spacing:1px;color:var(--xp);text-shadow:0 0 18px var(--xp-glow)}
 #runsummary .rs-best{font-size:12px;letter-spacing:2px;color:var(--ink-dim);padding:3px 10px;border:1px solid var(--edge);border-radius:var(--r-chip)}
 #runsummary .rs-best.new{color:var(--gold);border-color:var(--gold);text-shadow:0 0 12px #a06000;animation:pulse 1s infinite}
-#runsummary .rs-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-#runsummary .rs-grid.c3 .rs-stat{flex:0 0 calc((100% - 16px) / 3)}
-#runsummary .rs-grid.c4 .rs-stat{flex:0 0 calc((100% - 24px) / 4)}
+#runsummary .rs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}   /* every stat on one row */
 #runsummary .rs-stat{box-sizing:border-box;background:var(--panel-solid);border:1px solid var(--edge);border-radius:var(--r);padding:10px 6px 9px}
 #runsummary .rs-v{font:700 22px/1 var(--font-ui);color:var(--ink);font-variant-numeric:tabular-nums}
 #runsummary .rs-l{font-size:10.5px;letter-spacing:2px;color:var(--ink-dim);margin-top:5px}
@@ -378,7 +376,7 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
   #heroselect,.setup-row{grid-template-columns:1fr}
   .ctl,.rm-list,.set-grid{grid-template-columns:1fr}
   .ctl .tips{grid-template-columns:1fr}
-  #runsummary .rs-grid .rs-stat{flex-basis:calc((100% - 8px) / 2)!important}
+  #runsummary .rs-grid{grid-template-columns:repeat(3,1fr)}
 }
 /* first campaign: the offer to train first swaps in for the action row, like the leave-run confirm */
 #trainconfirm{display:none;flex-direction:column;align-items:flex-start;gap:12px;margin-top:28px;padding:16px 22px;cursor:default;
@@ -642,7 +640,7 @@ body.pad .bs-aim{display:block}
 #overlay.st-pause #homeconfirm{align-items:flex-start;margin-top:26px}
 #overlay.st-pause .ov-foot{text-align:left;margin-top:22px;font-size:12px}
 #overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:rise .3s var(--ease) both}
-@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay.st-menu .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
+@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay:is(.st-menu,.vpicking) .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
 
 /* ---------- SAVE / LOAD: same panel as CONTROLS, one row per slot (ui/saves-ui.js) ---------- */
 #saves{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
@@ -678,6 +676,53 @@ body.pad .bs-aim{display:block}
 #runsummary .ro-tab{width:100%;margin-top:12px;border-collapse:collapse;font-size:12px;letter-spacing:.8px;font-variant-numeric:tabular-nums}
 #runsummary .ro-tab th{font-size:10px;letter-spacing:1.6px;color:var(--ink-dim);font-weight:500;text-align:left;padding:3px 6px}
 #runsummary .ro-tab td{padding:4px 6px;color:var(--ink-soft);border-top:1px solid var(--edge)}
+/* the readout is one quiet panel: totals, damage by foe, and (for a run of several waves) the table folded away */
+#runsummary .rs-readout{padding:12px 14px 12px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(6,13,24,.55)}
+#runsummary .rs-readout .rs-bl{text-align:left}
+#runsummary .rs-readout .ro-tot{justify-content:flex-start}
+#runsummary .ro-more{margin-top:10px}
+#runsummary .ro-more summary{cursor:pointer;pointer-events:auto;list-style:none;font-size:11px;letter-spacing:1.8px;color:var(--ink-dim);width:max-content}
+#runsummary .ro-more summary::-webkit-details-marker{display:none}
+#runsummary .ro-more summary::after{content:' ›';display:inline-block;transition:transform .15s}
+#runsummary .ro-more[open] summary::after{transform:rotate(90deg)}
+#runsummary .ro-more summary:hover{color:var(--ink-soft)}
+#runsummary .ro-more .ro-tab{margin-top:6px}
+
+/* ---------- THE RESULTS SCREEN (fallen / victory): the results, the next run on one line, then the actions ---------- */
+#nextrun{display:none;align-items:center;gap:12px;width:min(700px,100%);box-sizing:border-box;margin-top:16px;padding:9px 10px 9px 16px;
+  border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);text-align:left;cursor:default}
+#overlay.st-victory #nextrun{display:flex}
+#nextrun .nr-k{flex:none;font:600 11px/1 var(--font-ui);letter-spacing:2.5px;color:var(--ink-faint)}
+#nrWhat{flex:1;min-width:0;font:600 14px/1.3 var(--font-ui);letter-spacing:1.8px;color:var(--ink);text-transform:uppercase}
+#vchange{flex:none;padding:7px 14px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.6)}
+#overlay.vpicking #vchange{color:var(--gold);border-color:rgba(255,210,74,.55)}
+/* CHANGE open: the title screen's two steps (mode, then hero + difficulty) or the Missions page, in the menu's column width */
+#overlay.vpicking #setup,#overlay.vpicking #missionpage{width:min(700px,100%);margin-top:14px;text-align:left}
+#overlay.vpicking #campsaves{display:none}   /* (LOAD GAME is on the action row; a new game is the title screen's) */
+#overlay.vpicking #runsummary :is(.rs-grid,.rs-boons,.rs-readout){display:none}   /* the title and score stay: the picker gets the room */
+#overlay.vpicking #runsummary .rs-title{font-size:38px;margin-bottom:10px}
+#overlay.vpicking #runsummary .rs-score{margin-bottom:0}
+/* the action row: the next run, again, and out on one row; the panels (settings, controls, codex...) a quiet row under it */
+#overlay:is(.st-victory,.st-dead) .ov-actions{margin-top:18px;gap:8px 10px}
+#overlay:is(.st-victory,.st-dead) .ov-actions::before{content:'';order:1;flex-basis:100%;height:0}
+#overlay:is(.st-victory,.st-dead) .ov-actions :is(#formsBtn,#loadBtn,#settoggle,#ctltoggle,#cxtoggle,#coopBtn,#rmtoggle){order:2;padding:8px 12px;font-size:12px;letter-spacing:1.5px;
+  background:rgba(8,18,33,.45);color:var(--ink-dim)}
+#overlay:is(.st-victory,.st-dead) .ov-actions :is(#formsBtn,#loadBtn,#settoggle,#ctltoggle,#cxtoggle,#coopBtn,#rmtoggle):hover{color:var(--ink)}
+#overlay:is(.st-victory,.st-dead) .ov-inner{padding-top:26px}
+#overlay:is(.st-victory,.st-dead) #runsummary{margin-top:10px}
+#overlay:is(.st-victory,.st-dead) #runsummary .rs-title{font-size:clamp(38px,5vw,56px)}
+#overlay:is(.st-victory,.st-dead) .ov-foot{margin-top:14px}
+@media (max-width:520px){
+  /* a phone: the NEXT line wraps its words beside CHANGE; PLAY AGAIN on its own row, retry and main menu side by side */
+  #nextrun{gap:10px;padding-left:12px}
+  #nextrun .nr-k{display:none}
+  #nrWhat{font-size:12.5px;letter-spacing:1.4px}
+  #overlay:is(.st-victory,.st-dead) .ov-actions .btn{box-sizing:border-box;min-width:0}
+  #overlay:is(.st-victory,.st-dead) .ov-actions .go{flex:1 0 100%;padding-left:12px;padding-right:12px}
+  #overlay:is(.st-victory,.st-dead) .ov-actions :is(#restartBtn,#homeBtn){flex:1 1 0;padding:12px 6px;font-size:13px;letter-spacing:1.5px;white-space:nowrap}
+  #overlay:is(.st-victory,.st-dead) .ov-actions :is(#formsBtn,#loadBtn,#settoggle,#ctltoggle,#cxtoggle,#coopBtn,#rmtoggle){flex:1 1 28%;padding:8px 4px;font-size:11px;white-space:nowrap}
+  #runsummary .rs-readout .ro-tot{font-size:11px;gap:3px 10px}
+}
 
 /* Controls: the attack-tell legend (colours come from fx/tells.js) */
 .ctl .tells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 22px;margin:0;padding:0;list-style:none}

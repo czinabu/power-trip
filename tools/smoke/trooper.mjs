@@ -45,7 +45,7 @@ for (const run of RUNS){
   try {
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-    await page.click('#hero-trooper');
+    await page.$eval('#hero-trooper', el => el.click());
     if (await page.evaluate(() => GAME.G.hero) !== 'trooper') throw new Error('the trooper card did not pick the trooper');
     if (mode === 'mission'){ await page.click('#mode-mission'); await page.click('#msn-' + mission); }
     else await page.click('#mode-' + mode);

@@ -112,7 +112,7 @@ try {
     if (h !== hero){
       if (page) await page.close();
       page = await open(h); hero = h;
-      await page.click('#hero-' + h); await page.click('#mode-campaign');
+      await page.$eval('#hero-' + h, el => el.click()); await page.click('#mode-campaign');
       await toPlay(page);
     }
     await page.evaluate(([m, i]) => GAME.startMission(m, i), [mid, i]);

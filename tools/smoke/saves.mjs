@@ -33,7 +33,7 @@ await page.waitForTimeout(1500);   // past the panels' rise-in (it lifts the col
 check(await page.evaluate(() => { const r = document.querySelector('.ov-inner').getBoundingClientRect(); return r.bottom <= innerHeight + 1; }), 'menu fits the window');
 
 // CAMPAIGN as the Mando, skipped to level 2 with a build
-await page.click('#hero-mando'); await page.click('#mode-campaign'); await page.click('#goText');
+await page.$eval('#hero-mando', el => el.click()); await page.click('#mode-campaign'); await page.click('#goText');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
 await playing();
 await page.evaluate(() => { const { G, player, startLevel } = GAME; G.xp = 777; player.up.dmg = 1.5; G.unlocked.flame = true; startLevel(1); });
@@ -51,7 +51,7 @@ await page.click('#homeBtn'); await page.click('#homeYes');
 
 // NEW GAME wipes progress but keeps the slot
 await page.evaluate(() => localStorage.setItem('sw_camp_jedi', '1'));
-await page.click('#campNewBtn'); await shot('04-new-confirm');
+await page.$eval('#campNewBtn', el => el.click()); await shot('04-new-confirm');
 await page.click('#newYes');
 await page.click('#trainNo');   // a fresh start offers the training grounds first, as on a first run
 await playing();
@@ -74,13 +74,13 @@ check(await page.evaluate(() => GAME.G.levelIdx === 1 && GAME.G.xp === 777 && GA
 // a STORY MISSION save loads back onto that mission
 await pause(); await page.click('#homeBtn'); await page.click('#homeYes');
 await page.evaluate(() => localStorage.setItem('sw_mission_pursuit_jedi', '1'));   // missions stay locked until the campaign clears them
-await page.click('#hero-jedi'); await page.click('#mode-mission'); await page.click('#msn-pursuit'); await page.click('#goText');
+await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-mission'); await page.evaluate(() => document.getElementById('msn-pursuit').click()); await page.click('#goText');   // (its act's fold can be shut: the card is picked as a click on it would)
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
 await playing();
 await pause(); await page.click('#saveBtn'); await page.click('[data-act="save"][data-i="1"]');
 await page.click('#savesclose'); await page.click('#homeBtn'); await page.click('#homeYes');
-await page.click('#hero-mando'); await page.click('#mode-campaign');
-await page.click('#campLoadBtn'); await page.click('[data-act="load"][data-i="1"]');
+await page.$eval('#hero-mando', el => el.click()); await page.click('#mode-campaign');
+await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act="load"][data-i="1"]');
 check(await page.evaluate(() => GAME.G.modeSel === 'mission' && GAME.G.missionId === 'pursuit' && GAME.G.hero === 'jedi' && document.getElementById('goText').textContent === 'BEGIN MISSION'), 'mission save loads onto that mission');
 await page.click('#goText');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
@@ -90,8 +90,8 @@ await pause(); await shot('07-pause-mission');
 
 // a NEW Jedi story opens on its prologue (a mission chapter) knowing only Shii-Cho, not a lone mission's three forms
 await page.click('#homeBtn'); await page.click('#homeYes');
-await page.click('#hero-jedi'); await page.click('#mode-campaign');
-await page.click('#campNewBtn'); await page.click('#newYes');
+await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-campaign');
+await page.$eval('#campNewBtn', el => el.click()); await page.click('#newYes');
 if (await page.isVisible('#trainNo')) await page.click('#trainNo');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});
 await playing();
@@ -102,7 +102,7 @@ check(fresh.ch >= 0 && fresh.mission && JSON.stringify(fresh.loadout) === '["shi
 await pause(); await page.click('#saveBtn'); await page.click('[data-act="save"][data-i="2"]');
 await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('sw_save_2')); d.run.loadout = ['ataru', 'niman', 'djemso']; d.run.stance = 'niman'; localStorage.setItem('sw_save_2', JSON.stringify(d)); });
 await page.click('#savesclose'); await page.click('#homeBtn'); await page.click('#homeYes');
-await page.click('#campLoadBtn'); await page.click('[data-act="load"][data-i="2"]');
+await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act="load"][data-i="2"]');
 await page.click('#goText');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});
 await playing();

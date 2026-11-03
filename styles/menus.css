@@ -36,7 +36,6 @@
 #overlay.st-menu .herocard .hn{font-size:21px}
 #overlay.st-menu #setup{margin-top:20px;gap:14px}
 #overlay.st-menu .ov-head h2{margin-top:10px}
-#overlay.st-menu #modeselect .modeopt:not(.major) .md{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #overlay.st-menu .ov-foot{margin-top:12px}
 .herocard{--bc:var(--accent);display:flex;gap:14px;align-items:flex-start;text-align:left;padding:14px 16px;border-radius:var(--r);
   border:1px solid var(--edge);background:rgba(8,18,33,.7);cursor:pointer;pointer-events:auto;
@@ -69,6 +68,58 @@
 #setup.camp #campsaves{display:flex}
 #campsaves .btn{flex:1 1 0;white-space:nowrap;padding:8px 6px;font-size:12px;letter-spacing:1.5px;background:rgba(8,18,33,.45)}
 #modeselect .modeopt:not(.major) .mt{font-size:15px}
+/* ---------- THE TITLE SCREEN'S TWO STEPS (ui/menus.js showMenuStep): MODE first, then HERO + DIFFICULTY + BEGIN ---------- */
+#modestep,#herostep{display:flex;flex-direction:column;gap:10px;animation:rise .25s var(--ease)}
+#modestep .sec-label,#herostep .sec-label{margin:0}
+#overlay.st-menu.step-mode #herostep,#overlay.st-menu.step-hero #modestep{display:none}
+#overlay.st-menu.step-mode:not(.mpage) .ov-actions .go{display:none}   /* the first step has nothing to BEGIN yet */
+/* step one: the modes get the room the whole column used to share, their lines wrap instead of cutting off */
+#overlay.st-menu #modeselect{gap:8px;grid-template-columns:1fr 1fr}
+#overlay.st-menu #modeselect .modeopt,#overlay.st-menu #modeselect .modeopt.major,#overlay.st-menu #modeselect .modeopt.wide{grid-column:auto}
+#overlay.st-menu #modeselect .modeopt{opacity:1;padding:15px 34px 14px 16px;min-height:62px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}
+#overlay.st-menu #modeselect .modeopt.major{min-height:96px;padding:18px 36px 18px 18px}
+#overlay.st-menu #modeselect .modeopt.major .mt{font:700 26px/1 var(--font-display);letter-spacing:2.5px}
+#overlay.st-menu #modeselect .modeopt.major .md{font-size:14px;margin-top:7px}
+#overlay.st-menu #modeselect .modeopt:not(.major) .mt{font-size:17px}
+#overlay.st-menu #modeselect .modeopt .md{line-height:1.35}
+/* a quiet chevron: every tile leads on (to the hero step, the Missions page or the co-op panel) */
+#modeselect .modeopt .mt::after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 26px/1 var(--font-ui);color:var(--ink-faint);transition:color .15s,transform .15s}
+#modeselect .modeopt:hover .mt::after{color:var(--ink-soft);transform:translate(3px,-50%)}
+#modeselect .modeopt.locked .mt::after{content:none}
+/* a locked mode reads as locked, with what opens it, instead of greyed out with red crosses */
+#modeselect .modeopt.locked{opacity:1;border-style:dashed;background:rgba(6,12,22,.55)}
+#modeselect .modeopt.locked .mt{color:var(--ink-dim)}
+#modeselect .modeopt.locked .md{color:var(--ink-dim)}
+.modeopt .lockt{display:inline-flex;align-items:center;gap:4px;margin-right:7px;padding:2px 6px 2px 5px;border-radius:3px;vertical-align:1px;
+  font:700 10.5px/1 var(--font-ui);letter-spacing:1.5px;color:var(--gold);background:rgba(255,210,74,.1);border:1px solid rgba(255,210,74,.35)}
+.modeopt .lockt .ic.lk{margin:0;font-size:11px;width:1em;height:1em}
+/* step two: a back button and the mode it is setting up */
+.step-head{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+#overlay:not(.st-menu) .step-head{display:none}   /* (the victory screen keeps its pickers on one page, as before) */
+.step-head .step-back{padding:8px 14px;font-size:13px;letter-spacing:2px;background:rgba(8,18,33,.7)}
+.step-mode{display:flex;flex-direction:column;gap:4px}
+.step-mode .step-k{font:600 11px/1 var(--font-ui);letter-spacing:2.5px;color:var(--ink-faint)}
+#stepMode{font:700 24px/1 var(--font-display);letter-spacing:2.5px;color:var(--gold)}
+/* the three heroes side by side as name plates, and what the picked one does under them */
+#overlay.st-menu.step-hero #heroselect{grid-template-columns:repeat(3,1fr)}
+#overlay.st-menu.step-hero .herocard{flex-direction:column;align-items:flex-start;gap:9px;padding:12px 12px 13px}
+#overlay.st-menu.step-hero .herocard .hn{font-size:20px;white-space:nowrap}
+#overlay.st-menu.step-hero .herocard .hrole{font-size:12px}
+#herobio{display:none;list-style:none;margin:2px 0 4px;padding:10px 14px 11px;border-left:2px solid var(--accent);background:rgba(8,18,33,.55);border-radius:0 var(--r) var(--r) 0}
+#overlay.st-menu.step-hero #herobio{display:block}
+#overlay.st-menu.step-hero #hero-trooper{grid-column:auto}
+#herobio li{position:relative;padding-left:14px;margin-top:2px}
+#herobio li:first-child{margin-top:0}
+#herobio li::before{content:'';position:absolute;left:0;top:.6em;width:5px;height:5px;transform:rotate(45deg);background:var(--accent)}
+#herostep #campsaves{margin-top:2px}
+@media (max-width:520px){
+  /* a phone: the modes two to a row, on solid plates so the hero behind them doesn't show through */
+  #overlay.st-menu :is(#modeselect,#diffselect) .modeopt,#overlay.st-menu .herocard,#herobio{background-color:rgba(6,13,24,.9)}
+  #overlay.st-menu.step-hero .herocard .hi{display:none}
+  #overlay.st-menu.step-hero .herocard .hn{font-size:17px;letter-spacing:1px}
+  #overlay.st-menu.step-hero .herocard{padding:10px 9px}
+  #overlay.st-menu #modeselect .modeopt.major{min-height:80px}
+}
 /* ---------- THE MISSIONS PAGE: swaps in for the menu column while MISSIONS is open (ui/missions-ui.js) ---------- */
 #missionpage{display:none;width:100%;margin-top:22px;flex-direction:column;gap:12px;cursor:default;animation:rise .25s var(--ease)}
 #overlay.st-menu.mpage #missionpage{display:flex}
@@ -200,6 +251,9 @@
   background:var(--accent);box-shadow:0 0 6px rgba(92,198,255,.8);cursor:pointer}
 .ov-foot{margin-top:18px;font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .ov-foot kbd{color:var(--ink-soft)}
+/* the title screen's key hints: big enough to read at a glance */
+#overlay.st-menu .ov-foot{font-size:14.5px;color:var(--ink-dim)}
+#overlay.st-menu .ov-foot kbd{font-size:12px;min-width:2.1em;height:2.1em;margin:0 2px}
 /* the main menu's quiet fullscreen toggle: an icon + word at the end of the hint row (the pause screen has its own button,
    SETTINGS keeps its pill). fullscreen.js hides it where the browser can't go fullscreen (iPhone Safari) */
 .fsmini{display:none;align-items:center;gap:5px;float:right;margin:-3px -6px 0 12px;padding:3px 6px;border-radius:var(--r-chip);

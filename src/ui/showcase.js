@@ -3,7 +3,8 @@
 // turntable on the right, instead of the live arena. Switching hero spins the turntable and swaps the figure.
 
 import * as THREE from 'three';
-import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost } from '../engine/renderer.js';
+import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost, hemi } from '../engine/renderer.js';
+import { inkRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
@@ -12,16 +13,19 @@ import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
 import { heroName } from '../game/wardrobe.js';
-import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
-import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
-import { FORMS, formGrip, forkClosed, isStaff } from '../data/forms.js';
+import { STANCES, SWING_PATTERNS } from '../data/stances.js';
+import { FORM_OF, FOOTWORK } from '../data/poses.js';
+import { formGrip, isStaff } from '../data/forms.js';
 import { guardPose, swingPose, applySaberPose, releaseSaberPose, saberPose } from '../player/anim/saber.js';
 import { rexRest } from '../player/anim/guns.js';
 
 const HERO_X = 0.72;     // where the figure stands across the screen (0 = left edge, 1 = right)
-const TURN = 0.32;       // turntable speed, rad/s
+const TURN = 0.32;       // turntable speed while customizing, rad/s (on the title screen the camera orbits instead)
+const FACE = 0.38;       // on the title screen the figure stands turned this far to its left: a three-quarter view
+const ORBIT = 0.34, ORBIT_RATE = 0.11;   // the camera's slow drift round the stand: how far either way (rad), and how fast
 const SWAP = 0.9;        // seconds the hero swap takes
 const STAND_BLOOM = 1.35; // bloom threshold on the stand (the arena's is lower, renderer.js)
+const STAND_RIM = 1.0;    // the Ink look's edge light on the stand (the arena's is lower: model/styles.js inkRim)
 
 /* each hero's display: colours for the backdrop, the pedestal lights, and the pose on the stand */
 const THEMES = {
@@ -47,7 +51,7 @@ const THEMES = {
 };
 
 const POSES = {
-  // Djem So guard, blade lit (joint angles from the game's guard)
+  // (the Jedi's legs and the start of the arms: the idle below sets the arms through the game's own saber IK)
   jedi: {
     armR: { sh: [-1.05, -0.95, -0.5], el: [-1.2, 0, 0] }, armL: { sh: [-0.45, 0.3, 0.12], el: [-0.85, 0, 0] },
     saber: [0.15, 0, -0.35], torso: [0, 0.05, 0], head: [0.04, -0.1, 0],
@@ -66,6 +70,18 @@ const POSES = {
     legL: { hip: [0.04, 0, -0.18], knee: [0.06, 0, 0] }, legR: { hip: [-0.04, 0, 0.18], knee: [0.06, 0, 0] },
   },
 };
+
+/* THE JEDI AT REST on the title screen: not a fighting guard but a calm, ready stand. The lit saber hangs in the weapon
+   hand by the hip, blade angled down and out in front, the off hand loose at the side; the weight settles from foot to
+   foot. Set as a target for the game's saber IK (anim/saber.js guardPose, chest space as in data/poses.js) */
+const v3 = (a) => new THREE.Vector3(...a);
+const JEDI_IDLE = {
+  hand: v3([0.32, -0.28, 0.28]), blade: v3([0.34, -0.42, 0.84]).normalize(), pole: v3([0.6, -0.8, -0.1]).normalize(), two: false,
+  twist: 0.1, torso: 0, lean: 0, gaze: 0.35,
+  off: { hand: v3([-0.32, -0.4, 0.12]), pole: v3([-0.5, -0.85, -0.2]).normalize(), sway: 0 },
+};
+const IDLE_FEET = { crouch: -0.05, splay: 0.2 };
+
 
 /* ---------- scene ---------- */
 const stage = new THREE.Scene();
@@ -217,7 +233,7 @@ function build(picks){
 build(loadPicks());
 // the customizer restyles the figure on the stand as each option is picked
 export function restyleShowcase(picks){
-  rot.on = false; saberPose.live = false;   // the new figure starts its rotation afresh
+  idle.on = false; saberPose.live = false;   // the new figure settles into its idle afresh
   build(picks);
   if (shown) dress(shown);
   for (const k in painted) if (painted[k] !== THEMES[k].word) paint(k);   // (the trooper's name follows his rank)
@@ -312,8 +328,8 @@ function paint(k){
   g = x.createRadialGradient(cx, hy, 0, cx, hy, hr * 1.9);
   g.addColorStop(0, T.halo + 'c0'); g.addColorStop(0.25, T.halo + '70'); g.addColorStop(0.6, T.halo + '22'); g.addColorStop(1, T.halo + '00');
   x.fillStyle = g; x.beginPath(); x.arc(cx, hy, hr * 1.9, 0, 6.283); x.fill();
-  x.strokeStyle = T.ink + '55'; x.lineWidth = 3;
-  for (const f of [1.0, 1.18, 1.42]){ x.beginPath(); x.arc(cx, hy, hr * f, 0, 6.283); x.stroke(); }
+  // (the ink rings round the halo and the hero's name in giant letters behind the stand are gone: with the moon, the
+  // rays and the skyline they crowded the figure. The menu's hero cards carry the name.)
   // twin suns, low over the mesas between the menu and the stand
   for (let i = 0; i < T.suns; i++){
     const sx = cx - W * (0.2 - i * 0.055), sy = hz - H * (0.2 + i * 0.07), sr = H * (0.034 - i * 0.012);
@@ -322,15 +338,6 @@ function paint(k){
     x.fillStyle = g; x.beginPath(); x.arc(sx, sy, sr * 3, 0, 6.283); x.fill();
     x.fillStyle = '#ffe2a0'; x.beginPath(); x.arc(sx, sy, sr, 0, 6.283); x.fill();
   }
-  // the hero's name, huge and outlined behind the stand
-  x.save();
-  const font = (px) => `700 ${px}px 'Barlow Condensed','Arial Narrow',sans-serif`;
-  x.font = font(100);
-  const fs = Math.min(H * 0.42, 100 * W * 0.5 / x.measureText(T.word).width);   // at most half the screen wide
-  x.font = font(fs); x.textAlign = 'center'; x.textBaseline = 'alphabetic';
-  x.lineWidth = 3; x.strokeStyle = 'rgba(255,255,255,.22)'; x.strokeText(T.word, cx, hz - H * 0.06);
-  x.fillStyle = 'rgba(255,255,255,.05)'; x.fillText(T.word, cx, hz - H * 0.06);
-  x.restore();
   // far skyline, then the near one in ink
   const skyline = (col, base, amp, seed, near) => {
     const r = rng(seed); x.fillStyle = col; x.beginPath(); x.moveTo(0, H);
@@ -393,7 +400,7 @@ function closeUp(top){
 }
 
 /* ---------- per frame ---------- */
-const accent = new THREE.Color(), tmpC = new THREE.Color();
+const accent = new THREE.Color(), tmpC = new THREE.Color(), _sky = new THREE.Color();
 let spin = 0, swapT = -1, nextHero = null, warm = false;
 function setTheme(k, now){
   const T = THEMES[k];
@@ -418,7 +425,7 @@ export function previewStance(id){
     document.body.classList.remove('stance-preview');
     return;
   }
-  rot.on = false;
+  idle.on = false;
   if (!pv.id) pv.vy = fig.vis.position.y;
   Object.assign(pv, { id, t: 0, phase: 0, sw: null });
   dress('jedi'); setTheme('jedi', true);
@@ -466,51 +473,28 @@ function previewPose(dt){
   R.legL.knee.rotation.x = R.legR.knee.rotation.x = 0.25 - F.crouch * 1.4;
 }
 
-/* ---------- the FORM ROTATION: the Jedi on the stand cycles through the forms the save has unlocked, each in its own
-   ready guard (read from data/poses.js through the game's guardPose, so a retuned guard shows here too) and its own
-   footing, blending from one to the next every few seconds ---------- */
-const ROT_EVERY = 4.6;   // seconds on each form
-const rot = { on: false, id: null, t: 0, crouch: 0, splay: 0, vy: 0 };
-const rotForms = () => Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id) && !forkClosed(id, G.formFork));
-function rotPick(id){
-  rot.id = id; rot.t = 0;
-  const grip = formGrip(id, G.saberGrip);
-  applySaberGrip(fig, grip, false);   // the hilt turns over in the hand if the grip changes
-  setSaberStaff(fig, isStaff(id), false);
-  const st = STANCES[id], crystal = fig.look.jedi.saber != null ? fig.look.jedi.saber : st && st.blade;   // the customizer's blade colour wins
-  if (crystal != null){ fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal); }
-}
-function rotStart(){
-  const list = rotForms();
-  rot.on = true; rot.vy = fig.vis.position.y;
-  const F = FOOTWORK[FORM_OF[list[0]]] || FOOTWORK.niman;
-  rot.crouch = F.crouch; rot.splay = F.splay;
-  releaseSaberPose(R, 1);   // the first guard seeds from the figure's own arm
-  applySaberGrip(fig, formGrip(list[0], G.saberGrip), true);
-  rotPick(list[0]);
-}
-function rotStop(){
-  if (!rot.on) return;
-  rot.on = false;
-  releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0;
-  applySaberGrip(fig, G.saberGrip, true);
+/* ---------- THE IDLE: the Jedi on the title screen stands at rest (JEDI_IDLE), breathing, the weight shifting slowly from
+   foot to foot and the blade drifting with it. The guards themselves show on the forms page and the stance preview ---------- */
+const idle = { on: false };
+const IDLE_SWAY = { y: 0, z: 0, off: 0, moving: false };
+function idleStart(){
+  idle.on = true;
+  releaseSaberPose(R, 1);   // the pose seeds from the figure's own arm
+  applySaberGrip(fig, 'regular', true);   // at rest the blade hangs forward from the fist, whatever grip the fight uses
   setSaberStaff(fig, false, false);
 }
-function rotPose(dt){
-  const list = rotForms();
-  if (!list.includes(rot.id)) rotPick(list[0]);
-  else if (list.length > 1 && (rot.t += dt) > ROT_EVERY) rotPick(list[(list.indexOf(rot.id) + 1) % list.length]);
-  const id = rot.id, form = FORM_OF[id], grip = formGrip(id, G.saberGrip);
+function idleStop(){
+  if (!idle.on) return;
+  idle.on = false;
+  releaseSaberPose(R, 1); R.chest.rotation.y = 0;
+  applySaberGrip(fig, G.saberGrip, true);
+}
+function idlePose(dt, t){
   const held = { node: fig.saberHand, root: fig.saberBladeRoot };
-  guardPose(dt, R, held, grip, form, false, SWAY);
+  IDLE_SWAY.y = Math.sin(t * 1.7) * 0.012; IDLE_SWAY.z = Math.sin(t * 0.45) * 0.02;   // the blade rides the breath and the weight shift
+  guardPose(dt, R, held, 'regular', 'niman', false, IDLE_SWAY, JEDI_IDLE, 0.5);
   applySaberPose(R, held, true, dt);
-  R.head.rotation.y -= saberPose.gaze * R.chest.rotation.y;   // a side-on guard (Soresu) keeps its eyes on the foe
-  // the footing eases from one form's to the next (reverse-grip Niman stands on Djem So's feet)
-  const F = FOOTWORK[(FOOTWORK_GRIP[grip] || {})[form] || form] || FOOTWORK.niman, k = Math.min(1, dt * 4);
-  rot.crouch += (F.crouch - rot.crouch) * k; rot.splay += (F.splay - rot.splay) * k;
-  R.hips.position.y += rot.crouch * 0.5;
-  R.legL.hip.rotation.z = -0.05 - rot.splay * 0.32; R.legR.hip.rotation.z = 0.05 + rot.splay * 0.32;
-  R.legL.knee.rotation.x = R.legR.knee.rotation.x = 0.25 - rot.crouch * 1.4;
+  R.head.rotation.y -= saberPose.gaze * R.chest.rotation.y;
 }
 
 // TEMPORARY flicker hunt: ?dbg=noink,noskin,noblade,nolight,nocull hides parts of the figure (not for merging)
@@ -531,7 +515,7 @@ export function renderShowcase(dt){
   if (!warm){ warm = true; compileLive(); prewarmJudgeFX(); }   // keep the arena's shaders ready, so BEGIN doesn't hitch
   if (!shown){ dress(G.hero); setTheme(G.hero, true); }
   // hero picked → spin the stand once, swapping the figure at the brightest point of the beam
-  if (G.hero !== shown && swapT < 0){ rotStop(); swapT = 0; nextHero = G.hero; setTheme(nextHero, false); bgMat.uniforms.b.value = textures[nextHero]; }
+  if (G.hero !== shown && swapT < 0){ idleStop(); swapT = 0; nextHero = G.hero; setTheme(nextHero, false); bgMat.uniforms.b.value = textures[nextHero]; }
   let flare = 0, boost = 0;
   if (swapT >= 0){
     swapT += dt / SWAP;
@@ -550,17 +534,38 @@ export function renderShowcase(dt){
   const f = focus * focus * (3 - 2 * focus);
   fitTop = fitTop ? fitTop + (figTop - fitTop) * Math.min(1, dt * 5) : figTop;
   const fit = closeUp(fitTop);
-  cam.position.set(0, 1.9 + (fit.y - 1.9) * f, camZ + (fit.z - camZ) * f);
+  // THE ORBIT: on the title screen the stand holds a three-quarter view and the camera drifts slowly round the front of
+  // it and back, rising a touch as it swings; while customizing (f) the stand turns instead, to show every side
+  const t = performance.now() / 1000, P = POSES[shown];
+  const free = pv.id ? 0 : 1 - f, orb = Math.sin(t * ORBIT_RATE) * ORBIT * free;
+  const cz = camZ + (fit.z - camZ) * f, cy = 1.9 + (fit.y - 1.9) * f + Math.cos(t * ORBIT_RATE * 2) * 0.12 * free;
+  cam.position.set(Math.sin(orb) * cz, cy, Math.cos(orb) * cz);
   cam.lookAt(0, 1.3 + (fit.look - 1.3) * f, 0);
   if (pv.id) table.rotation.y = 0.5;   // three-quarter view, not turning: the cuts are what is on show
-  else { spin += (TURN + boost) * dt; table.rotation.y = spin; }
-  // a slow breath and a small weight shift, so the figure on display isn't a statue
-  const t = performance.now() / 1000, P = POSES[shown];
+  else {
+    spin += (TURN * f + boost) * dt;
+    // back on the title screen (after customizing, or the swap's spin) the stand settles to face the front again
+    if (swapT < 0 && free > 0.5){ const home = Math.round(spin / (Math.PI * 2)) * Math.PI * 2; spin += (home - spin) * Math.min(1, dt * 1.6 * free); }
+    table.rotation.y = FACE * free + spin;
+  }
+  // a slow breath, the head looking about, and the weight shifting from foot to foot, so the figure isn't a statue
+  const shift = Math.sin(t * 0.45);
   R.torso.rotation.x = P.torso[0] + Math.sin(t * 1.7) * 0.025;
-  R.head.rotation.y = P.head[1] + Math.sin(t * 0.6) * 0.08;
-  R.hips.position.y = hipsY + (P.drop || 0) + Math.sin(t * 1.7) * 0.008;
+  R.torso.rotation.z = (P.torso[2] || 0) - shift * 0.025;
+  R.head.rotation.y = P.head[1] + Math.sin(t * 0.6) * 0.1;
+  R.hips.position.y = hipsY + (P.drop || 0) + Math.sin(t * 1.7) * 0.008 - Math.abs(shift) * 0.012;
+  R.hips.rotation.z = shift * 0.035;
   if (pv.id) previewPose(dt);
-  else if (shown === 'jedi' && swapT < 0){ if (!rot.on) rotStart(); rotPose(dt); }
+  else if (shown === 'jedi' && swapT < 0){
+    if (!idle.on) idleStart();
+    idlePose(dt, t);
+    R.hips.position.y += IDLE_FEET.crouch * 0.5;
+    R.legL.hip.rotation.z = -0.05 - IDLE_FEET.splay * 0.32 - shift * 0.035; R.legR.hip.rotation.z = 0.05 + IDLE_FEET.splay * 0.32 - shift * 0.035;
+    R.legL.knee.rotation.x = 0.12 + Math.max(0, shift) * 0.1; R.legR.knee.rotation.x = 0.12 + Math.max(0, -shift) * 0.1;   // the knee off the weight eases
+  } else if (!pv.id){
+    const L = P.legL, Rr = P.legR;
+    R.legL.hip.rotation.z = L.hip[2] - shift * 0.035; R.legR.hip.rotation.z = Rr.hip[2] - shift * 0.035;
+  }
   stepCloth(fig, dt, PED_H);
   blink(fig, dt);   // and a blink now and then (model/life.js)
   updateCpuSkin();
@@ -578,7 +583,12 @@ export function renderShowcase(dt){
   // (and the stand keeps its own bloom strength whatever the arena behind the menu set, see setSceneGlow)
   const th = bloomPass.threshold, st = bloomPass.strength; bloomPass.threshold = STAND_BLOOM; bloomPass.strength = 0.82;
   standPost(true);   // no ambient occlusion or arena colour grade on the stand
+  // THE RIM: the Ink surfaces' edge light (model/styles.js) turned up and tinted the hero colour for the stand, so the
+  // figure's outline catches the backdrop's light instead of reading as a flat cut-out; the arena's own is put back
+  const rimWas = inkRim.value; _sky.copy(hemi.color);
+  inkRim.value = STAND_RIM; hemi.color.copy(accent);
   composer.render();
+  inkRim.value = rimWas; hemi.color.copy(_sky);
   standPost(false);
   bloomPass.threshold = th; bloomPass.strength = st;
   renderPass.scene = scene; renderPass.camera = camera;

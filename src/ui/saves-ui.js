@@ -8,7 +8,8 @@ import { setHero } from '../player/hero.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { reloadLook } from './customizer.js';
-import { overlay, goHome, refreshMenu, setModeSel, setMission, setDiff, beginFromMenu, survivalUnlocked } from './menus.js';
+import { overlay, goHome, refreshMenu, setModeSel, setMission, setDiff, beginFromMenu, survivalUnlocked, showMenuStep } from './menus.js';
+import { openMissionPage } from './missions-ui.js';
 
 const panel = document.getElementById('saves');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -80,6 +81,7 @@ function load(i){
   let m = d.run ? 'campaign' : (d.modeSel || 'campaign');
   if ((m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked())) m = 'campaign';
   setModeSel(m);
+  if (m === 'mission') openMissionPage(); else showMenuStep('hero');   // straight to where the save's BEGIN / CONTINUE is
   if (!G.resumeRun) document.getElementById('ovsub').textContent = (i === AUTO ? 'AUTOSAVE' : 'SAVE ' + (i + 1)) + ' LOADED';
 }
 

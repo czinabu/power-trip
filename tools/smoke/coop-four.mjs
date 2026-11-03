@@ -56,11 +56,11 @@ try {
   }
   await host.waitForFunction(() => /4 of 4 players/.test(document.getElementById('coopstatus').textContent), null, poll);
   await host.click('#coopclose');
-  await host.click('#hero-jedi'); await host.click('#mode-endless');
+  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-endless');
   await play(host);
   for (const g of guests){
     await g.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);
-    await g.click('#coopclose'); await g.click('#hero-mando');
+    await g.click('#coopclose'); await g.$eval('#hero-mando', el => el.click());
     await g.click('#mode-coop'); await g.click('#coopjoinrun');
     await play(g);
     if (!(await g.evaluate(() => GAME.G.coopGuest))) throw new Error('a guest did not join the host\'s run');

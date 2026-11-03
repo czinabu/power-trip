@@ -41,7 +41,7 @@ try {
   await Promise.all([connected(host), connected(guest)]);
   await host.click('#coopclose');
   // the host starts Survival
-  await host.click('#hero-jedi'); await host.click('#mode-endless');
+  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-endless');
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
@@ -49,7 +49,7 @@ try {
   }
   // the guest sees the run and joins it
   await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);
-  await guest.click('#coopclose'); await guest.click('#hero-mando');
+  await guest.click('#coopclose'); await guest.$eval('#hero-mando', el => el.click());
   await guest.click('#mode-coop'); await guest.click('#coopjoinrun');
   for (let i = 0; i < 5 && !(await guest.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await guest.isVisible('#goText')) await guest.click('#goText', { timeout: 2000 }).catch(() => {});

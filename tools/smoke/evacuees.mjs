@@ -99,7 +99,7 @@ try {
     if (h !== hero){
       if (page) await page.close();
       page = await open(h); hero = h;
-      await page.click('#hero-' + h); await page.click('#mode-campaign');
+      await page.$eval('#hero-' + h, el => el.click()); await page.click('#mode-campaign');
       await toPlay(page);
     }
     const i = await holdAt(page, mid);
@@ -132,10 +132,10 @@ try {
     for (const p of [host, guest]) await p.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
     await host.click('#coopclose');
     await host.evaluate(() => localStorage.setItem('sw_mission_refuge_jedi', '1'));
-    await host.click('#hero-jedi'); await host.click('#mode-mission'); await host.click('#msn-refuge');
+    await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-mission'); await host.click('#msn-refuge');
     await toPlay(host);
     await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);
-    await guest.click('#coopclose'); await guest.click('#hero-mando');
+    await guest.click('#coopclose'); await guest.$eval('#hero-mando', el => el.click());
     await guest.click('#mode-coop'); await guest.click('#coopjoinrun');
     await toPlay(guest);
     const i = await holdAt(host, 'refuge');

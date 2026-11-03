@@ -32,7 +32,7 @@ export const STANCES = {
             radiusMult: 1.35, comboGap: 1.0, fovKick: 0, postureMul: 1.0,
             finisherArc: 1.3,     // ROLE: the Sarlacc Sweep reaches ~30% further, all the way round (SWING_STYLE.shiicho finisher spin)
             disarm: 6,            // DISARMING SLASH: a finisher on a blaster trooper knocks its gun loose for this many seconds
-            duelBlockMul: 1.25,   // LORE: a skilled duellist reads Form I's broad cuts and turns 25% more of them
+            duelBlockMul: 1.1,    // LORE: a skilled duellist reads Form I's broad cuts and turns 10% more of them
             deflectScatter: 0.08, // basic blast deflection, taught early: bolts go back loosely (rad)
             gait: { amp: 1.0, lift: 1.0, bob: 0.5, lean: 1.0 },   // MOVEMENT: plain, square, athletic
             syn: 'CROWDS · Sarlacc Sweep finisher hits all around · finisher disarms blaster troopers · duellists read it' },
@@ -54,13 +54,13 @@ export const STANCES = {
             dmg: 1.15, heavyDmg: 0.9, speed: 0.66, knock: 0.6, stamina: 7, lunge: 0.9, move: 0.92, accel: 0.95, twist: 0.5, bladeLen: 1.0,
             radiusMult: 0.95, parryBonus: 0.14, comboGap: 1.0, fovKick: -1, postureMul: 0.9,
             blockStamMul: 0.4,    // ROLE: the cheapest guard in the game…
-            chipMul: 0,           // …that lets no chip through a block…
+            chipMul: 0.3,         // …that lets only a sliver of the chip through a block (BALANCE: at 0 a held guard never took damage)…
             guardDeflect: 0.15,   // …and a HELD guard sends bolts back home from a wide front (facing dot), even walking
             blockTire: 12,        // each melee blow it blocks costs the attacker this much breath (data/duel.js breath)
             guardRegen: 1.4,      // stamina refills 40% faster while the guard is up
             deflectScatter: 0.04, // the form built for blaster fire: deflects go back nearly true (rad)
             gait: { amp: 0.9, lift: 0.9, bob: 0.35, lean: 0.85 },   // MOVEMENT: low, short, controlled
-            syn: 'DEFENCE · held guard returns bolts · cheapest guard, no chip · tires attackers · widest parry · LOW damage' },
+            syn: 'DEFENCE · held guard returns bolts · cheapest guard, little chip · tires attackers · widest parry · LOW damage' },
   ataru:  { name: 'ATARU — FAST', form: 'ataru', formNo: 'IV', blade: 0x35c8ff,
             dmg: 1.18, heavyDmg: 0.85, speed: 0.92, knock: 0.38, stamina: 6, lunge: 1.4, move: 1.15, accel: 1.3, twist: 0.4, bladeLen: 0.94,
             radiusMult: 1.2, forceRegen: 1.5,   // (BALANCE: Shii-Cho keeps the widest arc: Ataru's role is the back line, not the crowd) costMult: { push: 0.7, pull: 0.7 },
@@ -91,7 +91,7 @@ export const STANCES = {
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
             // clearly the SLOWEST swing (well under medium's 1.0) — heavy, deliberate, weighty — but the big LUNGE
             // and high damage make each committed stroke land hard, so it reads as power, not sluggishness.
-            dmg: 2.93, heavyDmg: 1.95, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
+            dmg: 2.4, heavyDmg: 2.38, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
             radiusMult: 0.8, postureMul: 1.5, forceRegen: 0.7, comboGap: 0.7, fovKick: -4,
             atkDR: 0.15,          // PASSIVE: armored commitment — soak 15% damage WHILE mid-swing
             finisherLunge: 1.6,   // the 3rd hit lunges harder, carrying the heavy blade through
@@ -106,7 +106,7 @@ export const STANCES = {
      Every bolt it deflects flies straight back at the shooter and hits half again as hard; its cuts are strong but it
      gives up Djem So's raw power against armour. G swaps between the two Form V variants. */
   shien:  { name: 'SHIEN — REDIRECT', form: 'shien', formNo: 'V', blade: 0x2ee6c8,
-            dmg: 1.9, heavyDmg: 1.45, speed: 0.6, knock: 1.3, stamina: 12, lunge: 1.25, move: 0.98, accel: 0.95, twist: 0.8, bladeLen: 1.0,
+            dmg: 2.05, heavyDmg: 1.35, speed: 0.6, knock: 1.3, stamina: 12, lunge: 1.25, move: 0.98, accel: 0.95, twist: 0.8, bladeLen: 1.0,
             radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.04,
             deflectScatter: 0,    // ROLE: every deflect goes home, dead on the shooter…
             deflectDmg: 1.5,      // …and lands half again as hard (enemies/bolts.js)

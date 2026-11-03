@@ -35,7 +35,7 @@ export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
 export const MATCHUP = {
   win:  { seal: 0.7, block: 0.6,  parry: 0.5, posture: 1.4,  dmg: 1.15, tricks: 0.5, hurt: 0.85 },
   even: { seal: 1,   block: 1,    parry: 1,   posture: 1,    dmg: 1,    tricks: 1,   hurt: 1 },
-  lose: { seal: 1,   block: 1.25, parry: 1.3, posture: 0.75, dmg: 0.9,  tricks: 1.3, hurt: 1.15 },
+  lose: { seal: 1,   block: 1.15, parry: 1.15, posture: 0.85, dmg: 0.95, tricks: 1.15, hurt: 1.08 },
 };
 // +1: form `a` counters form `b` · -1: `b` counters `a` · 0: even (the same family, Niman, or no form)
 export function formEdge(a, b){
@@ -122,8 +122,8 @@ export function foeProfile(form, rank){
    switching form starts to matter once you have more than one. The sandbox draws from the whole pool. An ELITE
    (enemies/elites.js) fights one rank higher. A type's `ranks` raises its rank the same way as the run deepens. */
 export const FOE_FORMS = {
-  // `ranks`: the rank by depth (as the pool): adepts early, knights from wave 8 (an elite still one higher)
-  acolyte: { rank: 'adept', ranks: [{ from: 0, rank: 'adept' }, { from: 8, rank: 'knight' }], pool: [
+  // `ranks`: the rank by depth (as the pool): adepts early, knights from wave 6 (an elite still one higher)
+  acolyte: { rank: 'adept', ranks: [{ from: 0, rank: 'adept' }, { from: 6, rank: 'knight' }], pool: [
     { from: 0, forms: ['shiicho'] },
     { from: 4, forms: ['shiicho', 'makashi', 'ataru', 'soresu'] },
     { from: 8, forms: ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo'] },

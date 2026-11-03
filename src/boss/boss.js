@@ -206,7 +206,7 @@ function bossHero(b){
 function bossTag(dt){
   const b = shared.boss, p = playerPos(), g = b.group;
   if (b.state !== 'intro' && b.state !== 'dying' && b.hp > 0) updateFormSwitch(b, dt);   // he changes form on you too
-  updateFormTag(b, b.hp > 0 && b.state !== 'dying' && b.state !== 'intro' && Math.hypot(p.x - g.position.x, p.z - g.position.z) < 16, 3.4);
+  updateFormTag(b, b.hp > 0 && b.state !== 'dying' && b.state !== 'intro' && Math.hypot(p.x - g.position.x, p.z - g.position.z) < 16, 3.0);
 }
 export function updateBoss(dt){
   if (!shared.boss) return;

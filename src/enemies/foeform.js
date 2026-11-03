@@ -77,7 +77,7 @@ export function updateFormSwitch(e, dt){
   }
   e.ff = nf; e.ffPressT = 0; e.ffSwitchAt = G.gt;
   const p = e.group.position;
-  floater(V3(p.x, p.y + 2.6 * e.group.scale.y, p.z), 'SWITCHES TO ' + formName(nf), '#ffb35a');
+  floater(V3(p.x, p.y + 2.6 * e.group.scale.y, p.z), 'CHANGES STANCE', '#ffb35a');   // (the badge shows to what)
 }
 
 // your edge on this foe: +1 your form counters its form, −1 its form counters yours, 0 even (the Mando: always even)
@@ -104,26 +104,52 @@ export function arcColor(e, read){
   return ARC.copy(base).lerp(ARC_HOT, 0.45 + 0.35 * Math.sin(G.gt * 18));
 }
 
-/* ---------------- the tag over its head ---------------- */
-const W = 320, H = 72;
+/* ---------------- the badge over its head ----------------
+   No words: one icon for its form's FAMILY in the family's colour (SPEED a double chevron, POWER a burst, GUARD a
+   shield; Niman, outside the triangle, a plain ring), its RANK as pips underneath (I to IV), and the counter edge as
+   the badge's rim: green with a ▲ when your form counters it, red with a ▼ when its form counters yours. */
+const W = 128, H = 128;
+export function familyIcon(x, fam, cx, cy, r, color){
+  x.save(); x.translate(cx, cy); x.fillStyle = color; x.strokeStyle = color; x.lineJoin = 'round'; x.lineCap = 'round';
+  if (fam === 'speed'){   // two forward chevrons
+    x.lineWidth = r * 0.28;
+    for (const dx of [-0.38, 0.22]){ x.beginPath(); x.moveTo((dx - 0.22) * r, -0.55 * r); x.lineTo((dx + 0.25) * r, 0); x.lineTo((dx - 0.22) * r, 0.55 * r); x.stroke(); }
+  } else if (fam === 'power'){   // an eight-point impact burst
+    x.beginPath();
+    for (let i = 0; i < 16; i++){ const a = -Math.PI / 2 + i * Math.PI / 8, rr = (i % 2 ? 0.36 : 0.78) * r; x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    x.closePath(); x.fill();
+  } else if (fam === 'guard'){   // a shield
+    x.beginPath(); x.moveTo(0, -0.72 * r); x.lineTo(0.6 * r, -0.48 * r); x.lineTo(0.56 * r, 0.08 * r);
+    x.quadraticCurveTo(0.42 * r, 0.52 * r, 0, 0.78 * r); x.quadraticCurveTo(-0.42 * r, 0.52 * r, -0.56 * r, 0.08 * r);
+    x.lineTo(-0.6 * r, -0.48 * r); x.closePath(); x.fill();
+  } else {   // balanced: a ring
+    x.lineWidth = r * 0.22; x.beginPath(); x.arc(0, 0, 0.5 * r, 0, Math.PI * 2); x.stroke();
+  }
+  x.restore();
+}
 function draw(tag, e, k){
   const c = tag.userData.canvas, x = c.getContext('2d');
-  const fam = FAMILIES[FORM_FAMILY[e.ff]], R = RANKS[e.rank];
-  const edge = k > 0 ? '#5dff8a' : k < 0 ? '#ff5a4a' : 'rgba(220,226,236,0.55)';
+  const famId = FORM_FAMILY[e.ff], fam = FAMILIES[famId], R = RANKS[e.rank];
+  const rim = k > 0 ? '#5dff8a' : k < 0 ? '#ff5a4a' : 'rgba(220,226,236,0.35)';
   x.clearRect(0, 0, W, H);
-  x.fillStyle = 'rgba(10,12,18,0.72)';
-  x.beginPath(); x.roundRect(4, 8, W - 8, H - 16, 12); x.fill();
-  x.lineWidth = k ? 4 : 2; x.strokeStyle = edge; x.stroke();
-  x.textBaseline = 'middle';
-  // the edge: ▲ you counter it · ▼ it counters you
-  x.fillStyle = edge; x.font = '700 30px "Barlow Condensed","Arial Narrow",sans-serif'; x.textAlign = 'left';
-  x.fillText(k > 0 ? '▲' : k < 0 ? '▼' : '•', 16, H / 2 + 1);
-  x.fillStyle = '#f1ece0'; x.font = '700 30px "Barlow Condensed","Arial Narrow",sans-serif';
-  const name = formName(e.ff) + (R ? '  ' + R.no : '');
-  x.fillText(name, 46, H / 2 + 1);
-  if (fam){
-    x.font = '600 20px "Barlow Condensed","Arial Narrow",sans-serif'; x.textAlign = 'right'; x.fillStyle = fam.color;
-    x.fillText(fam.name, W - 18, H / 2 + 1);
+  const cx = W / 2, cy = 52, r = 38;
+  x.fillStyle = 'rgba(10,12,18,0.7)'; x.beginPath(); x.arc(cx, cy, r + 4, 0, Math.PI * 2); x.fill();
+  x.lineWidth = k ? 6 : 3; x.strokeStyle = rim; x.beginPath(); x.arc(cx, cy, r + 2, 0, Math.PI * 2); x.stroke();
+  familyIcon(x, famId, cx, cy, r * 0.78, fam ? fam.color : '#cfd6e0');
+  // the edge mark on the rim: ▲ you counter it, ▼ it counters you
+  if (k){
+    const ty = k > 0 ? cy - r - 2 : cy - r - 2;
+    x.fillStyle = rim; x.beginPath();
+    if (k > 0){ x.moveTo(cx, ty - 10); x.lineTo(cx + 10, ty + 6); x.lineTo(cx - 10, ty + 6); }
+    else { x.moveTo(cx, ty + 8); x.lineTo(cx + 10, ty - 8); x.lineTo(cx - 10, ty - 8); }
+    x.closePath(); x.fill();
+  }
+  // rank pips
+  const n = R ? RANK_ORDER.indexOf(e.rank) + 1 : 0, gap = 15;
+  for (let i = 0; i < n; i++){
+    const px = cx + (i - (n - 1) / 2) * gap, py = cy + r + 16;
+    x.fillStyle = 'rgba(10,12,18,0.7)'; x.beginPath(); x.arc(px, py, 6.5, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#f1ece0'; x.beginPath(); x.arc(px, py, 4.2, 0, Math.PI * 2); x.fill();
   }
   tag.material.map.needsUpdate = true;
 }
@@ -131,7 +157,7 @@ function makeTag(e){
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
-  s.scale.set(2.1, 2.1 * H / W, 1); s.renderOrder = 999;
+  s.scale.set(0.7, 0.7 * H / W, 1); s.renderOrder = 999;
   s.userData.canvas = c;
   s.raycast = () => {};   // a label, not a body: the camera's see-through, aim and hit rays pass straight through it
   e.group.add(s); e.formTag = s;
@@ -139,7 +165,7 @@ function makeTag(e){
 }
 /* show (or hide) a foe's form tag; `y` is how high over its feet (in its own scale). The first time the hero meets a
    foe with a form, a tip explains the triangle; switching into the counter form calls it out. */
-export function updateFormTag(e, show, y = 2.85){
+export function updateFormTag(e, show, y = 2.35){
   if (!e.ff) return;
   if (!show){ if (e.formTag) e.formTag.visible = false; return; }
   const t = e.formTag || makeTag(e), k0 = edgeOn(e), k = k0 < 0 && !canCounter(e.ff) ? 0 : k0, key = e.ff + e.rank + k;
@@ -154,7 +180,7 @@ export function updateFormTag(e, show, y = 2.85){
   if (!isGunner() && !(G.seenTypes && G.seenTypes.__forms) && G.mode === 'play'){
     if (!G.seenTypes) G.seenTypes = {};
     G.seenTypes.__forms = true;
-    if (!G.training) foeTipToast('FORMS COUNTER FORMS', 'POWER breaks GUARD · GUARD outlasts SPEED · SPEED outpaces POWER. ▲ over a duellist: your form counters it. ▼: switch (1 / 2 / 3).');
+    if (!G.training) foeTipToast('FORMS COUNTER FORMS', 'The badge over a duellist is its form: chevrons SPEED, a burst POWER, a shield GUARD (pips: its rank). POWER breaks GUARD, GUARD outlasts SPEED, SPEED outpaces POWER. A green ▲ rim: your form counters it. Red ▼: switch (1 / 2 / 3).');
   }
 }
 export function hideFormTag(e){ if (e.formTag) e.formTag.visible = false; }

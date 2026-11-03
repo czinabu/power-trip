@@ -127,7 +127,7 @@ export const CFG = {
       cameraDamp: 0.3,        // cg_thirdPersonCameraDamp: the same for the lens; JA stiffens it toward 1 as the view
                               // tips toward straight up/down ((pitch / 115°)²) and on fast turns (over 1° per ms)
       horz: 0,                // cg_thirdPersonHorzOffset 0, as in JA: square behind the hero; only moving (the lag) puts him off to a side
-      frame: 0.4,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
+      frame: 0.2,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
                               // moves); a boss still gets its full pull-back
     },
     lookAhead: 5,             // the lens aims this far past the hero...

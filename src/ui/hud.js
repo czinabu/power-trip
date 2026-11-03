@@ -35,6 +35,7 @@ import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { pickCut } from '../player/jedi/cutaim.js';
 import { aimPoint, lastAim } from '../player/aim.js';
+let gaugeFullAt = -9;   // when the crosshair-side gauge last stood below full (it hides once it's been full a moment)
 
 // give every power slot its icon once (key badge top-left, icon centre, name below)
 for (const id in SLOT_ICON){ const el = document.getElementById(id); if (el) el.querySelector('.key').insertAdjacentHTML('afterend', svgIcon(SLOT_ICON[id])); }
@@ -200,6 +201,10 @@ export function updateHud(){
         em.classList.remove('saberbar');
         em.classList.toggle('over', player.overheat);
       }
+      // out of the way while it's full: it fades in as soon as it drains and out a moment after it fills back up
+      const lvl = saber ? player.stam / maxStam() : 1 - Math.max(player.heat || 0, player.hR || 0, player.hL || 0);
+      if (lvl < 0.995 || em.classList.contains('over')) gaugeFullAt = G.gt;
+      em.classList.toggle('full', G.gt - gaugeFullAt > 0.7);
       em.style.transform = (isGunner()) ? 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)' : jx.tf;
     } }
   // bottom XP meter — fills toward the next skill point in the story (game/upgrades.js), else the next affordable ability

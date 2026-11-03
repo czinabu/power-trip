@@ -235,6 +235,7 @@ export function updateCamera(dt){
     const fy = -sinP, fx = f.x*cosP, fz = f.z*cosP;   // JA's camerafwd (our pitch is + looking down)
     const itx = pp.x, ity = pp.y + J.eye + J.vertOffset + camLift + dk*3, itz = pp.z;
     TMP.set(itx - fx*d, ity - fy*d, itz - fz*d);
+    const ilx = TMP.x, ily = TMP.y, ilz = TMP.z;   // the ideal lens, before the lag
     // turning fast stiffens the lens so it doesn't cut across the orbit (JA: yaw speed in degrees per ms, 1 → 2.5)
     let dy = Math.abs(G.yaw - jaYaw) * 180 / Math.PI % 360; if (dy > 180) dy = 360 - dy;
     let stiff = dt > 0 ? dy / (dt * 1000) : 0;
@@ -253,9 +254,15 @@ export function updateCamera(dt){
     // JA's horizontal offset slides lens and aim together, so the view direction is unchanged. It is 0, as in JA: the
     // lens sits square behind the hero, and the only thing that puts him off to one side is the lag above, while he
     // moves (a run, a strafe, a roll pulls him ahead of the lens until it catches up). No duel side-on slide either.
-    const ha = J.horz;
-    TMP.set(jaLoc.x + rv.x*ha, jaLoc.y, jaLoc.z + rv.z*ha);
-    LOOK.set(jaTarget.x + rv.x*ha, jaTarget.y, jaTarget.z + rv.z*ha);
+    // CAMERA SWAY (Settings): how much of that lag shows. 100% is JA's exactly; the default is a touch under it; 0 is
+    // locked to the hero with no drift at all. The lag itself runs on JA's numbers either way
+    const ha = J.horz, sw = G.camSway == null ? 0.8 : G.camSway;
+    // The trail moves the lens and its aim point TOGETHER (the lens's lag, carried to both), so the view keeps facing the
+    // way you look: JA's aim point catches up faster than its lens, which swings the view toward the way you're going and
+    // sends a far crosshair the OTHER way across the screen. Here the hero and his crosshair drift out the same way.
+    const lx = (jaLoc.x - ilx)*sw, ly = (jaLoc.y - ily)*sw, lz = (jaLoc.z - ilz)*sw;
+    TMP.set(ilx + lx + rv.x*ha, ily + ly, ilz + lz + rv.z*ha);
+    LOOK.set(itx + lx + rv.x*ha, ity + ly, itz + lz + rv.z*ha);
     ox = jaTarget.x; oy = jaTarget.y; oz = jaTarget.z;
     jaAim.set(itx + rv.x*ha, pp.y + J.eye, itz + rv.z*ha); jaAim.live = true;   // the hero's eye, no lag: JA traces the crosshair from it (player/aim.js heroCrosshair)
   } else {

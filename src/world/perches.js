@@ -125,7 +125,7 @@ const pick = (pal, keys, fb) => { for (const k of keys) if (pal[k] != null) retu
 export function buildPerches(L){
   if (!L.layout || PERCH.skip.includes(L.layout)) return 0;
   if (L.arena > 100 || (L.arenaZ && L.arenaZ > L.arena)) return 0;   // the battle maps and the long route
-  if (highGround() >= PERCH.enough){ shared.perchDebug = { high: Math.round(highGround()) }; return 0; }
+  if (highGround() >= PERCH.enough) return 0;
   const half = shared.arenaHalf, pts = missionPoints(L.layout);
   const spawn = [[0, half * 0.5], [0, half * 0.42]];
   const want = PERCH.count.find(([w]) => L.arena < w)[1];
@@ -151,7 +151,6 @@ export function buildPerches(L){
   for (let s = 0; s < want; s++){ const q = cand.find(q => slice(q) === s && far(q)); if (q) chosen.push(q); }
   for (const q of cand){ if (chosen.length >= want) break; if (!chosen.includes(q) && far(q)) chosen.push(q); }
   chosen.sort((p, q) => p.a - q.a);
-  shared.perchDebug = { high: Math.round(highGround()), cand: cand.length, best: cand.length ? +cand[0].c.toFixed(1) : null };
   if (!chosen.length) return 0;
 
   const pal = L.pal || {};

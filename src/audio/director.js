@@ -1,7 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // AUDIO DIRECTOR: everything that sounds continuously, steered once a frame from the main loop.
-//   - the lightsaber hum (pitch by form, swells and brightens through a swing, follows a thrown saber)
-//   - the Darksaber's darker, grittier hum
+//   - the lightsaber hum (pitch by form; bends up, swells and brightens with the blade's real tip speed; an electric
+//     sizzle that rises with motion; the saber staff's second blade; follows a thrown saber with a spinning wobble)
+//   - the Darksaber's darker, grittier hum, moved the same way
+//   - the hum of every other lit blade nearby (a foe's, the boss's, a co-op partner's), placed in the world
 //   - the jetpack roar and the flamethrower, by how hard they're running
 //   - each world's ambience bed plus its occasional distant events (Jedha bells, Mustafar lava, Exegol thunder)
 //   - the mix state: muffled under the pause menu, on death, for a beat after a hit and when badly hurt
@@ -14,20 +16,32 @@ import { updateFoley } from './foley.js';
 import { shared, G, player, isGunner } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
+import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
 
-const L = { hum: null, dark: null, jet: null, flame: null, amb: [], ambKey: '' };
+const L = { hum: null, hum2: null, hiss: null, dark: null, near: [], jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 
-/* hum pitch by saber form: lighter forms ride higher */
-const FORM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.1, niman: 1, djemso: 0.86, shien: 0.92, juyo: 1.04, vaapad: 0.9, staff: 1.08 };
+/* how much a blade is moving, 0..1, from its tip speed against its owner (m/s): a held guard barely stirs it, a full
+   cut pins it. Eased in so small sways stay a gentle waver and a real cut takes the hum all the way. */
+const motionOf = sp => { const m = clamp((sp - 2) / 16, 0, 1); return m * (2 - m); };
+// smoothed motion per hum (attack fast, release a little slower, so a cut's tail rings out instead of snapping off)
+const MV = { hero: 0, hero2: 0, dark: 0 };
+const ease = (k, target, dt) => { const r = target > MV[k] ? 28 : 9; MV[k] += (target - MV[k]) * Math.min(1, dt * r); return MV[k]; };
 
+// the hum: two slightly detuned saws an octave under a sine, a soft sub growl under them, through a lowpass that
+// opens as the blade moves (the loop recipe is shared by the hero's blade, the staff's far end, and nearby blades)
+const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.7, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'square', f: 45, g: 0.12 }],
+                     filt: { f: 420, q: 1.2 }, lfo: { r: 3.7, d: 40 }, verb: 0.08 });
 function ensureLoops(){
   if (L.hum) return;
-  // the hum: two slightly detuned saws an octave under a sine, through a lowpass that opens as the blade moves
-  L.hum = loop({ base: 90, layers: [{ f: 90 }, { f: 90.7, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }],
-                 filt: { f: 420, q: 1.2 }, lfo: { r: 3.7, d: 40 }, verb: 0.08 });
+  L.hum = loop(HUM());
+  L.hum2 = loop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
+  // the blade's electric sizzle: a narrow band of noise, flickering, that only really comes up as the blade moves
+  L.hiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 2600, q: 1.6 }, lfo: { r: 13, d: 700 }, verb: 0.05 });
   L.dark = loop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
                   filt: { f: 380, q: 2 }, lfo: { r: 5.3, d: 60 }, drive: 0.35, verb: 0.08 });
+  // two placed hums for the nearest other lit blades (foes, the boss, a co-op partner, an ally)
+  for (let i = 0; i < 2; i++) L.near.push({ h: loop({ base: 90, layers: [{ f: 90 }, { f: 90.8, det: 5, g: 0.7 }, { type: 'sine', f: 180, g: 0.5 }], filt: { f: 500, q: 1 }, lfo: { r: 3.3 + i, d: 40 } }), wob: rand(0, 6) });
   L.jet = loop({ base: 50, layers: [{ noise: 'brown', g: 1.6 }, { noise: 'pink', g: 0.5 }, { f: 50, g: 0.12 }],
                  filt: { f: 500, q: 0.6 }, lfo: { r: 11, d: 90 } });
   L.flame = loop({ base: 60, layers: [{ noise: 'pink', g: 1 }, { noise: 'brown', g: 1.2 }],
@@ -131,20 +145,59 @@ export function updateAudio(dt){
   setAmbience(inWorld ? layout : 'menu', inWorld ? shared.ambientKind : '');
   MUSIC.setPalette(inWorld ? layout : 'menu');
 
-  // ── saber hums ──
+  // ── saber hums ── each follows its blade's real tip speed (fx/trail.js BLADE_AUDIO): it bends up in pitch, swells,
+  // brightens and fizzes through a cut, and settles back to a low idle hum when the blade is held still
+  const BA = BLADE_AUDIO;
   const jedi = G.hero === 'jedi' && (!player.holstered || shared.saberProj), darkOn = isGunner() && player.weapon === 'darksaber';
   const swinging = player.atkT > 0 || player.darkT > 0;
-  const motion = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
+  const walk = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
   const thrown = jedi && shared.saberProj;
+  const staff = jedi && !thrown && G.stance === 'staff';
+  const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt), mH2 = ease('hero2', motionOf(BA.hero2), dt);
+  const mD = ease('dark', Math.max(motionOf(BA.dark), swinging && darkOn ? 0.3 : 0), dt);
   if (L.hum){
-    const p = FORM_PITCH[G.stance] || 1;
-    const lvl = (playing && jedi) ? (thrown ? 0.09 : 0.035 + (swinging ? 0.05 : 0) + (player.blockHeld ? 0.015 : 0) + motion * 0.01) : 0;
-    const hz = 420 + (swinging ? 1500 : 0) + (thrown ? 1200 : 0) + motion * 200;
-    L.hum.set(lvl, hz, 90 * p * (swinging ? 1.06 : 1), swinging ? 0.03 : 0.12);
+    const p = HUM_PITCH[G.stance] || 1;
+    // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
+    const spin = thrown ? Math.sin(t * 2 * Math.PI * 6.5) : 0;
+    const m = thrown ? 0.7 : mH;
+    const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
+    const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
+    const pitch = 90 * p * (1 + m * 0.2 + spin * 0.045);
+    L.hum.set(lvl, hz, pitch, m > 0.05 || thrown ? 0.02 : 0.1);
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
+    // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
+    const m2 = Math.max(mH2, mH * 0.6);
+    L.hum2.set((playing && staff) ? 0.02 + m2 * 0.045 : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), m2 > 0.05 ? 0.02 : 0.1);
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + (swinging ? 0.05 : 0) : 0, 380 + (swinging ? 1300 : 0), 62 * (swinging ? 1.08 : 1), swinging ? 0.03 : 0.12);
+  if (L.hiss){
+    const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
+    const on = playing && (jedi || darkOn);
+    L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
+  }
+  if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + mD * 0.07 : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), mD > 0.05 ? 0.02 : 0.12);
+
+  // other blades: the two nearest lit, unthrown blades within earshot get a placed hum; the rest stay silent
+  if (L.near.length){
+    const live = (playing || G.cutscene) && G.mode === 'play';
+    const cand = [];
+    if (live) for (const o of BA.others){
+      if (o.thrown) continue;
+      const P = place(o.tip);
+      if (P && P.d < 16) cand.push({ o, P });
+    }
+    cand.sort((a, b) => a.P.d - b.P.d);
+    for (let i = 0; i < L.near.length; i++){
+      const N = L.near[i], c = cand[i];
+      if (!N.h) continue;
+      if (!c){ N.h.set(0, 0, 0, 0.15); continue; }
+      const m = motionOf(c.o.sp), base = c.o.dark ? 62 : 90;
+      N.wob += dt;
+      const lvl = (0.022 + m * 0.05) * c.P.gain * (1 - clamp((c.P.d - 10) / 6, 0, 1));
+      N.h.set(lvl, Math.min(c.P.lp, 480 + m * 2200), base * (1 + m * 0.2 + Math.sin(N.wob * 0.7) * 0.01), 0.03);
+      N.h.pan.pan.setTargetAtTime(c.P.pan, t, 0.05);
+    }
+  }
 
   // ── jetpack + flamethrower ──
   if (L.jet){

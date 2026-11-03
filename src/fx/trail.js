@@ -7,6 +7,10 @@ import { G, player, isGunner, enemies, shared } from '../state.js';
 import { stance, bladeColor } from '../player/helpers.js';
 import { FORM_OF, SWING_STYLE } from '../data/poses.js';
 import { fitStaffBlades, saberIsStaff } from '../player/model/weapons.js';
+import { solidAt } from '../world/collision.js';
+import { S } from '../audio/sfx.js';
+import { BLADE_AUDIO } from '../audio/saber.js';
+import { spawnHitSpark } from './vfx.js';
 
 /* ---------- saber motion trail ----------
    Every lightsaber in the scene leaves a streak that runs EXACTLY where its blade went: the player's saber, the saber
@@ -104,6 +108,34 @@ function scan(){
 }
 const formTrail = (f) => TRAIL[FORM_OF[f] || f];
 
+/* ---------- what the blades sound like (read by audio/director.js) ----------
+   BLADE_AUDIO (audio/saber.js), filled each frame: how fast each lit blade's tip is moving against its owner's body (m/s), so the hum bends with the blade
+   the eye sees rather than with a swing timer: hero = the hero's saber, hero2 = the saber staff's far end, dark = the
+   Darksaber in hand. others = every other lit blade (a foe's, the boss's, a co-op partner's, an ally's, a cutscene
+   actor's): its tip in the world, its speed, whether it's dark or thrown. */
+const _otherPool = [];
+/* the hero's blade cutting through a wall, a pillar or a crate (anything solid above the feet, so a low guard never
+   sizzles on the floor): a sizzling scrape and a spit of sparks where it bites, repeating while it stays in */
+let wallIn = false, wallT = 0;
+const _w = new THREE.Vector3();
+function wallContact(b, sp, dt, len){
+  if (sp < TRAIL_TUNE.speedOn * 0.75) return false;
+  const feet = player.group.position.y + 0.3;
+  for (const f of [1, 0.8, 0.6]){
+    _w.copy(_h).addScaledVector(_d, f * len);
+    if (_w.y > feet && solidAt(_w.x, _w.y, _w.z)){
+      wallT -= dt;
+      if (!wallIn || wallT <= 0){
+        S.saberWall(_w.clone(), !wallIn, !!b.tag.dark);
+        spawnHitSpark(_w.clone(), b.tag.dark ? 0xd9ccff : 0xfff1c4, wallIn ? 0.35 : 0.7);
+        wallT = 0.11;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 // one blade's emitter (h), unit direction (d) and length, off its mesh's world transform; false if it isn't lit
 function bladeLine(b){
   const m = b.m, g = m.geometry;
@@ -130,6 +162,11 @@ export function updateTrail(dt){
   // two great additive sheets across the view; the streaks pick up again as the cut itself comes through)
   const sw = player.swing, whirl = swinging && sw && sw.spin && sw.spin.twirl && sw.t < sw.dur * SWING_STYLE.staff.ts && saberIsStaff(player);
   tipSpeed = 0;
+  const BA = BLADE_AUDIO;
+  BA.hero = BA.hero2 = BA.dark = 0;
+  for (const o of BA.others) _otherPool.push(o);
+  BA.others.length = 0;
+  let touching = false;
   for (const b of BLADES.values()){
     for (const p of b.s) p.age += dt;
     const owner = ownerOf(b.m);
@@ -156,6 +193,17 @@ export function updateTrail(dt){
       if (owner.userData.trailAlways || (mine && swinging)) w = 1;
       if (mine && whirl) w = 0;
       if (mine && player.blade && b.m === player.blade.glow) tipSpeed = sp;   // the blade's motion smear (updateBladeFX)
+      // the hum follows the blade (audio/director.js)
+      if (mine){
+        if (dark) BA.dark = Math.max(BA.dark, sp);
+        else if (player.blade && b.m === player.blade.glow) BA.hero = sp;
+        else BA.hero2 = Math.max(BA.hero2, sp);
+        if (!touching && G.mode === 'play') touching = wallContact(b, sp, dt, len);
+      } else {
+        const o = _otherPool.pop() || { tip: new THREE.Vector3() };
+        o.tip.copy(_t); o.sp = sp; o.dark = dark; o.thrown = !!owner.userData.trailAlways;
+        BA.others.push(o);
+      }
       b.s.push({ h: _h.clone(), d: _d.clone(), len, age: 0, w });
       if (b.s.length > MAXS) b.s.shift();
       // nothing streaking: keep only this frame's blade, so the next streak starts from where the blade really was
@@ -166,6 +214,7 @@ export function updateTrail(dt){
     } else { b.lt = null; b.gap = true; }
     drawBlade(b);
   }
+  if (!touching){ wallIn = false; wallT = 0; } else wallIn = true;
 }
 
 // a blade's streak: its frame samples, densified round the arc, drawn as a three-row ribbon

@@ -7,6 +7,8 @@
 
 import { MUSIC } from './music.js';
 import { AE, initEngine, play, tooSoon, duck, setBusVol } from './engine.js';
+import * as SB from './saber.js';
+import { FORM_SOUND, swing, formSwing } from './saber.js';
 import { clamp, rand } from '../utils.js';
 import { shared, G, player, isGunner } from '../state.js';
 
@@ -61,55 +63,6 @@ function blaster(dual){
   if (!dual) T({ type: 'triangle', f: 150, f2: 55, g: 0.09, d: 0.09 });
 }
 
-/* a lightsaber whoosh: the hum's pitch bending up through the arc ("vwoom") plus moving air.
-   p scales the pitch: Shii-Cho/fast blades are lighter and higher, Djem So heavier, the Darksaber deep and gritty */
-function swing(p, len, dark, o = {}){
-  const d = 0.2 * len, pos = o.pos, at = o.at || 0, air = o.air ?? 1, gain = o.g ?? 1;
-  T({ pos, at, type: 'sawtooth', f: 96 * p, f2: 168 * p, ft: d * 0.55, g: 0.075 * gain, a: 0.03, d, det: 8,
-      filt: { type: 'lowpass', f: 600, f2: 2600, t: d * 0.5 }, drive: dark ? 0.45 : o.drive || 0, verb: 0.1 });
-  T({ pos, at, type: 'sawtooth', f: 97.5 * p, f2: 160 * p, ft: d * 0.55, g: 0.05 * gain, a: 0.03, d, filt: { type: 'lowpass', f: 900, f2: 2000 } });
-  N({ pos, at, color: 'pink', g: 0.09 * air * gain, a: 0.05 * len, d: 0.16 * len, filt: { type: 'bandpass', f: 450, f2: 1900, q: 1.3 } });
-}
-/* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
-   e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
-   moved air, drive its grit; ring tunes the clash's metal and damp how long it rings (Soresu soaks a blow, Djem So's
-   rings out). flick adds Ataru's flourish, a second short whoosh; thump puts weight under a Djem So clash. */
-const FORM_SOUND = {
-  shiicho: { p: 0.9,  len: 1.3,  air: 1.3,  ring: 0.94, damp: 1 },     // a wide, open sweep
-  makashi: { p: 1.22, len: 0.7,  air: 0.55, ring: 1.3,  damp: 1.1 },   // a fencer's thin flick, a bright, precise ring
-  soresu:  { p: 1.0,  len: 0.8,  air: 0.7,  ring: 0.88, damp: 0.6 },   // tight and economical; its blocks thud dead
-  ataru:   { p: 1.14, len: 0.85, air: 1.25, ring: 1.12, damp: 1, flick: true },
-  djemso:  { p: 0.78, len: 1.45, air: 1.15, ring: 0.74, damp: 1.25, thump: true },
-  shien:   { p: 0.88, len: 1.2,  air: 1,    ring: 0.84, damp: 1.1 },
-  niman:   { p: 1,    len: 1,    air: 1,    ring: 1,    damp: 1 },
-  juyo:    { p: 1.06, len: 0.8,  air: 1.1,  ring: 1.04, damp: 1.15, drive: 0.4 },   // ragged, snarling
-  vaapad:  { p: 0.86, len: 1.1,  air: 0.9,  ring: 0.8,  damp: 1.3, drive: 0.2, thump: true },
-  staff:   { p: 1.08, len: 0.9,  air: 1.2,  ring: 1.06, damp: 1, flick: true },   // the saber staff: two hums, the far end chasing the near
-};
-function formSwing(v, pos){
-  swing(v.p, v.len, false, { pos, air: v.air, drive: v.drive });
-  if (v.flick) swing(v.p * 1.12, v.len * 0.55, false, { pos, at: 0.09, air: 0.8, g: 0.6 });
-}
-
-/* the saber meeting flesh/armour: a scorching sizzle over a dull thump */
-function saberBurn(pos, pw){
-  N({ pos, g: 0.08 * pw, a: 0.002, d: 0.14 + pw * 0.05, filt: { type: 'highpass', f: 2600 }, drive: 0.55, pri: 2 });
-  N({ pos, g: 0.05, d: 0.26, rate: 0.55, filt: { type: 'bandpass', f: 5200, q: 3 } });
-  T({ pos, type: 'sine', f: 150, f2: 45, g: 0.16 * pw, d: 0.12 });
-  T({ pos, type: 'sawtooth', f: 220, f2: 80, g: 0.06, d: 0.1, filt: { type: 'lowpass', f: 1600 } });
-}
-
-/* blade on blade / blade on beskar: inharmonic FM ring (that's what makes metal), a hard crack, a fizzing crackle */
-function clash(pos, big, form){
-  form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
-  const k = big ? 1.4 : 1, v = FORM_SOUND[form] || FORM_SOUND.niman, r = v.ring, dm = v.damp;
-  T({ pos, type: 'sine', f: 1250 * r, fm: { r: 1.414, i: 4, i2: 0.1 }, g: 0.09 * k, d: 0.3 * k * dm, verb: 0.25, pri: 2 });
-  T({ pos, type: 'sine', f: 2620 * r, fm: { r: 2.76, i: 2, i2: 0.05 }, g: 0.045 * k, d: 0.22 * k * dm, verb: 0.2 });
-  N({ pos, g: 0.13 * k, a: 0.001, d: 0.06, filt: { type: 'bandpass', f: 3400 * r, q: 0.8 }, drive: 0.6 });
-  N({ pos, g: 0.045 * k, d: 0.25 * k * dm, rate: 0.5, filt: { type: 'highpass', f: 4200 }, drive: 0.8 });
-  if (big || v.thump){ T({ pos, type: 'sine', f: 95 * r, f2: 40, g: big ? 0.2 : 0.12, d: 0.22 }); }
-}
-
 /* an explosion: a dark roar of brown noise closing down, a sub drop, a crack at the front and debris crackle */
 function boom(pos, size){
   size = size || 1;
@@ -136,7 +89,14 @@ export const S = {
     else if (kind === 'dark') swing(0.68, 1.2, true);
     else swing(1, 1);
   },
-  saberHit: (pos, power) => { if (!tooSoon('shit', 0.015)) saberBurn(pos, pw01(power)); },
+  saberHit: (pos, power) => { if (!tooSoon('shit', 0.015)) SB.burn(pos, pw01(power)); },
+  // the snap-hiss: kind is a form id ('staff' lights both ends) or 'dark' (the Darksaber); retract is the reverse;
+  // reignite drops the blade and lights it again in a new form (from = the form it was in)
+  ignite: (kind, pos) => { if (!tooSoon('ign', 0.05)) SB.ignite(kind, { pos }); },
+  retract: (kind, pos) => { if (!tooSoon('ret', 0.05)) SB.retract(kind, { pos }); },
+  reignite: (kind, from) => { if (!tooSoon('ign', 0.05)) SB.reignite(kind, from); },
+  // a blade dragged through a wall: first = it just bit in (fx/trail.js)
+  saberWall: (pos, first, dark) => SB.wall(pos, first, dark),
   // ── blasters ──
   blaster: () => blaster(false),
   blasterDual: () => blaster(true),
@@ -199,20 +159,14 @@ export const S = {
     N({ pos, at: 0.32, color: 'brown', g: heavy ? 0.16 : 0.09, d: 0.12, filt: { type: 'lowpass', f: 500 } });
   },
   // ── defence ──
-  deflect: (pos) => {
-    if (tooSoon('defl', 0.03)) return;
-    T({ pos, type: 'sawtooth', f: 2600, f2: 900, ft: 0.1, g: 0.055, d: 0.12, filt: { type: 'bandpass', f: 2500, q: 2 }, pri: 2 });
-    T({ pos, type: 'sine', f: 1900, fm: { r: 1.5, i: 1.5, i2: 0.05 }, g: 0.06, d: 0.24, verb: 0.22 });
-    N({ pos, g: 0.06, d: 0.05, filt: { type: 'highpass', f: 4000 }, drive: 0.5 });
-  },
+  deflect: (pos) => { if (!tooSoon('defl', 0.03)) SB.deflect(pos); },
   // form: whose blade rings (the hero's form, or a form master's): FORM_SOUND
-  block: (pos, form) => clash(pos, false, form),
-  clash: (pos, big, form) => clash(pos, big, form),
-  // a PERFECT parry: a big clash that rings up into a bright chime, and the world ducks out of its way
+  block: (pos, form) => SB.clash(pos, false, form),
+  clash: (pos, big, form) => SB.clash(pos, big, form),
+  // a PERFECT parry: a big clash that flares into a surge of the hum and a spitting shower, and the world ducks out of its way
   parry: (pos, form) => {
-    clash(pos, true, form);
-    T({ type: 'sine', f: 1568, g: 0.05, a: 0.005, d: 0.8, verb: 0.55, jit: 0.005 });
-    T({ type: 'sine', f: 2349, at: 0.04, g: 0.035, a: 0.005, d: 0.7, verb: 0.55, jit: 0.005 });
+    SB.clash(pos, true, form);
+    SB.parryFlare(pos);
     duck(0.35, 0.1);
   },
   // the riposte answer — a heavy decisive slash

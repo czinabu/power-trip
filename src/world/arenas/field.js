@@ -67,10 +67,14 @@ export function fieldKit(K, R){
     }
   };
   /* a boulder or rock outcrop: collides as a column, drawn as a lumpy faceted rock (two shards) */
-  const rock = (x, z, r, h, mat, mat2) => {
-    solids.push({ x, z, r, h });
-    K.deco(new THREE.DodecahedronGeometry(1, 0), mat, x, h*0.45, z, R()*3, R()*3, R()*3).scale.set(r*1.05, h*0.58, r*1.05);
-    K.deco(new THREE.DodecahedronGeometry(1, 0), mat2 || mat, x + r*0.3, h*0.72, z - r*0.2, R()*3, R()*3, R()*3).scale.set(r*0.7, h*0.35, r*0.7);
+  const rock = (x, z, r, h, mat, mat2, y0 = 0) => {   // (y0: it sits on something, a ridge's top)
+    const c = { x, z, r, h: y0 + h }; solids.push(c);
+    const a = K.deco(new THREE.DodecahedronGeometry(1, 0), mat, x, y0 + h*0.45, z, R()*3, R()*3, R()*3); a.scale.set(r*1.05, h*0.58, r*1.05);
+    const b = K.deco(new THREE.DodecahedronGeometry(1, 0), mat2 || mat, x + r*0.3, y0 + h*0.72, z - r*0.2, R()*3, R()*3, R()*3); b.scale.set(r*0.7, h*0.35, r*0.7);
+    if (y0){   // on a ridge's crest: the tumbled shards can stand taller than asked, so the column grows to their top
+      const bb = new THREE.Box3().setFromObject(a).union(new THREE.Box3().setFromObject(b));
+      c.h = Math.max(c.h, bb.max.y - 0.35);
+    }
   };
   /* a tall rock SPIRE (the grasslands' needles): a wall-kick column, tapered, with a broken crown and a skirt of rubble */
   const spire = (x, z, r, h, mat, mat2) => {
@@ -91,9 +95,67 @@ export function fieldKit(K, R){
     K.deco(new THREE.CircleGeometry(r*0.35, 14), mat, x, 0.02, z, -Math.PI/2);
   };
   /* a crate stack: a tall crate with a short one beside it, so it climbs in two hops (1.1 then 2.2) */
-  const crates = (x, z, mat, mat2, flip = 1) => {
-    K.box(x, z, 0.9, 0.9, 2.2, mat);
-    K.box(x + 1.7*flip, z + 0.2, 0.8, 0.8, 1.1, mat2 || mat);
+  const crates = (x, z, mat, mat2, flip = 1, y = 0) => {   // (y: standing on a terrace)
+    K.box(x, z, 0.9, 0.9, 2.2, mat, { y });
+    K.box(x + 1.7*flip, z + 0.2, 0.8, 0.8, 1.1, mat2 || mat, { y });
+  };
+  /* a BANK: one terrace of a ridge or a rise. It collides as a climbable box (y…y+h), and draws as a sloped frustum
+     whose foot spreads `skirt` past the box, so a stack of them reads as a hillside, not a flight of crates */
+  const bank = (x, z, hx, hz, y, h, mat, skirt = 0.8) => {
+    solids.push({ x, z, hx, hz, h: y + h, box: true, climbable: true });
+    const geo = new THREE.BoxGeometry((hx + skirt) * 2, h, (hz + skirt) * 2), p = geo.attributes.position;
+    for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) p.setXYZ(i, Math.sign(p.getX(i)) * hx, p.getY(i), Math.sign(p.getZ(i)) * hz);   // the top pulls in to the box
+    geo.computeVertexNormals();
+    const m = K.deco(geo, mat, x, y + h / 2, z); m.castShadow = false;
+    return m;
+  };
+  /* a RIDGE you can walk up: a long bank of packed snow (or ice) in stacked climbable terraces, each one under STEP_UP,
+     narrowing to a crest, so a fight on a flat field gets high ground and a skyline to duck behind. Runs along x (ax 1)
+     or z (ax 0) from its centre: half-length hl, half-width hw at the foot. On the crest: rock teeth for cover
+     (o.teeth) and tall SERACS (o.seracs: ice towers you wall-kick up, 7–14 m) so it stands tall over the field.
+     mats: { body, cap, rock, rock2 }. Returns the crest height. */
+  const ridge = (x, z, hl, hw, tiers, mats, o = {}) => {
+    const step = o.step ?? 0.45, ax = o.ax ?? 1;
+    for (let i = 0; i < tiers; i++){
+      const l = hl - i * (o.taperL ?? 1.6), w = Math.max(1.2, hw - i * (o.taperW ?? 1.1));
+      bank(x, z, ax ? l : w, ax ? w : l, i * step, step, i ? (mats.cap || mats.body) : mats.body, i ? 0.7 : 1.4);
+    }
+    const top = tiers * step, n = o.teeth || 0, crest = hl - (tiers - 1) * (o.taperL ?? 1.6);
+    for (let i = 0; i < n; i++){
+      const t = n === 1 ? 0 : -crest * 0.7 + i * (crest * 1.4 / (n - 1)) + (R() - 0.5) * 1.2;
+      rock(x + (ax ? t : (R() - 0.5) * 0.6), z + (ax ? (R() - 0.5) * 0.6 : t), 0.9 + R() * 0.5, 1.3 + R() * 0.9, mats.rock || mats.body, mats.rock2, top);
+    }
+    for (let i = 0; i < (o.seracs || 0); i++){
+      const d = ((i + 0.5) / o.seracs * 2 - 1) * crest * 0.8;
+      spire(x + (ax ? d : 0), z + (ax ? 0 : d), 1.3 + R() * 0.8, 7 + R() * 7, mats.serac || mats.rock2 || mats.body, mats.rock || mats.body);
+    }
+    return top;
+  };
+  /* a RISE: a hill climbed in terraces (each under STEP_UP), the top tier at the back. Footprint x0…x1 by z0…z1, the
+     climb faces toward z (dir +1: the low side at z0 rising toward z1; -1 the other way); each tier also pulls in from
+     the sides by `inset`. For a base on a hill, a defensive line on a knoll. Returns the top height. */
+  const rise = (x0, x1, z0, z1, tiers, mats, o = {}) => {
+    const step = o.step ?? 0.45, dir = o.dir ?? 1, depth = (z1 - z0) / (tiers + (o.flat ?? 1)), inset = o.inset ?? 3;
+    for (let i = 0; i < tiers; i++){
+      const a = x0 + i * inset, b = x1 - i * inset;
+      const za = dir > 0 ? z0 + i * depth : z0, zb = dir > 0 ? z1 : z1 - i * depth;
+      bank((a + b) / 2, (za + zb) / 2, (b - a) / 2, (zb - za) / 2, i * step, step, i % 2 ? (mats.cap || mats.body) : mats.body, 1.2);
+    }
+    return tiers * step;
+  };
+  /* a GLACIER WALL: a towering wall of ice past the edge of the play space (no collision: nobody reaches it), built
+     from tall leaning slabs with snow on their shoulders, from (x0, z0) to (x1, z1). h: [min, max] height. For the
+     maps whose lore is big: the player should feel small against it. */
+  const glacier = (x0, z0, x1, z1, h, mats, o = {}) => {
+    const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(2, Math.round(len / (o.every ?? 9))), ry = Math.atan2(x1 - x0, z1 - z0);
+    for (let i = 0; i < n; i++){
+      const t = (i + 0.5) / n, x = x0 + (x1 - x0) * t + (R() - 0.5) * 3, z = z0 + (z1 - z0) * t + (R() - 0.5) * 3;
+      const hh = h[0] + R() * (h[1] - h[0]), w = 7 + R() * 7, d = 6 + R() * 6, lean = (R() - 0.5) * 0.12;
+      const slab = K.deco(new THREE.CylinderGeometry(0.62, 1, 1, 5, 1).rotateY(R() * 3), R() < 0.5 ? mats.body : (mats.body2 || mats.body), x, hh / 2 - 1, z, lean, ry, lean);
+      slab.scale.set(d, hh, w); slab.castShadow = false; slab.userData.passThrough = true;
+      const cap = K.deco(new THREE.ConeGeometry(1, 1, 5).rotateY(R() * 3), mats.cap || mats.body, x, hh - 1 + hh * 0.06, z, lean, ry, lean);
+      cap.scale.set(d * 0.66, hh * 0.16, w * 0.66); cap.castShadow = false; cap.userData.passThrough = true;
+    }
   };
   /* a DOWNED WALKER hulk you can climb and fight from: the hull lies along x (or z), the head off one end and the
      legs splayed as low steps. The hull top is high ground (4.2): crate, a broken leg stump, then the hull. Every
@@ -117,9 +179,27 @@ export function fieldKit(K, R){
     for (let i = -2; i <= 2; i++){ const [px, pz] = L(i * 2.8, 3.05); K.deco(new THREE.BoxGeometry(alongX ? 2.4 : 0.2, 2.6, alongX ? 0.2 : 2.4), mats.plate || mats.dark, px, 2.3, pz); }
     { const [px, pz] = L(11.2, 0.8); K.deco(new THREE.BoxGeometry(alongX ? 1.2 : 0.4, 0.4, alongX ? 0.4 : 1.2), mats.dark, px, 0.9, pz); }
   };
-  return { wall, rock, spire, drift, crater, crates, walkerHulk };
+  return { wall, rock, spire, drift, crater, crates, walkerHulk, bank, ridge, rise, glacier };
+}
+
+/* a WINDING TRENCH LINE as PLAN rows: a path of corners, each leg running along x or along z (collision is
+   axis-aligned), so a line zig-zags through traverses instead of standing as a row of identical blocks. A null in the
+   path is a gap (a way through). h is the berm height, or a function of the leg's index for a line that varies.
+   e.g. trenchRows([[-30, 10], [-10, 10], [-10, 14], [0, 14], null, [6, 14], [20, 14]], 1.3) */
+export function trenchRows(path, h = 1.3){
+  const rows = [];
+  let leg = 0;
+  for (let i = 1; i < path.length; i++){
+    const a = path[i - 1], b = path[i];
+    if (!a || !b) continue;
+    const ax = Math.abs(b[0] - a[0]) >= Math.abs(b[1] - a[1]) ? 1 : 0;
+    const hl = Math.max(0.6, (ax ? Math.abs(b[0] - a[0]) : Math.abs(b[1] - a[1])) / 2 + (ax ? 0.55 : 0));   // legs along x run over the corners
+    rows.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, hl, typeof h === 'function' ? h(leg) : h, ax]);
+    leg++;
+  }
+  return rows;
 }
 
 /* a mortar / cannon strike zone on a crater: an amber telegraph, then a blast that hurts whoever stands in it */
 export const strike = (x, z, r, t, color, o = {}) => ({ kind: 'point', cx: x, cz: z, r, period: o.period ?? 11, warnDur: o.warn ?? 1.8,
-  activeDur: o.active ?? 0.8, dmg: o.dmg ?? 26, color, flash: true, t });
+  activeDur: o.active ?? 0.8, dmg: o.dmg ?? 26, color, flash: true, t, walker: !!o.walker });   // walker: a walker's cannon fires the shot (world/warfront.js)

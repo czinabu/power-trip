@@ -53,6 +53,11 @@ export const TRAIL_TUNE = {
   maxSub: 16,                  // subdivisions per frame at most
   jump: 3,                     // m: a blade that moves further than this in one frame was teleported, not swung
   scan: 0.25,                  // s between looks round the scene for blades that have come or gone
+  // HOW STRONG every streak is, on top of each form's own shape (TRAIL above): toned down so a cut leaves a quick
+  // flick of light near the tip, not a wide sheet that hangs in the air
+  life: 0.55,                  // × each form's life: the streak fades this much sooner
+  glow: 0.6,                   // × its brightness (the ink streak's opacity, for the Darksaber)
+  reach: 0.5,                  // the streak reaches full strength no lower than this far up the blade (0 hilt · 1 tip)
 };
 const MAXS = 48, MAXP = 420;   // frame samples kept per blade; points drawn per ribbon
 const BLADES = new Map();      // glow mesh → its blade state (samples, ribbon)
@@ -136,7 +141,7 @@ export function updateTrail(dt){
       : owner && owner.userData.trailAlways ? TRAIL.thrown
       : mine ? (formTrail(G.stance) || TRAIL.niman)
       : (owners.has(owner) && formTrail(owners.get(owner).ff)) || TRAIL.niman;
-    while (b.s.length && b.s[0].age > b.cfg.life) b.s.shift();
+    while (b.s.length && b.s[0].age > b.cfg.life * TRAIL_TUNE.life) b.s.shift();
     if (len){
       if (b.gap){ b.s.length = 0; b.gap = false; }   // lit again after being put away: a fresh streak, not a bridge
       const last = b.s[b.s.length - 1];
@@ -213,7 +218,8 @@ function drawBlade(b){
     }
   }
   const pl = S[n0 - 1]; add(pl.h, pl.d, pl.len, pl.age, pl.w);
-  const pos = R.pos.array, col = R.col.array, cfg = b.cfg, dark = !!b.tag.dark, base = cfg.base;
+  const pos = R.pos.array, col = R.col.array, cfg = b.cfg, dark = !!b.tag.dark, base = Math.max(cfg.base, TRAIL_TUNE.reach);
+  const life = cfg.life * TRAIL_TUNE.life, glow = TRAIL_TUNE.glow;
   const band = (x) => Math.ceil(x * 4) / 4;   // the fade is QUANTISED into cel bands, so the streak reads as flat painted arcs
   let o = 0, c = 0;
   for (let i = 0; i < n; i++){
@@ -222,12 +228,12 @@ function drawBlade(b){
     for (const f of [0, base, 1]){ pos[o++] = p.h.x + p.d.x * p.len * f; pos[o++] = p.h.y + p.d.y * p.len * f; pos[o++] = p.h.z + p.d.z * p.len * f; }
     // brightness by AGE, not by place in the list (the subdivisions crowd where the blade moved most): the newest
     // couple of frames burn white, then the streak cools down the bands to nothing
-    const fa = Math.max(0, 1 - p.age / cfg.life);
-    const k = band(fa * fa * fa * p.w);
+    const fa = Math.max(0, 1 - p.age / life);
+    const k = band(fa * fa * fa * p.w) * glow;
     const hot = Math.pow(fa, 7) * p.w * cfg.core > 0.3 ? 1 : 0;   // a hard white leading edge, not a soft blend
     let a = 1;
     if (dark){ _c.setRGB(0.05, 0.04, 0.08).lerp(_cw, hot); a = k; }
-    else _c.copy(b.color).multiplyScalar(k).lerp(_cw, hot * 0.85 * (k > 0 ? 1 : 0));
+    else _c.copy(b.color).multiplyScalar(k).lerp(_cw, hot * 0.85 * glow * (k > 0 ? 1 : 0));
     // the emitter row fades to nothing, so the streak grows out of the hilt instead of a hard line along it
     if (dark){ col[c++] = _c.r; col[c++] = _c.g; col[c++] = _c.b; col[c++] = 0; }
     else { col[c++] = 0; col[c++] = 0; col[c++] = 0; col[c++] = 1; }

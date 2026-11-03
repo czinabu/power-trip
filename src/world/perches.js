@@ -8,8 +8,8 @@ import { arenaKit } from './arenas/kit.js';
 import { MISSIONS } from '../data/missions.js';
 
 /* A PERCH is a scaffold, honest to its collision: a deck SLAB (world/collision.js: walked under, stood on) on four thin
-   posts, so the ground fight runs on underneath it and the floor it covers is still floor. A crate beside it, on the
-   side that faces the middle, is the way up for anyone (its top is in a jump's reach, the deck is in reach from its top:
+   posts, so the ground fight runs on underneath it and the floor it covers is still floor. A crate and a low step beside it, on the
+   side that faces the middle, are the way up for anyone (its top is in a jump's reach, the deck is in reach from its top:
    data/movement.js MOVE.reach), and a TALL perch carries a second, smaller deck above the first for the leap and the
    pack. Ground melee can't follow, but blasters, snipers and jet troopers still see the deck, so it's a vantage, not a
    safe spot (the same deal as the temple's overwatch gantry).
@@ -27,6 +27,7 @@ export const PERCH = {
   count: [[60, 3], [75, 4], [1e9, 5]],   // arena width under w → that many perches
   apart: 0.62,          // perches at least this share of the half size apart
   keep: 4.5,            // m kept clear round a mission point (its zone's radius on top)
+  low: 1.15,            // the low step's top (under MOVE.vaultHeight: vaulted from a run, mantled from a stand)
   step: 2.3,            // crate top (a gunner's jump reaches 3.6 m: 1.3 apex + MOVE.reach 2.35)
   deck: 4.5,            // low deck top (2.2 above the crate top)
   high: 6.8,            // tall perch's upper deck top (2.3 above the low deck; its underside clears a body standing there)
@@ -110,9 +111,9 @@ function fit(x, z, sx, sz, pts, spawn){
   if (tallIn(x, z, H + 0.4, H + 0.4, PERCH.deck - lip - 1.9)) return -1;   // the deck clears whatever stands under it by a body
   let g = 1e9;
   for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) g = Math.min(g, floorGap(x + a * ins, z + b * ins) - 0.2);
-  const cx = x + sx * (H + 1.25), cz = z + sz * (H + 1.25);
+  const cx = x + sx * (H + 1.5), cz = z + sz * (H + 1.5);
   if (tallIn(cx, cz, 1.2 + 0.6, 1.2 + 0.6, 0)) return -1;               // the crate needs its own floor
-  g = Math.min(g, floorGap(cx, cz) - 1.7, floorGap(cx + sx * 2.6, cz + sz * 2.6) - 0.6);   // ...and a clear run-up
+  g = Math.min(g, floorGap(cx, cz) - 1.7, floorGap(cx + sx * 2.2, cz + sz * 2.2) - 1.4, floorGap(cx + sx * 4.4, cz + sz * 4.4) - 0.6);   // ...the low step, and a clear run-up
   if (g < 0.5) return -1;
   for (const [px, pz, r] of pts) if (Math.hypot(x - px, z - pz) < (r || 0) + PERCH.keep || Math.hypot(cx - px, cz - pz) < (r || 0) + 2.5) return -1;
   for (const [qx, qz] of spawn) if (Math.hypot(x - qx, z - qz) < 8 || Math.hypot(cx - qx, cz - qz) < 6) return -1;
@@ -165,17 +166,19 @@ export function buildPerches(L){
     const tall = i % 2 === 1;   // every other one carries an upper deck
     const { sx, sz } = p, H = PERCH.half;
     perch(K, p.x, p.z, H, PERCH.deck, { mBody, mTop, mTrim });
-    board(K, p.x + sx * (H - 0.12), p.z + sz * (H - 0.12), sx, sz, H, 0, PERCH.deck - lip, mBody);
-    K.box(p.x + sx * (H + 1.25), p.z + sz * (H + 1.25), 1.2, 1.2, PERCH.step, mBody);   // the way up
-    K.deco(new THREE.BoxGeometry(2.44, 0.08, 2.44), mTrim, p.x + sx * (H + 1.25), PERCH.step + 0.02, p.z + sz * (H + 1.25));
+    board(K, p.x + sx * (H + 0.12), p.z + sz * (H + 0.12), sx, sz, H, 0, PERCH.deck, mBody);   // (just outside the deck's edge: a body pressed to it has its head clear of the deck)
+    K.box(p.x + sx * (H + 1.5), p.z + sz * (H + 1.5), 1.2, 1.2, PERCH.step, mBody);   // the way up
+    K.deco(new THREE.BoxGeometry(2.44, 0.08, 2.44), mTrim, p.x + sx * (H + 1.5), PERCH.step + 0.02, p.z + sz * (H + 1.5));
+    K.box(p.x + sx * (H + 3.7), p.z + sz * (H + 3.7), 1.0, 1.0, PERCH.low, mTop);   // ...and a low step up to it, a vault from a run
+    K.deco(new THREE.BoxGeometry(2.04, 0.08, 2.04), mTrim, p.x + sx * (H + 3.7), PERCH.low + 0.02, p.z + sz * (H + 3.7));
     if (tall){   // the upper deck stands on the outer half of the low one, on its own two posts
       const ux = p.x - sx * (H - PERCH.upper), uz = p.z - sz * (H - PERCH.upper);
       perch(K, ux, uz, PERCH.upper, PERCH.high, { mBody, mTop, mTrim }, PERCH.deck);
-      board(K, ux + sx * (PERCH.upper - 0.12), uz + sz * (PERCH.upper - 0.12), sx, sz, PERCH.upper, PERCH.deck, PERCH.high - lip, mBody);
+      board(K, ux + sx * (PERCH.upper + 0.12), uz + sz * (PERCH.upper + 0.12), sx, sz, PERCH.upper, PERCH.deck, PERCH.high, mBody);
     }
   });
   shared.perches = chosen.map(p => ({ x: p.x, z: p.z }));
-  shared.perchSteps = chosen.map(p => ({ x: p.x + p.sx * (PERCH.half + 1.25), z: p.z + p.sz * (PERCH.half + 1.25) }));   // (the crates: for tests)
+  shared.perchSteps = chosen.map(p => ({ x: p.x + p.sx * (PERCH.half + 1.5), z: p.z + p.sz * (PERCH.half + 1.5) }));   // (the crates: for tests)
   return chosen.length;
 }
 

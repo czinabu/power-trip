@@ -775,12 +775,15 @@ export const BATTLE_WORLDS = {
     pal: { stone: 0x8e8470, stoneD: 0x6a6252, bag: 0x9e9070, metal: 0x7a828e, imperial: 0x3e424a, crate: 0x7e6a50,
            stripe: 0xd9a43a, lamp: 0xffc070, scorch: 0x3a3626, blast: 0xff7a30, beacon: 0xff5040 },
     backdrop: [
-      { kind: 'spires', count: 22, r: [1.35, 2.3], h: [18, 40], w: [3, 6], color: 0x7c6c5a, color2: 0x6a5c4c },   // art pass: darker rock, so the spires stand off the pale sky
+      { kind: 'spires', count: 26, r: [1.35, 2.3], h: [26, 78], w: [4, 9], color: 0x7c6c5a, color2: 0x6a5c4c },   // art pass: darker rock, so the spires stand off the pale sky; scale pass: towering, so the hero feels small
       { kind: 'dunes', count: 14, r: [1.08, 1.3], h: 4, color: 0x767c44 },
       { kind: 'walker', az: -1.9, r: 1.7, scale: 1.4, color: 0x8a909a, color2: 0x6a7078, glow: 0xff5a3a },
       { kind: 'destroyer', az: -1.3, r: 2.0, y: 46, scale: 1.3, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
     ],
     ambient: { kind: 'dust', color: 0xfff0c8, count: 160, size: 0.28 },
+    // the GRASS SEA itself: waist-high grass in patches, green going gold, rippling under a steady westerly (world/grass.js)
+    grass: { root: 0x4e5a26, tip: 0xa8b058, dry: 0xd0b060, height: [0.6, 1.5], cover: 0.5, density: 1.5, reach: 1.45,
+             wind: 0.5, sway: 0.6, speed: 1, sheen: 0.4 },
     // the liberation of Lothal: X-wings and TIEs dogfighting over the grass, the ground war along both flanks
     warfront: { flyers: [{ kind: 'tie', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0x5aff6a }, { kind: 'xwing', count: 2, wing: 2, alt: [40, 120], speed: [80, 120], every: [3, 7], fire: 0xff3a2a },
       { kind: 'dropship', count: 1, alt: [50, 80], speed: [22, 32], every: [10, 18] }],

@@ -19,7 +19,7 @@ import { arenaKit, seeded } from './kit.js';
      · the roof SHEDS ICE: two marked spots where it comes down on a slow, telegraphed cycle;
      · supply crates you step over, fuel drums.
    The player comes in from the south (z +12), facing the blast door. */
-export const HANGAR = { half: 24, wallH: 12 };
+export const HANGAR = { half: 24, wallH: 22 };   // a hangar cut for transports: the roof well over your head (was 12)
 
 export function buildHangarArena(L){
   const pal = L.pal || {};
@@ -49,7 +49,7 @@ export function buildHangarArena(L){
       for (const sa of [-1, 1]) put(new THREE.BoxGeometry(10, W, 3), rock, sa*(H - 3), W/2, off + 1.2);
       put(new THREE.BoxGeometry(len, 2.5, 3), rock, 0, W - 1.25, off + 1.2);
       put(new THREE.PlaneGeometry(H*2 - 16, W - 2.5), shield, 0, (W - 2.5)/2, off);
-      put(new THREE.PlaneGeometry(200, 18), skyO, 0, 9, off + 70);
+      put(new THREE.PlaneGeometry(200, W + 8), skyO, 0, (W + 8)/2, off + 70);
       put(new THREE.PlaneGeometry(200, 70), snowO, 0, -0.05, off + 35).rotation.x = -Math.PI/2;
       continue;
     }

@@ -54,15 +54,14 @@ function counterNote(){
   return '<div class="fm-ctr-note"><div>▲ You counter it: +' + pct(W.dmg) + ' damage, its guard turns ' + pct(W.block) + ' fewer cuts, its blows land ' + pct(W.hurt) + ' softer.</div>' +
     '<div>▼ It counters you: −' + pct(L.dmg) + ' damage, its blows land ' + pct(L.hurt) + ' harder (only while one of your three could counter it).</div></div>';
 }
-// `note`: the numbers under it (the BEFORE THE FIGHT detail; the pause page shows them once, over the cards)
-function counterBlock(id, note){
+function counterBlock(id){
   const fam = FORM_FAMILY[id], F = FAMILIES[fam];
   const rows = F
     ? '<li class="up"><i>▲</i>Beats <em style="--fc:' + FAMILIES[F.beats].color + '">' + FAMILIES[F.beats].name + '</em> duellists: ' + esc(famList(F.beats)) + '</li>' +
       (() => { const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam); return '<li class="dn"><i>▼</i>Beaten by <em style="--fc:' + FAMILIES[by].color + '">' + FAMILIES[by].name + '</em> duellists: ' + esc(famList(by)) + '</li>'; })()
     : '<li class="eq"><i>•</i>Outside the triangle: no duellist\'s form counters it, and it counters none</li>';
   return '<div class="fm-sub">COUNTERS · ' + famTag(id) + '</div><ul class="fm-ctr">' + rows + '</ul>' +
-    (F && note ? counterNote() : '');
+    (F ? counterNote() : '');
 }
 
 const EDIT_HINT = ' Pick a slot, then a form for it. ✕ empties a slot.';
@@ -127,21 +126,11 @@ function slotRow(){
       (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '><span class="n">' + (i + 1) + '</span>' + (id ? esc(FORMS[id].name) : (ctx.known.length > filled ? 'EMPTY' : LOCK)) + '</div>' + x + '</div>';
   }).join('') + '</div>';
 }
-function card(id){
-  const F = FORMS[id], C = FORM_CODEX[id] || {};
-  const slotted = ctx.loadout.indexOf(id);
-  return '<div class="fm-card' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + loreInfo(C) + '</div>' +
-    '<b>' + esc(F.name) + '</b>' +
-    (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
-    '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id) + '</div>';
-}
-// BEFORE THE FIGHT shows small tiles and one form's detail beside them; the full cards stay on the pause page
+// both pages show small tiles and one form's detail beside them
 function tile(id){
   const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = ctx.loadout.indexOf(id);
   return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no">' + formTitle(id) + ' · ' + famTag(id) + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
+    '<div class="fm-no"><span class="fm-t">' + formTitle(id) + ' · ' + famTag(id) + '</span>' + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
     '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
 }
 function detail(){
@@ -151,28 +140,18 @@ function detail(){
   return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id, true) + '</div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id) + '</div>';
 }
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';
-  if (ctx.prefight){
-    panel.innerHTML = '<div class="howto-panel fm-compact">' +
-      '<div class="howto-head"><div class="howto-title">BEFORE THE FIGHT</div>' +
-      '<div class="rm-sub">' + head + '</div><div class="howto-x" data-x="1">✕</div></div>' +
-      '<div class="fm-sec">YOUR THREE</div>' + slotRow() +
-      (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + (ctx.edit ? EDIT_HINT : '') + '</div>' : '') +
-      '<div class="fm-sec">THE FORMS</div><div class="fm-body"><div class="fm-tiles">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') + '</div>' + detail() + '</div>' + lockedRow() +
-      '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div></div>';
-    return;
-  }
-  panel.innerHTML = '<div class="howto-panel">' +
+  // both pages share one layout: small tiles, and one form's whole story beside them (the pause page opens on the form in hand)
+  panel.innerHTML = '<div class="howto-panel fm-compact">' +
     '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'LIGHTSABER FORMS') + '</div>' +
     '<div class="rm-sub">' + head + '</div><div class="howto-x" data-x="1">✕</div></div>' +
     '<div class="fm-sec">YOUR THREE</div>' + slotRow() +
     (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + (ctx.edit ? EDIT_HINT : '') + '</div>' : '') +
-    '<div class="fm-sec">THE FORMS</div>' + counterNote() + '<div class="fm-grid">' + ORDER.filter(id => ctx.known.includes(id)).map(card).join('') + '</div>' + lockedRow() +
-    (ctx.prefight ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') +
-    '</div>';
+    '<div class="fm-sec">THE FORMS</div><div class="fm-body"><div class="fm-tiles">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') + '</div>' + detail() + '</div>' + lockedRow() +
+    (ctx.prefight ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') + '</div>';
 }
 
 /* ---------- picking (the same rules as the meditation: one Form V, one Form VII) ---------- */
@@ -210,6 +189,7 @@ export function openPrefight(go){
 }
 export function openCodex(){
   ctx = { prefight: false, slot: 0, ...pauseContext() };
+  ctx.focus = ctx.known.includes(G.stance) ? G.stance : ctx.loadout.find(Boolean) || ctx.known[0] || null;
   render(); panel.classList.add('open');
 }
 function close(){ panel.classList.remove('open'); ctx = null; }
@@ -232,7 +212,7 @@ panel.addEventListener('click', (e) => {
   if (i){ i.classList.toggle('on'); return; }   // the lore note: never picks the form behind it
   const s = t.closest('[data-slot]'), f = t.closest('[data-form]');
   if (!ctx.edit){   // show-only: a tile just shows its detail
-    if (ctx.prefight && f){ ctx.focus = f.dataset.form; render(); }
+    if (f){ ctx.focus = f.dataset.form; render(); }
     return;
   }
   const c = t.closest('[data-clear]');

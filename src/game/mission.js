@@ -156,13 +156,12 @@ function sayLine(o){
 }
 // a hold's evacuees, as the campaign chapter's story has them (the Jedi's Lothal: the pens' children, not prisoners)
 const evac = (o) => M.chapter && M.chapter.evacuees ? { ...o.evacuees, ...M.chapter.evacuees } : o.evacuees;
-// opts.told: the line was already said over comms as the objective was handed off (handOff), so the panel shows just the task.
-// One voice at a time (ui/hud-stage.js): with the strip already talking (a chapter's opening lines), the line joins the strip
-// after them rather than sitting in the card under it at the same time
+// An objective's words: its task is on the objectives list (top right, it flashes as the objective begins: ui/hud.js) and on
+// the objective banner, so no card repeats it over the hero. Its line is said on the comms strip, after anything the strip is
+// already saying (a chapter's opening lines). opts.told: the hand-off already said it (handOff)
 function say(o, opts = {}){
-  let line = opts.told ? '' : sayLine(o);
-  if (line && commsBusy()){ comms({ who: missionVoice(), say: line }, { remote: true }); line = ''; }   // (each screen queues its own: a co-op guest runs say too)
-  showPanel(missionVoice(), line, '', heroKey(o.task), { drill: true, ...opts }); M.panelT = 7;
+  const line = opts.told ? '' : sayLine(o);
+  if (line) comms({ who: missionVoice(), say: line }, { remote: true, front: !commsBusy() });   // (each screen says its own: a co-op guest runs say too)
 }
 function fieldSpawn(type, x, z, opts){
   const s = findClearSpawn(x, z, 1.0);

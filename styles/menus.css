@@ -992,6 +992,21 @@ body.pad .kbonly{display:none}
 .fm-mastery .fm-body.few .fm-tm{margin-top:10px}
 .fm-col>.fm-sec{margin-top:16px}
 .fm-col .fm-chips{gap:6px}
+/* SHOW NUMBERS (ui/forms-ui.js): off, the mastery pages hide the Force share, the power numbers and their key, and the rank maths */
+.fm-numt{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--edge-mid);border-radius:var(--r-chip);
+  font:600 11px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-dim);cursor:pointer;white-space:nowrap;user-select:none}
+.fm-numt:hover{color:var(--ink);border-color:var(--edge-lit)}
+.fm-numt i{position:relative;width:22px;height:12px;border-radius:6px;background:rgba(255,255,255,.14);transition:background .15s}
+.fm-numt i::after{content:'';position:absolute;left:2px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--ink-dim);transition:left .15s,background .15s}
+.fm-numt.on{color:var(--ink)}
+.fm-numt.on i{background:var(--accent)}
+.fm-numt.on i::after{left:12px;background:#fff}
+.fm-numt+.howto-x{margin-left:0}
+@media (max-width:760px){ .fm-mastery .howto-head{flex-wrap:wrap;row-gap:6px} .fm-mastery .howto-head .rm-sub{order:3;flex-basis:100%} .fm-numt{padding:5px 8px} }
+.fm-mastery:not(.fm-nums) :is(.fm-sh,.fm-lv-in,.fm-key,.fm-pw-up,.fm-pw-cost,.fm-fin.dim){display:none}
+.fm-pw-ok{color:#8fe8ff}
+.fm-nums .fm-pw-ok,.fm-nums .fm-lv-plain{display:none}
+.fm-lv-plain{margin-top:9px;font-size:13px;line-height:1.4;color:var(--ink-soft)}
 .fm-hint{float:right;font-weight:600;letter-spacing:1px;text-transform:none;color:var(--ink-faint)}
 .fm-sub .fm-hint{float:none;margin-left:auto;font-size:10px}
 .fm-ctr li[title]{cursor:help}

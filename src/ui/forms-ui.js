@@ -155,7 +155,7 @@ function powerRow(id, share){
   else if (!held) line = '<span class="fm-pw-off">Not in your kit</span>';
   else {
     const gain = growthGain(id, lv, share), cost = powerCost(id, steps);
-    line = '<span class="fm-pw-up">' + (gain || 'At its base') + '</span>' +
+    line = '<span class="fm-pw-ok">Ready</span><span class="fm-pw-up">' + (gain || 'At its base') + '</span>' +
       (cost != null ? '<span class="fm-pw-cost">' + cost + ' Force' + (cut ? ' · <s>' + cut + '% off</s>' : '') + '</span>' : '');   // (the Force strikes cost stamina, not Force)
     tip += '. ' + (gain ? gain + ' from your Force Level' : 'At its base strength: your Force Level adds to it from the next level') +
       (cost != null ? '. Costs ' + cost + ' Force a cast' + (cut ? ', ' + cut + '% less than at its base' : '') : '') + (r ? '. Power mastery rank ' + ROMAN[r] : '') + '.';
@@ -169,14 +169,20 @@ function forceSection(){
   const fname = esc(FORMS[id || STARTING_FORMS[0]].name);
   const moveCut = Math.round((1 - costMulFor(Math.max(0, v.lv - MOVE_ARRIVE.jump) * share)) * 100);
   const pw = Object.keys(POWER_GROWTH).map(k => powerRow(k, share)).join('') +
-    '<div class="fm-pw" title="Force Jump, Dash and the double jump: no strength to grow, but ' + (moveCut ? 'they cost ' + moveCut + '% less Force, from your Force Level.' : 'each Force Level makes them a little cheaper.') + '"><div class="fm-pw-h"><b>FORCE JUMP &amp; DASH</b><span class="fm-pw-lv">LV 1</span></div><div class="fm-pw-l"><span class="fm-pw-up">Cost only</span>' +
+    '<div class="fm-pw" title="Force Jump, Dash and the double jump: no strength to grow, but ' + (moveCut ? 'they cost ' + moveCut + '% less Force, from your Force Level.' : 'each Force Level makes them a little cheaper.') + '"><div class="fm-pw-h"><b>FORCE JUMP &amp; DASH</b><span class="fm-pw-lv">LV 1</span></div><div class="fm-pw-l"><span class="fm-pw-ok">Ready</span><span class="fm-pw-up">Cost only</span>' +
     (moveCut ? '<span class="fm-pw-cost">Force · <s>' + moveCut + '% off</s></span>' : '') + '</div></div>';
   return '<div class="fm-sec">THE FORCE</div><div class="fm-force"><div class="fm-lv"><div class="fm-lv-k">FORCE LEVEL</div><div class="fm-lv-n">' + v.lv + '<span>/ ' + FORCE_MAX + '</span></div>' +
-    pips(v.lv, FORCE_MAX) + '<div class="fm-lv-in" title="The Force Level rises with the story: the higher it is, the harder your powers hit and the less Force they cost. Pick a form below to compare.">In <b style="--c:' + hex(STANCES[id || STARTING_FORMS[0]].blade) + '">' + fname + '</b> your powers draw on <em>' + pctOf(share) + '</em> of it</div>' +
+    pips(v.lv, FORCE_MAX) + '<div class="fm-lv-plain">Rises as the story goes on. Each level makes your powers hit harder and cost less Force.</div>' +
+    '<div class="fm-lv-in" title="The Force Level rises with the story: the higher it is, the harder your powers hit and the less Force they cost. Pick a form below to compare.">In <b style="--c:' + hex(STANCES[id || STARTING_FORMS[0]].blade) + '">' + fname + '</b> your powers draw on <em>' + pctOf(share) + '</em> of it</div>' +
     '<div class="fm-key"><div><span class="fm-pw-up">+%</span> stronger, from your Force Level</div><div><span class="fm-pw-cost">Force</span> each cast, <s>% off</s> from the level</div><div><span class="fm-pw-m">I</span> power mastery · <span class="fm-pw-lv">LV</span> the level it opens at</div></div></div>' +
     '<div class="fm-pws">' + pw + '</div></div>';
 }
 const EDIT_HINT = ' Pick a slot, then a form for it. ✕ empties a slot.';
+/* SHOW NUMBERS on the mastery pages: off by default, so the page reads as forms, ranks and powers. On, it adds the Force
+   share, each power's gain and cost and the key to them, and the rank maths (styles/menus.css .fm-nums). Remembered. */
+const NUMS_KEY = 'sw_fm_numbers';
+let showNums = false;
+try { showNums = localStorage.getItem(NUMS_KEY) === '1'; } catch(e){}
 let ctx = null;   // { prefight, edit, known: Set, loadout, slot, focus, note, closed: Set, onGo }
 
 /* ---------- what the page shows ---------- */
@@ -289,9 +295,11 @@ function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';
   const few = !!ctx.view && n <= 4;   // (the mastery pages: a few forms take short tiles, with the forms still to learn under them)
   // both pages share one layout: small tiles, and one form's whole story beside them (the pause page opens on the form in hand)
-  panel.innerHTML = '<div class="howto-panel fm-compact' + (ctx.view ? ' fm-mastery' : '') + '">' +
+  panel.innerHTML = '<div class="howto-panel fm-compact' + (ctx.view ? ' fm-mastery' + (showNums ? ' fm-nums' : '') : '') + '">' +
     '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'FORMS &amp; MASTERY') + '</div>' +
-    '<div class="rm-sub">' + head + (ctx.view && ctx.view.why ? ' · ' + esc(ctx.view.why) : '') + '</div><div class="howto-x" data-x="1">✕</div></div>' +
+    '<div class="rm-sub">' + head + (ctx.view && ctx.view.why ? ' · ' + esc(ctx.view.why) : '') + '</div>' +
+    (ctx.view ? '<div class="fm-numt' + (showNums ? ' on' : '') + '" data-nums="1" role="switch" aria-checked="' + showNums + '" title="Show the Force share, each power\'s gain and cost, and the rank maths"><i></i>SHOW NUMBERS</div>' : '') +
+    '<div class="howto-x" data-x="1">✕</div></div>' +
     (ctx.view ? forceSection() : '') +
     // YOUR THREE is where the picker swaps forms; the read-only pages show the three as SLOT tags on the tiles instead
     (ctx.edit ? '<div class="fm-sec">YOUR THREE</div>' + slotRow() + (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + EDIT_HINT + '</div>' : '') : '') +
@@ -357,6 +365,7 @@ panel.addEventListener('click', (e) => {
   const t = e.target;
   if (t === panel || t.closest('[data-x]')){ close(); return; }
   if (t.closest('[data-go]')){ fight(); return; }
+  if (t.closest('[data-nums]')){ showNums = !showNums; try { localStorage.setItem(NUMS_KEY, showNums ? '1' : '0'); } catch(e){} render(); return; }
   const i = t.closest('.fm-i');
   if (i){ i.classList.toggle('on'); return; }   // the lore note: never picks the form behind it
   const s = t.closest('[data-slot]'), f = t.closest('[data-form]');

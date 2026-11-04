@@ -245,7 +245,7 @@ export function updateDuel(e, dt, dist){
     b.visible = true;
     // the Warbringer's bar hangs just under its health bar, a little wider so it reads from across the arena
     if (p.brace) b.position.set(g.position.x, g.position.y + 2.7 * g.scale.x - 0.38, g.position.z);
-    else b.position.set(g.position.x, g.position.y + 2.55 * (e.t.scale || 1), g.position.z);
+    else b.position.set(g.position.x, g.position.y + 2.55 * g.scale.x, g.position.z);   // (the group's scale: a champion's and an elite's growth too)
     if (p.brace) b.scale.set(1.9, 1.9, 1);
     b.quaternion.copy(camera.quaternion);
     b.userData.fill.scale.x = Math.max(0.001, k);
@@ -1186,7 +1186,7 @@ export function updatePuppetDuel(e, dt){
     const b = e.postBar, k = n[NG.posture] / 100;
     b.visible = true;
     if (brace){ b.position.set(g.position.x, g.position.y + 2.7 * g.scale.x - 0.38, g.position.z); b.scale.set(1.9, 1.9, 1); }
-    else b.position.set(g.position.x, g.position.y + 2.55 * (e.t.scale || 1), g.position.z);
+    else b.position.set(g.position.x, g.position.y + 2.55 * g.scale.x, g.position.z);   // (the group's scale: a champion's and an elite's growth too)
     b.quaternion.copy(camera.quaternion);
     b.userData.fill.scale.x = Math.max(0.001, k);
     b.userData.fill.position.x = -(1 - k) * 0.55;

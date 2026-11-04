@@ -28,7 +28,7 @@ export const MANDO_VOICE = 'THE ARMORER';
 // the cast who talk over comms or off screen: a cutscene line of theirs doesn't move the hero's mouth (game/cutscene.js)
 export const MANDO_CAST = new Set(['ROOK', 'OSSIK VANE', 'VX-7', 'THE IRON MAGISTRATE', 'KAEL VARR', 'SKYE', 'BRAKKA', 'NELL']);
 const A = MANDO_VOICE, ROOK = 'ROOK', OSSIK = 'OSSIK VANE', VX = 'VX-7', MAG = 'THE IRON MAGISTRATE';
-const VX7 = { foe: 'duelist', name: 'VX-7', tint: 0x4a5a6a, scale: 1.12 };
+const VX7 = { foe: 'duelist', name: 'VX-7', tint: 0x4a5a6a, scale: 1.06 };
 
 // the act cards and Act II's pick, for the Mando's story
 export const MANDO_ACTS = [

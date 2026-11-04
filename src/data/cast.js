@@ -29,7 +29,7 @@ export const CAST = {
   'GENERAL KAST': jedi({ parts: { hair: 'short' }, palette: { skin: 0x8a5536, hair: 0x85817c, robe: 0x4a4b50, tabard: 0x6b6c72, tunic: 0x2e2a28 } }),
   'CAPTAIN DACE': jedi({ parts: { hair: 'short', beard: 'moustache' }, palette: { skin: 0xf1c9a5, hair: 0xb89656, robe: 0x1e2a4a, tabard: 0x34466e } }),
   'THE MANDALORIAN': mando({ parts: { helmet: 'clean', cape: 'full' }, palette: { beskar: 0x8c8f94, beskar2: 0x4a4f58, cloth: 0x3a3a3a, accent: 0x1f2126 } }, { bound: true }),
-  'THE INQUISITOR': { kind: 'foe', t: { model: 'acolyte', color: 0x2a1418, eye: 0xff3a2a, cloth: 0x5a0e14 }, scale: 1.18, foe: true },
+  'THE INQUISITOR': { kind: 'foe', t: { model: 'acolyte', color: 0x2a1418, eye: 0xff3a2a, cloth: 0x5a0e14 }, scale: 1.31, foe: true },
   'DARTH VEXIS': { kind: 'boss', boss: 'sith', foe: true },
 
   // ---------------- the Mandalorian's story ----------------

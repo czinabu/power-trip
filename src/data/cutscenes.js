@@ -21,8 +21,8 @@ import { MARSHAL as MARSHAL_DRESS } from './allies.js';
 // the frame: letterbox bars (a share of the screen's height each), fades, and how long a line stays up at the least
 export const CUT = { bars: 0.11, fadeIn: 0.4, fadeOut: 0.35, minLine: 2.6, readRate: 15 };   // readRate: characters a second
 
-const INQ = { jedi: { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, scale: 1.18 },
-              mando: { foe: 'duelist', name: 'VX-7', tint: 0x4a5a6a, scale: 1.12 } };
+const INQ = { jedi: { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, scale: 1.09 },
+              mando: { foe: 'duelist', name: 'VX-7', tint: 0x4a5a6a, scale: 1.06 } };
 
 const ORDER_OPENS = [[VOICE.trooper, 'Midnight. The comms lit up, and every visor in the company turned to the General. Not ours.'],
                      [VOICE.trooper, 'Whatever that order was, brother, we are not following it.']];

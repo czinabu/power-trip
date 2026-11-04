@@ -144,7 +144,7 @@ export const MISSIONS = {
                mando: 'A hunter of Jedi. It turns a blaster bolt with ease. Close the distance and break it.' },
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
         // the first story duel, so a step gentler than the act III blades (the Long Chase's rematch is the hard one)
-        foe: 'acolyte', name: 'THE INQUISITOR', hp: 4, dmg: 1.1, scale: 1.18, tint: 0xa01a22, at: [0, -6],
+        foe: 'acolyte', name: 'THE INQUISITOR', hp: 4, dmg: 1.1, scale: 1.09, tint: 0xa01a22, at: [0, -6],
         duel: { block: 0.72, posture: 160, feint: 0.3, chain: 2, counter: 0.5 },
         rage: 0.55, rageDuel: { feint: 0.45, delay: 0.45, chain: 3, thrust: 0.2 },
         // it breaks off at this much health instead of falling: the Long Chase is where you finish it
@@ -233,7 +233,7 @@ export const MISSIONS = {
         say: { jedi: 'The Magistrate\'s hunter droid. It is fast, and it reads a blade. Make it commit.',
                mando: 'VX-7. It turns blaster fire and it doesn\'t tire. Get inside its guard and break it.' },
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
-        foe: 'duelist', name: 'VX-7', kicker: 'BOUNTY · ASSASSIN DROID', hp: 5, dmg: 1.2, scale: 1.12, tint: 0x4a5a6a, at: [0, -6],
+        foe: 'duelist', name: 'VX-7', kicker: 'BOUNTY · ASSASSIN DROID', hp: 5, dmg: 1.2, scale: 1.06, tint: 0x4a5a6a, at: [0, -6],
         duel: { block: 0.72, posture: 160, feint: 0.3, chain: 2, counter: 0.55 },
         rage: 0.5, rageDuel: { feint: 0.45, delay: 0.4, chain: 3, thrust: 0.25 },
         // it breaks off at this much health instead of falling, and takes a foundling with it (the Long Chase finishes it)
@@ -285,7 +285,7 @@ export const MISSIONS = {
         say: { jedi: 'It was in the vault before you. It knows how you fight. Do not let it out with the Ledger.',
                mando: 'A Jedi hunter, coming up out of the vault. Close the distance and break it.' },
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
-        foe: 'acolyte', name: 'THE INQUISITOR', hp: 3.5, dmg: 1.1, scale: 1.18, tint: 0xa01a22, at: [0, -15],
+        foe: 'acolyte', name: 'THE INQUISITOR', hp: 3.5, dmg: 1.1, scale: 1.09, tint: 0xa01a22, at: [0, -15],
         duel: { block: 0.72, posture: 150, feint: 0.3, chain: 2, counter: 0.5 },
         rage: 0.55, rageDuel: { feint: 0.45, delay: 0.4, chain: 3, thrust: 0.2 },
         // the twist (game/twists.js): the lights die once it's in, and the duel is fought by the blades' light
@@ -480,7 +480,7 @@ export const MISSIONS = {
         task: { jedi: 'Win the duel while the squad holds', mando: 'Win the duel while the clan holds', trooper: 'Win the duel while the band holds' },
         // the last duel before the throne in the campaign (SPEARHEAD on Exegol), so one of the toughest
         foe: 'acolyte', name: 'THE WARDEN', hp: 4.5, dmg: 1.15,   // (BALANCE: was 5 / 1.25: a Knight's ranks now stack under it)
-        scale: 1.2, tint: 0x8a2a1a, at: [0, -28],   // the open grass before the gate
+        scale: 1.1, tint: 0x8a2a1a, at: [0, -28],   // the open grass before the gate
         duel: { block: 0.78, posture: 170, feint: 0.4, chain: 2, counter: 0.6 },
         rage: 0.5, rageDuel: { feint: 0.42, delay: 0.35, chain: 3, thrust: 0.2 },
         trickle: { every: 12, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI + 0.35, -0.35],
@@ -502,8 +502,8 @@ export const MISSIONS = {
     kit: 8,
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
     // who you are chasing (built from an enemy type, like the refuge's duel)
-    quarry: { jedi: { foe: 'acolyte', name: 'THE SEVENTH BLADE', kicker: 'INQUISITOR', tint: 0xa01a22, scale: 1.15 },
-              mando: { foe: 'duelist', name: 'VX-7', kicker: 'BOUNTY · ASSASSIN DROID', tint: 0x4a5a6a, scale: 1.12 } },
+    quarry: { jedi: { foe: 'acolyte', name: 'THE SEVENTH BLADE', kicker: 'INQUISITOR', tint: 0xa01a22, scale: 1.08 },
+              mando: { foe: 'duelist', name: 'VX-7', kicker: 'BOUNTY · ASSASSIN DROID', tint: 0x4a5a6a, scale: 1.06 } },
     objectives: [
       { kind: 'pursuit', leg: 0,
         title: { jedi: 'CHASE THE INQUISITOR', mando: 'CHASE THE BOUNTY' },
@@ -648,7 +648,7 @@ export const MISSIONS = {
         say: { jedi: 'The hunter who runs these crews has come to take the cores back. Its staff hits from both ends. Watch both.',
                mando: 'Their salvage master wants the cores back. It fights with a staff. Break its guard and it breaks.' },
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
-        foe: 'duelist', name: 'THE SALVAGE MASTER', hp: 4.5, dmg: 1.2, scale: 1.18, tint: 0x9a6a3a, at: [2, 34],
+        foe: 'duelist', name: 'THE SALVAGE MASTER', hp: 4.5, dmg: 1.2, scale: 1.09, tint: 0x9a6a3a, at: [2, 34],
         duel: { block: 0.7, posture: 150, feint: 0.4, chain: 2, counter: 0.5 },
         rage: 0.5, rageDuel: { feint: 0.5, delay: 0.4, chain: 3, thrust: 0.25 } },
     ],
@@ -843,7 +843,7 @@ export const MISSIONS = {
                  line: { jedi: 'It has shut the pens around you both, and the field is closing. Do not let it pin you to the wall.', mando: 'It\'s shut the pen on us and the fence is closing in. Don\'t get backed into it.' } },
         enter: { jedi: 'The Warden walks out of the gate, its blade already lit.', mando: 'The Warden comes out of the gate.' },
         line: { jedi: 'Every one of them is on my list. I will have them back.', mando: 'Those are mine.' },
-        foe: 'acolyte', form: 'djemso', name: 'THE WARDEN', hp: 4, dmg: 1.1, scale: 1.12, tint: 0x8a2a30, at: [0, -15],
+        foe: 'acolyte', form: 'djemso', name: 'THE WARDEN', hp: 4, dmg: 1.1, scale: 1.06, tint: 0x8a2a30, at: [0, -15],
         duel: { posture: 150, feint: 0.3, chain: 2, counter: 0.45 },
         rage: 0.5, rageDuel: { feint: 0.45, delay: 0.4, chain: 3 },
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
@@ -934,7 +934,7 @@ export const MISSIONS = {
         task: 'Win the duel',
         enter: 'A shape of violet light steps down from the dais.', kicker: 'THE GATE',
         line: 'You came back to where it started. So did I.',
-        foe: 'acolyte', form: 'djemso', name: 'THE ECHO', hp: 4, dmg: 1.15, scale: 1.1, tint: 0x6a4ad2, at: [0, -6],
+        foe: 'acolyte', form: 'djemso', name: 'THE ECHO', hp: 4, dmg: 1.15, scale: 1.05, tint: 0x6a4ad2, at: [0, -6],
         duel: { posture: 150, feint: 0.35, chain: 3, counter: 0.45 },
         rage: 0.5, rageDuel: { feint: 0.5, delay: 0.35, chain: 4 },
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
@@ -982,7 +982,7 @@ export const MISSIONS = {
         task: 'Win the duel while the squad holds',
         enter: 'The Grand Inquisitor comes down off the dais, both blades spinning.', kicker: 'THE CITADEL',
         line: 'Every name in that Ledger was mine to collect.',
-        foe: 'acolyte', form: 'djemso', name: 'THE GRAND INQUISITOR', hp: 4.5, dmg: 1.2, scale: 1.22, tint: 0x8a1a22, at: [0, -18],
+        foe: 'acolyte', form: 'djemso', name: 'THE GRAND INQUISITOR', hp: 4.5, dmg: 1.2, scale: 1.11, tint: 0x8a1a22, at: [0, -18],
         duel: { posture: 170, feint: 0.35, chain: 3, counter: 0.5 },
         rage: 0.5, rageDuel: { feint: 0.42, delay: 0.3, chain: 3 },   // (BALANCE: was feint 0.5, chain 4: the finale's hardest duel, not its unfairest)
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
@@ -1540,7 +1540,7 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the challenge' },
         enter: { jedi: 'The keeper of the refuge steps into the light.', mando: 'The challenger draws.' }, kicker: 'TRIAL',
         line: { jedi: 'Show me you can hold a door.', mando: 'By the old custom.' },
-        foe: 'acolyte', form: 'soresu', name: 'THE WALL', hp: 4, dmg: 0.9, scale: 1.12, tint: 0x3a7ad2, at: [0, -6],   // a Soresu master (data/foe-forms.js)
+        foe: 'acolyte', form: 'soresu', name: 'THE WALL', hp: 4, dmg: 0.9, scale: 1.06, tint: 0x3a7ad2, at: [0, -6],   // a Soresu master (data/foe-forms.js)
         duel: { block: 0.9, posture: 200, feint: 0.15, chain: 1, counter: 0.35 },
         rage: 0.4, rageDuel: { chain: 2, counter: 0.5 },
         hero: { mando: { foe: 'duelist', form: null, name: 'THE CHALLENGER', tint: 0x7a5a3a, line: 'By the old custom.' } } },
@@ -1590,7 +1590,7 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the fight' },
         enter: { jedi: 'The Knight walks out past the last transport.', mando: 'The champion steps out past the last transport.' }, kicker: 'TRIAL',
         line: { jedi: 'Show me what you learned out there.', mando: 'Beskar to beskar.' },
-        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 4.5, dmg: 1.1, scale: 1.15, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
+        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 4.5, dmg: 1.1, scale: 1.08, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
         duel: { block: 0.75, posture: 160, feint: 0.3, chain: 2, counter: 0.7 },
         rage: 0.45, rageDuel: { chain: 3, counter: 0.72 },   // (BALANCE: was hp 5, dmg 1.15, counter 0.8)
         hero: { mando: { foe: 'duelist', form: null, name: 'THE CLAN CHAMPION', tint: 0x6a7a8a } } },

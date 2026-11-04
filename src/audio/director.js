@@ -56,11 +56,15 @@ function ensureLoops(){
                   filt: { f: 380, q: 2 }, lfo: { r: 5.3, d: 60 }, drive: 0.35, verb: 0.08 });
   // two placed hums for the nearest other lit blades (foes, the boss, a co-op partner, an ally)
   for (let i = 0; i < 2; i++) L.near.push({ h: loop({ base: 90, layers: [{ f: 90 }, { f: 90.8, det: 5, g: 0.7 }, { type: 'sine', f: 180, g: 0.5 }], filt: { f: 500, q: 1 }, lfo: { r: 3.3 + i, d: 40 } }), wob: rand(0, 6) });
-  // LOCK_GRIND — "KRRRZZZZ...": two blades held against each other. A harsh, vibrating tear of driven white noise (its band
-  // shaken fast, so it spits rather than hisses) over a heavy, gritty low hum; one-shot arcs and pops are thrown over it
-  // from enemies/duel.js. Silent until a bind; how hard it grinds follows the struggle (BLADE_AUDIO.lock).
-  L.grind = loop({ base: 1, layers: [{ noise: 'white' }, { noise: 'pink', g: 0.7 }], filt: { type: 'bandpass', f: 2200, q: 0.9 }, lfo: { r: 23, d: 1500 }, drive: 0.7, verb: 0.1 });
-  L.grindLow = loop({ base: 58, layers: [{ f: 58 }, { f: 87.5, g: 0.8 }, { type: 'square', f: 29, g: 0.4 }], filt: { f: 650, q: 1.6 }, lfo: { r: 13, d: 260 }, drive: 0.6, verb: 0.08 });
+  // LOCK_GRIND — two blades held against each other: the clash's own sound held for as long as the bind lasts (saber.js
+  // clash; its blaster "pyew" is only on the moment the blades meet). The buzzing arc, driven noise chopped at a mains-like
+  // rate so it buzzes rather than hisses, over the hum overdriven and thrown wide open (the surge), its TV buzz an octave
+  // up. One-shot arcs and pops are thrown over it from enemies/duel.js. Silent until a bind; how hard it grinds follows
+  // the struggle (BLADE_AUDIO.lock).
+  L.grind = loop({ base: 1, layers: [{ noise: 'white' }, { noise: 'pink', g: 0.6 }], filt: { type: 'bandpass', f: 2800, q: 0.8 },
+                   lfo: { r: 5.3, d: 600 }, trem: { r: 68, d: 0.85 }, drive: 0.9, verb: 0.1 });
+  L.grindLow = loop({ base: 92, layers: [{ f: 92 }, { f: 92.4, det: -8, g: 0.7 }, { type: 'square', f: 184, g: 0.45 }, { type: 'square', f: 46, g: 0.3 }],
+                      filt: { f: 1600, q: 0.9 }, lfo: { r: 7.1, d: 300 }, trem: { r: 34, d: 0.35 }, drive: 1, verb: 0.08 });
   L.jet = loop({ base: 50, layers: [{ noise: 'brown', g: 1.6 }, { noise: 'pink', g: 0.5 }, { f: 50, g: 0.12 }],
                  filt: { f: 500, q: 0.6 }, lfo: { r: 11, d: 90 } });
   L.flame = loop({ base: 60, layers: [{ noise: 'pink', g: 1 }, { noise: 'brown', g: 1.2 }],
@@ -226,8 +230,9 @@ export function updateAudio(dt){
     const BL = BA.lock, on = playing && BL && G.gt - (BL.at || 0) < 0.3;
     const hard = on ? (BL.surge ? 1 : BL.tell ? 0.75 : 0.55) + Math.abs(BL.bal) * 0.2 : 0;
     const P = on ? place(BL.pos) : null;
-    L.grind.set(on ? 0.038 * hard : 0, on ? 1700 + hard * 1600 + Math.sin(t * 7.3) * 300 : 0, 0, on ? 0.03 : 0.06);
-    L.grindLow.set(on ? 0.056 * hard : 0, on ? 420 + hard * 500 : 0, 58 * (1 - (on ? BL.bal * 0.08 : 0)) * (1 + Math.sin(t * 17) * 0.02), on ? 0.03 : 0.06);
+    const lp = HUM_PITCH[G.stance] || SABER_PITCH;   // the surge is your own blade's hum, sagging as you're driven back
+    L.grind.set(on ? 0.04 * hard : 0, on ? 2200 + hard * 1400 + Math.sin(t * 7.3) * 300 : 0, 0, on ? 0.03 : 0.06);
+    L.grindLow.set(on ? 0.029 * hard : 0, on ? 900 + hard * 1300 : 0, 92 * lp * (1 - (on ? BL.bal * 0.08 : 0)) * (1 + Math.sin(t * 17) * 0.015), on ? 0.03 : 0.06);
     if (P){ L.grind.pan.pan.setTargetAtTime(P.pan, t, 0.05); L.grindLow.pan.pan.setTargetAtTime(P.pan, t, 0.05); }
   }
 

@@ -19,7 +19,7 @@ import { bark } from '../fx/barks.js';
 import { shared, G, enemies, bolts, player, isGunner, isMando, heroKey, isTrooper } from '../state.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { SCALE } from '../data/coop.js';
-import { heroesHere } from '../player/players.js';
+import { heroesHere, players } from '../player/players.js';
 import { buildEnemyMesh } from '../enemies/mesh.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
@@ -29,7 +29,7 @@ import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from '../world/collision.js';
 import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
-import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER } from '../data/allies.js';
+import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { orderCost, canPay, spendCP, commandPoints } from '../player/trooper/command.js';
 const ORDERS_BY_ID = Object.fromEntries([...ORDERS, SUPPRESS_ORDER].map(o => [o.id, o]));
@@ -53,6 +53,10 @@ const guest = () => !!G.coopGuest && !!squadLink.order;
 // formation's facing, eased after yours
 const SQ = { formation: 'wide', moves: new Set(), grenadeAt: -99, fYaw: 0, fYawT: 0, fighting: false, saidYours: -99, tipped: false,
              lv: { x: 0, z: 0 }, lp: null, pv: { x: 0, z: 0 }, pp: null, slotT: 0 };   // lv/pv: the hero's and the partner's own pace, measured
+// THE DUEL RING (data/allies.js DUEL_RING): the boss duel going on, if any. foe: the boss (or champion) · hx,hz: the hero
+// fighting it · fx,fz: where it stands · cx,cz, r: the ring's middle and radius · yaw: the duel's line, eased (hero → boss)
+const DUEL = { on: false, foe: null, hx: 0, hz: 0, fx: 0, fz: 0, cx: 0, cz: 0, r: 0, yaw: 0, said: null };
+export const duelRingOn = () => DUEL.on;
 const FOLLOW = { kind: 'follow' }, FOLLOW_PARTNER = { kind: 'follow', partner: true };
 const steer = { x: 0, z: 0 };
 const diffKey = () => (G.diff in SQUAD.dmg ? G.diff : 'knight');
@@ -141,6 +145,7 @@ export function clearSquad(){
   SQ.formation = 'wide'; SQ.grenadeAt = -99; G.suppress = null;
   G.reviveLeft = null;
   SQ.fighting = false; SQ.saidYours = -99;
+  DUEL.on = false; DUEL.foe = null;
 }
 
 /* ============================================================
@@ -183,8 +188,10 @@ const who = (i) => i == null ? allies : allies[i] ? [allies[i]] : [];
 const lead = (list) => list.find(standing) || null;
 const LABEL = { follow: 'ON ME', hold: 'HOLD', move: 'MOVING', cover: 'COVER', revive: 'REVIVING', attack: 'ATTACK' };
 export const orderCode = (a) => !standing(a) ? 'down' : a.mark && !a.mark.dead ? 'attack' : a.ord.kind;
-export const orderLabel = (a) => a.net ? (a.netKind === 'down' ? 'DOWN' : a.netKind === 'follow' && a.netPartner !== !!G.coopGuest ? 'ON PARTNER' : LABEL[a.netKind] || '') :
-  orderCode(a) === 'down' ? 'DOWN' : a.ord.partner ? 'ON PARTNER' : LABEL[orderCode(a)] || '';
+export const orderLabel = (a) => a.net ? (a.netKind === 'down' ? 'DOWN' : a.netKind === 'follow' && DUEL.on ? 'CLEARING' : a.netKind === 'follow' && a.netPartner !== !!G.coopGuest ? 'ON PARTNER' : LABEL[a.netKind] || '') :
+  orderCode(a) === 'down' ? 'DOWN' : orderCode(a) === 'follow' && DUEL.on ? 'CLEARING' : a.ord.partner ? 'ON PARTNER' : LABEL[orderCode(a)] || '';
+// a boss is the hero's alone: the level's boss always, and (for a hero whose squad leaves the duel to them: DUEL_RING) a champion too
+const heroesFoe = (e) => e === shared.boss || (!!e.champion && !!DUEL_RING.heroes[G.hero]);
 
 /* give an order: `id` from data/allies.js ORDERS, to squadmate `idx` (0-3) or the whole squad (null).
    Returns false when there was nothing to do (no target, no one down, the grenade still cooling).
@@ -218,7 +225,7 @@ function guestOrder(id, idx, list, l, tag){
   if (id === 'attack'){
     const e = aimedFoe();
     if (!e){ showBanner('', 'NO TARGET UNDER THE CROSSHAIR', 0.9); return false; }
-    if (e === shared.boss || (!isFodder(e) && !COMMAND.markElites)){ say(l, "THAT ONE'S YOURS, GENERAL!", 'THAT ONE IS YOURS.'); return false; }
+    if (heroesFoe(e) || (!isFodder(e) && !COMMAND.markElites)){ say(l, "THAT ONE'S YOURS, GENERAL!", 'THAT ONE IS YOURS.'); return false; }
     target = e.nid;
   }
   if (id === 'grenade' && grenadeLeft() > 0){ showBanner('', 'GRENADE READY IN ' + Math.ceil(grenadeLeft()) + 'S', 0.9); return false; }
@@ -251,7 +258,7 @@ const ORDER_FN = {
   attack(list, l, tag){
     const e = C ? (C.target === 'B' ? shared.boss : enemies.find(o => o.nid === C.target && !o.dead)) : aimedFoe();
     if (!e){ banner('NO TARGET UNDER THE CROSSHAIR'); return false; }
-    if (e === shared.boss || (!isFodder(e) && !COMMAND.markElites)){ say(l, "THAT ONE'S YOURS, GENERAL!", 'THAT ONE IS YOURS.'); return false; }
+    if (heroesFoe(e) || (!isFodder(e) && !COMMAND.markElites)){ say(l, "THAT ONE'S YOURS, GENERAL!", 'THAT ONE IS YOURS.'); return false; }
     // the ARC trooper's squad FLANKS it: the first two standing swing round to its sides (wantSpot) and hit it harder there
     let fl = 0;
     list.forEach(a => { a.mark = e; a.markT = G.gt; a.seekT = 0; a.flank = isTrooper() && standing(a) && fl < 2 && !a.net ? (fl++ % 2 ? 1 : -1) : 0; });
@@ -320,7 +327,7 @@ export function squadOrder(){
   if (G.mode !== 'play' || player.downed) return;
   if (!allies.length){ showBanner('', 'NO SQUAD WITH YOU', 0.8); return; }
   const e = aimedFoe();
-  if (e && e !== shared.boss && (isFodder(e) || COMMAND.markElites) && !e.dead){ giveOrder('attack'); return; }
+  if (e && !heroesFoe(e) && (isFodder(e) || COMMAND.markElites) && !e.dead){ giveOrder('attack'); return; }
   const away = allies.some(a => standing(a) && (a.net ? a.netKind !== 'follow' : a.ord.kind !== 'follow'));
   giveOrder(away ? 'follow' : 'move');
 }
@@ -469,7 +476,8 @@ function pickTarget(a){
     if (d > a.role.range) continue;
     // nearest first (the trooper's SCOUT: furthest first, the far line); the trooper you're fighting, one shooting at this squadmate, or one close to you jump the queue
     const s = (a.role.far ? -d : d) - (e === focus ? 10 : 0) - (e.allyTgt === a ? 4 : 0) - (Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z) < 6 ? 3 : 0)
-      - (sup && Math.hypot(e.group.position.x - sup.x, e.group.position.z - sup.z) < sup.r ? TROOPER.command.suppress.prefer : 0);
+      - (sup && Math.hypot(e.group.position.x - sup.x, e.group.position.z - sup.z) < sup.r ? TROOPER.command.suppress.prefer : 0)
+      - (DUEL.on && Math.hypot(e.group.position.x - DUEL.cx, e.group.position.z - DUEL.cz) < DUEL.r ? DUEL_RING.near : 0);   // a trooper come in on the duel: first
     if (s >= bs) continue;
     if (segBlockedBySolids(g.x, g.z, e.group.position.x, e.group.position.z)) continue;
     bs = s; best = e;
@@ -604,6 +612,7 @@ function slotAt(ld, i, out){
 const PERMS = (() => { const out = [], go = (pre, left) => { if (!left.length) out.push(pre); left.forEach((v, i) => go([...pre, v], left.filter((_, j) => j !== i))); }; go([], [0, 1, 2, 3]); return out; })();
 const _sp = [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }];
 function assignSlots(){
+  if (DUEL.on){ assignRing(); return; }
   for (const partner of [false, true]){
     const list = allies.filter(a => !a.net && standing(a) && a.ord.kind === 'follow' && !!a.ord.partner === partner);
     if (!list.length) continue;
@@ -661,12 +670,134 @@ function wantSpot(a, medic, dt){
     const s = SQUAD.holdSlots[(a.moveI || 0) % SQUAD.holdSlots.length], k = o.n > 1 ? SQUAD.moveSpread[SQ.formation] : 0;
     return { x: o.at.x + s[0] * k, z: o.at.z + s[1] * k, r: 1.0 };
   }
+  if (DUEL.on && o.kind === 'follow') return ringWant(a);   // a boss duel: the ring round it, not the formation
   const ld = leader(a), q = slotAt(ld, a.fSlot != null ? a.fSlot : i, { x: 0, z: 0 });
   // A FIRING POSITION: in a fight with no clear shot from its spot, it steps to one near you that has one
   const fp = firingSpot(a, ld, q, dt);
   if (fp) return { x: fp.x, z: fp.z, r: 0.8 };
   return { x: q.x, z: q.z, r: SQ.formation === 'tight' ? SQUAD.leash * 0.6 : SQUAD.leash, form: ld.vel };
 }
+/* ============================================================
+   THE DUEL RING — a boss fight is the hero's alone (data/allies.js DUEL_RING). The squad on ON ME leaves the formation
+   for a ring round the duel, out on its flanks, and keeps the troops off it; nobody stands between hero and boss
+   ============================================================ */
+// the boss in a fight with a hero whose squad does this: the level's boss, else the nearest champion (a story's named
+// duellist, survival's warbringer). Once on, it stays on until the boss falls or the hero walks well off from it
+function duelFoe(){
+  if (!DUEL_RING.heroes[G.hero]) return null;
+  const b = shared.boss;
+  if (b && b.hp > 0 && b.group) return b;
+  const pp = playerPos();
+  let best = null, bd = 1e9;
+  for (const e of enemies){
+    if (!e.champion || e.dead || e.converted || e.state === 'spawn' || !e.group) continue;
+    const d = Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z);
+    if (d < bd){ bd = d; best = e; }
+  }
+  return best;
+}
+function updateDuel(dt){
+  const foe = duelFoe();
+  if (!foe){ DUEL.on = false; DUEL.foe = null; return; }
+  const fp = foe.group.position;
+  // the hero squared up with it: the nearest on their feet (this one, or the co-op partner)
+  let h = null, hd = 1e9;
+  for (const pl of players){
+    if (!pl.here || pl.down || !pl.pos) continue;
+    const d = Math.hypot(pl.pos.x - fp.x, pl.pos.z - fp.z);
+    if (d < hd){ hd = d; h = pl.pos; }
+  }
+  if (!h){ h = playerPos(); hd = Math.hypot(h.x - fp.x, h.z - fp.z); }
+  const was = DUEL.on && DUEL.foe === foe;
+  if (hd > DUEL_RING.start + (was ? DUEL_RING.stop : 0)){ DUEL.on = false; return; }   // not in it yet (or walked off)
+  const line = Math.atan2(fp.x - h.x, fp.z - h.z);
+  DUEL.yaw = was ? dampAngle(DUEL.yaw, line, DUEL_RING.turn, dt) : line;
+  DUEL.on = true; DUEL.foe = foe;
+  DUEL.hx = h.x; DUEL.hz = h.z; DUEL.fx = fp.x; DUEL.fz = fp.z;
+  DUEL.cx = (h.x + fp.x) / 2; DUEL.cz = (h.z + fp.z) / 2;
+  DUEL.r = Math.max(DUEL_RING.radius, hd / 2 + DUEL_RING.margin);
+  if (!was){
+    // the duel begins: the squad lets the boss go (an old mark on it is dropped), spreads out, and says so once a fight
+    for (const a of allies){ if (a.mark === foe){ a.mark = null; a.flank = 0; } a.dSlot = null; a.fire = null; }
+    SQ.slotT = 0;
+    if (DUEL.said !== foe && !guest()){
+      DUEL.said = foe;
+      const l = allies.find(o => standing(o) && !o.net);
+      if (l) say(l, "WE'LL KEEP THEM OFF YOU, GENERAL!", 'THE FIGHT IS YOURS. WE HOLD THE EDGE.');
+    }
+  }
+}
+// spot k of n on the ring: alternate flanks (left, right), each side's spots spread across DUEL_RING.arc from the duel's
+// line, on open ground (a spot in a wall moves to the nearest a squadmate can stand on)
+function ringSpot(k, n, out){
+  const side = k % 2 ? -1 : 1, perSide = Math.ceil(n / 2), j = k >> 1, [a0, a1] = DUEL_RING.arc;
+  const t = perSide > 1 ? j / (perSide - 1) : 0.5;
+  const an = DUEL.yaw + side * (a0 + (a1 - a0) * t);
+  const x = DUEL.cx + Math.sin(an) * DUEL.r, z = DUEL.cz + Math.cos(an) * DUEL.r;
+  if (navNearestOpen(x, z, 0, 5, _open)){ out.x = _open.x; out.z = _open.z; } else { out.x = x; out.z = z; }
+  const p = V3(out.x, 0, out.z); clampToArena(p, null, null); out.x = p.x; out.z = p.z;
+  return out;
+}
+// who takes which ring spot: the arrangement that walks the squad the least (as the formation's: assignSlots)
+const _rs = [];
+function assignRing(){
+  const list = allies.filter(a => !a.net && standing(a) && a.ord.kind === 'follow');
+  const n = list.length;
+  if (!n) return;
+  if (n > 4){ list.forEach((a, i) => { a.dSlot = i; }); return; }   // a battle setup's big squad: in order
+  for (let i = 0; i < n; i++) ringSpot(i, n, _rs[i] || (_rs[i] = { x: 0, z: 0 }));
+  const cost = pm => list.reduce((c, a, i) => { const q = _rs[pm[i]], p = a.group.position; return c + (q.x - p.x) ** 2 + (q.z - p.z) ** 2; }, 0);
+  let best = null, bc = 1e18;
+  for (const pm of PERMS){ if (pm.slice(0, n).some(v => v >= n)) continue; const c = cost(pm); if (c < bc){ bc = c; best = pm; } }
+  const now = list.map(a => a.dSlot);
+  const valid = now.every(v => v != null && v < n) && new Set(now).size === n;
+  if (!valid || cost(now) - bc > SQUAD.reslot) list.forEach((a, i) => { a.dSlot = best[i]; });
+}
+// where a squadmate on ON ME makes for in a boss duel: its ring spot; or, with no shot from there and a trooper come in
+// on the duel, out toward it (on a leash to the spot) until it has one
+function ringWant(a){
+  const n = Math.max(1, allies.filter(o => !o.net && standing(o) && o.ord.kind === 'follow').length);
+  const q = ringSpot(a.dSlot != null && a.dSlot < n ? a.dSlot : a.slot % n, n, { x: 0, z: 0 });
+  if (!a.role.melee && !a.target){
+    let foe = null, bd = DUEL_RING.engage;
+    for (const e of enemies){
+      if (e.dead || e.converted || e.state === 'spawn' || !isFodder(e)) continue;
+      const d = Math.hypot(e.group.position.x - DUEL.cx, e.group.position.z - DUEL.cz);
+      if (d < bd){ bd = d; foe = e; }
+    }
+    if (foe){
+      const fp = foe.group.position, R = a.role.range * 0.75, d = Math.hypot(fp.x - q.x, fp.z - q.z) || 1;
+      if (d > R || segBlockedBySolids(q.x, q.z, fp.x, fp.z)){
+        const k = Math.min(DUEL_RING.leash, Math.max(0, d - R) || DUEL_RING.leash * 0.5) / d;
+        return { x: q.x + (fp.x - q.x) * k, z: q.z + (fp.z - q.z) * k, r: 1.2 };
+      }
+    }
+  }
+  return { x: q.x, z: q.z, r: 1.6 };
+}
+// a unit push out of the duel's ground (the lane between hero and boss, `pad` m wider, and the room round the boss) for
+// a body at x,z, or null when it's clear of it
+function duelPush(x, z, pad){
+  const sx = DUEL.fx - DUEL.hx, sz = DUEL.fz - DUEL.hz, sl = sx * sx + sz * sz || 1;
+  const k = clamp(((x - DUEL.hx) * sx + (z - DUEL.hz) * sz) / sl, 0, 1);
+  const lx = x - (DUEL.hx + sx * k), lz = z - (DUEL.hz + sz * k), ld = Math.hypot(lx, lz);
+  const bx = x - DUEL.fx, bz = z - DUEL.fz, bd = Math.hypot(bx, bz);
+  if (bd < DUEL_RING.foeClear + pad) return bd > 1e-3 ? { x: bx / bd, z: bz / bd, d: DUEL_RING.foeClear + pad - bd } : { x: 1, z: 0, d: DUEL_RING.foeClear };
+  if (k > 0 && k < 1 && ld < DUEL_RING.clear + pad){
+    if (ld > 1e-3) return { x: lx / ld, z: lz / ld, d: DUEL_RING.clear + pad - ld };
+    const l = Math.sqrt(sl); return { x: -sz / l, z: sx / l, d: DUEL_RING.clear + pad };
+  }
+  return null;
+}
+// a spot on the duel's ground moves off it, to the side it's already on (or stays, with nowhere open to go)
+function outOfDuel(w){
+  const q = duelPush(w.x, w.z, 0.6);
+  if (!q) return w;
+  const x = w.x + q.x * (q.d + 0.4), z = w.z + q.z * (q.d + 0.4);
+  if (!navOpenAt(x, z, 0)) return w;
+  return { ...w, x, z };
+}
+
 /* FIRING POSITION — a following squadmate whose own spot has no shot at the rank and file in range (a crate, a pillar
    in the way) looks round it for a nearby spot that does, close to the leader, and holds it while it's still good */
 function firingSpot(a, ld, slot, dt){
@@ -761,6 +892,7 @@ export function updateSquad(dt){
   if (Math.abs(look) > (Math.hypot(SQ.lv.x, SQ.lv.z) > 1.5 ? SQUAD.turnMove : SQUAD.turnStill)) SQ.fYawT = G.yaw;
   SQ.fYaw = dampAngle(SQ.fYaw, SQ.fYawT, 2.4, dt);
   allies.forEach((a, i) => { a.slot = i; });
+  updateDuel(dt);
   if ((SQ.slotT -= dt) <= 0){ SQ.slotT = 0.25; assignSlots(); }
   // a wave or objective cleared: everyone up, patched, and the hero's second chance back
   const hostiles = enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!shared.boss;
@@ -887,6 +1019,7 @@ function updateAlly(a, dt, medic, pp){
   if (a.ord.kind === 'revive' && (standing(a.ord.who) || !allies.includes(a.ord.who))){ a.ord = a.prevOrd && a.prevOrd.kind !== 'revive' ? a.prevOrd : FOLLOW; a.prevOrd = null; }
   let w = wantSpot(a, medic, dt);
   if (!medic && !w.chase && a.ord.kind !== 'revive' && w.r < 99) w = outOfAimLine(w);   // never stand in front of your crosshair
+  if (DUEL.on && !medic && a.ord.kind !== 'revive') w = outOfDuel(w);                     // ...nor between you and the boss
   let dx = w.x - p.x, dz = w.z - p.z;
   const dist = Math.hypot(dx, dz);
   const far = Math.hypot(pp.x - p.x, pp.z - p.z);
@@ -948,6 +1081,8 @@ function updateAlly(a, dt, medic, pp){
   // ...and out of the camera's line to the hero: a squadmate standing in it steps to the side it is already nearer
   // (it still fades while it does: world/charfade.js)
   if (!medic && a.ord.kind !== 'revive'){ const lane = laneOffset(p, pp); if (lane){ wantX += lane.x * SQUAD_LANE.push; wantZ += lane.z * SQUAD_LANE.push; } }
+  // ...and out of a boss duel's lane (the way between you and it, and the room round it): it walks off the duel's ground
+  if (DUEL.on && !medic && a.ord.kind !== 'revive'){ const q = duelPush(p.x, p.z, 0); if (q){ wantX += q.x * DUEL_RING.push; wantZ += q.z * DUEL_RING.push; } }
   const ac = 16 * dt;
   a.mv.x += clamp(wantX - a.mv.x, -ac, ac); a.mv.z += clamp(wantZ - a.mv.z, -ac, ac);
   p.x += a.mv.x * dt; p.z += a.mv.z * dt;
@@ -975,7 +1110,8 @@ function updateAlly(a, dt, medic, pp){
   const e = a.target && !a.target.dead && enemies.includes(a.target) ? a.target : (a.target = null);
   const sp2 = Math.hypot(a.mv.x, a.mv.z);
   const face = a.throwAt ? Math.atan2(a.throwAt.x - p.x, a.throwAt.z - p.z) : a.runFace && sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : e ? Math.atan2(e.group.position.x - p.x, e.group.position.z - p.z)
-             : sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : a.ord.kind !== 'follow' ? g.rotation.y : SQ.fYaw;
+             : sp2 > 0.6 ? Math.atan2(a.mv.x, a.mv.z) : a.ord.kind !== 'follow' ? g.rotation.y
+             : DUEL.on ? Math.atan2(p.x - DUEL.cx, p.z - DUEL.cz) : SQ.fYaw;   // (on the duel's ring: eyes out, watching for troops)
   const dy = Math.atan2(Math.sin(face - g.rotation.y), Math.cos(face - g.rotation.y));
   g.rotation.y += clamp(dy, -9 * dt, 9 * dt);
   if (a.role.melee){ meleeAlly(a, e, dt, dy); updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }

@@ -94,6 +94,27 @@ export const SQUAD = {
   getUpHp: 0.5,              // ...with this share of its health
 };
 
+/* THE DUEL IS YOURS (allies/squad.js, THE DUEL RING): while the hero fights a boss (the level's boss, a story's named
+   champion, survival's warbringer) and stands within `start` m of it, a squad on ON ME stops following. It spreads to a
+   ring round the duel, out on its flanks and well off the lane between the two of you, and fights only the troops that
+   come in, the ones nearest the duel first, stepping out of the ring (no further than `leash`) to get a shot. Nobody
+   stands in the lane or close round the boss, the boss can't be marked, and once it falls (or you walk off past
+   `start` + `stop`) they form up on you again. Other orders (HOLD, MOVE, COVER) still stand, kept out of the lane */
+export const DUEL_RING = {
+  heroes: { jedi: true },     // whose squads do it (by G.hero)
+  start: 30, stop: 12,        // the duel is on within `start` m of the boss, and off again past `start` + `stop`
+  radius: 11,                 // the ring's least radius, round the middle of the duel (m)
+  margin: 5,                  // ...and at least this far past half the distance between you and the boss
+  arc: [1.15, 2.05],          // each side's spots, spread across these bearings from the duel's line (rad, 0 = at the boss)
+  turn: 1.4,                  // how quickly the ring turns after the duel's line as you circle (easing rate)
+  clear: 3.6,                 // the lane between hero and boss nobody stands in (half its width, m)
+  foeClear: 6,                // ...and the room left round the boss
+  push: 5,                    // how hard a squadmate caught in the lane steps out of it
+  near: 6,                    // a trooper inside the ring jumps the target queue by this much (m of distance)
+  engage: 26,                 // a trooper this close to the duel's middle is worth stepping out to shoot (m)
+  leash: 9,                   // ...but no further than this from its ring spot
+};
+
 /* ORDERS — tap H for the smart order (on a trooper: attack it · on open ground: move there · away from you: on me);
    hold H for the command wheel (allies/wheel.js): the world slows, point at an order and let go. While the wheel is open,
    1-4 (the D-pad on a pad) picks one squadmate instead of the whole squad. `at` is the wheel's clock position. */

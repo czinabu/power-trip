@@ -3,7 +3,4 @@ export default {
   title: "Balance, round two",
   status: "next",
   date: "2026-01-01", seq: 3,
-  items: [
-    "Survival scaling and mission pulses, from real playtest notes",
-  ],
 };

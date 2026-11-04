@@ -6,7 +6,7 @@ import { G, player } from '../state.js';
 import { LEVELS } from '../data/levels.js';
 import { missionById, isArcadeId } from '../data/arcade.js';
 import { switchStance } from '../player/jedi/stance.js';
-import { resumeChapter, chapterLabel } from './campaign.js';
+import { resumeChapter, resumeAtClose, chapterLabel } from './campaign.js';
 import { chapterOrder, chapterNo, forHero, CHAPTER_OF_LEVEL } from '../data/campaign.js';
 import { DEFAULT_LOADOUT, STARTING_FORMS, cleanLoadout, migrateForm } from '../data/forms.js';
 import { clearMeditation } from './meditation.js';
@@ -41,6 +41,9 @@ function snapshotRun(){
     forceLevel: G.forceLevel, formRank: clone(G.formRank), formUse: clone(G.formUse), formSince: clone(G.formSince), xpPoints: G.xpPoints, seenTypes: clone(G.seenTypes),
     up: clone(player.up), phoenixReady: !!player.phoenixReady, boon: clone(player.boon), boons: clone(player.boons), skills: clone(player.skills),
     stats: G.stats ? { ...clone({ ...G.stats, summary: null }), elapsed: G.gt - (G.stats.startGt || 0) } : null,
+    // saved as its chapter closes (the unlock screen's TRAIN, game/meditation.js): the trial is won, so the run picks up at
+    // that close (its upgrade page, then the next chapter) instead of fighting it again; waveTotal already counts it
+    closed: G.chapter >= 0 && G.chapterClosed === G.chapter, waveTotal: G.waveTotal,
   };
 }
 // the run as it stands, shaped like a loaded save's (G.resumeRun): the menu's CONTINUE CAMPAIGN picks it up
@@ -106,13 +109,18 @@ function runPos(run, hero = run.hero){
   else if (hero === 'jedi'){ const old = list.filter(c => !c.story)[run.chapter]; i = old ? list.indexOf(old) : -1; }
   return i >= 0 ? i : run.chapter;
 }
+// the chapter a saved run plays next: its own, or the one after it when it was saved at its close
+function nextPos(run, hero = run.hero){
+  const pos = runPos(run, hero);
+  return run.closed && chapterOrder(run.actTwo, hero)[pos + 1] ? pos + 1 : pos;
+}
 // a loaded save's run waits on the menu (G.resumeRun) until BEGIN picks it up, as long as the same hero is picked
 export function canResume(){ return !!(G.resumeRun && G.resumeRun.hero === G.hero); }   // (a declaration: menus.js can call it while modules are still loading)
 export const resumeLabel = () => savedChapter(G.resumeRun, G.hero);
 // 'ACT II · CH 6' for the saved run the menu would continue (the campaign tile)
 export function resumeProgress(){
   const run = G.resumeRun; if (!run) return '';
-  const pos = runPos(run), list = chapterOrder(run.actTwo, run.hero), c = list[pos];
+  const pos = nextPos(run), list = chapterOrder(run.actTwo, run.hero), c = list[pos];
   return c ? 'ACT ' + ['I', 'II', 'III'][c.act] + ' · ' + chapterNo(pos, list).replace('CHAPTER', 'CH') : '';
 }
 export const hasSaves = () => { for (const i of [0, 1, 2, AUTO]) if (readSlot(i)) return true; return false; };
@@ -123,12 +131,13 @@ export function resumeRun(){
     if (run.checkpoint && run.checkpoint.ch === was) run.checkpoint.ch = run.chapter;   // (its checkpoint is that chapter's)
   }
   restoreRun(run);
-  resumeChapter(run);   // (a save from before the chapters picks up on the chapter that opens its level)
+  if (run.closed && run.chapter >= 0){ if (run.waveTotal != null) G.waveTotal = run.waveTotal; resumeAtClose(run); }   // the trial is behind it: on from its close
+  else resumeChapter(run);   // (a save from before the chapters picks up on the chapter that opens its level)
   switchStance(runStance(run), true);
 }
 // 'CHAPTER 3 · THE LAST EVACUATION' for a saved run, without starting it
 function savedChapter(run, hero){
-  const pos = runPos(run, hero), list = chapterOrder(run.actTwo, hero), c = list[pos];
+  const pos = nextPos(run, hero), list = chapterOrder(run.actTwo, hero), c = list[pos];
   return c ? chapterNo(pos, list) + ' · ' + forHero(c.title, hero) : 'LEVEL ' + (run.idx + 1) + ' · ' + placeOf(LEVELS[run.idx]);
 }
 
@@ -143,7 +152,7 @@ export function writeSlot(i, opts = {}){
   try { for (const k of progressKeys()) progress[k] = localStorage.getItem(k); } catch(e){}
   let run, where = whereNow(), hero = G.hero;
   if (inCampaignRun()) run = G.coopGuest ? null : snapshotRun();
-  else if (G.mode === 'menu' && canResume()) run = G.resumeRun;
+  else if ((G.mode === 'menu' || G.training) && canResume()) run = G.resumeRun;   // (training from the story: the run left waiting)
   else run = null;
   if (opts.auto && !run && !opts.finished){ const prev = readSlot(i); if (prev && prev.run){ run = prev.run; where = prev.where; hero = prev.hero; } }
   const data = { v: 1, at: Date.now(), hero, diff: G.diff, modeSel: G.modeSel, missionId: G.missionId, progress, where, run };
@@ -169,7 +178,7 @@ const placeOf = (L) => (L && L.name.split('—').map(t => t.trim())[1]) || '';
 // where the player is right now, in a few words for the slot card
 function whereNow(){
   if (inCampaignRun()) return 'CAMPAIGN · ' + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + placeOf(LEVELS[G.levelIdx]));
-  if (G.mode === 'menu' && canResume()) return 'CAMPAIGN · ' + savedChapter(G.resumeRun, G.resumeRun.hero);
+  if ((G.mode === 'menu' || G.training) && canResume()) return 'CAMPAIGN · ' + savedChapter(G.resumeRun, G.resumeRun.hero);
   if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'ARCADE · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';
   if (G.mode === 'play' && G.training) return 'TRAINING';

@@ -130,6 +130,7 @@ export const saberPose = {
   offLive: false,   // Jar'Kai: the off hand's follow-up is in its stroke right now (jedi/bladehit.js cuts with it)
   palm: 0,   // how open the free hand is held (1: the flat Force palm of Niman's reaching guard), for the fingers
   gaze: 0,   // how much of the upper body's turn the head undoes, so a side-on guard (Soresu) still looks at the foe
+  sink: 0,   // how much lower the hips settle in this guard (the mixed-grip Jar'Kai block drops its base)
 };
 
 /* the held weapon: { node, axis } — axis is the blade direction in the node's own frame (flips with the grip) */
@@ -186,6 +187,7 @@ export function guardPose(dt, R, held, grip, form, blocking, sway, over = null, 
   if (dualIn(held)){ slerpDir(saberPose.offBlade, gO.offBlade || mirror(saberPose.blade, _mo), k, saberPose.offBlade); saberPose.offLive = false; }
   saberPose.palm += ((g.palm && off === g.off ? g.palm : 0) - saberPose.palm) * Math.min(1, dt * 8);
   saberPose.gaze += ((g.gaze || 0) - saberPose.gaze) * Math.min(1, dt * 9 * rate);
+  saberPose.sink += ((g.sink || 0) - saberPose.sink) * Math.min(1, dt * 8 * rate);
   saberPose.twist += ((g.twist || 0) - saberPose.twist) * Math.min(1, dt * 9 * rate);
   saberPose.lean += ((g.lean || 0) - saberPose.lean) * Math.min(1, dt * 10 * rate);
   return { torso: g.torso || 0 };

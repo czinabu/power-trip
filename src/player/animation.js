@@ -232,7 +232,8 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   player._landPitch = LC ? LC.pitch * player.landAmt * 2 : 0;
   // hips: crouch lowers the center of gravity per stance; on the move they sit lower and dip at each footfall
   // (set before the legs, which are solved down from here)
-  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch : 0, 8);
+  const sink = planted && !isGunner() && saberPose.live && !(player.atkT > 0) ? saberPose.sink : 0;   // a guard that drops the base (data/poses.js sink)
+  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch - sink : 0, 8);
   R.hips.position.y = DIM.hipY + player._crouch - (player._swingDrop || 0) - land*0.2 - (player._agiDrop || 0)
                       + (player.grounded && !player.flip ? gaitHipOffset(GS, gait) : 0.05);
   // a foot standing lower than the body (off a step, one foot down from a crate) needs the hips to come down to it

@@ -8,6 +8,7 @@
 //   off   — { hand, pole } for a free off hand (a Force palm, balance) when not two-handed
 //   twist — upper-body turn (+ = weapon side back→front)      torso — hip-to-ribs turn   lean — whole-body pitch
 //   gaze  — how much of that turn the head undoes, so a side-on guard still looks at the foe (0 = head turns with the chest)
+//   sink  — the hips settle this much lower while the guard is held (a lower base on top of the form's footwork crouch)
 //   offBlade — Jar'Kai only: which way the OFF hand's saber points (the off hand itself is `off`). Left out, it mirrors
 //           the main blade across the body (anim/saber.js), so a borrowed pose still holds both blades sensibly
 // Pose sets key off hold + grip + form (docs/animation-guidelines.md), so a new weapon or form is new data here.
@@ -240,10 +241,11 @@ export const DUAL_GUARDS = {
     // its blade laid level out past the off hip
     ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.5, torso: 0.12, lean: 0.02, gaze: 1, pole: [0.9, -0.4, -0.2],
              off: { hand: [-0.04, 0.0, 0.4], pole: [-0.9, -0.3, -0.3], sway: 0.3 }, offBlade: [-0.9, 0.14, 0.42] },
-    // hunched in behind it: the right arm thrown up high, its blade held out level and angled down at the foe; the left
-    // arm straight out to its side, the reversed blade laid out forward past it
-    block: { hand: [0.26, 0.58, 0.3], blade: [-0.04, -0.24, 0.97], twist: 0.14, lean: 0.4, gaze: 1, pole: [0.85, 0.2, -0.45],
-             off: { hand: [-0.66, 0.0, 0.2], pole: [-0.5, -0.8, -0.3] }, offBlade: [-0.85, -0.04, 0.52] },
+    // (Ahsoka's) dropped low and hunched in behind it: the right fist drawn back and high, palm down, its blade
+    // pointed forward and down at the foe; the left arm thrust straight out ahead, fist forward, the reversed blade
+    // laid out to the left and a little up
+    block: { hand: [0.34, 0.56, -0.04], blade: [-0.16, -0.12, 0.98], twist: 0.2, lean: 0.36, gaze: 1, sink: 0.1, pole: [0.9, 0.2, -0.35],
+             off: { hand: [-0.46, 0.24, 0.54], pole: [-0.55, -0.8, -0.2] }, offBlade: [-0.96, 0.24, 0.1] },
     block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, gaze: 1, pole: [0.6, -0.75, -0.2],
               off: { hand: [-0.16, 0.62, 0.18], pole: [-0.8, 0.3, -0.4] }, offBlade: [0.95, 0.1, 0.25] },
   },

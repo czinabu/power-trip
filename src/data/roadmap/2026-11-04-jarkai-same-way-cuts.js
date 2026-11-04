@@ -8,6 +8,7 @@ export default {
     'Cuts straight down or up the middle bring both blades through together',
     'The mixed-grip idle opens the arms out wide, like Ahsoka',
     'The mixed-grip feet: a wide side lunge onto the bent right knee, the left leg stretched out, the torso centred over the hips',
+    'The mixed-grip block (Ahsoka): dropped lower, the right saber drawn back high and pointed down at the foe, the left arm thrust straight out with its blade to the side',
     'Wide stances plant both feet flat on the floor instead of falling in under the hips',
     'Enemy Jar\'Kai acolytes swing the same way',
     'Same in every mode: story, training, survival, sandbox, missions and co-op',

@@ -457,6 +457,9 @@ for (const [id, set] of [['mussl', setMusicVol], ['fxsl', setSfxVol]]){
 }
 document.addEventListener('pointerdown', audioInit);   // first gesture anywhere lights up the audio ctx + menu score (autoplay policy)
 document.addEventListener('keydown', audioInit);       // a key press counts as that gesture too, so keyboard players hear the menu
+// a click or key press during the loading screen (before these listeners existed) still counts: the page already has
+// the player's activation, so the audio can start now and the menu theme plays as soon as the menu is up
+if (navigator.userActivation && navigator.userActivation.hasBeenActive) audioInit();
 // CONTROLS — a panel over the menu; opens on the current hero, with tabs to read the other one's controls
 const howto = document.getElementById('howto');
 function setHowTo(open){

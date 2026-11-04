@@ -39,7 +39,7 @@ export function buildArchiveArena(L){
   // ---- THE HALL (world/sanctum.js): floor-to-vault shelves of data cards round the walls, two galleries, busts of the
   // old masters, and the vault overhead burned through in places, the smoke and the daylight coming in where it's gone ----
   const holes = [[-9, -11, 7.5], [13, 9, 6], [-15, 14, 4.5], [4, -24, 4]];
-  buildSanctum({ style: 'archive', seed: 29, half: H, wallH: W, rise: 13, gallery: [9, 17], bay: 6.5, light: [18, 34, 30],
+  buildSanctum({ style: 'archive', seed: 29, half: H, wallH: W, rise: 13, gallery: [9, 17], bay: 6.5, windowY0: 10.4, arcade: ['e', 'w'], arcadeTop: 21,   // (tall windows over the shelves; the side walls open in great arches) light: [18, 34, 30],
     hole: (x, z) => holes.some(([hx, hz, r]) => Math.hypot(x - hx*S, z - hz*S) < r),
     holeShafts: holes.slice(0, 3).map(([hx, hz, r]) => [hx*S, hz*S, r * 0.55]),
     burning: 0.22, fire: pal.fire ?? 0xff8a2a, ember: pal.ember ?? 0xffc060,

@@ -133,7 +133,7 @@ export function buildSanctum(o = {}){
   const cloth = std(o.cloth ?? 0x6e2a24, 0.9, 0), hem = std(o.trim ?? 0xc8a860, 0.5, 0.5);
   const wax = std(0xe8dcc0, 0.8), shade = new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 1 });
   const fireM = new THREE.MeshBasicMaterial({ color: o.fire ?? 0xff7a2a, toneMapped: false }), emberM = new THREE.MeshBasicMaterial({ color: o.ember ?? 0xffc060 });
-  const glass = new THREE.MeshBasicMaterial({ color: o.glass ?? 0xd8e0f0 });
+  const glass = new THREE.MeshBasicMaterial({ color: o.glass ?? 0xd8e0f0, transparent: true, opacity: o.glassOp ?? 0.12, depthWrite: false, side: THREE.DoubleSide });
   const candle = new THREE.MeshBasicMaterial({ color: o.candle ?? 0xffc070 });
   const sigilM = new THREE.MeshBasicMaterial({ color: o.sigil ?? o.trim ?? 0xc8a860, toneMapped: false });
   const all = [];   // every mesh the hall adds: none casts a shadow, and the collision audit skips them
@@ -152,11 +152,45 @@ export function buildSanctum(o = {}){
   const pil = [];   // pilaster positions along a wall: one either side of every bay, the middle bay left open
   for (let a = bay / 2; a < off - 1; a += bay) pil.push(a, -a);
   pil.sort((p, q) => p - q);
+  // the CLERESTORY: a tall window in every bay over the top gallery (not the sigil's or the doors'), OPEN to the world
+  // outside, so the city, the statues and the sky beyond the walls (the theme's backdrop) show through
+  const top = galleries[galleries.length - 1], wy0 = o.windowY0 ?? top + 2.2, wy1 = Wh - 2.4;
+  const bays = [];
+  for (let k = 0; k < pil.length - 1; k++){
+    const a0 = pil[k], a1 = pil[k + 1], c = (a0 + a1) / 2, w = a1 - a0 - 1.8;
+    if (w >= 2) bays.push({ k, c, w, mid: Math.abs(c) < 0.1, ww: Math.min(o.windowW ?? 2.4, w * 0.5) });
+  }
+  const tall = side => (o.arcade || []).includes(side) && (o.arcadeTop ?? 0) > wy0;   // an arcade up past the windows: the whole wall is arches
+  const windowed = (side, b) => !(b.mid && (side === 'n' || side === 's')) && wy1 - wy0 > 3 && !tall(side);
+  // the ARCADE (o.arcade: the walls it opens): the lower storey of a side wall open between its piers, a tall arch in
+  // every bay from the plinth up to under the gallery, the holy city right outside
+  const ay0 = 1.1, ay1 = o.arcadeTop ?? galleries[0] - 1.4, arcaded = side => (o.arcade || []).includes(side) && ay1 - ay0 > 3;
   for (const side of ['n', 's', 'e', 'w']){
-    put(side, new THREE.BoxGeometry(len, Wh, 2), stoneD, 0, Wh / 2, off + 1);
+    // the wall itself, in bands: solid, then cut where an arch or a window opens in it
+    const band = (y0, y1, cuts = []) => {
+      if (y1 - y0 < 0.01) return;
+      let from = -len / 2;
+      for (const [c0, c1] of [...cuts, [len / 2, len / 2]]){
+        if (c0 - from > 0.01) put(side, new THREE.BoxGeometry(c0 - from, y1 - y0, 2), stoneD, (from + c0) / 2, (y0 + y1) / 2, off + 1);
+        from = c1;
+      }
+    };
+    const arches = arcaded(side) ? bays.filter(b => !b.mid).map(b => [b.c - b.w * 0.4, b.c + b.w * 0.4]) : [];
+    const lights = bays.filter(b => windowed(side, b)).map(b => [b.c - b.ww / 2, b.c + b.ww / 2]);
+    if (tall(side)){ band(0, ay0); band(ay0, ay1, arches); band(ay1, Wh); }
+    else {
+      if (arches.length){ band(0, ay0); band(ay0, ay1, arches); band(ay1, wy0); } else band(0, wy0);
+      band(wy0, wy1, lights); band(wy1, Wh);
+    }
+    for (const [c0, c1] of arches){   // each arch: its head in tracery, a keystone
+      const c = (c0 + c1) / 2, r = (c1 - c0) / 2;
+      put(side, new THREE.TorusGeometry(r - 0.1, 0.22, 6, 16, PI), trim, c, ay1 - r, off - 0.05);
+      put(side, new THREE.BoxGeometry(0.5, 0.8, 0.5), trim, c, ay1 - 0.3, off - 0.1);
+      for (const sx of [-1, 1]) put(side, new THREE.BoxGeometry(r * 0.7, r * 0.7, 2), stoneD, c + sx * (r - r * 0.35), ay1 - r * 0.35, off + 1, 0, 0, 0);   // the spandrels
+    }
     put(side, new THREE.BoxGeometry(len, 1.1, 0.8), stone, 0, 0.55, off - 0.3);           // the plinth course
     put(side, new THREE.BoxGeometry(len, 0.5, 1.0), trim, 0, Wh - 0.25, off - 0.4);       // the cornice where the vault springs
-    for (const gy of galleries){
+    for (const gy of tall(side) ? [] : galleries){
       put(side, new THREE.BoxGeometry(len, 0.6, 2.4), stone, 0, gy, off - 1.2);            // the gallery ledge
       put(side, new THREE.BoxGeometry(len, 0.14, 0.2), trim, 0, gy + 1.05, off - 2.3);     // its rail
       for (let a = -off; a <= off; a += 1.4) put(side, new THREE.BoxGeometry(0.16, 0.8, 0.16), stoneD, a, gy + 0.65, off - 2.3);
@@ -167,15 +201,15 @@ export function buildSanctum(o = {}){
       put(side, new THREE.BoxGeometry(2.3, 0.8, 1.5), trim, a, Wh - 0.9, off - 0.6);         // its capital
     }
     // the bays between the pilasters
-    for (let k = 0; k < pil.length - 1; k++){
-      const a0 = pil[k], a1 = pil[k + 1], c = (a0 + a1) / 2, w = a1 - a0 - 1.8, mid = Math.abs(c) < 0.1;
-      if (w < 2) continue;
-      // CLERESTORY: a tall lancet window over the top gallery, its light coming in from the bright side
-      const top = galleries[galleries.length - 1], wy0 = top + 2.2, wy1 = Wh - 2.4, ww = Math.min(2.4, w * 0.45);
-      if (!(mid && (side === 'n' || side === 's')) && wy1 - wy0 > 3){
-        put(side, new THREE.PlaneGeometry(ww, wy1 - wy0 - ww / 2), glass, c, (wy0 + wy1 - ww / 2) / 2, off - 0.02);
-        put(side, new THREE.CircleGeometry(ww / 2, 10, 0, PI), glass, c, wy1 - ww / 2, off - 0.02);
+    const b0 = c => bays.find(b => b.c === c);
+    for (const { k, c, w, mid, ww } of bays){
+      if (windowed(side, b0(c))){
+        // the opening: a sill, a frame either side, an arch of tracery across its head (and a faint pane, o.glassOp)
         put(side, new THREE.BoxGeometry(ww + 0.5, 0.35, 0.5), trim, c, wy0 - 0.1, off - 0.2);
+        for (const sx of [-1, 1]) put(side, new THREE.BoxGeometry(0.22, wy1 - wy0, 0.4), trim, c + sx * (ww / 2 + 0.06), (wy0 + wy1) / 2, off - 0.1);
+        put(side, new THREE.TorusGeometry(ww / 2 - 0.05, 0.12, 6, 14, PI), trim, c, wy1 - ww / 2, off + 0.2);
+        put(side, new THREE.BoxGeometry(0.12, wy1 - wy0, 0.12), trim, c, (wy0 + wy1) / 2, off + 0.2);   // the mullion
+        if (o.glassOp) put(side, new THREE.PlaneGeometry(ww, wy1 - wy0), glass, c, (wy0 + wy1) / 2, off + 0.25);
         const th = SIDES[side], inward = new THREE.Vector3(Math.sin(th), 0, Math.cos(th));
         // a shaft only from the walls the light comes in through, and not from every window
         if (inward.dot(lightDir) < -0.2 && (k % 2 === 0) && o.shaftOp !== 0){
@@ -186,9 +220,11 @@ export function buildSanctum(o = {}){
       }
       if (mid && side === 'n'){ sigil(c); continue; }
       if (mid && side === 's'){ doors(c, w); continue; }
-      if (o.style === 'archive'){
+      if (o.style === 'archive' && arcaded(side)){
+        if (k % 2 === 0) bust(side, c);   // the side walls stand open: only a bust in the arch now and then
+      } else if (o.style === 'archive'){
         // floor-to-vault SHELVES between the pilasters, a bronze board on every shelf, a ladder now and then
-        const sh = Wh - 2.2;
+        const sh = wy0 - 1.6;   // (up to the windows)
         const [fx, fz] = wallXZ(side, c, off - 0.05);
         shelves.add(w, sh, fx, 1.1 + sh / 2, fz, SIDES[side]);
         if (R() < 0.3) put(side, new THREE.BoxGeometry(0.9, Wh * 0.42, 0.12), stoneD, c + (R() - 0.5) * w * 0.6, Wh * 0.21, off - 0.4, -0.12);
@@ -196,7 +232,7 @@ export function buildSanctum(o = {}){
         if (k % 2 === 0) bust(side, c);
         // the fire has reached a few of the upper shelves
         if (o.burning && R() < o.burning){
-          const by = galleries[0] + 1 + R() * (Wh - galleries[0] - 6);
+          const by = 2.5 + R() * Math.max(0, wy0 - 6.5);   // (under the windows)
           put(side, new THREE.PlaneGeometry(w * 0.9, 3), fireM, c, by, off - 0.1);
           for (let n = 0; n < 3; n++){
             const f = put(side, new THREE.ConeGeometry(0.5, 1.6 + R(), 7), n % 2 ? fireM : emberM,
@@ -205,7 +241,7 @@ export function buildSanctum(o = {}){
           }
         }
       } else if (side === 'e' || side === 'w' || k % 2 === 0){
-        if ((k + (side === 'e' ? 1 : 0)) % 2 === 0) guardian(side, c); else alcove(side, c, w);
+        if ((k + (side === 'e' ? 1 : 0)) % 2 === 0) guardian(side, c); else if (!arcaded(side)) alcove(side, c, w);
       }
     }
   }

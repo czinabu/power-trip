@@ -221,7 +221,7 @@ export const JEDI_CHAPTERS = {
     brief: { by: 'ilsa',
       spared: ['Tarn found it in the archive\'s ashes. Vexis never came to Jedha for the Ledger. He came for the old Sith gate under the dais, his own road to Exegol.', 'Ilsa knows it. She stood watch over it the night she opened the temple. Go back, and open it.'],
       struck: ['Tarn found it in the archive\'s ashes. Vexis never came to Jedha for the Ledger. He came for the old Sith gate under the dais, his own road to Exegol.', 'Nobody living knows how to open it. Go back to the temple and find out.'] },
-    talk: { where: 'JEDHA, THE TEMPLE STEPS AT NIGHT',
+    talk: { where: 'JEDHA, THE TEMPLE\'S GREAT HALL AT NIGHT',
       lines: [[TARN, 'I grew up on these steps. I never once wondered what was under the dais.'],
            [KAST, 'An old Sith gate. A road to Exegol that no fleet can follow, and the Empire has kept it for him.'],
            { by: 'ilsa',

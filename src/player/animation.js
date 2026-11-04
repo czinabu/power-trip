@@ -16,6 +16,7 @@ import { MOVE, GAIT } from '../data/movement.js';
 import { stance, maxStam, heldGrip } from './helpers.js';
 import { tryAttack, applySwingDamage, FLOW } from './jedi/combat.js';
 import { finisherNext } from './jedi/finisher.js';
+import { assistFace } from './jedi/saberassist.js';
 import { inCombat } from './mobility.js';
 import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
@@ -100,6 +101,10 @@ function poseBody(dt, dr, vis, planted, POSE, moving){
   let face = G.yaw;
   if ((!isGunner() && !inCombatPose && moving) || player.backRun)
     face = Math.atan2(player.moveVel.x, player.moveVel.z);
+  // SABER ASSIST — a cut aimed at a foe near the crosshair turns the body a little toward it, and keeps turning with it
+  // while the cut lasts (jedi/saberassist.js). The view stays where you put it.
+  const asw = player.atkT > 0 && player.swing && player.swing.assist;
+  if (asw){ const af = assistFace(asw); if (af != null) face = af; }
   // SABER LOCK — squared to the blade he's bound with for the whole bind, whatever the camera does (enemies/duel.js)
   const bound = player.saberLock && player.lockFace != null;
   if (bound) face = player.lockFace;

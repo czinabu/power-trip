@@ -48,6 +48,7 @@ export const G = {
   guardRings: 'fading', // player preference: a duellist's guard ring, 'fading' | 'always' | 'off' (enemies/guardcue.js)
   aimHint: true,        // player preference: the Jedi's crosshair turns red on a foe (ui/hud.js); off for a challenge
   swingMirror: false,   // player preference: flips which way strafe-L/R directional cuts sweep
+  saberAssist: 'low',   // player preference: the per-cut saber aim assist, 'low' | 'normal' | 'off' (data/saber-assist.js)
   cutMouse: false,       // player preference: a mouse flick just before a cut picks its angle (off by default: the keys do)
   mouseSens: 1,          // player preference: mouse look sensitivity multiplier
   adsSens: 0.4,          // player preference: share of it while the disruptor is scoped in

@@ -4,7 +4,4 @@ export default {
   status: 'now',
   date: '2026-11-04',
   seq: 1,
-  items: [
-    'New ways to use the Force on a crowd, like holding a foe up as a shield',
-  ],
 };

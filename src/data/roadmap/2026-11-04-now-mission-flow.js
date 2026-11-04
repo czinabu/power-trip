@@ -4,8 +4,4 @@ export default {
   status: 'now',
   date: '2026-11-04',
   seq: 2,
-  items: [
-    'Escort missions that play smoother',
-    'Cleaner screens between and after missions',
-  ],
 };

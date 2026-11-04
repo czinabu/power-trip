@@ -4,8 +4,4 @@ export default {
   status: 'now',
   date: '2026-11-04',
   seq: 5,
-  items: [
-    'Every world built to feel huge and make you feel small',
-    'Next up: the Jedha temple and archive',
-  ],
 };

@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // ROADMAP CHECK: runs before every build (npm's prebuild, so locally, in CI and on Vercel) and fails it when the
 // roadmap overlaps itself. Rules (see src/data/roadmap/README.md):
-//   1. every entry has a title, a known status and at least one item
+//   1. every entry has a title and a known status; a SHIPPED entry has at least one item (IN PROGRESS and PLANNED
+//      show their titles only, so they need none)
 //   2. no two entries share a title, in any column
 //   3. IN PROGRESS and PLANNED never mention the same feature twice: no two of their titles share a topic word
 //      (Jar'Kai in both columns, co-op in both...). Merge them into one entry, or retire the one that's done
@@ -35,7 +36,7 @@ const problems = [];
 for (const { f, e } of entries) {
   if (!e || typeof e !== 'object' || !e.title) { problems.push(`${f}: no title`); continue; }
   if (!STATUSES.includes(e.status)) problems.push(`${f}: status "${e.status}" is not one of ${STATUSES.join(', ')}`);
-  if (!Array.isArray(e.items) || !e.items.length) problems.push(`${f}: needs at least one item`);
+  if (e.status === 'done' && (!Array.isArray(e.items) || !e.items.length)) problems.push(`${f}: a shipped entry needs at least one item`);
   if (ACTIVE.includes(e.status) && (e.items || []).some((t) => /^\s*done\b/i.test(t)))
     problems.push(`${f}: "${e.title}" is ${e.status} but has "Done:" lines; move what shipped to SHIPPED and delete or trim this entry`);
 }

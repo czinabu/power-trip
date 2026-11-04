@@ -17,6 +17,12 @@ The SHIPPED column was condensed on 2026-11-03 into the `2026-11-03-shipped-*` s
 area: heroes, forms, combat, co-op...). Don't add an entry for more work in one of those areas
 unless it is a genuinely new headline feature.
 
+## Descriptions only on SHIPPED
+
+Only SHIPPED entries (`status: 'done'`) have `items`; clicking their title shows them. IN PROGRESS and
+PLANNED entries are a title alone, with no `items` (the panel shows any it finds as a plain title). When a
+feature ships, write its short description then.
+
 ## No overlaps (checked on every build)
 
 Each feature appears **once**. `tools/roadmap-check.mjs` runs before every build (`npm run build`, so
@@ -39,7 +45,7 @@ export default {
   title: 'Short title',
   status: 'done',            // 'done' | 'now' | 'next' | 'later'
   date: '2026-10-31',        // today; newest date shows first
-  items: [
+  items: [                  // SHIPPED only; leave items out for 'now', 'next' and 'later'
     'One short main point per line, revealed when the title is clicked',
     'Two to four lines; leave the details to the game itself',
   ],

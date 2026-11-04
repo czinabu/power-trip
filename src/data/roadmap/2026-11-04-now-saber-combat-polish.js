@@ -4,8 +4,4 @@ export default {
   status: 'now',
   date: '2026-11-04',
   seq: 4,
-  items: [
-    'Combos, finishers and saber assist',
-    'Igniting, retracting and holstering the blade, and how it all sounds',
-  ],
 };

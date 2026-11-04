@@ -33,7 +33,7 @@ export const STAGE = {
     jakku: { goal: 'Pull the nav cores from the wrecks before the salvage crews burn them.', off: ['MASTER VAEL'] },
     mustafar: { goal: 'Break the academy and get its children out.', on: ['MASTER VAEL'], oneshot: true },
     chase: { goal: 'Run Ilsa down before she reaches her ship.', off: ['GENERAL KAST'] },
-    return: { goal: 'Break the three seals and open the Sith gate.', where: 'JEDHA, THE TEMPLE STEPS AT NIGHT', oneshot: true },
+    return: { goal: 'Break the three seals and open the Sith gate.', where: 'JEDHA, THE TEMPLE\'S GREAT HALL AT NIGHT', oneshot: true },
     spearhead: { goal: 'Take the forward posts and break the line before the Citadel door.', on: ['GENERAL KAST'], oneshot: true },
     chains: { goal: 'Break the chains and get the children out.', off: ['MASTER VAEL'], oneshot: true },
     exegol: { goal: 'Fight through his guard to the throne. End Darth Vexis.', on: ['GENERAL KAST'], oneshot: true },

@@ -143,3 +143,69 @@ export const VEXIS = {
   // the arena in phase III (world/atmosphere.js setMood): the lights go down, the fog turns to blood
   mood: { fill: 0.5, sun: 0.35, rim: 1.5, sky: 0.35, fog: 0x2a0710, blade: 1.35, near: 0.7, far: 0.75 },
 };
+
+/* ============================================================
+   THE IRON MAGISTRATE — the Mandalorian's final boss (and the trooper's, until the Marshal takes that fight), fought
+   on the final boss layer (boss/finale.js, boss/magistrate.js)
+   ============================================================
+   A beskar warlord on a purge lancer's body (its legs, its spear work), in his own armour (enemies/mesh.js magistrate).
+   Built to be beaten with a gun as much as a blade: every move has an answer a blaster, a dash or a flank can give, in
+   the shared tell colours (fx/tells.js: parry = white and red, dodge = red, area = amber).
+     I   THE WALL       a round beskar shield turns fire from the front: flank him, or make him attack and punish the
+                        opening. His SPEAR CHARGE runs the length of a marked line and leaves him stuck if it misses;
+                        crowd him and the SHIELD BASH throws you off
+     II  FIRE FROM ABOVE the shield is gone; he takes to the air: a ROCKET BARRAGE onto marked ground and a GROUND POUND
+                        where he lands, a FLAMETHROWER sweep up close, and a JET LEAP onto you if you run
+     III CRACKED BESKAR his armour splits: every big move ends with the cracks VENTING (a weak point: hit him then),
+                        HOMING ROCKETS that follow you and lock late, and one last JET CHARGE across the floor */
+export const MAGISTRATE = {
+  id: 'magistrate', codex: 'mando',
+  name: 'THE IRON MAGISTRATE', title: 'THE IRON MAGISTRATE — WARLORD OF THE RIM', look: 'THE IRON MAGISTRATE',
+  intro: 'Warlord of the Outer Rim',
+  phases: ['THE WALL', 'FIRE FROM ABOVE', 'CRACKED BESKAR'],
+  phaseLines: ['', 'Enough. Burn.', 'You cracked it. It changes nothing.'],
+  fallLine: 'THE MAGISTRATE FALLS',
+  type: 'lancer',                  // the body he fights on (data/enemies.js): its legs, its spear swings
+  // his own model over it (enemies/mesh.js magistrate): dark beskar, gold trim, a molten eye, the trophy war-skirt
+  dress: { model: 'magistrate', weapon: 'spear', color: 0x464a52, eye: 0xff7a1a, cloth: 0x2a2420, trim: 0xc9a040, rag: 0x4a1c18 },
+  over: { heavy: true, lancer: false, range: 3.6, windup: 0.62, recover: 0.85 },   // a heavy: no yank, no lift; his own charge, not the lancer's lunge
+  hp: 2300, dmg: 1.3, scale: 1.42, speed: 0.78,   // hp (before difficulty and co-op), × the lancer's damage, size, pace
+  pace: [1, 1.12, 1.2],
+  phaseAt: [0.66, 0.33],
+  // ANTI-CHEESE: beskar takes a little off everything; no blow takes more than this share of his bar (more while he's
+  // open); no more than burstCap of it goes in any burstWin seconds; later phases shrug off a little more
+  armour: 0.62, hitCap: 0.06, hitCapOpen: 0.12, phaseResist: [1, 0.9, 0.82], burstCap: 0.15, burstWin: 1.6,
+  // THE SHIELD (phase I): from the front (a 110° arc) it turns all but this share of a blow while he's on guard. A
+  // blow from the side or behind lands in full, and so does one while he's attacking
+  shield: { arc: 0.35, through: 0.12, tick: 0.45 },
+  // THE CRACKS (phase III): after his big moves the armour vents for `vent` s, and a blow then lands × `mul`
+  vent: 2.4, ventMul: 1.6,
+  sigGap: [4.6, 3.6, 3.0], sigMin: 2.0,
+  // his reinforcements as each phase begins (not in the sandbox): the Iron Guard
+  guard: [null, { blaster: 2, grunt: 1 }, { blaster: 1, flyer: 2 }],
+  beat: { kneel: 1.3, rise: 0.9, slowmo: 0.35, slowT: 0.7, ring: { r: 9, dmg: 14 }, push: 11 },
+  defeat: { kneel: 3.4, slowmo: 0.3, slowT: 1.2, xp: 1400 },
+  moves: {
+    // I SPEAR CHARGE: he lowers the shield, marks a line at you and drives down it; parry the point (it staggers
+    // him) or step off the line as it locks. A miss buries the spear in the floor: he's stuck and open
+    charge: { from: 1, minDist: 4.2, maxDist: 24, tell: 1.0, lockAt: 0.72, speed: 24, over: 5, hitR: 1.5, dmg: 30, knock: 12, stuck: 2.0, cd: 7 },
+    // I SHIELD BASH: crowd him and he slams the shield into you (dodge it); it throws you off him
+    bash: { from: 1, crowd: 3.4, after: 1.0, windup: 0.5, reach: 3.6, dmg: 18, knock: 15, cd: 6 },
+    // II ROCKET BARRAGE: up on the jetpack, rockets onto marked ground round you (amber); he comes down with a pound
+    barrage: { from: 2, minDist: 0, maxDist: 30, rise: 0.8, alt: 5.5, rockets: 10, every: 0.24, tell: 0.85, r: 2.4, dmg: 20,
+               spread: 4.5, onHero: 3, fall: 0.5, pound: { r: 6.5, dmg: 18, knock: 11 }, open: 1.4, cd: 13 },
+    // II FLAMETHROWER: he plants and sweeps fire across you from the left vambrace (a red cone: get out of it, or behind
+    // him); his back is open while he burns
+    flame: { from: 2, maxDist: 9, windup: 0.6, dur: 2.4, range: 9, arc: 0.42, sweep: 1.1, tick: 0.12, dmg: 5, cd: 10 },
+    // II JET LEAP: run from him and he jets onto you: an amber ring where he'll land, a pound when he does
+    leap: { from: 2, minDist: 15, rise: 0.5, alt: 6, fly: 0.8, tell: 0.9, pound: { r: 5.5, dmg: 22, knock: 12 }, open: 1.0, cd: 9 },
+    // III HOMING ROCKETS: a volley up out of the pods; each one's mark follows you, then locks (dodge as it locks)
+    homing: { from: 3, minDist: 3, maxDist: 34, rockets: 5, gap: 0.4, rise: 0.7, follow: 1.3, lock: 0.5, r: 2.2, dmg: 22, cd: 12 },
+    // III LAST CHARGE (once, at this share of his bar): he rises, burns across the floor at you (dodge it), crashes
+    // and kneels in the wreck of his own armour, wide open
+    lastCharge: { at: 0.14, windup: 1.4, alt: 1.4, speed: 30, dmg: 34, knock: 16, open: 3.6 },
+  },
+  rocketColor: 0xffa23a, flameColor: 0xff7a1a,
+  // the arena in phase III: smoke and furnace light
+  mood: { fill: 0.62, sun: 0.5, rim: 1.3, sky: 0.5, fog: 0x2a1408, blade: 1.1, near: 0.8, far: 0.85 },
+};

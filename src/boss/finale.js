@@ -54,11 +54,12 @@ export function spawnFinale(id, at){
   const D = REG()[id];
   if (!D) return null;
   const def = D.def;
-  spawnEnemy(def.type, V3(at.x, 0, at.z), { look: def.look, keep: true });
+  // a duellist wears his look from the saber cast; any other body is dressed in his own model (def.dress)
+  spawnEnemy(def.type, V3(at.x, 0, at.z), def.dress ? { dress: def.dress, keep: true } : { look: def.look, keep: true });
   const e = enemies[enemies.length - 1];
-  e.champion = true; e.noFloor = true;
+  e.champion = true; e.noFloor = true; e.look = def.look;   // (his look names him to a co-op guest: net/foes.js)
   e.fin = { id, def, D, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0 };
-  e.t = { ...e.t, dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
+  e.t = { ...e.t, ...(def.over || {}), dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
   e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));
   e.spd = e.t.speed * def.speed;
   e.group.scale.multiplyScalar(def.scale);
@@ -68,6 +69,7 @@ export function spawnFinale(id, at){
   shared.finale = e;
   meetBoss(def.codex || 'sith');
   showHud(e);
+  if (D.look.spawn) D.look.spawn(e);
   burst(V3(at.x, 1.4, at.z), 0x8a1a2a, 30, 9, 6, 1.1);
   spawnGroundShock(V3(at.x, 0.1, at.z), 0xb3121e, 6, 0.7, 0.9);
   G.shake = Math.max(G.shake, 0.8);
@@ -79,6 +81,7 @@ export function spawnFinale(id, at){
 // his duel profile for a phase: his form at his rank, with the phase's own numbers on top (data/bosses.js `duel`)
 function setPhaseDuel(e, phase){
   const def = e.fin.def;
+  if (!def.duel){ e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1); return; }   // (a body with no duel profile: his moves are the fight)
   if (phase === 1) setFoeForm(e, def.form, def.rank, FORM_SWITCH.boss[def.codex || 'sith'] || null);
   initDuel(e, { ...foeProfile(e.ff || def.form, def.rank), deflect: 1, ...def.duel[phase - 1] });
   e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1);
@@ -87,14 +90,16 @@ function setPhaseDuel(e, phase){
 /* ---------------- what hurts him (enemies/damage.js calls it for every blow) ----------------
    No single blow takes more than a share of his bar (more while he is open), later phases shrug off a little of
    everything, and while a beat or his defeat plays nothing lands at all */
-function finaleDamage(e, dmg, tick){
+function finaleDamage(e, dmg, tick, opts, knockDir){
   const F = e.fin, def = F.def;
   if (F.over || (F.sig && F.sig.id === 'beat')) return null;   // (null: the blow doesn't land at all)
   if (!(dmg > 0)) return dmg;
-  dmg *= def.phaseResist[F.phase - 1] ?? 1;
+  dmg *= (def.phaseResist[F.phase - 1] ?? 1) * (def.armour ?? 1);
+  // his own rules first (the Magistrate's shield, his cracks): what's left of the blow, or null if none of it lands
+  if (F.D.look.damage){ dmg = F.D.look.damage(e, dmg, tick, opts, knockDir); if (dmg === null) return null; }
   const at = () => V3(e.group.position.x, e.group.position.y + 3.2, e.group.position.z);
   if (!tick){
-    const open = e.state === 'stagger' || G.gt < (e.openUntil || 0) || (F.sig && F.sig.open);
+    const open = e.state === 'stagger' || G.gt < (e.openUntil || 0) || (F.sig && F.sig.open) || !!(F.D.look.open && F.D.look.open(e));
     const cap = e.maxHp * (open ? def.hitCapOpen : def.hitCap);
     if (dmg > cap){ dmg = cap; if (!open) floater(at(), 'HE HOLDS', '#cc99ff'); }
   }
@@ -193,7 +198,7 @@ export function updateFinale(dt){
   if (F.sig) return;
   F.sigT -= dt;
   // he only reaches for a move between exchanges: never out of a swing, a lock, a stagger or the floor
-  const free = (e.state === 'chase' || e.state === 'recover') && !e.dead && !e.converted && e.stunT <= 0 && !(e.dodgeT > 0);
+  const free = (e.state === 'chase' || e.state === 'recover') && !e.dead && !e.converted && !(e.stunT > 0) && !(e.dodgeT > 0);   // (stunT: a duellist's; a body without a duel has none)
   if (!free || e.dummy || G.gt - F.lastSig < def.sigMin) return;   // (a sandbox dummy stands and takes it: no moves)
   const mv = pickMove(e, F);
   if (mv) startSig(e, mv);
@@ -269,6 +274,7 @@ const BEAT = {
       e.hpFloor = F.phase < 3 ? Math.ceil(e.maxHp * F.def.phaseAt[F.phase - 1]) : 1;
       setHudPhase(F.phase, F.def);
       if (F.phase >= 3 && F.def.mood) setMood(F.def.mood);
+      if (F.D.look.phase) F.D.look.phase(e, F.phase, false);   // what changes on him (the Magistrate's shield goes, his armour cracks)
       repulseRing(e, B.ring.r, B.ring.dmg, B.push);
       const words = F.def.phaseLines && F.def.phaseLines[F.phase - 1];
       showBanner('PHASE ' + ROMAN[F.phase], words || '', 3, { kicker: F.def.name });
@@ -370,7 +376,7 @@ export function finaleMove(id, phase){
   const e = shared.finale;
   if (!e || !e.fin || e.dead || e.fin.over) return false;
   const F = e.fin;
-  if (phase && phase !== F.phase){ F.phase = phase; setPhaseDuel(e, phase); e.hpFloor = phase < 3 ? Math.ceil(e.maxHp * F.def.phaseAt[phase - 1]) : 1; setHudPhase(phase, F.def); if (phase >= 3 && F.def.mood) setMood(F.def.mood); }
+  if (phase && phase !== F.phase){ F.phase = phase; setPhaseDuel(e, phase); e.hpFloor = phase < 3 ? Math.ceil(e.maxHp * F.def.phaseAt[phase - 1]) : 1; setHudPhase(phase, F.def); if (phase >= 3 && F.def.mood) setMood(F.def.mood); if (F.D.look.phase) F.D.look.phase(e, phase, false); }
   if (!id){ if (F.sig) endSig(e, true); return true; }   // (none: whatever he's doing ends)
   const mv = id === 'beat' ? BEAT : id === 'defeat' ? (e.hp = 1, DEFEAT) : F.D.moves[id];
   if (!mv) return false;
@@ -393,7 +399,8 @@ export function finaleNet(m){
   const D = REG()[guestNet.id];
   if (m.k === 'phase'){
     guestNet.phase = m.p;
-    if (D){ setHudPhase(m.p, D.def); showBanner('PHASE ' + ROMAN[m.p], (D.def.phaseLines && D.def.phaseLines[m.p - 1]) || '', 3, { kicker: D.def.name }); if (m.p >= 3 && D.def.mood) setMood(D.def.mood); }
+    if (D){ setHudPhase(m.p, D.def); showBanner('PHASE ' + ROMAN[m.p], (D.def.phaseLines && D.def.phaseLines[m.p - 1]) || '', 3, { kicker: D.def.name }); if (m.p >= 3 && D.def.mood) setMood(D.def.mood);
+      const pe = puppetOfNid(guestNet.n); if (D.look.phase && pe) D.look.phase(pe, m.p, true); }
     return;
   }
   if (m.k === 'down'){ if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
@@ -417,3 +424,5 @@ function updateGuestFinale(e, dt){
 }
 // does this look belong to a final boss? (net/foes.js: a puppet built in it is the guest's finale)
 export const finaleLook = (look) => !!look && Object.values(REG()).some(D => D.def.look === look);
+// ...and the model he's dressed in, if it isn't his body's own (net/foes.js builds the puppet in it)
+export const finaleDress = (look) => { const D = look && Object.values(REG()).find(D => D.def.look === look); return D && D.def.dress || null; };

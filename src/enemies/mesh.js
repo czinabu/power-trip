@@ -227,11 +227,14 @@ export const CAPE_BANDS = 3;
 export function cape(k, outline, at, tilt = 0.08, depth = 0.014, key = 'cloth'){
   const len = -Math.min(...outline.map(([, y]) => y)), seg = len / CAPE_BANDS;
   let bone = k.bone('cape0', k.root, at, [tilt, 0, 0]);
+  const bones = [];
   for (let i = 0; i < CAPE_BANDS; i++){
     if (i) bone = k.bone('cape' + i, bone, [0, -seg, 0], [0, 0, 0], { blend: seg * 0.45, reach: 1.2 });
+    bones.push(bone);
     const band = clipY(outline, -seg * (i + 1), -seg * i).map(([x, y]) => [x, y + seg * i]);
     if (band.length > 2) k.add(plate(band, depth, 0), key, bone, [0, 0, 0], [0, 0, 0], { outline: false });
   }
+  return { bones, seg };   // (a band's bone and its length: something sewn onto the cape rides its band)
 }
 // the part of polygon `pts` between heights lo and hi (Sutherland–Hodgman against the two lines)
 function clipY(pts, lo, hi){
@@ -369,6 +372,23 @@ const HELMETS = {
     k.add(plate([[-0.12,0.03],[0.12,0.03],[0.12,-0.01],[0.028,-0.02],[0.025,-0.15],[-0.025,-0.15],[-0.028,-0.02],[-0.12,-0.01]], 0.022, 0.004), 'black', h, [0, 0.25, 0.16], [0,0,0], { outline: false });
     k.add(block(0.022, 0.18, 0.022, 0.3), 'metal', h, [0.165, 0.32, 0.02], [0.25, 0, -0.1]);
     k.glow(new THREE.BoxGeometry(0.2, 0.012, 0.01), t.eye, h, [0, 0.255, 0.174], [0,0,0], { tag: 'eye', opacity: 0.5 });
+  },
+  // THE IRON MAGISTRATE: a broad, heavy beskar helm, a T-visor burning orange, a jaw like a ram's prow, a gold crest
+  // fin front to back, and a war-crown of short beskar blades round the brow
+  magistrate(k, h, t){
+    k.add(dome([{ y:-0.06, w:0.33, d:0.33 }, { y:0.1, w:0.35, d:0.35 }, { y:0.27, w:0.34, d:0.35 }, { y:0.38, w:0.27, d:0.3 }, { y:0.44, w:0.14, d:0.18 }]), 'armor', h);
+    k.add(loft([{ y:-0.08, w:0.32, d:0.14, z:0.1 }, { y:0.05, w:0.3, d:0.13, z:0.13 }, { y:0.12, w:0.27, d:0.1, z:0.14 }], chamfer(0.3)), 'armor2', h);   // the jaw
+    k.add(block(0.32, 0.06, 0.08, 0.3), 'armor2', h, [0, 0.3, 0.15], [-0.15, 0, 0]);   // the brow ridge
+    k.add(plate([[-0.14,0.03],[0.14,0.03],[0.14,-0.015],[0.032,-0.025],[0.03,-0.17],[-0.03,-0.17],[-0.032,-0.025],[-0.14,-0.015]], 0.024, 0.004), 'black', h, [0, 0.255, 0.18], [0,0,0], { outline: false });
+    k.glow(new THREE.BoxGeometry(0.24, 0.016, 0.01), t.eye, h, [0, 0.255, 0.195], [0,0,0], { tag: 'eye', opacity: 0.75 });
+    k.glow(new THREE.BoxGeometry(0.016, 0.12, 0.01), t.eye, h, [0, 0.17, 0.195], [0,0,0], { opacity: 0.55 });
+    k.add(block(0.045, 0.14, 0.44, 0.3), 'gold', h, [0, 0.45, -0.02]);   // the crest
+    for (let i = 0; i < 5; i++){   // the war-crown
+      const a = (i - 2) * 0.42;
+      k.add(shard(0.045, 0.13, 0.03), i === 2 ? 'gold' : 'armor2', h, [Math.sin(a) * 0.17, 0.36, 0.05 + Math.cos(a) * 0.12], [-0.25, a, 0]);
+    }
+    for (const s of [-1, 1]) k.add(block(0.04, 0.18, 0.14, 0.3), 'armor2', h, [0.17*s, 0.08, 0.04], [0, 0.25*s, 0]);   // cheek guards
+    k.add(block(0.024, 0.2, 0.024, 0.3), 'metal', h, [0.19, 0.32, 0.0], [0.25, 0, -0.12]);   // the rangefinder
   },
   // SCOUT TROOPER: big brow visor jutting forward, a long breather snout
   scout(k, h, t){
@@ -560,8 +580,8 @@ function cheekMarks(k, h){
 // melee weapon arm: pivots at the +x shoulder, carried at the ready (rotation.x = -0.35)
 export function weaponArm(k, t, w){
   const a = k.slot('weaponArm', k.root, [0.42*w, 1.74, 0.04], [-0.35, 0, 0]);
-  const GR = { sword: 0.024, saber: 0.028, pistol: 0.026, pike: 0.026 };   // the handle each fist closes round (a maul's haft: 0.034)
-  const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' ? [-1.1, 0, 0] : null }) });
+  const GR = { sword: 0.024, saber: 0.028, pistol: 0.026, pike: 0.026, spear: 0.03 };   // the handle each fist closes round (a maul's haft: 0.034)
+  const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' || t.weapon === 'spear' ? [-1.1, 0, 0] : null }) });
   if (t.weapon === 'sword'){
     // vibro-sword: a long single-edged blade with a glowing edge line
     k.add(plate([[-0.035,0],[0.04,0],[0.05,-0.88],[0,-1.08],[-0.03,-0.94]], 0.022, 0.006), 'metal', grip, [0, -0.1, 0], [0, PI/2, 0]);
@@ -596,6 +616,20 @@ export function weaponArm(k, t, w){
     k.add(plate([[-0.06,0],[0.06,0],[0.04,-0.3],[0,-0.38],[-0.04,-0.3]], 0.03, 0.008), 'metal', pk, [0, -1.6, 0], [0, PI/2, 0]);
     k.glow(new THREE.TorusGeometry(0.07, 0.016, 5, 12), t.eye, pk, [0, -1.44, 0], [PI/2, 0, 0], { opacity: 0.85 });
     k.glow(new THREE.BoxGeometry(0.008, 0.3, 0.015), t.eye, pk, [0, -1.78, 0.03]);
+  } else if (t.weapon === 'spear'){
+    // THE IRON MAGISTRATE'S WAR-SPEAR: a long dark haft bound in gold, a crossbar, and a broad beskar head whose edge
+    // runs hot (spearEdge: it flares as he drives it in, boss/magistrate.js). No blade of light: forged metal
+    const pk = k.group(grip, [0, 0, 0], [-1.1, 0, 0]);
+    k.add(loft([{ y:-1.72, w:0.058, d:0.058 }, { y:0.72, w:0.052, d:0.052 }], ngon(8, PI/8)), 'gun', pk);
+    for (const y of [-1.2, -0.32, 0.26, 0.62]) k.add(loft([{ y:-0.035, w:0.074, d:0.074 }, { y:0.035, w:0.074, d:0.074 }], ngon(8, PI/8)), 'gold', pk, [0, y, 0], [0,0,0], { outline: false });
+    k.add(shard(0.07, 0.2, 0.07), 'metal', pk, [0, 0.8, 0]);   // the butt spike
+    k.add(loft([{ y:0, w:0.1, d:0.1 }, { y:0.14, w:0.07, d:0.07 }], ngon(8, PI/8)), 'metal', pk, [0, -1.72, 0], [PI, 0, 0]);   // the socket
+    k.add(block(0.36, 0.05, 0.07, 0.35), 'metal', pk, [0, -1.86, 0]);   // the crossbar, gold-tipped
+    for (const s of [-1, 1]) k.add(shard(0.05, 0.1, 0.05), 'gold', pk, [0.2*s, -1.86, 0], [0, 0, -PI/2*s]);
+    k.add(plate([[-0.06,0],[0.06,0],[0.085,-0.18],[0.06,-0.48],[0,-0.74],[-0.06,-0.48],[-0.085,-0.18]], 0.045, 0.012), 'metal', pk, [0, -1.89, 0], [0, PI/2, 0]);
+    k.add(plate([[-0.012,0],[0.012,0],[0.012,-0.5],[0,-0.58],[-0.012,-0.5]], 0.055, 0.004), 'black', pk, [0, -1.93, 0], [0, PI/2, 0], { outline: false });   // the fuller
+    for (const s of [-1, 1]) k.glow(new THREE.BoxGeometry(0.008, 0.36, 0.01), t.eye, pk, [0, -2.13, 0.085*s], [0.24*s, 0, 0], { opacity: 0.35, tag: 'spearEdge[]', unique: true });
+    k.live(new THREE.Object3D(), pk, 'spearTip').position.set(0, -2.6, 0);
   } else {
     // vibro-maul: a long haft and a two-faced hammer head with glowing power cells
     k.add(loft([{ y:-1.15, w:0.07, d:0.07 }, { y:0.12, w:0.065, d:0.065 }], ngon(6)), 'leather', grip);
@@ -876,6 +910,81 @@ export const MODELS = {
     rifle(k, t, w, false); rifleSling(k, w);
     helmet(k, 'mandalorian', t);
   },
+  /* THE IRON MAGISTRATE — the Mandalorian's (and, for now, the trooper's) final boss (boss/magistrate.js). A beskar
+     warlord: a broad frame in dark, battle-scarred plate trimmed in gold, a cuirass with a gold sigil, stacked
+     pauldrons, a jetpack with rocket pods, a flame projector on the left vambrace, a round beskar shield on that arm
+     (u.shield: he casts it aside after phase I), a war-spear in the right, and a war-skirt behind hung with the sigils
+     of the clans he has broken. The cracks (u.cracks) are dark until his armour splits in phase III */
+  magistrate(k, t){
+    const w = 1.22;
+    legs(k, w, { boot: 'armor2' }); hips(k, w, { holster: true });
+    // the war-skirt: a long ragged cloth behind, from the belt, hung with the trophies
+    const ws = cape(k, [[-0.32,0],[0.32,0],[0.38,-0.62],[0.3,-0.86],[0.18,-0.72],[0.06,-0.94],[-0.08,-0.76],[-0.2,-0.92],[-0.36,-0.7]], [0, 1.08, -0.2], 0.12, 0.016, 'rag');
+    const SIGIL = [   // the clans' marks, beaten out of their own beskar: a mythosaur's skull, a crescent, a star, a fang
+      [[-0.05,0.04],[0.05,0.04],[0.06,-0.02],[0.02,-0.07],[-0.02,-0.07],[-0.06,-0.02]],
+      [[-0.06,0.02],[0,0.06],[0.06,0.02],[0.03,0.0],[0,0.02],[-0.03,0.0]],
+      [[0,0.06],[0.018,0.018],[0.06,0.0],[0.018,-0.018],[0,-0.06],[-0.018,-0.018],[-0.06,0.0],[-0.018,0.018]],
+      [[-0.03,0.05],[0.03,0.05],[0.02,-0.02],[0,-0.07],[-0.02,-0.02]],
+    ];
+    const SKEY = ['metal', 'gold', 'armor', 'shield', 'mark'];
+    for (let i = 0; i < 9; i++){
+      const b = ws.bones[Math.min(2, (i / 3) | 0)], x = ((i % 3) - 1) * 0.2 + (i % 2 ? 0.04 : -0.03);
+      k.add(plate(SIGIL[i % SIGIL.length], 0.012, 0.003), SKEY[i % SKEY.length], b, [x, -ws.seg * 0.45, -0.012], [0, PI, (i % 4 - 1.5) * 0.25], { outline: false });
+    }
+    // tassets: armoured plates over the thighs, gold at the hem
+    for (const s of [-1, 1]){
+      const tg = k.group(k.root, [0.2*w*s, 1.0, 0.08], [0.1, 0.3*s, 0.1*s]);
+      k.add(plate([[-0.13,0],[0.13,0],[0.15,-0.32],[-0.15,-0.32]], 0.03, 0.008), 'armor', tg);
+      k.add(plate([[-0.15,-0.29],[0.15,-0.29],[0.15,-0.32],[-0.15,-0.32]], 0.034, 0.004), 'gold', tg, [0, 0, 0.004], [0,0,0], { outline: false });
+    }
+    k = upper(k); torso(k, w, { pack: false, box: false });
+    // the cuirass over the chest plate: deeper, squarer, a gold band at its rim and the warlord's sigil on it
+    k.add(loft([{ y:1.34, w:0.46*w, d:0.31 }, { y:1.5, w:0.64*w, d:0.4, z:0.012 }, { y:1.7, w:0.68*w, d:0.4, z:0.01 }, { y:1.82, w:0.52*w, d:0.33 }], SOFT_BODY), 'armor');
+    k.add(loft([{ y:1.32, w:0.47*w, d:0.315 }, { y:1.37, w:0.48*w, d:0.32 }], SOFT_BODY), 'gold', k.root, [0,0,0], [0,0,0], { outline: false });
+    k.add(plate([[-0.09,0.08],[0.09,0.08],[0.12,0.0],[0.05,-0.04],[0.02,-0.16],[-0.02,-0.16],[-0.05,-0.04],[-0.12,0.0]], 0.02, 0.006), 'gold', k.root, [0, 1.64, 0.213], [-0.06, 0, 0]);
+    // battle scars: gouges across the plate (black), and the seams the cracks will burn through in phase III
+    k.add(block(0.2, 0.014, 0.01, 0.2), 'black', k.root, [-0.14*w, 1.52, 0.205], [0, 0, 0.5], { outline: false });
+    k.add(block(0.14, 0.012, 0.01, 0.2), 'black', k.root, [0.18*w, 1.74, 0.19], [0, 0, -0.7], { outline: false });
+    const CRACK = [[[0.02, 1.62, 0.215], 0.22, 0.4], [[-0.1, 1.48, 0.21], 0.18, -0.9], [[0.13, 1.44, 0.205], 0.16, 1.2], [[0.04, 1.36, 0.2], 0.12, -0.3]];
+    for (const [p, l, a] of CRACK) k.glow(new THREE.BoxGeometry(0.018, l, 0.012), 0xff6a1a, k.root, p, [0, 0, a], { opacity: 0, tag: 'cracks[]', unique: true });
+    // the high collar, and the stacked pauldrons: a broad bell, a second lame over it, gold rims
+    k.add(loft([{ y:1.8, w:0.66*w, d:0.44 }, { y:1.96, w:0.52, d:0.42 }, { y:2.02, w:0.42, d:0.36 }], SOFT_COLLAR), 'armor2');
+    pauldrons(k, w, 'armor', 1.4);
+    for (const s of [-1, 1]){
+      k.add(loft(cap(0.3*w, 0.3), SOFT), 'armor2', k.root, [0.43*w*s, 1.71, 0], [0, 0, -0.42*s]);
+      k.add(loft([{ y:-0.1, w:0.355*w, d:0.355 }, { y:-0.078, w:0.35*w, d:0.35 }], SOFT), 'gold', k.root, [0.4*w*s, 1.8, 0], [0, 0, -0.32*s], { outline: false });
+      k.glow(new THREE.BoxGeometry(0.016, 0.16, 0.012), 0xff6a1a, k.root, [0.44*w*s, 1.88, 0.12], [0.3, 0, 0.6*s], { opacity: 0, tag: 'cracks[]', unique: true });
+    }
+    // the jetpack: a broad pack, a rocket pod on each shoulder of it, two nozzles and the live thruster flames
+    const pack = k.group(k.root, [0, 1.5, -0.32]);
+    k.add(block(0.46, 0.56, 0.2, 0.3), 'armor2', pack);
+    k.add(block(0.3, 0.42, 0.06, 0.3), 'armor', pack, [0, 0.02, -0.12]);
+    k.add(block(0.32, 0.04, 0.07, 0.3), 'gold', pack, [0, 0.24, -0.13], [0,0,0], { outline: false });
+    for (const s of [-1, 1]){
+      k.add(loft([{ y:-0.24, w:0.16, d:0.16 }, { y:0.22, w:0.16, d:0.16 }, { y:0.3, w:0.08, d:0.08 }], ngon(8, PI/8)), 'armor', pack, [0.2*s, 0.0, -0.04]);
+      k.add(loft([{ y:-0.08, w:0.09, d:0.09 }, { y:0.07, w:0.15, d:0.15 }], ngon(8, PI/8)), 'metal', pack, [0.15*s, -0.36, -0.06], [PI, 0, 0]);
+      k.glow(new THREE.CylinderGeometry(0.06, 0.1, 0.24, 7), 0xffa23a, pack, [0.15*s, -0.55, -0.06], [0,0,0], { opacity: 0.0, unique: true, tag: 'thrusters[]' });
+      // a rocket pod: a box of four tubes riding the top of the pack, tipped up and out
+      const pod = k.group(pack, [0.24*s, 0.38, 0.02], [-0.25, 0, 0.15*s]);
+      k.add(block(0.16, 0.12, 0.26, 0.3), 'armor2', pod);
+      for (const [x, y] of [[-0.035, 0.028], [0.035, 0.028], [-0.035, -0.028], [0.035, -0.028]]) k.add(loft([{ y:0, w:0.04, d:0.04 }, { y:0.03, w:0.04, d:0.04 }], ngon(8, PI/8)), 'black', pod, [x, y, 0.13], [PI/2, 0, 0], { outline: false });
+      k.live(new THREE.Object3D(), pod, 'pods[]').position.set(0, 0, 0.16);
+    }
+    weaponArm(k, t, w);
+    // the round beskar shield on the left arm: a dished boss, a gold rim, the warlord's sigil, the handle behind
+    const sh = k.slot('shield', k.root, [-0.5*w, 1.36, 0.42], [0, -0.35, 0]);
+    k.add(loft([{ y:-0.1, w:0.06, d:0.06 }, { y:0.1, w:0.06, d:0.06 }], ngon(8, PI/8)), 'black', sh, [0.02, 0.02, -0.1], [0, 0, PI/2], { outline: false });
+    const arm = holdArm(k, w, -1, sh, [0.02, 0.02, -0.1], [1, 0, 0], { rx: 0.024, slot: 'offArm', twist: 0.2 });
+    k.add(loft([{ y:-0.04, w:0.86, d:0.86 }, { y:0.02, w:0.84, d:0.84 }, { y:0.06, w:0.6, d:0.6 }, { y:0.08, w:0.3, d:0.3 }], ngon(14)), 'shield', sh, [0, 0, -0.02], [PI/2, 0, 0]);
+    k.add(loft([{ y:-0.045, w:0.88, d:0.88 }, { y:-0.02, w:0.88, d:0.88 }], ngon(14)), 'gold', sh, [0, 0, -0.02], [PI/2, 0, 0], { outline: false });
+    k.add(plate(scalePts(SIGIL[0], 2.4), 0.02, 0.006), 'gold', sh, [0, 0.02, 0.085], [0,0,0], { outline: false });
+    k.add(block(0.5, 0.016, 0.01, 0.2), 'black', sh, [0.05, -0.16, 0.06], [0, 0, 0.35], { outline: false });   // a gouge across it
+    // the flame projector under the left vambrace (flameTip: where the fire comes from)
+    k.add(loft([{ y:-0.1, w:0.05, d:0.05 }, { y:0.08, w:0.06, d:0.06 }], ngon(8, PI/8)), 'gun', arm, [0.07, -0.22, 0.04]);
+    k.glow(new THREE.SphereGeometry(0.025, 6, 5), 0xff8a2a, arm, [0.07, -0.33, 0.04], [0,0,0], { opacity: 0.7 });
+    k.live(new THREE.Object3D(), arm, 'flameTip').position.set(0.07, -0.36, 0.04);
+    helmet(k, 'magistrate', t, 1.98);
+  },
   // SCOUT SNIPER — scout helm, camo poncho, a long DLT-19x (sniper)
   scout(k, t){
     const w = 0.95 * k.bw;
@@ -931,7 +1040,7 @@ export function buildEnemyMesh(t, o = {}){
     MODELS[t.model](k, t);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
-    kitcloth: kitCloth(t.color), rag: 0x5a2c22,
+    kitcloth: kitCloth(t.color), rag: t.rag ?? 0x5a2c22, gold: { c: t.trim ?? 0xc9a040, r: 0.35, m: 0.8 },
     ...(F ? { skin: F.skin, hair: F.hair, beard: F.hair } : {}),
     ...(pal || {}),
   });

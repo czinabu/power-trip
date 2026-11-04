@@ -47,7 +47,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     return;
   }
   if (e.ward != null){ if (!e.ward && dmg > 0) return; dmg *= e.ward; }   // warded by a mission twist: untouchable (0), or taking less (game/twists/)
-  if (e.dmgRule){ const r = e.dmgRule(e, dmg, tick, opts); if (r === null) return; dmg = r; }   // a final boss's own rules on what lands (boss/finale.js)
+  if (e.dmgRule){ const r = e.dmgRule(e, dmg, tick, opts, knockDir); if (r === null) return; dmg = r; }   // a final boss's own rules on what lands (boss/finale.js)
   const byAlly = !!(opts && opts.ally);
   if (e.scanT > G.gt && dmg > 0) dmg *= e.scanMul || 1;   // marked by the ARC trooper's recon scan (player/trooper/abilities.js)
   // the ARC trooper's SUPPRESS order (allies/squad.js): a squad bolt that lands in the zone PINS its foe (enemies/ai.js)

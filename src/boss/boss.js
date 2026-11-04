@@ -39,15 +39,21 @@ import { queueHit, hooks } from '../net/run.js';
 import { meetBoss } from '../game/codex.js';
 import { spawnFinale } from './finale.js';
 import './vexis.js';   // (registers Darth Vexis with the final boss layer)
+import './magistrate.js';   // (and the Iron Magistrate)
 
 /* ============================================================
    BOSS — DARTH VEXIS
    ============================================================ */
-// the final boss steps in: the Jedi's is DARTH VEXIS, a duellist's body with the final boss layer on it (boss/finale.js,
-// boss/vexis.js); the gunners' is still the old machine below. Returns him (his .group is where he stands)
+// the final boss steps in: the Jedi's is DARTH VEXIS (a duellist's body, boss/vexis.js), the gunners' THE IRON MAGISTRATE
+// (boss/magistrate.js), each with the final boss layer on him (boss/finale.js). Returns him (his .group is where he stands)
 export function spawnBoss(){
   const half = shared.arenaHalfZ || LEVELS[G.levelIdx].arena/2;   // (the arena built: a chapter can stage a level on its own map)
-  if (!isGunner()) return spawnFinale('vexis', { x: 0, z: -half + 6 });
+  return spawnFinale(isGunner() ? 'magistrate' : 'vexis', { x: 0, z: -half + 6 });   // (the Mandalorian's and, for now, the trooper's: the Iron Magistrate)
+}
+// THE OLD STATE-MACHINE BOSS: no fight spawns it any more (both final bosses are on the final boss layer). Kept, with
+// what reads shared.boss, until the trooper's Marshal lands and it can all go at once
+export function spawnOldBoss(){
+  const half = shared.arenaHalfZ || LEVELS[G.levelIdx].arena/2;
   const mando = isGunner();
   const kind = mando ? 'mando' : 'sith';
   const hp = Math.round((mando ? BOSS_MANDO.hp : BOSS_CFG.hp) * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));   // DIFFICULTY scales the boss too

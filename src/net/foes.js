@@ -14,7 +14,7 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { foeType } from '../enemies/look.js';
 import { dressElite } from '../enemies/elites.js';
 import { damageEnemy } from '../enemies/damage.js';
-import { finaleLook, adoptFinalePuppet } from '../boss/finale.js';
+import { finaleLook, finaleDress, adoptFinalePuppet } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { severLimbs, applyCuts } from '../enemies/scars.js';
 import { makeBossBar } from '../enemies/spawn.js';
@@ -130,7 +130,8 @@ function makePuppet(rec){
   const [nid, type, , , , , , , sc, hp, maxHp, state, flags, elite] = rec;
   const t = ENEMY_TYPES[type];
   if (!t) return null;
-  const g = buildEnemyMesh(foeType(type), { seed: typeof nid === 'number' ? nid : undefined, look: rec[26] || undefined });   // the host's marking and face (enemies/spawn.js), a duel foe's look
+  const dress = finaleDress(rec[26]);   // a final boss in his own model (the Iron Magistrate: boss/finale.js)
+  const g = buildEnemyMesh(dress ? { ...foeType(type), ...dress } : foeType(type), { seed: typeof nid === 'number' ? nid : undefined, look: rec[26] || undefined });   // the host's marking and face (enemies/spawn.js), a duel foe's look
   g.scale.setScalar(sc);
   if (elite) dressElite(g, elite);
   if (rec[20] && STANCES[rec[20]] && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(masterBlade(g.userData.look, STANCES[rec[20]].blade));   // a form master's blade

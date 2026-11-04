@@ -71,7 +71,7 @@ function buildModel(E, k){
     const crest = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 4),
       new THREE.MeshStandardMaterial({ color: 0xff3b3b, emissive: 0xff2020, emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.4 }));
     crest.position.set(0, 2.55, 0); g.add(crest);
-  } else if (E.kind === 'boss') g = E.boss === 'sith' ? castPreview('DARTH VEXIS') : buildBoss(E.boss);   // (Darth Vexis is a duellist's body in his own armour: data/cast.js)
+  } else if (E.kind === 'boss') g = castPreview(E.boss === 'sith' ? 'DARTH VEXIS' : 'THE IRON MAGISTRATE') || buildBoss(E.boss);   // (each is a foe's body in his own armour: data/cast.js)
   else if (E.kind === 'squad'){
     const d = E.def;
     g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: d.role !== 'jedi', weapon: d.weapon, look: d.look }, { seed: 5, wear: 0.15 });

@@ -14,7 +14,7 @@ import { allies, squadOrderName } from '../allies/squad.js';
 import { TALK, MISSION_TALK, CHAPTER_TALK } from '../data/talk.js';
 import { onSetFigures } from './onset.js';
 import { chapterOrder, storyHero } from '../data/campaign.js';
-import { comms, fightHot, commsTalking, commsShowing } from './story.js';
+import { comms, fightHot, commsShowing, storySpeaking } from './story.js';
 import { missionFigures, missionId } from './mission.js';
 import { hostilesIn } from './objectives.js';
 import { pad, padKeys } from '../engine/gamepad.js';
@@ -61,6 +61,7 @@ function pickNear(){
   if (G.mode !== 'play' || G.cutscene || G.paused || player.downed || player.saberLock) return null;
   const p = playerPos(), f = fwd();
   if (hostilesIn(p.x, p.z, TALKCFG.calm) || fightHot()) return null;   // a lull only
+  if (storySpeaking()) return null;   // the story's voice has the floor: no prompt you can't answer (it comes back once it's done)
   let best = null, bs = -Infinity;
   const squadAway = allies.length && squadOrderName() !== 'follow';   // H calls them back first: no talking over an order
   for (const c of figures()){
@@ -103,9 +104,10 @@ export function talkTap(){
   const n = said.get(id) || 0;
   said.set(id, n + 1);
   const who = near.kind ? one(near.name) : near.name;
-  // (this screen only: it's your conversation) · tapping again over a walk-up line moves on to the next; over the story's
-  // own lines it waits its turn
-  comms({ who, say: lines[n % lines.length] }, { remote: true, talk: true, front: commsTalking() });
+  // (this screen only: it's your conversation) · it plays now, ahead of anything queued (a story line held back by a
+  // closing card plays on after it); tapping again over a walk-up line moves on to the next. The prompt is only up while
+  // the story isn't speaking (pickNear), so this never cuts one of its lines off
+  comms({ who, say: lines[n % lines.length] }, { remote: true, talk: true, front: true });
   gap = TALKCFG.again;
   S.uiHover();
   return true;

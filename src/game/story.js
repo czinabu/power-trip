@@ -80,6 +80,9 @@ export function updateComms(dt){
 export const commsBusy = () => !!cur || queue.length > 0;
 export const commsShowing = () => !!cur;
 export const commsTalking = () => !!(cur && cur.talk);   // the line up is a walk-up line (game/talk.js)
+// the story has the floor: one of its lines is up, or about to be (the breath between two lines of an exchange). A line
+// held back by a closing card (ui/hud-stage.js) or waiting out a fight doesn't count: a walk-up line can go first
+export const storySpeaking = () => cur ? !cur.talk : (left > 0 && queue.length > 0 && !queue[0].talk && !stageHolds());
 export const commsSpeaker = () => cur ? cur.who : null;   // whose line is up (someone on set says it with their hands: game/onset.js)
 
 /* ---------- beats ---------- */

@@ -5,6 +5,7 @@
 // champions brace and only stumble). While held: F hurls it (them) the way you're aiming, a tap of C yanks it in onto
 // your blade for a saber strike, and the slide key (Z) drops it. A short tap of C is still the plain Force Pull.
 
+import { growPower } from '../../data/force-level.js';
 import { abil } from '../../data/mastery.js';
 import { CFG } from '../../data/config.js';
 import { S } from '../../audio/sfx.js';
@@ -22,7 +23,7 @@ import { tryAttack } from './combat.js';
 import { forceStrike } from './palm.js';
 import { trainAbility } from '../../game/upgrades.js';
 
-const A = () => CFG.abilities.grasp;
+const A = () => growPower('grasp', Object.assign({}, CFG.abilities.grasp));   // grown by the Force Level (data/force-level.js)
 const fcost = (base) => base * (player.up.abilityCostMul || 1);
 // too big or too steady to be lifted: brutes, the mid-boss and champions (they only brace when you hit them with one)
 const tough = (e) => !!(e.t.heavy || e.warbringer || e.champion);

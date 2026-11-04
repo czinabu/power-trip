@@ -626,7 +626,7 @@ const KINDS = {
           s.intro = true;
           const q = o.quarry && heroKey(M.def.quarry);
           if (playDuelIntro(q ? { mid: M.def.id, quarry: true, name: q.name, kicker: q.kicker, scale: q.scale, line: heroText(o.line) }
-                              : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
+                              : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, form: o.form, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
         }
         if (o.quarry && M.qHp) M.qHp = Math.max(0.6, M.qHp);   // the run wore it down, but it still has a fight in it
         // a rematch: it still wears the wounds you gave it when it got away (SCARS, data/duel-taunts.js)

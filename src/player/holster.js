@@ -90,7 +90,7 @@ function setUnlit(on, flourish = true){   // (flourish: the hilt spin; a fight m
     startFlourish(-1);   // the hilt turned over in the fingers as it goes
     S.retract(bladeKind(), null, true);
   } else {
-    player.reach = null; player.stowPend = false; player.stowed = false;   // (a fight move: straight into the hand)
+    player.reach = null; player.stowPend = false; player.stowed = false; player.manualDraw = false;   // (a fight move: straight into the hand)
     syncHolster();
     extendBlade(1);   // the blade runs up out of the emitter
     if (flourish) startFlourish(1);   // ...as the hilt spins up in the hand
@@ -153,7 +153,7 @@ export function wakeBlade(){
 }
 // a weapon change, a holster, a fresh run: the blade state starts over lit (no sound: whatever changed makes its own)
 export function clearUnlit(){
-  player.reach = null; player.stowPend = false;
+  player.reach = null; player.stowPend = false; player.manualDraw = false;
   if (!player.unlit && !player.stowed) return;
   player.unlit = false; player.stowed = false;
   extendBlade(0);
@@ -164,9 +164,44 @@ export function clearUnlit(){
 export function atEase(){
   if (isGunner()) return;
   player.holstered = false; player.unlit = true; player.stowed = true; player.reach = null; player.stowPend = false;
-  player.palmT = 0; player.palm = null; player.palmQueued = false; player.palmHold = null;
+  player.palmT = 0; player.palm = null; player.palmQueued = false; player.palmHold = null; player.manualDraw = false;
   extendBlade(0);
   syncHolster();
+}
+
+/* ---------- A DUEL'S ENTRANCE (game/cutscene.js) ----------
+   Before a fight with a saber wielder, the hero waits through the scene with the hilt on the belt and the blade out (the
+   Jedi's saber in any form, the staff, both Jar'Kai hilts, or the Mando's Darksaber when it's the weapon in hand). The
+   foe draws and lights its own at the scene's end (game/duel-draw.js); lighting yours is up to you: 5 draws it, spin and
+   all, and so does any fight move (wakeBlade). Until then the blade doesn't light itself as the fight closes in
+   (player.manualDraw). A co-op partner sees it all through the pose sync. */
+const canDraw = () => !isTrooper() && (isGunner() ? isMando() && player.weapon === 'darksaber' && !shared.darkProj : !player.holstered && !shared.saberProj);
+// the hilt straight onto the belt, the blade out, no sound (the scene opens on it already there): false if there's no blade to put away
+export function stowForScene(){
+  if (!canDraw()) return false;
+  if (player.atkT > 0) cancelSwing();
+  player.unlit = true; player.stowed = true; player.reach = null; player.stowPend = false;
+  player.manualDraw = true;
+  extendBlade(0);
+  syncHolster();
+  return true;
+}
+// the scene is over: the hilt stays on the belt for you to draw (quiet: play is over, put it back in the hand)
+export function endSceneDraw(quiet){
+  if (quiet){ player.manualDraw = false; clearUnlit(); return; }
+  if (!bladeUnlit()) player.manualDraw = false;
+  else showIgniteHint();
+}
+// a reminder over the hero as the fight starts: the key that lights it
+function showIgniteHint(){
+  floater(playerPos(), igniteKey() + ' · IGNITE', isGunner() ? '#c9a6ff' : '#bfe8ff');
+}
+// the ignite key as the HUD's own chip shows it (the Jedi's #ab-lit, the Mando's Darksaber #ab-dlit), so the reminder
+// follows the binding wherever it moves; a pad's is LB + D-pad left
+function igniteKey(){
+  if (document.body.classList.contains('pad')) return 'LB + ◀';
+  const chip = document.querySelector((isGunner() ? '#ab-dlit' : '#ab-lit') + ' .key');
+  return (chip && chip.textContent.trim()) || '5';
 }
 
 export function toggleHolster(){
@@ -207,6 +242,7 @@ export function toggleHolster(){
    · the calm after a chapter (game/aftermath.js G.calm) with no foe about for `calm` seconds: it goes out, with the
      flourish, and the hero walks the rally point at ease (once per calm: light it again and it stays lit)
    · put out (by 5 or by the calm), foes coming close (player/mobility.js inCombat turning on) light it, flourish and all
+     (except after a duel's entrance, where the foe lit its own and yours is left for you to draw: player.manualDraw)
    Only in play, never in a cutscene, and never while it's in flight or on the belt. */
 export const BLADE_AUTO = { calm: 2.5 };
 const AUTO = { quiet: 0, calmDone: false, fight: false };
@@ -217,7 +253,7 @@ export function updateBladeAuto(dt){
   if (!G.calm) AUTO.calmDone = false;
   if (G.mode !== 'play' || G.cutscene || isTrooper() || player.downed) { AUTO.quiet = 0; return; }
   stepReach(dt);
-  if (arrived && bladeUnlit()){ setUnlit(false); return; }
+  if (arrived && bladeUnlit() && !player.manualDraw){ setUnlit(false); return; }   // (not after a duel's entrance: that one's yours to light)
   AUTO.quiet = fight ? 0 : AUTO.quiet + dt;
   const lit = !player.unlit && (isGunner() ? isMando() && player.weapon === 'darksaber' && !shared.darkProj : !player.holstered && !shared.saberProj);
   if (G.calm && !AUTO.calmDone && lit && AUTO.quiet >= BLADE_AUTO.calm && player.atkT <= 0 && !player.blockHeld){

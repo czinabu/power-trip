@@ -51,8 +51,6 @@
 .cx-badge{min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:var(--gold);color:#1a1200;
   font:700 11px/16px var(--font-ui);letter-spacing:0;text-align:center}
 #overlay.st-menu .ov-actions .btn:not(.go){flex-basis:22%}
-#overlay.st-pause #settoggle,#overlay.st-pause #fsBtn{grid-column:span 3}
-#overlay.st-pause #ctltoggle,#overlay.st-pause #cxtoggle,#overlay.st-pause #coopBtn{grid-column:span 2;order:3}
 #overlay.st-menu.mpage #cxtoggle{display:none}
 /* a new entry mid-fight: a quiet note in the corner, above the autosave's */
 #cxnote{position:fixed;right:18px;bottom:52px;z-index:24;padding:6px 12px;border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(4,10,20,.78);

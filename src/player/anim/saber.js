@@ -3,7 +3,7 @@
 // Poses come from data/poses.js as hand positions + blade directions in chest space; this solves them onto the rig.
 
 import * as THREE from 'three';
-import { SABER_GUARDS, DUAL_GUARDS, SABER_SWINGS, SWING_STYLE, SWING_OFF, SABER_DEFLECTS } from '../../data/poses.js';
+import { SABER_GUARDS, DUAL_GUARDS, SABER_SWINGS, SWING_STYLE, SWING_OFF, SABER_DEFLECTS, SWING_VARIANTS, SWING_SPIN_KEYS, SWING_KEY_LOOK } from '../../data/poses.js';
 import { AIR_GUARDS } from '../../data/agility.js';
 import { CUT_ANGLE } from '../../data/stances.js';
 import { DIM } from '../model/rig.js';
@@ -74,17 +74,24 @@ for (const g in SABER_SWINGS){ SWINGS[g] = {}; for (const p in SABER_SWINGS[g]) 
    either side of it on the clock and lifted or dropped for its height. The reverse grip takes the nearest tuned cut. */
 const D2R = Math.PI / 180;
 const HEIGHT_ID = { left: { high: 'leftHigh', low: 'leftLow' }, right: { high: 'rightHigh', low: 'rightLow' } };
-function angleKeys(set, grip, ang, h){
+// the anchors either side of `ang` on the clock, and how far it sits between them
+function anchorsOf(ang){
   const A = CUT_ANGLE.anchors;
   ang = ((ang % 360) + 360) % 360;
   let i = A.length - 1;
   while (i > 0 && A[i][0] > ang) i--;
   const [a0, id0] = A[i], [n1, id1] = A[(i + 1) % A.length], a1 = n1 <= a0 ? n1 + 360 : n1;
-  const t = (ang - a0) / (a1 - a0);
-  if (grip !== 'regular'){
-    const id = t < 0.5 ? id0 : id1, hid = HEIGHT_ID[id] && HEIGHT_ID[id][h];
-    return set[hid] || set[id] || set.right;
-  }
+  return { ang, id0, id1, t: (ang - a0) / (a1 - a0) };
+}
+// the tuned cut nearest `ang` at height h (the reverse grip's angle cuts): its key id in the set
+function nearestId(set, ang, h){
+  const { id0, id1, t } = anchorsOf(ang), id = t < 0.5 ? id0 : id1, hid = HEIGHT_ID[id] && HEIGHT_ID[id][h];
+  return set[hid] ? hid : set[id] ? id : 'right';
+}
+function angleKeys(set, grip, ang, h){
+  if (grip !== 'regular') return set[nearestId(set, ang, h)];
+  const { id0, id1, t } = anchorsOf(ang);
+  ang = ((ang % 360) + 360) % 360;
   const k0 = set[id0], k1 = set[id1], off = CUT_ANGLE[h];
   const w = CUT_ANGLE.vert + (1 - CUT_ANGLE.vert) * Math.abs(Math.cos(ang * D2R));
   return k0.map((p, j) => {
@@ -254,6 +261,18 @@ export function swingHands(style, sw, A){
   return !!style.two;
 }
 
+/* VARIANTS (data/poses.js SWING_VARIANTS) — the same cut struck again in a grip with a second take alternates between
+   the two, the variant first. One toggle per grip and cut, so a string that comes back round to a cut plays the
+   other take of it. */
+const VAR_NEXT = {};
+function variantOf(grip, id, set){
+  const v = SWING_VARIANTS[grip] && SWING_VARIANTS[grip][id];
+  if (!v || !set[v]) return id;
+  const k = grip + ':' + id, alt = VAR_NEXT[k] !== false;
+  VAR_NEXT[k] = !alt;
+  return alt ? v : id;
+}
+
 /* SWING — evaluate the keyframed cut at the swing's progress. Returns body cues for the caller (envelope, spin,
    hop, drop) so legs and the whole-body turn stay in step with the blade. */
 export function swingPose(R, held, grip, form, sw){
@@ -265,7 +284,21 @@ export function swingPose(R, held, grip, form, sw){
     const fin = !!fb || (sw.step === 2 && sw.dir === 'neutral' && !sw.riposte);
     const pid = fb ? fb.pat : sw.riposte && !sw.ripLine ? 'forward' : fin ? style.finisher.pattern : (sw.pat.id || 'right');   // (a riposte on a line: jedi/guardline.js)
     const set = (style.set && SWINGS[style.set]) || SWINGS[grip] || SWINGS.regular;   // (the saber staff swings its own two-ended set)
-    const keys = sw.pat.ang != null && !sw.riposte && !fin ? angleKeys(set, grip, sw.pat.ang, sw.h) : (set[pid] || set.right);
+    const angled = sw.pat.ang != null && !sw.riposte && !fin;
+    // a grip with its own takes (data/poses.js SWING_VARIANTS, SWING_SPIN_KEYS: the reverse grip) picks the cut by its id
+    // so it can swap in the variant or the spinning cut; the others blend angle cuts as before
+    const own = !style.set && (SWING_VARIANTS[grip] || SWING_SPIN_KEYS[grip]);
+    let kid = null, keys;
+    if (own){
+      kid = (fb && fb.keys && set[fb.keys]) ? fb.keys : angled ? nearestId(set, sw.pat.ang, sw.h) : set[pid] ? pid : 'right';
+      const spinning = (sw.spin && sw.spin.turns) || (fb ? fb.spin : fin && style.finisher.spin);
+      const SK = SWING_SPIN_KEYS[grip];
+      if (spinning && SK){
+        const base = set[kid], dir = base[2].hand.x - base[0].hand.x >= 0 ? 'R' : 'L';
+        if (set[SK[dir]]) kid = SK[dir];
+      } else if (!(fb && fb.keys)) kid = variantOf(grip, kid, set);
+      keys = set[kid];
+    } else keys = angled ? angleKeys(set, grip, sw.pat.ang, sw.h) : (set[pid] || set.right);
     const pf = fin && !fb && sw.pf;   // a PERFECT STRING's finisher: the same move, bigger (data/finishers.js PERFECT)
     // reach scales the chamber and follow-through out from the arc centre (committed forms swing bigger)
     const scaled = keys.map((kf, i) => i === 1 ? kf : { ...kf, hand: kf.hand.clone().sub(PIVOT).multiplyScalar(style.reach).add(PIVOT) });
@@ -274,6 +307,7 @@ export function swingPose(R, held, grip, form, sw){
       hop: fb ? (fb.hop || 0) : fin ? style.finisher.hop + (pf && pf.hop || 0) : style.spinHop,
       tc: style.tc * (sw.riposte ? 0.45 : sw.flowCut ? CUT_ANGLE.flow.chamber : 1), ts: style.ts, tf: style.tf,
       start: { hand: saberPose.hand.clone(), blade: saberPose.blade.clone(), twist: saberPose.twist, pole: saberPose.pole.clone() },
+      look: (kid && SWING_KEY_LOOK[grip] && SWING_KEY_LOOK[grip][kid]) || null,   // (a low sweep's crouch, a stab's lean)
     };
     // (a Shien heavy turned over into the forward grip: jedi/weight.js regrip. Its cut is the forward grip's, two-handed)
     sw.anim.two = sw.regrip ? true : swingHands(style, sw, sw.anim);
@@ -289,7 +323,8 @@ export function swingPose(R, held, grip, form, sw){
     const og = offGripIn(held, grip);
     if (og !== grip && style.dual){
       const oset = SWINGS[og] || SWINGS.regular;
-      const ok = sw.pat.ang != null && !sw.riposte && !fin ? angleKeys(oset, og, sw.pat.ang, sw.h) : (oset[pid] || oset.right);
+      const oid = kid && oset[kid] ? kid : null;   // (the off hand's reversed blade takes the same stroke as the lead's)
+      const ok = oid ? oset[oid] : angled ? angleKeys(oset, og, sw.pat.ang, sw.h) : (oset[pid] || oset.right);
       sw.anim.offSrc = ok.map((kf, i) => i === 1 ? kf : { ...kf, hand: kf.hand.clone().sub(PIVOT).multiplyScalar(style.reach).add(PIVOT) });
       sw.anim.offRestG = offGuard(held, grip, form, G0, G0.ready);
     }
@@ -415,7 +450,8 @@ export function swingPose(R, held, grip, form, sw){
   const wheel = two && sp && sp.twirl && grip === 'regular' && k < A.ts * 0.85 && !staffIn(held);
   saberPose.two += ((two && !wheel ? 1 : 0) - saberPose.two) * 0.3;
   if (wheel) saberPose.off.lerp(TWIRL_OFF, 0.2);
-  saberPose.lean = ((style.drop || 0) + (sw.heavy ? HEAVY_LOOK.drop : 0)) * Math.sin(Math.PI * k) * 1.6;   // (a heavy throws the shoulders down into it)
+  saberPose.lean = ((style.drop || 0) + (sw.heavy ? HEAVY_LOOK.drop : 0)) * Math.sin(Math.PI * k) * 1.6   // (a heavy throws the shoulders down into it)
+    + (A.look && A.look.lean || 0) * Math.sin(Math.PI * k);
   // the free hand works against the blade (data/poses.js SWING_OFF): a forehand reaches it out at the foe on the wind-up
   // and draws it back to the hip as the blade comes through (the counter-pull that turns the body), a backhand tucks it in
   // and flings it out the other way; it opens for balance on the follow-through and returns to the guard's place
@@ -439,7 +475,7 @@ export function swingPose(R, held, grip, form, sw){
   // strike, peaking as the blade reaches the strike key, then carried out by the follow-through)
   const coil = ph === 0 ? t : ph === 1 ? 1 - t : 0;
   const drive = ph === 0 ? 0 : ph === 1 ? t : ph === 2 ? 1 - 0.6 * t : 0.4 * (1 - easeOut((k - A.tf) / (1 - A.tf)));
-  return { k, env: Math.sin(Math.PI * k), cut, spin: A.spin, hop: A.hop, drop: (style.drop || 0) + (A.fin ? 0 : sw.pat.drop || 0), fin: A.fin, strike: k > A.tc && k < A.tf, coil, drive, side: A.side };
+  return { k, env: Math.sin(Math.PI * k), cut, spin: A.spin, hop: A.hop, drop: (style.drop || 0) + (A.fin ? 0 : sw.pat.drop || 0) + (A.look && A.look.drop || 0), fin: A.fin, strike: k > A.tc && k < A.tf, coil, drive, side: A.side };
 }
 
 /* DEFLECT — the blade snaps to catch a bolt and flicks it away. Which catch is picked from where the bolt arrives

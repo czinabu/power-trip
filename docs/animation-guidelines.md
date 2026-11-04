@@ -65,6 +65,19 @@ Reverse-grip rules (Shien always; Niman when the grip preference is reverse):
   the front at contact and carries on to lie back along the arm on the far side. A flat or diagonal stroke whose blade turns
   nearly half way round is routed level round the side it came from (`REV_ROUND`), never down through the legs.
 - **The overhead** is a hammer-fist: the blade hangs from the raised fist and is driven down through the front.
+- **Second takes** (`SWING_VARIANTS`): the same cut struck again alternates with its variant, variant first, so a
+  string never repeats a stroke. The flat cut out to the weapon side alternates with a tight **backhand** (arm bent, the
+  blade held out in front of the fist, the body turn carries it across like a scythe). The flat cut across the body
+  alternates with a **hook** (fist thrown across at shoulder height, elbow up, the blade raking down). The thrust
+  alternates with an **overhand stab** (fist raised by the ear, then driven down before the breastbone, elbow wide, the
+  blade straight out at the foe).
+- **Low cuts are real sweeps:** the hero crouches into them (`SWING_KEY_LOOK`), the fist goes down by the knee, and the
+  blade rakes round at shin height.
+- **Spinning cuts** (`SWING_SPIN_KEYS`): a strafe or mid-string spin and a spinning finisher throw the arm straight out
+  at shoulder height with the blade square off the fist, and the body turns it round. A reverse blade can't wheel about
+  the fist, so the forms that twirl in a forward grip spin the body instead (`SWING_SPINS_GRIP`: Niman, Jar'Kai with
+  both blades reversed), and Shien spins on the second cut of a string. Shien's finisher opens with the stab.
+- To film the cuts: `node tools/shots/cuts.mjs <out-dir> [form] [grip] [moves]` after a build.
 - **Blocks:** two per form, alternating each raise (`block2`): Shien's hanging wall and Ahsoka's high forearm shield,
   Niman's hanging wall and Starkiller's slanted bar.
 

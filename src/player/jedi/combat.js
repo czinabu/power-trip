@@ -6,13 +6,13 @@ import { CFG } from '../../data/config.js';
 import { stamDelay } from '../stamina.js';
 import { SWING_PATTERNS, backLineMul, swordMul } from '../../data/stances.js';
 import { edgeMul } from '../../enemies/foeform.js';
-import { SWING_SPINS, DEFLECT_SPINS } from '../../data/poses.js';
+import { SWING_SPINS, SWING_SPINS_GRIP, DEFLECT_SPINS } from '../../data/poses.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, barrels, keys, player, isGunner } from '../../state.js';
-import { fwd, rightV, playerPos, stance } from '../helpers.js';
+import { fwd, rightV, playerPos, stance, heldGrip } from '../helpers.js';
 import { damageEnemy, flinchEnemy, nearestEnemyInCone, staggerEnemy, interruptEnemy } from '../../enemies/damage.js';
 import { damageBoss } from '../../boss/boss.js';
 import { FOCUS, focusTier, focusDmgMul, addFocus, freeRiposte } from './focus.js';
@@ -170,7 +170,7 @@ export function tryAttack(flow = false){
    cooldown, with the stamina to pay its surcharge. */
 function pickSpin(form, step, dirKey, o){
   if (isGunner() || !player.grounded || player.flip || step === 2 || o.ripNow || o.backStrike || o.mom || o.held) return null;   // (a held press is drawing a heavy: no spin)
-  const S = SWING_SPINS[form];
+  const GS = SWING_SPINS_GRIP[heldGrip()], S = GS && GS[form] ? { ...SWING_SPINS[form], ...GS[form] } : SWING_SPINS[form];   // (a grip's own take)
   if (!S || !o.flow) return null;
   const sp = (step === 1 && S.mid) || ((dirKey === 'left' || dirKey === 'right') ? S.move : null);
   if (!sp || G.gt - (player._spinT || -9) < sp.cd || player.stam < sp.stam * o.st.stamina) return null;

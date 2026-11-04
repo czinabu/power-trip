@@ -80,7 +80,7 @@ function counterBlock(id){
   const rows = (F
     ? '<li class="up" title="' + esc(counterWin()) + '"><i>▲</i>Beats <em style="--fc:' + FAMILIES[F.beats].color + '">' + FAMILIES[F.beats].name + '</em> duellists: ' + esc(famList(F.beats)) + '</li>' +
       (() => { const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam); return '<li class="dn" title="' + esc(counterLose()) + '"><i>▼</i>Beaten by <em style="--fc:' + FAMILIES[by].color + '">' + FAMILIES[by].name + '</em> duellists: ' + esc(famList(by)) + '</li>'; })()
-    : '<li class="eq"><i>•</i>Outside the triangle: no family counters it, and it counters none</li>') + loreRows(id);
+    : '<li class="eq"><i>•</i>Neutral: no group counters it, and it counters none</li>') + loreRows(id);
   return '<div class="fm-sub">COUNTERS · ' + famTag(id) + (F ? '<span class="fm-hint">hover for the numbers</span>' : '') + '</div><ul class="fm-ctr">' + rows + '</ul>';
 }
 
@@ -278,18 +278,21 @@ function forceBlock(id){
     : 'Ranks are earned in the campaign, survival and missions.';
   return '<div class="fm-sub fm-mast">MASTERY ' + rankLine(id) + '</div>' + (next ? rankBar(id, true) : '') +
     '<div class="fm-fin">' + esc(where) + (next ? ' Practise it with ' + esc(m.practice) + '.' : '') + '</div>' +
-    '<ul class="fm-rkl">' + m.lines.map(t => '<li' + (r >= 3 ? ' class="on"' : '') + '>' + esc(t) + '</li>').join('') + '</ul>' +
+    '<div class="fm-rkl' + (r >= 3 ? ' on' : '') + '"><span>' + (r >= 3 ? 'MASTERED' : 'EACH RANK') + '</span>' + m.lines.map(esc).join(' · ') + '</div>' +
     '<div class="fm-fin dim">Each rank moves these a third of the way to Master and adds ' + pctOf(FORM_RANK_SHARE) + ' to its Force share: ' + pctOf(share) + ' now.</div>';
 }
-const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-best">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
+const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-sub">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="fm-detail empty">Select a form to see what it is good and bad at.</div>';
   const F = FORMS[id], C = FORM_CODEX[id] || {};
   return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + famTag(id) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
+    // what it's for first (its best fights, its counters), then how it fights, its finisher, and its mastery
+    counterBlock(id) +
+    '<div class="fm-sub">STRENGTHS &amp; WEAKNESSES</div>' +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + forceBlock(id) + counterBlock(id) + '</div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + forceBlock(id) + '</div>';
 }
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';

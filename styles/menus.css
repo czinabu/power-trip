@@ -1062,10 +1062,9 @@ body.pad .kbonly{display:none}
 .fm-bar.big{height:5px;margin-top:7px}
 .fm-sub .fm-pips{margin-left:8px}
 .fm-sub .fm-rk{margin-left:4px}
-.fm-rkl{margin:7px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.4}
-.fm-rkl li{position:relative;padding-left:14px;margin:2px 0;color:var(--ink-soft)}
-.fm-rkl li::before{content:'\25B8';position:absolute;left:1px;color:var(--ink-faint)}
-.fm-rkl li.on::before{content:'\2713';color:var(--gold)}
+.fm-rkl{margin-top:6px;font-size:13px;line-height:1.45;color:var(--ink-soft)}
+.fm-rkl span{margin-right:7px;font:600 10px/1 var(--font-ui);letter-spacing:1.3px;color:var(--ink-faint)}
+.fm-rkl.on span{color:var(--gold)}
 .fm-fin.dim{margin-top:6px;color:var(--ink-dim);font-size:12px;line-height:1.4}
 .fm-detail .fm-fin{font-size:13px;line-height:1.4}
 .fm-detail .fm-fin.dim{font-size:12px}

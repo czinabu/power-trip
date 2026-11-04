@@ -16,7 +16,7 @@ export function buildJedhaNightArena(L){
   const pal = L.pal || {};
   // THE SANCTUM (world/sanctum.js): the courtyard is the floor of the temple's great hall now, walled and roofed, the
   // roof broken open over the dais where the gate's light goes up and the moon comes in
-  buildSanctum({ style: 'temple', seed: 31, wallH: 24, rise: 14, gallery: 11, light: [-18, 40, 30],
+  buildSanctum({ style: 'temple', seed: 31, wallH: 24, rise: 14, gallery: 11, windowY0: 12.6, arcade: ['e', 'w'], arcadeTop: 20, light: [-18, 40, 30],
     hole: (x, z) => Math.hypot(x, z * 1.15) < 9.5 || Math.hypot(x - 11, z + 15) < 4.5,
     holeShafts: [[0, 0, 4.5]],
     stone: pal.hallStone ?? 0x5a5464, stoneD: pal.hallStoneD ?? 0x3a3644, roof: pal.roof ?? 0x2e2a38, char: 0x1a1620,

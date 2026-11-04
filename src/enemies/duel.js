@@ -135,7 +135,6 @@ export function rallyParry(e, sw, at){
   clashFlash(cp, isGunner() ? 0xffd28a : stance().blade, true);
   clashSparks(cp, 0xffe9b0, 5);
   S.clash(cp, true, e.form);
-  sfx(1700 + n * 220, 0.08, 'triangle', 0.035, 1200);   // each beat rings a little higher
   G.hitstop = Math.max(G.hitstop, 0.07); G.shake = Math.max(G.shake, 0.35);
   G.slowmo = Math.min(G.slowmo, 0.55); G.slowmoT = Math.max(G.slowmoT, 0.1);
   floater(V3(g.position.x, g.position.y + 1.3, g.position.z), 'RE-PARRIED', '#ffd24a');

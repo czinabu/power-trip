@@ -187,7 +187,7 @@ export function updateAudio(dt){
     const spin = thrown ? Math.sin(t * 2 * Math.PI * 6.5) : 0;
     const m = thrown ? 0.7 : mH;
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
-    const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
+    const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.047 + m * 0.066 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
     const hz = thrown ? 1300 + spin * 450 : 380 + m * 1500 + walk * 120;
     // the mic swung past the blade (the films' swing): pitch rides up as the motion builds and dips under rest as it
     // dies away (a doppler pass), over the projector motor's slow mechanical wow
@@ -197,12 +197,12 @@ export function updateAudio(dt){
     const pitch = 90 * p * (1 + m * 0.12 + L.dop + spin * 0.045) * wow;
     L.hum.set(lvl * hk, hz, pitch, htc(m > 0.05 || thrown ? 0.02 : 0.1));
     // the TV buzz: a thin layer at rest that comes up and brightens as the blade moves (the mic closing in)
-    L.buzz.set((playing && jedi) ? (0.006 + m * 0.026) * hk : 0, 560 + m * 700, pitch, htc(m > 0.05 ? 0.02 : 0.1));
+    L.buzz.set((playing && jedi) ? (0.0085 + m * 0.025) * hk : 0, 560 + m * 700, pitch, htc(m > 0.05 ? 0.02 : 0.1));
     L.buzz.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
     const m2 = Math.max(mH2, mH * 0.6);
-    L.hum2.set((playing && staff) ? (0.02 + m2 * 0.045) * hk : 0, 380 + m2 * 1400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
+    L.hum2.set((playing && staff) ? (0.027 + m2 * 0.043) * hk : 0, 380 + m2 * 1400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
   }
   if (L.hiss){
     const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
@@ -223,7 +223,7 @@ export function updateAudio(dt){
     const hp = c ? Math.round(60 + c * 900) : 10;
     if (hp !== L.ambHP){ L.ambHP = hp; setAmbHP(hp, c ? 0.03 : 0.12); }   // (only when it moves: this runs every frame)
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * SABER_PITCH * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
+  if (L.dark) L.dark.set((playing && darkOn) ? (0.054 + mD * 0.064) * hk : 0, 380 + mD * 2000, 62 * SABER_PITCH * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
 
   // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
   if (L.grind){

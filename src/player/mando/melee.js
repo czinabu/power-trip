@@ -413,7 +413,7 @@ export function mandoCatch(fromPos){
   G.slowmo = Math.min(G.slowmo, 0.3); G.slowmoT = Math.max(G.slowmoT, 0.3);
   screenFlash('radial-gradient(ellipse at center, rgba(255,230,170,.22), transparent 45%)', 0.5, 0.22);
   floater(pp, 'CAUGHT! ⟲ TAKEDOWN', '#ffd28a');
-  S.clash(cp, true); sfx(2600, 0.12, 'triangle', 0.04, 1800);
+  S.clash(cp, true);
   if (G.stats) G.stats.parries++;
   noteDefense('parries', fromPos);
 }

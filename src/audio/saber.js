@@ -1,11 +1,11 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // LIGHTSABER SOUND: every one-shot a blade makes, all synthesized (no recordings, nothing borrowed from a film or a game).
-//   ignite / retract   the snap-hiss: a crack, the blade running up (or sucking back) through a filter that flares open,
-//                      voiced by the form's group (Guard smooth, Speed snappy, Power roaring, Niman an airy shimmer)
+//   ignite / retract   the blade's own hum shooting up from a growl behind the clash's punch (or sinking back into the
+//                      hilt), voiced by the form's group (Guard smooth, Speed snappy, Power roaring, Niman an airy shimmer)
 //                      (full: the showpiece version, for the ignite / retract key and a draw from the belt)
 //   swing              the "vwoom": the hum bending up through the arc, a doppler pass, moving air; every stroke different
-//   clash              blade on blade, in four layers: a crack, a sub thump, a plasma sizzle and a hum tail, glued on one bus
-//   burn               blade through a body: a scorching sear over a dull thump
+//   clash              THE blade-contact sound: blade on blade, a blade striking a foe, a bolt deflected (the hum shorting
+//                      out with a punch, a blaster "pyew" off it), glued on one bus
 //   wall               blade dragged through stone or metal: a sizzling scrape that spits sparks
 //   deflect            a bolt batted away: the same sound as a clash (the hum shorting out, a blaster "pyew" off it)
 // The held hum (the loop that bends with the blade's real tip speed) lives in director.js and uses HUM_PITCH below.
@@ -175,8 +175,12 @@ export function ignite(kind, o = {}){
   const full = !!o.full, dark = kind === 'dark', pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * (full ? 0.6 : 0.42);
   const fam = familyOf(kind), F = IGNITE_FAMILY[fam], ri = F.rise * (full ? 1.25 : 1) * rand(0.92, 1.08), br = F.bright;
   const p = (HUM_PITCH[kind] || SABER_PITCH) * rand(0.98, 1.02), up = (full ? 0.2 : 0.15) * ri;
-  // the punch on the front of it
-  bladePunch(pos, at, g * (full ? 1 : 0.85) * Math.max(0.5, Math.min(1.15, F.crack)), Math.max(0.25, F.crack));
+  // the boot-up: a full, loud clash as the blade bursts out of the emitter (its hum shorting out, with the punch), with a
+  // subtle blaster "pyew" in it, before the hum shoots up and settles (the main blade only; a second blade just hums up)
+  if (!o.second){
+    const boot = () => clash(pos, full, kind, 0.35);
+    if (at > 0 && shared.AC){ setTimeout(boot, at * 1000); } else boot();
+  } else bladePunch(pos, at, g * 0.85 * Math.max(0.5, Math.min(1.15, F.crack)), Math.max(0.25, F.crack));
   // "kssh": the plasma catching, a burst of hiss that brightens fast and trails off
   N({ pos, at: at + 0.004, color: 'pink', g: 0.075 * g, a: 0.006 * ri, d: (full ? 0.38 : 0.26) * ri,
       filt: { type: 'bandpass', f: 900, f2: (dark ? 2600 : 4800) * br, q: 0.9, t: up * 0.8 }, verb: 0.15, pri: 2 });
@@ -328,16 +332,6 @@ export function chargeRelease(form, c, pos){
 
 /* ---------- contact ---------- */
 
-/* the saber meeting flesh/armour: a scorching sizzle over a dull thump, then the sear hissing away */
-export function burn(pos, pw){
-  N({ pos, g: 0.08 * pw, a: 0.002, d: 0.14 + pw * 0.05, filt: { type: 'highpass', f: 2600 }, drive: 0.55, pri: 2 });
-  N({ pos, g: 0.045, d: 0.26, rate: 0.55, filt: { type: 'bandpass', f: rand(4600, 5800), q: 3 } });
-  N({ pos, g: 0.04 * pw, a: 0.006, d: 0.3 + pw * 0.1, filt: { type: 'bandpass', f: rand(6500, 8200), f2: 2400, q: 1.4 }, pri: 0 });
-  T({ pos, type: 'sine', f: 150, f2: 45, g: 0.16 * pw, d: 0.12 });
-  T({ pos, type: 'sawtooth', f: 220, f2: 80, g: 0.06, d: 0.1, filt: { type: 'lowpass', f: 1600 } });
-  crackle(pos, 2, 0.16, 0.03);
-}
-
 /* BLADE ON BLADE, the way it sounds in the films: not a ring or a bang, but the blades' own hum SHORTING OUT. The two
    plasma fields meet and the hum (projector motor + TV buzz) surges into an overdriven, crackling electrical burst
    ("KSSHHZZT"), the arc buzzing at mains-like rates as it spits, then the sparks fizz away and the hum settles back.
@@ -351,7 +345,7 @@ export function burn(pos, pw){
    All on the clash bus (engine.js glue compressor). The form tunes the surge (its hum pitch) and how long the arc spits
    (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, length (a short spit to a long tear), arc rate and a
    slight pan drift, so a duel never repeats; a big hit (a parry, a bind) is heavier and longer all through. */
-export function clash(pos, big, form){
+export function clash(pos, big, form, pew = 1){   // pew: how loud its blaster "pyew" (an ignition's is subtle)
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
   const v = FORM_SOUND[form] || FORM_SOUND.niman, dm = v.damp, k = (big ? 1.3 : 1) * rand(0.86, 1.06);
   const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.65, 1.5);   // short spits to long tearing ones
@@ -382,7 +376,7 @@ export function clash(pos, big, form){
 
   // the blaster bolt's "PYEW" off the strike (the guy-wire chirp and its echoes, pyew below), up front in the mix, the
   // hero's hum dipping for it
-  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 2 : 1.8)); }
+  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 2 : 1.8) * pew); }
   if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one shower of sparks between them
   // the sparks fizzing away
   CN({ at: 0.04, g: 0.035 * k, a: 0.01, d: len * 1.4 * dm, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });

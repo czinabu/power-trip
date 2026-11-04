@@ -97,6 +97,9 @@ export const S = {
   reignite: (kind, from) => { if (!tooSoon('ign', 0.05)) SB.reignite(kind, from); },
   // a blade dragged through a wall: first = it just bit in (fx/trail.js)
   saberWall: (pos, first, dark) => SB.wall(pos, first, dark),
+  // a saber lock (enemies/duel.js; the held grind is director.js): an arc spitting out of the bind, the bind snapping apart
+  lockArc: (pos, big) => { if (!tooSoon(big ? 'larcB' : 'larc', big ? 0.05 : 0.02)) SB.lockArc(pos, big); },
+  lockSnap: (pos) => { if (!tooSoon('lsnap', 0.1)) SB.lockSnap(pos); },
   // ── blasters ──
   blaster: () => blaster(false),
   blasterDual: () => blaster(true),

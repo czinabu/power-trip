@@ -18,7 +18,7 @@ import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
 import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
 
-const L = { hum: null, hum2: null, hiss: null, dark: null, near: [], jet: null, flame: null, amb: [], ambKey: '' };
+const L = { hum: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 
 /* how much a blade is moving, 0..1, from its tip speed against its owner (m/s): a held guard barely stirs it, a full
@@ -42,6 +42,11 @@ function ensureLoops(){
                   filt: { f: 380, q: 2 }, lfo: { r: 5.3, d: 60 }, drive: 0.35, verb: 0.08 });
   // two placed hums for the nearest other lit blades (foes, the boss, a co-op partner, an ally)
   for (let i = 0; i < 2; i++) L.near.push({ h: loop({ base: 90, layers: [{ f: 90 }, { f: 90.8, det: 5, g: 0.7 }, { type: 'sine', f: 180, g: 0.5 }], filt: { f: 500, q: 1 }, lfo: { r: 3.3 + i, d: 40 } }), wob: rand(0, 6) });
+  // LOCK_GRIND — "KRRRZZZZ...": two blades held against each other. A harsh, vibrating tear of driven white noise (its band
+  // shaken fast, so it spits rather than hisses) over a heavy, gritty low hum; one-shot arcs and pops are thrown over it
+  // from enemies/duel.js. Silent until a bind; how hard it grinds follows the struggle (BLADE_AUDIO.lock).
+  L.grind = loop({ base: 1, layers: [{ noise: 'white' }, { noise: 'pink', g: 0.7 }], filt: { type: 'bandpass', f: 2200, q: 0.9 }, lfo: { r: 23, d: 1500 }, drive: 0.7, verb: 0.1 });
+  L.grindLow = loop({ base: 58, layers: [{ f: 58 }, { f: 87.5, g: 0.8 }, { type: 'square', f: 29, g: 0.4 }], filt: { f: 650, q: 1.6 }, lfo: { r: 13, d: 260 }, drive: 0.6, verb: 0.08 });
   L.jet = loop({ base: 50, layers: [{ noise: 'brown', g: 1.6 }, { noise: 'pink', g: 0.5 }, { f: 50, g: 0.12 }],
                  filt: { f: 500, q: 0.6 }, lfo: { r: 11, d: 90 } });
   L.flame = loop({ base: 60, layers: [{ noise: 'pink', g: 1 }, { noise: 'brown', g: 1.2 }],
@@ -176,6 +181,16 @@ export function updateAudio(dt){
     L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
   }
   if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + mD * 0.07 : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), mD > 0.05 ? 0.02 : 0.12);
+
+  // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
+  if (L.grind){
+    const BL = BA.lock, on = playing && BL && G.gt - (BL.at || 0) < 0.3;
+    const hard = on ? (BL.surge ? 1 : BL.tell ? 0.75 : 0.55) + Math.abs(BL.bal) * 0.2 : 0;
+    const P = on ? place(BL.pos) : null;
+    L.grind.set(on ? 0.038 * hard : 0, on ? 1700 + hard * 1600 + Math.sin(t * 7.3) * 300 : 0, 0, on ? 0.03 : 0.06);
+    L.grindLow.set(on ? 0.056 * hard : 0, on ? 420 + hard * 500 : 0, 58 * (1 - (on ? BL.bal * 0.08 : 0)) * (1 + Math.sin(t * 17) * 0.02), on ? 0.03 : 0.06);
+    if (P){ L.grind.pan.pan.setTargetAtTime(P.pan, t, 0.05); L.grindLow.pan.pan.setTargetAtTime(P.pan, t, 0.05); }
+  }
 
   // other blades: the two nearest lit, unthrown blades within earshot get a placed hum; the rest stay silent
   if (L.near.length){

@@ -47,7 +47,9 @@ btn(lp, 'darksaber hum', () => { G.hero = 'mando'; player.weapon = 'darksaber'; 
 btn(lp, 'no hum', () => { G.hero = 'none'; player.weapon = 'single'; }, true);
 const lp2 = section('');
 btn(lp2, 'swing the blade', () => { swingT = 0.35; S.swing(G.hero === 'mando' ? 'dark' : G.stance); });
-let waveT = 0;
+let waveT = 0, lockOn = 0, arcT = 0;
+toggle(lp2, 'saber lock (held grind)', on => { lockOn = on ? 1 : 0; if (!on){ BLADE_AUDIO.lock = null; S.lockSnap(); } });
+toggle(lp2, 'lock: surge', on => { lockOn = on ? 2 : (lockOn ? 1 : 0); });
 toggle(lp2, 'wave the blade (slow figure-eights)', on => { waveT = on ? 0.001 : 0; });
 toggle(lp2, 'jetpack', on => { G.hero = 'mando'; player.jetActive = on; });
 toggle(lp2, 'boost', on => { G.hero = 'mando'; player.boosting = on; });
@@ -95,6 +97,10 @@ const stateEl = document.getElementById('state');
   if (swingT > 0){ swingT -= dt; player.atkT = swingT; sp = 18 * Math.sin(Math.PI * (1 - swingT / 0.35)); } else player.atkT = 0;
   if (waveT > 0){ waveT += dt; sp = Math.max(sp, 3 + 5 * Math.abs(Math.sin(waveT * 2.2))); }
   BLADE_AUDIO.hero = BLADE_AUDIO.hero2 = BLADE_AUDIO.dark = sp;
+  if (lockOn){
+    BLADE_AUDIO.lock = { pos: V3(0, 1.4, -1), surge: lockOn === 2, tell: false, bal: Math.sin(G.gt * 0.7) * 0.6, at: G.gt };
+    if ((arcT -= dt) <= 0){ arcT = (0.06 + Math.random() * 0.14) * (lockOn === 2 ? 0.5 : 1); S.lockArc(undefined, lockOn === 2 && Math.random() < 0.3); }
+  }
   G.gt += dt;
   updateAudio(dt);
   if (AE.ready){ const m = MUSIC.debug(); stateEl.textContent = `score ${m.palette} · ${m.state} · intensity ${m.intensity}\nvoices ${AE.live}`; }

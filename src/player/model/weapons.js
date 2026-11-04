@@ -293,7 +293,7 @@ export function syncOffSaber(hero, allowed = true){
   const on = allowed && !!(hero.saberBladeRoot && hero.saberBladeRoot.userData.dual);
   // the main hilt clipped to the belt (put out, holstered, a duel's entrance): the off hilt clips on at the other hip
   const M = hero.saberHand, belt = hero.rig && hero.rig.sockets && hero.rig.sockets.belt, belted = !!(M && belt && M.parent === belt);
-  const away = !!hero.offAway || !M || M.scale.x < 0.01 || (!belted && M.parent !== M.userData.hand && !!M.userData.hand);
+  const away = !!hero.offAway || !M || (M.scale.x < 0.01 && !hero.mainAway) || (!belted && M.parent !== M.userData.hand && !!M.userData.hand);
   O.node.visible = on && !away;
   if (O.node.visible && belted){
     if (O.node.parent !== belt){ belt.add(O.node); O.node.position.set(...OFF_BELT.pos); O.node.rotation.set(...OFF_BELT.rot); }

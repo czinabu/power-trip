@@ -308,11 +308,13 @@ export const MANDO_AGILITY = {
 const OFF = [-0.55, -0.8, -0.25];
 export const AIR_GUARDS = {
   regular: {
+    // (Ataru's lore grip: two hands on the ground, ONE in the air. Every Ataru air guard keeps the off hand free for
+    // balance and reach: data/poses.js SWING_STYLE.ataru hands)
     ataru: {
       hang:   { hand: [0.16, 0.78, 0.3], blade: [0.35, 0.25, -0.9], twist: 0, off: { hand: [-0.18, 0.78, 0.3], pole: [-0.6, -0.3, -0.5] } },   // hands up on the ledge lip
-      windup: { hand: [0.06, 0.92, 0.08], blade: [0.12, 0.96, -0.22], two: true, twist: 0.04, pole: [0.7, -0.3, -0.4] },   // blade raised high overhead: the aerial wind-up
+      windup: { hand: [0.12, 0.92, 0.08], blade: [0.12, 0.96, -0.22], twist: 0.04, pole: [0.7, -0.3, -0.4], off: { hand: [-0.5, 0.28, 0.2], pole: OFF } },   // blade raised high overhead in one hand, the other flung out: the aerial wind-up
       cock:   { hand: [0.42, 0.12, -0.12], blade: [0.35, 0.12, -0.93], twist: 0.1, off: { hand: [-0.3, 0.2, 0.42], pole: OFF } },   // blade drawn back level at the hip: the aerial cut's dash
-      tuck:   { hand: [0.14, -0.02, 0.26], blade: [0.25, 0.55, -0.8], two: true, twist: -0.1, pole: [0.6, -0.7, -0.3] },          // hilt hugged in, blade clear behind
+      tuck:   { hand: [0.2, -0.02, 0.24], blade: [0.25, 0.55, -0.8], twist: -0.1, pole: [0.6, -0.7, -0.3], off: { hand: [-0.2, -0.04, 0.24], pole: OFF } },   // hilt hugged in one-handed, blade clear behind
       layout: { hand: [0.44, 0.06, 0.1], blade: [0.7, 0.6, -0.4], twist: 0.05, off: { hand: [-0.46, 0.06, 0.1], pole: OFF } },
       trail:  { hand: [0.3, -0.24, -0.06], blade: [0.2, -0.32, -0.93], twist: -0.12, off: { hand: [-0.3, 0.02, 0.3], pole: OFF } },
       plunge: { hand: [0.06, -0.06, 0.4], blade: [0.02, -0.92, 0.38], two: true, twist: -0.05, pole: [0.6, -0.4, -0.6] },

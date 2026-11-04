@@ -9,7 +9,7 @@
 
 import { SWING_WEIGHT, weightOf } from '../../data/swing-weight.js';
 import { G, player, isGunner } from '../../state.js';
-import { stance } from '../helpers.js';
+import { stance, heldGrip } from '../helpers.js';
 import { stamDelay } from '../stamina.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { BLADE_AUDIO } from '../../audio/saber.js';
@@ -43,6 +43,10 @@ function settle(sw){
   if (player.stam < cost){ sw.weigh = 'light'; return; }   // no breath for the bigger blow: it goes on light
   player.stam -= cost; player.stamDelay = stamDelay();
   sw.weigh = 'heavy'; sw.heavy = true;
+  // a heavy in another hold (data/swing-weight.js grip: Shien's forward two-handed smash): the hilt turns over and the
+  // second hand closes on it while the blade waits in its chamber, and the cut is built afresh in that grip (anim/saber.js)
+  const g0 = heldGrip();
+  if (H.grip && H.grip !== g0){ sw.regrip = H.grip; sw.restGrip = g0; sw.regripT = sw.regripDur = H.regrip || 0; sw.anim = null; }
   if (sw.travel){ sw.travel.x *= SWING_WEIGHT.look.step; sw.travel.z *= SWING_WEIGHT.look.step; }   // it drives in further behind the blow
   sfx(95, 0.22, 'sawtooth', 0.05, 60); sfx(420, 0.12, 'sine', 0.03, 260);   // the blade's hum drops as it loads
   tutEvent('heavyDraw');
@@ -54,6 +58,7 @@ export function swingStep(sw, dt){
   if (!sw.weigh) return dt;
   settle(sw);
   chargeSound(sw);
+  if (sw.regripT > 0){ sw.regripT = Math.max(0, sw.regripT - dt); sw.drawing = true; return 0; }   // turning the hilt over: the clock waits
   if (sw.weigh === 'pending'){
     const wind = ((sw.anim && sw.anim.wind) || 0.3) * SWING_WEIGHT.drawAt * sw.dur;
     sw.drawK = Math.min(1, (G.gt - sw.pressAt) / SWING_WEIGHT.hold);

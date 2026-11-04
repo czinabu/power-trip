@@ -51,8 +51,9 @@ export const SABER_GUARDS = {
     // the foe's eyes; coiled to spring. (The hilt sat too low for the off hand to reach it: it now closes on the pommel.)
     ataru: {
       ready: { hand: [0.06, 0.02, 0.3], blade: [-0.3, 0.72, 0.62], two: true, twist: -0.38, torso: -0.1, pole: [0.6, -0.7, -0.3] },
-      // a quick one-handed high cover (Yoda): blade flat over the brow, off hand flung out for balance
-      block: { hand: [0.18, 0.55, 0.3], blade: [-0.92, 0.28, 0.25], twist: -0.12, lean: 0.02, pole: [0.8, -0.2, -0.4],
+      // a quick two-handed high cover: blade flat over the brow, both fists up before the forehead (hilt central so
+      // the off hand reaches the pommel). Ataru lets go only in the air (SWING_STYLE.ataru hands, data/agility.js)
+      block: { hand: [0.04, 0.5, 0.36], blade: [-0.92, 0.28, 0.25], two: true, twist: -0.12, lean: 0.02, pole: [0.7, -0.4, -0.3],
                off: { hand: [-0.52, -0.05, 0.12], pole: [-0.3, -0.9, -0.3] } },
     },
     // FORM I SHII-CHO — the first guard every initiate learns: the plain middle guard of the Jedi younglings' training
@@ -91,8 +92,8 @@ export const SABER_GUARDS = {
       ready: { hand: [0.26, 0.74, 0.17], blade: [-0.85, 0.15, 0.5], twist: 0.85, torso: 0.3, lean: 0.0, pole: [1, 0, -0.1], palm: 1, gaze: 0.7,
                off: { hand: [-0.83, 0.35, 0.25], pole: [-0.7, -0.7, 0] },
                offMove: { hand: [-0.3, -0.1, 0.34], pole: OFF_POLE } },   // walking, the reaching hand drops to a loose carry
-      // blade upright before the face, the off palm braced behind it — a Force-backed wall
-      block: { hand: [0.1, 0.02, 0.42], blade: [-0.12, 1, 0.12], twist: 0, lean: 0.06, pole: POLE,
+      // blade upright before the face, both hands on the hilt: the turtle's wall (the idle keeps Obi-Wan's open arm)
+      block: { hand: [0.06, 0.02, 0.42], blade: [-0.12, 1, 0.12], two: true, twist: 0, lean: 0.06, pole: POLE,
                off: { hand: [-0.12, 0.14, 0.38], pole: OFF_POLE } },
     },
     // FORM VI NIMAN — the Clone Wars general's guard: easy and balanced, saber in one hand at the middle, tip up at the
@@ -101,8 +102,8 @@ export const SABER_GUARDS = {
       ready: { hand: [0.24, 0.0, 0.32], blade: [-0.28, 0.72, 0.62], twist: 0.18, torso: 0.06, lean: 0.05, pole: [0.7, -0.6, -0.3], palm: 1,
                off: { hand: [-0.36, 0.18, 0.44], pole: [-0.5, -0.85, 0.15] },
                offMove: { hand: [-0.3, -0.1, 0.34], pole: OFF_POLE } },
-      // the blade up before the chest, the open palm beside it: the Force hand helps catch
-      block: { hand: [0.14, 0.12, 0.42], blade: [-0.3, 0.94, 0.14], twist: 0.04, lean: 0.06, pole: POLE,
+      // the blade up before the chest in both hands: Niman's stable two-handed guard (the idle keeps the Force hand open)
+      block: { hand: [0.08, 0.12, 0.42], blade: [-0.3, 0.94, 0.14], two: true, twist: 0.04, lean: 0.06, pole: POLE,
                off: { hand: [-0.22, 0.16, 0.4], pole: OFF_POLE } },
     },
     // FORM VII JUYO — Maul's prowl in the Naboo hangar (The Phantom Menace): pitched forward and low, head down, the saber
@@ -111,8 +112,8 @@ export const SABER_GUARDS = {
     juyo: {
       ready: { hand: [0.3, -0.1, 0.38], blade: [0.1, -0.35, 0.93], twist: 0.22, torso: 0.08, lean: 0.18, pole: [0.8, -0.4, -0.4],
                off: { hand: [-0.42, 0.3, 0.32], pole: [-0.6, -0.6, -0.3] } },
-      // a hard one-handed bar thrown high across the front; it meets the blow and is already coming back
-      block: { hand: [0.2, 0.38, 0.4], blade: [-0.9, 0.42, 0.1], twist: 0.08, lean: 0.14, pole: [0.8, -0.3, -0.4],
+      // a hard two-handed bar thrown high across the front; it meets the blow and is already coming back
+      block: { hand: [0.02, 0.36, 0.4], blade: [-0.9, 0.42, 0.1], two: true, twist: 0.08, lean: 0.14, pole: [0.6, -0.8, 0],
                off: { hand: [-0.42, 0.06, 0.32], pole: OFF_POLE } },
     },
     // FORM VII VAAPAD — Mace Windu facing Palpatine (Revenge of the Sith): both hands close together at the weapon side of
@@ -461,6 +462,14 @@ export const SABER_SWINGS = {
    tc/ts/tf — when (0..1 of the swing) the blade reaches chamber, strike and follow-through. Damage lands at 0.35 for
               every form (combat.js), so ts sits just after it: the blade is crossing the front as the hit registers.
    reach    — scales the chamber and follow (bigger, more committed arcs)     two — both hands on the hilt
+   hands    — THE LORE GRIP of the alternating forms: the moves that take the other hold from `two` (true = both hands
+              on the hilt, false = the off hand comes free). The moves: air (a cut struck in the air), mom (a momentum
+              strike: the Hawk-Bat Swoop, a slide, wall or vault cut), spin (a spin or twirl link), fin (the 3rd-hit
+              finisher), rip (a riposte), back (a back strike). anim/saber.js swingHands reads it once per cut.
+              Shii-Cho sweeps two-handed and drops a hand for its disarming finisher and strafing spins; Ataru strikes
+              two-handed on the ground and lets go in the air and on its leaps; Niman cuts two-handed and frees the
+              Force hand for its flourishes; Juyo hacks two-handed and snaps to one-handed lunges; Vaapad, the same.
+              (A Force cast always frees the off hand, whatever the form: player/animation.js.)
    spinHop  — vertical hop on every cut (Ataru's bounce)    drop — knee drop into the strike (power)
    offFlare — the free hand flings out against the cut (Niman's Force hand)   overshoot — the blade pulls past the
               follow-through and has to be hauled back (the darksaber fighting an unsure wielder)
@@ -474,7 +483,7 @@ export const SABER_SWINGS = {
    weight   — how far the hips shift onto the back foot in the wind-up and through onto the front one in the strike (m)
    offFlare — how far the free hand works against the blade (SWING_OFF) */
 export const SWING_STYLE = {
-  shiicho:   { tc: 0.24, ts: 0.4, tf: 0.74, reach: 1.15, two: true, spinHop: 0, drop: 0.06, offFlare: 0, overshoot: 0,
+  shiicho:   { tc: 0.24, ts: 0.4, tf: 0.74, reach: 1.15, two: true, hands: { fin: false, spin: false, back: false }, spinHop: 0, drop: 0.06, offFlare: 0.6, overshoot: 0,
                twist: 1.15, finisher: { pattern: 'right', spin: 1, hop: 0 },
                load: 0.1, accel: 2.3, lag: 0.3, recover: 0.5, weight: 0.07 },   // broad two-handed sweeps that carry round the body
     // Shii-Cho finishes with the SARLACC SWEEP: a full turn with the blade held out, through everything around you
@@ -483,15 +492,15 @@ export const SWING_STYLE = {
                twist: 0.3, finisher: { pattern: 'thrust', spin: 0, hop: 0 },
                load: 0.04, accel: 2.6, lag: 0.65, recover: 0.75, weight: 0.08 },   // small, exact, wrist-led cuts that snap back on the line
     // Makashi finishes with a full lunge: the thrust, all the body behind the point
-  soresu:    { tc: 0.22, ts: 0.4, tf: 0.66, reach: 0.85, two: false, spinHop: 0, drop: 0.03, offFlare: 0.5, overshoot: 0,
+  soresu:    { tc: 0.22, ts: 0.4, tf: 0.66, reach: 0.85, two: true, spinHop: 0, drop: 0.03, offFlare: 0.5, overshoot: 0,
                twist: 0.8, finisher: { pattern: 'right', spin: 0, hop: 0 },
-               load: 0.06, accel: 2.2, lag: 0.35, recover: 0.8, weight: 0.05 },   // compact cuts that come straight back to the guard
+               load: 0.06, accel: 2.2, lag: 0.35, recover: 0.8, weight: 0.05 },   // compact two-handed cuts that come straight back to the guard
     // Soresu finishes on a plain, controlled backhand: no flourish, nothing left open
-  ataru:     { tc: 0.16, ts: 0.4, tf: 0.7, reach: 0.95, two: false, spinHop: 0.16, drop: 0.0, offFlare: 0.75, overshoot: 0,
+  ataru:     { tc: 0.16, ts: 0.4, tf: 0.7, reach: 0.95, two: true, hands: { air: false, mom: false, spin: false, fin: false }, spinHop: 0.16, drop: 0.0, offFlare: 0.75, overshoot: 0,
                twist: 1.25, finisher: { pattern: 'right', spin: 1, hop: 0.75 },
                load: 0.06, accel: 2.2, lag: 0.55, recover: 0.6, weight: 0.05 },   // whippy wrist cuts that spring back to the guard
     // Ataru's finisher is a leaping spin cut (Force-boosted, tucked)
-  niman:     { tc: 0.24, ts: 0.4, tf: 0.72, reach: 1.0, two: false, spinHop: 0, drop: 0.04, offFlare: 1.0, overshoot: 0,
+  niman:     { tc: 0.24, ts: 0.4, tf: 0.72, reach: 1.0, two: true, hands: { spin: false, air: false, mom: false, back: false }, spinHop: 0, drop: 0.04, offFlare: 1.0, overshoot: 0,
                twist: 1.0, finisher: { pattern: 'right', spin: 1, hop: 0 },
                load: 0.08, accel: 2.4, lag: 0.4, recover: 0.55, weight: 0.06 },   // measured: a full draw, a clean stroke, a long even follow-through
     // Niman finishes with a clean spinning cut
@@ -503,11 +512,11 @@ export const SWING_STYLE = {
                twist: 1.1, finisher: { pattern: 'right', spin: 1, hop: 0.15 },
                load: 0.1, accel: 2.6, lag: 0.3, recover: 0.5, weight: 0.08 },   // reverse-grip backhands driven by a hard body turn
     // Shien finishes with a spinning backhand, the blade laid along the arm whipping out at full reach
-  juyo:      { tc: 0.17, ts: 0.38, tf: 0.7, reach: 1.05, two: false, spinHop: 0.1, drop: 0.08, offFlare: 0.9, overshoot: 0.15,
+  juyo:      { tc: 0.17, ts: 0.38, tf: 0.7, reach: 1.05, two: true, hands: { spin: false, mom: false, rip: false, air: false }, spinHop: 0.1, drop: 0.08, offFlare: 0.9, overshoot: 0.15,
                twist: 1.3, finisher: { pattern: 'forward', spin: 1, hop: 0.35 },
                load: 0.08, accel: 3.0, lag: 0.45, recover: 0.4, weight: 0.08 },   // savage, whipping, overcommitted cuts
     // Juyo finishes with a leaping spin into an overhead chop
-  vaapad:    { tc: 0.22, ts: 0.4, tf: 0.72, reach: 1.05, two: true, spinHop: 0, drop: 0.06, offFlare: 0, overshoot: 0.05,
+  vaapad:    { tc: 0.22, ts: 0.4, tf: 0.72, reach: 1.05, two: true, hands: { rip: false, mom: false }, spinHop: 0, drop: 0.06, offFlare: 0.7, overshoot: 0.05,
                twist: 1.0, finisher: { pattern: 'forward', spin: 0, hop: 0.1 },
                load: 0.06, accel: 2.8, lag: 0.25, recover: 0.6, weight: 0.08 },   // still, then sudden: short draws, explosive strokes
   // THE SABER STAFF: quick two-handed cuts that wheel the hilt about its middle and carry well round (its own key set)

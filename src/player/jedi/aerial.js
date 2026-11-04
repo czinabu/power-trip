@@ -118,7 +118,7 @@ function strike(pp, tgt){
   const dur = 0.5 / (st.speed * (player.up.atkSpeed || 1));
   player.comboStep = 2;
   player.swing = { t: dur * 0.12, applied: false, step: 2, dur, pat: SWING_PATTERNS.right, dir: 'right', back: false,
-                   riposte: false, cancelRip: false, flow: false, mom: null, noHit: true };
+                   riposte: false, cancelRip: false, flow: false, mom: null, noHit: true, air: true };
   player.atkT = dur * 0.88;
   player.deflectAnim = null;
   if (hit){

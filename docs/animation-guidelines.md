@@ -29,6 +29,12 @@ Film references for each form's ready guard (`SABER_GUARDS` in `src/data/poses.j
 
 Two-handed poses must keep the pommel within the off arm's reach (shoulders at x ±0.27, y 0.32; arm 0.64 m): a hilt held low or far out to the weapon side leaves the off hand short of it.
 
+**The lore grip (hands on the hilt).** Each form's ready guard keeps its signature look; its cuts and blocks hold the hilt the way the form does in the lore (`SWING_STYLE` `two` / `hands`, the block guard's `two`):
+- **One-handed:** Makashi throughout; Jar'Kai, one hand to each blade; Shien's light cuts and catches (its heavy turns the hilt over into a forward, two-handed counter-smash and back: `SWING_WEIGHT.forms.shien`).
+- **Two-handed:** Djem So and the saber staff (its idle and run keep Maul's one-handed carry); Soresu's cuts and blocks.
+- **Alternating:** Shii-Cho sweeps two-handed and drops a hand for its finisher and strafing spins; Ataru strikes and blocks two-handed on the ground and lets go in the air and on its leaps and swoops; Niman cuts and blocks two-handed and frees the Force hand on its flourishes; Juyo hacks two-handed and snaps to one-handed spins, lunges and ripostes; Vaapad, two-handed with one-handed lunges and ripostes.
+- A Force cast always frees the off hand, and a two-handed catch turned into a twirl lets go while the blade wheels.
+
 The game's three switchable stances, and how they move now:
 
 | Key | Stance | Gameplay role (unchanged) | How it moves |
@@ -86,7 +92,7 @@ Reverse-grip rules (Shien always; Niman when the grip preference is reverse):
   (`src/data/poses.js`): high, mid or low, on the weapon side or across the body, two or three per zone and per grip.
   The side comes from where the bolt arrives; bolts down the middle alternate forehand and cross-body, and the height
   rotates mid/high/mid/low so a volley never repeats one block. Each catch snaps in, flicks the bolt away, and hands
-  back to the guard. The form's block decides the hands (Djem So two-handed, Ataru and Niman one-handed). Blocked
+  back to the guard. The form's block decides the hands (see the lore grip above: Makashi and Shien one-handed, most others two-handed). Blocked
   melee blows use the same catches. A swing in flight keeps the blade (the cut already deflects).
 
 ## Mandalorian

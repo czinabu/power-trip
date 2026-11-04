@@ -243,6 +243,17 @@ function keepClear(h, d, far = false){
   }
 }
 
+/* THE LORE GRIP (data/poses.js SWING_STYLE hands): whether this cut is struck with both hands on the hilt. The form's
+   `two` is its plain cut; `hands` names the moves that take the other hold (an alternating form's one-handed leap,
+   lunge or flourish). The first move this cut is wins, in this order. */
+const HAND_MOVES = [['fin', (sw, A) => A.fin], ['rip', sw => sw.riposte], ['mom', sw => !!sw.mom], ['air', sw => !!sw.air],
+  ['spin', sw => !!sw.spin], ['back', sw => !!sw.back]];
+export function swingHands(style, sw, A){
+  const H = style.hands;
+  if (H) for (const [m, is] of HAND_MOVES) if (H[m] !== undefined && is(sw, A)) return H[m];
+  return !!style.two;
+}
+
 /* SWING — evaluate the keyframed cut at the swing's progress. Returns body cues for the caller (envelope, spin,
    hop, drop) so legs and the whole-body turn stay in step with the blade. */
 export function swingPose(R, held, grip, form, sw){
@@ -264,13 +275,15 @@ export function swingPose(R, held, grip, form, sw){
       tc: style.tc * (sw.riposte ? 0.45 : sw.flowCut ? CUT_ANGLE.flow.chamber : 1), ts: style.ts, tf: style.tf,
       start: { hand: saberPose.hand.clone(), blade: saberPose.blade.clone(), twist: saberPose.twist, pole: saberPose.pole.clone() },
     };
+    // (a Shien heavy turned over into the forward grip: jedi/weight.js regrip. Its cut is the forward grip's, two-handed)
+    sw.anim.two = sw.regrip ? true : swingHands(style, sw, sw.anim);
     // FLOW: the blade carries on from wherever the last cut left it. Finishing on the far side from this cut's
     // chamber, it wraps over the top to get there (the films' twirl between strokes) instead of dragging back
     // across the front like a second, backwards cut.
     const st0 = sw.anim.start.hand, c0 = scaled[0].hand;
     sw.anim.wrap = !sw.flowCut && st0.x * c0.x < 0 && Math.abs(st0.x - c0.x) > 0.3;
     // the follow-through settles a little toward the form's guard instead of freezing (the recovery)
-    const G0 = guardSet(held, grip, form);
+    const G0 = guardSet(held, sw.restGrip || grip, form);   // (a regripped heavy goes back to the form's own guard)
     sw.anim.rest = G0.ready;
     // Jar'Kai with the off hand in the other grip: its follow-up mirrors the same cut from that grip's set
     const og = offGripIn(held, grip);
@@ -391,15 +404,23 @@ export function swingPose(R, held, grip, form, sw){
   // (a two-handed weapon wheeled about the fist lets go with the off hand for the twirl, flung out for balance, and
   // takes the hilt again for the strike: a two-handed saber's spin)
   // (the saber staff keeps both hands on: it's passed round between them, hand over hand, about the hilt's middle)
-  const wheel = style.two && sp && sp.twirl && grip === 'regular' && k < A.ts * 0.85 && !staffIn(held);
-  saberPose.two += ((style.two && !wheel ? 1 : 0) - saberPose.two) * 0.3;
+  // A REGRIP (jedi/weight.js: Shien's heavy turning over into the forward grip): the cut was built afresh in the new
+  // grip, so its chamber is somewhere else; while the hilt turns over the blade travels there from where it waited
+  if (sw.regripDur > 0 && sw.regripT > 0){
+    const u = 1 - sw.regripT / sw.regripDur, e = u * u * (3 - 2 * u);
+    saberPose.hand.lerpVectors(A.start.hand, saberPose.hand, e);
+    _wf.copy(saberPose.blade); slerpDir(A.start.blade, _wf, e, saberPose.blade);
+  }
+  const two = A.two;
+  const wheel = two && sp && sp.twirl && grip === 'regular' && k < A.ts * 0.85 && !staffIn(held);
+  saberPose.two += ((two && !wheel ? 1 : 0) - saberPose.two) * 0.3;
   if (wheel) saberPose.off.lerp(TWIRL_OFF, 0.2);
   saberPose.lean = ((style.drop || 0) + (sw.heavy ? HEAVY_LOOK.drop : 0)) * Math.sin(Math.PI * k) * 1.6;   // (a heavy throws the shoulders down into it)
   // the free hand works against the blade (data/poses.js SWING_OFF): a forehand reaches it out at the foe on the wind-up
   // and draws it back to the hip as the blade comes through (the counter-pull that turns the body), a backhand tucks it in
   // and flings it out the other way; it opens for balance on the follow-through and returns to the guard's place
   if (style.dual && dualIn(held)) dualSwing(A, k, style, sw);
-  else if (!style.two){
+  else if (!two){
     const O = style.offKeys ? (style.offV || (style.offV = style.offKeys.map(V))) : OFF_KEYS[A.side > 0 ? 'back' : 'fore'], fl = style.offFlare;
     const rOff = A.rest.offFight || A.rest.off, guardOff = (rOff && rOff.hand) || OFF_REST;
     const key = i => _p.copy(guardOff).lerp(O[i], fl);
@@ -543,9 +564,11 @@ export function deflectPose(dt, R, held, grip, form, d){
     if (staffIn(held)) shiftToMid(saberPose.hand, _wf, saberPose.blade);
   }
   saberPose.pole.lerp(P.pole, Math.min(1, dt * 30)).normalize();
-  // the form's block decides the hands: Djem So closes both on the hilt, Ataru and Niman keep the free hand out
-  saberPose.two += ((bg.two ? 1 : 0) - saberPose.two) * Math.min(1, dt * 14);
-  const off = bO.off || bg.off || G0.ready.off;
+  // the form's block decides the hands: Djem So closes both on the hilt, Makashi and Shien keep the free hand out. A
+  // two-handed catch turned into a twirl lets go with the off hand while the blade wheels (as a two-handed cut's twirl)
+  const wheel = !!(sp && sp.twirl && grip === 'regular' && !staffIn(held) && k < 0.6);
+  saberPose.two += ((bg.two && !wheel ? 1 : 0) - saberPose.two) * Math.min(1, dt * 14);
+  const off = wheel ? { hand: TWIRL_OFF, pole: OFF_POLE } : bO.off || bg.off || G0.ready.off;
   if (off){ saberPose.off.lerp(off.hand, Math.min(1, dt * 12)); saberPose.offPole.lerp(off.pole, Math.min(1, dt * 12)).normalize(); }
   // Jar'Kai: the off blade crosses the catch (the X-block) or, on a bolt, mirrors it
   if (dualIn(held)){ slerpDir(saberPose.offBlade, (!d.contact && bO.offBlade) || mirror(saberPose.blade, _mo), Math.min(1, dt * 16), saberPose.offBlade); saberPose.offLive = false; }

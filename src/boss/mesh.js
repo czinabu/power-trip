@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { glow } from '../engine/renderer.js';
+import { carriedLight } from '../fx/lights.js';
 import { loft, limb, plate, block, shard, chamfer, ngon, HEAD, gripHand } from '../player/model/shapes.js';
 import { bakeDesign, instantiate } from '../enemies/kit.js';
 import { legs, hips, torso, pauldrons, sideArm, upper, cape, NECK, SOFT, SOFT_COLLAR, SOFT_LIMB, dome, cap } from '../enemies/mesh.js';
@@ -129,7 +130,7 @@ function weaponArm(k, L, kind){
   const blade = k.glow(new THREE.CylinderGeometry(0.05, 0.035, 2.1, 8), 0xffffff, hand, [0, 1.25, 0]);
   blade.material.toneMapped = true;
   k.glow(new THREE.CylinderGeometry(0.13, 0.1, 2.15, 8), L.weapon, hand, [0, 1.25, 0], [0,0,0], { opacity: 0.5, trail: { hilt: -1 } });
-  const sl = new THREE.PointLight(L.weapon, 5 * glow.light, 10); sl.position.y = 1.2; k.live(sl, hand);   // softer than before: cel bands blow out under a strong close light
+  const sl = carriedLight(new THREE.PointLight(L.weapon, 5 * glow.light, 10)); sl.position.y = 1.2; k.live(sl, hand);   // softer than before: cel bands blow out under a strong close light
 }
 
 export function buildBoss(kind){
@@ -139,7 +140,7 @@ export function buildBoss(kind){
     const up = (kind === 'mando' ? mando : sith)(k, L);
     const arm = up.group(up.root); arm.scale.setScalar(1 / BODY);
     weaponArm(k.within(arm), L, kind);
-    const aura = new THREE.PointLight(L.aura, 4, 14); aura.position.set(0, 0.25, 1.4); k.live(aura);   // pools on the floor in front of him
+    const aura = carriedLight(new THREE.PointLight(L.aura, 4, 14)); aura.position.set(0, 0.25, 1.4); k.live(aura);   // pools on the floor in front of him
   }, { armor: L.armor, armor2: L.armor2, suit: L.suit, cloth: L.cloth, metal: L.metal });
   // like the troopers (enemies/mesh.js): the group carries place and heading, `vis` inside it takes the gait's bob and lean.
   // The trooper legs sit in the 1.4x body group, so enemies/gait.js is told how much bigger they are (legScale)

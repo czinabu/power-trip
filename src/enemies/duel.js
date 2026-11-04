@@ -30,6 +30,9 @@ import { pushKnock } from '../player/jedi/force.js';
 import { foeBlade } from '../player/jedi/clash.js';
 import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
 import { ringOpacity, bladeCue } from './guardcue.js';
+import { cutMul } from '../player/jedi/weight.js';
+// a light cut strains a guard a little less, a heavy one far more (player/jedi/weight.js); other blows keep their own
+const weighed = kind => kind === 'cut' || kind === 'finisher' ? cutMul(player.swing, 'posture') : 1;
 
 const LINES = ['L', 'R', 'H', 'Lo'];   // the lines a guard covers (Lo: the legs)
 const SIDES = ['L', 'R', 'H'];         // the lines a foe strikes from
@@ -608,7 +611,7 @@ export function duelDefend(e, line, kind, heavy, at){
     const P = DUEL.posture, W = WARBRINGER, light = kind === 'cut' || kind === 'punch';
     const base = kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut;
     drainBreath(e, kind === 'finisher' ? W.drain.finisher : W.drain.cut);
-    addPosture(e, base * (light ? W.cut : 1) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1), dx / dl, dz / dl);
+    addPosture(e, base * (light ? W.cut : 1) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * weighed(kind), dx / dl, dz / dl);
     return null;
   }
   if (G.gt < (e.openUntil || 0)) return null;           // caught recovering from its own swing: the guard isn't up yet
@@ -651,7 +654,7 @@ export function duelDefend(e, line, kind, heavy, at){
   e.lineStreak = same ? e.lineStreak + 1 : 1;
   e.lastLine = line; e.lastAng = ang; e.guard = line;
   const P = DUEL.posture;
-  const cost = (kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * matchup(e).posture;   // (× the form counter: a form that beats its own breaks it faster)   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
+  const cost = (kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut) * (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * weighed(kind) * matchup(e).posture;   // (× the form counter: a form that beats its own breaks it faster)   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
   // the flash goes where the blades cross (`at`, from player/jedi/clash.js), else just in front of the foe
   const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
   if (addPosture(e, cost, dx / dl, dz / dl)) return 'break';
@@ -1096,7 +1099,7 @@ function netDefend(e, line, kind, heavy, at){
   if ((Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl < 0.35) return null;   // the flank or the back always lands
   const P = DUEL.posture;
   const M = matchup(e);   // the form counter (enemies/foeform.js), from the puppet's form
-  const mul = (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * (n[NG.brace] ? 1 : M.posture);
+  const mul = (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * weighed(kind) * (n[NG.brace] ? 1 : M.posture);
   if (n[NG.brace]){ if (hooks.guard) hooks.guard(e, kind, mul, line); return null; }   // the Warbringer braces: the strain builds on the host
   if (!n[NG.up]) return null;
   const p = e.dp || {}, m = diffMul() * (p.elite ? eliteRamp() : 1), fresh = !n[NG.winded];

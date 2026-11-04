@@ -15,17 +15,22 @@ function render(){
     const head = ROADMAP_STATUS[statuses[0]];
     return `<div class="rm-col rm-${statuses[0]}">
       <div class="rm-st">${head}</div>
-      ${phases.map((p) => `<div class="rm-phase">
-        <button type="button" class="rm-title" aria-expanded="false">${esc(p.title)}${p.status === 'later' ? ' <span class="rm-later">LATER</span>' : ''}</button>
+      ${phases.map((p) => {
+        const later = p.status === 'later' ? ' <span class="rm-later">LATER</span>' : '';
+        // only SHIPPED entries open a description; IN PROGRESS and PLANNED are titles alone
+        if (p.status !== 'done' || !p.items?.length) return `<div class="rm-phase"><div class="rm-title rm-plain">${esc(p.title)}${later}</div></div>`;
+        return `<div class="rm-phase">
+        <button type="button" class="rm-title" aria-expanded="false">${esc(p.title)}${later}</button>
         <ul hidden>${p.items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
-      </div>`).join('')}
+      </div>`;
+      }).join('')}
     </div>`;
   }).join('');
 }
 
-// Titles only; a click on a title shows or hides its description.
+// Titles only; a click on a SHIPPED title shows or hides its description.
 document.getElementById('rmlist').addEventListener('click', (e) => {
-  const t = e.target.closest('.rm-title');
+  const t = e.target.closest('button.rm-title');
   if (!t) return;
   const open = t.getAttribute('aria-expanded') !== 'true';
   t.setAttribute('aria-expanded', open);

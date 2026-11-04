@@ -15,6 +15,7 @@ import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
 import { stance, maxStam, heldGrip } from './helpers.js';
 import { tryAttack, applySwingDamage, applyOffBladeHit, FLOW } from './jedi/combat.js';
+import { swingStep } from './jedi/weight.js';
 import { finisherNext } from './jedi/finisher.js';
 import { assistFace } from './jedi/saberassist.js';
 import { inCombat } from './mobility.js';
@@ -399,8 +400,9 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       sw.t = rc.from - rc.back * (1 - (1 - q) * (1 - q));
       player.atkT = q < 1 ? Math.max(1e-3, rc.dur - rc.t) : 0;
     } else {
-      player.atkT -= sdt;
-      sw.t += sdt;
+      const wdt = swingStep(sw, sdt);   // a held cut waits in its chamber, a light one runs quicker, a heavy slower (jedi/weight.js)
+      player.atkT -= wdt;
+      sw.t += wdt;
     }
     // (no blade in hand — e.g. the weapon was swapped mid-swing — just run the swing's clock out)
     const cue = held ? swingPose(R, held, grip, form, sw) : { k: Math.min(1, sw.t / sw.dur), env: 0, cut: 0, spin: 0, hop: 0, drop: 0 };
@@ -430,7 +432,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     }
     // the body LOADS into the chamber (weapon shoulder drawn back) and THROWS its weight through the strike: the
     // shoulder reaches and the knees give, harder for a riposte; a spin or a leap carries its own body
-    const coil = cue.coil || 0, drive = cue.drive || 0;
+    const coil = (cue.coil || 0) + (sw.drawK || 0) * (cue.k < ((sw.anim && sw.anim.ts) || 0.4) ? 0.7 : 0), drive = (cue.drive || 0) * (sw.heavy ? 1.3 : 1);   // a drawn heavy loads deeper and drives harder
     R.torso.position.z = dr(R.torso.position.z, (drive * 0.17 - coil * 0.06) * (sw.riposte ? 1.5 : 1), 30);
     R.torso.rotation.x = dr(R.torso.rotation.x, drive * 0.1 - coil * 0.05, 24);
     if (!player.flip && !cue.hop && player.grounded) vis.position.y = dr(vis.position.y, -0.07 * drive, 26);
@@ -446,7 +448,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     if (held){
       // (a spin-in doesn't cut until the body has come round to face the strike)
       const spun = sw.spin && sw.spin.turns && cue.k < ((sw.anim && sw.anim.ts) || 0.4) * 0.8;
-      const touched = sweepBlade(sw, !sw.recoil && !spun && cue.k >= ((sw.anim && sw.anim.tc) || 0.25) * 0.6 && cue.k <= 0.92);
+      const touched = sweepBlade(sw, !sw.recoil && !spun && cue.k >= ((sw.anim && sw.anim.tc) || 0.25) * 0.6 && cue.k <= 0.92 && !sw.drawing);
       if (touched && touched.length && !sw.noHit){ applySwingDamage(sw.step, touched); sw.bite = BITE.time; }
       // JAR'KAI: the off hand's follow-up cuts on its own beat (anim/saber.js saberPose.offLive)
       if (held.off){

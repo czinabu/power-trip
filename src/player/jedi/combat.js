@@ -36,6 +36,8 @@ import { tryFinisher, finisherStrike, endFinisher, finishType } from './finisher
 import { PERFECT } from '../../data/finishers.js';
 import { addPosture } from '../../enemies/duel.js';
 import { assistTarget, comboRange } from './saberassist.js';
+import { armWeight, cutMul, holding } from './weight.js';
+import { weightOf } from '../../data/swing-weight.js';
 
 /* COMBO RHYTHM — fractions of a swing. A press before `open` is too early (and costs this link its flow); a single
    press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). */
@@ -117,9 +119,12 @@ export function tryAttack(flow = false){
   player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, flow, mom, perfect, pf: PF };
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
   const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
-    ripNow, backStrike, mom, flow, st });
+    ripNow, backStrike, mom, flow, st, held: holding() });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur; }
+  // LIGHT OR HEAVY (jedi/weight.js): a tap is a light cut, a hold draws back into a heavy. A riposte, a momentum strike,
+  // a spin or a cut in the air keeps its own weight.
+  armWeight(player.swing, !ripNow && !mom && !spin && player.grounded);
   // cinematic lunge toward nearest target in view — STRONG's finisher lunges harder; a RIPOSTE drives in hardest
   let lunge = ripNow ? 2.0 : ((step === 2 && st.finisherLunge) ? st.finisherLunge : st.lunge) * (pat.lunge || 1) * (PF && PF.lunge || 1);
   // HAWK-BAT SWOOP (Ataru): a cut out of a Force dash springs off the ground and drives in twice as far
@@ -162,7 +167,7 @@ export function tryAttack(flow = false){
    finisher (it has its own spin), a riposte, a back strike or a momentum strike. It must be a rhythm (flow) link, off
    cooldown, with the stamina to pay its surcharge. */
 function pickSpin(form, step, dirKey, o){
-  if (isGunner() || !player.grounded || player.flip || step === 2 || o.ripNow || o.backStrike || o.mom) return null;
+  if (isGunner() || !player.grounded || player.flip || step === 2 || o.ripNow || o.backStrike || o.mom || o.held) return null;   // (a held press is drawing a heavy: no spin)
   const S = SWING_SPINS[form];
   if (!S || !o.flow) return null;
   const sp = (step === 1 && S.mid) || ((dirKey === 'left' || dirKey === 'right') ? S.move : null);
@@ -243,6 +248,7 @@ export function applySwingDamage(step, only){
   let dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul();   // FORCE FOCUS ramps saber damage; Form VII's FURY too
   const finisher = step === 2;
   let knock = (finisher ? 15 : 6) * st.knock * player.up.knock;
+  dmg *= cutMul(sw0, 'dmg'); knock *= cutMul(sw0, 'knock');   // a light or a heavy cut (jedi/weight.js)
   if (finisher && st.finisherKnock) knock = Math.max(knock, FINISHER_FLOOR);   // DJEM SO: the finisher floors what it hits, a brute too (a short shove: config saberShove)
   // a ringing BESKAR CLANG on every heavy darksaber blow (the finisher, or any hit while a foe is in range)
   const beskarClang = () => S.clash(V3(playerPos().x + fwd().x*1.4, 1.4, playerPos().z + fwd().z*1.4), false);
@@ -369,6 +375,13 @@ export function applySwingDamage(step, only){
   // (a guard that turned it stops the blade where they met and throws it back: player/jedi/clash.js)
   if (turned && !hits && !(sw0 && sw0.finBeat)) bounceOff(blocker, blockAt);   // (a finisher's beat rides through: jedi/finisher.js)
   if (hits > 0){
+    if (sw0 && sw0.heavy && !sw0.heavyFx){   // a HEAVY lands with weight: a beat of hitstop and a harder jolt
+      sw0.heavyFx = true;
+      const HW = weightOf(isGunner() ? 'darksaber' : st.form, 'heavy');
+      G.hitstop = Math.max(G.hitstop, HW.hitstop); G.shake = Math.max(G.shake, HW.shake);
+      sfx(150, 0.14, 'triangle', 0.05, 70);
+      if (foesHit) tutEvent('heavyHit');
+    }
     if (mom && !sw0.momFx){ sw0.momFx = true; floater(playerPos(), MOM_LABEL[mom] || 'MOMENTUM', '#9fe0c8'); }
     G.shake = Math.max(G.shake, finisher ? 0.5 : 0.2);
     addFocus(finisher ? FOCUS.gainFin : FOCUS.gainHit);   // FORCE FOCUS — clean bladework builds the flow
@@ -434,8 +447,8 @@ export function applyOffBladeHit(only){
   const st = stance(), sw0 = player.swing;
   if (!sw0 || !only || !only.length || !st.offDmg) return;
   const step = sw0.step || 0, finisher = step === 2;
-  const dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul() * st.offDmg;
-  const knock = (finisher ? 10 : 4) * st.knock * player.up.knock;
+  const dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul() * st.offDmg * cutMul(sw0, 'dmg');
+  const knock = (finisher ? 10 : 4) * st.knock * player.up.knock * cutMul(sw0, 'knock');
   const f = fwd(), line = cutLine(sw0) || 'H';
   const finFoe = sw0.fin ? sw0.fin.e : null;
   let hits = 0, turned = 0, blocker = null;

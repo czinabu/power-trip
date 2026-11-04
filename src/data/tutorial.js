@@ -14,7 +14,8 @@
 //   kit / any   a gear or power lesson: it opens once the story has reached that unlock (an auto-unlock key or a store
 //            id from data/store.js), or any of the ids in `any`
 //   loadout  the three forms on 1 / 2 / 3 while it runs (Jedi). The basics teach in Shii-Cho alone
-//   holstered  (Jedi) the saber starts on the belt, unignited; lessons without it start with the blade drawn
+//   atEase     (Jedi) the blade out and the hilt clipped to the belt, walking at ease (Z lights it): the movement lessons
+//   holstered  (Jedi) the saber holstered for unarmed fighting (4); lessons with neither start with the blade drawn
 //   done     the teacher's line when it's passed
 //
 // Step fields
@@ -23,7 +24,7 @@
 //   needs  the step only runs once the story has reached this form or unlock (else the lesson skips it)
 //   ev     a training event to count (game/tutor-bus.js): doubleJump dash slide vault climb roll wallrun finisher parry
 //          deflect perfectDodge cancel pushHit kill headshot vent shieldReflect catch charge takedown bash rocketHit
-//          kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
+//          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
 //          perfectString (a string struck fully in rhythm into its finisher)
@@ -82,7 +83,7 @@ const BASE = ['shiicho', null, null];   // the basics teach in Shii-Cho, Form I,
 export const LESSONS = {
   jedi: [
     /* ---------------- THE BASICS ---------------- */
-    { id: 'steps', group: 'basics', name: 'FIRST STEPS', sub: 'Walk, jump, dash, sprint, slide and glide', loadout: BASE, holstered: true,
+    { id: 'steps', group: 'basics', name: 'FIRST STEPS', sub: 'Walk, jump, dash, sprint, slide and glide', loadout: BASE, atEase: true,
       done: 'Good. Your feet know the Force now. Next, the lanes.',
       steps: [
         { sec: 'THE TERRACE', say: 'Every lesson begins with a single step. Come to the circle.',
@@ -100,7 +101,7 @@ export const LESSONS = {
         { say: 'In a fight, never turn your back. Keep your eyes on the foe and let your feet circle.',
           keys: 'ALT + A / D / S', do: 'Strafe: press ALT (or hold it, with Settings · STRAFE on HOLD) and sidestep or backpedal while you keep facing the crosshair (hold LB on a controller)', poll: 'strafe', need: 1.5 },
       ] },
-    { id: 'lanes', group: 'basics', name: 'THE LANES', sub: 'Vault, climb, roll, run the wall, then the gauntlet', loadout: BASE, holstered: true,
+    { id: 'lanes', group: 'basics', name: 'THE LANES', sub: 'Vault, climb, roll, run the wall, then the gauntlet', loadout: BASE, atEase: true,
       done: 'You flow over the ground like water. Now, the blade.',
       steps: [
         { sec: 'THE LANES', say: 'Stones in your path are only stones. Do not jump them: run straight at one and flow over it without breaking stride.',
@@ -131,6 +132,9 @@ export const LESSONS = {
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Where your eyes go, the blade follows. Lift your gaze and it cuts high; lower it and it sweeps low.',
           keys: 'AIM + LMB', do: 'Land a high, a middle and a low cut: put the crosshair on a head, a chest, then the legs', ev: 'cutHeight', uniq: 'h', need: 3, respawn: true,
+          spawn: dummies(CIRCLE, { sparring: true }) },
+        { say: 'A quick touch of the blade is a light cut. Hold it back a moment and let your weight carry it, and it lands heavy enough to break a guard.',
+          keys: 'TAP LMB · HOLD LMB', do: 'Land 2 heavy cuts: hold LMB until the blade draws back', ev: 'heavyHit', need: 2, respawn: true,
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Three cuts make a string, and in Shii-Cho the third is the Sarlacc Sweep: it cuts all the way round you. It was made for crowds.',
           keys: 'LMB LMB LMB', do: 'Land 2 Sarlacc Sweep finishers on the crowd', ev: 'finisher', need: 2, respawn: true,

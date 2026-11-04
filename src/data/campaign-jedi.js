@@ -45,7 +45,10 @@ export const JEDI_ACT_TWO_WARN = 'Whichever you leave for second will not wait w
 // per chapter id, laid over the shared slot (data/campaign.js storyChapter; the fields are listed in data/campaign-mando.js).
 // Besides those: `guests` fight beside you for the chapter (squadmates of the story's own: allies/squad.js addSquadmate),
 // `evacuees` retells who a hold's evacuees are ({ kind, name }: game/mission.js), `says` replaces the voice's line on a mission chapter's objectives, by objective (null keeps the mission's),
-// and `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES).
+// `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES), and `doorway` ends the chapter's
+// calm at the temple's great doors: they open, the hero walks through, and the next chapter comes up on the far side
+// (game/aftermath.js, world/doorway.js). Its words: `label` the HUD's title, `to` and `through` its line before and
+// after the doors open, `open` what is said as they do ([who, say], who null: the story's voice).
 export const JEDI_CHAPTERS = {
   // ---------------- ACT I: THE FALL OF JEDHA ----------------
   'last-lesson': {
@@ -74,7 +77,10 @@ export const JEDI_CHAPTERS = {
       wave: [
         ['They came up the pilgrim road. Nobody stopped them at the gate. Meet them on the steps.'],
         ['Heavier troops behind the first line. Do not let them reach the doors.', 'The archivists are carrying out the Ledger\'s vault. Keep the steps clear.'] ],
-      clear: ['The steps are ours, for now.', 'Smoke over the east wing. The archive is burning, and the Ledger is still inside.'] } },
+      clear: ['The steps are ours, for now.', 'Smoke over the east wing. The archive is burning, and the Ledger is still inside.'] },
+    // the walk from the steps into the temple, and through it to the archive (chapter 2 opens at its south doors)
+    doorway: { label: 'INTO THE TEMPLE', to: 'WALK TO THE TEMPLE DOORS', through: 'GO THROUGH TO THE ARCHIVE',
+      open: [[VAEL, 'Open them. The archive is through the east hall. Stay close to me, and breathe through your sleeve.']] } },
   archive: {
     // a mission of its own in the Jedi's story (data/missions.js vault), standing in for the level's last two waves
     title: 'THE BURNING ARCHIVE', kind: 'mission', mission: 'vault', steps: 2,
@@ -82,7 +88,7 @@ export const JEDI_CHAPTERS = {
             'Twenty years of hidden children, written down in one place. Get the archivists out, then get to the vault before anyone else does.'],
     opening: { lines: [[VAEL, 'The archive is burning, and the Ledger of Names is in the vault beneath it. Twenty years of hidden children.'],
                        [VAEL, 'That Inquisitor knows the way down. Get the archivists out, and get to the vault first.']],
-               rival: { ...INQ, line: ['THE INQUISITOR', 'Hold the hall if you like, Knight. I already know the way down.'] } },
+               rival: { ...INQ, line: ['THE INQUISITOR', 'Walk them out if you like, Knight. I already know the way down.'] } },
     escapeLines: [[ILSA, 'Do not look at me like that. Somebody had to stop hiding.'], [VAEL, 'Ilsa. No.']],
     lines: {
       chapter: ['Keep them off the archivists.', rival('THE INQUISITOR', 'You still lean left when you parry. I always told you so.')],
@@ -126,7 +132,7 @@ export const JEDI_CHAPTERS = {
       hoth: ['We are late. A ship came for half the children while we were on Hoth. The rest are still in the pens, and so is Sera.', 'Walk RX-4 in, open what is left of the cells, and get every one of them out.'] },
     opening: { lines: [[VAEL, 'Tessaril. No sun, no grass, rain that never stops. They chose a moon where nobody would hear the children cry.'],
                        [VAEL, 'RX-4 has the cell codes. Walk it to the gate, and every pen opens at once.']] },
-    says: [null, null, 'The children are running for the ship. Hold the gate until the last of them is past you. Sera is with them. She will not leave until they are clear.',
+    says: [null, null, 'The children are running for the ship. Stay with them until the last one is through the gate. Sera is with them. She will not leave until they are clear.',
            'The Warden of the pens. It never hunted a Jedi in its life: it only kept what the others caught. It wants its list back.'],
     lines: {
       chapter: ['RX-4 has sliced the prison\'s cell codes. Walk it to the gate and every pen opens.'],
@@ -221,7 +227,7 @@ export const JEDI_CHAPTERS = {
     brief: { by: 'ilsa',
       spared: ['Tarn found it in the archive\'s ashes. Vexis never came to Jedha for the Ledger. He came for the old Sith gate under the dais, his own road to Exegol.', 'Ilsa knows it. She stood watch over it the night she opened the temple. Go back, and open it.'],
       struck: ['Tarn found it in the archive\'s ashes. Vexis never came to Jedha for the Ledger. He came for the old Sith gate under the dais, his own road to Exegol.', 'Nobody living knows how to open it. Go back to the temple and find out.'] },
-    talk: { where: 'JEDHA, THE TEMPLE STEPS AT NIGHT',
+    talk: { where: 'JEDHA, THE TEMPLE\'S GREAT HALL AT NIGHT',
       lines: [[TARN, 'I grew up on these steps. I never once wondered what was under the dais.'],
            [KAST, 'An old Sith gate. A road to Exegol that no fleet can follow, and the Empire has kept it for him.'],
            { by: 'ilsa',

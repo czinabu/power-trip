@@ -12,6 +12,7 @@ import { offGrip } from '../../data/forms.js';
 import * as THREE from 'three';
 import { loft, plate, block, ngon, chamfer } from './shapes.js';
 import { glow } from '../../engine/renderer.js';
+import { carriedLight } from '../../fx/lights.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
 const GRIP_Y = -0.04;   // where the fist closes, below the wrist joint
@@ -33,7 +34,7 @@ export const WEAPON_MODELS = {
       const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 1.6, 8), glowMat(0x33bbff, 0.45));
       glow.position.y = 0.95;
       glow.userData.saberTrail = { hilt: -1 };   // its streak (fx/trail.js) follows this glow, emitter end down
-      const light = new THREE.PointLight(0x44bbff, SABER_LIGHT * glow.light, 9); light.position.y = 0.9;
+      const light = carriedLight(new THREE.PointLight(0x44bbff, SABER_LIGHT * glow.light, 9)); light.position.y = 0.9;
       root.add(blade, glow, light);
       /* THE SABER STAFF (data/forms.js staff): the hilt runs on past the pommel to a second emitter, STAFF.end below the
          fist, and a second blade leaves it the other way. The off hand closes on the hilt at STAFF.off. The second
@@ -214,7 +215,7 @@ export const WEAPON_MODELS = {
       edge.userData.saberTrail = { hilt: -1, dark: 1 };   // the ink streak (fx/trail.js)
       g.userData.trailAlways = true;   // thrown (attached to the scene on its own), it streaks the whole flight
       const glow = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.3, 0.02), glowMat(0x9a5cff, 0.4)); glow.position.y = 0.72;
-      const light = new THREE.PointLight(0x9a6cff, DARK_LIGHT * glow.light, 7); light.position.y = 0.7;
+      const light = carriedLight(new THREE.PointLight(0x9a6cff, DARK_LIGHT * glow.light, 7)); light.position.y = 0.7;
       g.add(glow, edge, blade, light);
       return { group: g, light, blades: [glow, edge, blade] };
     },
@@ -283,13 +284,25 @@ export function setSaberDual(hero, on, remember = true){
   if (hero.offSaber) hero.offSaber.node.visible = on;
 }
 export const saberIsDual = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.dual && hero.offSaber);
+// where Jar'Kai's second hilt hangs while the first is on the belt: the right hip (the belt socket sits at the left)
+const OFF_BELT = { pos: [0.4, -0.04, 0], rot: [0.25, 0, -0.18] };
 // keep the off saber in step with the main one (call each frame after the blade FX and the holster have run)
 export function syncOffSaber(hero, allowed = true){
   const O = hero && hero.offSaber, B = hero && hero.blade;
   if (!O || !B) return;
   const on = allowed && !!(hero.saberBladeRoot && hero.saberBladeRoot.userData.dual);
-  const away = !!hero.offAway || !hero.saberHand || hero.saberHand.scale.x < 0.01 || hero.saberHand.parent !== hero.saberHand.userData.hand && !!hero.saberHand.userData.hand;
+  // the main hilt clipped to the belt (put out, holstered, a duel's entrance): the off hilt clips on at the other hip
+  const M = hero.saberHand, belt = hero.rig && hero.rig.sockets && hero.rig.sockets.belt, belted = !!(M && belt && M.parent === belt);
+  const away = !!hero.offAway || !M || M.scale.x < 0.01 || (!belted && M.parent !== M.userData.hand && !!M.userData.hand);
   O.node.visible = on && !away;
+  if (O.node.visible && belted){
+    if (O.node.parent !== belt){ belt.add(O.node); O.node.position.set(...OFF_BELT.pos); O.node.rotation.set(...OFF_BELT.rot); }
+    O.blade.visible = O.glow.visible = false;
+    return;
+  }
+  if (O.node.parent !== hero.rig?.sockets?.handL && hero.rig?.sockets?.handL){   // (back from the belt: into the off hand)
+    hero.rig.sockets.handL.add(O.node); O.node.position.set(0, GRIP_Y, 0); O.node.quaternion.copy(O.node.userData.restQ);
+  }
   if (!O.node.visible) return;
   O.blade.visible = B.blade.visible; O.glow.visible = B.glow.visible;
   O.blade.scale.copy(B.blade.scale); O.blade.position.y = B.blade.position.y;

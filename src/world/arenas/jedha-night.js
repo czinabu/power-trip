@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { arenaKit, seeded } from './kit.js';
 import { buildTempleArena } from './temple.js';
+import { buildSanctum } from '../sanctum.js';
 
 /* THE GATE: violet cracks running out from the dais across the flagstones, a ring of light round its foot, a pale
    column standing up out of the summit into the sky (the way through), and four broken seal-stones at the dais's
@@ -13,6 +14,14 @@ import { buildTempleArena } from './temple.js';
 export function buildJedhaNightArena(L){
   buildTempleArena(L);
   const pal = L.pal || {};
+  // THE SANCTUM (world/sanctum.js): the courtyard is the floor of the temple's great hall now, walled and roofed, the
+  // roof broken open over the dais where the gate's light goes up and the moon comes in
+  buildSanctum({ style: 'temple', seed: 31, wallH: 24, rise: 14, gallery: 11, windowY0: 12.6, arcade: ['e', 'w'], arcadeTop: 20, light: [-18, 40, 30],
+    hole: (x, z) => Math.hypot(x, z * 1.15) < 9.5 || Math.hypot(x - 11, z + 15) < 4.5,
+    holeShafts: [[0, 0, 4.5]],
+    stone: pal.hallStone ?? 0x5a5464, stoneD: pal.hallStoneD ?? 0x3a3644, roof: pal.roof ?? 0x2e2a38, char: 0x1a1620,
+    trim: pal.hallTrim ?? 0xa898c8, cloth: pal.hallBanner ?? 0x4a3a78, glass: pal.window ?? 0x8a9ad8, candle: 0xffb060,
+    sigil: pal.sigil ?? 0xb8a8e8, door: pal.door ?? 0x10122a, shaftColor: 0x9aa8ff, shaftOp: 0.14 });
   const K = arenaKit(), R = seeded(29);
   const glowC = pal.gate ?? 0x9a6aff;
   const crack = new THREE.MeshBasicMaterial({ color: glowC, transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false });

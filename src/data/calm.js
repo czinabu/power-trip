@@ -41,7 +41,7 @@ export const CALM = {
     ],
     chapters: {
       'last-lesson': [['MASTER VAEL', 'Good. Now sit with it a moment. Winning is the easy half; carrying it is the rest.'], ['ILSA VENN', 'Enjoy it. Next time I will not go easy.'], ['MASTER VAEL', 'Ilsa. Walk with us.']],
-      siege: [['MASTER VAEL', 'Walk with me. The archive will still be burning in a minute, and I need you steady when we get there.']],
+      siege: [['MASTER VAEL', 'Walk with me to the doors. The archive will still be burning in a minute, and I need you steady when we get there.']],   // (then through them: its `doorway`, data/campaign-jedi.js)
       mustafar: [['MASTER VAEL', 'The children are aboard. Walk, do not run. They are watching how you carry yourself.'], ['YOU', 'They are watching you, Master.'], ['MASTER VAEL', 'Then we both walk.']],
       exegol: false,
     },

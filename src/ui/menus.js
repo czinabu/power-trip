@@ -100,9 +100,10 @@ export function setOverlayState(state){
   if (state === 'menu') refreshWorn();   // back on the menu: dressed in whatever the campaign has unlocked since (ui/customizer.js)
   if (state !== 'pause') document.getElementById('ovctx').textContent = '';
   document.getElementById('restartBtn').style.display = state === 'menu' ? 'none' : 'inline-flex';
-  document.getElementById('restartBtn').textContent = G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
+  document.getElementById('restartBtn').textContent = state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
+  document.getElementById('pzTrain').style.display = state === 'pause' && G.training ? '' : 'none';   // the pause screen's TRAINING label
   document.getElementById('formsBtn').style.display = isTrooper() ? 'none' : '';   // (the trooper has neither yet)
   document.getElementById('formsBtn').textContent = G.hero === 'mando' ? 'ARMORY' : 'LIGHTSABER FORMS';   // the Jedi's forms page (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
   const go = document.getElementById('goText'), sub = document.getElementById('ovsub');
@@ -456,6 +457,9 @@ for (const [id, set] of [['mussl', setMusicVol], ['fxsl', setSfxVol]]){
 }
 document.addEventListener('pointerdown', audioInit);   // first gesture anywhere lights up the audio ctx + menu score (autoplay policy)
 document.addEventListener('keydown', audioInit);       // a key press counts as that gesture too, so keyboard players hear the menu
+// a click or key press during the loading screen (before these listeners existed) still counts: the page already has
+// the player's activation, so the audio can start now and the menu theme plays as soon as the menu is up
+if (navigator.userActivation && navigator.userActivation.hasBeenActive) audioInit();
 // CONTROLS — a panel over the menu; opens on the current hero, with tabs to read the other one's controls
 const howto = document.getElementById('howto');
 function setHowTo(open){

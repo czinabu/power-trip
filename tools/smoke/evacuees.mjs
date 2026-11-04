@@ -18,8 +18,8 @@ const SHOTS = process.env.SHOTS, ONLY = process.env.ONLY ? process.env.ONLY.spli
 const W = SHOTS ? { width: 960, height: 540 } : { width: 480, height: 270 };
 const poll = { timeout: 150000, polling: 250 };
 const SECONDS = +(process.env.EVAC_SECONDS || 30);
-// [hero, mission]: one of each kind of line (children up a ramp, archivists out of a hall, prisoners onto a barge)
-const RUNS = [['jedi', 'refuge'], ['mando', 'covert'], ['jedi', 'academy'], ['mando', 'gallows']]
+// [hero, mission]: one of each kind of line (children up a ramp, archivists out of a hall, prisoners onto a barge, archivists walked out of the Burning Archive)
+const RUNS = [['jedi', 'refuge'], ['mando', 'covert'], ['jedi', 'academy'], ['mando', 'gallows'], ['jedi', 'vault']]
   .filter(r => !ONLY || ONLY.includes(r[1]));
 
 const server = PeerServer({ port: PORT, host: '127.0.0.1', path: '/' });

@@ -22,7 +22,10 @@
 //               is never within 13 m of the evacuees' path (if the arcs have none that far, the whole ring is searched)
 //               squadRate (optional): progress speed with only squadmates (allies/squad.js) in the zone
 //               evacuees: { count, path: [[x, z]…] (from their shelter to the ship's hatch), spacing, speed, name } the
-//               people being saved, filing aboard as the timer runs (they stop and huddle while it stalls)
+//               people being saved, filing aboard as the timer runs (they stop and huddle while it stalls). They walk
+//               the whole path, start to end, and the zone rides on the line (game/mission.js followLine), so you
+//               guard the people, not a spot; at is then only the middle the lanes are picked round, and the foes
+//               march on the line. escort: false keeps the zone at `at` with the line queued at the end
 //   sabotage  reach each console and stay on it to slice it
 //               consoles: [{ at: [x, z], guards: { type: count } }] · time: seconds of slicing each · r: how close
 //               hitLoss: seconds of slicing lost when you're hit · trickle: { every, cap, group } light reinforcements
@@ -117,9 +120,9 @@ export const MISSIONS = {
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
     objectives: [
       { kind: 'hold', title: 'HOLD THE RAMP',
-        say: { jedi: 'The younglings are boarding. Nothing reaches that ramp until the transport is sealed.',
-               mando: 'The foundlings are boarding. Hold the ramp until the transport lifts. This is the Way.' },
-        task: { jedi: 'Guard the ramp while the younglings board', mando: 'Guard the ramp while the foundlings board' },
+        say: { jedi: 'The younglings are coming out for the transport. Walk them to the ramp, and nothing reaches them until they are aboard.',
+               mando: 'The foundlings are coming out for the transport. Walk them to the ramp and keep them covered till it lifts. This is the Way.' },
+        task: { jedi: 'Guard the younglings to the ramp', mando: 'Guard the foundlings to the ramp' },
         at: [0, 9], r: 6, time: 60, awayRate: 0.5,
         evacuees: { count: 16, spacing: 1.2, speed: 2.2, name: { jedi: 'YOUNGLINGS', mando: 'FOUNDLINGS' },
                     path: [...REFUGE_SPOTS.path, ...REFUGE_SPOTS.ramp] },
@@ -207,9 +210,9 @@ export const MISSIONS = {
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
     objectives: [
       { kind: 'hold', title: 'HOLD THE RAMP',
-        say: { jedi: 'The clan\'s foundlings are boarding their last ship. Nothing reaches that ramp until it is sealed.',
-               mando: 'The foundlings are coming up from the tunnels. Hold the ramp until every one of them is aboard.' },
-        task: { jedi: 'Guard the ramp while the foundlings board', mando: 'Guard the ramp while the foundlings board' },
+        say: { jedi: 'The clan\'s foundlings are coming up from the tunnels for their last ship. Walk them to the ramp, and keep everything off them.',
+               mando: 'The foundlings are coming up from the tunnels. Walk them to the ramp and keep them covered until every one of them is aboard.' },
+        task: { jedi: 'Guard the foundlings to the ramp', mando: 'Guard the foundlings to the ramp' },
         twist: { kind: 'gap', at: 0.4, hit: [0, 14.6], piles: [[-3, 12.5], [3.5, 13]], clear: 2.5, r: 2.2,
                  line: { jedi: 'A shell has buried the foot of the ramp. The foundlings cannot get past. Clear the rubble.', mando: 'Ramp\'s blocked. The kids can\'t get past it. Dig it out.' } },
         at: COVERT_SPOTS.hold, r: 6, time: 72, awayRate: 0.5,
@@ -260,12 +263,14 @@ export const MISSIONS = {
     grant: { jedi: ['throw'], mando: ['grapple'] },
     objectives: [
       { kind: 'hold', title: 'GET THE ARCHIVISTS OUT',
-        say: { jedi: 'The archivists are coming out of the north stacks with whatever they can carry. Hold the middle of the hall until every one of them reaches the doors.',
-               mando: 'Robed folk with their arms full of scrolls, coming through the fire. Hold the hall until they are out.' },
-        task: { jedi: 'Hold the hall while the archivists get out', mando: 'Hold the hall while the archivists get out' },
-        // the archivists come down the east side of the hall, past the dais and through the zone, to the south doors;
-        // the troops come in from the west (behind the west stacks), so the hold stands between them and the line
-        at: [1, 3], r: 8, time: 60, awayRate: 0.5, unguarded: 'HALL UNGUARDED',
+        say: { jedi: 'The archivists are coming out of the north stacks with whatever they can carry. Meet them there and walk them out. Stay between them and the troops until every one of them is through the doors.',
+               mando: 'Robed folk with their arms full of scrolls, coming out of the north stacks. Get to them, and walk them out through the fire.' },
+        task: { jedi: 'Guard the archivists to the doors', mando: 'Guard the archivists to the doors' },
+        // the archivists walk the whole way, from the north stacks down the east side of the hall, past the dais to the
+        // south doors, and the zone rides on the line (game/mission.js followLine); the troops come in from the
+        // west (behind the west stacks) and march on the line, so you stand between them and it. at: the hall's middle,
+        // which the lanes are picked round. Away from the line, it creeps on at a fifth of the pace
+        at: [1, 3], r: 7, time: 60, awayRate: 0.2,
         evacuees: { kind: 'archivist', count: 10, spacing: 1.6, speed: 2.4, ramp: false, verb: 'OUT', name: { jedi: 'ARCHIVISTS', mando: 'ARCHIVISTS' },
                     path: [[3, -26], [3, -16], [5.5, -7.5], [5.5, 4.5], [2, 12], [0, 20], [0, 29]] },
         pulses: [ { grunt: 2, blaster: 1 }, { grunt: 2, grenadier: 1 }, { grunt: 2, blaster: 1, officer: 1 }, { grunt: 1, duelist: 1, blaster: 1 } ],
@@ -322,13 +327,13 @@ export const MISSIONS = {
         trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1, flyer: 1 } } },
 
       { kind: 'hold', title: 'GET THE CHILDREN OUT', music: 'battle', start: [0, 12, Math.PI],
-        say: { jedi: 'They are running for the ships at the top of the north lane. Hold the lane until every one of them is aboard.',
-               mando: 'Kids running for the ships. Hold the lane until they are all aboard.' },
-        task: { jedi: 'Hold the lane while the children reach the ships', mando: 'Hold the lane while the children reach the ships' },
+        say: { jedi: 'They are running for the ships at the top of the north lane. Stay with them, between them and the troops, until every one of them is aboard.',
+               mando: 'Kids running for the ships. Stay with them and keep them covered until they are all aboard.' },
+        task: { jedi: 'Guard the children to the ships', mando: 'Guard the children to the ships' },
         twist: { kind: 'stragglers', at: [0.25, 0.5, 0.75], spots: [[2.5, 8], [11, -1], [1, -13]], r: 2.2, back: [0, 12],
                  line: { jedi: 'One of them has frozen in the open. The line will not move without them. Go and get them.', mando: 'One of the kids froze out there. Go get them. The rest won\'t move till you do.' },
                  more: { jedi: 'Another one. Go.', mando: 'Another one froze. Go.' } },
-        at: [0, 12], r: 6, time: 50, awayRate: 0.35, unguarded: 'LANE UNGUARDED',
+        at: [0, 12], r: 6, time: 50, awayRate: 0.35,
         evacuees: { count: 12, spacing: 1.2, speed: 2.4, ramp: false, verb: 'OUT', name: { jedi: 'CHILDREN', mando: 'CHILDREN' },
                     path: [[0, -9], [0, -1], [-3, 6], [0, 13], [0, 24]] },
         pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, acolyte: 1 }, { grunt: 2, sniper: 1, blaster: 1 },
@@ -369,9 +374,9 @@ export const MISSIONS = {
         trickle: { every: 15, cap: 5, group: { grunt: 2, blaster: 1 } } },
 
       { kind: 'hold', title: 'GET THEM ABOARD', start: [0, 8, Math.PI],
-        say: { jedi: 'The prisoners are coming out of Block A. Hold the ramp until every one of them is on that ship.',
-               mando: 'Skye has the gunship warming up. The prisoners are coming out of Block A. Hold the ramp till they\'re all aboard.' },
-        task: { jedi: 'Guard the ramp while the prisoners board', mando: 'Guard the ramp while the prisoners board' },
+        say: { jedi: 'The prisoners are coming out of Block A. Walk them to the ramp, and keep them covered until every one of them is on that ship.',
+               mando: 'Skye has the gunship warming up. The prisoners are coming out of Block A. Walk them to the ramp and cover them till they\'re all aboard.' },
+        task: { jedi: 'Guard the prisoners to the ramp', mando: 'Guard the prisoners to the ramp' },
         twist: { kind: 'list', at: 12, period: 9, roll: 0.07, slide: 2.2, crates: 6, width: 9,
                  line: { jedi: 'The barge is listing. Keep your feet, and watch for the cargo coming loose.', mando: 'The barge is going over on its side. Watch the cargo. It\'s coming loose.' } },
         at: BARGE_SPOTS.hold, r: 6, time: 66, awayRate: 0.5,
@@ -762,9 +767,9 @@ export const MISSIONS = {
         trickle: { every: 15, cap: 6, group: { grunt: 1, blaster: 1 } } },
 
       { kind: 'hold', title: 'HOLD THE GATE', music: 'defend', start: [0, -42, 0],
-        say: { jedi: 'The prisoners are running for the middle gate. Hold it until the last of them is out. The Acrobat is among them.',
-               mando: 'They\'re running for the middle gate. Hold it till the last one\'s out. The ace is in there somewhere.' },
-        task: { jedi: 'Hold the gate until every prisoner is out', mando: 'Hold the gate until every prisoner is out' },
+        say: { jedi: 'The prisoners are running for the middle gate. Stay with them, between them and the guards, until the last of them is out. The Acrobat is among them.',
+               mando: 'They\'re running for the middle gate. Stay on them and keep the guards off till the last one\'s out. The ace is in there somewhere.' },
+        task: { jedi: 'Guard the prisoners out through the gate', mando: 'Guard the prisoners out through the gate' },
         at: [0, -40], r: 7, time: 45, awayRate: 0.35, squadRate: 0.55,
         evacuees: { kind: 'prisoner', count: 14, spacing: 1.5, speed: 3, ramp: false, verb: 'OUT', name: { jedi: 'PRISONERS', mando: 'PRISONERS' },
                     path: [[6, -51], [5, -45], [1, -40], [0, -30], [-2, -16]] },
@@ -824,9 +829,9 @@ export const MISSIONS = {
         trickle: { every: 15, cap: 5, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
 
       { kind: 'hold', title: 'HOLD THE GATE', music: 'defend', start: [0, -4, 0],
-        say: { jedi: 'The children are running for the ship. Hold the gate until the last of them is past you.',
-               mando: 'The kids are running for the ship. Hold the gate till the last one\'s past you.' },
-        task: { jedi: 'Hold the gate until every child is out', mando: 'Hold the gate until every child is out' },
+        say: { jedi: 'The children are running for the ship. Stay with them, and keep everything off them until the last one is through the gate.',
+               mando: 'The kids are running for the ship. Stay with them and keep them covered till the last one\'s through the gate.' },
+        task: { jedi: 'Guard the children out through the gate', mando: 'Guard the children out through the gate' },
         at: [0, -5], r: 8, time: 45, awayRate: 0.35, squadRate: 0.55,
         evacuees: { kind: 'youngling', count: 14, spacing: 1.5, speed: 2.6, ramp: false, verb: 'OUT', name: { jedi: 'CHILDREN', mando: 'CHILDREN' },
                     path: [[0, -32], [0, -20], [0, -6], [-6, 2], [-12, 9]] },   // (out through the gate, toward the ship on the pad)
@@ -965,8 +970,8 @@ export const MISSIONS = {
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
 
       { kind: 'hold', title: 'GET THE CHILDREN OUT', music: 'defend', start: [0, -4, Math.PI],
-        say: 'The children Vexis took from the academy are running for the gate. Hold the floor until the last one is past you.',
-        task: 'Hold the floor until every child is out',
+        say: 'The children Vexis took from the academy are running for the gate. Stay with them, and keep everything off them until the last one is through.',
+        task: 'Guard the children out to the gate',
         twist: { kind: 'vael', path: [[2, -18], [2, -8], [1.5, 0], [1.5, 7]], who: 'MASTER VAEL',
                  line: all('Vael will not go ahead of the children. He walks out behind them, and your stand walks with him.') },
         at: [0, -6], r: 7, time: 45, awayRate: 0.35, squadRate: 0.55,

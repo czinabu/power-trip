@@ -554,16 +554,16 @@ export const MISSION_WORLDS = {
     outer: 0x7a5c40,
     pal: { stone: 0xb89a70, stoneD: 0x8e7250, trim: 0xd8b46a, wood: 0x5e3c24, woodD: 0x3e2618, char: 0x3a2a20, scroll: 0xd8c8a0,
            fire: 0xff8a2a, ember: 0xffc060, holo: 0x7ad8ff, sky: 0x6a4a3a },
+    // seen through the hall's open windows and the burned-out vault (world/sanctum.js)
     backdrop: [
-      { kind: 'district', h: [14, 26], w: [7, 13], color: 0xa8865e, color2: 0x8e7050, trim: 0x8a6a46, roof: 0x9a6a42, domes: 0.3, spires: 0.12, setback: 0.3, gap: 9 },
+      { kind: 'district', h: [14, 26], w: [7, 13], color: 0xa8865e, color2: 0x8e7050, trim: 0x8a6a46, roof: 0x9a6a42, domes: 0.3, spires: 0.12, setback: 0.3, gap: 22 },
       { kind: 'destroyer', az: -1.8, r: 2.3, y: 24, scale: 1.2, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
-      // TOWERING (world/towering.js): what's left of the great hall: colossal columns round the stacks, and the guardians past them
-      { kind: 'colonnade', count: 14, r: [1.12, 1.18], h: [30, 42], radius: [1.8, 2.5], broken: 0.45, lintel: 0.35, color: 0xa8865e, color2: 0x8e7050 },
+      // TOWERING (world/towering.js): the guardians standing over the holy city, seen through the hall's windows
       { kind: 'colossi', az: [0.7, 2.2], r: 1.95, h: [80, 92], color: 0xa8865e, color2: 0x8e7050, dark: 0x4a3828, metal: 0x7a7266 },
     ],
     ambient: { kind: 'embers', color: 0xff9a40, count: 180 },
     warfront: { flyers: [{ kind: 'tie', count: 2, wing: 2, alt: [35, 70], speed: [70, 100], every: [5, 10], fire: 0x5aff6a }],
-      blasts: 0.35, tracers: { rate: 0.6, colors: [0xff3a2a, 0xff7a3a] }, columns: 4, smoke: 0x3a3030 },
+      columns: 4, smoke: 0x3a3030 },   // (the fighting in the streets is behind the hall's walls now: only the TIEs and the smoke show)
     beats: { fog: 0xa0502a, fill: 1.08, tint: 0xff8a50 },
     hazards: { barrel: 0xa33820 },
     sound: 'temple',
@@ -618,9 +618,10 @@ export const MISSION_WORLDS = {
     floor: { kind: 'flagstone', base: 0x4a4450, seed: 4 },
     outer: 0x2a2632,
     pal: { stone: 0x5e5866, stoneD: 0x3e3846, trim: 0x8a7a9a, banner: 0x3a2a4a, brazier: 0x9a6aff, inlay: 0x6a4aa8, gate: 0x9a6aff, seal: 0xff3a2a },
+    // seen through the great hall's open windows and its broken roof (world/sanctum.js)
     backdrop: [
       // the holy city, dark: the same streets and walls as the siege, a few windows still lit
-      { kind: 'district', h: [12, 24], w: [7, 13], color: 0x2e2a38, color2: 0x26222e, trim: 0x1e1a26, roof: 0x221e2a, domes: 0.3, spires: 0.12, setback: 0.3, gap: 9 },
+      { kind: 'district', h: [12, 24], w: [7, 13], color: 0x2e2a38, color2: 0x26222e, trim: 0x1e1a26, roof: 0x221e2a, domes: 0.3, spires: 0.12, setback: 0.3, gap: 22 },
       { kind: 'ramparts', r: 2.3, segments: 30, h: 9, color: 0x2a2634, color2: 0x24202c, roof: 0x1a1622, gaps: [-2.4] },
       { kind: 'statue', az: -2.4, r: 2.1, scale: 1.3, color: 0x34303e, color2: 0x2a2634, dark: 0x16121c, metal: 0x3a3844 },
       { kind: 'towers', count: 30, r: [1.75, 2.6], h: [10, 22], color: 0x24202c, color2: 0x2a2632, windows: 0xffc070, skip: [[-2.4, 0.35], [-1.8, 0.2]] },

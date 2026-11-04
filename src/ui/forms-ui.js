@@ -8,6 +8,7 @@
 //   · FORMS on the pause screen — the same page, read only, for the run in progress.
 
 import { G } from '../state.js';
+import { FINISHERS } from '../data/finishers.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { FAMILIES, FORM_FAMILY, MATCHUP } from '../data/foe-forms.js';
@@ -133,6 +134,8 @@ function tile(id){
     '<div class="fm-no"><span class="fm-t">' + formTitle(id) + ' · ' + famTag(id) + '</span>' + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
     '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
 }
+// its SABER FINISHER (data/finishers.js): what the next attack on a foe with its guard broken does
+const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-best">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="fm-detail empty">Select a form to see what it is good and bad at.</div>';
@@ -140,7 +143,7 @@ function detail(){
   return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + counterBlock(id) + '</div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + counterBlock(id) + '</div>';
 }
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';

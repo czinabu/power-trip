@@ -25,7 +25,8 @@
 //          deflect perfectDodge cancel pushHit kill headshot vent shieldReflect catch charge takedown bash rocketHit
 //          kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
-//          guardBreak (a duellist's guard shattered)
+//          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
+//          perfectString (a string struck fully in rhythm into its finisher)
 //   alt    a second event that also passes the step (sparDown: a sparring partner beaten to its last sliver)
 //   of     with ev 'kill': only foes of this type count · stance / weapon: only while in that saber form / loadout
 //   air    only counts off the ground · grip: only while the saber is held in this grip ('reverse')
@@ -179,7 +180,10 @@ export const LESSONS = {
         { sec: 'THE DUEL', say: 'A Magnaguard blocks one side at a time. The pale arc shows which. Kick through its guard, or cut where the arc is not.',
           keys: 'E · W / A / D + LMB', do: 'Break its guard: kick it (E) twice in a row',
           ev: 'guardBreak', alt: 'sparDown', need: 1, spawn: partner('duelist', [0, -6]) },
-        { say: 'When the guard breaks, it reels. Strike then. If your blades lock, mash LMB.',
+        { say: 'When the guard breaks, it reels, and a gold hilt shows over it. Strike then, and your form finishes it.',
+          keys: 'E · LMB', do: 'Break its guard, then attack while the hilt shows: a finisher', ev: 'saberFinisher', need: 1,
+          spawn: partner('duelist', [0, -6]) },
+        { say: 'Now for real. If your blades lock, mash LMB.',
           keys: 'E · LMB', do: 'Defeat the Magnaguard', ev: 'kill', of: 'duelist', need: 1,
           spawn: [{ type: 'duelist', at: [0, -6] }] },
       ] },

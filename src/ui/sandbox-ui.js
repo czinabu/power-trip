@@ -73,7 +73,7 @@ function render(){
   // the duellists' form and rank (enemies/foeform.js reads G.sbFoeForm / G.sbFoeRank; AUTO: as a run would pick)
   $('sbfform').innerHTML = [null, ...SB_FORMS].map(f => `<span data-fform="${f || ''}" class="${(G.sbFoeForm || null) === f ? 'on' : ''}">${f ? formName(f) : 'AUTO'}</span>`).join('');
   $('sbfrank').innerHTML = [null, ...RANK_ORDER].map(r => `<span data-frank="${r || ''}" class="${(G.sbFoeRank || null) === r ? 'on' : ''}">${r ? RANKS[r].no + ' ' + RANKS[r].name : 'AUTO'}</span>`).join('');
-  pill('sbelite', SB.elite); pill('sbdummy', SB.dummy); pill('sbgod', !!G.sandboxGod); pill('sbreadout', readoutOn());
+  pill('sbelite', SB.elite); pill('sbdummy', SB.dummy); pill('sbbreak', !!G.sbBreak); pill('sbgod', !!G.sandboxGod); pill('sbreadout', readoutOn());
   $('sbsquadn').textContent = squadSize() + ' / ' + SQUAD.max;
   $('sbfoes').innerHTML = SANDBOX_FOES.map(f => {
     const ok = foeOffered(f.id), nm = !ok ? HIDDEN : typeof f.nm === 'object' ? heroKey(f.nm) : f.nm;   // a foe not met yet keeps its name
@@ -118,6 +118,7 @@ panel.addEventListener('click', (e) => {
   if (kit){ const on = kit.classList.contains('on'); setSandboxKit(kit.dataset.kit, !on); render(); return; }
   if (t.closest('#sbelite')){ SB.elite = !SB.elite; render(); return; }
   if (t.closest('#sbdummy')){ setSandboxDummy(!SB.dummy); render(); return; }
+  if (t.closest('#sbbreak')){ G.sbBreak = !G.sbBreak; render(); return; }   // (player/jedi/combat.js: every cut breaks a guard, to try the finishers)
   if (t.closest('#sbgod')){ G.sandboxGod = !G.sandboxGod; render(); return; }
   if (t.closest('#sbreadout')){ setReadoutOn(!readoutOn()); render(); return; }
   if (t.closest('#sbroreset')){ restartReadout(); return; }

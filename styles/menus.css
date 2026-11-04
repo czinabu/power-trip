@@ -906,6 +906,7 @@ body.pad .kbonly{display:none}
 .fm-lore i{color:var(--ink-faint)}
 .fm-lock{margin:6px 0 0;font-size:13px;color:var(--ink-faint)}
 .fm-best{margin-top:7px;font-size:11px;letter-spacing:1.3px;color:var(--ink-dim)}
+.fm-fin{margin-top:3px;font-size:12px;line-height:1.35;color:var(--ink,#e8e2d4)}
 .fm-pros,.fm-cons{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.35}
 .fm-pros li,.fm-cons li{position:relative;padding-left:16px;margin:2px 0;color:var(--ink-soft)}
 .fm-pros li::before{content:'+';position:absolute;left:2px;color:#6fe39a;font-weight:700}

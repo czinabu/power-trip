@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Mouse and keyboard handlers.
 
+import { finParry } from '../player/jedi/finisher.js';
 import { CFG } from '../data/config.js';
 import { renderer } from './renderer.js';
 import { cycleQuality } from './quality.js';
@@ -104,7 +105,7 @@ document.addEventListener('mousedown', (e) => {
       // land it on an incoming bolt or a melee strike to send it back / stagger the attacker.
       player.blockHeld = true;
       player.blockT = 0;
-      let pwin = CFG.player.parryWindow + (stance().parryBonus || 0) + player.up.parry + diffWindow();
+      let pwin = CFG.player.parryWindow + (stance().parryBonus || 0) + player.up.parry + diffWindow() + finParry();   // (+ Vaapad's Shatterpoint finisher: jedi/finisher.js)
       if (cancelled){
         // STANCE-SPECIFIC CANCEL FEEL
         if (G.stance === 'ataru'){

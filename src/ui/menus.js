@@ -347,6 +347,18 @@ document.getElementById('padinvctl').addEventListener('click', (e) => { e.stopPr
   sl.addEventListener('pointerdown', (e) => e.stopPropagation());
   sl.addEventListener('click', (e) => e.stopPropagation());
   sl.addEventListener('input', (e) => setPadSens(parseFloat(e.target.value))); }
+// SABER FINISHERS — the killing blow's slow-motion dip and the camera's push in (player/jedi/finisher.js, engine/camera.js)
+function setFinToggle(key, on){
+  G[key] = on;
+  try { localStorage.setItem('sw_' + key, on ? '1' : '0'); } catch(e){}
+  const sv = document.getElementById(key === 'finSlow' ? 'finslowval' : 'fincamval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
+}
+for (const [key, id] of [['finSlow', 'finslowctl'], ['finCam', 'fincamctl']]){
+  let v; try { v = localStorage.getItem('sw_' + key); } catch(e){}
+  setFinToggle(key, v !== '0');
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setFinToggle(key, !G[key]); });
+}
 // SCREEN SHAKE — scales every camera shake, roll and hit kick (0 turns them off)
 function setShakeScale(v){
   G.shakeScale = Math.max(0, Math.min(1.5, isNaN(v) ? 1 : v));

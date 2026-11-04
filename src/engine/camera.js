@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Third-person follow camera.
 
+import { FINISHER } from '../data/finishers.js';
 import { camera } from './renderer.js';
 import { clamp, TMP } from '../utils.js';
 import { shared, G, player, enemies, isGunner } from '../state.js';
@@ -352,7 +353,8 @@ export function updateCamera(dt){
   const blasterAim = (isGunner() && !player.zoom && player.blockHeld) ? (BRACE_ZOOM[player.weapon] || 0) : 0;    // bracing zooms in — the payoff for steadying (the lens is close already)
   // IMPACT PUNCH — heavy hitstop snaps the view in a touch (instantly, the sim is frozen) and slow-mo holds it there,
   // so the big moments feel close; it releases once the beat is over
-  if (G.mode === 'play' && !player.zoom && (G.hitstop > 0.04 || G.slowmo < 0.9)) fovPunch = C.impactFov;
+  if (G.mode === 'play' && !player.zoom && player.fin && G.finCam !== false) fovPunch = Math.min(FINISHER.cam, fovPunch + dt * FINISHER.cam * 6);   // a SABER FINISHER: the view pushes in while it plays
+  else if (G.mode === 'play' && !player.zoom && (G.hitstop > 0.04 || G.slowmo < 0.9)) fovPunch = C.impactFov;
   else fovPunch = Math.max(0, fovPunch - dt * C.impactFov * 4);
   const wantFov = player.zoom ? 30 : (baseFov(C) + (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6) + (stance().fovKick || 0) - blasterAim);
   // previewing the FOV setting (often while paused, dt = 0): snap so the view follows the slider at once

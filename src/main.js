@@ -119,6 +119,7 @@ import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
+import { updateDoorway, doorState } from './world/doorway.js';
 import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
@@ -158,6 +159,7 @@ function tick(){
       updatePlayer(dt);
       updateFlow(wdt);
       updateMission(dt);
+      updateDoorway(dt);     // the temple doors swinging open, and the walk through them (world/doorway.js)
       updateAftermath(dt);   // the calm after a chapter's last fight: a walk back to the rally point (game/aftermath.js)
       updateGlance(dt);   // an objective's hand-off turns the view to the next one, for a moment (game/glance.js)
       updateSandbox(dt);
@@ -247,7 +249,7 @@ import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
-Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms });   // the story's voice lines (game/story.js), for tests
+Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
 Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });

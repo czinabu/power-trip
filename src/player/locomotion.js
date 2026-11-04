@@ -14,6 +14,7 @@ import { slamImpact } from './jedi/force.js';
 import { stompImpact } from './jedi/palm.js';
 import { spawnGroundShock } from '../fx/vfx.js';
 import { clampToArena, collideSolids, ceilHit, BODY_H } from '../world/collision.js';
+import { passageHold } from '../world/doorway.js';
 import { mandoSlamImpact } from './mando/gadgets.js';
 import { MOVE } from '../data/movement.js';
 import { MANDO_MOBILITY, MOBILITY } from '../data/mobility.js';
@@ -257,5 +258,6 @@ export function updateGravityAndLanding(dt, pp){
     if (!wasGrounded && G.gt - (player.jumpBufT ?? -9) < MOVE.jumpBuffer){ player.jumpBufT = -9; doJump(); }
   } else player.grounded = false;
   // in a walled room the hero goes right up to the walls (to run on them), not a metre short of an invisible line
-  clampToArena(pp, null, null, shared.arenaWalled && shared.arenaWallFace ? shared.arenaWallFace - CFG.player.radius : 0);
+  // (through the temple doors once they're open: world/doorway.js)
+  if (!passageHold(pp, CFG.player.radius)) clampToArena(pp, null, null, shared.arenaWalled && shared.arenaWallFace ? shared.arenaWallFace - CFG.player.radius : 0);
 }

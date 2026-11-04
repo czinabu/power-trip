@@ -884,7 +884,8 @@ body.pad .kbonly{display:none}
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
 #forms.open{display:flex}
 #forms .howto-panel{width:min(1080px,100%)}
-#overlay:not(.st-pause) #formsBtn{display:none}
+#overlay:not(.st-pause,.st-menu) #formsBtn,body.mando #overlay.st-menu #formsBtn{display:none}   /* MASTERY on the menu is the Jedi's (the Mando's and trooper's heroes have no forms) */
+#overlay.st-menu .ov-actions .btn.btn:not(.go){flex-basis:17%}   /* (five in the menu's quiet row with MASTERY; the four grow to fill it without) */
 .fm-sec{margin:14px 0 8px;font-size:12px;letter-spacing:2.4px;font-weight:700;color:var(--ink-faint);border-bottom:1px solid var(--edge);padding-bottom:3px}
 .fm-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .fm-slot{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);
@@ -959,6 +960,52 @@ body.pad .kbonly{display:none}
 .fm-detail.empty{color:var(--ink-faint);font-size:13px}
 .fm-detail b{display:block;margin-top:5px;font:700 22px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
 .fm-compact .fm-actions{position:static;margin:12px 0 0;padding:0}
+/* MASTERY (ui/forms-ui.js, the pause page and the menu's): THE FORCE on top, each form's rank on its tile and in its detail.
+   The page scrolls as a whole here, so the Force section never squeezes the forms off a short screen */
+#forms .howto-panel.fm-compact.fm-mastery{overflow-y:auto}
+.fm-mastery .fm-body{flex:0 0 auto}
+.fm-mastery .fm-detail{max-height:none}
+.fm-note.top{margin:2px 0 0}
+.fm-force{display:grid;grid-template-columns:minmax(210px,250px) 1fr;gap:10px}
+.fm-lv{padding:10px 13px;border:1px solid var(--edge-mid);border-left:3px solid var(--accent);border-radius:var(--r);background:var(--panel)}
+.fm-lv-k{font:600 11px/1 var(--font-ui);letter-spacing:2px;color:var(--accent)}
+.fm-lv-n{margin:4px 0 6px;font:700 40px/1 var(--font-display);letter-spacing:1px;color:var(--ink)}
+.fm-lv-n span{margin-left:6px;font-size:16px;letter-spacing:1.5px;color:var(--ink-faint)}
+.fm-lv .fm-pips i{width:auto;flex:1 1 0}
+.fm-lv .fm-pips{display:flex;width:100%}
+.fm-lv-in{margin-top:8px;font-size:13px;line-height:1.35;color:var(--ink-soft)}
+.fm-lv-in b{color:var(--c);font-weight:700;letter-spacing:.6px}
+.fm-lv-in em{font-style:normal;font-weight:700;color:var(--ink)}
+.fm-lv-t{margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-faint)}
+.fm-pws{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-content:start}
+@media (max-width:1080px){ .fm-pws{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.fm-pw{padding:6px 10px 7px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(255,255,255,.025);min-width:0}
+.fm-pw.off{opacity:.55}
+.fm-pw-h{display:flex;align-items:center;gap:6px}
+.fm-pw-h b{font:700 13px/1.1 var(--font-display);letter-spacing:1.4px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-pw-m{padding:1px 4px;border:1px solid rgba(255,210,74,.5);border-radius:3px;font:700 9px/1 var(--font-ui);letter-spacing:.5px;color:var(--gold)}
+.fm-pw-lv{margin-left:auto;font:600 10px/1 var(--font-ui);letter-spacing:1.2px;color:var(--ink-faint);white-space:nowrap}
+.fm-pw-l{display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:4px;font-size:12px;line-height:1.25}
+.fm-pw-up{color:#8fe8ff}
+.fm-pw-cost{color:var(--ink-dim)}
+.fm-pw-off,.fm-pw-lock{color:var(--ink-faint)}
+.fm-pips{display:inline-flex;gap:3px;vertical-align:middle}
+.fm-pips i{width:12px;height:5px;border-radius:2px;background:rgba(255,255,255,.12)}
+.fm-pips i.on{background:var(--gold)}
+.fm-mast{display:flex;align-items:center;gap:6px;margin-top:6px;font:600 10px/1 var(--font-ui);letter-spacing:1.2px;white-space:nowrap}
+.fm-rk{color:var(--gold)}
+.fm-sh{margin-left:auto;color:var(--ink-dim)}
+.fm-bar{height:3px;margin-top:5px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.fm-bar i{display:block;height:100%;background:var(--c,var(--accent))}
+.fm-bar.big{height:5px;margin-top:7px}
+.fm-sub .fm-pips{margin-left:8px}
+.fm-sub .fm-rk{margin-left:8px}
+.fm-rkl{margin:5px 0 0;padding:0;list-style:none;font-size:12px;line-height:1.35}
+.fm-rkl li{position:relative;padding-left:14px;margin:1px 0;color:var(--ink-soft)}
+.fm-rkl li::before{content:'\25B8';position:absolute;left:1px;color:var(--ink-faint)}
+.fm-rkl li.on::before{content:'\2713';color:var(--gold)}
+.fm-fin.dim{color:var(--ink-faint);font-size:11px}
+@media (max-width:760px){ .fm-force{grid-template-columns:1fr} .fm-pws{grid-template-columns:repeat(2,minmax(0,1fr))} .fm-pw-h{align-items:flex-start} .fm-pw-h b{white-space:normal} }
 @media (max-width:760px){ .fm-compact .fm-body{grid-template-columns:1fr;overflow-y:auto} .fm-tiles{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:620px){ .fm-slots,.fm-compact.hero-mando .fm-slots{grid-template-columns:1fr} }
 

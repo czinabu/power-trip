@@ -104,8 +104,8 @@ export function setOverlayState(state){
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('pzTrain').style.display = state === 'pause' && G.training ? '' : 'none';   // the pause screen's TRAINING label
-  document.getElementById('formsBtn').style.display = isTrooper() ? 'none' : '';   // (the trooper has neither yet)
-  document.getElementById('formsBtn').textContent = G.hero === 'mando' ? 'ARMORY' : 'LIGHTSABER FORMS';   // the Jedi's forms page (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
+  document.getElementById('formsBtn').style.display = isTrooper() && state !== 'menu' ? 'none' : '';   // (the trooper has neither yet; on the menu styles/menus.css hides it for any hero but the Jedi, as the hero changes)
+  document.getElementById('formsBtn').textContent = state === 'menu' ? 'MASTERY' : G.hero === 'mando' ? 'ARMORY' : 'FORMS & MASTERY';   // the Jedi's forms page with the Force and mastery (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
   const go = document.getElementById('goText'), sub = document.getElementById('ovsub');
   const firstStep = _step === 'mode' && !overlay.classList.contains('mpage');   // (the Missions page opens from the first step and names its mission)
   if (state === 'menu' && G.modeSel === 'campaign' && canResume()){   // a loaded save picks the campaign up where it was

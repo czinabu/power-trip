@@ -126,10 +126,12 @@ export function formRank(id){
   if (G.sandbox || G.training) return bestRanks()[id] || 0;
   return (G.formRank && G.formRank[id]) || 0;
 }
-export const forceShare = (id = G.stance) => Math.min(1, (FORCE_SHARE[id] || 0.6) + formRank(id) * FORM_RANK_SHARE);
+// a form's share at a mastery rank (the forms page reads a saved run's ranks, not the one in play)
+export const shareAt = (id, rank) => Math.min(1, (FORCE_SHARE[id] || 0.6) + (rank || 0) * FORM_RANK_SHARE);
+export const forceShare = (id = G.stance) => shareAt(id, formRank(id));
 
 const COST_KEYS = ['cost', 'drain'];
-const costMulFor = (steps) => Math.max(COST_FLOOR, 1 - COST_RATE * Math.max(0, steps));
+export const costMulFor = (steps) => Math.max(COST_FLOOR, 1 - COST_RATE * Math.max(0, steps));
 // what a power's (or a Force move's: MOVE_ARRIVE) Force cost is multiplied by at this level, in the form in hand
 export function forceCostMul(id, lv = forceLevel(), share = forceShare()){
   if (!lv || isGunner()) return 1;
@@ -152,17 +154,20 @@ export function growPower(id, v, lv = forceLevel(), share = forceShare()){
   }
   return v;
 }
-// what a power's headline number gains at a level, in the form in hand: '+30% shove · −20% cost' (the level-up card)
-export function growthLine(id, lv = forceLevel(), share = forceShare()){
+// what a power's headline number gains at a level, in a form's share: '+30% shove' ('' at or below its arrival level)
+export function growthGain(id, lv = forceLevel(), share = forceShare()){
   const g = POWER_GROWTH[id], steps = Math.max(0, lv - (g ? g.arrive : (MOVE_ARRIVE[id] || 1))) * share;
-  if (!steps) return '';
-  const cut = Math.round((1 - forceCostMul(id, lv, share)) * 100), cost = cut ? '−' + cut + '% Force cost' : '';
-  if (!g || !g.show) return cost;
+  if (!steps || !g || !g.show) return '';
   const [k, word] = g.show;
-  const gain = g.mul && g.mul[k] ? '+' + Math.round(g.mul[k] * steps * 100) + '% ' + word
+  return g.mul && g.mul[k] ? '+' + Math.round(g.mul[k] * steps * 100) + '% ' + word
     : k === 'heal' ? '+' + (Math.round(g.add.heal * steps * 1000) / 10) + '% ' + word
     : '+' + Math.round(g.add[k] * steps * 100) + '% ' + word;
-  return cost ? gain + ' · ' + cost : gain;
+}
+// the same with the Force cost it saves: '+30% shove · −20% Force cost' (the level-up card)
+export function growthLine(id, lv = forceLevel(), share = forceShare()){
+  const cut = Math.round((1 - forceCostMul(id, lv, share)) * 100), cost = cut ? '−' + cut + '% Force cost' : '';
+  const gain = growthGain(id, lv, share);
+  return gain && cost ? gain + ' · ' + cost : gain || cost;
 }
 // the Force Level each Jedi power opens at (data/store.js `force`): the level its chapter brings
 export const powerArrives = (id) => (POWER_GROWTH[id] || {}).arrive || 1;

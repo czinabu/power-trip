@@ -5,16 +5,21 @@
 //     three forms to carry; a campaign or survival run shows the three it has (they change only when the run learns a
 //     form: game/meditation.js), and the training grounds the three they start on. FIGHT starts the mode.
 // Neither names a form the hero hasn't learned: the forms still to come stand as one sealed card.
-//   · FORMS on the pause screen — the same page, read only, for the run in progress.
+//   · FORMS & MASTERY on the pause screen — the same page, read only, for the run in progress, and MASTERY on the main
+//     menu — read only, for the saved campaign run (or, with none, the best the story has reached). Both add THE FORCE on
+//     top (the Force Level, and what each power gets from it in the form picked below) and each form's mastery on its tile.
 
-import { FORM_MASTERY, FORM_RANKS, formRank, forceShare, forceLevel } from '../data/force-level.js';
+import { FORM_MASTERY, FORM_RANKS, FORM_RANK_SHARE, FORCE_MAX, POWER_GROWTH, MOVE_ARRIVE, formRank, forceLevel, shareAt, bestRanks, growthGain, costMulFor } from '../data/force-level.js';
+import { CFG } from '../data/config.js';
+import { MASTERY_JEDI, masteryRank } from '../data/mastery.js';
+import { storyForceLevel } from '../game/sandbox-unlocks.js';
 import { G } from '../state.js';
 import { FINISHERS } from '../data/finishers.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { FAMILIES, FORM_FAMILY, MATCHUP } from '../data/foe-forms.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
-import { canResume, oldNimanRun } from '../game/saves.js';
+import { canResume, oldNimanRun, resumeLabel } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
 import { audioInit } from '../audio/sfx.js';
 import { openArmoryCodex } from './armory-ui.js';
@@ -66,6 +71,86 @@ function counterBlock(id){
     (F ? counterNote() : '');
 }
 
+/* ---------- MASTERY: what the page reads its Force Level and ranks from (ctx.view) ----------
+   The pause page reads the run in play (data/force-level.js forceLevel / formRank, so the sandbox's sliders and the
+   training's best ranks come through as they fight). The main menu reads the saved campaign run if there is one, else
+   the best the story has reached: the Force Level the training grounds and the sandbox fight at, and each form's best
+   rank from any run. `pts` is the practice a form has towards its next rank (null: this view keeps none). */
+function liveView(){
+  const practise = G.mode === 'play' && !G.training && !G.sandbox;   // (as game/upgrades.js trainForm: only a real fight teaches)
+  return { lv: forceLevel(), rank: formRank, pts: practise ? (id) => (G.formUse && G.formUse[id]) || 0 : null,
+    waits: (id) => G.formSince && G.formSince[id] != null && (G.waveTotal || 0) < G.formSince[id] + FORM_RANKS.gap * (formRank(id) + 1),
+    has: (k) => !!(G.unlocked && G.unlocked[k]), powerRank: masteryRank,
+    why: G.sandbox ? 'Level and ranks set in the sandbox panel (B)' : G.training ? 'Level and ranks as far as the story has reached' : '' };
+}
+function savedView(run){
+  const fr = run.formRank || {}, fu = run.formUse || {}, un = run.unlocked || {}, pm = run.mastery || {};
+  return { lv: Math.max(1, Math.min(FORCE_MAX, run.forceLevel || 1)), rank: (id) => fr[id] || 0, pts: (id) => fu[id] || 0, waits: () => false,
+    has: (k) => !!un[k], powerRank: (id) => pm[id] || 0, why: 'Saved run · ' + resumeLabel() };
+}
+function storyView(){
+  const b = bestRanks();
+  return { lv: storyForceLevel(), rank: (id) => b[id] || 0, pts: null, waits: () => false, has: null, powerRank: () => 0,
+    why: 'As far as the story has reached · best ranks from any run' };
+}
+const shareOf = (id) => shareAt(id, ctx.view.rank(id));
+const pctOf = (x) => Math.round(x * 100) + '%';
+// a rank's practice: [points into this rank, points this rank asks for] (FORM_RANKS.need holds running totals)
+function rankProgress(id){
+  const r = ctx.view.rank(id); if (r >= 3 || !ctx.view.pts) return null;
+  const from = r ? FORM_RANKS.need[r - 1] : 0, to = FORM_RANKS.need[r];
+  return [Math.max(0, Math.min(to - from, ctx.view.pts(id) - from)), to - from];
+}
+const ROMAN = ['', 'I', 'II', 'III'];
+const pips = (r, n = 3) => '<span class="fm-pips">' + Array.from({ length: n }, (_, i) => '<i' + (i < r ? ' class="on"' : '') + '></i>').join('') + '</span>';
+// on each tile: its rank, the bar to the next one, and its Force share
+function tileMastery(id){
+  if (!ctx.view || !FORM_MASTERY[id]) return '';
+  const r = ctx.view.rank(id), p = rankProgress(id);
+  return '<div class="fm-mast">' + pips(r) + '<span class="fm-rk">' + (r ? FORM_RANKS.names[r] : 'UNPRACTISED') + '</span><span class="fm-sh">' + pctOf(shareOf(id)) + ' FORCE</span></div>' +
+    (p ? '<div class="fm-bar" title="' + p[0] + ' / ' + p[1] + ' practice to ' + FORM_RANKS.names[r + 1] + '"><i style="width:' + Math.round(p[0] / p[1] * 100) + '%"></i></div>' : '');
+}
+
+/* THE FORCE — the Force Level, and every Force power: the level it opens at, how much stronger and cheaper the level makes
+   it in the form picked below (data/force-level.js growthGain / costMulFor, the same numbers the powers fight with), and
+   its own mastery rank (data/mastery.js). Grasp rides on Pull, the Force strikes come with the saber. */
+const OWNED = { push: 'push', palm: null, pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
+const BASE = { push: 'push', pull: 'pull', grasp: 'grasp', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
+const POWER_MASTERY = Object.fromEntries(MASTERY_JEDI.map(m => [m.id, m]));
+function powerCost(id, steps){
+  const a = BASE[id] && CFG.abilities[BASE[id]]; if (!a || typeof a.cost !== 'number') return null;
+  let c = a.cost; const m = POWER_MASTERY[id], r = m ? ctx.view.powerRank(id) : 0;
+  for (let i = 0; i < r; i++) if (m.ranks[i].mul && m.ranks[i].mul.cost) c *= m.ranks[i].mul.cost;
+  return Math.round(c * costMulFor(steps));
+}
+function powerRow(id, share){
+  const g = POWER_GROWTH[id], v = ctx.view, lv = v.lv;
+  const open = lv >= g.arrive, held = !v.has || !OWNED[id] || v.has(OWNED[id]);
+  const steps = Math.max(0, lv - g.arrive) * share, cut = Math.round((1 - costMulFor(steps)) * 100);
+  const r = POWER_MASTERY[id] ? v.powerRank(id) : 0;
+  let line;
+  if (!open) line = '<span class="fm-pw-lock">' + LOCK + ' Opens at Force Level ' + g.arrive + '</span>';
+  else if (!held) line = '<span class="fm-pw-off">Not in your kit</span>';
+  else {
+    const gain = growthGain(id, lv, share), cost = powerCost(id, steps);
+    line = '<span class="fm-pw-up">' + (gain || 'At its base') + '</span>' +
+      (cost != null ? '<span class="fm-pw-cost">' + cost + ' Force' + (cut ? ' · −' + cut + '%' : '') + '</span>' : '');   // (the Force strikes cost stamina, not Force)
+  }
+  return '<div class="fm-pw' + (open && held ? '' : ' off') + '"><div class="fm-pw-h"><b>' + esc(g.nm) + '</b>' + (r ? '<span class="fm-pw-m" title="Power mastery rank ' + ROMAN[r] + '">' + ROMAN[r] + '</span>' : '') +
+    '<span class="fm-pw-lv">LV ' + g.arrive + '</span></div><div class="fm-pw-l">' + line + '</div></div>';
+}
+function forceSection(){
+  const v = ctx.view, id = ctx.focus && ctx.known.includes(ctx.focus) ? ctx.focus : null;
+  const share = id ? shareOf(id) : shareAt(STARTING_FORMS[0], v.rank(STARTING_FORMS[0]));
+  const fname = esc(FORMS[id || STARTING_FORMS[0]].name);
+  const moveCut = Math.round((1 - costMulFor(Math.max(0, v.lv - MOVE_ARRIVE.jump) * share)) * 100);
+  const pw = Object.keys(POWER_GROWTH).map(k => powerRow(k, share)).join('') +
+    '<div class="fm-pw"><div class="fm-pw-h"><b>FORCE JUMP &amp; DASH</b><span class="fm-pw-lv">LV 1</span></div><div class="fm-pw-l"><span class="fm-pw-up">Cost only</span>' +
+    (moveCut ? '<span class="fm-pw-cost">−' + moveCut + '% Force</span>' : '') + '</div></div>';
+  return '<div class="fm-sec">THE FORCE</div><div class="fm-force"><div class="fm-lv"><div class="fm-lv-k">FORCE LEVEL</div><div class="fm-lv-n">' + v.lv + '<span>/ ' + FORCE_MAX + '</span></div>' +
+    pips(v.lv, FORCE_MAX) + '<div class="fm-lv-in" title="The Force Level rises with the story: the higher it is, the harder your powers hit and the less Force they cost. Pick a form below to compare.">In <b style="--c:' + hex(STANCES[id || STARTING_FORMS[0]].blade) + '">' + fname + '</b> your powers draw on <em>' + pctOf(share) + '</em> of it</div></div>' +
+    '<div class="fm-pws">' + pw + '</div></div>';
+}
 const EDIT_HINT = ' Pick a slot, then a form for it. ✕ empties a slot.';
 let ctx = null;   // { prefight, edit, known: Set, loadout, slot, focus, note, closed: Set, onGo }
 
@@ -113,8 +198,21 @@ function prefightContext(){
 }
 function pauseContext(){
   const known = ORDER.filter(id => stanceUnlocked(id) && !forkClosed(id, G.formFork));
-  return { edit: false, known, loadout: G.loadout.slice(), closed: G.formFork,
+  return { edit: false, known, loadout: G.loadout.slice(), closed: G.formFork, view: liveView(),
     note: G.sandbox ? 'Change the three in the sandbox panel (B).' : G.training || G.mission ? '' : 'Your three change each time you learn a new form.' };
+}
+
+// MASTERY on the main menu: the saved campaign run (its forms, its three, its ranks), else what the story has taught
+function menuContext(){
+  const run = G.resumeRun && G.resumeRun.hero === 'jedi' ? G.resumeRun : null;
+  if (run){
+    const su = run.stanceUnlocked || {};
+    const known = ORDER.filter(id => (STARTING_FORMS.includes(id) || su[id] || (id === 'niman' && oldNimanRun(run))) && !forkClosed(id, run.formFork));
+    const loadout = cleanLoadout(run.loadout || RUN_LOADOUT).map(id => id && known.includes(id) ? id : null);
+    if (!loadout.some(Boolean)) loadout[0] = STARTING_FORMS[0];
+    return { edit: false, known, loadout, closed: run.formFork, view: savedView(run), stance: run.stance };
+  }
+  return { edit: false, known: storyForms(), loadout: null, view: storyView() };
 }
 
 /* ---------- render ---------- */
@@ -130,18 +228,25 @@ function slotRow(){
 }
 // both pages show small tiles and one form's detail beside them
 function tile(id){
-  const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = ctx.loadout.indexOf(id);
+  const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = (ctx.loadout || []).indexOf(id);
   return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
     '<div class="fm-no"><span class="fm-t">' + formTitle(id) + ' · ' + famTag(id) + '</span>' + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
-    '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
+    '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + tileMastery(id) + '</div>';
 }
 // its SABER FINISHER (data/finishers.js): what the next attack on a foe with its guard broken does
-// THE FORCE in this form (data/force-level.js): its share of the Force Level, its mastery rank and what practises it
+// MASTERY in this form (data/force-level.js): its rank, the practice to the next one and what it brings, and its Force share
 function forceBlock(id){
   const m = FORM_MASTERY[id]; if (!m) return '';
-  const r = formRank(id), next = r < 3 ? FORM_RANKS.names[r + 1] : '';
-  return '<div class="fm-best">THE FORCE · ' + Math.round(forceShare(id) * 100) + '% SHARE · FORCE LEVEL ' + forceLevel() + '</div>' +
-    '<div class="fm-fin">MASTERY · ' + (r ? FORM_RANKS.names[r] : 'NOT YET PRACTISED') + (next ? '. Practise it with ' + esc(m.practice) + ' to reach ' + next + ': ' + esc(m.lines.join(', ').toLowerCase()) + '.' : '. Mastered.') + '</div>';
+  const v = ctx.view, r = v ? v.rank(id) : formRank(id), next = r < 3 ? FORM_RANKS.names[r + 1] : '', p = v && rankProgress(id);
+  const share = v ? shareOf(id) : shareAt(id, r);
+  const where = !next ? 'Mastered: every strength at its fullest.'
+    : p ? (p[0] >= p[1] ? 'Practice done: ' + next + ' lands at the next wave cleared.' : p[0] + ' / ' + p[1] + ' practice to ' + next + '.')
+    : 'Ranks are earned in the campaign, survival and missions.';
+  return '<div class="fm-sub">MASTERY · ' + pips(r) + '<span class="fm-rk">' + (r ? FORM_RANKS.names[r] : 'UNPRACTISED') + '</span></div>' +
+    (p && next ? '<div class="fm-bar big"><i style="width:' + Math.round(p[0] / p[1] * 100) + '%"></i></div>' : '') +
+    '<div class="fm-fin">' + esc(where) + (next ? ' Practise it with ' + esc(m.practice) + '.' : '') + '</div>' +
+    '<ul class="fm-rkl">' + m.lines.map(t => '<li' + (r >= 3 ? ' class="on"' : '') + '>' + esc(t) + '</li>').join('') + '</ul>' +
+    '<div class="fm-fin dim">Each rank moves these a third of the way to Master and adds ' + pctOf(FORM_RANK_SHARE) + ' to its Force share: ' + pctOf(share) + ' now.</div>';
 }
 const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-best">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
 function detail(){
@@ -156,10 +261,11 @@ function detail(){
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';
   // both pages share one layout: small tiles, and one form's whole story beside them (the pause page opens on the form in hand)
-  panel.innerHTML = '<div class="howto-panel fm-compact">' +
-    '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'LIGHTSABER FORMS') + '</div>' +
-    '<div class="rm-sub">' + head + '</div><div class="howto-x" data-x="1">✕</div></div>' +
-    '<div class="fm-sec">YOUR THREE</div>' + slotRow() +
+  panel.innerHTML = '<div class="howto-panel fm-compact' + (ctx.view ? ' fm-mastery' : '') + '">' +
+    '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'FORMS &amp; MASTERY') + '</div>' +
+    '<div class="rm-sub">' + head + (ctx.view && ctx.view.why ? ' · ' + esc(ctx.view.why) : '') + '</div><div class="howto-x" data-x="1">✕</div></div>' +
+    (ctx.view ? forceSection() : '') +
+    (ctx.loadout ? '<div class="fm-sec">YOUR THREE</div>' + slotRow() : '') +
     (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + (ctx.edit ? EDIT_HINT : '') + '</div>' : '') +
     '<div class="fm-sec">THE FORMS</div><div class="fm-body"><div class="fm-tiles">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') + '</div>' + detail() + '</div>' + lockedRow() +
     (ctx.prefight ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') + '</div>';
@@ -199,8 +305,9 @@ export function openPrefight(go){
   render(); panel.classList.add('open');
 }
 export function openCodex(){
-  ctx = { prefight: false, slot: 0, ...pauseContext() };
-  ctx.focus = ctx.known.includes(G.stance) ? G.stance : ctx.loadout.find(Boolean) || ctx.known[0] || null;
+  ctx = { prefight: false, slot: 0, ...(G.mode === 'menu' ? menuContext() : pauseContext()) };
+  const hand = ctx.stance || (G.mode === 'menu' ? null : G.stance);
+  ctx.focus = ctx.known.includes(hand) ? hand : (ctx.loadout || []).find(Boolean) || ctx.known[0] || null;
   render(); panel.classList.add('open');
 }
 function close(){ panel.classList.remove('open'); ctx = null; }

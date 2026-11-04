@@ -248,8 +248,10 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   // a cut moves the weight (set by the swing last frame): back onto the rear foot in the wind-up, through onto the front
   // one in the strike, the feet staying planted while the hips travel over them
   const SH = player._swingHip;
-  R.hips.position.x = dr(R.hips.position.x, (B ? B.sway * bw * calm : 0) + (SH ? SH.x : 0), 20);
-  R.hips.position.z = dr(R.hips.position.z, (B ? B.surge * bw : 0) + (SH ? SH.z : 0), 20);
+  // a stance can carry its weight off centre (FOOTWORK shift/sit: Jar'Kai's mixed-grip side lunge, onto the right knee)
+  const fwX = planted ? POSE.shift || 0 : 0, fwZ = planted ? -(POSE.sit || 0) : 0;
+  R.hips.position.x = dr(R.hips.position.x, (B ? B.sway * bw * calm : 0) + (SH ? SH.x : 0) + fwX, 20);
+  R.hips.position.z = dr(R.hips.position.z, (B ? B.surge * bw : 0) + (SH ? SH.z : 0) + fwZ, 20);
   R.hips.rotation.x = dr(R.hips.rotation.x, (B ? B.pitch * bw : 0) + player._landPitch, 20);
   R.hips.rotation.z = dr(R.hips.rotation.z, B ? -B.roll * bw * calm : 0, 20);
   if (GS.body) R.hips.rotation.y = dr(R.hips.rotation.y, B ? B.yaw * bw * along : 0, 20);   // (else anim/agility.js turns the Jedi's)

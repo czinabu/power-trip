@@ -20,7 +20,7 @@ import { FORMS, FORM_PATH } from '../data/forms.js';
 import { stanceUnlocked } from '../data/stances.js';
 import { storeAbilityCard } from './ability-card.js';
 import { TIER_REQ, TIER_CHAPTER } from '../data/skills.js';
-import { ENDLESS_POWERS } from '../data/store.js';
+import { ENDLESS_POWERS, formChapter } from '../data/store.js';
 import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
@@ -126,7 +126,7 @@ export function renderProgress(){
   const sub = tree.querySelector('.sub');
   if (mando) sub.textContent = isTrooper() ? 'BACK AT THE LINE' : 'AT THE FORGE';
   else {
-    const fresh = G.chapter >= 0 ? FORM_PATH.filter(p => stanceUnlocked(p.form) && chapterJustClosed(p.chapter)).map(p => p.form) : [];
+    const fresh = G.chapter >= 0 ? FORM_PATH.filter(p => stanceUnlocked(p.form) && chapterJustClosed(formChapter(p))).map(p => p.form) : [];
     const known = Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id) && !fresh.includes(id));
     sub.innerHTML = 'MEDITATION' + (known.length ? ' · FORMS: ' + known.map(id => FORMS[id].name).join(' · ') : '') +
       fresh.map(id => ' · <b class="newform">NEW: ' + FORMS[id].name + '</b>').join('');

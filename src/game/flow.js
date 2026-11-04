@@ -34,7 +34,7 @@ import { applyJetTier, payWaveClear } from './progression.js';
 import { MANDO_AUTO, JEDI_AUTO } from '../data/store.js';
 import { TROOPER_AUTO } from '../data/trooper-progression.js';
 import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
-import { FORCE_LEVELS, FORCE_MAX, POWER_GROWTH, growthLine, forceShare, FORM_MASTERY } from '../data/force-level.js';
+import { FORCE_LEVELS, FORCE_MAX, POWER_GROWTH, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
 import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard } from '../ui/ability-card.js';
@@ -283,17 +283,17 @@ export function checkUnlocks(bannerDelay, closing){
     const jediReached = (u) => (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
                                 : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter)           // a form or a power: the chapter that teaches it, at its close
                                 : (G.levelIdx > u.level || (G.levelIdx === u.level && G.wave >= u.wave));
-    for (const u of JEDI_AUTO){
-      const reached = jediReached(u);
-      if (!reached || u.has()) continue;
-      if (u.fork && !meditates) continue;   // Form VII is a choice: only a run that can stop to make it offers it
-      u.grant(); announce.push(u);
-    }
     // THE FORCE LEVEL rides the same gates (data/force-level.js): a run only climbs; the training grounds and the sandbox
-    // fight at the level the story has reached (the sandbox's slider overrides it)
+    // fight at the level the story has reached (the sandbox's slider overrides it). Set first: a power waits for its level
     const was = G.forceLevel || 1;
     G.forceLevel = (G.sandbox || G.training) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
     if (G.forceLevel > was && !G.sandbox && !G.training) forceUp = G.forceLevel;
+    for (const u of JEDI_AUTO){
+      const reached = jediReached(u);
+      if (!reached || u.has() || !forceReady(u.force)) continue;
+      if (u.fork && !meditates) continue;   // Form VII is a choice: only a run that can stop to make it offers it
+      u.grant(); announce.push(u);
+    }
     if (G.mission && G.chapter < 0) missionFormRanks();
     syncJediChips();
     setStanceHud();
@@ -325,15 +325,17 @@ function missionFormRanks(){
     G.formRank[id] = Math.max(G.formRank[id] || 0, r);
   }
 }
-// the Force Level card (ui/ability-card.js): what grew, for the powers in hand, in the form in hand
-const FORCE_OWNED = { push: 'push', pull: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
+// the Force Level card (ui/ability-card.js): what grew, for the powers and Force moves in hand, in the form in hand
+const FORCE_OWNED = { push: 'push', palm: null, pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
 function forceLevelCard(lv){
-  const rows = Object.keys(FORCE_OWNED).filter(id => G.unlocked && G.unlocked[FORCE_OWNED[id]])
+  const rows = Object.keys(FORCE_OWNED).filter(id => !FORCE_OWNED[id] || (G.unlocked && G.unlocked[FORCE_OWNED[id]]))
     .map(id => [POWER_GROWTH[id].nm, growthLine(id, lv)]).filter(r => r[1]);
+  const move = growthLine('jump', lv);
+  if (move) rows.push(['FORCE JUMP & DASH', move]);
   const form = STANCES[G.stance], fname = form ? form.name.split(' —')[0] : '';
   return { key: 'forcelv', name: 'FORCE LEVEL ' + lv, card: {
     kicker: lv >= FORCE_MAX ? 'THE FORCE AT ITS FULLEST' : 'THE FORCE ANSWERS YOU MORE STRONGLY',
-    lines: ['Every Force power you hold grows with your Force Level. How much of it you can draw on is set by your form: ' +
+    lines: ['Every Force power you hold grows stronger and costs less Force with your Force Level, and new powers open as it climbs. How much of it you can draw on is set by your form: ' +
             (fname ? fname + ' draws on ' + Math.round(forceShare() * 100) + '%.' : '')],
     rows } };
 }

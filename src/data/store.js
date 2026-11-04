@@ -59,7 +59,7 @@ export const MANDO_AUTO = [
 export const formChapter = (p) => p.alt && !chapterOrder(G.actTwo).some(c => c.id === p.chapter) ? p.alt : p.chapter;
 export const JEDI_AUTO = [
   // FORCE PULL — auto-unlocks early (after wave 2); it's no longer in the starting kit
-  { key:'pull',   level:0, wave:2, stage:1, chapter:'siege', hud:'C', name:'FORCE PULL',
+  { key:'pull',   force:2, level:0, wave:2, stage:1, chapter:'siege', hud:'C', name:'FORCE PULL',
     has:()=>!!G.unlocked.pull,        grant(){ G.unlocked.pull = true; } },
   // THE FORMS — learned along FORM_PATH (data/forms.js); game/meditation.js announces each and lets the hero re-slot.
   // A Form VII entry isn't granted here: the run offers the fork and the hero picks which one it keeps.
@@ -68,9 +68,9 @@ export const JEDI_AUTO = [
     has: () => stanceUnlocked(p.form) || (FORMS[p.form].fork && !!G.formFork),
     grant(){ if (!FORMS[p.form].fork){ (G.stanceUnlocked = G.stanceUnlocked || {})[p.form] = true; setStanceHud(); } } })),
   // FORCE JUMP gets stronger automatically as the legend grows (like the Mando jetpack)
-  { key:'fj1', level:0, wave:3, stage:3, chapter:'archive', hud:'HOLD SPACE', name:'FORCE JUMP I',
+  { key:'fj1', force:3, level:0, wave:3, stage:3, chapter:'archive', hud:'HOLD SPACE', name:'FORCE JUMP I',
     has:()=>(player.up.fjTier||0) >= 1, grant(){ player.up.fjTier = 1; } },
-  { key:'fj2', level:1, wave:2, stage:6, chapter:'trial-knight', hud:'HOLD SPACE', name:'FORCE JUMP II',
+  { key:'fj2', force:6, level:1, wave:2, stage:6, chapter:'trial-knight', hud:'HOLD SPACE', name:'FORCE JUMP II',
     has:()=>(player.up.fjTier||0) >= 2, grant(){ player.up.fjTier = 2; } },
 ];
 
@@ -106,30 +106,32 @@ export const MANDO_STORE = [
    II SUSTAIN (mid) — Jump Attack (a leaping shockwave strike) OR Force Mend (a self-heal)
    III ASCENSION (late) — your ULTIMATE: the two mightiest powers, mutually exclusive
    FINAL (latest, priciest) — a capstone that supercharges whichever ultimate you took.
-   Costs climb with power so the strongest tools are unmistakably end-game rewards. */
+   Costs climb with power so the strongest tools are unmistakably end-game rewards.
+   `force` is the Force Level each power needs (data/force-level.js forceReady): the level its chapter / stage brings, so a
+   power opens as the Force grows strong enough for it, in every mode. */
 export const JEDI_STORE = [
   // I — SIDEARM fork (after wave 3): reach OR survivability. Picking one LOCKS the other.
-  { id:'throw',   tier:1, stage:2, chapter:'trial-first', cost:90,  fork:'j_arm', ico:'✦', nm:'SABER THROW', ds:'Hurl the blade — it returns · RMB+LMB',
+  { id:'throw',   force:4, tier:1, stage:2, chapter:'trial-first', cost:90,  fork:'j_arm', ico:'✦', nm:'SABER THROW', ds:'Hurl the blade — it returns · RMB+LMB',
     owned:()=>!!G.unlocked.throw,   buy(){ G.unlocked.throw = true; } },
-  { id:'barrier', tier:1, stage:2, chapter:'trial-first', cost:90,  fork:'j_arm', ico:'⛨', nm:'FORCE BARRIER', ds:'Bubble: knockback on cast, −damage &amp; bolt-deflect, then a parting shove · V',
+  { id:'barrier', force:4, tier:1, stage:2, chapter:'trial-first', cost:90,  fork:'j_arm', ico:'⛨', nm:'FORCE BARRIER', ds:'Bubble: knockback on cast, −damage &amp; bolt-deflect, then a parting shove · V',
     owned:()=>!!G.unlocked.barrier, buy(){ G.unlocked.barrier = true; } },
   // II — SUSTAIN fork (after wave 5): clear breathing room with an AOE knockdown, OR knit your wounds. Offense vs sustain.
-  { id:'jslam',   tier:2, stage:4, chapter:'trial-acrobat', cost:170, fork:'j_util', ico:'▼', nm:'JUMP ATTACK', ds:'X: leap, wind up and bring the blade down in a shockwave',
+  { id:'jslam',   force:5, tier:2, stage:4, chapter:'trial-acrobat', cost:170, fork:'j_util', ico:'▼', nm:'JUMP ATTACK', ds:'X: leap, wind up and bring the blade down in a shockwave',
     owned:()=>!!G.unlocked.slam,    buy(){ G.unlocked.slam = true; } },
-  { id:'mend',    tier:2, stage:4, chapter:'trial-acrobat', cost:170, fork:'j_util', avail:()=>!player.up.lifesteal, ico:'✚', nm:'FORCE MEND', ds:'Channel a big self-heal (+30% vit) · X · LOCKS Vampiric Blade',
+  { id:'mend',    force:5, tier:2, stage:4, chapter:'trial-acrobat', cost:170, fork:'j_util', avail:()=>!player.up.lifesteal, ico:'✚', nm:'FORCE MEND', ds:'Channel a big self-heal (+30% vit) · X · LOCKS Vampiric Blade',
     owned:()=>!!G.unlocked.mend,    buy(){ G.unlocked.mend = true; } },
   // III — ASCENSION fork (after wave 7): your ULTIMATE. The two most powerful Force powers, choose ONE.
-  { id:'judge',   tier:3, stage:6, chapter:'mustafar', cost:300, fork:'j_ult', ico:'⚡', nm:'FORCE JUDGEMENT', ds:'Chain-lightning channel · R',
+  { id:'judge',   force:8, tier:3, stage:6, chapter:'mustafar', cost:300, fork:'j_ult', ico:'⚡', nm:'FORCE JUDGEMENT', ds:'Chain-lightning channel · R',
     owned:()=>!!G.unlocked.judge,   buy(){ G.unlocked.judge = true; } },
-  { id:'repulse', tier:3, stage:6, chapter:'mustafar', cost:300, fork:'j_ult', ico:'❂', nm:'FORCE REPULSE', ds:'360° concussive knockback blast · R',
+  { id:'repulse', force:8, tier:3, stage:6, chapter:'mustafar', cost:300, fork:'j_ult', ico:'❂', nm:'FORCE REPULSE', ds:'360° concussive knockback blast · R',
     owned:()=>!!G.unlocked.repulse, buy(){ G.unlocked.repulse = true; } },
   // LATE (after wave 8) — not a fork: the Force Grasp takes several foes at once
-  { id:'graspMulti', tier:4, stage:7, chapter:'chase', cost:380, avail:()=>!!G.unlocked.pull, ico:'⟲', nm:"DARK LORD'S GRIP", ds:'Hold C to grasp up to 3 foes at once · F hurls them all',
+  { id:'graspMulti', force:9, tier:4, stage:7, chapter:'chase', cost:380, avail:()=>!!G.unlocked.pull, ico:'⟲', nm:"DARK LORD'S GRIP", ds:'Hold C to grasp up to 3 foes at once · F hurls them all',
     owned:()=>!!player.up.graspMulti, buy(){ player.up.graspMulti = true; } },
   // FINAL (after wave 9) — supercharges whichever ULTIMATE you chose (only the matching one shows).
-  { id:'judgeUp',   tier:5, stage:8, chapter:'spearhead', cost:620, final:true, avail:()=>!!G.unlocked.judge,   ico:'⚡', nm:'STORM OF JUDGEMENT', ds:'Judgement strikes +3 more foes, ×1.9 damage',
+  { id:'judgeUp',   force:10, tier:5, stage:8, chapter:'spearhead', cost:620, final:true, avail:()=>!!G.unlocked.judge,   ico:'⚡', nm:'STORM OF JUDGEMENT', ds:'Judgement strikes +3 more foes, ×1.9 damage',
     owned:()=>!!player.up.judgeUp,   buy(){ player.up.judgeUp = true; } },
-  { id:'repulseUp', tier:5, stage:8, chapter:'spearhead', cost:620, final:true, avail:()=>!!G.unlocked.repulse, ico:'❉', nm:'FORCE NOVA', ds:'Repulse erupts with vast range &amp; power',
+  { id:'repulseUp', force:10, tier:5, stage:8, chapter:'spearhead', cost:620, final:true, avail:()=>!!G.unlocked.repulse, ico:'❉', nm:'FORCE NOVA', ds:'Repulse erupts with vast range &amp; power',
     owned:()=>!!player.up.repulseUp, buy(){ player.up.repulseUp = true; } },
 ];
 // SURVIVAL POWER-UPS — repeatable, escalating XP sink so you keep scaling against the endless curve.

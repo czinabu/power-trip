@@ -24,6 +24,7 @@ import { sparks, dustRing } from '../../fx/ink.js';
 import { palmPoints, handList } from '../../fx/palms.js';
 import { hooks } from '../../net/run.js';
 import { tutEvent } from '../../game/tutor-bus.js';
+import { growPower } from '../../data/force-level.js';
 
 const POSTURE = { palm: 20, burst: 40, spin: 30, stomp: 25 };   // how hard each blow cracks a duellist's guard (the front kick is DUEL.posture.kick)
 const H = () => CFG.holster;
@@ -116,7 +117,7 @@ export function holsteredKick(){
 }
 
 function landSpin(){
-  const K = H().spin, pp = playerPos(), col = stance().blade;
+  const K = grown(H().spin), pp = playerPos(), col = stance().blade;
   let hit = 0;
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
@@ -140,7 +141,7 @@ function landSpin(){
 
 // the stomp lands (locomotion.js calls this on touchdown)
 export function stompImpact(){
-  const K = H().stomp, pp = playerPos(), col = stance().blade;
+  const K = grown(H().stomp), pp = playerPos(), col = stance().blade;
   S.slam(); G.shake = Math.max(G.shake, 0.7); G.hitstop = Math.max(G.hitstop, 0.06);
   spawnGroundShock(pp, col, K.radius + 3, 0.4, 0.5);
   dustRing(pp, K.radius);
@@ -182,10 +183,12 @@ export function updateForceStrike(dt){
   }
 }
 
+// a blow's numbers grown by the Force Level, in the form in hand (data/force-level.js POWER_GROWTH.palm)
+const grown = (K) => growPower('palm', Object.assign({}, K));
 const blowMul = () => (player.up.dmg || 1) * focusDmgMul() * forcePower();
 
 function landStrike(P){
-  const B = P.B, f = fwd(), pp = playerPos(), cosLim = Math.cos(B.angle);
+  const B = grown(P.B), f = fwd(), pp = playerPos(), cosLim = Math.cos(B.angle);
   const col = stance().blade, big = B.burst || B.charge;
   spawnPushWave(pp.clone(), f.clone(), col, B.charge ? 0.35 + 0.5 * (B.range / 9) : big ? 0.45 : B.sweep ? 0.3 : 0.2, handList(P.hand));   // out of the striking hand(s)
   let hit = 0;

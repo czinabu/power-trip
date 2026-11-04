@@ -22,6 +22,7 @@ import { updateMantle, tryAutoMantle, updateWallRun, landingImpact, updateHang, 
 import { doJump } from './movement.js';
 import { swingMoveMul, airControlMul, inCombat } from './mobility.js';
 import { padMove } from '../engine/gamepad.js';
+import { forceCostMul } from '../data/force-level.js';
 
 // Horizontal movement: WASD steering on the ground (or Mando air momentum), plus lunge/dash impulse velocity.
 // Returns whether there is movement input this frame (the pose code reads it).
@@ -182,14 +183,14 @@ export function updateForceJump(dt, pp, f, r){
       // double-jump's velocity and rocket away — it lifts you TO the leap speed, no higher.
       player.fjUsed = true;
       player.vy = Math.max(player.vy, pow.takeoff);   // lift TO the leap speed (never add → no rocket stacking)
-      player.force = Math.max(0, player.force - pow.initCost);
+      player.force = Math.max(0, player.force - pow.initCost * forceCostMul('jump'));   // (a stronger Force pays less: data/force-level.js)
       // a burst of blue/white Force energy off the feet on take-off
       S.dash(); burst(V3(pp.x, pp.y + 0.1, pp.z), 0x9fd0ff, 14, 7, -2, 0.9); burst(V3(pp.x, pp.y + 0.1, pp.z), 0xffffff, 8, 9, -1, 0.8);
       spawnGroundShock(V3(pp.x, 0.08, pp.z), 0x9fd0ff, 3.5, 0.3, 0.5);
       sfx(520, 0.14, 'sine', 0.06, 900);
     } else {
       // sustained hold / a descending float — always sips Force (no free descent), slower on the way down
-      player.force = Math.max(0, player.force - (player.vy > 0 ? pow.holdCost : pow.glideCost) * dt);
+      player.force = Math.max(0, player.force - (player.vy > 0 ? pow.holdCost : pow.glideCost) * forceCostMul('jump') * dt);
     }
     if (Math.random() < 0.6) burst(V3(pp.x + rand(-0.5,0.5), pp.y + rand(-0.2,0.6), pp.z + rand(-0.5,0.5)), stance().blade, 1, 2, 2, 0.8);
   }

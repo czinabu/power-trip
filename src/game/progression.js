@@ -9,6 +9,7 @@ import { G, player, isGunner, isTrooper } from '../state.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { TIER_REQ, TIER_NAME, SKILLS, TIER_NAME_MANDO, MANDO_SKILLS, TIER_CHAPTER } from '../data/skills.js';
 import { MANDO_STORE, JEDI_STORE } from '../data/store.js';
+import { forceReady } from '../data/force-level.js';
 import { TROOPER_STORE, TROOPER_SKILLS } from '../data/trooper-progression.js';
 import { renderProgress } from '../ui/store-ui.js';
 import { MASTERY_XP } from '../data/difficulty.js';
@@ -84,6 +85,7 @@ export function storeSet(){ return isTrooper() ? TROOPER_STORE : isGunner() ? MA
 // the story campaign opens a node at its `chapter`'s close (data/store.js); everywhere else at its own `stage`
 // (cumulative waves) if set, else by its tier's stage, so each fork lands at a precise wave.
 export function storeStageOpen(n){
+  if (!forceReady(n.force)) return false;   // a Jedi power waits for the Force Level it needs (data/force-level.js)
   if (n.chapter && G.chapter >= 0) return chapterClosed(n.chapter);
   const s = (n.stage != null) ? n.stage : (STORE_TIER_STAGE[n.tier] || 0); return (G.waveTotal || 0) >= s;
 }

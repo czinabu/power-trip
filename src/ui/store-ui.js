@@ -162,7 +162,7 @@ export function renderProgress(){
     const price = storeCost(n), free = price <= 0, afford = free || xp >= price;
     const el = card({
       cls: (n.fork ? ' fork' : '') + (n.final ? ' final' : ''),
-      tag: n.final ? 'FINAL UPGRADE' : n.fork ? (free ? 'CHOOSE ONE' : 'CHOOSE ONE') : 'ABILITY',
+      tag: (n.final ? 'FINAL UPGRADE' : n.fork ? 'CHOOSE ONE' : 'ABILITY') + (n.force ? ' · FORCE LV ' + n.force : ''),   // a Jedi power: the Force Level it opened at
       ico: n.ico, nm: n.nm, ds: n.ds,
       cost: free ? (n.fork ? 'TAKE THIS ONE' : 'CLAIM FREE') : price + ' XP',
       afford, why: needXp(price),

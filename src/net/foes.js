@@ -91,11 +91,11 @@ function hostTick(){
 // the guest's blows, applied here exactly as if this browser's hero had struck them
 on('hits', (m) => {
   if (net.role !== 'host') return;
-  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade] of m.h || []){
+  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade, shield] of m.h || []){
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
-    damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove ? { shove } : undefined);
+    damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield ? { shove: shove || undefined, bodyShield: !!shield } : undefined);   // (shield: a bolt the guest's held body caught)
     if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4);   // the guest's killing cut may take limbs; the snapshot shows them to both
   }
 });

@@ -36,7 +36,8 @@ export function toggleFullscreen(){
   } else { setWant(true); enter(); }
 }
 
-// KEYBOARD LOCK (Chrome / Edge): while fullscreen, Esc is delivered to the page instead of exiting
+// KEYBOARD LOCK (Chrome / Edge): while fullscreen, Esc is delivered to the page instead of exiting, and so are the
+// movement keys under Ctrl (the Jedi's slide), so Ctrl+W mid-sprint slides instead of closing the tab
 let _escLocked = false;
 export const escapeIsOurs = () => _escLocked && !!fsEl();
 function syncFullscreen(){
@@ -45,7 +46,7 @@ function syncFullscreen(){
   document.querySelectorAll('.fsval').forEach((el) => { el.textContent = on ? 'ON' : 'OFF'; });
   const kb = navigator.keyboard;
   if (!on){ _escLocked = false; if (kb && kb.unlock) kb.unlock(); return; }
-  if (kb && kb.lock) kb.lock(['Escape']).then(() => { _escLocked = !!fsEl(); }, () => { _escLocked = false; });
+  if (kb && kb.lock) kb.lock(['Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyT', 'KeyN', 'KeyQ']).then(() => { _escLocked = !!fsEl(); }, () => { _escLocked = false; });
 }
 document.addEventListener('fullscreenchange', syncFullscreen);
 document.addEventListener('webkitfullscreenchange', syncFullscreen);

@@ -39,7 +39,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.dead) return;
   if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
     if (opts && opts.ally) return;
-    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade);
+    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield);
     if (dmg > 0 && !tick){
       spawnHitSpark(opts && opts.at ? opts.at : V3(e.group.position.x, e.group.position.y + 1.3, e.group.position.z), e.t.eye, 0.8);
       G.hitstop = Math.max(G.hitstop, 0.03); G.shake = Math.max(G.shake, 0.14);
@@ -69,7 +69,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   }
   // SENTINEL frontal deflector — chip damage from the front mostly bounces; FLANK it, or break the guard with a
   // finisher / Djem-So heavy / a RIPOSTE. The shield shatters once depleted, leaving it open & staggered.
-  if (e.t.shield && !e.shieldBroken && knockDir && !tick && dmg > 0){
+  // (a body held up as a HUMAN SHIELD takes its own side's fire on the back and flank, limp: no deflector, enemies/bolts.js)
+  if (e.t.shield && !e.shieldBroken && knockDir && !tick && dmg > 0 && !(opts && opts.bodyShield)){
     const ang = e.group.rotation.y, efx = Math.sin(ang), efz = Math.cos(ang);
     const dpx = playerPos().x - e.group.position.x, dpz = playerPos().z - e.group.position.z;
     const dl = Math.hypot(dpx, dpz) || 1;

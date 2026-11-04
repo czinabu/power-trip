@@ -121,6 +121,18 @@ export function updateBolts(dt){
     }
     // a hostile bolt that meets one of the hero's squadmates on the way stops in it (allies/squad.js)
     if (!kill && !b.friendly && domeStops(b.mesh.position)) kill = true;   // the ARC trooper's bubble shield (player/trooper/abilities.js)
+    // HUMAN SHIELD — a foe hanging in a hero's Force grasp (or a Mando's clinch) is a body in the line of fire: the bolt
+    // stops in it and burns it, whoever's side fired it (shieldSweep below)
+    if (!kill && !b.friendly){
+      const sh = shieldSweep(PREV, b.mesh.position, b);
+      if (sh){
+        b.mesh.position.lerpVectors(PREV, b.mesh.position, sh.t);
+        if (sh.mine) shieldHit(sh.e, b);
+        else b.bxd = true;   // co-op: the partner holds it, so their copy of this bolt lands the hit; this one only stops in it
+        kill = true;
+        boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
+      }
+    }
     if (!kill && !b.friendly){
       const ah = allySweep(PREV, b.mesh.position, BOLT_R);
       if (ah){
@@ -285,6 +297,29 @@ export function updateBolts(dt){
     if (b.bid && !b.bxd && (kill || b.friendly) && hooks.bx) hooks.bx(b);   // co-op: spent or turned here, so the other copy goes
     if (kill){ scene.remove(b.mesh); bolts.splice(i,1); }
   }
+}
+/* HUMAN SHIELD — the first held body along a hostile bolt's step this frame: { e, t, mine }, or null. A body counts while
+   it is 'grasped': a Jedi's Force grasp (player/jedi/grasp.js) or a Mando's clinch (player/mando/melee.js), this hero's or
+   the co-op partner's. Only the browser that holds it lands the damage (mine), so a bolt both browsers fly never hurts it
+   twice: the host's own holds carry no heldAt stamp (net/foes.js), and on the guest a puppet it holds is e.held. */
+function shieldSweep(a, c, b){
+  let best = null;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state !== 'grasped' || e === b.src) continue;   // (never the shooter's own body)
+    const h = sweepHit(e, a, c, BOLT_R + CFG.abilities.grasp.shieldPad);   // (dangling arms and a swinging body cover a little more than it stands in)
+    if (h && (!best || h.t < best.t)) best = { e, t: h.t, mine: e.net ? !!e.held : e.heldAt == null };
+  }
+  return best;
+}
+// a hostile bolt burns the body held up in its way: real damage (at least shieldMin, so a training dummy's soft shots
+// still bite), a scorch, a rock in the hold, and the kill is the holder's. It stays in the grasp (no knockdown).
+function shieldHit(e, b){
+  const A = CFG.abilities.grasp, pos = b.mesh.position;
+  const dmg = Math.max(A.shieldMin, b.dmg * A.shieldMul);
+  if (!e.shieldShown){ e.shieldShown = true; floater(V3(e.group.position.x, e.group.position.y + 2.1, e.group.position.z), 'HUMAN SHIELD', '#ffb37a'); }
+  damageEnemy(e, dmg, b.dir, 6, false, false, { bodyShield: true, at: pos.clone() });
+  markHit(e.group, pos, b.dir, 'scorch');
+  S.blastHit(pos, 1);
 }
 // where segment a→b first enters an upright cylinder (centre c, radius r, y0..y1): 0..1, or -1 if it doesn't
 function segCylinder(a, b, c, r, y0, y1){

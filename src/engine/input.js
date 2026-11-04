@@ -156,6 +156,9 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range') return;   // typing in a text box (the co-op room code) is not play
   const k = e.key.toLowerCase();
+  // Ctrl is the Jedi's slide: in play, keep Ctrl+S / D / F and the like from reaching the browser (Ctrl+W and Ctrl+T can
+  // only be held back fullscreen, by the keyboard lock in ui/fullscreen.js)
+  if (e.ctrlKey && G.mode === 'play' && !G.paused && k !== 'control') e.preventDefault();
   if (G.cutscene && G.mode === 'play' && k !== 'p' && k !== 'm') return;   // a cutscene: only its skip keys (game/cutscene.js), quality and music
   if (player.downed && G.mode === 'play' && k !== 'p' && k !== 'm' && k !== 'escape') return;   // down: wait for your squad
   if (wheelOpen()){   // the squad's command wheel is up: 1-4 pick a squadmate, Esc puts it away; you can still move, but nothing else fires
@@ -206,7 +209,8 @@ document.addEventListener('keydown', (e) => {
       player.sprintOn = !player.sprintOn;
       showBanner('', player.sprintOn ? 'RUN' : 'WALK', 0.6);
     }
-    if (k === 'z' && !e.repeat && !graspDrop()) trySlide();   // the FORCE SLIDE out of a sprint (parkour.js); holding a foe, it drops them
+    if (k === 'z' && !e.repeat && !graspDrop()) toggleBlade();   // IGNITE / RETRACT (as 5); holding a foe in the Force, Z drops them
+    if (k === 'control' && !e.repeat) trySlide();   // the FORCE SLIDE out of a sprint (parkour.js), on Left Ctrl
     if (k === 't' && !e.repeat) toggleLock();          // soft lock-on
     if (k === 'f'){ if (!(player.saberLock && lockPush()) && !graspThrow()) forcePush(); }   // in a saber lock: a point-blank shove that breaks it
     if (k === 'c' && !e.repeat) pullPress();   // tap = Force Pull on release; hold = Force GRASP (grasp.js)

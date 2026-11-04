@@ -18,12 +18,51 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="/styles/base.css">
+<link rel="stylesheet" href="/styles/boot.css">
 <link rel="stylesheet" href="/styles/hud.css">
 <link rel="stylesheet" href="/styles/menus.css">
 <link rel="stylesheet" href="/styles/store.css">
 <link rel="stylesheet" href="/styles/codex.css">
 </head>
 <body class="in-menu">
+<!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js) -->
+<div id="boot" role="status" aria-live="polite">
+  <h1 class="bt-title">POWER TRIP</h1>
+  <div class="bt-saber"><div class="bt-hilt"></div><div class="bt-blade"></div></div>
+  <div class="bt-status">Loading</div>
+  <div class="bt-fan">Fan-made, free, non-commercial. Not affiliated with Lucasfilm or Disney.</div>
+</div>
+<script>
+/* the loader's progress, before any game code has arrived: it creeps on time and on each file the page fetches (the dev
+   server sends the game as hundreds of modules), but never past 60% until the game itself says it's further along */
+(function(){
+  var el = document.getElementById('boot'), blade = el.querySelector('.bt-blade'), txt = el.querySelector('.bt-status');
+  var t0 = performance.now(), files = 0, floor = 0, over = false;
+  function show(){
+    if (over) return;
+    var t = (performance.now() - t0) / 1000;
+    var creep = 0.6 * Math.max(1 - Math.exp(-t / 2.2), 1 - Math.exp(-files / 120));
+    blade.style.setProperty('--p', Math.max(floor, creep).toFixed(3));
+    requestAnimationFrame(show);
+  }
+  try { new PerformanceObserver(function(l){ files += l.getEntries().length; }).observe({ type: 'resource', buffered: true }); } catch(e){}
+  show();
+  function done(){
+    if (over) return; over = true;
+    blade.style.setProperty('--p', 1); txt.textContent = 'Ready';
+    setTimeout(function(){
+      document.body.classList.add('booted'); el.classList.add('out');
+      setTimeout(function(){ el.remove(); }, 650);
+    }, 260);
+  }
+  window.__boot = {
+    stage: function(p, label){ floor = Math.max(floor, p); if (label) txt.textContent = label; },
+    done: done,
+  };
+  // a safety net: whatever goes wrong while loading, the menu shows in the end rather than a loader forever
+  setTimeout(done, 25000);
+})();
+</script>
 <div id="hud">
   <!-- top-left: where you are in the run -->
   <div id="objective">
@@ -75,7 +114,7 @@
       <div class="ab hint j-ab" id="ab-atk"><span class="key">LMB</span><span class="an">SABER</span></div>
       <div class="ab hint j-ab" id="ab-block"><span class="key">RMB</span><span class="an">BLOCK</span></div>
       <div class="ab hint j-ab" id="ab-kick"><span class="key">E</span><span class="an">KICK</span></div>
-      <div class="ab hint j-ab" id="ab-lit"><span class="key">5</span><span class="an">RETRACT</span></div>
+      <div class="ab hint j-ab" id="ab-lit"><span class="key">Z</span><span class="an">RETRACT</span></div>
       <div class="ab hint m-ab" id="ab-dark" style="display:none"><span class="key">LMB</span><span class="an">SLASH</span></div>
       <div class="ab hint m-ab" id="ab-brace"><span class="key">RMB</span><span class="an">BRACE</span></div>
       <div class="ab hint m-ab" id="ab-reload"><span class="key">R</span><span class="an">VENT</span></div>

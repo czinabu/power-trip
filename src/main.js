@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Entry point: imports every module in the original load order, then runs the main loop (tick) and exposes window.GAME.
 
+import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
 import * as THREE from 'three';
 import { switchWeapon, beskarPress } from './player/mando/weapons.js';
 import { setKit, grantGun } from './game/armory.js';
@@ -93,6 +94,7 @@ import './ui/roadmap.js';   // the ROADMAP panel (its button on the main menu)
 import './ui/codex-ui.js';   // the CODEX page: everyone met (its button on the main menu and pause)
 import './ui/forms-ui.js';   // the FORMS page: before the fight (BEGIN) and on the pause screen
 import { showcaseActive, renderShowcase, leaveShowcase } from './ui/showcase.js';
+import { bootFrame } from './ui/boot.js';
 import './ui/customizer.js';
 import './data/difficulty.js';
 import './engine/input.js';
@@ -211,6 +213,7 @@ function tick(){
   updateTrail(fxDt);
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
   if (showcaseActive()) renderShowcase(rawDt); else { leaveShowcase(); composer.render(); }
+  bootFrame();   // the loading screen lifts once the first frames are drawn (ui/boot.js)
   qualityGovernor(!showcaseActive() && !G.paused && !G.skillSelect && !G.cutscene && G.mode === 'play');
 }
 tick();

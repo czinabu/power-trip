@@ -280,7 +280,7 @@ export function updateHud(){
   if (!isGunner()){   // holstered (4): LMB is a Force strike and RMB a ward instead of saber and block
     setText($('ab-atk').querySelector('.an'), player.holstered ? 'FORCE STRIKE' : 'SABER');
     setText($('ab-block').querySelector('.an'), player.holstered ? 'WARD' : 'BLOCK');
-    setText($('ab-lit').querySelector('.an'), player.holstered ? 'DRAW + IGNITE' : player.unlit ? 'IGNITE' : 'RETRACT');   // 5 (player/holster.js toggleBlade)
+    setText($('ab-lit').querySelector('.an'), player.holstered ? 'DRAW + IGNITE' : player.unlit ? 'IGNITE' : 'RETRACT');   // Z or 5 (player/holster.js toggleBlade)
     $('ab-lit').classList.toggle('off', !!player.unlit || !!player.holstered);
   } else {   // the Mando's 5 works on the Darksaber in hand
     const dl = $('ab-dlit'), on = isMando() && player.weapon === 'darksaber';

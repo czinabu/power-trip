@@ -319,6 +319,8 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .rm-title{display:flex;align-items:center;width:100%;padding:9px 14px;background:none;border:0;font:inherit;font-size:15px;letter-spacing:1.5px;color:var(--ink);font-weight:700;text-align:left;cursor:pointer}
 .rm-title::after{content:'+';margin-left:auto;color:var(--ink-faint)}
 .rm-title[aria-expanded=true]::after{content:'\2212'}
+.rm-plain{cursor:default}
+.rm-plain::after{content:none}
 .rm-phase:hover{border-color:var(--edge-lit)}
 .rm-later{font-size:10px;letter-spacing:1.5px;color:var(--ink-faint);margin-left:6px}
 .rm-phase ul{margin:0;padding:0 14px 10px 32px;font-size:14px;line-height:1.4;color:var(--ink-soft)}

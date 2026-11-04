@@ -20,8 +20,6 @@ import { coopLive } from '../net/foes.js';
 import { chapterOrder, storyVoice, storyHero } from '../data/campaign.js';
 import { JEDI_FORK_LINE } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
-import { upToast } from './upgrades.js';
-import { inCombat } from '../player/mobility.js';
 import { MOBILITY } from '../data/mobility.js';
 
 const el = document.getElementById('meditate');
@@ -50,22 +48,26 @@ export function tickMeditation(){
   open();
 }
 // a new run, a load or the main menu: forget anything still waiting
-export function clearMeditation(){ pending.length = 0; windowAt = null; if (meditationUp()) close(true); }
+export function clearMeditation(){ pending.length = 0; windowAt = null; windowWave = -1; if (meditationUp()) close(true); }
 
 /* ---------- the FORMS WINDOW: re-pick the three before the next fight ---------- */
-// It opens as a chapter starts (game/flow.js startLevel) and as a survival wave is cleared (game/survival.js), and
+// It opens as a chapter starts (game/flow.js startLevel) and as a survival wave is cleared (seen here, by the lull
+// after it: game/survival.js must not import this module, or the import loop runs ui/menus.js before it), and
 // closes once the next fight is on (a foe in reach or a blow traded, past the last fight's linger). While it is open,
 // the pause screen's Forms page (ui/forms-ui.js) edits the three.
-let windowAt = null, windowNoted = false;
+let windowAt = null, windowNoted = false, windowWave = -1;
 export function openFormsWindow(){ if (!formsTaught()) return; windowAt = G.gt; windowNoted = false; }
 export const formsWindowOpen = () => windowAt != null && formsTaught() && known().length > 1;
-// game/flow.js, every frame: close it when the fight starts, and say once that it is open (when there's a choice to make)
-export function tickFormsWindow(){
+// game/flow.js, every frame: close it when the fight starts (`fightOn`: player/mobility.js inCombat), and say once that
+// it is open when there's a choice to make (`note`: game/upgrades.js upToast). Both are handed in to keep this module's
+// imports small: it sits in an import loop with ui/menus.js, which calls setTrainHook as it loads.
+export function tickFormsWindow(fightOn, note){
+  if (G.endless && shared.levelPhase === 'between' && windowWave !== G.endlessWave){ windowWave = G.endlessWave; openFormsWindow(); }   // a survival wave just cleared
   if (windowAt == null || G.paused || G.mode !== 'play') return;
-  if (G.gt - windowAt > MOBILITY.combat.linger && inCombat()){ windowAt = null; return; }
+  if (G.gt - windowAt > MOBILITY.combat.linger && fightOn()){ windowAt = null; return; }
   if (!windowNoted && !G.cardUp && !G.cutscene && !G.skillSelect && !meditationUp()){
     windowNoted = true;
-    if (formsWindowOpen() && known().length > LOADOUT_SLOTS) upToast('CHOOSE YOUR FORMS', 'Pause and open FORMS to change your three before the fight', 'mast');
+    if (formsWindowOpen() && known().length > LOADOUT_SLOTS) note('CHOOSE YOUR FORMS', 'Pause and open FORMS to change your three before the fight', 'mast');
   }
 }
 // the Forms page's pick, as the page closes

@@ -22,7 +22,7 @@ const VAEL = 'MASTER VAEL', ILSA = 'ILSA VENN', KAST = 'GENERAL KAST', TARN = 'T
   DACE = 'CAPTAIN DACE', MANDO = 'THE MANDALORIAN', HERO = 'YOU';
 const say = (who, line) => ({ who, say: line });
 const rival = (who, line) => ({ who, say: line, rival: true });
-const INQ = { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, scale: 1.18 };   // (data/cutscenes.js INQ.jedi)
+const INQ = { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, scale: 1.09 };   // (data/cutscenes.js INQ.jedi)
 
 export const JEDI_ACTS = [
   { title: 'THE FALL OF JEDHA',

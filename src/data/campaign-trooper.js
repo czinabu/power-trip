@@ -156,7 +156,7 @@ export const TROOPER_CHAPTERS = {
     brief: ['General Kast is on Hoth, holding a trench line while transports carry hidden children off the ice. She is the one who switched our chips off.',
             'Hold the line beside her clones first. Then ask her why.'],
     // the Jedi on the right flank fights beside the band (a melee squadmate: data/allies.js SQUAD.roles.jedi)
-    guests: [{ name: 'MASTER IRO', role: 'jedi', model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e }],
+    guests: [{ name: 'MASTER IRO', role: 'jedi', model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e, scale: 1.2 }],   // (a duellist's body at the hero's height: data/enemies.js acolyte)
     talk: { where: 'HOTH, THE COMMAND TRENCH',
       lines: [[KAST, 'I would know that armour anywhere. Eight years, trooper.'],
               [YOU, 'You switched our chips off, General. The night before the order.'],

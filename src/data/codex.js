@@ -137,11 +137,11 @@ const DUELISTS = [
     lore: 'Rides the grassland\'s edge, running down anyone who flees.' },
   { id: 'shield-captain', name: 'THE SHIELD CAPTAIN', foe: 'phalanx', tint: 0x5a6472, scale: 1.22, kicker: 'THE LOTHAL BREAKOUT', threat: 4,
     lore: 'Holds the last door of the prison behind a wall of shield.' },
-  { id: 'salvage-master', name: 'THE SALVAGE MASTER', foe: 'duelist', tint: 0x9a6a3a, scale: 1.18, kicker: 'SALVAGE RIGHTS', threat: 4,
+  { id: 'salvage-master', name: 'THE SALVAGE MASTER', foe: 'duelist', tint: 0x9a6a3a, scale: 1.09, kicker: 'SALVAGE RIGHTS', threat: 4,
     lore: 'Claims every wreck in the graveyard, and fights for them.' },
-  { id: 'vx7', name: 'VX-7', foe: 'duelist', tint: 0x4a5a6a, scale: 1.12, kicker: 'BOUNTY · ASSASSIN DROID', threat: 4,
+  { id: 'vx7', name: 'VX-7', foe: 'duelist', tint: 0x4a5a6a, scale: 1.06, kicker: 'BOUNTY · ASSASSIN DROID', threat: 4,
     lore: 'An assassin droid sent to count the foundlings.' },
-  { id: 'iron-warden', name: 'THE IRON WARDEN', foe: 'duelist', tint: 0x4a4a52, scale: 1.2, kicker: 'GATE WARDEN · EXEGOL', threat: 5,
+  { id: 'iron-warden', name: 'THE IRON WARDEN', foe: 'duelist', tint: 0x4a4a52, scale: 1.1, kicker: 'GATE WARDEN · EXEGOL', threat: 5,
     lore: 'Holds the Citadel gate against hunters in beskar.' },
   // ---- the ARC trooper's story ----
   { id: 'marshal', name: 'THE MARSHAL', foe: 'officer', dress: MARSHAL, scale: 1.12, kicker: 'COMMANDER · YOUR BATCH', threat: 5,
@@ -214,7 +214,7 @@ const ALLY_LIST = [
   { squad: 'TEV', kicker: 'CLAN HUNTER', lore: 'A hunter of the clan who rarely says a word.' },
   { squad: 'BRUN', kicker: 'CLAN HUNTER · HEAVY', lore: 'The clan\'s heavy gun, slow to anger.' },
   { squad: 'ARLA', kicker: 'CLAN HUNTER', lore: 'A hunter of the clan with an eye for the high ground.' },
-  { squad: 'MASTER IRO', role: 'jedi', guest: { model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e },
+  { squad: 'MASTER IRO', role: 'jedi', guest: { model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e, scale: 1.2 },
     kicker: 'JEDI · HOTH', lore: 'A Jedi who stands with the squad in the snow.' },
   // ---- the Jedi's story ----
   { cast: 'MASTER VAEL', kicker: 'YOUR MASTER', lore: 'Your teacher, and the voice in your ear.' },

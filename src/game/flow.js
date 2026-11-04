@@ -39,7 +39,7 @@ import { FORCE_LEVELS, FORCE_MAX, POWER_GROWTH, growthLine, forceShare, forceRea
 import { storyForceLevel } from './sandbox-unlocks.js';
 import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard } from '../ui/ability-card.js';
-import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation } from './meditation.js';
+import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
 import { chapterOrder } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint, noteWavePoint, resetUpgrades } from './upgrades.js';
@@ -228,6 +228,7 @@ export function startLevel(idx, opts){
   // a story's guest fighters for a wave chapter (the ARC trooper's Hoth: a Jedi on the line), beside the squad and not
   // counted in it (a mission chapter's are game/mission.js's)
   if (opts && opts.guests && !G.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
+  if (G.chapter >= 0) openFormsWindow();   // a chapter's start: the three can be re-picked until its fight is on (meditation.js)
 }
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)
 export function retryLevel(){ if (G.chapter >= 0) retryChapter(); else startLevel(G.levelIdx, { retry: true }); }
@@ -465,6 +466,7 @@ export function coopCampaignCleared(){
 
 export function updateFlow(dt){
   tickMeditation();   // a learned form waits for the screens in front of it to close (meditation.js)
+  tickFormsWindow();   // the three can be re-picked until the chapter's (or survival wave's) fight is on (meditation.js)
   tickAbilityCards();   // so does a new ability's card (ui/ability-card.js)
   tickArmory();   // a new gun for a full slot: choose which to carry, after its card (ui/armory-ui.js)
   if (G.coopGuest) return;   // the host runs this run's spawns and waves: net/foes.js tells this browser what they did

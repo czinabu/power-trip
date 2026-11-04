@@ -139,7 +139,7 @@ const TIPS = {
     '<b>Stamina</b> is the violet gauge beside your crosshair. Swings and blocks spend it; run dry and your guard breaks.',
     '<b>Force</b> (bottom-left bar) powers your abilities and refills over time.',
     '<b>Focus</b> builds with clean hits and parries and boosts your damage. Taking a hit breaks it.',
-    '<b>Forms:</b> a campaign run starts on Shii-Cho, the first form every Jedi learns, and the masters you meet teach you the others. Each time you learn one you meditate and choose the three you carry on 1 / 2 / 3; that is the only time they change, so pick for the fights ahead. Each form you learn also opens its own lesson in Training.',
+    '<b>Forms:</b> a campaign run starts on Shii-Cho, the first form every Jedi learns, and the masters you meet teach you the others. Each time you learn one you meditate and choose the three you carry on 1 / 2 / 3; you can re-pick them from the pause screen\'s Forms page at the start of each chapter (in survival, between waves), until the fighting starts. Each form you learn also opens its own lesson in Training.',
     { forms: ['makashi', 'soresu'], t: '<b>Sandbox forms:</b> Shii-Cho sweeps crowds, its finisher disarms blaster troopers, and W with a cut in rhythm is the <b>Sarlacc Advance</b>; Makashi beats other blades but bolts cost it; Soresu holds its guard and sends bolts home. Pick yours in the sandbox panel (B).' },
     'A swing turns blaster bolts back down the line they came from. A timed parry (tap RMB) always sends a bolt straight back.',
     { forms: ['shien'], t: '<b>Shien</b> sends deflected bolts home to the shooter harder; in Djem So, G swaps to Shien.' },

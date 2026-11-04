@@ -8,6 +8,7 @@ import { BATTLE_MAPS } from '../data/battlemaps.js';
 import { scene } from '../engine/renderer.js';
 import { S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
+import { openFormsWindow } from './meditation.js';
 import { V3, rand } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
@@ -177,6 +178,7 @@ export function endlessWaveCleared(){
   if (isGunner()) player.jet = Math.min(player.jetMax, player.jet + player.jetMax*0.6);
   G.mut = null; G.eliteSurge = false;   // the mutator / surge ends with the wave
   shared.levelPhase = 'between'; shared.phaseT = 2.2;
+  openFormsWindow();   // between waves: the three can be re-picked until the next one is on (meditation.js)
   earnWavePoint();
   if (G.endlessWave % SURVIVAL_EVERY === 0) openSkillTree();   // the upgrade page every few waves; between them, a note in the corner
   else noteWavePoint();

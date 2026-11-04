@@ -23,6 +23,7 @@ import { canResume, oldNimanRun, resumeLabel } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
 import { audioInit } from '../audio/sfx.js';
 import { openArmoryCodex } from './armory-ui.js';
+import { formsWindowOpen, repickForms } from '../game/meditation.js';
 
 const panel = document.getElementById('forms');
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -212,15 +213,18 @@ function prefightContext(){
     const loadout = cleanLoadout(run.loadout || RUN_LOADOUT).map(id => id && (!run.chapterId || known.includes(id)) ? id : null);   // (as the run loads: game/saves.js restoreRun)
     if (!loadout.some(Boolean)) loadout[0] = STARTING_FORMS[0];
     return { edit: false, known, loadout, closed: run.formFork,
-      note: 'Your saved run carries these three. They change each time you learn a new form.' };
+      note: 'Your saved run carries these three. They change when you learn a form, and at the start of each chapter.' };
   }
   return { edit: false, known: story, loadout: RUN_LOADOUT.slice(),
-    note: 'A run starts with Shii-Cho, the first form every Jedi learns, and learns the others in order as it goes. Each time you learn one, you meditate and choose the three you carry.' };
+    note: 'A run starts with Shii-Cho, the first form every Jedi learns, and learns the others in order as it goes. Each time you learn one, you meditate and choose the three you carry, and each chapter starts with a chance to re-pick them.' };
 }
 function pauseContext(){
   const known = ORDER.filter(id => stanceUnlocked(id) && !forkClosed(id, G.formFork));
+  // a run's FORMS WINDOW (game/meditation.js): at a chapter's start, or between survival waves, the three can be re-picked
+  if (G.mode === 'play' && formsWindowOpen()) return { edit: true, repick: true, known, loadout: G.loadout.slice(), cleared: [], closed: G.formFork, view: liveView(),
+    note: G.endless ? 'Between waves: choose the three you carry into the next one. They lock in when it starts.' : 'Before the fight: choose the three you carry into this chapter. They lock in when the fighting starts.' };
   return { edit: false, known, loadout: G.loadout.slice(), closed: G.formFork, view: liveView(),
-    note: G.sandbox ? 'Change the three in the sandbox panel (B).' : G.training || G.mission ? '' : 'Your three change each time you learn a new form.' };
+    note: G.sandbox ? 'Change the three in the sandbox panel (B).' : G.training || G.mission && G.chapter < 0 ? '' : G.endless ? 'Your three change when you learn a form, and between waves.' : 'Your three change when you learn a form, and at the start of each chapter.' };
 }
 
 // MASTERY on the main menu: the saved campaign run (its forms, its three, its ranks), else what the story has taught
@@ -328,11 +332,12 @@ export function openPrefight(go){
 }
 export function openCodex(){
   ctx = { prefight: false, slot: 0, ...(G.mode === 'menu' ? menuContext() : pauseContext()) };
+  if (ctx.edit) ctx.slot = nextSlot(LOADOUT_SLOTS - 1);
   const hand = ctx.stance || (G.mode === 'menu' ? null : G.stance);
   ctx.focus = ctx.known.includes(hand) ? hand : (ctx.loadout || []).find(Boolean) || ctx.known[0] || null;
   render(); panel.classList.add('open');
 }
-function close(){ panel.classList.remove('open'); ctx = null; }
+function close(){ if (ctx && ctx.repick) repickForms(ctx.loadout); panel.classList.remove('open'); ctx = null; }   // (a run's re-pick takes effect as the page closes)
 function fight(){
   if (ctx.edit){
     if (!ctx.loadout.some(Boolean)){ ctx.loadout[0] = STARTING_FORMS[0]; ctx.cleared[0] = false; }

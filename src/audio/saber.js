@@ -239,25 +239,41 @@ export function reignite(kind, from){
 
 /* ---------- swing ---------- */
 
-/* a lightsaber whoosh: the hum's pitch bending up through the arc ("vwoom"), a doppler pass as the blade goes by, and
-   moving air. p scales the pitch (fast forms lighter and higher, Djem So heavier, the Darksaber deep and gritty).
-   No two strokes match: the length, the bend and where it peaks, the air's band and a blade tremble all vary.
-   o.fam voices it by the form's group (see formSwing). */
+/* A LIGHTSABER SWING, built the way the films' was: Ben Burtt played the hum (an idling projector motor and a broken
+   TV's buzz) through a speaker and swung a microphone past it. So a swing is the hum itself DOPPLER-SHIFTED by a pass:
+   its pitch rises as the blade comes at you, peaks as it goes by and drops below rest as it leaves, while it swells
+   and brightens with the mic's proximity, and a little air moves with it. Two voices carry the pass (the approach and
+   the leaving), each of them the motor (two saws beating a hair apart) and the TV buzz (a band of buzzing harmonics).
+   p scales the pitch (fast forms lighter and higher, Djem So heavier, the Darksaber deep and gritty). No two strokes
+   match: the length, how hard it bends, where it peaks, the air's band and a blade tremble all vary.
+   o.rise: the pass's peak pitch ratio (a heavy cut's charge sinks it below 1: chargeRelease) · o.fam: the form's group */
 export function swing(p, len, dark, o = {}){
   const pos = o.pos, at = o.at || 0, air = o.air ?? 1, gain = o.g ?? 1, fam = o.fam;
   p *= rand(0.96, 1.04); len *= rand(0.88, 1.12);
-  const d = 0.2 * len, ft = d * rand(0.4, 0.7);
-  // how far the pitch bends: Guard's barely moves (an anchor through the air), Niman's swells softly
-  const rise = o.rise || (fam === 'guard' ? rand(1.12, 1.22) : fam === 'niman' ? rand(1.25, 1.4) : rand(1.5, 1.95));
-  const top = fam === 'guard' ? rand(1200, 1500) : rand(2100, 3000);   // Guard keeps the highs rolled off
-  const vib = Math.random() < 0.4 ? { r: rand(15, 26), d: rand(16, 32) } : undefined;   // the blade trembling through the cut
-  T({ pos, at, type: 'sawtooth', f: 96 * p, f2: 96 * p * rise, ft, g: 0.068 * gain * (fam === 'niman' ? 0.6 : 1), a: 0.03, d, det: rand(4, 12), vib,
-      filt: { type: 'lowpass', f: 550, f2: top, t: d * 0.5 }, drive: dark ? 0.45 : o.drive || 0, verb: 0.1 });
-  T({ pos, at, type: 'sawtooth', f: 97.5 * p, f2: 97.5 * p * rise * 0.94, ft, g: 0.045 * gain, a: 0.03, d, filt: { type: 'lowpass', f: 900, f2: Math.min(2000, top) } });
-  // the doppler pass: an octave up, swelling in and falling away as the blade sweeps by (Guard and Niman have none)
-  if (fam !== 'guard' && fam !== 'niman') T({ pos, at: at + d * 0.12, type: 'sine', f: 192 * p * rise, f2: 150 * p, g: 0.028 * gain, a: d * 0.35, d: d * 0.65, pri: 0 });
-  N({ pos, at, color: 'pink', g: 0.085 * air * gain, a: 0.05 * len, d: 0.16 * len, rate: rand(0.85, 1.15),
-      filt: { type: 'bandpass', f: rand(380, 520), f2: rand(1600, 2300) * (fam === 'guard' ? 0.5 : 1), q: 1.3 } });
+  const d = 0.22 * len, mid = d * rand(0.4, 0.55);   // the pass: approaching until `mid`, leaving after
+  // how hard it bends (how fast the blade passes the mic): Guard's barely moves, Niman's swells softly
+  const rise = o.rise || (fam === 'guard' ? rand(1.06, 1.1) : fam === 'niman' ? rand(1.1, 1.16) : rand(1.16, 1.3));
+  const fall = Math.min(rise, 1) * rand(0.84, 0.9);   // where it lands as the blade leaves, under the hum's rest pitch
+  const top = fam === 'guard' ? rand(1300, 1600) : rand(2400, 3400);   // how bright it gets at the pass (Guard keeps the highs rolled off)
+  const vib = Math.random() < 0.35 ? { r: rand(15, 26), d: rand(14, 28) } : undefined;   // the blade trembling through the cut
+  const drv = dark ? 0.45 : o.drive || 0, body = fam === 'niman' ? 0.6 : 1, f0 = 92 * p;
+  // the approach: rest pitch climbing to the peak, swelling in as it nears
+  T({ pos, at, type: 'sawtooth', f: f0, f2: f0 * rise, ft: mid, g: 0.066 * gain * body, a: mid * 0.85, d: mid * 0.5, det: rand(4, 10), vib,
+      filt: { type: 'lowpass', f: 500, f2: top, t: mid }, drive: drv, verb: 0.1 });
+  T({ pos, at, type: 'sawtooth', f: f0 * 1.004, f2: f0 * rise * 1.004, ft: mid, g: 0.04 * gain * body, a: mid * 0.85, d: mid * 0.5, det: -6, filt: { type: 'lowpass', f: 800, f2: Math.min(2200, top) } });
+  // the leaving: from the peak down under the rest pitch, darkening and fading as it goes away
+  T({ pos, at: at + mid * 0.7, type: 'sawtooth', f: f0 * rise, f2: f0 * fall, ft: d - mid * 0.7, g: 0.066 * gain * body, a: mid * 0.3, d: d - mid * 0.6, det: rand(4, 10), vib,
+      filt: { type: 'lowpass', f: top, f2: 420, t: d - mid * 0.6 }, drive: drv, verb: 0.12 });
+  T({ pos, at: at + mid * 0.7, type: 'sawtooth', f: f0 * rise * 1.004, f2: f0 * fall * 1.004, ft: d - mid * 0.7, g: 0.04 * gain * body, a: mid * 0.3, d: d - mid * 0.6, det: -6,
+      filt: { type: 'lowpass', f: Math.min(2200, top), f2: 500 } });
+  // the TV buzz riding the same pass (its harmonics are what a small speaker hears bend): up, then away
+  if (fam !== 'guard'){
+    T({ pos, at, type: 'square', f: f0 * 2, f2: f0 * 2 * rise, ft: mid, g: 0.016 * gain, a: mid * 0.8, d: mid * 0.5, filt: { type: 'bandpass', f: 1500, f2: 2600, q: 1.8, t: mid }, drive: 0.4, pri: 0 });
+    T({ pos, at: at + mid * 0.7, type: 'square', f: f0 * 2 * rise, f2: f0 * 2 * fall, ft: d - mid * 0.7, g: 0.016 * gain, a: mid * 0.3, d: d - mid * 0.6, filt: { type: 'bandpass', f: 2600, f2: 1200, q: 1.8 }, drive: 0.4, pri: 0 });
+  }
+  // the air it moves
+  N({ pos, at, color: 'pink', g: 0.07 * air * gain, a: mid, d: d - mid * 0.5, rate: rand(0.85, 1.15),
+      filt: { type: 'bandpass', f: rand(380, 520), f2: rand(1500, 2100) * (fam === 'guard' ? 0.5 : 1), q: 1.3, t: mid } });
   if (dark) crackle(pos, 2, d, 0.03 * gain, at);   // the Darksaber spits as it cuts
 }
 /* a form's swing (FORM_SOUND), with its group's colour on top (data/foe-forms.js FORM_FAMILY):

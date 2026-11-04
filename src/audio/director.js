@@ -21,7 +21,7 @@ import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
 import { FORM_FAMILY } from '../data/foe-forms.js';
 import { updateForce, innerHz } from './force.js';
 
-const L = { hum: null, riser: null, riserHiss: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
+const L = { hum: null, buzz: null, riser: null, riserHiss: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 
 /* how much a blade is moving, 0..1, from its tip speed against its owner (m/s): a held guard barely stirs it, a full
@@ -31,13 +31,20 @@ const motionOf = sp => { const m = clamp((sp - 2) / 16, 0, 1); return m * (2 - m
 const MV = { hero: 0, hero2: 0, dark: 0 };
 const ease = (k, target, dt) => { const r = target > MV[k] ? 28 : 9; MV[k] += (target - MV[k]) * Math.min(1, dt * r); return MV[k]; };
 
-// the hum: two slightly detuned saws an octave under a sine, a soft sub growl under them, through a lowpass that
-// opens as the blade moves (the loop recipe is shared by the hero's blade, the staff's far end, and nearby blades)
-const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.7, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'square', f: 45, g: 0.12 }],
+/* THE HUM, built on the films' recipe (Ben Burtt): an idling projector motor, a steady low tone with mechanical
+   drift, under the buzz of a broken TV. The motor: two saws a third of a hertz apart (they beat slowly, like a motor
+   drifting out of phase) an octave under a sine, with a soft sub growl, through a lowpass that opens as the blade moves.
+   The TV buzz is its own loop (BUZZ) a step brighter, so it can come up with motion. Shared by the hero's blade, the
+   staff's far end, and nearby blades. */
+const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.33, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'square', f: 45, g: 0.12 }],
                      filt: { f: 420, q: 1.2 }, lfo: { r: 3.7, d: 40 }, verb: 0.08 });
+// the broken TV's buzz: harmonics of the hum's pitch through a narrow band, gritty, its band drifting slowly
+const BUZZ = () => ({ base: 90, layers: [{ type: 'square', f: 90 }, { type: 'sawtooth', f: 180.4, g: 0.5 }, { type: 'square', f: 270.6, g: 0.25 }],
+                      filt: { type: 'bandpass', f: 1700, q: 2.2 }, lfo: { r: 0.43, d: 260 }, drive: 0.55, verb: 0.05 });
 function ensureLoops(){
   if (L.hum) return;
   L.hum = loop(HUM());
+  L.buzz = loop(BUZZ());   // the hero's blade's TV buzz, over its motor hum
   L.hum2 = loop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
   // the heavy cut's riser: a saw and its octave climbing as the charge builds, and a thin hiss of energy over it
   L.riser = loop({ base: 110, layers: [{ f: 110 }, { f: 110.6, det: 9, g: 0.7 }, { type: 'sine', f: 220, g: 0.5 }], filt: { type: 'bandpass', f: 800, q: 1.4 }, verb: 0.1 });
@@ -174,11 +181,19 @@ export function updateAudio(dt){
     // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
     const spin = thrown ? Math.sin(t * 2 * Math.PI * 6.5) : 0;
     const m = thrown ? 0.7 : mH;
+    const P = thrown ? place(shared.saberProj.mesh.position) : null;
     const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
     const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
-    const pitch = 90 * p * (1 + m * 0.2 + spin * 0.045);
+    // the mic swung past the blade (the films' swing): pitch rides up as the motion builds and dips under rest as it
+    // dies away (a doppler pass), over the projector motor's slow mechanical wow
+    const dop = thrown ? 0 : clamp((mH - (L.prevM ?? mH)) / Math.max(dt, 0.001) * 0.035, -0.1, 0.12);
+    L.prevM = mH; L.dop = (L.dop || 0) + (dop - (L.dop || 0)) * Math.min(1, dt * 18);
+    const wow = 1 + Math.sin(t * 2 * Math.PI * 0.6) * 0.003 + Math.sin(t * 2 * Math.PI * 0.23) * 0.002;
+    const pitch = 90 * p * (1 + m * 0.12 + L.dop + spin * 0.045) * wow;
     L.hum.set(lvl * hk, hz, pitch, htc(m > 0.05 || thrown ? 0.02 : 0.1));
-    const P = thrown ? place(shared.saberProj.mesh.position) : null;
+    // the TV buzz: a thin layer at rest that comes up and brightens as the blade moves (the mic closing in)
+    L.buzz.set((playing && jedi) ? (0.005 + m * 0.03) * hk : 0, 1500 + m * 1800, pitch, htc(m > 0.05 ? 0.02 : 0.1));
+    L.buzz.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
     const m2 = Math.max(mH2, mH * 0.6);

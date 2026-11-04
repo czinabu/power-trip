@@ -37,12 +37,17 @@ import { hideIndicators } from '../enemies/cleanup.js';
 import { players, localPlayer, targetable } from '../player/players.js';
 import { queueHit, hooks } from '../net/run.js';
 import { meetBoss } from '../game/codex.js';
+import { spawnFinale } from './finale.js';
+import './vexis.js';   // (registers Darth Vexis with the final boss layer)
 
 /* ============================================================
    BOSS — DARTH VEXIS
    ============================================================ */
+// the final boss steps in: the Jedi's is DARTH VEXIS, a duellist's body with the final boss layer on it (boss/finale.js,
+// boss/vexis.js); the gunners' is still the old machine below. Returns him (his .group is where he stands)
 export function spawnBoss(){
   const half = shared.arenaHalfZ || LEVELS[G.levelIdx].arena/2;   // (the arena built: a chapter can stage a level on its own map)
+  if (!isGunner()) return spawnFinale('vexis', { x: 0, z: -half + 6 });
   const mando = isGunner();
   const kind = mando ? 'mando' : 'sith';
   const hp = Math.round((mando ? BOSS_MANDO.hp : BOSS_CFG.hp) * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));   // DIFFICULTY scales the boss too
@@ -73,6 +78,7 @@ export function spawnBoss(){
     : 'The dark side made flesh. Catch his lightning on your guard, or PUSH it back.';
   showBanner(introMain, introTip, 4);
   S.stun(); if (shared.boss) S.roar(shared.boss.group.position);
+  return shared.boss;
 }
 
 export function damageBoss(dmg, tick){

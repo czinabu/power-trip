@@ -100,7 +100,7 @@ export function castPreview(name){
     return target.group;
   }
   if (def.kind === 'boss') return buildBoss(def.boss);
-  return buildEnemyMesh({ ...def.t, scale: def.scale || 1 }, { variant: def.variant ?? 0, wear: 0.15 });
+  return buildEnemyMesh({ ...def.t, scale: def.scale || 1 }, { variant: def.variant ?? 0, wear: 0.15, look: def.look });
 }
 // def: a data/cast.js entry · at { x, z } · yaw · opts.holo
 export function makeFigure(name, x, z, yaw, opts = {}){
@@ -120,7 +120,7 @@ export function makeFigure(name, x, z, yaw, opts = {}){
     stripLights(g);
     F = { name, g, kind: 'boss', own: true, scale: g.scale.x, walk: null, talk: false, look: null, t: 0 };
   } else {
-    const g = buildEnemyMesh({ ...def.t, scale: def.scale || 1 }, { variant: def.variant ?? 0, wear: 0.15 });
+    const g = buildEnemyMesh({ ...def.t, scale: def.scale || 1 }, { variant: def.variant ?? 0, wear: 0.15, look: def.look });
     stripLights(g);
     F = { name, g, kind: 'foe', own: true, scale: def.scale || 1, walk: null, talk: false, look: null };
   }

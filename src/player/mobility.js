@@ -10,7 +10,7 @@ import { floater } from '../fx/floaters.js';
 import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { S } from '../audio/sfx.js';
-import { shared, G, keys, enemies, player, isGunner } from '../state.js';
+import { shared, G, keys, enemies, player, isGunner, bossUp } from '../state.js';
 import { fwd, rightV, playerPos, stance } from './helpers.js';
 import { cancelSwing } from './jedi/combat.js';
 import { flipStyle, launchFlip, formNow } from './anim/agility.js';
@@ -29,7 +29,7 @@ export function inCombat(){
   _cT = G.gt;
   const C = MOBILITY.combat;
   _c = false;
-  if (shared.boss && shared.boss.hp > 0) return (_c = true);
+  if (bossUp()) return (_c = true);
   if (G.gt - (player.lastHurt ?? -9) < C.linger || G.gt - (player.lastStrikeT ?? -9) < C.linger) return (_c = true);
   const range = isGunner() ? MANDO_MOBILITY.combat.range : C.range;
   const pp = playerPos(), r2 = range * range;

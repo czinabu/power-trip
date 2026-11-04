@@ -1,0 +1,419 @@
+// POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+// THE FINAL BOSS LAYER — a final boss fought on a duellist's body. He is a foe in `enemies` like the named duellists (the
+// saber cast's look, the duel system's guards, feints, strings and saber locks: enemies/duel.js), and this file lays a
+// finale over him: the boss bar at the top of the screen, three phases with a staged beat between them, signature moves
+// the duel AI hands the body to (state 'sig'), the anti-cheese rules on what can hurt him, and the defeat on his knees.
+// The boss himself (his numbers, his look, his moves) is a definition: data/bosses.js VEXIS, boss/vexis.js.
+//
+// A move: { id, from (the first phase it is used in), can(e, C) → may it start now, start(e, C, M), update(e, C, M, dt)
+// → true when it's over, end(e, C, M, cut) (cut: it was broken off) }. C is this frame's context (the hero he is on,
+// where they stand, the distance), M the move's own state. While a move runs the duel AI leaves the body alone: the move
+// poses it, moves it and decides what its blows do.
+//
+// Co-op: the host runs all of it. A guest sees the host's foe as a puppet (net/foes.js); the bar, the banners and the
+// moves' effects come over as 'fin' messages (net/foefire.js hooks.fin), drawn here by finaleNet.
+
+import * as THREE from 'three';
+import { G, shared, enemies, player, bolts, rings } from '../state.js';
+import { V3, clamp, rand } from '../utils.js';
+import { scene } from '../engine/renderer.js';
+import { foeProfile, FORM_SWITCH } from '../data/foe-forms.js';
+import { diffHpMul } from '../data/difficulty.js';
+import { SCALE, heroScale } from '../data/coop.js';
+import { spawnEnemy } from '../enemies/spawn.js';
+import { setFoeForm } from '../enemies/foeform.js';
+import { initDuel } from '../enemies/duel.js';
+import { heroFor } from '../enemies/targets.js';
+import { hideIndicators } from '../enemies/cleanup.js';
+import { heroesHere, players } from '../player/players.js';
+import { playerPos } from '../player/helpers.js';
+import { burst } from '../fx/particles.js';
+import { floater, screenFlash } from '../fx/floaters.js';
+import { spawnGroundShock } from '../fx/vfx.js';
+import { showBanner } from '../ui/banners.js';
+import { S } from '../audio/sfx.js';
+import { MUSIC } from '../audio/music.js';
+import { setMood, MOOD } from '../world/atmosphere.js';
+import { storyBeat } from '../game/story.js';
+import { gainXp } from '../game/progression.js';
+import { victory } from '../game/summary.js';
+import { meetBoss } from '../game/codex.js';
+import { hooks } from '../net/run.js';
+import { hurtPlayer } from '../player/damage.js';
+
+// the final bosses by id (boss/vexis.js registers his). Kept on the function itself, so a boss's file can register
+// whichever order the modules load in
+export function registerFinale(def, moves, look){ (registerFinale.defs || (registerFinale.defs = {}))[def.id] = { def, moves, look }; }
+const REG = () => registerFinale.defs || {};
+
+const ROMAN = ['', 'I', 'II', 'III'];
+const ss = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
+
+/* ---------------- spawn ---------------- */
+export function spawnFinale(id, at){
+  const D = REG()[id];
+  if (!D) return null;
+  const def = D.def;
+  spawnEnemy(def.type, V3(at.x, 0, at.z), { look: def.look, keep: true });
+  const e = enemies[enemies.length - 1];
+  e.champion = true; e.noFloor = true;
+  e.fin = { id, def, D, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0 };
+  e.t = { ...e.t, dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
+  e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));
+  e.spd = e.t.speed * def.speed;
+  e.group.scale.multiplyScalar(def.scale);
+  e.dmgRule = finaleDamage;   // what can hurt him, and how much (enemies/damage.js)
+  setPhaseDuel(e, 1);
+  e.hpFloor = Math.ceil(e.maxHp * def.phaseAt[0]);   // a burst can't skip a phase: the blow that crosses it stops there
+  shared.finale = e;
+  meetBoss(def.codex || 'sith');
+  showHud(e);
+  burst(V3(at.x, 1.4, at.z), 0x8a1a2a, 30, 9, 6, 1.1);
+  spawnGroundShock(V3(at.x, 0.1, at.z), 0xb3121e, 6, 0.7, 0.9);
+  G.shake = Math.max(G.shake, 0.8);
+  S.roar(e.group.position); MUSIC.waveSting();
+  showBanner(def.name, def.intro || '', 4, { kicker: 'FINAL BOSS' });
+  if (hooks.fin) hooks.fin({ k: 'up', id, n: e.nid });
+  return e;
+}
+// his duel profile for a phase: his form at his rank, with the phase's own numbers on top (data/bosses.js `duel`)
+function setPhaseDuel(e, phase){
+  const def = e.fin.def;
+  if (phase === 1) setFoeForm(e, def.form, def.rank, FORM_SWITCH.boss[def.codex || 'sith'] || null);
+  initDuel(e, { ...foeProfile(e.ff || def.form, def.rank), deflect: 1, ...def.duel[phase - 1] });
+  e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1);
+}
+
+/* ---------------- what hurts him (enemies/damage.js calls it for every blow) ----------------
+   No single blow takes more than a share of his bar (more while he is open), later phases shrug off a little of
+   everything, and while a beat or his defeat plays nothing lands at all */
+function finaleDamage(e, dmg, tick){
+  const F = e.fin, def = F.def;
+  if (F.over || (F.sig && F.sig.id === 'beat')) return null;   // (null: the blow doesn't land at all)
+  if (!(dmg > 0)) return dmg;
+  dmg *= def.phaseResist[F.phase - 1] ?? 1;
+  const at = () => V3(e.group.position.x, e.group.position.y + 3.2, e.group.position.z);
+  if (!tick){
+    const open = e.state === 'stagger' || G.gt < (e.openUntil || 0) || (F.sig && F.sig.open);
+    const cap = e.maxHp * (open ? def.hitCapOpen : def.hitCap);
+    if (dmg > cap){ dmg = cap; if (!open) floater(at(), 'HE HOLDS', '#cc99ff'); }
+  }
+  // the burst budget: what's gone into him lately drains away over burstWin seconds; nothing past the budget lands
+  if (def.burstCap){
+    const room = e.maxHp * def.burstCap - F.bucket;
+    if (room <= 0){ if (!tick) floater(at(), 'RESISTED', '#cc99ff'); return null; }
+    dmg = Math.min(dmg, room);
+    F.bucket += dmg;
+  }
+  return dmg;
+}
+
+/* ---------------- the boss bar ---------------- */
+function hudEls(){
+  const wrap = document.getElementById('bosswrap');
+  if (!wrap) return null;
+  let ph = document.getElementById('bossphase');
+  if (!ph){
+    ph = document.createElement('div'); ph.id = 'bossphase'; wrap.appendChild(ph);
+    const bg = document.getElementById('bossbarbg');
+    for (const k of [0.66, 0.33]){ const n = document.createElement('div'); n.className = 'bossnotch'; n.style.left = (k * 100) + '%'; bg.appendChild(n); }
+  }
+  return { wrap, name: document.getElementById('bossname'), bar: document.getElementById('bossbar'), ph };
+}
+function showHud(e){
+  const H = hudEls(); if (!H) return;
+  const R = e.fin || REG()[e.finId];
+  if (!R) return;
+  const def = R.def;
+  H.name.textContent = def.title;
+  H.wrap.style.display = 'block'; H.wrap.classList.add('finale');
+  setHudPhase(e.fin ? e.fin.phase : 1, def);
+}
+function setHudPhase(p, def){
+  const H = hudEls(); if (!H) return;
+  H.ph.textContent = 'PHASE ' + ROMAN[p] + ' · ' + (def.phases ? def.phases[p - 1] : '');
+  H.wrap.dataset.phase = p;
+}
+function hideHud(){
+  const H = hudEls(); if (!H) return;
+  H.wrap.style.display = 'none'; H.wrap.classList.remove('finale');
+}
+function updateHud(e){
+  const H = hudEls(); if (!H) return;
+  if (H.wrap.style.display !== 'block') showHud(e);
+  H.bar.style.width = Math.max(0, e.hp / e.maxHp * 100) + '%';
+}
+
+/* ---------------- every frame (host and solo), after the foes' AI ---------------- */
+const C = { hero: null, pp: null, dist: 0, tx: 0, tz: 1, remote: false, phase: 1 };
+export function updateFinale(dt){
+  const e = shared.finale;
+  if (!e) return;
+  if (e.net){ updateGuestFinale(e, dt); return; }
+  if (!enemies.includes(e)){ teardown(); return; }   // cleared off the floor (the sandbox, a restart)
+  const F = e.fin, def = F.def;
+  updateHud(e);
+  if (F.D.look.frame) F.D.look.frame(e, dt);
+  if (def.burstCap) F.bucket = Math.max(0, F.bucket - e.maxHp * def.burstCap / def.burstWin * dt);
+  // he can't be floored, flung or carried off by a power: whatever tried it, he's back on his feet (a move that can't be
+  // broken carries on through it; any other move is cut, as a stagger cuts it)
+  if (!e.dead && (e.state === 'knockdown' || e.state === 'ragdoll' || e.state === 'grasped' || e.state === 'getup')){
+    e.vel.set(0, 0, 0); e.group.rotation.x = 0; e.group.rotation.z = 0;
+    if (F.sig && e.hyper) e.state = 'sig';
+    else { e.state = 'recover'; e.st = 0.3; }
+    floater(V3(e.group.position.x, e.group.position.y + 3.2, e.group.position.z), 'HE STANDS FIRM', '#cc99ff');
+  }
+  if (F.sig && e.hyper && e.state === 'stagger') e.state = 'sig';   // (a move that can't be broken: e.hyper)
+  if (e.dead && !F.over){ teardown(); return; }   // (something put him down outside the rules: just let him go)
+  const hero = heroFor(e), pp = hero.pos, g = e.group;
+  let tx = pp.x - g.position.x, tz = pp.z - g.position.z;
+  const dist = Math.hypot(tx, tz) || 0.001; tx /= dist; tz /= dist;
+  Object.assign(C, { hero, pp, dist, tx, tz, remote: !hero.local, phase: F.phase });
+  // phase III's dark: the lights come down over a couple of seconds and stay down
+  if (F.phase >= 3 && !F.over && def.mood){ MOOD.k = Math.min(1, MOOD.k + dt * 0.5); }
+  else if (F.over && MOOD.k > 0) MOOD.k = Math.max(0, MOOD.k - dt * 0.35);   // he's beaten: the light comes back
+  // a move running: it owns the body until it says it's over, or something knocked him out of it
+  if (F.sig){
+    const M = F.sig;
+    if (e.state !== 'sig'){ endSig(e, true); }
+    else {
+      M.t += dt;
+      if (M.mv.update(e, C, M, dt)) endSig(e, false);
+    }
+  }
+  if (F.over) return;
+  // the turn of the fight: the blow that took him past a threshold drives him to a knee, and he rises in the next phase
+  if (!F.sig && F.phase < 3 && e.hp <= Math.ceil(e.maxHp * def.phaseAt[F.phase - 1]) + 1e-6) { startSig(e, BEAT); return; }
+  if (F.phase >= 3 && e.hp <= 1 + 1e-6 && !F.over){ if (F.sig) endSig(e, true); startSig(e, DEFEAT); return; }
+  // what he's watching for: a hero holding a block in his face, a hero crowding him
+  const near = dist < 4.6 && hero.local;
+  F.blockT = near && player.blockHeld && !(player.parryT > 0) ? F.blockT + dt : Math.max(0, F.blockT - dt * 2);
+  F.crowdT = players.some(p => p.here && !p.down && Math.hypot(p.pos.x - g.position.x, p.pos.z - g.position.z) < (def.moves.repulse ? def.moves.repulse.crowd : 3)) ? F.crowdT + dt : Math.max(0, F.crowdT - dt);
+  for (const k in F.cds) F.cds[k] -= dt * (F.phase >= 3 ? 1.25 : 1);
+  if (F.sig) return;
+  F.sigT -= dt;
+  // he only reaches for a move between exchanges: never out of a swing, a lock, a stagger or the floor
+  const free = (e.state === 'chase' || e.state === 'recover') && !e.dead && !e.converted && e.stunT <= 0 && !(e.dodgeT > 0);
+  if (!free || e.dummy || G.gt - F.lastSig < def.sigMin) return;   // (a sandbox dummy stands and takes it: no moves)
+  const mv = pickMove(e, F);
+  if (mv) startSig(e, mv);
+}
+function pickMove(e, F){
+  const moves = F.D.moves, ready = [];
+  for (const id in moves){
+    const mv = moves[id], cfg = F.def.moves[id] || {};
+    if ((cfg.from || 1) > F.phase || (F.cds[id] || 0) > 0 || (mv.once && F.used[id])) continue;
+    if (!mv.can(e, C, F)) continue;
+    if (mv.urgent) return mv;   // the answers to what you're doing (a held block, a crowd, his last stand) go first
+    ready.push(mv);
+  }
+  if (F.sigT > 0 || !ready.length) return null;
+  return ready[(Math.random() * ready.length) | 0];
+}
+function startSig(e, mv){
+  const F = e.fin;
+  if (e.token) e.token = null;
+  e.state = 'sig'; e.st = 99; e.plan = null; e.counterQueued = false;
+  e.cutDrop = 0; e.cutTwist = null; e.flourishT = 0;
+  const M = F.sig = { id: mv.id, mv, t: 0, open: false };
+  mv.start(e, C, M);
+}
+function endSig(e, cut){
+  const F = e.fin, M = F.sig;
+  if (!M) return;
+  F.sig = null;
+  if (M.mv.end) M.mv.end(e, C, M, cut);
+  e.legMode = null; e.upperMode = null; e.hyper = false; e.ward = null; e.kneel = 0;
+  e.group.visible = true;
+  if (e.state === 'sig'){ e.state = 'recover'; e.st = 0.35; }
+  const cfg = F.def.moves[M.id];
+  if (cfg && cfg.cd) F.cds[M.id] = cfg.cd;
+  F.lastSig = G.gt;
+  F.sigT = F.def.sigGap[F.phase - 1] * rand(0.8, 1.25);
+  e.group.rotation.x = 0; e.group.rotation.z = 0;
+}
+
+/* ---------------- THE PHASE BEAT ----------------
+   He's driven to a knee, the world slows, and nothing lands on him while it plays. He rises in the next phase with a
+   repulse that throws everyone back off him (dodge it), the banner names what's coming, and the story has its say. */
+const BEAT = {
+  id: 'beat',
+  start(e, C, M){
+    const B = e.fin.def.beat;
+    e.ward = 0; e.legMode = 'off'; e.upperMode = 'off';
+    M.next = e.fin.phase + 1; M.rose = false;
+    G.slowmo = B.slowmo; G.slowmoT = Math.max(G.slowmoT, B.slowT);
+    G.shake = Math.max(G.shake, 0.9); G.hitstop = Math.max(G.hitstop, 0.12);
+    screenFlash('radial-gradient(ellipse at center, rgba(255,60,60,.16), transparent 55%)', 0.5, 0.4);
+    burst(V3(e.group.position.x, 1.6 * e.group.scale.y, e.group.position.z), 0xff3a4a, 24, 9, 5);
+    S.stun(e.group.position);
+    for (const b of bolts) if (!b.friendly && b.src === e) b.life = 0;
+    e.fin.D.look.beatStart && e.fin.D.look.beatStart(e, M);
+  },
+  update(e, C, M, dt){
+    const B = e.fin.def.beat, t = M.t, g = e.group;
+    // down onto a knee, a breath, then up
+    const down = ss(0, 0.35, t) * (1 - ss(B.kneel, B.kneel + B.rise * 0.6, t));
+    e.kneel = down;
+    g.rotation.x = 0.22 * down;
+    turnTo(e, C, dt, 3);
+    const u = g.userData;
+    if (u.weaponArm){ u.weaponArm.rotation.x += (-0.2 * down + (-2.4) * ss(B.kneel, B.kneel + B.rise, t) * (1 - down) - u.weaponArm.rotation.x) * Math.min(1, dt * 8); }
+    e.fin.D.look.beatPose && e.fin.D.look.beatPose(e, M, t);
+    if (!M.rose && t >= B.kneel + B.rise * 0.5){
+      M.rose = true;
+      e.legMode = null; e.upperMode = null;
+      const F = e.fin;
+      F.phase = M.next;
+      setPhaseDuel(e, F.phase);
+      e.hpFloor = F.phase < 3 ? Math.ceil(e.maxHp * F.def.phaseAt[F.phase - 1]) : 1;
+      setHudPhase(F.phase, F.def);
+      if (F.phase >= 3 && F.def.mood) setMood(F.def.mood);
+      repulseRing(e, B.ring.r, B.ring.dmg, B.push);
+      const words = F.def.phaseLines && F.def.phaseLines[F.phase - 1];
+      showBanner('PHASE ' + ROMAN[F.phase], words || '', 3, { kicker: F.def.name });
+      storyBeat('phase' + F.phase);
+      S.roar(g.position); MUSIC.waveSting();
+      if (hooks.fin) hooks.fin({ k: 'phase', n: e.nid, p: F.phase });
+      F.cds = {}; F.sigT = 0.8;
+    }
+    return t >= B.kneel + B.rise;
+  },
+};
+// a ring of force off him along the floor: it throws back and hurts whoever it catches on the ground (dodge or jump it)
+export function repulseRing(e, r, dmg, knock){
+  const g = e.group, at = V3(g.position.x, 0.1, g.position.z);
+  spawnGroundShock(at, 0xff2a2a, r, 0.45, 0.95);
+  spawnGroundShock(at, 0xffffff, r * 0.7, 0.3, 0.7);
+  burst(V3(at.x, 1.2, at.z), 0xff4a5a, 26, 12, 5, 0.9);
+  G.shake = Math.max(G.shake, 0.8); S.slam(at);
+  for (const p of players){
+    if (!p.here || p.down) continue;
+    const dx = p.pos.x - at.x, dz = p.pos.z - at.z, d = Math.hypot(dx, dz);
+    if (d > r) continue;
+    if (p.local){
+      if (player.dashT > 0 || p.pos.y > 1.1){ floater(playerPos(), 'EVADED', '#bfe8ff'); continue; }
+      hurtHero(e, p, dmg, null, { unblockable: true });
+      const l = d || 1; player.vel.x += dx / l * knock; player.vel.z += dz / l * knock;
+    } else if (hooks.hurt) hooks.hurt(e, dmg, g.position, 'zap', true);
+  }
+}
+
+/* ---------------- THE DEFEAT ----------------
+   He's done: on his knees, the blade dies in his hand, the world slows. The field clears, then the story (the
+   campaign's choice and epilogue), the win screen, or (the sandbox) the floor back. */
+const DEFEAT = {
+  id: 'defeat',
+  start(e, C, M){
+    const F = e.fin, D = F.def.defeat;
+    F.over = true;
+    e.ward = 0; e.hpFloor = 0; e.legMode = 'off'; e.upperMode = 'off';
+    if (G.stats) G.stats.bossKilled = true;
+    gainXp(D.xp);
+    G.slowmo = D.slowmo; G.slowmoT = Math.max(G.slowmoT, D.slowT);
+    G.shake = 1.2; G.hitstop = Math.max(G.hitstop, 0.16);
+    screenFlash('radial-gradient(ellipse at center, rgba(255,240,220,.2), transparent 60%)', 0.6, 0.6);
+    // the fight is over: his reinforcements, the shockwaves and the lingering shots go
+    G.spawnQueue.length = 0;
+    for (const o of enemies){ if (o !== e && !o.dead){ o.dead = true; o.state = 'fade'; o.st = 0.6; hideIndicators(o); } }
+    for (const r of rings) scene.remove(r.mesh); rings.length = 0;
+    for (let i = bolts.length - 1; i >= 0; i--){ if (!bolts[i].friendly){ scene.remove(bolts[i].mesh); bolts.splice(i, 1); } }
+    showBanner(F.def.fallLine || (F.def.name + ' FALLS'), '', 3.2);
+    S.roar(e.group.position); S.boom(e.group.position, 2);
+    F.D.look.defeatStart && F.D.look.defeatStart(e, M);
+    if (hooks.fin) hooks.fin({ k: 'down', n: e.nid });
+  },
+  update(e, C, M, dt){
+    const D = e.fin.def.defeat, t = M.t, g = e.group;
+    e.kneel = ss(0, 0.5, t);
+    g.rotation.x = 0.1 * ss(0, 0.3, t) + 0.26 * ss(0.6, 1.6, t);
+    g.rotation.z = 0.05 * Math.sin(t * 5) * (1 - ss(0.5, 1.5, t));
+    e.fin.D.look.defeatPose && e.fin.D.look.defeatPose(e, M, t);
+    if (t >= D.kneel && !M.done){
+      M.done = true;
+      e.dead = true; e.state = 'fade'; e.st = 3.2; e.hp = 0; hideIndicators(e);   // (he stays on his knees, then sinks away: enemies/ai.js fade)
+      hideHud();
+      if (hooks.bossDead) hooks.bossDead();   // co-op: the guest's fight ends too
+      if (G.sandbox) showBanner('', 'BOSS DEFEATED', 1.6);   // the training floor: no win screen, the floor back
+      else victory();
+    }
+    return false;   // (it never hands the body back: he's done)
+  },
+};
+
+/* ---------------- shared helpers for the moves ---------------- */
+// turn the body toward the hero at a capped rate (rad/s)
+export function turnTo(e, C, dt, rate = 8){
+  const g = e.group, want = Math.atan2(C.tx, C.tz), d = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
+  g.rotation.y += clamp(d, -rate * dt, rate * dt);
+}
+// a blow from him on a hero: this browser's own hero takes it through hurtPlayer (block, parry, dodge as ever), a
+// partner's goes to their browser (net/foefire.js). Returns what happened ('hit', 'blocked', 'parried', ... or 'sent')
+export function hurtHero(e, p, dmg, from, opts = {}){
+  if (!p.local){ if (hooks.hurt) hooks.hurt(e, dmg, from || e.group.position, opts.melee ? 'bossmelee' : 'zap', !!opts.unblockable); return 'sent'; }
+  return hurtPlayer(dmg, from, false, !!opts.melee, false, { by: e, ...opts });
+}
+// the boss as this browser shows him: the host's foe, or on a guest the puppet of it
+export const finaleNow = () => shared.finale;
+// a co-op guest's or a reset's end of the fight: the bar and the dark go
+function teardown(){
+  const e = shared.finale;
+  if (e && e.fin && e.fin.sig && !e.fin.over && e.fin.sig.mv.end) e.fin.sig.mv.end(e, C, e.fin.sig, true);
+  shared.finale = null;
+  hideHud();
+  if (MOOD.k > 0) setMood(null);
+  for (const id in REG()) REG()[id].look.teardown && REG()[id].look.teardown();
+}
+export function dropFinale(){ teardown(); }
+// tests and the duel bot (tools/): start one of his moves now, in a given phase (window.GAME.finaleMove)
+export function finaleMove(id, phase){
+  const e = shared.finale;
+  if (!e || !e.fin || e.dead || e.fin.over) return false;
+  const F = e.fin;
+  if (phase && phase !== F.phase){ F.phase = phase; setPhaseDuel(e, phase); e.hpFloor = phase < 3 ? Math.ceil(e.maxHp * F.def.phaseAt[phase - 1]) : 1; setHudPhase(phase, F.def); if (phase >= 3 && F.def.mood) setMood(F.def.mood); }
+  if (!id){ if (F.sig) endSig(e, true); return true; }   // (none: whatever he's doing ends)
+  const mv = id === 'beat' ? BEAT : id === 'defeat' ? (e.hp = 1, DEFEAT) : F.D.moves[id];
+  if (!mv) return false;
+  if (F.sig) endSig(e, true);
+  startSig(e, mv);
+  return true;
+}
+// a Force Push from this browser's hero (player/jedi/force.js): a move with an answer to it (his lightning, his choke)
+// takes it. True when it did
+export function finalePush(pp, f){
+  const e = shared.finale;
+  if (!e || !e.fin || e.dead || !e.fin.sig || !e.fin.sig.mv.onPush) return false;
+  return !!e.fin.sig.mv.onPush(e, e.fin.sig, pp, f);
+}
+
+/* ---------------- co-op: the guest's side ---------------- */
+// the host's messages: the boss is up (his puppet's number), a phase turned, a move's effect, his defeat
+export function finaleNet(m){
+  if (m.k === 'up'){ guestNet.n = m.n; guestNet.id = m.id; guestNet.phase = 1; return; }
+  const D = REG()[guestNet.id];
+  if (m.k === 'phase'){
+    guestNet.phase = m.p;
+    if (D){ setHudPhase(m.p, D.def); showBanner('PHASE ' + ROMAN[m.p], (D.def.phaseLines && D.def.phaseLines[m.p - 1]) || '', 3, { kicker: D.def.name }); if (m.p >= 3 && D.def.mood) setMood(D.def.mood); }
+    return;
+  }
+  if (m.k === 'down'){ if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
+  if (D && D.look.netFx) D.look.netFx(m, puppetOfNid(m.n));
+}
+const guestNet = { n: null, id: null, phase: 1 };
+const puppetOfNid = (n) => enemies.find(e => e.nid === n) || null;
+// a guest: the puppet of the host's boss is the finale here too (its bar, the dark of phase III)
+export function adoptFinalePuppet(e){
+  if (shared.finale === e) return;
+  shared.finale = e; e.finId = guestNet.id || Object.keys(REG()).find(id => REG()[id].def.look === e.look) || null;
+  if (e.finId){ const def = REG()[e.finId].def; e.finPhase = guestNet.phase; showHud(e); setHudPhase(guestNet.phase || 1, def); }
+}
+function updateGuestFinale(e, dt){
+  if (!enemies.includes(e) || e.dead){ teardown(); return; }
+  const H = hudEls();
+  if (H){ if (H.wrap.style.display !== 'block') showHud(e); H.bar.style.width = Math.max(0, e.hp / e.maxHp * 100) + '%'; }
+  if (guestNet.phase >= 3 && MOOD.k < 1) MOOD.k = Math.min(1, MOOD.k + dt * 0.5);
+  const D = e.finId && REG()[e.finId];
+  if (D && D.look.guestFrame) D.look.guestFrame(e, dt);
+}
+// does this look belong to a final boss? (net/foes.js: a puppet built in it is the guest's finale)
+export const finaleLook = (look) => !!look && Object.values(REG()).some(D => D.def.look === look);

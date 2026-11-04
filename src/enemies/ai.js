@@ -568,7 +568,8 @@ export function updateEnemies(dt){
       case 'lunge':
         updateLunge(e, dt, hp, remote);
         break;
-      case 'grasped': break;   // the Jedi's grasp moves the body (player/jedi/grasp.js)
+      case 'grasped': break;
+      case 'sig': break;   // a final boss's signature move: boss/finale.js runs the body   // the Jedi's grasp moves the body (player/jedi/grasp.js)
       case 'stasis':
         if (e.st <= 0){
           e.state = 'chase';
@@ -748,8 +749,8 @@ export function updateEnemies(dt){
       }
     }
     // LEGS — the hero's planted-foot gait on what the unit actually did this frame (enemies/gait.js)
-    updateLegs(e, g, dt, e.dead || NO_FEET[e.state] ? 'off' : (t.fly || e.state === 'leap') ? 'air' : e.walking ? 'walk' : 'ground');
+    updateLegs(e, g, dt, e.legMode || (e.dead || NO_FEET[e.state] ? 'off' : (t.fly || e.state === 'leap') ? 'air' : e.walking ? 'walk' : 'ground'));   // (legMode: a final boss's move sets it, boss/finale.js)
     // UPPER BODY — aim, look, breathe, kick and flinch over the pose (enemies/upper.js)
-    updateUpper(e, g, dt, tgtPos, e.state === 'stasis' ? 'hold' : e.dead || NO_REACT[e.state] ? 'off' : 'on');
+    updateUpper(e, g, dt, tgtPos, e.upperMode || (e.state === 'stasis' ? 'hold' : e.dead || NO_REACT[e.state] ? 'off' : 'on'));
   }
 }

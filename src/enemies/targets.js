@@ -9,7 +9,7 @@ import { TARGET } from '../data/coop.js';
 import { players, localPlayer, targetable } from '../player/players.js';
 
 // a foe in the middle of an attack keeps its target until the blow is done
-const COMMITTED = { windup: 1, strike: 1, lungewind: 1, lunge: 1, leapwind: 1, leap: 1, fuse: 1, lock: 1, order: 1 };
+const COMMITTED = { windup: 1, strike: 1, lungewind: 1, lunge: 1, leapwind: 1, leap: 1, fuse: 1, lock: 1, order: 1, sig: 1 };
 
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 

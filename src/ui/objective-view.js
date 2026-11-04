@@ -7,7 +7,7 @@
 // training grounds, survival, the sandbox (and its battle simulator), and a co-op guest reading the host's mission.
 // ui/hud.js calls renderObjectiveView() each frame; objectiveInfo() is what it shows (and what the tests read).
 
-import { G, shared, enemies } from '../state.js';
+import { G, shared, enemies, bossUp } from '../state.js';
 import { clamp } from '../utils.js';
 import { LEVELS } from '../data/levels.js';
 import { MUTATORS } from '../data/mutators.js';
@@ -89,8 +89,8 @@ export function objectiveInfo(){
   const L = LEVELS[G.levelIdx] || { name: '', waves: [] };
   const from = G.waveFrom || 0, end = G.waveEnd ?? L.waves.length, count = Math.max(1, end - from);
   const kicker = G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + (L.name.split('—')[1] || L.name).trim();
-  if (shared.boss){
-    const b = shared.boss, hp = b.maxHp ? clamp(b.hp / b.maxHp, 0, 1) : null;
+  if (bossUp()){
+    const b = bossUp(), hp = b.maxHp ? clamp(b.hp / b.maxHp, 0, 1) : null;
     const who = ((document.getElementById('bossname') || {}).textContent || '').trim();
     return { kicker, title: 'DEFEAT ' + (who ? who.toUpperCase() : 'THE BOSS'), task: 'Every wave is down. Bring the boss down to finish it.', step: 'BOSS FIGHT',
              status: hp != null ? Math.ceil(hp * 100) + '% OF THEIR STRENGTH LEFT' : '', frac: hp != null ? 1 - hp : null,

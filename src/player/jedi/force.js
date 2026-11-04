@@ -19,6 +19,7 @@ import { groundAt, solidAt } from '../../world/collision.js';
 import { ensureJudgeLines } from './judgement-fx.js';
 import { damageEnemy, flinchEnemy } from '../../enemies/damage.js';
 import { damageBoss, bossStun, bossStagger } from '../../boss/boss.js';
+import { finalePush } from '../../boss/finale.js';
 import { cancelSwing } from './combat.js';
 import { rushFlip, endFlip } from '../anim/agility.js';
 import { spawnPushWave, spawnGroundShock } from '../../fx/vfx.js';
@@ -102,6 +103,8 @@ export function forcePush(){
   }
   // live THERMAL DETONATORS in the cone fly back at the squad that threw them
   if (pushGrenades(pp, f, A.range, cosLim)) floater(pp, 'RETURNED', '#7fd4ff');
+  // a final boss's move with an answer to a Push (Vexis's lightning goes back into him, his choke breaks: boss/vexis.js)
+  finalePush(pp, f);
   // PUSH the Sith's force lightning back into him
   if (shared.boss && shared.boss.hp > 0 && shared.boss.lightT > 0){
     if (bossInAim(aim, A.range + 5, cosLim - 0.25, 0.3)){

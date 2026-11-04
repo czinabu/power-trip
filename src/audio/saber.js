@@ -342,7 +342,7 @@ export function burn(pos, pw){
                              wanders, so the crack melts straight into a spitting hiss, then fades slowly out.
      L4 HUM TAIL  (+0.03 s)  the power connection after it: two detuned saws drifting out of phase in the 150–300 Hz
                              low mids, kept centred, on a slow release.
-   Between L1 and L4 the struck blade still sings (the form's ring: FORM_SOUND ring = how high, damp = how long; Soresu
+   Between L1 and L4 a short electric buzz as the blades part (FORM_SOUND ring = how high, damp = how long; Soresu
    soaks a blow dead, Djem So's rings on). Each clash rolls its own pitch, level and a slight pan drift (the blades
    sliding past each other), so a fast duel never plays the same clash twice. A big hit (a parry, a bind) is heavier
    all through and holds its tail longer. */
@@ -380,16 +380,13 @@ export function clash(pos, big, form){
   CN({ at: 0.055, g: 0.04 * k, a: 0.01, d: sz * 0.7, rate: rand(0.6, 0.8), trem: { r: rand(37, 53), d: 0.9, type: 'square' },
        filt: { type: 'highpass', f: 3800 }, pdrift: drift * 1.3, pri: 0 });
 
-  // the struck blade singing as the blades part: the form's ring, with a buzzing saw an octave down for its edge
+  // the blades parting: a short electric buzz, tuned by the form (no metallic ring: Caleb took it out)
   const f = rand(560, 640) * r, at = 0.03, ring = 0.34 * dm * (big ? 1.25 : 1);
   C({ at, type: 'sawtooth', f: f * 0.5, f2: f * 0.42, g: 0.035 * k, a: 0.004, d: ring * 0.6, fm: { r: 3, i: 1.2, i2: 0.1 },
       filt: { type: 'bandpass', f: 1600, f2: 3000, q: 1.6 }, drive: 0.5, pdrift: drift * 0.6 });
-  C({ at, type: 'sawtooth', f, f2: f * 1.04, g: 0.04 * k, a: 0.006, d: ring, vib: { r: rand(24, 32), d: 22 },
-      filt: { type: 'bandpass', f: 2400 * r, f2: 5200 * r, q: 6, t: ring * 0.5 }, verb: 0.22, pdrift: drift * 0.6, pri: 2 });
-  C({ at, type: 'sine', f: f * 4, g: 0.018 * k, a: 0.004, d: ring * 0.7, vib: { r: 29, d: 18 }, verb: 0.2 });
 
   // L4 · the hum tail: two saws a few cents apart beating against each other, low-passed into the 150–300 Hz low mids,
-  // centred, swelling in under the ring and letting go slowly. A quick run of blocks shares one tail.
+  // centred, swelling in under the buzz and letting go slowly. A quick run of blocks shares one tail.
   if (!tooSoon('clashtail', 0.22)){
     const hp = (HUM_PITCH[form] || 1) * pt, tl = (big ? 1.3 : 0.85) * Math.min(1.25, dm);
     for (const [det, gg] of [[9, 0.05], [-12, 0.034]])

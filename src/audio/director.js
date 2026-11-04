@@ -5,7 +5,7 @@
 //   - the Darksaber's darker, grittier hum, moved the same way
 //   - the hum of every other lit blade nearby (a foe's, the boss's, a co-op partner's), placed in the world
 //   - the jetpack roar and the flamethrower, by how hard they're running
-//   - each world's ambience bed plus its occasional distant events (Jedha bells, Mustafar lava, Exegol thunder)
+//   - each world's ambience bed plus its occasional distant events (Jedha gusts, Mustafar lava, Exegol thunder)
 //   - the mix state: muffled under the pause menu, on death, for a beat after a hit, when badly hurt, and while the Jedi
 //     channels Mend (the Force's own bus stays clear of it: audio/force.js)
 //   - which reverb room and which music palette the current arena uses
@@ -63,13 +63,12 @@ function ensureLoops(){
    One bed per arena layout (the 'worlds' direction names: Jedha / Mustafar / Exegol). Beds are loops on the amb
    bus; `events` are sparse one-shots scattered around the listener. */
 const AMB = {
-  temple: {   // JEDHA — dry desert wind across the holy city, a temple bell far off
+  temple: {   // JEDHA — dry desert wind across the holy city, a gust sweeping the streets now and then
     beds: [{ base: 1, layers: [{ noise: 'pink' }], filt: { type: 'bandpass', f: 520, q: 0.6 }, lfo: { r: 0.07, d: 260 }, lvl: 0.06 },
            { base: 1, layers: [{ noise: 'brown' }], filt: { f: 160 }, lvl: 0.05 }],
     every: [8, 15],
-    event(){ const f = rand(180, 240);
-      play({ bus: 'amb', type: 'sine', f, fm: { r: 2.76, i: 1.4, i2: 0.02 }, g: 0.022, a: 0.004, d: 3.2, pan: rand(-0.8, 0.8), verb: 0.7 });
-      play({ bus: 'amb', type: 'sine', f: f * 2.01, g: 0.01, a: 0.004, d: 2.4, pan: rand(-0.8, 0.8), verb: 0.7 }); },
+    // now and then a gust sweeps through the streets (no bell: Caleb took it out)
+    event(){ gust('dust'); },
     tick(){},
   },
   foundry: {  // MUSTAFAR — a lava river's rumble, the hiss of heat, machinery somewhere in the forge

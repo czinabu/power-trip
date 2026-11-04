@@ -160,6 +160,19 @@ export function clearUnlit(){
   syncHolster();
 }
 
+/* EVERY START (game/flow.js startLevel: a chapter, a lone mission, survival, the sandbox, a retry): the blade out and the
+   hilt on the belt, no sound. Foes closing in light it (updateBladeAuto), so a start that's already a fight (a boss
+   checkpoint, waves on top of you) has it lit on the first frame; 5 or any fight move lights it sooner. A holstered Jedi
+   stays holstered, and the Mando's guns stay in hand (only the Darksaber has a blade to put out). */
+export function startAtEase(){
+  AUTO.fight = false; AUTO.quiet = 0; AUTO.calmDone = false;   // (a fight close by at the start counts as one arriving)
+  clearUnlit();
+  if (!canDraw()) return;
+  player.unlit = true; player.stowed = true;
+  extendBlade(0);
+  syncHolster();
+}
+
 // AT EASE at once (a training lesson's start: game/tutorial.js): the Jedi's blade out, the hilt on the belt, no sound
 export function atEase(){
   if (isGunner()) return;
@@ -192,6 +205,36 @@ export function endSceneDraw(quiet){
   if (!bladeUnlit()) player.manualDraw = false;
   else showIgniteHint();
 }
+
+/* ---------- EVERY OTHER SCENE (game/cutscene.js) ----------
+   No hero stands through a cutscene with the blade lit: when a scene starts, the hilt goes straight onto the belt with
+   the blade out (no sound, no flourish: the scene opens on it already there), for the Jedi's saber in every form (the
+   staff, both Jar'Kai hilts) and the Mando's Darksaber when it's the weapon in hand. When the scene ends the blade goes
+   back the way play needs it: lit before with a fight still on, the hand reaches down for it and lights it, spin and
+   all; otherwise it stays on the belt and lights itself when foes close in, like at every start (startAtEase). (A scene that truly needs it lit asks for that, and the hero holds the fight's stance through it rather
+   than standing at ease: cutscene.js `lit`, anim/ease.js atEase.) */
+// returns what the blade was doing (for sceneRestore), or null if there was no blade in hand to put away
+export function sceneStow(){
+  if (!canDraw()) return null;   // (the trooper, a gun in hand, a holstered Jedi, a blade in flight)
+  const was = { unlit: !!player.unlit };
+  if (player.atkT > 0) cancelSwing();
+  player.unlit = true; player.stowed = true; player.reach = null; player.stowPend = false;
+  extendBlade(0);
+  syncHolster();
+  return was;
+}
+// is there a blade lit in hand right now (a scene that needs it lit keeps it: cutscene.js `lit`)
+export const bladeLit = () => canDraw() && !player.unlit;
+// the scene is over (quiet: play is over too, so the next fight starts lit as ever)
+export function sceneRestore(was, quiet){
+  if (!was) return;
+  if (quiet){ clearUnlit(); return; }
+  if (was.unlit || !bladeUnlit()) return;   // (it was put out before the scene: it stays on the belt for 5)
+  // lit before: a fight still on draws it again as play picks up (the reach, the draw, the snap-hiss); no fight about,
+  // it stays on the belt and lights itself when foes close in (updateBladeAuto)
+  if (inCombat()) lightFromBelt();
+}
+
 // a reminder over the hero as the fight starts: the key that lights it
 function showIgniteHint(){
   floater(playerPos(), igniteKey() + ' · IGNITE', isGunner() ? '#c9a6ff' : '#bfe8ff');

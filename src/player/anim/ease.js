@@ -35,7 +35,7 @@ const twoHanded = () => !!(MANDO_WEAPONS[gunLook(player.weapon)] || {}).twoHand;
 
 /* how far into the stand the hero is right now (0 in play, 1 settled in a scene) */
 export const easeAmount = () => player._ease || 0;
-export const atEase = () => !!G.cutscene;
+export const atEase = () => !!G.cutscene && !G.sceneLit;   // (a scene that keeps the blade lit holds the fight's stance: game/cutscene.js `lit`)
 
 /* BLADE PUT OUT (5: player/holster.js) — the hilt in hand, the hero stands and moves at ease in play too: upright
    feet, arms loose and swinging with the stride, the hilt hanging in the hand. Anything the body is busy with (a cut,

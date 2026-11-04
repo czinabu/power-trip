@@ -14,6 +14,7 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { foeType } from '../enemies/look.js';
 import { dressElite } from '../enemies/elites.js';
 import { damageEnemy } from '../enemies/damage.js';
+import { finaleLook, adoptFinalePuppet } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { severLimbs, applyCuts } from '../enemies/scars.js';
 import { makeBossBar } from '../enemies/spawn.js';
@@ -146,6 +147,7 @@ function makePuppet(rec){
   scene.add(g);
   enemies.push(e);
   meetFoe(type, g); if (flags & WARBRINGER) meetWarbringer();   // the guest's codex too (game/codex.js)
+  if (finaleLook(rec[26])){ e.look = rec[26]; e.champion = true; adoptFinalePuppet(e); }   // the host's final boss: his bar and his phases here too (boss/finale.js)
   return e;
 }
 

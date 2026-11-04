@@ -3,7 +3,7 @@
 // collected in every mode and shown in the run summary (game/summary.js) and the sandbox's live panel (ui/hud.js).
 // Waves have their own segment; modes without waves (training, missions, the sandbox, the boss) run as one.
 
-import { G, shared, enemies, player } from '../state.js';
+import { G, shared, enemies, player, bossUp } from '../state.js';
 import { maxStam } from '../player/helpers.js';
 import { trainForm } from './upgrades.js';
 
@@ -25,7 +25,7 @@ function cur(){
   const r = RO();
   if (r.cur) return r.cur;
   if (shared.levelPhase === 'between') return null;   // the lull after a clear belongs to no wave
-  r.cur = blank(shared.boss ? 'BOSS' : G.sandbox ? 'SANDBOX' : G.training ? 'TRAINING' : G.mission ? 'MISSION' : 'FIGHT', !!shared.boss);
+  r.cur = blank(bossUp() ? 'BOSS' : G.sandbox ? 'SANDBOX' : G.training ? 'TRAINING' : G.mission ? 'MISSION' : 'FIGHT', !!bossUp());
   return r.cur;
 }
 export function beginWave(label){ endWave(); RO().cur = blank(label); }
@@ -42,6 +42,7 @@ export function restartReadout(){ resetReadout(); }
 
 // who a blow came from: the bolt's shooter, the boss, the foe standing at the blow, or the world (hazards, mission fire)
 function sourceOf(fromPos, opts){
+  if (opts && opts.by && opts.by === shared.finale) return 'boss';   // (a final boss's own blows and powers: boss/finale.js)
   if (opts && opts.blast) return 'grenade';
   const s = opts && opts.src;
   if (s) return s === shared.boss ? 'boss' : (s.type || 'hazard');

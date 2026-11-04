@@ -13,6 +13,7 @@ export const shared = {
   // MASTER VOLUME — a single gain node every sound (sfx/hum/music) routes through, so one slider controls all of it.
   masterVol: (() => { const v = parseFloat(localStorage.getItem('sw_vol')); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })(),
   boss: null,
+  finale: null,     // a final boss fought on a duellist's body (boss/finale.js): Darth Vexis. It is also in `enemies`
   saberProj: null,
   offProj: null,    // Jar'Kai's off-hand saber thrown on its own (player/jedi/force.js): the right one fights on meanwhile
   darkProj: null,   // the Mando's thrown Darksaber, in flight or being reeled back (player/mando/darksaber.js)
@@ -145,3 +146,9 @@ export const player = {
   jet: 100, jetMax: 100, stabT: 0,   // dedicated jetpack FUEL (separate from ability Force); disruptor stab timer
   aimOff: { x: 0, y: 0 },            // screen-space crosshair drift (free-aim like BF2 / Helldivers)
 };
+
+/* THE BOSS ON THE FIELD, whichever kind he is: the old state-machine boss (shared.boss: the Iron Magistrate) or a final
+   boss fought on a duellist's body (shared.finale: Darth Vexis, boss/finale.js). Anything that asks "is the boss fight
+   on, and where is he?" asks this; what can hurt or target him goes by the kind (shared.boss's own damageBoss, or the
+   foe in `enemies` like any other). */
+export const bossUp = () => (shared.boss && shared.boss.hp > 0 ? shared.boss : null) || (shared.finale && !shared.finale.dead && shared.finale.hp > 0 ? shared.finale : null);

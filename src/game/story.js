@@ -6,7 +6,7 @@
 // the chapter) · 'boss' · 'clear' · 'inquisitor' (the refuge duel's foe steps in) · 'escape' (it breaks off) · 'epilogue'.
 // storyBeat plays the chapter's lines for the beat (data/campaign.js `lines`), then tells whoever listens (onStory).
 
-import { G, enemies, shared } from '../state.js';
+import { G, enemies, shared, bossUp } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { storyVoice, forHero } from '../data/campaign.js';
 import { hooks } from '../net/run.js';
@@ -31,7 +31,7 @@ export const QUIET = { long: 70, near: 12, foes: 3, holdMax: 30 };
 export function fightHot(){
   const p = playerPos();
   let n = 0;
-  if (shared.boss && shared.boss.hp > 0 && shared.boss.group && Math.hypot(shared.boss.group.position.x - p.x, shared.boss.group.position.z - p.z) < QUIET.near * 1.5) n += 3;
+  if (bossUp() && Math.hypot(bossUp().group.position.x - p.x, bossUp().group.position.z - p.z) < QUIET.near * 1.5) n += 3;
   for (const e of enemies){
     if (n >= QUIET.foes) break;
     if (e.dead || e.converted || !e.group) continue;

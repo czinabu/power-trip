@@ -200,6 +200,14 @@ body.mando #stancebox,body.mando #xh,body.mando #fcmeter,body.mando #fymeter{dis
 #bossname{font:700 20px/1 var(--font-display);letter-spacing:4px;color:#ffaaa0;text-shadow:0 0 12px #5c0000;margin-bottom:7px}
 #bossbarbg{height:12px;background:rgba(24,2,2,.75);border:1px solid rgba(190,70,70,.6);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
 #bossbar{height:100%;width:100%;background:linear-gradient(90deg,#c2182b,#ff7a5c);box-shadow:inset 0 1px 0 rgba(255,255,255,.2);transition:width .15s ease-out}
+/* a final boss (boss/finale.js): the phase under the bar, a notch at each phase's threshold, and phase III's darker bar */
+#bossbarbg{position:relative}
+.bossnotch{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(255,230,220,.7);box-shadow:0 0 4px rgba(0,0,0,.8);pointer-events:none}
+#bossphase{display:none;margin-top:6px;font:700 11px/1 var(--font-display);letter-spacing:3px;color:rgba(255,200,190,.85);text-shadow:0 0 8px #3a0000}
+#bosswrap.finale #bossphase{display:block}
+#bosswrap:not(.finale) .bossnotch{display:none}
+#bosswrap.finale[data-phase="3"] #bossbar{background:linear-gradient(90deg,#6a0a1a,#d01a3a)}
+#bosswrap.finale[data-phase="3"] #bossname{color:#ff6a6a;text-shadow:0 0 16px #a00010}
 
 /* ---------- bottom-centre XP meter ---------- */
 #xpmeter{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(380px,30vw);display:flex;flex-direction:column;gap:4px}

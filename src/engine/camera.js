@@ -4,7 +4,7 @@
 import { FINISHER } from '../data/finishers.js';
 import { camera } from './renderer.js';
 import { clamp, TMP } from '../utils.js';
-import { shared, G, player, enemies, isGunner } from '../state.js';
+import { shared, G, player, enemies, isGunner, bossUp } from '../state.js';
 import { fwd, rightV, playerPos, stance } from '../player/helpers.js';
 import { cameraClearance, updatePropFade } from '../world/camblock.js';
 import { CFG } from '../data/config.js';
@@ -32,7 +32,7 @@ const _dh = camera.position.clone(), _df = camera.position.clone();
 function duelFoe(pp){
   const lt = player.lockTarget;
   if (lt && !lt.dead && lt.group) return lt.group.position;
-  const b = shared.boss;
+  const b = bossUp();
   if (b && b.hp > 0 && b.group && Math.hypot(b.group.position.x - pp.x, b.group.position.z - pp.z) < 12) return b.group.position;
   let best = null, bd = 7, near = 0;
   for (const e of enemies){
@@ -198,7 +198,7 @@ export function updateCamera(dt){
   const pullback = jedi ? 0 : clamp(speed * 0.14, 0, 4);   // (JA's range doesn't stretch with speed)
   // COMBAT FRAMING — a pack closing in pushes the lens back and up so the whole brawl stays on screen; a quiet
   // arena (between waves, nothing near) tucks it in closer for a grounded, over-the-shoulder feel
-  const boss = shared.boss && shared.boss.hp > 0 ? shared.boss : null;
+  const boss = bossUp();
   const crowd = crowdAround(pp);
   let frame = Math.min(C.crowdMax, crowd * C.crowdPull);
   let lift = Math.min(1, crowd / 5) * C.crowdLift;

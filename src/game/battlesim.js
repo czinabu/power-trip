@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { V3 } from '../utils.js';
-import { shared, G, enemies, player, bolts, isGunner, heroKey } from '../state.js';
+import { shared, G, enemies, player, bolts, isGunner, heroKey, bossUp } from '../state.js';
 import { CFG } from '../data/config.js';
 import { playerPos, maxHp, maxStam } from '../player/helpers.js';
 import { spawnEnemy } from '../enemies/spawn.js';
@@ -16,6 +16,7 @@ import { removeEnemy } from '../enemies/cleanup.js';
 import { findClearSpawn } from '../world/collision.js';
 import { fadeOverhead } from '../world/camblock.js';
 import { spawnBoss } from '../boss/boss.js';
+import { dropFinale } from '../boss/finale.js';
 import { spawnChampion } from './survival.js';
 import { showBanner } from '../ui/banners.js';
 import { clearGrenades } from '../enemies/grenades.js';
@@ -107,11 +108,12 @@ function spawnUnit(u){
   }
   if (!foeOffered(u.id)) return false;
   if (u.id === 'boss'){
-    if (shared.boss) return false;
-    spawnBoss();
-    if (!shared.boss) return false;
-    shared.boss.group.position.set(u.x, 0, u.z);
-    u.ref = shared.boss; return true;
+    if (bossUp()) return false;
+    const b = spawnBoss();
+    if (!b) return false;
+    b.group.position.set(u.x, 0, u.z);
+    if (b.fin) b.st = 0;   // (a final boss is a foe on the floor: up at once, like the rest)
+    u.ref = b; return true;
   }
   G.forceElite = !!u.elite;
   if (u.id === 'warbringer') spawnChampion();
@@ -155,7 +157,7 @@ export function rebuild(){
 // the units already on the floor become the setup (the first time the setup opens: what the panel called in stays)
 function adoptFloor(){
   for (const e of enemies) if (!e.dead && !e.converted)
-    BS.plan.push({ kind: 'foe', id: e.warbringer ? 'warbringer' : e.type, x: e.group.position.x, z: e.group.position.z, elite: !!e.elite });
+    BS.plan.push({ kind: 'foe', id: e === shared.finale ? 'boss' : e.warbringer ? 'warbringer' : e.type, x: e.group.position.x, z: e.group.position.z, elite: !!e.elite });
   if (shared.boss && shared.boss.hp > 0) BS.plan.push({ kind: 'foe', id: 'boss', x: shared.boss.group.position.x, z: shared.boss.group.position.z });
   for (const a of allies) if (!a.net) BS.plan.push({ kind: 'ally', id: a.def.role, x: a.group.position.x, z: a.group.position.z });
   if (BS.plan.length){ const pp = playerPos(); BS.hero = { x: pp.x, z: pp.z }; }
@@ -201,7 +203,7 @@ function dropUnit(i){
     scene.remove(r.group); shared.boss = null;
     if (shared.bossLight) shared.bossLight.visible = false;
     document.getElementById('bosswrap').style.display = 'none';
-  } else { removeEnemy(r); const k = enemies.indexOf(r); if (k >= 0) enemies.splice(k, 1); }
+  } else { removeEnemy(r); const k = enemies.indexOf(r); if (k >= 0) enemies.splice(k, 1); if (r === shared.finale) dropFinale(); }
 }
 export function removeAt(x, z){ const i = unitAt(x, z); if (i < 0) return false; dropUnit(i); faceSides(); refreshMarks(); return true; }
 export function undoLast(){ if (!BS.plan.length) return false; dropUnit(BS.plan.length - 1); faceSides(); refreshMarks(); return true; }
@@ -267,7 +269,7 @@ export const battleArmed = () => BS.armed && BS.plan.length > 0;
 // every frame in play: a battle whose foes are all down is won
 export function updateBattle(){
   if (!BS.live || BS.won || !G.sandbox || !BS.hadFoes) return;
-  if (enemies.some(e => !e.dead && !e.converted) || shared.boss) return;
+  if (enemies.some(e => !e.dead && !e.converted) || bossUp()) return;
   BS.won = true; BS.live = false;
   showBanner('VICTORY', 'Every foe is down · B to replay the battle or set up another', 3.5);
 }

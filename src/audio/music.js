@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // MUSIC: the adaptive synthesized score.
 
-import { shared, G, enemies, isGunner } from '../state.js';
+import { shared, G, enemies, isGunner, bossUp } from '../state.js';
 import { AE } from './engine.js';
 
 /* ---------- procedural MUSIC engine ----------
@@ -351,7 +351,7 @@ export const MUSIC = (function(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
     const hk = isGunner() ? 'mando' : 'jedi';
     if (hk !== heroKey){ heroKey = hk; if (section === 'hero') step = 0; }   // a new hero picked: their theme from the top
-    const C = liveCue(), b = shared.boss;
+    const C = liveCue(), b = bossUp();
     const lift = palName === 'menu' || (C ? C.lift != null && drive.urgency >= C.lift
       : !!(b && b.hp > 0 && b.hp < b.maxHp * 0.35 && state === 'boss'));   // a boss on its last legs
     const tense = C && palName !== 'menu' && (dangerLv > 0.5 || (section === 'tense' && dangerLv > 0.2));
@@ -508,7 +508,7 @@ export const MUSIC = (function(){
       if (G.mode === 'victory') s = 'victory';
       else if (G.mode === 'dead') s = 'dead';
       else if (G.mode !== 'play') s = 'menu';
-      else if (shared.boss && shared.boss.hp > 0) s = 'boss';
+      else if (bossUp()) s = 'boss';
       else { let warb = false, host = 0; for (const e of enemies){ if (e.dead || e.converted) continue; host++; if (e.warbringer) warb = true; }
         s = warb ? 'boss' : host >= 7 ? 'heavy' : host > 0 ? 'combat' : 'lull'; }
       this.setState(s);

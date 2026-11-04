@@ -12,7 +12,7 @@
 // mesh.js hands in its body-kit functions (H), so this file adds no import cycle.
 
 import * as THREE from 'three';
-import { loft, limb, plate, block, chamfer, ngon, hoodRing, cowlDrape, warpGeo, KEEL } from '../player/model/shapes.js';
+import { loft, limb, plate, block, chamfer, ngon, hoodRing, cowlDrape, warpGeo, KEEL, shard } from '../player/model/shapes.js';
 import { rounded } from '../player/model/skin.js';
 import { face } from './detail.js';
 import { lookColors } from '../data/saber-cast.js';
@@ -50,7 +50,9 @@ export function buildSaberist(k, t, L, H){
   chest(k, w, f, L);
   if (robed) outerRobe(k, w);
   if (L.cloak){
-    H.cape(k, [[-0.3*w,0],[0.3*w,0],[0.4*w,-1.5],[0.14,-1.62],[-0.14,-1.62],[-0.4*w,-1.5]], [0, 1.86, -0.2], 0.07);
+    // (a Sith lord's cloak is wider and longer, its hem torn into points: lordPlates)
+    if (L.armour === 'lord') H.cape(k, LORD_CAPE(w), [0, 1.9, -0.22], 0.07);
+    else H.cape(k, [[-0.3*w,0],[0.3*w,0],[0.4*w,-1.5],[0.14,-1.62],[-0.14,-1.62],[-0.4*w,-1.5]], [0, 1.86, -0.2], 0.07);
     // the cloak's fall over the shoulders, and the hood lying back below the collar
     k.add(loft([{ y:1.7, w:0.6*w, d:0.2, z:-0.1 }, { y:1.84, w:0.5*w, d:0.18, z:-0.11 }, { y:1.9, w:0.3, d:0.12, z:-0.12 }], SOFT), 'cloth');
     // over plain shoulders the cloak wraps forward onto them, so it reads from the front too; a clasp and its chain hold it
@@ -66,6 +68,7 @@ export function buildSaberist(k, t, L, H){
   if (L.armour === 'inq') inqPlates(k, w);
   if (L.armour === 'warden') wardenPlates(k, w);
   if (L.armour === 'general') generalPlates(k, w);
+  if (L.armour === 'lord') lordPlates(k, w);
   H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5, elbow: 'elbowOff' });   // (its elbow a bone: the free hand takes its form's pose, or the hilt: enemies/foestance.js)
   H.weaponArm(k, t, w);
   head(k, t, L, f, H);
@@ -170,6 +173,63 @@ function wardenPlates(k, w){
   for (const x of [-0.18, -0.09, 0.09, 0.18]) k.add(block(0.03, 0.03, 0.02, 0.4), 'metal', k.root, [x, 1.04, 0.18], [0,0,0], NO_INK);
 }
 
+/* A SITH LORD (Darth Vexis, the Jedi's final boss: data/bosses.js VEXIS). The silhouette is the point: a tall flared
+   collar standing up behind the hood, broad stacked pauldrons crowned with spikes, a segmented black cuirass with the
+   dark side burning through its seams, a long tabard to the shins, and a wide cloak torn into points at the hem. Read
+   from across the arena, nothing else on the field has that outline. */
+const LORD_CAPE = w => [[-0.36*w,0],[0.36*w,0],[0.52*w,-0.9],[0.6*w,-1.62],[0.46*w,-1.5],[0.38*w,-1.74],[0.22*w,-1.6],[0.1*w,-1.8],
+                        [0,-1.64],[-0.12*w,-1.82],[-0.24*w,-1.62],[-0.4*w,-1.76],[-0.48*w,-1.52],[-0.6*w,-1.66],[-0.52*w,-0.9]];
+function lordPlates(k, w){
+  // the collar: a high flared shell open at the front, standing up behind the head (it reads over the hood)
+  k.add(loft([
+    ring(1.82, 0.52*w, 0.38, -0.06, 0.5,  0.02, 0.9),
+    ring(1.94, 0.5*w,  0.38, -0.09, 0.62, 0.02, 0.88),
+    ring(2.06, 0.6*w,  0.42, -0.14, 0.72, 0.02, 0.86),
+    ring(2.14, 0.7*w,  0.46, -0.19, 0.78, 0.02, 0.84),
+  ], hoodRing(0.5), { capTop: false, capBottom: false }), 'armor2');
+  // the pauldrons: two plates stacked on each shoulder, a trim edge, and spikes rising off the crown of each
+  for (const s of [-1, 1]){
+    for (const [i, sc, dy] of [[0, 1.18, 0.06], [1, 0.98, -0.02]]){
+      const P = [0.42*w*s, 1.82 + dy, 0], r = [0, 0, -(0.32 + i*0.16)*s];
+      k.add(loft([{ y:-0.08, w:0.3*w*sc, d:0.3*sc }, { y:0.02, w:0.3*w*sc, d:0.3*sc }, { y:0.08, w:0.24*w*sc, d:0.25*sc }, { y:0.11, w:0.13*w*sc, d:0.15*sc }], SOFT), 'armor2', k.root, P, r);
+      k.add(loft([{ y:-0.09, w:0.305*w*sc, d:0.305*sc }, { y:-0.07, w:0.305*w*sc, d:0.305*sc }], SOFT), 'trim', k.root, P, r, NO_INK);
+    }
+    for (const [x, z, h, lean] of [[0.36, 0.06, 0.26, 0.2], [0.46, -0.04, 0.2, 0.42], [0.3, -0.1, 0.17, 0.1]])
+      k.add(shard(0.055, h, 0.055), 'metal', k.root, [x*w*s, 1.93, z], [-0.12, 0, -lean*s]);
+  }
+  // the cuirass: a chest plate and three bands down the stomach, the dark side's light in the seams between them
+  k.add(loft([{ y:1.44, w:0.5*w, d:0.06, z:0.15 }, { y:1.6, w:0.58*w, d:0.07, z:0.168 }, { y:1.78, w:0.5*w, d:0.06, z:0.152 }], SOFT), 'armor2');
+  for (const [i, y] of [[0, 1.37], [1, 1.28], [2, 1.19]]) k.add(loft([{ y: y - 0.035, w:(0.44 - i*0.02)*w, d:0.05, z:0.15 }, { y: y + 0.035, w:(0.45 - i*0.02)*w, d:0.05, z:0.152 }], SOFT), 'armor2');
+  for (const y of [1.415, 1.325, 1.235]) k.glow(new THREE.BoxGeometry(0.36*w, 0.008, 0.006), 0xff2236, k.root, [0, y, 0.18]);
+  for (const s of [-1, 1]) k.glow(new THREE.BoxGeometry(0.006, 0.16, 0.006), 0xff2236, k.root, [0.16*w*s, 1.6, 0.21], [0, 0, 0.32*s]);
+  k.add(plate([[0,0.045],[0.045,0],[0,-0.06],[-0.045,0]], 0.012, 0.003), 'trim', k.root, [0, 1.63, 0.215], [0,0,0], NO_INK);   // his sigil
+  // the long tabard to the shins, front and back, edged in red
+  for (const [z, r, len] of [[0.19, -0.07, 0.86], [-0.2, 0.08, 0.92]]){
+    k.add(plate([[-0.13*w,0],[0.13*w,0],[0.15*w,-len],[0,-len - 0.06],[-0.15*w,-len]], 0.016, 0.004), 'armor2', k.root, [0, 1.06, z], [r, 0, 0], NO_INK);
+    k.add(plate([[-0.012,0],[0.012,0],[0.012,-len + 0.04],[-0.012,-len + 0.04]], 0.006, 0.002), 'trim', k.root, [0, 1.06, z + (z > 0 ? 0.012 : -0.012)], [r, 0, 0], NO_INK);
+  }
+  // vambraces: a black plate on each forearm's sleeve would ride the arm slot; a heavy belt and its plated buckle instead
+  k.add(loft([{ y:0.99, w:0.54*w, d:0.36 }, { y:1.1, w:0.53*w, d:0.355 }], SOFT_BODY), 'leather', k.root, [0,0,0], [0,0,0], NO_INK);
+  k.add(block(0.12, 0.09, 0.03, 0.3), 'armor2', k.root, [0, 1.045, 0.185], [0,0,0]);
+  k.add(block(0.05, 0.03, 0.012, 0.3), 'trim', k.root, [0, 1.045, 0.203], [0,0,0], NO_INK);
+}
+/* the Sith lord's mask: a black faceplate over the brow, eyes and nose under the hood, his eyes burning through two
+   slits, and the crack the Jedi gave him running down its left side, lit from inside; the scarred jaw shows below */
+function lordMask(k, h, t){
+  k.add(loft([{ y:0.115, w:0.07, d:0.05, z:0.142 }, { y:0.16, w:0.16, d:0.07, z:0.132 }, { y:0.22, w:0.2, d:0.075, z:0.126 }, { y:0.28, w:0.19, d:0.07, z:0.118 }, { y:0.31, w:0.15, d:0.05, z:0.112 }], chamfer(0.4)), 'armor2', h);
+  const eyes = k.live(new THREE.Group(), h, 'eye');
+  for (const s of [-1, 1]){
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.014, 0.01), new THREE.MeshBasicMaterial({ color: t.eye, toneMapped: false }));
+    m.position.set(0.045*s, 0.218, 0.166); m.rotation.z = -0.26*s; eyes.add(m);
+  }
+  // the crack: a jagged line of red light from the brow, through the left eye, to the cheek
+  const pts = [[-0.02, 0.3], [-0.04, 0.262], [-0.028, 0.235], [-0.06, 0.2], [-0.05, 0.165], [-0.075, 0.135]];
+  for (let i = 0; i < pts.length - 1; i++){
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1], len = Math.hypot(bx - ax, by - ay);
+    k.glow(new THREE.BoxGeometry(0.006, len, 0.006), 0xff3a2a, h, [(ax + bx) / 2, (ay + by) / 2, 0.165], [0, 0, Math.atan2(ax - bx, by - ay)]);
+  }
+}
+
 // a short shoulder cape (a mantle) over the robe: a rank-and-file acolyte's, in its cloth colour
 function mantle(k, w){
   k.add(loft([{ y:1.48, w:0.7*w, d:0.42, z:-0.02 }, { y:1.62, w:0.72*w, d:0.42, z:-0.01 }, { y:1.76, w:0.66*w, d:0.38 }, { y:1.88, w:0.42*w, d:0.3 }, { y:1.96, w:0.26, d:0.22 }], ngon(14)), 'cloth');
@@ -191,6 +251,7 @@ function head(k, t, L, f, H){
   if (L.mask === 'helm'){ inqHelm(k, h, t); return; }
   face(k, h, { ...F, fine: true, fem: f, hair: L.hood && F.style !== 'bald' ? true : undefined, style: L.hood ? (F.style === 'bald' ? 'bald' : 'buzz') : F.style });
   if (L.mask === 'half') rebreather(k, h);
+  if (L.mask === 'lord') lordMask(k, h, t);
   if (L.hood) hood(k, h);
 }
 

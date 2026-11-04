@@ -61,6 +61,10 @@ export const CAST = {
                    armour: 'warden', colors: { cloak: 0x2e2824 } },                                     // the pens' jailer: one great pauldron, a half-cape, a chain
   'THE GRAND INQUISITOR': { side: 'inq', build: 'm', w: 1.04, height: 1.04, face: { skin: 0xa8a49e, hair: 0x101010, style: 'bald', sith: true },
                    mask: 'helm', armour: 'inq', cloak: true, colors: { trim: 0xc01c24 } },
+  // DARTH VEXIS, the Jedi's final boss (data/bosses.js VEXIS): a Sith lord, taller and broader than any blade he sends.
+  // Vael's old apprentice: a pale, scarred face under the hood, half of it behind the cracked mask the temple left him
+  'DARTH VEXIS': { side: 'sith', build: 'm', w: 1.16, height: 1.08, face: { skin: 0xb9aca8, hair: 0x120e0e, style: 'bald', scar: true, marks: 0x4a0c12, markStyle: 'lines', sith: true },
+                   mask: 'lord', armour: 'lord', cloak: true, hood: true, colors: { tunic: 0x141116, tabard: 0x0a090c, cloak: 0x0b0709, trim: 0xb3121e, belt: 0x120d0d } },
   'THE ECHO':    { side: 'echo', build: 'm', face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xc49aff }, cloak: true, hood: true },
 };
 // the Jedi's sparring blade, and the masters' (Ataru's acrobat), share the names other stories give them

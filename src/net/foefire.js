@@ -21,6 +21,7 @@ import { gainXp } from '../game/progression.js';
 import { hurtPlayer } from '../player/damage.js';
 import { players } from '../player/players.js';
 import { bossBlowResult, spawnBossRing } from '../boss/boss.js';
+import { finaleNet } from '../boss/finale.js';
 import { victory } from '../game/summary.js';
 import { coopMissionDone } from '../game/mission.js';
 import { showBanner } from '../ui/banners.js';
@@ -221,6 +222,9 @@ hooks.comms = (list, now, front) => { if (asHost()) send({ t: 'cms', l: list, n:
 on('cms', (m) => { if (asGuest()) remoteComms(m.l, !!m.n, !!m.f); });
 hooks.missionDone = () => { if (asHost()) send({ t: 'mdone' }); };
 on('mdone', () => { if (asGuest()) coopMissionDone(); });
+// a final boss's bar, phases and move effects (boss/finale.js): the host's fight, shown on the guest's screen
+hooks.fin = (m) => { if (asHost()) send({ t: 'fin', ...m }); };
+on('fin', (m) => { if (asGuest()) finaleNet(m); });
 on('bdead', () => { if (asGuest() && G.mode === 'play'){ if (shared.boss && shared.boss.net) { /* the puppet falls with the snapshot */ } victory(); } });
 
 /* ---------------- warnings ---------------- */

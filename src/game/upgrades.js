@@ -9,7 +9,7 @@
 import { S } from '../audio/sfx.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { G, shared, enemies, isGunner } from '../state.js';
+import { G, shared, enemies, isGunner, bossUp } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { masterySet, masteryRank } from '../data/mastery.js';
 import { FORM_MASTERY, FORM_RANKS, formRank, noteBestRank, forceShare } from '../data/force-level.js';
@@ -22,7 +22,7 @@ const RANK_NUM = ['', 'I', 'II', 'III'];
 const learning = () => G.mode === 'play' && !G.training && !G.sandbox;
 // a cast only teaches when there is something to use it on
 function inFight(){
-  if (shared.boss && shared.boss.hp > 0) return true;
+  if (bossUp()) return true;
   for (const e of enemies) if (!e.dead && !e.converted) return true;
   return false;
 }

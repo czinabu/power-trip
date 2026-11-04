@@ -42,7 +42,8 @@ import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard 
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
 import { chapterOrder } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
-import { earnWavePoint, noteWavePoint, resetUpgrades } from './upgrades.js';
+import { earnWavePoint, noteWavePoint, resetUpgrades, upToast } from './upgrades.js';
+import { inCombat } from '../player/mobility.js';
 import { showBanner } from '../ui/banners.js';
 import { diffBossCheckpoint } from '../data/difficulty.js';
 import { catchDarksaber } from '../player/mando/darksaber.js';
@@ -466,7 +467,7 @@ export function coopCampaignCleared(){
 
 export function updateFlow(dt){
   tickMeditation();   // a learned form waits for the screens in front of it to close (meditation.js)
-  tickFormsWindow();   // the three can be re-picked until the chapter's (or survival wave's) fight is on (meditation.js)
+  tickFormsWindow(inCombat, upToast);   // the three can be re-picked until the chapter's (or survival wave's) fight is on (meditation.js)
   tickAbilityCards();   // so does a new ability's card (ui/ability-card.js)
   tickArmory();   // a new gun for a full slot: choose which to carry, after its card (ui/armory-ui.js)
   if (G.coopGuest) return;   // the host runs this run's spawns and waves: net/foes.js tells this browser what they did

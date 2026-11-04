@@ -38,17 +38,23 @@ export function releasePoolLight(l){ if (l){ l.userData.held = false; l.intensit
    darksaber one, a co-op partner's saber one. Each would change the count and recompile every material in the arena,
    so every arena used to build all its shaders twice up front (with and without the boss), a large share of each
    load. Instead, while extra lights are in the scene, as many pool lights stand down (flashes use the rest, never
-   fewer than MIN_POOL), and step back in when they leave: the count the arena was built with holds. */
-const MIN_POOL = 4;
-let held = -1;   // the point-light count the arena's shaders were built for (holdLightCount, at each arena build)
-function pointLights(){ let n = 0; scene.traverseVisible(o => { if (o.isPointLight) n++; }); return n; }
+   fewer than MIN_POOL), and step back in when they leave: the count without any of them holds, in every arena. */
+const MIN_POOL = 2;   // room for six carried lights: four Jedi in co-op and a boss's two, or three and a darksaber
+let held = -1;   // the point-light count every program is built for: no carried lights in, the whole pool lit
+/* a light a character carries (a saber's, the darksaber's, a boss's blade and aura) comes and goes with its bearer, so it
+   is never part of the held count: an arena built with a co-op partner's saber already in (a guest following the host
+   into the next chapter) used to hold one light more than the arena before it, and every program in the game was built
+   again under that load */
+export function carriedLight(l){ l.userData.carriedLight = true; return l; }
+function pointLights(skipCarried){ let n = 0; scene.traverseVisible(o => { if (o.isPointLight && !(skipCarried && o.userData.carriedLight)) n++; }); return n; }
 export function holdLightCount(){
   for (const l of vfxLights) l.visible = true;
-  held = pointLights();
+  held = pointLights(true);
+  scene.onBeforeRender();   // stand pool lights down for the carried ones in now, so the warm-up compiles at the held count
 }
 // before every draw of the scene (three.js counts the lights right after this)
 scene.onBeforeRender = () => {
-  if (held < 0) return;
+  if (held < 0) held = pointLights(true);   // from the first draw (the title screen's warm-up), so the menu builds at the same count
   let extra = pointLights() - held;
   for (let i = 0; i < VFX_LIGHT_MAX && extra < 0; i++) if (!vfxLights[i].visible){ vfxLights[i].visible = true; extra++; }
   let down = vfxLights.filter(l => !l.visible).length;

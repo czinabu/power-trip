@@ -5,12 +5,12 @@
 //   - the Darksaber's darker, grittier hum, moved the same way
 //   - the hum of every other lit blade nearby (a foe's, the boss's, a co-op partner's), placed in the world
 //   - the jetpack roar and the flamethrower, by how hard they're running
-//   - each world's ambience bed plus its occasional distant events (Jedha bells, Mustafar lava, Exegol thunder)
+//   - each world's ambience bed plus its occasional distant events (Jedha gusts, Mustafar lava, Exegol thunder)
 //   - the mix state: muffled under the pause menu, on death, for a beat after a hit, when badly hurt, and while the Jedi
 //     channels Mend (the Force's own bus stays clear of it: audio/force.js)
 //   - which reverb room and which music palette the current arena uses
 
-import { AE, loop, play, place, setRoom, setMuffle } from './engine.js';
+import { AE, loop, play, place, setRoom, setMuffle, setAmbHP } from './engine.js';
 import { MUSIC } from './music.js';
 import { S } from './sfx.js';
 import { updateFoley } from './foley.js';
@@ -18,9 +18,10 @@ import { shared, G, player, isGunner } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
 import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
+import { FORM_FAMILY } from '../data/foe-forms.js';
 import { updateForce, innerHz } from './force.js';
 
-const L = { hum: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
+const L = { hum: null, riser: null, riserHiss: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 
 /* how much a blade is moving, 0..1, from its tip speed against its owner (m/s): a held guard barely stirs it, a full
@@ -38,6 +39,9 @@ function ensureLoops(){
   if (L.hum) return;
   L.hum = loop(HUM());
   L.hum2 = loop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
+  // the heavy cut's riser: a saw and its octave climbing as the charge builds, and a thin hiss of energy over it
+  L.riser = loop({ base: 110, layers: [{ f: 110 }, { f: 110.6, det: 9, g: 0.7 }, { type: 'sine', f: 220, g: 0.5 }], filt: { type: 'bandpass', f: 800, q: 1.4 }, verb: 0.1 });
+  L.riserHiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 3000, q: 2 }, lfo: { r: 19, d: 900 } });
   // the blade's electric sizzle: a narrow band of noise, flickering, that only really comes up as the blade moves
   L.hiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 2600, q: 1.6 }, lfo: { r: 13, d: 700 }, verb: 0.05 });
   L.dark = loop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
@@ -59,13 +63,12 @@ function ensureLoops(){
    One bed per arena layout (the 'worlds' direction names: Jedha / Mustafar / Exegol). Beds are loops on the amb
    bus; `events` are sparse one-shots scattered around the listener. */
 const AMB = {
-  temple: {   // JEDHA — dry desert wind across the holy city, a temple bell far off
+  temple: {   // JEDHA — dry desert wind across the holy city, a gust sweeping the streets now and then
     beds: [{ base: 1, layers: [{ noise: 'pink' }], filt: { type: 'bandpass', f: 520, q: 0.6 }, lfo: { r: 0.07, d: 260 }, lvl: 0.06 },
            { base: 1, layers: [{ noise: 'brown' }], filt: { f: 160 }, lvl: 0.05 }],
     every: [8, 15],
-    event(){ const f = rand(180, 240);
-      play({ bus: 'amb', type: 'sine', f, fm: { r: 2.76, i: 1.4, i2: 0.02 }, g: 0.022, a: 0.004, d: 3.2, pan: rand(-0.8, 0.8), verb: 0.7 });
-      play({ bus: 'amb', type: 'sine', f: f * 2.01, g: 0.01, a: 0.004, d: 2.4, pan: rand(-0.8, 0.8), verb: 0.7 }); },
+    // now and then a gust sweeps through the streets (no bell: Caleb took it out)
+    event(){ gust('dust'); },
     tick(){},
   },
   foundry: {  // MUSTAFAR — a lava river's rumble, the hiss of heat, machinery somewhere in the forge
@@ -161,8 +164,11 @@ export function updateAudio(dt){
   const walk = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
   const thrown = jedi && shared.saberProj;
   const staff = jedi && !thrown && (G.stance === 'staff' || G.stance === 'jarkai');   // (the staff's far blade, or Jar'Kai's off-hand saber: a second hum)
+  const fam = FORM_FAMILY[G.stance] || 'niman';   // (the form's group: colours the heavy cut's riser below)
   const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt), mH2 = ease('hero2', motionOf(BA.hero2), dt);
   const mD = ease('dark', Math.max(motionOf(BA.dark), swinging && darkOn ? 0.3 : 0), dt);
+  // a deflect just landed (saber.js deflect): the hero's hum dips ~3 dB for an instant so the deflect punches out of it
+  const hd = t - BA.hduck < 0.12, hk = hd ? 0.7 : 1, htc = tc => hd ? 0.012 : tc;
   if (L.hum){
     const p = HUM_PITCH[G.stance] || 1;
     // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
@@ -171,19 +177,33 @@ export function updateAudio(dt){
     const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
     const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
     const pitch = 90 * p * (1 + m * 0.2 + spin * 0.045);
-    L.hum.set(lvl, hz, pitch, m > 0.05 || thrown ? 0.02 : 0.1);
+    L.hum.set(lvl * hk, hz, pitch, htc(m > 0.05 || thrown ? 0.02 : 0.1));
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
     const m2 = Math.max(mH2, mH * 0.6);
-    L.hum2.set((playing && staff) ? 0.02 + m2 * 0.045 : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), m2 > 0.05 ? 0.02 : 0.1);
+    L.hum2.set((playing && staff) ? (0.02 + m2 * 0.045) * hk : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
   }
   if (L.hiss){
     const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
     const on = playing && (jedi || darkOn);
     L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + mD * 0.07 : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), mD > 0.05 ? 0.02 : 0.12);
+  // THE HEAVY CUT'S CHARGE (player/jedi/weight.js, audio/saber.js chargeRelease): while the button holds a cut back, a
+  // riser climbs with the charge and the ambience's low end is stripped away (an acoustic vacuum before the strike).
+  // Its group colours it: SPEED frantic (high, fast, quivering), POWER unstable (low, lurching, crackling with static),
+  // GUARD a steady, heavy climb, NIMAN a clean rising tone.
+  if (L.riser){
+    const c = playing && G.gt - BA.chargeAt < 0.06 ? BA.charge : 0;
+    const wob = fam === 'speed' ? Math.sin(t * 2 * Math.PI * 17) * 0.05 : fam === 'power' ? rand(-0.08, 0.08) : 0;
+    const base = fam === 'speed' ? 1.8 : fam === 'power' ? 0.8 : fam === 'guard' ? 0.85 : 1.2;
+    L.riser.set(c ? (0.015 + c * 0.05) * (fam === 'guard' ? 1.2 : 1) : 0, 600 + c * 3200 * (fam === 'speed' ? 1.4 : 1),
+                110 * base * (1 + c * 1.6 + wob), c ? 0.012 : 0.04);
+    L.riserHiss.set(c ? c * (fam === 'power' ? 0.035 : fam === 'speed' ? 0.02 : 0.01) * (fam === 'power' ? rand(0.4, 1.3) : 1) : 0, 2500 + c * 4000, 0, c ? 0.015 : 0.04);
+    const hp = c ? Math.round(60 + c * 900) : 10;
+    if (hp !== L.ambHP){ L.ambHP = hp; setAmbHP(hp, c ? 0.03 : 0.12); }   // (only when it moves: this runs every frame)
+  }
+  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
 
   // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
   if (L.grind){

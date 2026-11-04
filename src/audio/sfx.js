@@ -84,7 +84,7 @@ export const S = {
   // blade, placed in the world (a form master's swing); the hero's own swing has none
   swing: (kind, pos) => {
     if (tooSoon(pos ? 'fswing' : 'swing', 0.05)) return;
-    if (FORM_SOUND[kind]) return formSwing(FORM_SOUND[kind], pos);
+    if (FORM_SOUND[kind]) return formSwing(FORM_SOUND[kind], pos, kind);
     if (kind === 'fast') swing(1.15, 0.85);
     else if (kind === 'strong') swing(0.82, 1.35);
     else if (kind === 'dark') swing(0.68, 1.2, true);
@@ -168,12 +168,25 @@ export const S = {
   // form: whose blade rings (the hero's form, or a form master's): FORM_SOUND
   block: (pos, form) => SB.clash(pos, false, form),
   clash: (pos, big, form) => SB.clash(pos, big, form),
-  // a PERFECT parry: a big clash that flares into a surge of the hum and a spitting shower, and the world ducks out of its way
+  // a PERFECT parry: a big clash that flares into a surge of the hum and a spitting shower, the perfect-parry reward on
+  // top (the sub shockwave), and the score and ambience duck ~6 dB for half a second under it
   parry: (pos, form) => {
     SB.clash(pos, true, form);
     SB.parryFlare(pos);
-    duck(0.35, 0.1);
+    SB.parryChime(pos);
+    duck(0.5, 0.45);
   },
+  // a PERFECT parry of a blaster bolt: the deflect's layers, the reward layers over them (its implosion, parryRise,
+  // already rose into the hit from enemies/bolts.js), and the same half-second duck
+  boltParry: (pos) => {
+    SB.deflect(pos);
+    SB.parryChime(pos);
+    duck(0.5, 0.45);
+  },
+  // a heavy cut's charge (player/jedi/weight.js): the snap when it's full, and the cut on release, weighed by the charge
+  chargeFull: () => SB.chargeFull(),
+  chargeRelease: (form, c) => SB.chargeRelease(form, c),
+  parryRise: (pos, eta) => { if (!tooSoon('prise', 0.1)) SB.parryRise(pos, eta); },
   // the riposte answer — a heavy decisive slash
   riposte: () => {
     swing(0.85, 1.3);
@@ -190,7 +203,8 @@ export const S = {
     T({ pos, type: 'square', f: 300, f2: 170, g: 0.055, d: 0.12, filt: { type: 'lowpass', f: 1300 } });
     T({ pos, type: 'sine', f: 1250, fm: { r: 0.5, i: 1, i2: 0.05 }, g: 0.05, d: 0.14, verb: 0.15 });
   },
-  // ── the Force ── (layered: audio/force.js). pos = a foe's or a partner's power, placed in the world; none = your own
+  // ── the Force ── (layered: audio/force.js; push and pull hit as a bass thump, not a crack). pos = a foe's or a partner's
+  // power, placed in the world; none = your own
   push: (pos) => FX.push(pos),
   pull: (pos) => FX.pull(pos),
   // the 360° blast: the push all round you, with an explosion's roar under it

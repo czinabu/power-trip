@@ -145,6 +145,8 @@ const TIPS = {
     { forms: ['shien'], t: '<b>Shien</b> sends deflected bolts home to the shooter harder, and a roll in toward the fire is the <b>Spin Advance</b>, sending every bolt home; in Djem So, G swaps to Shien.' },
     { forms: ['ataru'], t: '<b>Ataru</b> cuts harder in the air, keeps its timed parry up there, a cut out of a Force dash is the <b>Hawk-Bat Swoop</b>, and guard up with W and SPACE by a foe <b>flips over</b> it to cut into its back. It sprays the bolts it deflects.' },
     { forms: ['staff'], t: '<b>The saber staff:</b> a cut out of a roll or a Force dash is the <b>Pole Vault</b>, landing feet first on the foe and flooring it.' },
+    { forms: ['niman'], t: '<b>Niman:</b> a Force power cast mid-roll or mid-dash is a <b>Flow Cast</b>: cheaper, quicker, and the dash comes back.' },
+    { forms: ['jarkai'], t: '<b>Jar\'Kai:</b> cut out of a slide for the <b>Scissor Slide</b>, both blades crossing at the knees. Switching between it and the saber staff splits the staff in two, or joins the two.' },
     { forms: ['djemso'], t: '<b>Djem So</b> answers a blow taken on the held guard with a <b>Fluid Riposte</b> (hold W for the <b>Forward Stomp</b>, which breaks the guard), and its held heavy cuts are hyper-armoured.' },
     { forms: ['juyo'], t: '<b>Form VII:</b> Juyo burns Force with each swing and every hit feeds its fury, which quickens its cuts, and W in rhythm is the <b>Onslaught</b>, zig-zagging in; Vaapad feeds on blocks and parries, and a parry finds the attacker\'s Shatterpoint (your next cut on it lands double). Both take more damage the fuller their fury, and a loadout holds only one.' },
     'Any swing can be cancelled into a block, a Force power or a dash.',

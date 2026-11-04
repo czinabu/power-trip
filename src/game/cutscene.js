@@ -37,7 +37,7 @@ import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
 import { allies } from '../allies/squad.js';
 import { CUT, OPENINGS, DUELS, BOSS, SCENES } from '../data/cutscenes.js';
-import { BOSS_CFG, BOSS_MANDO } from '../data/bosses.js';
+import { VEXIS, MAGISTRATE } from '../data/bosses.js';
 import { missionState } from './mission.js';
 import { makeFigure, stepFigure, dropFigure, castOf } from './cast.js';
 import { keepCast } from './onset.js';
@@ -973,10 +973,10 @@ export function playBossIntro(share = true, stage = null){
   const b = canStart('boss:' + G.chapter) && boundActor('boss');
   if (!b) return false;
   prepScene(stage);
-  b.scale = shared.finale && b.g === shared.finale.group ? b.g.scale.x : 1.4;   // (Darth Vexis on his duellist's body: his own size)
+  b.scale = shared.finale && b.g === shared.finale.group ? b.g.scale.x : 1.4;   // (a final boss on a foe's body: his own size)
   const own = G.chapter >= 0 && { mando: MANDO_BOSS, jedi: storyWords(JEDI_BOSS) }[storyHero()];
   const lines = (own || pick(BOSS)).slice(),   // (a story's own: data/campaign-mando.js, data/campaign-jedi.js)
-        [name, epithet] = (isGunner() ? BOSS_MANDO.name : BOSS_CFG.name).split(' — ');
+        [name, epithet] = ((shared.finale && shared.finale.fin && shared.finale.fin.def.title) || (isGunner() ? MAGISTRATE.title : VEXIS.title)).split(' — ');
   const first = shot('actor', [0.6, 5, 0.9], [0.4, 4.4, 1.3], lineTime(lines[0]), { on: 'actor', h: 2.2 },
                      { line: lines[0], title: { k: 'EXEGOL', h: name, p: epithet || '' }, mirror: true });
   const g = b.g.position;

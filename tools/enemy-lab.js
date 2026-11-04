@@ -15,7 +15,7 @@ import { ENEMY_TYPES } from '../src/data/enemies.js';
 import { buildEnemyMesh } from '../src/enemies/mesh.js';
 import { lookPool } from '../src/data/foe-looks.js';
 import { buildBoss } from '../src/boss/mesh.js';
-import { VEXIS } from '../src/data/bosses.js';
+import { VEXIS, MAGISTRATE } from '../src/data/bosses.js';
 import { updateUpper } from '../src/enemies/upper.js';
 import { markHit } from '../src/enemies/marks.js';
 import { ELITES } from '../src/data/enemies.js';
@@ -67,7 +67,15 @@ if (SET === 'bosses'){
     g.scale.multiplyScalar(VEXIS.scale);
     figs.push({ g, label: 'Darth Vexis', w: 3.4 });
   }
-  for (const kind of q.get('old') === '1' ? ['sith', 'mando'] : ['mando']){
+  // the Iron Magistrate: a lancer's body in his own model (data/bosses.js MAGISTRATE)
+  if (q.get('old') !== '1'){
+    const g = buildEnemyMesh({ ...ENEMY_TYPES[MAGISTRATE.type], ...MAGISTRATE.dress });
+    g.scale.multiplyScalar(MAGISTRATE.scale);
+    if (q.get('cracks') === '1') for (const c of g.userData.cracks || []){ c.material.opacity = 0.9; c.visible = true; }
+    if (q.get('jets') === '1') for (const c of g.userData.thrusters || []){ c.material.opacity = 0.9; c.visible = true; c.scale.set(1, 2, 1); }
+    figs.push({ g, label: 'Iron Magistrate', w: 4.0 });
+  }
+  for (const kind of q.get('old') === '1' ? ['sith', 'mando'] : []){
     const g = buildBoss(kind);
     if (POSE !== 'windup' && g.userData.hand) g.userData.hand.rotation.z = -0.6;
     pose(g, true);

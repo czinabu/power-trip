@@ -189,10 +189,14 @@ const BOSSES = [
     beat: ['PARRY the Guard Breaker (the white and red flash) and he reels', 'Catch the lightning on your guard, then PARRY a surge or PUSH it back into him',
            'Dash out of the choke\'s red ring, or PUSH to break it. Dodge his last charge and he is wide open', counterLine(BOSS_FORM.sith.form)] },
   { id: 'magistrate', kind: 'boss', boss: 'mando', name: 'THE IRON MAGISTRATE', kicker: 'WARLORD OF THE OUTER RIM', threat: 5,
-    lore: 'A beskar warlord built to beat a hunter at the hunter\'s game.',
-    weapons: ['Blaster barrage', 'Jetpack', 'Beskar armour'],
-    watch: ['Heavy armour shrugs off chip fire', 'Aimed volleys lead your strafe; he jet-charges if you kite'],
-    beat: ['BRACE the barrage, or break line of sight', 'Braced shots, rockets and the Darksaber get through'] },
+    lore: 'A beskar warlord in armour beaten out of a hundred coverts, built to beat a hunter at the hunter\'s game.',
+    weapons: ['Beskar war-spear', 'Beskar shield', 'Jetpack, rocket pods and a flamethrower'],
+    watch: ['Phase I: his shield turns fire from the front, and his spear charge runs the length of a marked line',
+            'Phase II: the shield goes. Rockets onto marked ground, a flamethrower sweep, and he jets onto you if you run',
+            'Phase III: his armour cracks. Homing rockets that lock late, and one last charge across the floor'],
+    beat: ['FLANK the shield, or make him attack: a swing, a charge or a bash drops it', 'Step off the charge line as it locks: a miss leaves him stuck and open',
+           'Get out of the amber rings and the red cone. Shoot his back while the flamethrower burns',
+           'Hit him while his cracked armour VENTS, after every big move. Dodge the last charge and he is down and open'] },
 ].map(e => ({ ...e, tab: 'bosses' }));
 
 /* ALLIES: everyone on your side the hero meets. `squad` names a squadmate (data/allies.js SQUAD.roster: the def it is

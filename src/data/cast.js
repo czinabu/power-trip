@@ -14,6 +14,7 @@
 // Names the lines use that aren't here (the hero's 'YOU', a stranger) stay off screen: their lines play over comms.
 
 import { MARSHAL } from './allies.js';
+import { MAGISTRATE } from './bosses.js';
 
 const jedi = (look, o = {}) => ({ kind: 'hero', as: 'jedi', look: { jedi: look }, saber: true, ...o });
 const mando = (look, o = {}) => ({ kind: 'hero', as: 'mando', look: { mando: look }, ...o });
@@ -40,7 +41,7 @@ export const CAST = {
   'ROOK': civ({ parts: { hair: 'short', waist: 'panels' }, palette: { skin: 0xa86b45, hair: 0x3a2414, robe: 0x7b6b52, tabard: 0x8c7656, tunic: 0x9c7d58 }, build: { head: 1.12 } }, { scale: 0.62 }),
   'OSSIK VANE': civ({ parts: { hair: 'short', beard: 'goatee' }, palette: { skin: 0xc58c64, hair: 0x85817c, robe: 0x4a3a2a, tabard: 0x7a5c3e, tunic: 0x6e6a66 }, build: { bulk: 1.08 } }),
   'VX-7': { kind: 'foe', t: { model: 'magna', color: 0x4a5a6a, eye: 0xff4a2a, cloth: 0x2a2e34 }, scale: 1.12, foe: true },
-  'THE IRON MAGISTRATE': { kind: 'boss', boss: 'mando', foe: true },
+  'THE IRON MAGISTRATE': { kind: 'foe', t: { ...MAGISTRATE.dress }, scale: 1.04 * MAGISTRATE.scale, foe: true },   // his own beskar, spear and shield (enemies/mesh.js magistrate)
 
   // ---------------- the ARC trooper's story ----------------
   'THE CAPTAIN': clone(0x7a6a3a, { variant: 4, stays: true }),

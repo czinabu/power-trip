@@ -16,7 +16,7 @@ import { tryVault, findLedge, startMantle, requestRoll, hangClimb, wallBeside } 
 import { tutEvent } from '../game/tutor-bus.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { inCombat, formMob, groundRoll, rollRedash, spendCharge, airborneInCombat } from './mobility.js';
-import { forceCostMul } from '../data/force-level.js';
+import { forceCostMul, floorCost } from '../data/force-level.js';
 
 /* MOMENTUM in a chain of moves: each move sends you where it says, instead of piling its push on top of whatever the
    last move left. The run's momentum (moveVel) and the impulses (vel) are steered together. */
@@ -65,7 +65,7 @@ export function forceDash(){
   // is the FORCE DASH, which spends a charge and some Force. Out of a fight SHIFT just dashes, for free (mobility.js).
   const fight = inCombat();
   if (fight && player.grounded && !rollRedash()){ groundRoll(); return; }
-  const cost = fight ? MOBILITY.dash.cost * (formMob().dashCost ?? 1) * forceCostMul('dash') : 0;   // (a stronger Force pays less: data/force-level.js)
+  const cost = fight ? floorCost(MOBILITY.dash.cost * (formMob().dashCost ?? 1) * forceCostMul('dash'), MOBILITY.dash.cost) : 0;   // (a stronger Force pays less: data/force-level.js)
   if (!G.unlocked.dash || player.cds.dash > 0 || player.force < cost) return;
   if (!spendCharge()) return;
   if (player.atkT > 0) cancelSwing();   // DASH-CANCEL — bail a swing into an evasive dash in any direction

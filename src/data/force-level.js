@@ -12,6 +12,7 @@
 
 import { G, isGunner } from '../state.js';
 import { STANCES } from './stances.js';
+import { CFG } from './config.js';
 
 export const FORCE_MAX = 10;
 // each level and the chapter whose close brings it, with the same gates the unlocks it comes with use (data/store.js):
@@ -53,6 +54,13 @@ export const MOVE_ARRIVE = { jump: 1, dash: 1, airCut: 1 };
    each step of growth (the same levels-above-arrival times the form's share), to COST_FLOOR at most. Held below its
    arrival level a power never costs more than its tuning. */
 export const COST_RATE = 0.03, COST_FLOOR = 0.7;
+/* THE COST FLOOR — power mastery, the Force Level, a form's cheaper casts (Niman), survival's cost boons and the palm
+   flow all cut a cost, and they multiply. Together they never take a cast below COST_MIN of its base tuning
+   (data/config.js), so a long survival run can't make the powers nearly free. A cost that rises (Djem So) is untouched. */
+export const COST_MIN = 0.5;
+export const floorCost = (cost, base) => Math.max(cost, base * COST_MIN);
+// a Jedi power's base Force cost (keyed by data/mastery.js id, plus 'grasp')
+export const baseCost = (id) => (CFG.abilities[id === 'jslam' ? 'slam' : id] || {}).cost || 0;
 const FLOOR = 0.7;   // a power held below its arrival level (the sandbox's slider) shrinks at the same rates, to 70% at most
 
 /* FORCE SHARE — the share of the level's growth each form draws on, before mastery (Caleb's ranking: Niman, Jar'Kai,

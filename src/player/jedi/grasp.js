@@ -5,7 +5,7 @@
 // champions brace and only stumble). While held: F hurls it (them) the way you're aiming, a tap of C yanks it in onto
 // your blade for a saber strike, and the slide key (Z) drops it. A short tap of C is still the plain Force Pull.
 
-import { growPower } from '../../data/force-level.js';
+import { growPower, floorCost, baseCost } from '../../data/force-level.js';
 import { abil } from '../../data/mastery.js';
 import { CFG } from '../../data/config.js';
 import { S } from '../../audio/sfx.js';
@@ -24,7 +24,9 @@ import { forceStrike } from './palm.js';
 import { trainAbility } from '../../game/upgrades.js';
 
 const A = () => growPower('grasp', Object.assign({}, CFG.abilities.grasp));   // grown by the Force Level (data/force-level.js)
-const fcost = (base) => base * (player.up.abilityCostMul || 1);
+// the survival cost cuts on top, never below the cost floor (data/force-level.js): `n` bodies held scale the base with it
+const bodies = (n) => 1 + CFG.abilities.grasp.multiCost * (n - 1);
+const fcost = (raw, n = 1) => floorCost(raw * (player.up.abilityCostMul || 1), baseCost('grasp') * bodies(n));
 // too big or too steady to be lifted: brutes, the mid-boss and champions (they only brace when you hit them with one)
 const tough = (e) => !!(e.t.heavy || e.warbringer || e.champion);
 const graspable = (e) => !e.dead && !e.converted && !e.sparring && e.state !== 'spawn' && e.state !== 'lock' && e.state !== 'fade';
@@ -120,7 +122,7 @@ function endGrasp(){
 const SLOTS = [0, -1, 1, -2, 2];
 function lockOn(targets){
   const g = A();
-  const cost = fcost(g.cost * (1 + g.multiCost * (targets.length - 1)));
+  const cost = fcost(g.cost * (1 + g.multiCost * (targets.length - 1)), targets.length);
   if (player.force < cost || player.cds.pull > 0) return false;
   player.force -= cost;
   const bodies = targets.map((e, i) => {
@@ -166,7 +168,8 @@ export function updateGrasp(dt){
   if (!gr.bodies.length || G.mode !== 'play'){ endGrasp(); return; }
   gr.t += dt;
   // the hold costs Force to sustain (more for each extra body), and can't last forever
-  player.force -= g.drain * (1 + g.multiCost * (gr.bodies.length - 1)) * (player.up.abilityCostMul || 1) * dt;
+  { const n = gr.bodies.length, raw = g.drain * (1 + g.multiCost * (n - 1)) * (player.up.abilityCostMul || 1);
+    player.force -= floorCost(raw, CFG.abilities.grasp.drain * bodies(n)) * dt; }
   if (player.force <= 0 || gr.t > g.maxT){ player.force = Math.max(0, player.force); graspDrop(); return; }
   player.castT = Math.max(player.castT, 0.2); player.castMax = 0.5; player.castKind = 'pull';
   // the hold runs out of the reaching palm (either palm, holstered): a thin stream of Force drawn to each body

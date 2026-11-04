@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node tools/roadmap-check.mjs",
     "build": "vite build",
+    "roadmap:check": "node tools/roadmap-check.mjs",
     "preview": "vite preview",
     "smoke": "node tools/smoke/smoke.mjs",
     "smoke:coop": "node tools/smoke/coop.mjs",

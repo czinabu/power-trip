@@ -17,6 +17,19 @@ The SHIPPED column was condensed on 2026-11-03 into the `2026-11-03-shipped-*` s
 area: heroes, forms, combat, co-op...). Don't add an entry for more work in one of those areas
 unless it is a genuinely new headline feature.
 
+## No overlaps (checked on every build)
+
+Each feature appears **once**. `tools/roadmap-check.mjs` runs before every build (`npm run build`, so
+locally, in CI and on Vercel) and fails it when:
+
+- two entries share a title, in any column;
+- two IN PROGRESS / PLANNED entries share a topic word in their titles (say Jar'Kai, or co-op, in both
+  columns). Merge them into one entry;
+- an IN PROGRESS / PLANNED entry has "Done:" lines. When a feature ships, delete its planned entry and
+  (only if it's a big headline feature) add a SHIPPED one.
+
+Run it by itself with `npm run roadmap:check`.
+
 ## New entry
 
 Create `src/data/roadmap/<YYYY-MM-DD>-<short-slug>.js`:

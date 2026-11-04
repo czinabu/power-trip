@@ -78,7 +78,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       const guardBreak = !!isFinisher || (!isGunner() && G.stance === 'djemso') || !!(player.swing && player.swing.riposte);
       e.shieldHp -= dmg * (guardBreak ? 2.4 : 1.0);
       const sp = V3(e.group.position.x + efx*0.55, 1.45, e.group.position.z + efz*0.55);
-      spawnHitSpark(sp, e.t.eye, 0.8); S.shieldHit(sp);
+      spawnHitSpark(sp, e.t.eye, 0.8);
+      if (!isGunner() || player.darkT > 0 || shared.saberProj) S.saberHit(sp, 1); else S.shieldHit(sp);   // a saber on it: the clash
       if (e.shieldHp <= 0){
         e.shieldBroken = true;
         if (e.group.userData.shield) e.group.userData.shield.visible = false;

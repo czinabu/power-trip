@@ -192,7 +192,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     if (result.gameSeconds < GAME_SECONDS * 0.5) problems.push(`game only advanced ${result.gameSeconds}s`);
     if (result.mode !== 'play' && !(mode === 'mission' && result.mode === 'victory')) problems.push(`left play mode (mode: ${result.mode})`);
     if (mode === 'mission' && !result.sawDuel && !DUEL_LINE[mission].test(result.objective)) problems.push('the mission never reached its duel');
-    if (!result.enemies && !result.kills) problems.push('no enemies ever spawned');
+    if (!result.enemies && !result.kills && !result.everHit && !result.sawDuel) problems.push('no enemies ever spawned');   // (a won mission clears its foes: a hit or a duel shows they were there)
     if ((mission === 'strike' || mode === 'sandbox') && !result.squad) problems.push('the squad never formed up');
     if (!result.kills && !result.hurt && !result.everHit) problems.push('the hero never hit anything');
   }

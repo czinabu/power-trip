@@ -210,6 +210,7 @@ export function compileLive(){
   // so no fog) would otherwise build programs no fight ever uses, and the first level would build them all again
   if (!fog) scene.fog = _compileFog;
   try {
+    scene.onBeforeRender(renderer, scene, camera, composer.readBuffer);   // the light count is settled there (fx/lights.js): compile at it
     renderer.compile(scene, camera);
     // compile only queues the links; a program's first DRAW is what waits on its link and the driver's first-use work.
     // Draw the live scene once here (into the spare buffer) so that wait is paid now, not on the first spark or ring of a fight

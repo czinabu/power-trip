@@ -17,7 +17,7 @@ import { G } from '../state.js';
 import { FINISHERS } from '../data/finishers.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
-import { FAMILIES, FORM_FAMILY, MATCHUP } from '../data/foe-forms.js';
+import { FAMILIES, FORM_FAMILY, MATCHUP, LORE_EDGES, LORE_EDGE } from '../data/foe-forms.js';
 import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
 import { canResume, oldNimanRun, resumeLabel } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
@@ -59,12 +59,26 @@ function famTag(id){
 // what a counter is worth, in numbers: shown on hover over the Beats / Beaten by lines, so the page stays short
 const counterWin = () => { const W = MATCHUP.win; return 'You counter it: +' + pct(W.dmg) + ' damage, its guard turns ' + pct(W.block) + ' fewer cuts, its blows land ' + pct(W.hurt) + ' softer and wear your block ' + pct(W.guard) + ' less'; };
 const counterLose = () => { const L = MATCHUP.lose; return 'It counters you: −' + pct(L.dmg) + ' damage, its blows land ' + pct(L.hurt) + ' harder, crush your block ' + pct(L.guard) + ' faster and leave a ' + pct(L.window) + ' narrower parry window (only while one of your three could counter it)'; };
+// a form's display name in sentence case ('Djem So', "Jar'Kai")
+const niceName = (id) => FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-|')(\w)/g, (m, a, b) => a + b.toUpperCase());
+const named = (id) => ctx.known.includes(id) ? niceName(id) : 'a form still to learn';
+const loreTitle = () => 'A lore edge: ' + Math.round(LORE_EDGE * 100) + '% of a full counter';
+// the lore edges (data/foe-forms.js LORE_EDGES) this form gives or takes, as ▲ / ▼ lines
+function loreRows(id){
+  const out = [];
+  for (const L of LORE_EDGES){
+    const gives = L.a === id || (L.a === 'family' && FORM_FAMILY[id]);
+    if (gives && L.b !== id) out.push('<li class="up" title="' + esc(loreTitle()) + '"><i>△</i>A slight edge on ' + esc(named(L.b)) + ': ' + esc(L.why) + '</li>');
+    if (L.b === id) out.push('<li class="dn" title="' + esc(loreTitle()) + '"><i>▽</i>' + (L.a === 'family' ? 'Every form in the triangle has a slight edge on it' : esc(named(L.a)) + ' has a slight edge on it') + ': ' + esc(L.why) + '</li>');
+  }
+  return out.join('');
+}
 function counterBlock(id){
   const fam = FORM_FAMILY[id], F = FAMILIES[fam];
-  const rows = F
+  const rows = (F
     ? '<li class="up" title="' + esc(counterWin()) + '"><i>▲</i>Beats <em style="--fc:' + FAMILIES[F.beats].color + '">' + FAMILIES[F.beats].name + '</em> duellists: ' + esc(famList(F.beats)) + '</li>' +
       (() => { const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam); return '<li class="dn" title="' + esc(counterLose()) + '"><i>▼</i>Beaten by <em style="--fc:' + FAMILIES[by].color + '">' + FAMILIES[by].name + '</em> duellists: ' + esc(famList(by)) + '</li>'; })()
-    : '<li class="eq"><i>•</i>Outside the triangle: no duellist\'s form counters it, and it counters none</li>';
+    : '<li class="eq"><i>•</i>Outside the triangle: no family counters it, and it counters none</li>') + loreRows(id);
   return '<div class="fm-sub">COUNTERS · ' + famTag(id) + (F ? '<span class="fm-hint">hover for the numbers</span>' : '') + '</div><ul class="fm-ctr">' + rows + '</ul>';
 }
 

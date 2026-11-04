@@ -97,6 +97,7 @@ body.mando #fpbar{background:linear-gradient(90deg,#d98a2b,#ffd9a0)}
   min-width:84px;padding:5px 10px 6px 7px;border-radius:7px;opacity:.55;transition:opacity .15s,background .15s}
 .stance .num{grid-row:1/3;font:700 12px/1 var(--font-ui);color:var(--ink-dim);border:1px solid var(--edge-mid);border-radius:4px;padding:3px 5px}
 .stance .snm{font-size:12px;letter-spacing:1.5px;color:var(--ink);line-height:1.1}
+.stance .sfam{display:inline-block;vertical-align:-1px;margin-right:4px}
 .stance .sty{font-size:9.5px;letter-spacing:2px;color:var(--ink-dim);line-height:1.1}
 .stance::after{content:'';position:absolute;left:8px;right:8px;bottom:1px;height:2px;border-radius:2px;background:var(--c);opacity:0;transition:opacity .15s}
 .stance.active{opacity:1;background:rgba(255,255,255,.06)}

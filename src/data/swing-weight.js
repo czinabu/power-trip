@@ -9,7 +9,11 @@
    form keeps its identity: Djem So's heavy is still the biggest blow in the game. A form can override any of them in
    `forms` (the rest come from the defaults). `speed` scales the swing clock (above 1 quicker); `posture` scales how hard
    a cut strains a duellist's guard; `hitstop` and `shake` are the weight a landed heavy carries.
-   Anything that later scales a form's swings (mastery, the Force level) can scale these per form through weightOf. */
+   Anything that later scales a form's swings (mastery, the Force level) can scale these per form through weightOf.
+   A heavy can also change the HOLD: `grip` turns the hilt over into that grip as the heavy commits and `regrip` is how
+   long (s) the blade waits in its chamber while it does (the second hand closes on the hilt then too: a regripped heavy
+   is always two-handed). The cut is that grip's, and the follow-through turns it back to the form's own (anim/saber.js).
+   Shien, the one-handed reverse-grip form, draws its heavy back into a forward, two-handed counter-smash. */
 export const SWING_WEIGHT = {
   hold: 0.2,      // s from the press: still held by then, the cut commits to a heavy
   drawAt: 0.85,   // how far into its chamber a held cut waits (fraction of the chamber)
@@ -23,7 +27,7 @@ export const SWING_WEIGHT = {
   forms: {
     // the strong forms were made for the heavy blow
     djemso:    { heavy: { dmg: 1.55, posture: 1.8 } },
-    shien:     { heavy: { dmg: 1.5, posture: 1.7 } },
+    shien:     { heavy: { dmg: 1.5, posture: 1.7, grip: 'regular', regrip: 0.16 } },
     darksaber: { heavy: { dmg: 1.5, posture: 1.8 } },
     // the fast forms live on the light cut: quicker taps, a smaller payoff for drawing back
     ataru:     { light: { speed: 1.12 }, heavy: { dmg: 1.35, speed: 0.86 } },

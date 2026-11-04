@@ -379,6 +379,18 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   return { ph, inten, gait };
 }
 
+/* A HEAVY IN ANOTHER HOLD (data/swing-weight.js grip, jedi/weight.js regrip): from the moment it commits until its
+   follow-through, the hilt is turned over into the heavy's grip; after that (or a cancel, a clash) it turns back to the
+   form's own. anim/saber.js applySaberPose eases the turn. */
+let regripped = false;
+function regripHilt(held, grip){
+  const r = held && held.root, sw = player.atkT > 0 && player.swing;
+  if (!r || r.userData.dual) return;
+  const on = !!(sw && sw.regrip && !sw.recoil && !(sw.anim && sw.t / sw.dur > sw.anim.tf));
+  if (on){ r.userData.gripTo = sw.regrip === 'reverse' ? 0 : Math.PI; regripped = true; }
+  else if (regripped){ r.userData.gripTo = grip === 'reverse' ? 0 : Math.PI; regripped = false; }
+}
+
 // Arms: saber swings, guard/parry, idle and run carriage.
 // Bladed weapons (the Jedi saber in either grip, the Mando's darksaber) are posed by anim/saber.js from the guards
 // and swing keyframes in data/poses.js; Force gestures, Mend and Judgement stay plain joint poses here.
@@ -386,6 +398,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
   const held = heldBlade();
   const form = FORM_OF[isGunner() ? 'darksaber' : G.stance] || 'niman';
   const grip = form === 'darksaber' ? 'regular' : heldGrip();
+  regripHilt(held, grip);
   const dfl = player.deflectAnim;
   if (dfl){ dfl.t += dt; if (dfl.t >= dfl.dur || !held) player.deflectAnim = null; }
   if (player.atkT > 0){
@@ -407,7 +420,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       sw.t += wdt;
     }
     // (no blade in hand — e.g. the weapon was swapped mid-swing — just run the swing's clock out)
-    const cue = held ? swingPose(R, held, grip, form, sw) : { k: Math.min(1, sw.t / sw.dur), env: 0, cut: 0, spin: 0, hop: 0, drop: 0 };
+    const cue = held ? swingPose(R, held, sw.regrip || grip, form, sw) : { k: Math.min(1, sw.t / sw.dur), env: 0, cut: 0, spin: 0, hop: 0, drop: 0 };
     if (held) applySaberPose(R, held, player.castT <= 0, dt);
     // the body turns with the blade; a finisher spins all the way round (Ataru leaps into it)
     const turn = Math.sign(sw.pat.yT - sw.pat.yF);

@@ -22,6 +22,7 @@ import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
 import { saberIsDual } from './model/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP, SWING_STYLE } from '../data/poses.js';
+import { isDual, offGrip } from '../data/forms.js';
 import { pistolPose, riflePose, rifleLowered, restGun } from './anim/guns.js';
 import { MIRROR, DIM } from './model/rig.js';
 import { solveArm } from './anim/ik.js';
@@ -634,6 +635,7 @@ export function footwork(){
   if (isGunner() && player.weapon === 'darksaber') return FOOTWORK.darksaber;
   if (!isGunner() && player.holstered) return FOOTWORK.forceReady;   // saber on the belt: the wide, low Force-ready base
   const form = FORM_OF[G.stance] || 'niman', alt = !isGunner() && heldGrip() === 'reverse' && FOOTWORK_GRIP.reverse[form];
+  if (!isGunner() && isDual(G.stance) && offGrip(G.stance) !== heldGrip()) return FOOTWORK.jarkaiMix;   // Jar'Kai's mixed grip: Ahsoka's lunge
   return FOOTWORK[alt || form];
 }
 const _IDQ = new THREE.Quaternion();

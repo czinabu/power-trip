@@ -134,7 +134,7 @@ document.addEventListener('mousedown', (e) => {
       }
       // a parry that just whiffed leaves the guard un-timed for a moment: this click only blocks
       if (player.parryLockT > 0) sfx(260, 0.05, 'triangle', 0.025, 200);
-      else player.parryT = pwin;
+      else { player.parryT = pwin; player.parryOpen = pwin; }   // (parryOpen: the whole window, for the form counter's narrower one: player/damage.js)
     }
   }
 });

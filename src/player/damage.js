@@ -220,8 +220,12 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     const contact = opts && opts.by ? parryContact(opts.by) : null;   // where the foe's blade really is: our blade goes to meet it there
     if (TMP.lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > 0.1){
       const pp = playerPos();
-      if (player.parryT > 0 || (guard && player.stam > 0)) deflectAnim(contact || V3(fromPos.x, pp.y + 1.4, fromPos.z), opts && opts.line, contact);   // (a duellist's strike: caught on its line)
-      if (player.parryT > 0){
+      // the form counter (data/foe-forms.js MATCHUP): a blade whose form beats yours leaves a narrower parry window and
+      // bears down harder on the block. A click that would have parried anything else is too early for it: blocked or hit
+      const M = melee && opts && opts.by && opts.by.ff ? matchup(opts.by) : null;
+      const parryOk = player.parryT > 0 && !(M && M.window < 1 && player.parryOpen > 0 && player.parryOpen - player.parryT > player.parryOpen * M.window);
+      if (parryOk || (guard && player.stam > 0)) deflectAnim(contact || V3(fromPos.x, pp.y + 1.4, fromPos.z), opts && opts.line, contact);   // (a duellist's strike: caught on its line)
+      if (parryOk){
         player.parryT = 0;   // a parry consumes the window
         player.riposteT = riposteWindow(CFG.player.riposteTime); player.fluidRip = false;
         player.cancelRiposte = (G.gt - (player.cancelT || -9)) < 0.45;   // parried straight out of a swing-cancel → a stronger answer
@@ -250,7 +254,8 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
       } else if (guard && player.stam > 0){
         // a heavy blow (a brute's maul) jars the guard far harder than a grunt's chop
         const heavy = Math.max(1, dmg / CFG.player.blockHeavy);
-        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1));
+        const crush = M ? M.guard : 1;
+        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * crush);
         player.stamDelay = stamDelay();
         clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), stance().blade, false);   // the blow meets the blade
         G.shake = Math.max(G.shake, 0.15 * heavy);
@@ -265,7 +270,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
           floater(pp, 'FLUID RIPOSTE', '#c9a0ff');
         }
         const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets only a sliver through)
-        if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul, null, true, false, true);
+        if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush, null, true, false, true);
         addFury(stance().furyBlock);
         return 'blocked';
       }

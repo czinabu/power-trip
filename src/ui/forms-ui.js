@@ -57,8 +57,8 @@ function famTag(id){
   return '<span class="fm-fam" style="--fc:' + (f ? f.color : 'var(--ink-dim)') + '">' + (f ? f.name : 'NEUTRAL') + '</span>';
 }
 // what a counter is worth, in numbers: shown on hover over the Beats / Beaten by lines, so the page stays short
-const counterWin = () => { const W = MATCHUP.win; return 'You counter it: +' + pct(W.dmg) + ' damage, its guard turns ' + pct(W.block) + ' fewer cuts, its blows land ' + pct(W.hurt) + ' softer'; };
-const counterLose = () => { const L = MATCHUP.lose; return 'It counters you: −' + pct(L.dmg) + ' damage, its blows land ' + pct(L.hurt) + ' harder (only while one of your three could counter it)'; };
+const counterWin = () => { const W = MATCHUP.win; return 'You counter it: +' + pct(W.dmg) + ' damage, its guard turns ' + pct(W.block) + ' fewer cuts, its blows land ' + pct(W.hurt) + ' softer and wear your block ' + pct(W.guard) + ' less'; };
+const counterLose = () => { const L = MATCHUP.lose; return 'It counters you: −' + pct(L.dmg) + ' damage, its blows land ' + pct(L.hurt) + ' harder, crush your block ' + pct(L.guard) + ' faster and leave a ' + pct(L.window) + ' narrower parry window (only while one of your three could counter it)'; };
 function counterBlock(id){
   const fam = FORM_FAMILY[id], F = FAMILIES[fam];
   const rows = F

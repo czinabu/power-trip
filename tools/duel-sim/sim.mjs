@@ -25,6 +25,7 @@ const BOT = readFileSync(path.join(root, 'tools/duel-sim/bot.js'), 'utf8')
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf('--' + k); return i >= 0 ? argv[i + 1] : d; };
 const PLAN = argv[0] || 'one';
+const ADAPT = argv.includes('--adaptive');   // (bosses: the hero answers a form it is countered by with one that counters it)
 const WORKERS = +opt('workers', 3), REPS = +opt('reps', 4), OUT = opt('out', null);
 // the hero's skill (tools/duel-sim/bot.js): good = reads most guards and lands most parries; average = mashes more, reads less
 const PRESETS = { good: null, average: { parry: 0.35, sigma: 0.1, read: 0.5, mash: 0.5, gap: 0.65, bite: 0.5, see: 0.3 } };
@@ -72,7 +73,7 @@ function jobs(){
     const B = bossFoes(HPM), only = opt('foes', null);
     const forms = opt('forms', FORMS.join()).split(',');
     for (const [foe, b] of Object.entries(B)) if (!only || only.split(',').includes(foe)) for (const form of forms) for (let r = 0; r < REPS; r++)
-      J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', cfg: { form, loadout: loadoutFor(form), foes: b.foes, depth: b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
+      J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', adaptive: ADAPT || undefined, cfg: { form, loadout: loadoutFor(form), adaptive: ADAPT, foes: b.foes, depth: b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
   } else {
     const form = opt('form', 'niman'), foe = opt('foe', 'niman'), rank = opt('rank', 'knight');
     for (let r = 0; r < REPS; r++) J.push({ tag: 'one', form, foe, rank, cfg: { form, loadout: loadoutFor(form), foes: [{ type: 'acolyte', form: foe, rank, hpMul: HPM(DEPTH[rank] || 9) }], depth: DEPTH[rank] || 9, seed: 17 + r, tmax: 90 } });

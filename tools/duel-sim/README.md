@@ -12,7 +12,8 @@ node tools/duel-sim/report.mjs /tmp/m.jsonl          # add --md for markdown tab
 Plans: `matrix` (every hero form × every foe form × ranks I–IV; narrow with `--ranks`, `--forms`, `--foes`),
 `adapt` (masters that switch form), `crowd` (acolyte, trooper and magnaguard packs), `early` (wave acolytes 1–8),
 `one` (`--form ataru --foe djemso --rank knight`), `bosses` (Darth Vexis, survival's warbringer and the Jedi story's
-champions as their missions scale them: `tools/duel-sim/bosses.mjs`; narrow with `--foes vexis,warden`). Skills: `good`, `average`, or a JSON object of bot keys.
+champions as their missions scale them: `tools/duel-sim/bosses.mjs`; narrow with `--foes vexis,warden`; `--adaptive`
+answers a counter by switching form). Skills: `good`, `average`, or a JSON object of bot keys.
 
 What it does not model: Force powers, kicks, dashes, deliberate bolt blocking, crowd positioning and upgrades. Five
 duels a cell is noisy; read rows and columns, not single cells. About 2 fights a second on 4 workers.

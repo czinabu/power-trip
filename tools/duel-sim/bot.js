@@ -106,8 +106,10 @@
       const ang = n === 1 ? 0 : (i / n) * Math.PI * 2, d = cfg.spread || 5;
       const at = new player.group.position.constructor(Math.sin(ang) * d, 0, Math.cos(ang) * d);
       if (f.type === 'vexis'){
-        GAME.spawnBoss();
-        const b = GAME.boss; if (!b) return;
+        const fin = GAME.spawnBoss();
+        // the rebuilt Vexis (boss/finale.js) is a duellist in `enemies` (GAME.finale): fought like any foe below
+        if (GAME.finale && GAME.enemies.includes(GAME.finale)){ const e = GAME.finale; e.group.position.copy(at); e.dummy = false; foes.push(e); return; }
+        const b = GAME.boss || fin; if (!b) return;
         b.isBoss = true; b.group.position.copy(at); b.st = Math.min(b.st, 0.6);   // (a short walk-up, not the cinematic one)
         foes.push(b); return;
       }

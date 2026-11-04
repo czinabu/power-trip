@@ -99,7 +99,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     }
     await page.evaluate(() => { window.__frames = 0; const f = () => { window.__frames++; requestAnimationFrame(f); }; requestAnimationFrame(f); });
 
-    const startGt = await page.evaluate(() => GAME.G.gt);
+    const startGt = await page.evaluate(() => GAME.G.gt), fightT0 = Date.now(), fightBudget = Math.max(30000, REAL_LIMIT_MS - (fightT0 - t0));
     await page.keyboard.down('w');
     const objectives = mode === 'mission' ? await page.evaluate(() => GAME.missionState().def.objectives.length) : 0;
     let step = 0, skips = 0, everHit = false, sawDuel = false;   // a mission skips past (and clears) earlier foes, so remember any hit
@@ -113,6 +113,8 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
         if (G.cutscene) GAME.cutscene.skipScene();   // (the cutscenes have their own suite: tools/smoke/cutscenes.mjs)
         if (G.skillSelect){ const b = document.getElementById('continueBtn'); if (b) b.click(); }
         if (G.paused){ const o = document.getElementById('goText'); if (o) o.click(); }
+        // a mission's breather between objectives (a couple of seconds' STAND READY): cut short, the run has no time for it
+        const M = GAME.missionState(); if (M && M.on && !M.o && M.i > 0 && M.waitT > 0.3) M.waitT = 0.3;
         // turn toward the nearest live foe, the way a player would
         const p = player.group.position;
         let best = null, bd = 1e9;
@@ -146,8 +148,11 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
       if (s.gt - startGt >= GAME_SECONDS || s.mode !== 'play' || Date.now() - t0 > REAL_LIMIT_MS) break;
       // a mission: a few seconds of each objective, then on to the next (the duel plays out to the end of the run, so it
       // gets the bigger share: on a slow runner it takes a while for the duellist to arrive and close in)
+      // Paced on whichever runs out first, game time or the wall clock: a slow runner (a big map in software WebGL) hits
+      // REAL_LIMIT_MS long before GAME_SECONDS, and on game time alone the duel came up with a second or two left to land a hit
       const every = Math.min(0.18, 0.54 / Math.max(1, objectives - 1));
-      if (mode === 'mission' && skips < objectives - 1 && s.gt - startGt > GAME_SECONDS * every * (skips + 1)){
+      const done = Math.max((s.gt - startGt) / GAME_SECONDS, (Date.now() - fightT0) / fightBudget);
+      if (mode === 'mission' && skips < objectives - 1 && done > every * (skips + 1)){
         // and the hero is put where that objective starts, as a retry from it would: the bot only ever walks forward,
         // and by the duel it is far up the map, so the foe would spend the run crossing the field to reach it
         if (await page.evaluate(() => {

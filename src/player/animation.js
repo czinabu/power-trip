@@ -530,6 +530,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     applySaberPose(R, held, player.castT <= 0, dt);
     R.torso.rotation.y = dr(R.torso.rotation.y, planted ? body.torso : 0, 9);
     if (blocking || planted) vis.rotation.x = dr(vis.rotation.x, saberPose.lean + (planted ? footwork().lean : 0), 12);
+    R.torso.rotation.z = dr(R.torso.rotation.z, planted ? footwork().roll || 0 : 0, 10);   // a stance's side lean (Jar'Kai's mixed grip)
     // a catch turned into a spin (data/poses.js DEFLECT_SPINS): whole turns, clockwise toward a bolt on the weapon side
     const ds = player.deflectAnim && player.deflectAnim.spin;
     if (ds && ds.turns){

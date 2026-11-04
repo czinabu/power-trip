@@ -93,6 +93,21 @@ try {
   const t3 = shared[2];
   await guest.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); e.state = 'grasped'; e.group.position.set(3, 2, 3); }, t3);
   await host.waitForFunction((n) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || (e.state === 'grasped' && Math.abs(e.group.position.y - 2) < 0.3); }, t3, poll);
+  // ...and held up as a HUMAN SHIELD (enemies/bolts.js): a foe's shot through it stops in it on both screens, and the
+  // holder's copy lands the damage, once (the host's copy only stops)
+  const sh0 = await host.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); return e && !e.dead ? e.hp : null; }, t3);
+  if (sh0 != null){
+    await host.evaluate((n) => {
+      const src = GAME.enemies.find(o => o.nid !== n && !o.dead) || null, V = GAME.camera.position.constructor;
+      GAME.fireBolt(new V(10, 2.8, 3), new V(-1, 0, 0), 14, 9, false, true, src);
+    }, t3);
+    await host.waitForFunction(([n, hp]) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || e.hp < hp; }, [t3, sh0], poll);
+    await host.waitForTimeout(1500);   // time for a second (wrong) hit to arrive, if both copies landed one
+    const sh1 = await host.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); return e && !e.dead ? e.hp : null; }, t3);
+    const one = await host.evaluate(() => Math.max(GAME.CFG.abilities.grasp.shieldMin, 9 * GAME.CFG.abilities.grasp.shieldMul));
+    if (sh1 != null && Math.abs(sh0 - sh1 - one) > 0.5) throw new Error(`the held foe took ${sh0 - sh1} from one bolt, not ${one}`);
+    if (await guest.evaluate(() => GAME.bolts.some(b => !b.friendly && b.bid))) throw new Error('the bolt flew on through the held foe on the guest');
+  }
   await guest.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); e.state = 'knockdown'; e.st = 1; }, t3);
   // the marksman's laser sight and the lancer's line are drawn on the guest
   await host.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n), p = e.group.position; GAME.coopHooks.aim(e, p, { x: p.x + 5, y: p.y, z: p.z }, 0.5); GAME.coopHooks.lunge(e, p, 0, 6, true, 0.5); }, t3);

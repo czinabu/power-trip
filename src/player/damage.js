@@ -293,7 +293,10 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (open && !silent && !chip){ player.gbT = 0; }   // the next hit lands in full: the window closes on it
   dmg *= (1 - (player.up.dr || 0));   // UNSTOPPABLE damage reduction
   if (player.boon && player.boon.adrenal && player.hp < maxHp()*0.35) dmg *= 0.75;   // ADRENALINE boon — tougher when cornered
-  if (player.atkT > 0 && !isGunner() && stance().atkDR) dmg *= (1 - stance().atkDR);   // DJEM SO: armored commitment mid-swing
+  // DJEM SO: armored commitment mid-swing, and a HEAVY cut is HYPER-ARMOURED: it soaks far more and nothing knocks it loose
+  const hyper = player.atkT > 0 && !isGunner() && !!stance().heavyArmor && !!(player.swing && player.swing.heavy);
+  if (hyper) dmg *= (1 - stance().heavyArmor);
+  else if (player.atkT > 0 && !isGunner() && stance().atkDR) dmg *= (1 - stance().atkDR);
   if (!isGunner() && stance().dmgTaken) dmg *= stance().dmgTaken;   // FORM VII gives its defence away for its fury
   if (player.fin) dmg *= FINISHER.hurt;   // mid-FINISHER: you can still be hit, at half (data/finishers.js)
   if (player.cancelDR > 0) dmg *= 0.55;   // DJEM SO heavy cancel — soaks the blow during its committed recovery
@@ -316,7 +319,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (!silent && !chip && fromPos){
     const F = CFG.player.flinch, heavyHit = raw >= F.heavyDmg;
     // (a SABER FINISHER rides out light blows too: only a heavy one knocks it loose, jedi/finisher.js)
-    const armored = ((player.atkT > 0 && !isGunner() && stance().atkDR) || player.fin) && !heavyHit;
+    const armored = (((player.atkT > 0 && !isGunner() && stance().atkDR) || player.fin) && !heavyHit) || hyper;   // (a hyper-armoured heavy rides out any blow)
     if (!broke && !armored && G.gt - (player.flinchAt ?? -9) > F.immune){
       player.flinchT = player.flinchMax = melee ? (heavyHit ? F.heavy : F.light) : F.ranged;
       player.flinchAt = G.gt;

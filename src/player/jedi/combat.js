@@ -118,6 +118,8 @@ export function tryAttack(flow = false){
   // the riposte is spent on THIS cut (it lands on whatever the blade meets first; see applySwingDamage)
   const cancelRip = ripNow && !!player.cancelRiposte;
   const fluid = ripNow && !!player.fluidRip;   // Djem So's Fluid Riposte (off a block): lands 1.5×, not a parry's 2×
+  // DJEM SO — THE FORWARD STOMP: a riposte with W held stamps in behind the blow; no re-parry turns it, it breaks the guard
+  const stomp = ripNow && !isGunner() && !!st.stompRiposte && !!keys['w'];
   if (ripNow){ player.riposteT = 0; player.cancelRiposte = false; player.ripLine = null; player.fluidRip = false; }
   // FLOW (data/stances.js CUT_ANGLE.flow): an angle cut that starts where the last one finished flows straight on, quicker
   const FL = CUT_ANGLE.flow, last = player.lastCut, ang = !ripNow && pat.ang != null ? pat.ang : null;
@@ -125,7 +127,7 @@ export function tryAttack(flow = false){
   player.lastCut = ang != null ? { ang, at: G.gt } : null;
   const cutDur = flowCut ? dur * FL.speed : dur;
   player.atkT = cutDur;
-  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
+  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
   const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
     ripNow, backStrike, mom, flow, st, held: holding() });
@@ -145,6 +147,12 @@ export function tryAttack(flow = false){
     launchFlip({ ...flipStyle('double'), t: 0, dur: 0.42, side: 1 }, 'fwd');
     floater(playerPos(), 'POLE VAULT', '#ffd23a');
     tutEvent('polevault');
+  }
+  if (stomp){
+    lunge *= 1.3;
+    stompShock(st.stompRiposte);
+    floater(playerPos(), 'FORWARD STOMP', '#c9a0ff');
+    tutEvent('stomp');
   }
   if (mom === 'overflip'){   // ATARU: the cut straight out of the FLIP OVER, into the back it landed behind (jedi/overflip.js)
     floater(playerPos(), 'STRIKE TO THE BACK', '#7fe0ff');
@@ -215,6 +223,19 @@ function spinTravel(spin, dirKey){
 // drag in locomotion.js), but laid along the swing so the body drives through the strike with the lead foot
 // (locomotion.js moves it, anim/footing.js steps the feet). In the air it stays a shove.
 const GROUND_DRAG = 9;
+// the Forward Stomp's foot comes down: a shock round it that shoves back and rocks the foes close by (not the one it answers)
+function stompShock(r){
+  const pp = playerPos();
+  spawnGroundShock(V3(pp.x + fwd().x * 0.6, 0.05, pp.z + fwd().z * 0.6), 0xc9a0ff, r, 0.4, 0.7);
+  G.shake = Math.max(G.shake, 0.55);
+  S.slam();
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn') continue;
+    const dx = e.group.position.x - pp.x, dz = e.group.position.z - pp.z, d = Math.hypot(dx, dz);
+    if (d > r || d < 0.01 || e.t.heavy) continue;
+    flinchEnemy(e, V3(dx / d, 0, dz / d), 0.8);
+  }
+}
 const MOM_LABEL = { slide: 'SLIDE CUT', wallrun: 'WALL STRIKE', vault: 'VAULT STRIKE', climb: 'LEDGE STRIKE', roll: 'ROLL STRIKE' };
 /* FOOTWORK (CUT_ANGLE.foot) — on top of the step into the cut, the feet go the cut's own way: a flat cut steps the way
    the blade sweeps, an overhead drives in under it, a rising cut comes up off the back foot */
@@ -352,7 +373,7 @@ export function applySwingDamage(step, only){
       }
       // a duellist's guard may turn it (a riposte, the answer to a parry, always lands)
       // (a guard the blade already met on the way in has had its say: player/jedi/clash.js)
-      if (riposte && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
+      if (riposte && !sw0.stomp && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
         turned++; if (!blocker){ blocker = e; blockAt = sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at; } return false;
       }
       if (!riposte && !back && mom !== 'overflip'){
@@ -361,6 +382,8 @@ export function applySwingDamage(step, only){
         const dres = pre !== undefined ? pre : duelDefend(e, line, finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
         if (dres === 'block' || dres === 'dodge'){
           if (dres === 'block' && perfect) addPosture(e, DUEL.posture.finisher * (PERFECT.posture - 1), f.x, f.z);   // a perfect finisher strains the guard that turns it
+          // DJEM SO — THE SUNDERING OVERHEAD: a heavy overhead (W, held) caught on a guard still caves in most of it
+          if (dres === 'block' && st.sunder && sw0 && sw0.heavy && sw0.dir === 'forward' && e.dp && !e.dp.brace) addPosture(e, e.dp.posture * st.sunder, f.x, f.z);
           turned++; if (dres === 'block' && !blocker){ blocker = e; blockAt = at; } return false;
         }
       }
@@ -377,7 +400,8 @@ export function applySwingDamage(step, only){
       if (e.dead) severLimbs(e, f, finisher ? 0.8 : G.stance === 'djemso' || isDark ? 0.55 : 0.35, sw0 && sw0.hitAt && sw0.hitAt.get(e));
       if (!riposte && !e.dead) interruptEnemy(e, f, finisher || st.form === 'djemso' || isDark);   // striking first beats a wind-up
       if (mom === 'slide' && !riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a SLIDE CUT sweeps the legs out
-      if (riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a RIPOSTE floors what it answers — a true counter, wide open after
+      if (riposte && !e.dead) staggerEnemy(e, f.x, f.z, sw0.stomp && e.dp ? 'GUARD BROKEN' : undefined);   // a RIPOSTE floors what it answers — a true counter, wide open after
+      if (riposte && sw0.stomp && e.dp && !e.dead){ e.posture = 0; e.st += 0.3; }   // (the Forward Stomp breaks the guard: it stays open a touch longer)
       // MAKASHI — BIND AND DISARM: the riposte off a bound blade takes it out of the duellist's hand (enemies/disarm.js)
       if (riposte && st.bind && !e.dead && disarmBlade(e, f.x, f.z, st.bind)) tutEvent('disarm');
       if (mom === 'overflip' && !e.dead && !sw0.overHit){ sw0.overHit = true; tutEvent('flipStrike'); }

@@ -96,9 +96,12 @@ export const STANCES = {
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
             // clearly the SLOWEST swing (well under medium's 1.0) — heavy, deliberate, weighty — but the big LUNGE
             // and high damage make each committed stroke land hard, so it reads as power, not sluggishness.
-            dmg: 2.4, heavyDmg: 2.38, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
+            dmg: 2.25, heavyDmg: 2.23, speed: 0.48,   // (BALANCE: trimmed from 2.4 / 2.38, the strongest form against champions) knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
             radiusMult: 0.8, postureMul: 1.5, forceRegen: 0.7, comboGap: 0.7, fovKick: -4,
             atkDR: 0.15,          // PASSIVE: armored commitment — soak 15% damage WHILE mid-swing
+            heavyArmor: 0.45,     // HYPER-ARMOUR: a heavy cut (held) soaks 45% and no blow knocks it loose (player/damage.js)
+            sunder: 0.6,          // THE SUNDERING OVERHEAD: a heavy overhead (W, held) caught on a guard still strains 60% of its posture (jedi/combat.js)
+            stompRiposte: 2.6,    // THE FORWARD STOMP: a riposte with W held stamps in, can't be re-parried and breaks the guard; the shock rocks foes within this many m
             finisherLunge: 1.6,   // the 3rd hit lunges harder, carrying the heavy blade through
             finisherRecover: 0.12,   // COST of the ×1.5 guard break: the finisher hangs ~0.12s longer before you can act again
             finisherKnock: true,  // the finisher ALWAYS floors what it hits (brutes included), a short shove away (config saberShove)
@@ -106,7 +109,7 @@ export const STANCES = {
             deflectScatter: 0.06, // Djem So answers blades; sending bolts home is its sister variant Shien's craft (rad)
             powerScale: 1.35, powerCostMul: 1.3,   // SYNERGY: Force powers hit with BRUTE scale (+35% radius/knock) but cost +30% Force
             gait: { amp: 1.2, lift: 0.78, bob: 0.85, lean: 0.8 },   // MOVEMENT: long, heavy, planted strides — a juggernaut's weighty stomp
-            syn: 'BRUTES & BOSS · breaks guards fast · block, then Fluid Riposte · finisher floors · BIG but costly Force powers · G: Shien' },
+            syn: 'BRUTES & BOSS · breaks guards fast · heavies hyper-armoured · block, then Fluid Riposte · W + riposte: Forward Stomp · finisher floors · BIG but costly Force powers · G: Shien' },
   /* FORM V SHIEN — Djem So's sister variant (Ahsoka, Starkiller): the reverse grip, built to send blaster fire home.
      Every bolt it deflects flies straight back at the shooter and hits half again as hard; its cuts are strong but it
      gives up Djem So's raw power against armour. G swaps between the two Form V variants. */
@@ -115,8 +118,9 @@ export const STANCES = {
             radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.04,
             deflectScatter: 0,    // ROLE: every deflect goes home, dead on the shooter…
             deflectDmg: 1.5,      // …and lands half again as hard (enemies/bolts.js)
+            spinAdvance: 1.0,     // THE SPIN ADVANCE: a forward roll is an upright spin that sends home every bolt that meets it, from any side, for this share of the roll (player/mobility.js)
             gait: { amp: 1.1, lift: 0.9, bob: 0.6, lean: 1.0 },   // MOVEMENT: low and prowling, weight forward
-            syn: 'BLASTERS · every deflect goes home and hits +50% · reverse grip · strong cuts · G: Djem So' },
+            syn: 'BLASTERS · every deflect goes home and hits +50% · roll forward: Spin Advance sends bolts home · reverse grip · strong cuts · G: Djem So' },
   /* FORM VII JUYO — the most ferocious form (Mace Windu's root, Vader's rage): bursts of savage, unpredictable cuts
      driven by the Force itself. Each swing burns Force as well as breath, every cut that lands feeds FURY (up to +35%
      damage), and it gives its defence away for it. Juyo and Vaapad fork: learning one closes the other for the run. */

@@ -33,14 +33,15 @@ const ease = (k, target, dt) => { const r = target > MV[k] ? 28 : 9; MV[k] += (t
 
 /* THE HUM, built on the films' recipe (Ben Burtt): an idling projector motor, a steady low tone with mechanical
    drift, under the buzz of a broken TV. The motor: two saws a third of a hertz apart (they beat slowly, like a motor
-   drifting out of phase) an octave under a sine, with a soft sub growl, through a lowpass that opens as the blade moves.
+   drifting out of phase) an octave under a sine, with a round sub and a soft growl under it, through a lowpass that opens (only partway) as the blade moves.
    The TV buzz is its own loop (BUZZ) a step brighter, so it can come up with motion. Shared by the hero's blade, the
    staff's far end, and nearby blades. */
-const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.33, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'square', f: 45, g: 0.12 }],
-                     filt: { f: 420, q: 1.2 }, lfo: { r: 3.7, d: 40 }, verb: 0.08 });
-// the broken TV's buzz: harmonics of the hum's pitch through a narrow band, gritty, its band drifting slowly
-const BUZZ = () => ({ base: 90, layers: [{ type: 'square', f: 90 }, { type: 'sawtooth', f: 180.4, g: 0.5 }, { type: 'square', f: 270.6, g: 0.25 }],
-                      filt: { type: 'bandpass', f: 1700, q: 2.2 }, lfo: { r: 0.43, d: 260 }, drive: 0.55, verb: 0.05 });
+const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.33, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.5 }, { type: 'sine', f: 45, g: 0.45 }, { type: 'square', f: 45, g: 0.1 }],
+                     filt: { f: 380, q: 0.8 }, lfo: { r: 3.7, d: 30 }, verb: 0.08 });
+// the broken TV's buzz: harmonics of the hum's pitch through a wide, low band (gritty, but kept down in the low mids:
+// a narrow band up near 2 kHz whined like a mosquito), its band drifting slowly
+const BUZZ = () => ({ base: 90, layers: [{ type: 'square', f: 90 }, { type: 'sawtooth', f: 180.4, g: 0.45 }],
+                      filt: { type: 'bandpass', f: 600, q: 0.8 }, lfo: { r: 0.43, d: 90 }, drive: 0.4, verb: 0.05 });
 function ensureLoops(){
   if (L.hum) return;
   L.hum = loop(HUM());
@@ -183,7 +184,7 @@ export function updateAudio(dt){
     const m = thrown ? 0.7 : mH;
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
     const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
-    const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
+    const hz = thrown ? 1300 + spin * 450 : 380 + m * 1500 + walk * 120;
     // the mic swung past the blade (the films' swing): pitch rides up as the motion builds and dips under rest as it
     // dies away (a doppler pass), over the projector motor's slow mechanical wow
     const dop = thrown ? 0 : clamp((mH - (L.prevM ?? mH)) / Math.max(dt, 0.001) * 0.035, -0.1, 0.12);
@@ -192,17 +193,17 @@ export function updateAudio(dt){
     const pitch = 90 * p * (1 + m * 0.12 + L.dop + spin * 0.045) * wow;
     L.hum.set(lvl * hk, hz, pitch, htc(m > 0.05 || thrown ? 0.02 : 0.1));
     // the TV buzz: a thin layer at rest that comes up and brightens as the blade moves (the mic closing in)
-    L.buzz.set((playing && jedi) ? (0.005 + m * 0.03) * hk : 0, 1500 + m * 1800, pitch, htc(m > 0.05 ? 0.02 : 0.1));
+    L.buzz.set((playing && jedi) ? (0.006 + m * 0.026) * hk : 0, 560 + m * 700, pitch, htc(m > 0.05 ? 0.02 : 0.1));
     L.buzz.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
     const m2 = Math.max(mH2, mH * 0.6);
-    L.hum2.set((playing && staff) ? (0.02 + m2 * 0.045) * hk : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
+    L.hum2.set((playing && staff) ? (0.02 + m2 * 0.045) * hk : 0, 380 + m2 * 1400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
   }
   if (L.hiss){
     const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
     const on = playing && (jedi || darkOn);
-    L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
+    L.hiss.set(on ? (darkOn ? 0.004 + m * 0.03 : 0.002 + m * 0.014) : 0, darkOn ? 1500 + m * 1500 : 1800 + m * 2000, 0, 0.03);
   }
   // THE HEAVY CUT'S CHARGE (player/jedi/weight.js, audio/saber.js chargeRelease): while the button holds a cut back, a
   // riser climbs with the charge and the ambience's low end is stripped away (an acoustic vacuum before the strike).
@@ -247,7 +248,7 @@ export function updateAudio(dt){
       const m = motionOf(c.o.sp), base = (c.o.dark ? 62 : 90) * SABER_PITCH;
       N.wob += dt;
       const lvl = (0.022 + m * 0.05) * c.P.gain * (1 - clamp((c.P.d - 10) / 6, 0, 1));
-      N.h.set(lvl, Math.min(c.P.lp, 480 + m * 2200), base * (1 + m * 0.2 + Math.sin(N.wob * 0.7) * 0.01), 0.03);
+      N.h.set(lvl, Math.min(c.P.lp, 420 + m * 1400), base * (1 + m * 0.2 + Math.sin(N.wob * 0.7) * 0.01), 0.03);
       N.h.pan.pan.setTargetAtTime(c.P.pan, t, 0.05);
     }
   }

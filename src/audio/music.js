@@ -132,10 +132,13 @@ const FIGHTING = new Set(['lull', 'combat', 'heavy', 'boss']);
 const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is denser than the old synth score, so it sits lower
 // the title screen plays the theme softly (low intensity = few, quiet voices), which at LEVEL was all but silent
 // (about -55 dBFS). It gets its own lift so the menu theme is clearly heard; gameplay levels are unchanged.
-const MENU_LIFT = 7;
+// MENU_LIFT raises it into the score's compressor; MENU_POST raises it again after the compressor (the master limiter
+// still guards the peaks), since pushing it all through the compressor only squashed it. Together the theme sits
+// around -19 dBFS on the title screen, where it's the only thing playing.
+const MENU_LIFT = 7, MENU_POST = 3.2;
 
 export const MUSIC = (function(){
-  let bus=null, comp=null, delay=null, timer=null, started=false;
+  let bus=null, comp=null, post=null, delay=null, timer=null, started=false;
   let nextTime=0, step=0, intensity=0, target=0.16, state='menu', prevState='';
   let pal = PALETTES.menu, want = 'menu', palName = 'menu';
   let section = 'hero', entered = false, heroKey = 'jedi', bpmMul = 1, dangerLv = 0;
@@ -342,6 +345,8 @@ export const MUSIC = (function(){
   // keyed on `want`, not the playing palette: leaving the menu drops the lift at once, so a run's first stings
   // never play at the title screen's level while the menu's last bar finishes
   const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) : 0.0001;
+  const postLevel = () => want === 'menu' ? MENU_POST : 1;
+  function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc); }
   function barTop(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
     const hk = isGunner() ? 'mando' : 'jedi';
@@ -426,16 +431,21 @@ export const MUSIC = (function(){
     init(){ if (started || !AC() || !AE.ready) return;
       bus = AC().createGain(); bus.gain.value = 0.0001;
       comp = AC().createDynamicsCompressor(); comp.threshold.value = -15; comp.ratio.value = 4;
-      bus.connect(comp); comp.connect(AE.bus.music);
+      post = AC().createGain(); post.gain.value = postLevel();
+      bus.connect(comp); comp.connect(post); post.connect(AE.bus.music);
       delay = AC().createDelay(); delay.delayTime.value = 0.27; const fb = AC().createGain(); fb.gain.value = 0.33; const wet = AC().createGain(); wet.gain.value = 0.25;
       delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
       started = true; nextTime = AC().currentTime + 0.08; step = 0;
-      bus.gain.setTargetAtTime(level(), AC().currentTime, 1.2);   // fade in
+      // start AT the state's intensity, not from silence: the swell from 0 took the menu's soft theme ~2.5 s to play
+      // its first note (nothing is scheduled under 0.04, and the pads only enter on a downbeat) and ~20 s to reach
+      // its level. A quick fade in, so the first bar is heard right away.
+      this.updateState(); intensity = target;
+      bus.gain.setTargetAtTime(level(), AC().currentTime, 0.12);
       timer = setInterval(loop, 25);
     },
     setPalette(name){ const w = PALETTES[name] ? name : 'refuge'; if (w === want) return;
       const lifted = want === 'menu'; want = w;
-      if (bus && lifted !== (w === 'menu')) bus.gain.setTargetAtTime(level(), AC().currentTime, lifted ? 0.12 : 0.6); },   // a world with no palette of its own marches to the refuge's
+      if (bus && lifted !== (w === 'menu')) setLevel(lifted ? 0.12 : 0.6); },   // a world with no palette of its own marches to the refuge's
     // a story-mission objective steering the score (see CUES); null when the mission ends
     setCue(name, d){
       cueName = name ? (CUES[name] ? name : 'battle') : null; cue = cueName && CUES[cueName];
@@ -447,7 +457,7 @@ export const MUSIC = (function(){
       else if (s === 'dead') this.deathSting();
     },
     setEnabled(on){ enabled = on; try { localStorage.setItem('sw_music', on ? '1' : '0'); } catch(e){}
-      if (bus) bus.gain.setTargetAtTime(level(), AC().currentTime, 0.3); },
+      if (bus) setLevel(0.3); },
     toggle(){ this.setEnabled(!enabled); return enabled; },
     isOn(){ return enabled; },
     ok(){ return !!(AC() && bus && enabled); },

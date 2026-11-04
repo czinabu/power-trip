@@ -10,7 +10,7 @@
 //     channels Mend (the Force's own bus stays clear of it: audio/force.js)
 //   - which reverb room and which music palette the current arena uses
 
-import { AE, loop, play, place, setRoom, setMuffle } from './engine.js';
+import { AE, loop, play, place, setRoom, setMuffle, setAmbHP } from './engine.js';
 import { MUSIC } from './music.js';
 import { S } from './sfx.js';
 import { updateFoley } from './foley.js';
@@ -18,9 +18,10 @@ import { shared, G, player, isGunner } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
 import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
+import { FORM_FAMILY } from '../data/foe-forms.js';
 import { updateForce, innerHz } from './force.js';
 
-const L = { hum: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
+const L = { humF: null, dist: null, whisper: null, riser: null, riserHiss: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 
 /* how much a blade is moving, 0..1, from its tip speed against its owner (m/s): a held guard barely stirs it, a full
@@ -28,16 +29,49 @@ let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
 const motionOf = sp => { const m = clamp((sp - 2) / 16, 0, 1); return m * (2 - m); };
 // smoothed motion per hum (attack fast, release a little slower, so a cut's tail rings out instead of snapping off)
 const MV = { hero: 0, hero2: 0, dark: 0 };
-const ease = (k, target, dt) => { const r = target > MV[k] ? 28 : 9; MV[k] += (target - MV[k]) * Math.min(1, dt * r); return MV[k]; };
+const ease = (k, target, dt, rel = 9) => { const r = target > MV[k] ? 28 : rel; MV[k] += (target - MV[k]) * Math.min(1, dt * r); return MV[k]; };
 
 // the hum: two slightly detuned saws an octave under a sine, a soft sub growl under them, through a lowpass that
-// opens as the blade moves (the loop recipe is shared by the hero's blade, the staff's far end, and nearby blades)
+// opens as the blade moves (the recipe nearby blades use)
 const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.7, det: 6, g: 0.8 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'square', f: 45, g: 0.12 }],
                      filt: { f: 420, q: 1.2 }, lfo: { r: 3.7, d: 40 }, verb: 0.08 });
+/* THE HERO'S HUM BY FORM GROUP (data/foe-forms.js FORM_FAMILY): one held loop per group, the active form's up and the
+   rest silent, so a form change swaps the whole voice. How it moves with the blade (pitch, level, texture) differs too:
+     guard  a deep, perfectly steady 80–100 Hz drone (sines and triangles, no flicker, highs rolled off); a swing barely
+            bends it, swelling smoothly and heavily and easing back slowly
+     speed  a tight, high 200–250 Hz turbine purr; a swing bends it hard (big doppler), and it lets go the instant the
+            blade stops; high-passed air chopped by a fast LFO rides on it
+     power  a rough 120 Hz saw roar over a square growl, with constant unstable static; a hard swing doesn't just get
+            louder, it saturates (a driven copy of the roar fades in with swing speed)
+     niman  a clean crystal chord ringing over a soft hum, slowly oscillating; a swing brings in an airy whisper through
+            a sweeping, phaser-like band
+   idle/move: level at rest and how much a full cut adds · hz: the filter at rest and at a full cut · bend: the pitch
+   rise at a full cut · rel: how fast it settles after a cut (higher = snappier) · hiss: the sizzle loop's level at rest,
+   with motion, and its centre at rest and at a full cut */
+const HUM_FAM = {
+  guard: { base: 90,  idle: 0.027, move: 0.1,   hz: [340, 900],   bend: 0.05, rel: 5,  hiss: [0, 0.006, 1800, 2600],
+           spec: () => ({ base: 90, layers: [{ type: 'sine', f: 90 }, { type: 'triangle', f: 90.25, g: 0.8 }, { type: 'sine', f: 45, g: 0.45 }, { type: 'triangle', f: 180, g: 0.3 }], filt: { f: 340, q: 0.7 }, verb: 0.08 }) },
+  speed: { base: 225, idle: 0.03,  move: 0.07,  hz: [900, 4200],  bend: 0.38, rel: 30, hiss: [0.002, 0.03, 4800, 7500],
+           spec: () => ({ base: 225, layers: [{ f: 225 }, { f: 226.4, det: 6, g: 0.8 }, { type: 'sine', f: 112.5, g: 0.4 }, { type: 'sine', f: 450, g: 0.2 }], filt: { f: 900, q: 1.3 }, lfo: { r: 31, d: 120 }, verb: 0.06 }) },
+  power: { base: 120, idle: 0.024, move: 0.045, hz: [520, 2600],  bend: 0.15, rel: 9,  hiss: [0.009, 0.026, 2600, 5200],
+           spec: () => ({ base: 120, layers: [{ f: 120 }, { f: 121.3, det: 9, g: 0.8 }, { type: 'square', f: 60, g: 0.25 }, { type: 'sine', f: 240, g: 0.3 }], filt: { f: 520, q: 1.6 }, lfo: { r: 6.3, d: 90 }, drive: 0.4, verb: 0.08 }) },
+  niman: { base: 90,  idle: 0.038, move: 0.085, hz: [900, 2600],  bend: 0.12, rel: 9,  hiss: [0.002, 0.012, 2600, 4800],
+           spec: () => ({ base: 90, layers: [{ f: 90, g: 0.55 }, { f: 90.6, det: 5, g: 0.4 }, { type: 'sine', f: 180, g: 0.6 }, { type: 'sine', f: 540, g: 0.22 }, { type: 'sine', f: 675, g: 0.15 }, { type: 'sine', f: 810, g: 0.12 }],
+                          filt: { f: 900, q: 0.8 }, lfo: { r: 0.7, d: 160 }, verb: 0.18 }) },
+};
 function ensureLoops(){
-  if (L.hum) return;
-  L.hum = loop(HUM());
-  L.hum2 = loop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
+  if (L.humF) return;
+  L.humF = {};
+  for (const k in HUM_FAM) L.humF[k] = loop(HUM_FAM[k].spec());
+  // POWER's saturation: a hard-driven copy of its roar, faded in with swing speed
+  L.dist = loop(Object.assign(HUM_FAM.power.spec(), { filt: { f: 1800, q: 1 }, drive: 1, lfo: { r: 9, d: 400 } }));
+  // NIMAN's whisper: air through a band swept slowly up and down (a phaser-like swirl), only as the blade moves
+  L.whisper = loop({ base: 1, layers: [{ noise: 'pink' }], filt: { type: 'bandpass', f: 1600, q: 3.5 }, lfo: { r: 0.9, d: 1100 }, verb: 0.3 });
+  // the heavy cut's riser: a saw and its octave climbing as the charge builds, and a thin hiss of energy over it
+  L.riser = loop({ base: 110, layers: [{ f: 110 }, { f: 110.6, det: 9, g: 0.7 }, { type: 'sine', f: 220, g: 0.5 }], filt: { type: 'bandpass', f: 800, q: 1.4 }, verb: 0.1 });
+  L.riserHiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 3000, q: 2 }, lfo: { r: 19, d: 900 } });
+  // the saber staff's far blade or Jar'Kai's second saber (both SPEED): its own purr, a hair sharp of the near one
+  L.hum2 = loop(Object.assign(HUM_FAM.speed.spec(), { lfo: { r: 27, d: 140 } }));
   // the blade's electric sizzle: a narrow band of noise, flickering, that only really comes up as the blade moves
   L.hiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 2600, q: 1.6 }, lfo: { r: 13, d: 700 }, verb: 0.05 });
   L.dark = loop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
@@ -161,29 +195,54 @@ export function updateAudio(dt){
   const walk = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
   const thrown = jedi && shared.saberProj;
   const staff = jedi && !thrown && (G.stance === 'staff' || G.stance === 'jarkai');   // (the staff's far blade, or Jar'Kai's off-hand saber: a second hum)
-  const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt), mH2 = ease('hero2', motionOf(BA.hero2), dt);
+  const fam = FORM_FAMILY[G.stance] || 'niman', H = HUM_FAM[fam];
+  const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt, H.rel), mH2 = ease('hero2', motionOf(BA.hero2), dt, H.rel);
   const mD = ease('dark', Math.max(motionOf(BA.dark), swinging && darkOn ? 0.3 : 0), dt);
-  if (L.hum){
+  // a deflect just landed (saber.js deflect): the hero's hum dips ~3 dB for an instant so the deflect punches out of it
+  const hd = t - BA.hduck < 0.12, hk = hd ? 0.7 : 1, htc = tc => hd ? 0.012 : tc;
+  if (L.humF){
     const p = HUM_PITCH[G.stance] || 1;
     // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
     const spin = thrown ? Math.sin(t * 2 * Math.PI * 6.5) : 0;
-    const m = thrown ? 0.7 : mH;
-    const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
-    const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
-    const pitch = 90 * p * (1 + m * 0.2 + spin * 0.045);
-    L.hum.set(lvl, hz, pitch, m > 0.05 || thrown ? 0.02 : 0.1);
+    const m = thrown ? 0.7 : mH, on = playing && jedi;
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
-    L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
-    // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
-    const m2 = Math.max(mH2, mH * 0.6);
-    L.hum2.set((playing && staff) ? 0.02 + m2 * 0.045 : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), m2 > 0.05 ? 0.02 : 0.1);
+    for (const k in L.humF){
+      const h = L.humF[k]; if (!h) continue;
+      if (k !== fam || !on){ h.set(0, 0, 0, 0.06); continue; }
+      const lvl = thrown ? H.idle * 2.4 + spin * 0.02 : H.idle + m * H.move + (player.blockHeld ? 0.012 : 0) + walk * 0.008;
+      const hz = thrown ? H.hz[0] * 3 + spin * 600 : H.hz[0] + m * (H.hz[1] - H.hz[0]) + walk * 150;
+      h.set(lvl * hk, hz, H.base * p * (1 + m * H.bend + spin * 0.045), htc(m > 0.05 || thrown ? 0.02 : 0.1));
+      h.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
+    }
+    // Power saturating as it's swung hard; Niman's whisper of air
+    const sat = on && fam === 'power' ? Math.pow(m, 1.6) : 0, wh = on && fam === 'niman' ? m : 0;
+    L.dist.set(sat * 0.05 * hk, 1200 + sat * 2400, H.base * p * (1 + m * H.bend), 0.03);
+    L.whisper.set(wh * 0.05 * hk, 900 + wh * 1800, 0, 0.05);
+    // the saber staff's far blade / Jar'Kai's second saber: its own purr, a touch quieter and sharper, moving with its own end
+    const m2 = Math.max(mH2, mH * 0.6), S2 = HUM_FAM.speed;
+    L.hum2.set((playing && staff) ? (S2.idle * 0.7 + m2 * S2.move * 0.8) * hk : 0, S2.hz[0] + m2 * (S2.hz[1] - S2.hz[0]), S2.base * p * 1.013 * (1 + m2 * S2.bend), htc(m2 > 0.05 ? 0.02 : 0.1));
   }
   if (L.hiss){
     const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
-    const on = playing && (jedi || darkOn);
-    L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
+    const on = playing && (jedi || darkOn), Hs = H.hiss;
+    if (darkOn) L.hiss.set(on ? 0.004 + m * 0.03 : 0, 1500 + m * 1500, 0, 0.03);
+    else L.hiss.set(on ? Hs[0] + m * Hs[1] : 0, Hs[2] + m * (Hs[3] - Hs[2]), 0, fam === 'speed' ? 0.015 : 0.03);
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + mD * 0.07 : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), mD > 0.05 ? 0.02 : 0.12);
+  // THE HEAVY CUT'S CHARGE (player/jedi/weight.js, audio/saber.js chargeRelease): while the button holds a cut back, a
+  // riser climbs with the charge and the ambience's low end is stripped away (an acoustic vacuum before the strike).
+  // Its group colours it: SPEED frantic (high, fast, quivering), POWER unstable (low, lurching, crackling with static),
+  // GUARD a steady, heavy climb, NIMAN a clean rising tone.
+  if (L.riser){
+    const c = playing && G.gt - BA.chargeAt < 0.06 ? BA.charge : 0;
+    const wob = fam === 'speed' ? Math.sin(t * 2 * Math.PI * 17) * 0.05 : fam === 'power' ? rand(-0.08, 0.08) : 0;
+    const base = fam === 'speed' ? 1.8 : fam === 'power' ? 0.8 : fam === 'guard' ? 0.85 : 1.2;
+    L.riser.set(c ? (0.015 + c * 0.05) * (fam === 'guard' ? 1.2 : 1) : 0, 600 + c * 3200 * (fam === 'speed' ? 1.4 : 1),
+                110 * base * (1 + c * 1.6 + wob), c ? 0.012 : 0.04);
+    L.riserHiss.set(c ? c * (fam === 'power' ? 0.035 : fam === 'speed' ? 0.02 : 0.01) * (fam === 'power' ? rand(0.4, 1.3) : 1) : 0, 2500 + c * 4000, 0, c ? 0.015 : 0.04);
+    const hp = c ? Math.round(60 + c * 900) : 10;
+    if (hp !== L.ambHP){ L.ambHP = hp; setAmbHP(hp, c ? 0.03 : 0.12); }   // (only when it moves: this runs every frame)
+  }
+  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
 
   // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
   if (L.grind){

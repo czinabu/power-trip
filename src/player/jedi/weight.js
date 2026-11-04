@@ -11,7 +11,8 @@ import { SWING_WEIGHT, weightOf } from '../../data/swing-weight.js';
 import { G, player, isGunner } from '../../state.js';
 import { stance } from '../helpers.js';
 import { stamDelay } from '../stamina.js';
-import { sfx } from '../../audio/sfx.js';
+import { sfx, S } from '../../audio/sfx.js';
+import { BLADE_AUDIO } from '../../audio/saber.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 
 const formOf = () => isGunner() ? 'darksaber' : stance().form;
@@ -27,6 +28,7 @@ export function armWeight(sw, can){
   sw.pressAt = player.atkPressAt ?? G.gt;
   sw.weigh = player.atkHeld ? 'pending' : 'light';
   sw.drawK = 0;
+  sw.charging = sw.weigh === 'pending';   // its sound waits for the charge to resolve (chargeSound)
   if (sw.weigh === 'pending') settle(sw);
 }
 // whether a cut launched now could be weighed heavy at all (so a held link doesn't spend a spin it can't use)
@@ -51,6 +53,7 @@ function settle(sw){
 export function swingStep(sw, dt){
   if (!sw.weigh) return dt;
   settle(sw);
+  chargeSound(sw);
   if (sw.weigh === 'pending'){
     const wind = ((sw.anim && sw.anim.wind) || 0.3) * SWING_WEIGHT.drawAt * sw.dur;
     sw.drawK = Math.min(1, (G.gt - sw.pressAt) / SWING_WEIGHT.hold);
@@ -61,6 +64,20 @@ export function swingStep(sw, dt){
   sw.drawing = false;
   if (sw.weigh === 'light') sw.drawK = Math.max(0, (sw.drawK || 0) - dt * 8);
   return dt * weightOf(formOf(), sw.weigh).speed;
+}
+
+/* the charge's sound (audio/saber.js): a held cut feeds its draw to the riser (BLADE_AUDIO.charge, director.js) while it
+   builds; the moment it resolves, the snap if it went heavy and the cut itself, weighed by how far it was drawn (a
+   held cut held back its whoosh at the press: jedi/combat.js) */
+function chargeSound(sw){
+  if (!sw.charging) return;
+  if (sw.weigh === 'pending'){
+    BLADE_AUDIO.charge = Math.min(1, (G.gt - sw.pressAt) / SWING_WEIGHT.hold); BLADE_AUDIO.chargeAt = G.gt; return;
+  }
+  sw.charging = false; BLADE_AUDIO.charge = 0;
+  const heavy = sw.weigh === 'heavy', c = heavy ? 1 : Math.min(1, (G.gt - sw.pressAt) / SWING_WEIGHT.hold);
+  if (heavy) S.chargeFull();
+  S.chargeRelease(isGunner() ? 'dark' : G.stance, c);
 }
 
 // the multiplier a cut's weight puts on one of its numbers (dmg, knock, posture); a plain or still-pending cut: 1

@@ -56,7 +56,9 @@ export const MANDO_AUTO = [
 // `stage` is the survival gate (cumulative waveTotal); campaign uses level/wave. Both kept in sync in checkUnlocks.
 // the chapter that teaches a form (data/forms.js FORM_PATH) in the story this run tells: its `alt` when the story never
 // plays its own (a chapter only the Jedi's story has, met by a Jedi in a co-op partner's Mando or trooper story)
-export const formChapter = (p) => p.alt && !chapterOrder(G.actTwo).some(c => c.id === p.chapter) ? p.alt : p.chapter;
+// (`hothFirst`: the chapter that teaches it instead when the run took Hoth first in Act II)
+export const formChapter = (p) => p.hothFirst && G.actTwo === 'hoth' && chapterOrder(G.actTwo).some(c => c.id === p.hothFirst) ? p.hothFirst
+  : p.alt && !chapterOrder(G.actTwo).some(c => c.id === p.chapter) ? p.alt : p.chapter;
 export const JEDI_AUTO = [
   // FORCE PULL — auto-unlocks early (after wave 2); it's no longer in the starting kit
   { key:'pull',   force:2, level:0, wave:2, stage:1, chapter:'siege', hud:'C', name:'FORCE PULL',

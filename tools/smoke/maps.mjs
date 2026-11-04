@@ -50,10 +50,11 @@ for (const [hero, mode, map] of RUNS){
     if (mode === 'sandbox'){
       // pick the map from the panel's ARENA row, then call in a mixed squad of foes
       await page.keyboard.press('b');
-      await page.click(`[data-map="${map}"]`);
+      // (the ARENA row is on its own tab, and the panel opens on FOES: ui/sandbox-ui.js)
+      await page.click('[data-sbtab="arena"]'); await page.click(`[data-map="${map}"]`); await page.click('[data-sbtab="foes"]');
       await page.click('[data-n="5"]'); await page.click('[data-foe="grunt"]'); await page.click('[data-foe="blaster"]');
       await page.click('[data-n="3"]'); await page.click('[data-foe="duelist"]'); await page.click('[data-foe="flyer"]');
-      await page.click('#sbdone');
+      await page.click('#sbclose');   // (the ✕: at this small size the footer's BACK TO THE FLOOR is hidden, styles/menus.css)
     } else {
       // survival: jump the rotation to this map (the next wave builds it) and start that wave now
       await page.evaluate(id => {

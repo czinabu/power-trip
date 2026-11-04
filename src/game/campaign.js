@@ -79,6 +79,14 @@ export function resumeChapter(run){
   if (G.checkpoint && !(G.checkpoint.ch >= 0)) G.checkpoint.ch = pos;
   startChapter(pos, { retry: true, card: true });
 }
+// a run saved as its chapter closed (it left for training from the unlock screen): the chapter stays won. Back at its
+// close: the upgrade page it hadn't reached yet, then the road on to the next chapter (game/flow.js 'chapterdone')
+export function resumeAtClose(run){
+  G.actTwo = run.actTwo || null; G.storyHero = null;
+  G.chapter = run.chapter; G.chapterClosed = run.chapter;
+  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.4;
+  showBanner('', 'BACK TO THE STORY', 1.6);
+}
 // co-op: a guest joins the host's campaign on its chapter, with the kit that far into a run earns
 export function joinCampaign(pos, actTwo, wave, waveTotal){
   startLevel(0);   // a full fresh setup (kit, build, stats)

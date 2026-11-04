@@ -59,6 +59,7 @@ export const CFG = {
     strike: [
       { kind: 'jab',   dmg: 14, range: 4,   angle: 0.42, knock: 6,  stamina: 7,  dur: 0.26, contact: 0.38 },
       { kind: 'cross', dmg: 18, range: 4.5, angle: 0.42, knock: 8,  stamina: 8,  dur: 0.3,  contact: 0.4 },
+      { kind: 'hook',  dmg: 20, range: 3.8, angle: 0.95, knock: 10, stamina: 9,  dur: 0.32, contact: 0.42, lunge: 4 },   // a looping blow round the guard: the third hit of the string, wider than the jab and cross
     ],
     finish: {
       neutral: { kind: 'burst',    dmg: 30, range: 6,   angle: 0.75, knock: 15, stamina: 14, dur: 0.46, contact: 0.45, burst: true },   // both palms: a cone that turns bolts
@@ -74,6 +75,17 @@ export const CFG = {
     // E mid-string: a spinning Force kick that clears the ring round you; E in the air: a Force stomp straight down
     spin:  { dmg: 20, reach: 2.8, knock: 20, recover: 0.5, stamina: 10 },
     stomp: { dmg: 24, radius: 4, knock: 18, fall: 26, stamina: 10 },
+    // E + S on the ground, out of the string: a low sweep that cuts the legs from under everyone in a half-ring and
+    // can't be guarded. It floors the light (the heavy only stagger), which opens them for a takedown
+    sweep: { dmg: 14, reach: 3.4, arc: 1.9, knock: 6, recover: 0.6, stamina: 11, contact: 0.45, down: 1.1 },
+    // LMB at a foe that is reeling or floored: a Force TAKEDOWN. Reeling: the foe is hauled in by the collar and thrown
+    // to the ground; floored: a palm driven down through it. `maxFrac` is a share of a normal foe's life on top of `dmg`
+    takedown: { range: 3.6, dmg: 40, maxFrac: 0.35, stamina: 12, dur: 0.62, contact: 0.5, floorDur: 0.5, floorContact: 0.46 },
+    // WARD (RMB): a blow turned on the Force costs more breath than a blade's guard would (`stamMul`), but a TAPPED
+    // ward that meets a blow in time is a Force parry: the attacker reels, and your next strike is a free COUNTER that
+    // staggers everyone it finds
+    ward: { stamMul: 1.35 },
+    counter: { kind: 'counter', dmg: 38, range: 5, angle: 0.55, knock: 20, stamina: 0, dur: 0.4, contact: 0.4, lunge: 9, counter: true },
     // STRIKE INTO POWER: Push or Pull within `window` s of a landed unarmed blow flows out of it. The PALM PUSH costs
     // `costMul` of a Push and hits foes within `near` m for `dmg` more and harder; the pull-in yanks them onto the next
     // strike, thrown on its own `strikeAt` s later

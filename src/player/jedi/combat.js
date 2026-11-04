@@ -24,6 +24,7 @@ import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry } from '../../
 import { bodyRadius } from './bladehit.js';
 import { bounceOff, contactPoint } from './clash.js';
 import { inReach } from '../../enemies/bodyshape.js';
+import { palmPoints } from '../../fx/palms.js';
 import { scarBody, severLimbs } from '../../enemies/scars.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 import { masteryXp } from '../../game/progression.js';
@@ -506,6 +507,13 @@ export function forceKick(){
 /* DEFLECT ANIMATION — start a blade catch toward something arriving at `from` (a bolt, or a blocked blow). The
    catch itself (which cover, which side) is picked in anim/saber.js. A swing already in flight keeps the blade. */
 export function deflectAnim(from, line, contact){
+  if (!isGunner() && player.holstered && from && !(player.palmT > 0)){   // no blade to catch it on: a palm flicks out to meet the blow (animation.js forceHands)
+    const c = catchState(from);
+    player.wardHit = { t: 0, dur: 0.3, side: c.side, h: c.h };
+    const hands = palmPoints([c.side > 0 ? 'R' : 'L']);
+    if (hands[0]) sparks(hands[0], stance().blade, 4, 6, { dir: V3(0, 0, 0), cone: 3, life: 0.16, grav: 0, size: 0.4 });
+    return;
+  }
   if (isGunner() || player.atkT > 0 || !from) return;
   const cur = player.deflectAnim;
   if (cur && cur.spin && cur.t < cur.dur) return;   // a spin already sweeping the blade round covers the next bolt too

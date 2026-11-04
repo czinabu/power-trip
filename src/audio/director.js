@@ -17,7 +17,7 @@ import { updateFoley } from './foley.js';
 import { shared, G, player, isGunner } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
-import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
+import { HUM_PITCH, BLADE_AUDIO, SABER_PITCH } from './saber.js';
 import { FORM_FAMILY } from '../data/foe-forms.js';
 import { updateForce, innerHz } from './force.js';
 
@@ -177,7 +177,7 @@ export function updateAudio(dt){
   // a deflect just landed (saber.js deflect): the hero's hum dips ~3 dB for an instant so the deflect punches out of it
   const hd = t - BA.hduck < 0.12, hk = hd ? 0.7 : 1, htc = tc => hd ? 0.012 : tc;
   if (L.hum){
-    const p = HUM_PITCH[G.stance] || 1;
+    const p = HUM_PITCH[G.stance] || SABER_PITCH;
     // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
     const spin = thrown ? Math.sin(t * 2 * Math.PI * 6.5) : 0;
     const m = thrown ? 0.7 : mH;
@@ -218,7 +218,7 @@ export function updateAudio(dt){
     const hp = c ? Math.round(60 + c * 900) : 10;
     if (hp !== L.ambHP){ L.ambHP = hp; setAmbHP(hp, c ? 0.03 : 0.12); }   // (only when it moves: this runs every frame)
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
+  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * SABER_PITCH * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
 
   // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
   if (L.grind){
@@ -244,7 +244,7 @@ export function updateAudio(dt){
       const N = L.near[i], c = cand[i];
       if (!N.h) continue;
       if (!c){ N.h.set(0, 0, 0, 0.15); continue; }
-      const m = motionOf(c.o.sp), base = c.o.dark ? 62 : 90;
+      const m = motionOf(c.o.sp), base = (c.o.dark ? 62 : 90) * SABER_PITCH;
       N.wob += dt;
       const lvl = (0.022 + m * 0.05) * c.P.gain * (1 - clamp((c.P.d - 10) / 6, 0, 1));
       N.h.set(lvl, Math.min(c.P.lp, 480 + m * 2200), base * (1 + m * 0.2 + Math.sin(N.wob * 0.7) * 0.01), 0.03);

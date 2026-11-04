@@ -284,7 +284,7 @@ export const LESSONS = {
         { sec: "JAR'KAI", say: 'A saber in each hand. Every cut you make, the other hand follows on the other side, a beat behind.',
           keys: '2 · LMB', do: 'Land 4 follow-up cuts with the off-hand saber', ev: 'offBlade', stance: 'jarkai', need: 4, respawn: true,
           spawn: dummies([[0, -2.2], [-1.4, -1.8]], { sparring: true }) },
-        { say: 'Cross both blades to block: a scissor that catches a blow in its fork. G turns both hilts over into a reverse grip.',
+        { say: 'Cross both blades to block: a scissor that catches a blow in its fork. G cycles the grips: both forward, the left reversed, both reversed.',
           keys: 'TAP RMB', do: 'Parry 2 strikes on the crossed blades', ev: 'parry', stance: 'jarkai', need: 2, spawn: partner() },
       ] },
 

@@ -93,7 +93,7 @@ function offSaber(o, u){
   u.offSaber.visible = true;
   return u.offSaber;
 }
-// the weapon arm's recent swing, so the off arm can play it back mirrored a beat later (`follow` s)
+// the weapon arm's recent swing, so the off arm can play it back a beat later (`follow` s), the same way across
 const HIST = 24;
 function remember(u, t){
   const h = u.armHist || (u.armHist = { i: 0, t: new Float32Array(HIST), x: new Float32Array(HIST), y: new Float32Array(HIST), z: new Float32Array(HIST) });
@@ -103,7 +103,7 @@ function remember(u, t){
 }
 const _e = new THREE.Euler(), Qf = new THREE.Quaternion();
 function lagged(h, t, out){
-  for (let n = 0, i = h.i; n < HIST; n++, i = (i - 1 + HIST) % HIST) if (h.t[i] <= t){ out.set(h.x[i], -h.y[i], -h.z[i]); return out; }
+  for (let n = 0, i = h.i; n < HIST; n++, i = (i - 1 + HIST) % HIST) if (h.t[i] <= t){ out.set(h.x[i], h.y[i], h.z[i]); return out; }
   return null;
 }
 export function stanceArms(o, u, dt){
@@ -132,7 +132,7 @@ export function stanceArms(o, u, dt){
     a.quaternion.slerp(Qp, o.thk);
     bend += (-out.b - bend) * o.thk;
   }
-  // JAR'KAI: through a cut the off arm swings the weapon arm's cut mirrored, `follow` s behind it
+  // JAR'KAI: through a cut the off arm swings the weapon arm's cut the same way across, `follow` s behind it
   if (dual && S && S.follow){
     const cut = o.state === 'windup' || o.state === 'strike' || o.state === 'recover';
     o.dfk = damp(o.dfk || 0, cut ? 1 : 0, dt, 14);

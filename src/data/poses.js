@@ -234,8 +234,8 @@ export const SABER_GUARDS = {
    up over the head with its blade level across above it, the forward blade level across the waist the other way. */
 export const DUAL_GUARDS = {
   'regular/reverse': {
-    ready: { hand: [0.46, -0.06, 0.22], blade: [0.55, 0.76, 0.34], twist: 0.04, lean: 0.16, pole: [0.8, -0.5, -0.3],
-             off: { hand: [-0.46, -0.06, 0.22], pole: [-0.8, -0.4, -0.45], sway: 0.3 }, offBlade: [-0.3, -0.9, 0.3] },
+    ready: { hand: [0.58, -0.14, 0.12], blade: [0.8, 0.56, 0.12], twist: 0.04, lean: 0.2, pole: [0.75, -0.6, -0.3],
+             off: { hand: [-0.6, 0.0, 0.14], pole: [-0.6, -0.3, -0.75], sway: 0.3 }, offBlade: [-0.12, -0.96, 0.24] },
     block: { hand: [0.06, -0.06, 0.44], blade: [0.86, 0.08, 0.5], twist: 0.0, lean: 0.12, pole: [0.6, -0.75, -0.2],
              off: { hand: [-0.3, 0.4, 0.14], pole: [-0.85, 0.1, -0.5] }, offBlade: [-0.42, -0.86, 0.3] },
     block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, pole: [0.6, -0.75, -0.2],
@@ -510,7 +510,13 @@ export const SWING_STYLE = {
   /* JAR'KAI: quick one-handed cuts with the other hand right behind: the off hand swings the same cut MIRRORED across
      the body, `dual.lag` of the swing later (anim/saber.js), so a cut from the right is answered by one from the left */
   jarkai:    { tc: 0.16, ts: 0.34, tf: 0.6, reach: 0.95, two: false, spinHop: 0.06, drop: 0.04, offFlare: 0, overshoot: 0,
-               twist: 0.6, finisher: { pattern: 'right', spin: 1, hop: 0.12 }, dual: { lag: 0.2 },
+               twist: 0.6, finisher: { pattern: 'right', spin: 1, hop: 0.12 }, dual: {
+                 // per grip pairing (anim/saber.js dualSwing): lag = how far behind the off cut runs (of the swing), sync = the
+                 // same for a cut straight down or up the middle, shift = how far across the off arc sits, drop = how much lower
+                 regular: { lag: 0.16, sync: 0.04, shift: 0.36, drop: 0.06 },             // both forward: a parallel two-beat
+                 mixed:   { lag: 0.26, sync: 0.12, shift: 0.32, drop: 0.16 },             // the reversed off blade rakes through after, at the hip
+                 reverse: { lag: 0.07, sync: 0,    shift: 0.3,  drop: -0.02, hop: 0.06 }, // both reversed: twin blades almost as one, springing into it
+               },
                load: 0.05, accel: 2.5, lag: 0.5, recover: 0.65, weight: 0.06 },   // whippy, light, and never just one
     // Jar'Kai finishes on a spinning double cut: one blade, then the other, all the way round
   darksaber: { tc: 0.34, ts: 0.46, tf: 0.72, reach: 1.2, two: true, spinHop: 0, drop: 0.16, offFlare: 0, overshoot: 0.35,

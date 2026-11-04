@@ -276,6 +276,10 @@ export function swingPose(R, held, grip, form, sw){
       sw.anim.offSrc = ok.map((kf, i) => i === 1 ? kf : { ...kf, hand: kf.hand.clone().sub(PIVOT).multiplyScalar(style.reach).add(PIVOT) });
       sw.anim.offRestG = offGuard(held, grip, form, G0, G0.ready);
     }
+    if (style.dual && dualIn(held)){
+      sw.anim.dual = style.dual[og !== grip ? 'mixed' : grip] || style.dual.regular;
+      sw.anim.hop += sw.anim.dual.hop || 0;
+    }
     // which way across the body the cut travels (chest +x is the weapon side): spins and twirls turn into it. A cut
     // that runs straight down the middle has none of its own and turns toward the weapon side.
     const dx = scaled[2].hand.x - scaled[0].hand.x;
@@ -575,17 +579,29 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   R.armL.wr.quaternion.identity();
 }
 
-/* JAR'KAI'S FOLLOW-UP — the off hand swings the main cut MIRRORED across the body, `style.dual.lag` of the swing
-   behind it: wind-up from wherever it held, the stroke, the follow-through, then back to the guard. The same phases and
-   easing as the main cut, on its own clock. While its stroke runs, saberPose.offLive is up (jedi/bladehit.js cuts). */
+/* JAR'KAI'S FOLLOW-UP — the off hand swings the SAME cut as the main hand, the same way across the body (a cut to the
+   left takes both blades left), on a parallel arc shifted across to the off side, a beat behind: wind-up from wherever
+   it held, the stroke, the follow-through, then back to the guard. Each grip pairing has its own beat (data/poses.js
+   SWING_STYLE.jarkai.dual): both forward, a parallel two-beat, the off arc a hand lower; forward with the off saber
+   reversed, the reversed blade raking through well after at the hip; both reversed, the twin blades almost as one. A
+   cut straight down or up the middle (no side to travel to) brings both blades down or up together (`sync`). While its
+   stroke runs, saberPose.offLive is up (jedi/bladehit.js cuts). */
+const _op = new THREE.Vector3();
 function dualSwing(A, k, style, sw){
+  const D = A.dual || style.dual.regular || {};
   if (!A.offK){
-    A.offK = (A.offSrc || A.keys).map(kf => ({ hand: mirror(kf.hand, new THREE.Vector3()), blade: mirror(kf.blade, new THREE.Vector3()).normalize() }));
+    const sh = D.shift ?? 0.34, dy = -(D.drop || 0);
+    A.offK = (A.offSrc || A.keys).map(kf => ({
+      hand: kf.hand.clone().add(_op.set(-sh, dy, 0)),
+      blade: kf.blade.clone().normalize(),
+      pole: kf.pole ? mirror(kf.pole, new THREE.Vector3()).normalize() : OFF_POLE,
+    }));
+    A.offPivot = PIVOT.clone().add(_op.set(-sh, dy, 0));
     A.offStart = { hand: saberPose.off.clone(), blade: saberPose.offBlade.clone() };
     const RO = A.offRestG || A.rest, rOff = RO.off;
     A.offRest = { hand: rOff ? rOff.hand.clone() : OFF_REST.clone(), blade: (RO.offBlade || mirror(RO.blade, new THREE.Vector3())).clone() };
   }
-  const lagT = style.dual.lag || 0.2, k2 = (k - lagT) / (1 - lagT);
+  const lagT = (A.lateral ? D.lag : D.sync ?? D.lag) ?? 0.2, k2 = lagT > 0 ? (k - lagT) / (1 - lagT) : k;
   const [C, S, F] = A.offK, wind = A.wind, R0 = A.rec;
   let a, b, t;
   if (k2 <= 0){ a = A.offStart; b = A.offStart; t = 0; }
@@ -593,9 +609,9 @@ function dualSwing(A, k, style, sw){
   else if (k2 < A.ts){ a = C; b = S; t = powIn((k2 - wind) / (A.ts - wind), A.a); }
   else if (k2 < A.tf){ a = S; b = F; t = powOut((k2 - A.ts) / (A.tf - A.ts), A.b); }
   else { a = F; b = A.offRest; t = R0 * settle(Math.min(1, (k2 - A.tf) / (1 - A.tf)), A.recM); }
-  arcLerp(a.hand, b.hand, t, PIVOT, saberPose.off);
+  arcLerp(a.hand, b.hand, t, A.offPivot, saberPose.off);
   slerpDir(a.blade, b.blade, t, saberPose.offBlade);
-  saberPose.offPole.copy(OFF_POLE);
+  saberPose.offPole.copy(b.pole || OFF_POLE);
   saberPose.offLive = !sw.recoil && k2 >= A.tc * 0.6 && k2 <= Math.min(0.92, A.tf + 0.05);
   saberPose.palm = 0;
 }

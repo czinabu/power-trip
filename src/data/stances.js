@@ -65,7 +65,7 @@ export const STANCES = {
             dmg: 1.18, heavyDmg: 0.85, speed: 0.92, knock: 0.38, stamina: 6, lunge: 1.4, move: 1.15, accel: 1.3, twist: 0.4, bladeLen: 0.94,
             radiusMult: 1.2, forceRegen: 1.5,   // (BALANCE: Shii-Cho keeps the widest arc: Ataru's role is the back line, not the crowd) costMult: { push: 0.7, pull: 0.7 },
             comboGap: 1.25, fovKick: 6,
-            reach: { lungeMax: 3.9, range: 6.5 },   // ROLE: the lunge closes up to 3.9m (others 2.4) and finds foes out to 6.5m (others 5), enough to cross the 3.2m stalker ring to an officer behind it
+            reach: { lungeMax: 3.9, range: 6.5, from: 1.4, strike: 1.15 },   // ROLE: the lunge closes up to 3.9m (others 2.4) and finds foes out to 6.5m (others 5), enough to cross the 3.2m stalker ring to an officer behind it. Ataru's short, quick cuts land inside ~1.3m, so its lunge starts from 1.4m and stops 1.15m off the foe (it used to leave a dead zone from 1.4 to 2.4m: too far for the blade, too close for the lunge)
             moveAtk: 1.5,         // PASSIVE: keeps most of its footwork mid-swing (every other form plants its feet) — kite while you cleave
             airCutDmg: 1.35,      // LORE: the acrobat's form — any cut struck off the ground lands 35% harder
             swoop: 1,             // HAWK-BAT SWOOP: a cut out of a Force dash leaps in on the foe (player/jedi/combat.js)

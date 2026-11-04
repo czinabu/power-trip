@@ -35,6 +35,7 @@ import { addFury, furyMul } from './fury.js';
 import { tryFinisher, finisherStrike, endFinisher, finishType } from './finisher.js';
 import { PERFECT } from '../../data/finishers.js';
 import { addPosture } from '../../enemies/duel.js';
+import { assistTarget, comboRange } from './saberassist.js';
 
 /* COMBO RHYTHM — fractions of a swing. A press before `open` is too early (and costs this link its flow); a single
    press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). */
@@ -127,15 +128,25 @@ export function tryAttack(flow = false){
     floater(playerPos(), 'HAWK-BAT SWOOP', '#7fe0ff');
     tutEvent('swoop');
   }
+  // SABER ASSIST (jedi/saberassist.js, Settings): the foe nearest the crosshair is the one this cut is for. The body
+  // turns a little toward it (animation.js poseBody) and the lunge closes on it. Off, or nobody near the crosshair: the
+  // lunge takes the nearest foe ahead, as it always did. A back strike never turns.
+  const aimed = backStrike ? null : assistTarget(comboRange(st));
+  if (aimed) player.swing.assist = aimed;
   const tgt = backStrike ? nearestEnemyInCone(CFG.player.comboRange, -0.35, true)
-                         : nearestEnemyInCone(st.reach?.range ?? CFG.player.comboRange, 0.6);
+                         : aimed || nearestEnemyInCone(comboRange(st), 0.6);
   if (tgt && !backStrike){
     TMP.subVectors(tgt.group.position, playerPos()); TMP.y = 0;
     const d = TMP.length();
     TMP.normalize();
-    // NO aim assist — you aim the cut yourself. The lunge only closes a short gap toward a foe you're already
-    // facing; anything farther you have to walk into range first (footwork is part of the fight).
-    if (d > 2.2) stepIntoCut(TMP, lunge * Math.min(d - 1.8, st.reach?.lungeMax ?? CFG.player.lungeMax) / 0.18);
+    // The lunge only closes a short gap toward a foe you're already facing; anything farther you have to walk into
+    // range first (footwork is part of the fight). A form with a STRIKE distance (data/stances.js reach) lunges from
+    // `from` m and stops `strike` m off the foe, where its blade lands; the rest close part of the gap past 2.2 m.
+    const R = st.reach || {}, lungeMax = R.lungeMax ?? CFG.player.lungeMax;
+    if (R.strike != null){
+      const k = lunge / (st.lunge || 1);   // this cut's own push (a riposte, a finisher, the swoop) on top of the form's
+      if (d > R.from) stepIntoCut(TMP, Math.min(d - R.strike, lungeMax * k) * GROUND_DRAG);
+    } else if (d > 2.2) stepIntoCut(TMP, lunge * Math.min(d - 1.8, lungeMax) / 0.18);
   } else if (backStrike){
     stepIntoCut(fwd(), -4.5 * lunge);   // shove off the back foot, away from the threat
   } else {

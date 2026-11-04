@@ -108,7 +108,7 @@ export function initEngine(){
   // pause muffle still apply.
   AE.clashComp = A.createDynamicsCompressor();
   AE.clashComp.threshold.value = -20; AE.clashComp.knee.value = 8; AE.clashComp.ratio.value = 3.5;
-  AE.clashComp.attack.value = 0.003; AE.clashComp.release.value = 0.14;
+  AE.clashComp.attack.value = 0.012;   // slow enough to let a hit's front through (the punch) AE.clashComp.release.value = 0.14;
   AE.bus.clash = A.createGain(); AE.bus.clash.gain.value = 1;
   AE.bus.clash.connect(AE.clashComp); AE.clashComp.connect(mk(AE.bus.sfx, 0.9));
 
@@ -290,6 +290,14 @@ export function loop(spec){
   const pan = A.createStereoPanner();
   let head = filt;
   if (spec.drive){ const w = A.createWaveShaper(); w.curve = driveCurve(spec.drive); filt.connect(w); head = w; }
+  // trem: a held amplitude chop ({ r: rate, d: depth 0..1, type }), so a loop can BUZZ (a sustained arc) instead of hiss
+  if (spec.trem){
+    const tg = A.createGain(), o = A.createOscillator(), og = A.createGain();
+    tg.gain.value = 1 - spec.trem.d / 2; og.gain.value = spec.trem.d / 2;
+    o.type = spec.trem.type || 'square'; o.frequency.value = spec.trem.r;
+    o.connect(og); og.connect(tg.gain); o.start(t); parts.push(o);
+    head.connect(tg); head = tg;
+  }
   head.connect(g); g.connect(pan); pan.connect(AE.bus[spec.bus || 'sfx']);
   if (spec.verb){ const r = A.createGain(); r.gain.value = spec.verb; pan.connect(r); r.connect(AE.roomIn); }
   const oscs = [];

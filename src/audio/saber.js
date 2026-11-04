@@ -7,7 +7,7 @@
 //   clash              blade on blade, in four layers: a crack, a sub thump, a plasma sizzle and a hum tail, glued on one bus
 //   burn               blade through a body: a scorching sear over a dull thump
 //   wall               blade dragged through stone or metal: a sizzling scrape that spits sparks
-//   deflect            a bolt batted away, in four layers: a burst, a falling twang, a hiss and the bolt whizzing off
+//   deflect            a bolt batted away: the same sound as a clash (the hum shorting out, a blaster "pyew" off it)
 // The held hum (the loop that bends with the blade's real tip speed) lives in director.js and uses HUM_PITCH below.
 
 import { play, tooSoon, duck, place } from './engine.js';
@@ -359,22 +359,26 @@ export function burn(pos, pw){
                            rather than hisses; a sharp crack on its leading edge
      the surge    (0 s)    the hum itself at the form's pitch, hard-overdriven and wide open, dropping a little in pitch
                            as the fields fight (the loud "BZZHH" body of the clash), with its TV buzz an octave up
-     the weight   (0 s)    a short low thump under it, kept centred
+     the punch    (0 s)    a hard, fast knock in the low mids on the crack, and a short low thump under it, centred
+     the "pyew"   (+0.01)  a blaster bolt's guy-wire chirp and its echoes (pyew), up front over the short
      the sparks   (+0.04)  a scatter of crackle and a fizz of high hiss dying away
    All on the clash bus (engine.js glue compressor). The form tunes the surge (its hum pitch) and how long the arc spits
-   (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, arc rate and a
+   (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, length (a short spit to a long tear), arc rate and a
    slight pan drift, so a duel never repeats; a big hit (a parry, a bind) is heavier and longer all through. */
 export function clash(pos, big, form){
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
   const v = FORM_SOUND[form] || FORM_SOUND.niman, dm = v.damp, k = (big ? 1.3 : 1) * rand(0.86, 1.06);
-  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.9, 1.15);
+  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.65, 1.5);   // short spits to long tearing ones
   const drift = (Math.random() < 0.5 ? -1 : 1) * rand(0.06, 0.16), buzz = rand(55, 85);   // the arc's buzz rate (Hz)
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
   const CN = o => C(Object.assign({ src: 'noise' }, o));
   if (!tooSoon('clashduck', 0.12)) duck(big ? 0.3 : 0.16, big ? 0.08 : 0.03);   // the score steps aside for the hit
 
   // the crack on the arc's leading edge
-  CN({ g: 0.15 * k, a: 0.0006, d: 0.025, filt: { type: 'bandpass', f: rand(2600, 3400), q: 0.8 }, drive: 1, pri: 2 });
+  CN({ g: 0.19 * k, a: 0.0004, d: 0.022, filt: { type: 'bandpass', f: rand(2600, 3400), q: 0.8 }, drive: 1, pri: 2 });
+  // the punch: a hard, fast knock in the low mids right on the crack (the body of the hit, felt more than heard)
+  C({ type: 'sine', f: rand(200, 240), f2: 85, ft: 0.045, g: 0.16 * k, a: 0.0005, d: 0.06, drive: 0.5, panK: 0.3, pri: 2 });
+  CN({ color: 'pink', g: 0.09 * k, a: 0.0005, d: 0.035, filt: { type: 'bandpass', f: 320, q: 1.1 }, drive: 0.6, panK: 0.3 });
   // the arc: buzzing, tearing, its band sliding down as it dies
   CN({ g: 0.085 * k, a: 0.002, hold: len * 0.25, d: len, trem: { r: buzz, d: 0.9, type: 'square' },
        filt: { type: 'bandpass', f: rand(3600, 4400), f2: 1500, q: 0.8, t: len }, drive: 0.9, pdrift: drift, pri: 2 });
@@ -387,9 +391,12 @@ export function clash(pos, big, form){
       filt: { type: 'bandpass', f: 2200, f2: 1100, q: 1.4, t: len }, drive: 0.8, pdrift: drift * 0.5 });
   // the weight: a short low thump (a Djem So / Vaapad blow lands deeper)
   const sub = rand(70, 90) * (v.thump ? 0.85 : 1);
-  C({ type: 'sine', f: sub * 1.5, f2: sub * 0.6, ft: 0.1, g: 0.17 * k, a: 0.0015, d: big ? 0.2 : 0.14, panK: 0.25, pri: 2 });
+  C({ type: 'sine', f: sub * 1.6, f2: sub * 0.6, ft: 0.08, g: 0.2 * k, a: 0.0008, d: big ? 0.18 : 0.12, panK: 0.25, pri: 2 });
   CN({ color: 'brown', g: 0.08 * k, a: 0.001, d: 0.07, filt: { type: 'lowpass', f: 450 }, panK: 0.4 });
 
+  // the blaster bolt's "PYEW" off the strike (the guy-wire chirp and its echoes, pyew below), up front in the mix, the
+  // hero's hum dipping for it
+  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 2 : 1.8)); }
   if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one shower of sparks between them
   // the sparks fizzing away
   CN({ at: 0.04, g: 0.035 * k, a: 0.01, d: len * 1.4 * dm, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });
@@ -408,29 +415,19 @@ export function wall(pos, first, dark){
   crackle(pos, 2, 0.12, 0.025);
 }
 
-/* A BOLT DEFLECTED, the way it sounds in the films: the blade's hum spits ("TZZT") where the bolt hits it, and the
-   bolt goes off with a blaster's own "PYEW" (Ben Burtt's blaster: a hammer striking a radio tower's guy-wire, whose
-   twanging dispersion makes a falling, springy chirp with quick echoes as it rings along the wire).
-     the spit    (0 s)      a short, overdriven blip of the hum and a buzzing burst of arc noise, cut off fast
-     the "pyew"  (+0.01 s)  three spring-like chirps falling from ~4.5 kHz to a few hundred Hz at slightly different
-                            rates (the wire's dispersion), repeated twice as fading echoes (the wire ringing back)
-     the bolt    (+0.04 s)  flying off: the chirp's tail panning away across the stereo field, its highs rolling off
-   And the hero's own hum dips ~3 dB for an instant (BLADE_AUDIO.hduck, director.js) so it punches through. Every
-   deflect rolls its own pitch, level and flight. */
-export function deflect(pos){
-  const b = rand(0.9, 1.12), k = rand(0.86, 1.06), buzz = rand(60, 90);
+/* the blaster's "PYEW" thrown off every clash and bolt deflect: the guy-wire's falling chirp and its echoes ringing
+   back along the wire, then the last of it flying off across the stereo field. Always the same length; no two share a
+   pitch: each rolls its own (about half an octave either way, now and then up to ~10 semitones high, never too near the
+   last one's) */
+let lastPew = 1;
+function pyew(pos, k){
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
-  const CN = o => C(Object.assign({ src: 'noise' }, o));
-  BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0;
-  const hp = HUM_PITCH[G.stance] || SABER_PITCH;
-  // the spit: the hum shorting for an instant where the bolt lands
-  CN({ g: 0.12 * k, a: 0.0006, d: 0.02, filt: { type: 'bandpass', f: rand(2800, 3600), q: 0.9 }, drive: 1, pri: 2 });
-  CN({ g: 0.07 * k, a: 0.002, d: 0.09, trem: { r: buzz, d: 0.9, type: 'square' }, filt: { type: 'bandpass', f: 3800, f2: 1800, q: 0.9 }, drive: 0.85, pri: 2 });
-  C({ type: 'sawtooth', f: 92 * hp, f2: 84 * hp, g: 0.05 * k, a: 0.002, d: 0.09, filt: { type: 'lowpass', f: 3600, f2: 800 }, drive: 1, pri: 1 });
-  // the "pyew": the guy-wire's falling chirp, and its echoes ringing back along the wire
-  if (tooSoon('deflpew', 0.06)) return;   // a volley: one ricochet at a time
+  const roll = () => Math.random() < 0.3 ? rand(1.35, 1.75) : rand(0.7, 1.35);   // now and then a high, whining one
+  let b = roll();
+  for (let i = 0; i < 4 && Math.abs(b / lastPew - 1) < 0.08; i++) b = roll();
+  lastPew = b;
   const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
-  const drift = -side * rand(0.6, 1.1), tw = rand(0.13, 0.18);
+  const drift = -side * rand(0.6, 1.1), tw = 0.155;
   for (const [echo, eg] of [[0, 1], [0.045, 0.45], [0.09, 0.2]])
     for (const [mul, rate, g, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']])
       C({ at: 0.01 + echo, type, f: 4600 * b * mul, f2: 300 * b * mul, ft: tw * rate, g: g * eg * k, a: 0.0012, d: tw * rate * 1.1,
@@ -439,7 +436,14 @@ export function deflect(pos){
   // the bolt flying off: the last of it, panning away and dulling
   T({ pos, at: 0.04, type: 'square', f: 900 * b, f2: 220 * b, ft: 0.35, g: 0.02 * k, a: 0.02, d: 0.35,
       filt: { type: 'lowpass', f: 3000, f2: 500 }, pdrift: drift, bus: 'clash', pri: 0 });
-  crackle(pos, 2, 0.08, 0.025, 0.01);
+}
+
+/* A BOLT DEFLECTED: the same sound as a blade clash (clash above: the hum shorting out in a buzzing, overdriven
+   "KSSHHZZT", with the blaster's "PYEW" thrown off it). Ben Burtt's blaster is a hammer striking a radio tower's
+   guy-wire, whose twanging dispersion makes a falling, springy chirp with quick echoes as it rings along the wire
+   (pyew). Played on the hero's own blade, so its form tunes the hum's surge. */
+export function deflect(pos){
+  clash(pos, false, !isGunner() ? G.stance : null);
 }
 
 /* BLADE LOCK — "KRRRZZZZ-SZS-SNAP!": the held bind itself is a loop in director.js (LOCK_GRIND there), fed by

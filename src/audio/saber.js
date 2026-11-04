@@ -60,17 +60,16 @@ function crackle(pos, n, spread, g, at0 = 0){
 /* EACH FORM GROUP'S IGNITION — the snap-hiss tells you which family you just lit (data/foe-forms.js FORM_FAMILY), so a
    form change is heard as well as seen. One recipe per group, the same in every mode, for the hero, a partner and a foe:
      guard  (Shii-Cho, Soresu, Shien)            smooth and composed: a slower, clean gas-burner hiss locking into a
-            low ~100 Hz hum, no pops or crackle; it retracts in a clean suction ending on a heavy magnetic latch
+            low ~100 Hz hum, no pops or crackle
      speed  (Makashi, Ataru, Jar'Kai, staff)     a whip-crack and a compressed-air snap that peaks inside 0.1 s and
-            drops into a tight, high (200–250 Hz) turbine purr; it retracts in one instant pneumatic snap
+            drops into a tight, high (200–250 Hz) turbine purr
      power  (Djem So, Juyo, Vaapad)              a roaring burst that tears the air: arc-welder snaps, a low blast and a
-            gritty saw roar with white noise flickering through it; it retracts in a long crackling burn-off
-     niman  (and any blade with no form)         the hilt's snap almost gone: an airy, shimmering bloom; it retracts
-            in a soft wind-like fade
+            gritty saw roar with white noise flickering through it
+     niman  (and any blade with no form)         the hilt's snap almost gone: an airy, shimmering bloom
    The Darksaber keeps its own deep, buzzing voice. Every recipe is built on the same base voices (the snap, the run-up,
    the edge zinging out, the hiss), each scaled by the group's profile, with the group's own layers on top.
      crack  the hilt's snap   rise  how long the run-up takes   bright  how far the filter flares
-     crackle  how much it spits   drive  added grit   len  how long a retract takes */
+     crackle  how much it spits   drive  added grit   len  (unused: a retract mirrors the ignition's timing) */
 const IGNITE_FAMILY = {
   guard: { crack: 0.35, rise: 1.3, bright: 0.7,  crackle: 0,   drive: 0,    len: 1.15 },
   speed: { crack: 1.25, rise: 0.55, bright: 1.15, crackle: 0.4, drive: 0,    len: 0.45 },
@@ -108,28 +107,6 @@ function igniteLayers(fam, kind, pos, at, g, full){
   } else if (fam === 'niman'){
     // an airy shimmer blooming open
     N({ pos, at, color: 'pink', g: 0.07 * g * k, a: 0.12, d: 0.55 * k, trem: { r: 6, d: 0.35 }, filt: { type: 'bandpass', f: 1800, f2: 6000, q: 0.9, t: 0.4 }, verb: 0.3, pri: 1 });
-  }
-}
-function retractLayers(fam, kind, pos, at, g, dur, full){
-  const k = full ? 1.15 : 1;
-  if (fam === 'guard'){
-    // the heavy magnetic latch as the hilt seals: a low thunk and a click
-    T({ pos, at: at + dur * 0.9, type: 'sine', f: 110, f2: 50, g: 0.1 * g * k, a: 0.001, d: 0.12, panK: 0.4 });
-    N({ pos, at: at + dur * 0.9, g: 0.04 * g, a: 0.0008, d: 0.02, filt: { type: 'bandpass', f: 2400, q: 1.5 } });
-  } else if (fam === 'speed'){
-    // one instant pneumatic snap and it's gone
-    N({ pos, at: at + dur * 0.7, g: 0.09 * g * k, a: 0.0008, d: 0.03, filt: { type: 'bandpass', f: 3600, q: 0.9 }, drive: 0.6, pri: 2 });
-    N({ pos, at, g: 0.04 * g, a: 0.01, d: dur * 0.7, filt: { type: 'bandpass', f: 2200, f2: 5200, q: 1.2 } });
-  } else if (fam === 'power'){
-    // the blade burning off: arcing that crackles on and fades, a sizzle hanging in the air after it
-    crackle(pos, full ? 10 : 7, dur * 1.3, 0.035 * g, at);
-    for (let i = 0; i < 2; i++)
-      T({ pos, at: at + rand(0.05, dur), type: 'sawtooth', f: rand(100, 160), f2: rand(50, 70), g: 0.03 * g, a: 0.001, d: rand(0.05, 0.1),
-          fm: { r: rand(2.2, 3.6), i: 6, i2: 1 }, filt: { type: 'bandpass', f: rand(1000, 2000), q: 0.9 }, drive: 0.8, pri: 0 });
-    N({ pos, at: at + dur * 0.6, g: 0.03 * g * k, a: 0.05, d: 0.55, trem: { r: rand(14, 20), d: 0.7, type: 'square' }, filt: { type: 'highpass', f: 4000 }, drive: 0.3, pri: 0 });
-  } else if (fam === 'niman'){
-    // a soft wind dissolving into the hilt
-    N({ pos, at, color: 'pink', g: 0.05 * g * k, a: dur * 0.3, d: dur * 0.9, filt: { type: 'lowpass', f: 2400, f2: 400, q: 0.6, t: dur }, pri: 1 });
   }
 }
 
@@ -203,28 +180,66 @@ export function ignite(kind, o = {}){
   if (kind === 'jarkai') ignite('jarkai', { pos, at: at + (full ? 0.14 : 0.12), g: 0.8 * g2, full, second: true });   // Jar'Kai: the second saber lights from the other hand
 }
 
-/* a blade going out: the hum sucking back down into the hilt, the hiss drawn in, the emitter sealing */
+/* A BLADE GOING OUT: the ignition played backwards. Every voice of it is mirrored in time: what struck hard and died
+   away now swells up from nothing and cuts off dead, and every glide runs the other way, so the sound runs:
+     the swell     the hum rising from its idle level, loud and opening (the ignition's ease-down, reversed)
+     the drop      the hum diving from its pitch to a growl an octave and more below as it swells (the run-up, reversed)
+     the suck-in   the clash, the "kssh" and the faint "pyew" all reversed into it: the arc, the surge and the hiss
+                   swelling in, the pyew's echoes arriving before it as a rising chirp, and the crack, the knock and the
+                   thump drawn in last, ending the whole sound dead at the hilt
+   Timed by the form's group like its ignition (IGNITE_FAMILY rise); o.short: a form change's quick one. */
 export function retract(kind, o = {}){
-  const full = !!o.full, dark = kind === 'dark', pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * (full ? 0.72 : 0.45);
-  const fam = familyOf(kind), F = IGNITE_FAMILY[fam], br = F.bright;
-  const dur = (full ? 0.42 : o.short ? 0.18 : 0.32) * F.len * rand(0.92, 1.08), p = (HUM_PITCH[kind] || SABER_PITCH) * rand(0.98, 1.02);
-  // the hum lets go: a soft knock as the field breaks, the pitch up a hair, then the whole stack sinking into the hilt
-  bladePunch(pos, at, g * 0.4, 0);
-  humStack(pos, at, p, { m0: 1.03, m1: 0.3, ft: dur, g: 0.1 * g, a: 0.006, hold: dur * 0.12, d: dur,
-    lp0: (dark ? 1800 : 2600) * br, lp1: 140, lt: dur, drive: (dark ? 0.5 : 0.15) + F.drive });
-  T({ pos, at, type: 'sawtooth', f: 300 * p, f2: 95 * p, ft: dur * 0.8, g: 0.03 * g, a: 0.01, d: dur * 0.85, vib: { r: 9, d: 10 },
-      filt: { type: 'bandpass', f: (dark ? 1800 : 3400) * br, f2: 380, q: 3.2, t: dur * 0.8 } });
-  // the hiss drawn in after it: a swell, cut off sharp at the hilt (so it sounds pulled back rather than blown out)
-  N({ pos, at, color: 'pink', g: 0.075 * g, a: dur * 0.7, d: 0.05, filt: { type: 'bandpass', f: 4000 * br, f2: 700, q: 1.1, t: dur * 0.8 }, pri: 2 });
-  // the emitter sealing: a click and a soft low knock
-  N({ pos, at: at + dur * 0.85, g: 0.05 * g * Math.max(0.4, F.crack), a: 0.0008, d: 0.025, filt: { type: 'bandpass', f: 2800, q: 1 }, drive: 0.5 });
-  T({ pos, at: at + dur * 0.85, type: 'sine', f: 140, f2: 55, ft: 0.06, g: 0.1 * g, a: 0.001, d: 0.1, panK: 0.3 });
-  if (F.crackle) crackle(pos, Math.round((dark ? 4 : 2) * F.crackle), dur * 0.6, 0.03 * g, at);
+  const full = !!o.full, dark = kind === 'dark', pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * (full ? 0.75 : 0.55);
+  const fam = familyOf(kind), F = IGNITE_FAMILY[fam], br = F.bright, dr = (dark ? 0.45 : 0.15) + F.drive;
+  const sc = (full ? 1 : o.short ? 0.4 : 0.55) * F.rise * rand(0.92, 1.08);
+  const p = (HUM_PITCH[kind] || SABER_PITCH) * rand(0.98, 1.02), hp = p;
+  const LA = 0.75 * sc, LB = 0.22 * sc, E = at + LA + LB;   // the swell, the drop, and where it all ends
+  const rv = (o2) => T(Object.assign({ pos, verb: 0.15 }, o2));   // (a reversed voice: a long attack, a cut-off end)
+  // the swell: the hum rising loud off its idle, its filter opening, its pitch lifting a hair
+  for (const [f, type, gg, det] of [[90, 'sawtooth', 1, 6], [90.33, 'sawtooth', 0.8, -6], [180, 'sine', 0.5], [45, 'sine', 0.55], [45, 'square', 0.12]])
+    rv({ at, type, f: f * p, f2: f * p * 1.04, ft: LA, g: 0.12 * g * gg, a: LA, d: LB * 0.6, det,
+         filt: { type: 'lowpass', f: 380, f2: 1800 * br, t: LA }, drive: dr });
+  // the drop: the whole stack diving to a growl as it swells, the filter flaring open, cut off at the bottom
+  for (const [f, type, gg, det] of [[90, 'sawtooth', 1, 6], [90.33, 'sawtooth', 0.8, -6], [180, 'sine', 0.5], [45, 'sine', 0.55], [45, 'square', 0.12], [90, 'square', 0.22], [180.4, 'sawtooth', 0.1]])
+    rv({ at: at + LA - LB * 0.3, type, f: f * p * 1.04, f2: f * p * rand(0.36, 0.44), ft: LB * 1.3, g: 0.1 * g * gg, a: LB * 1.25, d: 0.012, det,
+         filt: { type: 'lowpass', f: 1800 * br, f2: (dark ? 2600 : 4800) * br, t: LB * 1.3 }, drive: dr + 0.05 });
+  // the edge zinging back in
+  rv({ at: E - LB * 1.6, type: 'sawtooth', f: 360 * p, f2: 170 * p, ft: LB * 1.6, g: 0.035 * g, a: LB * 1.55, d: 0.01, vib: { r: 7, d: 12 },
+       filt: { type: 'bandpass', f: (dark ? 2200 : 4200) * br, f2: dark ? 450 : 650, q: 3.5, t: LB * 1.6 } });
+  // the "kssh" drawn back in
+  N({ pos, at: E - 0.37 * sc, color: 'pink', g: 0.075 * g, a: 0.36 * sc, d: 0.01, filt: { type: 'bandpass', f: (dark ? 2600 : 4800) * br, f2: 900, q: 0.9, t: 0.36 * sc }, verb: 0.15, pri: 2 });
+  if (F.crackle) crackle(pos, Math.round((dark ? 6 : 3) * F.crackle * (full ? 1.5 : 1)), LA * 0.8, 0.04 * g, at + LA * 0.3);
   if (o.second) return;
-  retractLayers(fam, kind, pos, at, g * 0.6, dur, full);
+  // the boot-up clash, reversed into the end of it (on the clash bus, like the clash)
+  const C = o2 => play(Object.assign({ pos, bus: 'clash' }, o2)), CN = o2 => C(Object.assign({ src: 'noise' }, o2));
+  const k = g * (full ? 1.3 : 1) * rand(0.9, 1.05) * 1.4, lc = (full ? 0.62 : 0.4) * sc / Math.max(0.5, F.rise), buzz = rand(55, 85);
+  CN({ at: E - lc, g: 0.085 * k, a: lc, d: 0.008, trem: { r: buzz, d: 0.9, type: 'square' },
+       filt: { type: 'bandpass', f: 1500, f2: rand(3600, 4400), q: 0.8, t: lc }, drive: 0.9, pri: 2 });
+  for (const [mul, det, gg] of [[1, 6, 0.04], [1.004, -8, 0.027]])
+    C({ at: E - lc, type: 'sawtooth', f: 80 * hp * mul, f2: 92 * hp * mul, ft: lc, g: gg * k, a: lc * 0.95, d: 0.008, det,
+        filt: { type: 'lowpass', f: 600, f2: 4200, t: lc }, drive: 1, pri: 2 });
+  C({ at: E - lc * 0.8, type: 'square', f: 162 * hp, f2: 184 * hp, ft: lc * 0.8, g: 0.03 * k, a: lc * 0.78, d: 0.008, trem: { r: buzz, d: 0.6, type: 'square' },
+      filt: { type: 'bandpass', f: 1100, f2: 2200, q: 1.4, t: lc * 0.8 }, drive: 0.8 });
+  CN({ at: E - lc * 1.4, g: 0.035 * k, a: lc * 1.38, d: 0.01, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });   // the sparks
+  // the punch drawn in last: the thump, the knock, the pink body and the crack, each swelling up and cut off dead
+  const sub = rand(72, 88);
+  C({ at: E - 0.15, type: 'sine', f: sub * 0.6, f2: sub * 1.6, ft: 0.15, g: 0.2 * k, a: 0.145, d: 0.006, panK: 0.25, pri: 2 });
+  CN({ at: E - 0.07, color: 'brown', g: 0.08 * k, a: 0.068, d: 0.004, filt: { type: 'lowpass', f: 450 }, panK: 0.4 });
+  C({ at: E - 0.06, type: 'sine', f: 85, f2: rand(200, 240), ft: 0.06, g: 0.16 * k, a: 0.058, d: 0.004, drive: 0.5, panK: 0.3, pri: 2 });
+  CN({ at: E - 0.035, color: 'pink', g: 0.09 * k, a: 0.033, d: 0.003, filt: { type: 'bandpass', f: 320, q: 1.1 }, drive: 0.6, panK: 0.3 });
+  CN({ at: E - 0.022, g: 0.19 * k * Math.max(0.25, F.crack), a: 0.021, d: 0.002, filt: { type: 'bandpass', f: rand(2600, 3400), q: 0.8 }, drive: 1, pri: 2 });
+  // the faint "pyew", reversed: its echoes arrive first, each a chirp rising up the wire, the main one last
+  const pb = rand(0.75, 1.3), tw = 0.155, pk = k * 0.35 * 1.6;
+  for (const [echo, eg] of [[0.09, 0.2], [0.045, 0.45], [0, 1]])
+    for (const [mul, rate, gg, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']]){
+      const L = tw * rate * 1.1;
+      C({ at: E - 0.01 - echo - L, type, f: 300 * pb * mul, f2: 4600 * pb * mul, ft: L, g: gg * eg * pk, a: L * 0.97, d: 0.003,
+          filt: { type: 'lowpass', f: 1400, f2: 9000, t: L }, verb: 0.12, pri: echo ? 0 : 1 });
+    }
+  C({ at: E - 0.04 - 0.35, type: 'square', f: 220 * pb, f2: 900 * pb, ft: 0.35, g: 0.02 * pk, a: 0.34, d: 0.005, filt: { type: 'lowpass', f: 500, f2: 3000, t: 0.35 } });
   const g2 = o.g ?? 1;
-  if (kind === 'staff') retract('staff', { pos, at: at + 0.05, g: 0.55 * g2, short: o.short, full, second: true });
-  if (kind === 'jarkai') retract('jarkai', { pos, at: at + 0.07, g: 0.6 * g2, short: o.short, full, second: true });
+  if (kind === 'staff') retract('staff', { pos, at: at + 0.05, g: 0.75 * g2, short: o.short, full, second: true });
+  if (kind === 'jarkai') retract('jarkai', { pos, at: at + 0.07, g: 0.8 * g2, short: o.short, full, second: true });
 }
 
 /* a form change: the blade drops and lights again in its new form's colour (fx/trail.js reigniteBlade) */

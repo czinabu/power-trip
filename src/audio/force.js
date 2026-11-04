@@ -6,12 +6,11 @@
 //                              for a pull, so you hear which way the Force is flowing
 //       2 the hum              a deep, pitch-bent drone as the power takes hold, the Force itself
 //       3 the impact           a kick's pitch drop into the sub, a dull distorted crash, debris settling
-//   LIGHTNING (cast, each chain tick, the held channel)   crackling electricity with an animal roar inside it, over a
-//   deep hum, pitched down and distorted:
+//   LIGHTNING (cast, each chain tick, the held channel)   electricity first:
 //       1 the ignition spark   a capacitor dump: a hard pop and a welder's knock
-//       2 the fry              a sizzle sitting up in 8-12 kHz, and the tear: saws thrashed by a chaotic modulator
-//       3 the roar             driven saws through two growling vowel formants, for the aggression
-//       4 the hum              a deep 45-50 Hz drone under it
+//       2 the crackle          a dense, uneven rain of tiny discharges with bigger snaps (makeCrackle), bright and low
+//       3 the arc's buzz       a raspy, driven 120 Hz tone, the sound of a live arc
+//       4 the fry              a sizzle up in 8-12 kHz; a quiet chaotic tear and a faint deep hum under it all
 //       all of it runs through a TREMOLO wobbling at an irregular 12-18 Hz, so the current stutters and flickers
 //   INTERNAL (Force Mend's channel and its bloom)   the camera pulls inward:
 //       1 the riser            a reversed-cymbal swell and a pad opening upward
@@ -55,6 +54,28 @@ function makeIR(secs, damp){
   return ir;
 }
 
+/* real electricity, as a sound: not hiss but a dense, uneven rain of discharges. Thousands of tiny clicks (each a
+   few samples of noise dying in under 2 ms), bunched into stuttering clusters, with bigger snaps among them. Played
+   looped like the noise buffers (AE.noise.crackle), through filters, it is the crackle every lightning layer leads with. */
+function makeCrackle(){
+  const sr = ac().sampleRate, n = sr * 2, buf = ac().createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let i = 0;
+  while (i < n){
+    const burst = Math.random() < 0.3;                         // a cluster of discharges, then a ragged gap
+    const len = Math.floor(sr * (burst ? rand(0.01, 0.05) : rand(0.002, 0.012)));
+    const rate = burst ? rand(2500, 6000) : rand(150, 600);    // clicks per second inside it
+    for (let j = 0; j < len && i + j < n; j += Math.max(1, Math.floor(sr / rate * rand(0.3, 1.7)))){
+      const big = Math.random() < 0.04, amp = (big ? 1 : rand(0.1, 0.55)) * (Math.random() < 0.5 ? -1 : 1);
+      const dec = Math.floor(sr * (big ? rand(0.002, 0.005) : rand(0.0002, 0.0015)));
+      for (let k = 0; k < dec && i + j + k < n; k++) d[i + j + k] += amp * (Math.random() * 2 - 1) * Math.exp(-5 * k / dec);
+    }
+    i += len + Math.floor(sr * (burst ? rand(0.002, 0.02) : rand(0.0005, 0.004)));
+  }
+  let mx = 0; for (let k = 0; k < n; k++) mx = Math.max(mx, Math.abs(d[k]));
+  for (let k = 0; k < n; k++) d[k] = clamp(d[k] / (mx || 1) * 1.6, -1, 1);
+  return buf;
+}
+
 /* an amplitude wobble at an irregular 12-18 Hz: two LFOs a little apart, their rates themselves dragged around by a
    slow third, summed onto a gain (lightning stutters instead of buzzing evenly) */
 function tremolo(A, to, base){
@@ -82,6 +103,7 @@ function ensureBus(){
   AE.bus.zap = AE.bus.zapN = tremolo(A, F.out, 0.62);
   AE.send.zap = AE.send.force; AE.send.zapN = AE.send.forceN;
   AE.bus.zapW = tremolo(A, AE.bus.sfx, 0.62);   // a foe's lightning out in the world: the same stutter, muffled with the world
+  AE.noise.crackle = makeCrackle();
   F.ready = true;
   F.hero = zapLoop(AE.bus.zap, AE.send.force, AE.send.forceN);
   F.foe = zapLoop(AE.bus.zapW, AE.roomIn, AE.roomIn);
@@ -217,33 +239,35 @@ function tear(pos, s, dur, self){
         filt: { type: 'lowpass', f: 2800, f2: 900 }, drive: 0.5 }, 'zap', self);
 }
 
-/* the films' lightning: crackling electricity with an animal ROAR inside it for aggression, over a deep hum (the
-   Force itself), pitched down and distorted. The roar: detuned saws through two vowel formants, growling (FM), driven. */
-function roar(pos, s, dur, self, at = 0){
-  for (const [f, fq] of [[72, 650], [108, 1080]])
-    V({ pos, at, type: 'sawtooth', f, f2: f * 0.82, g: 0.06 * s, a: 0.02, d: dur, fm: { r: 0.5, i: 1.6, i2: 0.6 }, vib: { r: 7, d: 40 }, drive: 0.7,
-        filt: { type: 'bandpass', f: fq, f2: fq * 0.8, q: 3 }, verb: 0.25 }, 'zap', self);
+/* LIGHTNING, built as electricity first: the crackle (the discharge buffer, bright and dense) and the arc's buzz
+   (a raspy, driven 120 Hz mains-like tone, the sound a live arc makes), the films' deep hum kept only faintly under it. */
+function crackle(pos, s, dur, self, at = 0){
+  VN({ pos, at, color: 'crackle', g: 0.32 * s, a: 0.002, d: dur, filt: { type: 'highpass', f: 1400 }, drive: 0.35, verb: 0.15, jit: 0.15 }, 'zap', self);
+  VN({ pos, at, color: 'crackle', rate: 0.55, g: 0.16 * s, a: 0.002, d: dur * 0.8, filt: { type: 'bandpass', f: 900, q: 0.7 }, drive: 0.5, jit: 0.2 }, 'zap', self);   // its lower, heavier snaps
+}
+function buzz(pos, s, dur, self, at = 0){
+  for (const [f, fq] of [[120, 2300], [180.6, 3400]])
+    V({ pos, at, type: 'sawtooth', f, g: 0.05 * s, a: 0.003, d: dur, vib: { r: 47, d: 90 }, drive: 0.75, filt: { type: 'bandpass', f: fq, q: 0.9 } }, 'zap', self);
 }
 function zapHum(pos, s, dur, self, at = 0){
-  V({ pos, at, type: 'sawtooth', f: 49, f2: 44, g: 0.07 * s, a: 0.03, d: dur, filt: { type: 'lowpass', f: 300 }, drive: 0.4 }, 'zap', self);
-  V({ pos, at, type: 'sine', f: 49, f2: 44, g: 0.12 * s, a: 0.03, d: dur }, 'zap', self);
+  V({ pos, at, type: 'sine', f: 49, f2: 44, g: 0.06 * s, a: 0.03, d: dur }, 'zap', self);
 }
 
-// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): the spark, the crackle,
-// the roar tearing out of it, the deep hum under it all
+// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): the spark, a burst of
+// crackle and the arc's buzz, the fry over it, a faint deep hum under it
 export function zap(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  spark(pos, 1, self); fry(pos, 1, 0.36, self, 0.005); tear(pos, 0.6, 0.28, self);
-  roar(pos, 1, 0.42, self, 0.01); zapHum(pos, 1, 0.5, self);
+  spark(pos, 1.1, self); crackle(pos, 1, 0.42, self); buzz(pos, 1, 0.34, self); fry(pos, 0.8, 0.36, self, 0.005);
+  tear(pos, 0.3, 0.2, self); zapHum(pos, 1, 0.45, self);
 }
 // one chained strike landing on a foe (Judgement's ticks): self = the hero's own (placed at the foe, but on the Force bus)
 export function arc(pos, self){
   if (!ensureBus()) return;
-  spark(pos, 0.55, self); fry(pos, 0.6, 0.08, self); tear(pos, 0.4, 0.09, self);
+  spark(pos, 0.7, self); crackle(pos, 0.6, 0.1, self); buzz(pos, 0.5, 0.08, self);
 }
 
-/* the held channel: a tear and a fry that run as long as lightning pours out (the hero's Judgement, the boss's
+/* the held channel: the crackle, the arc's buzz and a fry that run as long as lightning pours out (the hero's Judgement, the boss's
    lightning, a co-op partner's). Steered by updateForce. */
 function zapLoop(dest, send, sendN){
   const A = ac(), t = now();
@@ -261,23 +285,29 @@ function zapLoop(dest, send, sendN){
   mod.connect(mg);
   const oscs = [mod, w1, w2];
   for (const f of [58, 86.5]){ const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; mg.connect(o.frequency); o.connect(tf); oscs.push(o); }
-  // the roar inside it: driven saws through two vowel formants, their pitch growling, under the tremolo like the rest
+  // the crackle: the discharge buffer, looped, bright
+  const ck = A.createBufferSource(); ck.buffer = AE.noise.crackle; ck.loop = true;
+  const cf = A.createBiquadFilter(); cf.type = 'highpass'; cf.frequency.value = 1300;
+  const cg = A.createGain(); cg.gain.value = 2.2; ck.connect(cf); cf.connect(cg); cg.connect(lvl);
+  const ck2 = A.createBufferSource(); ck2.buffer = AE.noise.crackle; ck2.loop = true; ck2.playbackRate.value = 0.6;   // its heavier snaps
+  const cf2 = A.createBiquadFilter(); cf2.type = 'bandpass'; cf2.frequency.value = 850; cf2.Q.value = 0.7;
+  const cg2 = A.createGain(); cg2.gain.value = 1.1; ck2.connect(cf2); cf2.connect(cg2); cg2.connect(lvl);
+  // the arc's buzz: raspy, driven 120 Hz, wavering
   const shp = A.createWaveShaper(), cv = new Float32Array(512);
-  for (let i = 0; i < 512; i++){ const x = i / 511 * 2 - 1; cv[i] = Math.tanh(4 * x) / Math.tanh(4); }
-  shp.curve = cv; const rg = A.createGain(); rg.gain.value = 0.32; shp.connect(rg); rg.connect(lvl);
-  const growl = A.createOscillator(), gg = A.createGain(); growl.frequency.value = 33; gg.gain.value = 18; growl.connect(gg); oscs.push(growl);
-  for (const [f, fq] of [[68, 640], [102, 1060]]){
-    const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; gg.connect(o.frequency);
-    const bf = A.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = fq; bf.Q.value = 3; o.connect(bf); bf.connect(shp); oscs.push(o);
-  }
-  // and the deep hum of the Force under everything
-  const hs = A.createOscillator(), hg = A.createGain(); hs.frequency.value = 46; hg.gain.value = 0.9; hs.connect(hg); hg.connect(lvl); oscs.push(hs);
+  for (let i = 0; i < 512; i++){ const x = i / 511 * 2 - 1; cv[i] = Math.tanh(5 * x) / Math.tanh(5); }
+  shp.curve = cv; const bfl = A.createBiquadFilter(); bfl.type = 'bandpass'; bfl.frequency.value = 2400; bfl.Q.value = 0.8;
+  const rg = A.createGain(); rg.gain.value = 0.22; shp.connect(bfl); bfl.connect(rg); rg.connect(lvl);
+  const wv = A.createOscillator(), wg = A.createGain(); wv.frequency.value = 47; wg.gain.value = 6; wv.connect(wg); oscs.push(wv);
+  for (const f of [120, 180.6]){ const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; wg.connect(o.frequency); o.connect(shp); oscs.push(o); }
+  // a faint deep hum under it
+  const hs = A.createOscillator(), hg = A.createGain(); hs.frequency.value = 46; hg.gain.value = 0.35; hs.connect(hg); hg.connect(lvl); oscs.push(hs);
+  tg.gain.value = 0.25;   // (the tear stays, quieter, under the crackle)
   // the fry: hiss up in 8-12 kHz
   const nz = A.createBufferSource(); nz.buffer = AE.noise.white; nz.loop = true;
   const nf = A.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 9800; nf.Q.value = 0.8;
   const ng = A.createGain(); ng.gain.value = 0.9; nz.connect(nf); nf.connect(ng); ng.connect(lvl);
   for (const o of oscs) o.start(t);
-  nz.start(t);
+  nz.start(t); ck.start(t, rand(0, 1.5)); ck2.start(t, rand(0, 1.5));
   let on = false;
   return {
     set(level, p, hz, nim){
@@ -335,7 +365,7 @@ export function updateForce(dt){
   const playing = G.mode === 'play' && !G.paused && !G.skillSelect;
   // the hero's Judgement, held: louder in Niman, a little brighter with the crackle thrown over it
   const heroOn = playing && !isGunner() && player.judgeT > 0, nim = niman();
-  F.hero.set(heroOn ? 0.075 * (nim ? NIMAN_FORCE.g : 1) : 0, 0, 0, nim);
+  F.hero.set(heroOn ? 0.09 * (nim ? NIMAN_FORCE.g : 1) : 0, 0, 0, nim);
   // the nearest foe's lightning: the boss's beam, or the partner's
   let at = null;
   if (playing && shared.bossLight && shared.bossLight.visible && shared.boss) at = shared.boss.group.position;

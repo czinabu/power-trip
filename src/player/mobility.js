@@ -104,6 +104,7 @@ export function groundRoll(){
   player.cds.roll = R.time + R.cd * (F.cd || 1);
   player.swingLock = Math.max(player.swingLock || 0, R.time * 0.6 + R.swingLock);
   if (!isGunner() && stance().swoop) player.momentum = { kind: 'swoop', until: G.gt + R.time + 0.5 };   // ATARU: SHIFT in a fight rolls, and a cut out of the roll is the Hawk-Bat Swoop too (jedi/combat.js)
+  else if (!isGunner() && stance().vaultStrike) player.momentum = { kind: 'polevault', until: G.gt + R.time + 0.5 };   // THE SABER STAFF: cut out of it for the Pole Vault (jedi/combat.js)
   tutEvent('dash');   // the dodge lessons count a roll as a dash
   launchFlip({ ...flipStyle('roll', dd), t: 0, dur: R.time, side: side ? (drr >= 0 ? 1 : -1) : 1 }, dd);
   burst(playerPos().clone().setY(0.25), 0xb9c2cc, 6, 3, 1.5, 0.8);

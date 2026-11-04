@@ -33,10 +33,11 @@ export const STANCES = {
             radiusMult: 1.35, comboGap: 1.0, fovKick: 0, postureMul: 1.0,
             finisherArc: 1.3,     // ROLE: the Sarlacc Sweep reaches ~30% further, all the way round (SWING_STYLE.shiicho finisher spin)
             disarm: 6,            // DISARMING SLASH: a finisher on a blaster trooper knocks its gun loose for this many seconds
+            sweepThrough: true,   // ROLE: a flat cut, a spin or the finisher rolls off a guard that turns it and carries on to the next foe (jedi/clash.js)
             duelBlockMul: 1.1,    // LORE: a skilled duellist reads Form I's broad cuts and turns 10% more of them
             deflectScatter: 0.08, // basic blast deflection, taught early: bolts go back loosely (rad)
             gait: { amp: 1.0, lift: 1.0, bob: 0.5, lean: 1.0 },   // MOVEMENT: plain, square, athletic
-            syn: 'CROWDS · Sarlacc Sweep finisher hits all around · finisher disarms blaster troopers · duellists read it' },
+            syn: 'CROWDS · sweeps roll off a guard to the next foe · W in rhythm: Sarlacc Advance · finisher disarms blaster troopers · duellists read it' },
   /* FORM II MAKASHI — the duellist's form (Dooku): one hand, side-on, precise and economical, made to beat other blades.
      Narrow, quick cuts and thrusts; it reads a duellist's feints and stands its ground. Its weakness is blaster fire. */
   makashi: { name: 'MAKASHI — DUELS', form: 'makashi', formNo: 'II', blade: 0xffb02e,
@@ -149,9 +150,10 @@ export const STANCES = {
             radiusMult: 1.15, comboGap: 1.2, fovKick: 3, postureMul: 0.85, parryBonus: 0.02,
             blockStamMul: 1.25,   // COST: a long hilt is slow to bring square: every block and caught bolt costs 25% more
             castMul: 1.2,         // …and with both hands on it, a Force cast comes 20% slower
+            vaultStrike: 1,       // POLE VAULT: a cut out of a roll or a Force dash plants the staff and vaults in, feet first (jedi/combat.js)
             deflectScatter: 0.08,
             gait: { amp: 1.04, lift: 1.1, bob: 0.4, lean: 1.1 },   // MOVEMENT: light and turning, the staff carried across the body
-            syn: 'SWEEPS · two blades: every cut covers front and back · fast wheeling strings · spinning finisher · COSTLY guard · slower Force casts' },
+            syn: 'SWEEPS · two blades: every cut covers front and back · roll or dash into a cut: Pole Vault · spinning finisher · COSTLY guard · slower Force casts' },
   /* JAR'KAI — not one of the seven forms but a way of fighting: a saber in each hand (Ahsoka, Ventress, Revan,
      Starkiller; data/forms.js jarkai). A SPEED form: every cut is two beats, the lead blade and then the off hand's
      follow-up the same way, a beat behind (anim/saber.js), quick enough to land inside a heavy wind-up. The budget is ONE

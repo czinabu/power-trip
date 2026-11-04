@@ -131,7 +131,7 @@ export const otherVariant = (id, known) => {
 export const FORM_CODEX = {
   shiicho: { who: 'Kit Fisto', lore: 'The first form every initiate learns: wide, simple sweeps made to hold off many foes at once.',
     best: 'Crowds of troopers',
-    pros: ['Wide sweeps that catch several foes', 'The Sarlacc Sweep finisher hits all round you', 'The finisher knocks the blaster out of a trooper\'s hands'],
+    pros: ['Wide sweeps that catch several foes', 'The Sarlacc Sweep finisher hits all round you', 'The finisher knocks the blaster out of a trooper\'s hands', 'Wide cuts sweep on through a blocking foe to the next one', 'W and a cut in rhythm: the Sarlacc Advance spins you through a crowd'],
     cons: ['Duellists read its broad cuts and turn 10% more of them', 'Deflected bolts go back loosely'] },
   makashi: { who: 'Count Dooku', lore: 'The duellist\'s form: one hand, side-on, precise and economical, made to beat another blade.',
     best: 'Duellists, acolytes and anything with a blade',
@@ -167,7 +167,7 @@ export const FORM_CODEX = {
     cons: ['Blows land 10% harder on you', 'Weak when nobody attacks you', 'Choosing it closes Juyo for the run'] },
   staff: { who: 'The Jedi Temple Guard, Darth Maul', lore: 'Not a form but a weapon: one long hilt, a blade at each end, kept spinning in both hands. The Temple Guards carried it gold-bladed to hold a door against many; Maul made it a whirlwind. Every cut is two.',
     best: 'Crowds closing in from every side',
-    pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you', 'Its own acrobatics: a whirling cartwheel, handsprings and a pike leap with the staff level overhead'],
+    pros: ['Two blades: every cut sweeps the front and the back at once', 'Roll or dash into a cut for the Pole Vault: you land feet first on the foe and floor it', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you', 'Its own acrobatics: a whirling cartwheel, handsprings and a pike leap with the staff level overhead'],
     cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },
   jarkai: { who: 'Ahsoka Tano, Asajj Ventress, Darth Revan, Starkiller', lore: 'Not a form but a way of fighting: a saber in each hand. Ventress and Revan held both blades forward, Ahsoka both reversed. The second blade is always coming, from the other side, before the first one is done.',
     best: 'Heavy hitters: Djem So, Juyo and the saber staff',

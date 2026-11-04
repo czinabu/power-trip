@@ -74,6 +74,7 @@ export function forceDash(){
   player.dashT = A.time; player.dashStartT = G.gt;   // PERFECT DODGE reads the dash's start (player/damage.js)
   player.dodgeKind = 'dash'; player.dashSpent = fight;   // a perfect dodge gives a spent charge back
   if (!isGunner() && stance().swoop) player.momentum = { kind: 'swoop', until: G.gt + A.time + 0.5 };   // ATARU: cut out of it for the Hawk-Bat Swoop (jedi/combat.js)
+  else if (!isGunner() && stance().vaultStrike) player.momentum = { kind: 'polevault', until: G.gt + A.time + 0.5 };   // THE SABER STAFF: cut out of it for the Pole Vault (jedi/combat.js)
   tutEvent('dash');
   const dir = V3(0,0,0);
   if (keys['w']) dir.add(fwd());

@@ -21,6 +21,7 @@ export function fxOut(){
   const o = {};
   if (player.flaming){ const f = heroAim().dir; o.fl = [r2(f.x), r2(f.y || 0), r2(f.z)]; }   // (3D: up or down with the aim)
   if (shared.saberProj && shared.saberProj.mesh.visible){ const p = shared.saberProj.mesh.position; o.ts = [r2(p.x), r2(p.y), r2(p.z)]; }
+  if (shared.offProj && shared.offProj.mesh.visible){ const p = shared.offProj.mesh.position; o.to = [r2(p.x), r2(p.y), r2(p.z)]; }   // (Jar'Kai's left saber, thrown on its own)
   if (player.judgeT > 0 && player.judgeTargets && player.judgeTargets.length)
     o.jt = player.judgeTargets.slice(0, 6).map(v => [r2(v.x), r2(v.y), r2(v.z)]);
   return Object.keys(o).length ? o : undefined;
@@ -34,7 +35,8 @@ export function makePartnerFx(){
               new THREE.MeshBasicMaterial({ color: 0x7fd0ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })));
   blade.rotation.z = Math.PI / 2; blade.visible = false;
   scene.add(blade);
-  return { cur: null, curAt: 0, blade, bolts: [], beat: -1, flameEmit: 0 };
+  const blade2 = blade.clone(); blade2.visible = false; scene.add(blade2);   // Jar'Kai's left saber, thrown on its own
+  return { cur: null, curAt: 0, blade, blade2, bolts: [], beat: -1, flameEmit: 0 };
 }
 // the partner's hands that throw their Force: both when their fists glow (saber holstered: jedi/palm.js), else the free one
 const mateHands = (mate) => mate && mate.fistGlow && mate.fistGlow[0].material.opacity > 0.05 ? ['L', 'R'] : ['L'];
@@ -92,6 +94,12 @@ export function updatePartnerFx(st, dt, g, shown, mate){
     if (Math.random() < dt * 30) inkSprite({ pos: blade.position, normal: V3(0, 1, 0), shape: 'ring', inner: 0.12, color: 0x7fd0ff, size: [1.8, 1.8],
                                            life: 0.09, steps: 2, op: 0.55, coreW: 0.2, inkW: 0.1 });
   } else blade.visible = false;
+  const b2 = st.blade2;
+  if (b2 && live && live.to){
+    b2.visible = true;
+    b2.position.set(live.to[0], live.to[1], live.to[2]);
+    b2.rotation.y += dt * 22;
+  } else if (b2) b2.visible = false;
   // the Force lightning
   const tg = live && live.jt ? live.jt : [];
   while (bolts.length < tg.length) bolts.push(makeLine());

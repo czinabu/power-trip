@@ -111,6 +111,7 @@ export function startLevel(idx, opts){
   if (shared.bossLight) shared.bossLight.visible = false;
   document.getElementById('bosswrap').style.display = 'none';
   if (shared.saberProj){ hideThrownSaber(); shared.saberProj = null; stowHandSaber(false); }
+  if (shared.offProj) hideThrownSaber();   // (Jar'Kai's left saber in flight on its own)
   for (const rk of rockets) scene.remove(rk.mesh);
   rockets.length = 0;
   G.spawnQueue.length = 0;

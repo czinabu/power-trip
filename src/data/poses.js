@@ -210,11 +210,11 @@ export const SABER_GUARDS = {
       block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
                off: { hand: [-0.28, -0.04, 0.34], pole: OFF_POLE } },
     },
-    /* JAR'KAI, REVERSE GRIP — Maul and Starkiller: squared up, both fists low at the hips and both blades standing up
-       out of them past the shoulders, a blade on each side */
+    /* JAR'KAI, REVERSE GRIP — Maul and Starkiller: squared up, both fists held up before the waist and both blades out
+       of the bottoms of them, raked down and back past the hips on either side: unmistakably reversed */
     jarkai: {
-      ready: { hand: [0.36, -0.28, 0.24], blade: [0.3, 0.9, 0.3], twist: 0.04, lean: 0.12, pole: [0.8, -0.5, -0.3],
-               off: { hand: [-0.36, -0.28, 0.24], pole: [-0.8, -0.5, -0.3], sway: 0.3 }, offBlade: [-0.3, 0.9, 0.3] },
+      ready: { hand: [0.34, 0.0, 0.36], blade: [0.58, -0.6, -0.55], twist: 0.04, lean: 0.12, pole: [0.8, -0.5, -0.3],
+               off: { hand: [-0.34, 0.0, 0.36], pole: [-0.8, -0.5, -0.3], sway: 0.3 }, offBlade: [-0.58, -0.6, -0.55] },
       // one arm before the body, one behind it (Ahsoka, The Clone Wars; Starkiller): the lead fist up in front of the
       // chest, its blade laid level out past the weapon side; the off arm drawn back behind, its blade trailing out behind
       block: { hand: [0.16, 0.14, 0.44], blade: [0.96, 0.08, 0.24], twist: 0.22, lean: 0.12, pole: [0.5, -0.7, -0.4],

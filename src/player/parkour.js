@@ -332,8 +332,10 @@ export function updateWallRun(dt, pp){
   if (sp < MOVE.wallRunMinSpeed) return;
   const n = wallBeside(pp, MOVE.wallRunReach);
   if (!n) return;
-  if ((vx * n.x + vz * n.z) / sp > 0.3) return;   // moving away from the wall; alongside it or straight at it both catch
-  // which way along the face: the way you're moving along it, or, jumping straight at it, the way you're looking along it
+  const into = -(vx * n.x + vz * n.z) / sp;
+  if (into < -0.3) return;   // moving away from the wall
+  if (into > MOVE.wallRunHeadOn) return;   // straight at it: no run, so SPACE can backflip off the face (movement.js); any angle at all runs
+  // which way along the face: the way you're moving along it, or, coming in nearly square, the way you're looking along it
   const tx = -n.z, tz = n.x, along = tx * vx + tz * vz;
   const f = fwd(), look = tx * f.x + tz * f.z;
   const dir = Math.abs(along) > 0.35 * sp ? Math.sign(along) : (Math.sign(look) || Math.sign(along) || 1);

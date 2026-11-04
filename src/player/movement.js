@@ -12,7 +12,7 @@ import { cancelSwing } from './jedi/combat.js';
 import { STEP_UP } from '../world/collision.js';
 import { flipStyle, launchFlip } from './anim/agility.js';
 import { MOVE } from '../data/movement.js';
-import { tryVault, findLedge, startMantle, requestRoll, hangClimb } from './parkour.js';
+import { tryVault, findLedge, startMantle, requestRoll, hangClimb, wallBeside } from './parkour.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { inCombat, formMob, groundRoll, rollRedash, spendCharge, airborneInCombat } from './mobility.js';
@@ -32,6 +32,11 @@ function turnTo(dx, dz){
     const sp = Math.hypot(v.x, v.z);
     v.x = dx * sp; v.z = dz * sp;
   }
+}
+// the face of a tall wall close in front of the body, looked at squarely (the backflip off it), or null
+function facedWall(pp){
+  const n = wallBeside(pp, MOVE.wallKickReach), f = fwd();
+  return n && -(n.x * f.x + n.z * f.z) > MOVE.wallKickFacing ? V3(n.x, 0, n.z) : null;
 }
 // drop the part of the momentum that drives into a surface with outward normal (nx, nz): a wall kick leaves the wall
 function offWall(nx, nz){
@@ -148,10 +153,11 @@ export function doJump(){
   const pp0 = playerPos();
   const ledge = findLedge(pp0, fwd(), STEP_UP, MOVE.reach);
   if (ledge){ startMantle(pp0, ledge, false); return; }
-  // SPACE on a wall-run KICKS OFF the face: a flip out and up, refreshing the air options so a kick can carry onto the
-  // opposite wall for another run. Costs a small Force fee (data/mando.js WALLKICK_FORCE); without the Force it falls
-  // through to the double-jump check below. (The old kick off any nearby wall or pillar, without a wall-run, is gone.)
-  const wn = player.wallRun ? V3(player.wallRun.nx, 0, player.wallRun.nz) : null;
+  // SPACE on a wall-run KICKS OFF the face, and so does SPACE in the air FACING a wall close in front (jumped at it
+  // square, so no wall-run caught it: parkour.js): a flip out and up, refreshing the air options so a kick can carry
+  // onto the opposite wall for another run. Costs a small Force fee (data/mando.js WALLKICK_FORCE); without the Force it
+  // falls through to the double-jump check below. A wall beside or behind you is no kick: that's a double jump.
+  const wn = player.wallRun ? V3(player.wallRun.nx, 0, player.wallRun.nz) : facedWall(pp0);
   if (wn && player.force >= WALLKICK_FORCE){
     player.force -= WALLKICK_FORCE;
     player.vy = CFG.player.jumpVel * 1.08;

@@ -22,7 +22,7 @@ export const PAD_CONTROLS = {
     { title: 'PARKOUR', rows: [
       ['{space}', 'Vault / climb', 'Press it right in front of low cover while running at it to vault over in one move; jump at a ledge to pull up'],
       ['{LS}', 'Ledge hang', 'Catch a high lip to hang; push the stick sideways to shimmy, up (or {space}) climbs, down drops', 1],
-      ['{w}', 'Wall-run', 'Jump or flip at a tall wall with the stick held and run along it; {space} kicks off it', 1],
+      ['{w}', 'Wall-run', 'Jump or flip at a tall wall at any angle and run along it; {space} kicks off it. Jump at it square and {space} backflips off it instead', 1],
       ['FLOW', 'Parkour pays', 'Every vault, climb, slide, wall-run and roll refunds Force; chain different moves for more, and the cut right after one hits harder', 1],
       ['{shift}', 'Landing roll', 'Just before a hard landing, or you stagger', 1],
     ]},

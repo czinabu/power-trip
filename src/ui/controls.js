@@ -18,7 +18,7 @@ const CONTROLS = {
     { title: 'PARKOUR', rows: [
       ['SPACE', 'Vault / climb', 'Press it right in front of low cover while running at it to vault over in one move; jump at a ledge to pull up'],
       ['A / D', 'Ledge hang', 'Catch a high lip to hang; A/D shimmy, W or SPACE climbs, S drops', 1],
-      ['W', 'Wall-run', 'Jump or flip at a tall wall with a direction held and run along it; SPACE kicks off it', 1],
+      ['W', 'Wall-run', 'Jump or flip at a tall wall at any angle and run along it; SPACE kicks off it. Jump at it square and SPACE backflips off it instead', 1],
       ['FLOW', 'Parkour pays', 'Every vault, climb, slide, wall-run and roll refunds Force; chain different moves for more, and the cut right after one hits harder', 1],
       ['SHIFT', 'Landing roll', 'Just before a hard landing, or you stagger', 1],
     ]},

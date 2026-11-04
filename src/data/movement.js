@@ -36,6 +36,9 @@ export const MOVE = {
   wallRunReach: 1.8,    // how far from a face (body centre to face, m) a jump or flip catches it
   wallRunFrom: 0.6,     // feet at least this high off the floor before the wall catches them (the jump gets to rise first)
   wallRunFall: -9,      // falling faster than this (m/s) is too late to catch a wall
+  wallRunHeadOn: 0.985,  // moving this squarely into a wall (cos of ~10°) is no wall-run: it's a jump at the wall, to backflip off
+  wallKickReach: 1.4,    // facing a wall this close (body centre to face) in the air, SPACE backflips off it
+  wallKickFacing: 0.8,   // …facing it this squarely (cos of ~37° off straight at it)
   wallRunHug: 0.68,     // body centre to face while running (m): just past the collision radius, so the feet are on the wall
   wallRunPull: 14,      // how fast (1/s) the body is drawn in to that distance after the catch
   wallRunGravity: 0.22, // gravity multiplier while running the wall

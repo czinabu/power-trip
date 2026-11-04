@@ -125,9 +125,10 @@ export function sweepBlade(sw, live){
   const pts = [];
   sweepPoints(PB, B, PT, T, pts);
   const nearN = pts.length;   // (samples past this one are the far blade's)
-  if (far) sweepPoints(FPB, FB, FPT, FT, pts);
   // a READY blade in the way (a guard that holds, a strike in flight) stops the cut before it reaches any body
   if (meetBlades(sw, pts)) return out;
+  // the staff's far blade meets blades on its own: one it meets turns that end only (jedi/clash.js meetBlades `far`)
+  if (far){ const fp = []; sweepPoints(FPB, FB, FPT, FT, fp); meetBlades(sw, fp, true); for (const v of fp) pts.push(v); }
   const test = (obj, x, z, y0, y1, r) => {
     if (cut.has(obj)) return;
     r += BODY.edge;
@@ -143,7 +144,9 @@ export function sweepBlade(sw, live){
   const at = sw.hitAt || (sw.hitAt = new Map());
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn' || cut.has(e)) continue;
-    for (let k = 0; k < pts.length; k += 3){
+    if (sw.nearStop && sw.nearStop.has(e)) continue;   // its guard turned the sweep (Shii-Cho: jedi/clash.js meetBlades)
+    const stopped = sw.farStop && sw.farStop.has(e);   // its weapon turned the far end: only the near blade can reach it
+    for (let k = 0; k < (stopped ? nearN : pts.length); k += 3){
       const part = pointHit(e, P.set(pts[k], pts[k + 1], pts[k + 2]), BODY.edge);
       if (part){
         const back = k >= nearN;   // the staff's far blade found it

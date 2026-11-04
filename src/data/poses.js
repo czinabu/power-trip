@@ -619,7 +619,10 @@ export const SWING_OFF = {
    the forearm, so it spins with the body only. */
 export const SWING_SPINS = {
   shiicho: { mid: null,                                                                       // plain: no flourish mid-string,
-             move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.4, dur: 1.25, stam: 0.5, cd: 3 } },            // but a strafing sweep wheels right round
+             move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.4, dur: 1.25, stam: 0.5, cd: 3 },             // but a strafing sweep wheels right round,
+             // and the SARLACC ADVANCE (its signature): W struck in rhythm wheels the blade right round while the feet drive
+             // forward through the crowd, cutting everything about you (its sweep rolls off guards: stances.js sweepThrough)
+             fwd: { turns: 1, twirl: 0, travel: 1.8, reach: 2.6, dur: 1.3, stam: 0.6, cd: 2.5, label: 'SARLACC ADVANCE' } },
   makashi: { mid: { turns: 0, twirl: 1, travel: 1.0, reach: 0.6, dur: 1.15, stam: 0.3, cd: 3 },              // a fencer's wrist twirl, feet stay put
              move: null },
   soresu:  { mid: null, move: null },                                                          // nothing wasted: no spins at all

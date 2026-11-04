@@ -117,7 +117,13 @@ function seatFoeBlade(e, from, to){
    DUEL.clash.reach of it, the blades meet. A guard that holds (duelDefend's usual roll, so blocks are no more common
    than before) stops the cut dead and throws it back; a strike in flight clashes (both reel, nobody is hurt). A guard
    that fails lets the blade carry on through to the body. Returns true when the cut was stopped. */
-export function meetBlades(sw, pts){
+/* `far`: the samples are the saber staff's far blade (jedi/bladehit.js). A guard or a strike that meets the far end
+   turns that end only: the near blade's cut runs on (no bounce, no lockout), and the foe goes into `sw.farStop` so the
+   far end doesn't cut it this swing. Before, the far end's contact stopped the whole cut, so a staff in a ring of
+   guarding duellists bounced off the one behind it on nearly every swing. */
+// a cut that sweeps through guards: the form's flag, on a flat cut (from the side), a spin or the finisher's sweep
+const sweeps = (sw) => !!(stance().sweepThrough && !isGunner() && (sw.spin || sw.step === 2 || (sw.pat && (sw.pat.ang === 0 || sw.pat.ang === 180 || sw.dir === 'left' || sw.dir === 'right'))));
+export function meetBlades(sw, pts, far = false){
   if (sw.recoil || sw.finBeat) return false;   // a FINISHER's beat is never stopped on a blade (jedi/finisher.js)
   const C = DUEL.clash, r2 = C.reach * C.reach, pp = playerPos();
   for (const e of enemies){
@@ -137,6 +143,13 @@ export function meetBlades(sw, pts){
     (sw.met || (sw.met = new Set())).add(e);
     const cp = Q.clone();   // (Q: the point on your blade that met theirs)
     seatFoeBlade(e, N, cp);
+    if (far){
+      // the far end meets it: a strike from behind is caught on it (its blow is spent), a guard turns that end
+      if (striking) e.struck = true;
+      else (sw.duel || (sw.duel = new Map())).set(e, duelDefend(e, cutLine(sw), 'cut', false, cp));
+      if (striking || sw.duel.get(e) === 'block'){ (sw.farStop || (sw.farStop = new Set())).add(e); knockWeapon(e, 0.4); theirSparks(e, cp); }
+      continue;
+    }
     if (striking){
       e.struck = true;   // its blow is spent on your blade
       if (bladeClash(g, e, cp)) return true;
@@ -145,6 +158,9 @@ export function meetBlades(sw, pts){
     const isDark = isGunner() && player.weapon === 'darksaber';
     const res = duelDefend(e, cutLine(sw), sw.step === 2 ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, cp);
     (sw.duel || (sw.duel = new Map())).set(e, res);
+    // SHII-CHO'S SWEEP (stances.js sweepThrough): a wide sweep rolls off a guard that turns it and carries on to the next
+    // foe in its arc, instead of stopping dead (the guard still holds for that foe: sw.nearStop keeps the blade off it)
+    if (res === 'block' && sweeps(sw)){ (sw.nearStop || (sw.nearStop = new Set())).add(e); knockWeapon(e, 0.5); theirSparks(e, cp); clashSparks(cp, 0xffe9b0, 3); jarStamina(DUEL.bounce.stam * 0.5); continue; }
     if (res === 'block'){ bounceOff(e, cp); return true; }
   }
   return false;

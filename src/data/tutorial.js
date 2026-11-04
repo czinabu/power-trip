@@ -139,6 +139,9 @@ export const LESSONS = {
         { say: 'Three cuts make a string, and in Shii-Cho the third is the Sarlacc Sweep: it cuts all the way round you. It was made for crowds.',
           keys: 'LMB LMB LMB', do: 'Land 2 Sarlacc Sweep finishers on the crowd', ev: 'finisher', need: 2, respawn: true,
           spawn: dummies(CROWD, { sparring: true }) },
+        { say: 'Press on into a crowd. Hold W and cut again in rhythm, and the blade wheels round you as you walk through them. That is the Sarlacc Advance.',
+          keys: 'LMB · W + LMB', do: 'Land 2 Sarlacc Advances: cut, then hold W and cut again as the first one ends', ev: 'sarlacc', need: 2, respawn: true,
+          spawn: dummies(CROWD, { sparring: true }) },
       ] },
     { id: 'guard', group: 'basics', name: 'GUARD AND COUNTER', sub: 'Parry, deflect, dodge, cancel and kick', loadout: BASE,
       done: 'A good guard wins more fights than a good cut. Now, the Force.',
@@ -274,12 +277,15 @@ export const LESSONS = {
           keys: 'TAP RMB · LMB', do: 'Parry, then strike the Shatterpoint', ev: 'shatter', stance: 'vaapad', need: 1, spawn: partner() },
       ] },
 
-    { id: 'staff', group: 'more', form: 'staff', name: 'THE SABER STAFF', sub: 'Two blades: every cut covers front and back', loadout: ['shiicho', 'staff', null],
+    { id: 'staff', group: 'more', form: 'staff', name: 'THE SABER STAFF', sub: 'Two blades: every cut covers front and back, and the Pole Vault', loadout: ['shiicho', 'staff', null],
       done: 'One hilt, two blades. Keep it turning, and nothing gets behind you.',
       steps: [
         { sec: 'THE SABER STAFF', say: 'The saber staff has a blade at each end. Every cut you make in front, the far blade makes behind you.',
           keys: '2 · LMB', do: 'With the staff, cut 3 targets with the far blade', ev: 'farBlade', stance: 'staff', need: 3, respawn: true,
           spawn: dummies([[0, -2.2], [-1.5, 1.2], [1.5, 1.2]], { sparring: true }) },   // (one ahead, two behind: the far blade's)
+        { say: 'Roll in, and cut out of the roll. The far end plants, you vault over the staff, and your feet land on the foe first. That is the Pole Vault: it floors whoever it lands on.',
+          keys: 'SHIFT · LMB', do: 'With the staff, land 2 Pole Vaults', ev: 'polevault', stance: 'staff', need: 2, respawn: true,
+          spawn: dummies([[0, -6], [-2.5, -6.5], [2.5, -6.5]], { sparring: true }) },
         { say: 'Keep it wheeling. A string of cuts flows end over end, and the last one spins you right round.',
           keys: 'LMB · LMB · LMB', do: 'With the staff, cut down 4 targets around you', ev: 'kill', stance: 'staff', need: 4, respawn: true,
           spawn: dummies([[-1.4, -2.2], [1.4, -2.2], [-1.6, 1.6], [1.6, 1.6]]) },

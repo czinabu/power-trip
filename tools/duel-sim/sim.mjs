@@ -62,7 +62,8 @@ function jobs(){
     const packs = { acolytes: [{ type: 'acolyte', rank: 'adept', form: 'shiicho' }, { type: 'acolyte', rank: 'adept', form: 'shiicho' }, { type: 'acolyte', rank: 'adept', form: 'ataru' }],
                     troopers: Array.from({ length: 6 }, (_, i) => ({ type: i % 3 === 2 ? 'blaster' : 'grunt' })),
                     guards: Array.from({ length: 3 }, () => ({ type: 'duelist' })) };
-    for (const [pack, foes] of Object.entries(packs)) for (const form of FORMS) for (let r = 0; r < REPS; r++)
+    const forms = opt('forms', FORMS.join()).split(',');
+    for (const [pack, foes] of Object.entries(packs)) for (const form of forms) for (let r = 0; r < REPS; r++)
       J.push({ tag: 'crowd', form, foe: pack, rank: '-', cfg: { form, loadout: loadoutFor(form), foes, depth: 6, seed: s++ * 31337 + r, tmax: 120, spread: 6 } });
   } else if (PLAN === 'early'){
     for (const depth of [1, 2, 3, 4, 5, 6, 7, 8]) for (const form of ['shiicho', 'soresu', 'ataru']) for (let r = 0; r < REPS; r++)

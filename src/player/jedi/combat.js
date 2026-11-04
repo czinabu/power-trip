@@ -27,6 +27,7 @@ import { inReach } from '../../enemies/bodyshape.js';
 import { palmPoints } from '../../fx/palms.js';
 import { scarBody, severLimbs } from '../../enemies/scars.js';
 import { tutEvent } from '../../game/tutor-bus.js';
+import { launchFlip, flipStyle } from '../anim/agility.js';
 import { masteryXp } from '../../game/progression.js';
 import { momentumStrike } from '../parkour.js';
 import { MOVE } from '../../data/movement.js';
@@ -123,13 +124,22 @@ export function tryAttack(flow = false){
   const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
     ripNow, backStrike, mom, flow, st, held: holding() });
   if (spin){
-    player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur; }
+    player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur;
+    if (spin.label){ floater(playerPos(), spin.label, '#9cc4ff'); tutEvent('sarlacc'); } }
   // LIGHT OR HEAVY (jedi/weight.js): a tap is a light cut, a hold draws back into a heavy. A riposte, a momentum strike,
   // a spin or a cut in the air keeps its own weight.
   armWeight(player.swing, !ripNow && !mom && !spin && player.grounded);
   // cinematic lunge toward nearest target in view — STRONG's finisher lunges harder; a RIPOSTE drives in hardest
   let lunge = ripNow ? 2.0 : ((step === 2 && st.finisherLunge) ? st.finisherLunge : st.lunge) * (pat.lunge || 1) * (PF && PF.lunge || 1);
   // HAWK-BAT SWOOP (Ataru): a cut out of a Force dash springs off the ground and drives in twice as far
+  // POLE VAULT (the saber staff): a cut out of a roll or a Force dash plants the far end and vaults in, the body pitched
+  // over the staff, and lands feet first on the foe: it is floored (applySwingDamage) and the cut follows it down
+  if (mom === 'polevault'){
+    lunge *= 2.2; player.vy = Math.max(player.vy, 5.2); player.grounded = false;
+    launchFlip({ ...flipStyle('double'), t: 0, dur: 0.42, side: 1 }, 'fwd');
+    floater(playerPos(), 'POLE VAULT', '#ffd23a');
+    tutEvent('polevault');
+  }
   if (mom === 'swoop'){
     lunge *= 2; player.vy = Math.max(player.vy, 4.5); player.grounded = false;
     floater(playerPos(), 'HAWK-BAT SWOOP', '#7fe0ff');
@@ -157,7 +167,7 @@ export function tryAttack(flow = false){
   } else if (backStrike){
     stepIntoCut(fwd(), -4.5 * lunge);   // shove off the back foot, away from the threat
   } else {
-    stepIntoCut(fwd(), 7 * lunge);   // step into the strike
+    stepIntoCut(fwd(), 7 * (mom === 'polevault' ? lunge / 2.2 : lunge));   // step into the strike (a vault with no foe ahead to land on is a plain step)
   }
   if (spin) spinTravel(spin, dirKey);
   else if (ang != null && !backStrike) cutFootwork(ang);
@@ -173,7 +183,7 @@ function pickSpin(form, step, dirKey, o){
   if (isGunner() || !player.grounded || player.flip || step === 2 || o.ripNow || o.backStrike || o.mom || o.held) return null;   // (a held press is drawing a heavy: no spin)
   const GS = SWING_SPINS_GRIP[heldGrip()], S = GS && GS[form] ? { ...SWING_SPINS[form], ...GS[form] } : SWING_SPINS[form];   // (a grip's own take)
   if (!S || !o.flow) return null;
-  const sp = (step === 1 && S.mid) || ((dirKey === 'left' || dirKey === 'right') ? S.move : null);
+  const sp = (step === 1 && S.mid) || ((dirKey === 'left' || dirKey === 'right') ? S.move : dirKey === 'forward' ? S.fwd : null);
   if (!sp || G.gt - (player._spinT || -9) < sp.cd || player.stam < sp.stam * o.st.stamina) return null;
   return sp;
 }
@@ -294,6 +304,7 @@ export function applySwingDamage(step, only){
   // MOMENTUM — a cut out of a vault, climb, slide, wall-run or landing roll lands harder (data/movement.js MOVE.flow)
   const mom = sw0 && sw0.mom;
   if (mom){ dmg *= MOVE.flow.strikeDmg; knock *= MOVE.flow.strikeKnock; }
+  if (mom === 'polevault') knock = Math.max(knock, FINISHER_FLOOR);   // POLE VAULT: the feet land on it and floor it
   if (st.airCutDmg && !player.grounded) dmg *= st.airCutDmg;   // ATARU: a cut struck off the ground lands harder
   // FAST cleaves wide through crowds; STRONG is a narrow, focused blow. FAST's finisher fans ~10% wider still.
   const radius = (finisher ? CFG.player.hitRadius + 1 : CFG.player.hitRadius) * (st.radiusMult || 1)

@@ -13,9 +13,9 @@ import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
 import { heroName } from '../game/wardrobe.js';
-import { STANCES, SWING_PATTERNS } from '../data/stances.js';
-import { FORM_OF, FOOTWORK } from '../data/poses.js';
-import { formGrip, isStaff, isDual } from '../data/forms.js';
+import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
+import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
+import { FORMS, formGrip, forkClosed, isStaff, isDual } from '../data/forms.js';
 import { guardPose, swingPose, applySaberPose, releaseSaberPose, saberPose } from '../player/anim/saber.js';
 import { rexRest } from '../player/anim/guns.js';
 
@@ -71,7 +71,7 @@ const POSES = {
   },
 };
 
-/* THE JEDI AT REST on the title screen: not a fighting guard but a calm, ready stand. The lit saber hangs in the weapon
+/* THE JEDI AT EASE, between the guards of the title screen's stance cycle: not a fighting guard but a calm, ready stand. The lit saber hangs in the weapon
    hand by the hip, blade angled down and out in front, the off hand loose at the side; the weight settles from foot to
    foot. Set as a target for the game's saber IK (anim/saber.js guardPose, chest space as in data/poses.js) */
 const v3 = (a) => new THREE.Vector3(...a);
@@ -476,29 +476,67 @@ function previewPose(dt){
   R.legL.knee.rotation.x = R.legR.knee.rotation.x = 0.25 - F.crouch * 1.4;
 }
 
-/* ---------- THE IDLE: the Jedi on the title screen stands at rest (JEDI_IDLE), breathing, the weight shifting slowly from
-   foot to foot and the blade drifting with it. The guards themselves show on the forms page and the stance preview ---------- */
-const idle = { on: false };
+/* ---------- THE STANCE CYCLE: the Jedi on the title screen cycles through the forms the save has unlocked, each in its
+   own ready guard and footing (read from data/poses.js through the game's guardPose, so a retuned guard shows here too).
+   Between two forms the Jedi eases out of the guard into the at-ease stand (JEDI_IDLE: saber low at the side) for a
+   breath, then into the next form's guard. All the while the weight shifts slowly from foot to foot ---------- */
+const FORM_FOR = 4.6, EASE_FOR = 2.2;   // seconds in each form's guard, and at ease between two of them
+const idle = { on: false, id: null, ease: false, t: 0, crouch: 0, splay: 0 };
 const IDLE_SWAY = { y: 0, z: 0, off: 0, moving: false };
-function idleStart(){
-  idle.on = true;
-  releaseSaberPose(R, 1);   // the pose seeds from the figure's own arm
-  applySaberGrip(fig, 'regular', true);   // at rest the blade hangs forward from the fist, whatever grip the fight uses
+const rotForms = () => Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id) && !forkClosed(id, G.formFork));
+function pickForm(id){
+  Object.assign(idle, { id, ease: false, t: 0 });
+  applySaberGrip(fig, formGrip(id, G.saberGrip), false);   // the hilt turns over in the hand if the grip changes
+  setSaberStaff(fig, isStaff(id), false);
+  const st = STANCES[id], crystal = fig.look.jedi.saber != null ? fig.look.jedi.saber : st && st.blade;   // the customizer's blade colour wins
+  if (crystal != null){ fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal); }
+}
+function toEase(){
+  Object.assign(idle, { ease: true, t: 0 });
+  applySaberGrip(fig, 'regular', false);   // at rest the blade hangs forward from the fist, whatever grip the form used
   setSaberStaff(fig, false, false);
   setSaberDual(fig, false, false);
+}
+function idleStart(){
+  const list = rotForms(), F = FOOTWORK[FORM_OF[list[0]]] || FOOTWORK.niman;
+  idle.on = true; idle.crouch = F.crouch; idle.splay = F.splay;
+  releaseSaberPose(R, 1);   // the first guard seeds from the figure's own arm
+  if (list.length){ applySaberGrip(fig, formGrip(list[0], G.saberGrip), true); pickForm(list[0]); }
+  else { applySaberGrip(fig, 'regular', true); toEase(); }
 }
 function idleStop(){
   if (!idle.on) return;
   idle.on = false;
   releaseSaberPose(R, 1); R.chest.rotation.y = 0;
   applySaberGrip(fig, G.saberGrip, true);
+  setSaberStaff(fig, false, false);
 }
-function idlePose(dt, t){
+function idlePose(dt, t, shift){
+  const list = rotForms();
+  idle.t += dt;
+  if (!list.length){ if (!idle.ease) toEase(); }
+  else if (idle.ease ? idle.t > EASE_FOR : !list.includes(idle.id)) pickForm(list[(list.indexOf(idle.id) + 1) % list.length]);   // (indexOf −1 → the first)
+  else if (!idle.ease && idle.t > FORM_FOR) toEase();
   const held = { node: fig.saberHand, root: fig.saberBladeRoot };
   IDLE_SWAY.y = Math.sin(t * 1.7) * 0.012; IDLE_SWAY.z = Math.sin(t * 0.45) * 0.02;   // the blade rides the breath and the weight shift
-  guardPose(dt, R, held, 'regular', 'niman', false, IDLE_SWAY, JEDI_IDLE, 0.5);
+  let F;
+  if (idle.ease){
+    guardPose(dt, R, held, 'regular', 'niman', false, IDLE_SWAY, JEDI_IDLE, 0.5);   // an unhurried settle out of the guard
+    F = IDLE_FEET;
+  } else {
+    const form = FORM_OF[idle.id], grip = formGrip(idle.id, G.saberGrip);
+    guardPose(dt, R, held, grip, form, false, IDLE_SWAY, null, 0.7);
+    F = FOOTWORK[(FOOTWORK_GRIP[grip] || {})[form] || form] || FOOTWORK.niman;   // (reverse-grip Niman stands on Djem So's feet)
+  }
   applySaberPose(R, held, true, dt);
-  R.head.rotation.y -= saberPose.gaze * R.chest.rotation.y;
+  R.head.rotation.y -= saberPose.gaze * R.chest.rotation.y;   // a side-on guard (Soresu) keeps its eyes on the foe
+  // the footing eases from one stance's to the next; the knee off the weight softens as it shifts
+  const k = Math.min(1, dt * 3);
+  idle.crouch += (F.crouch - idle.crouch) * k; idle.splay += (F.splay - idle.splay) * k;
+  R.hips.position.y += idle.crouch * 0.5;
+  R.legL.hip.rotation.z = -0.05 - idle.splay * 0.32 - shift * 0.035; R.legR.hip.rotation.z = 0.05 + idle.splay * 0.32 - shift * 0.035;
+  const knee = 0.25 - idle.crouch * 1.4;
+  R.legL.knee.rotation.x = knee + Math.max(0, shift) * 0.08; R.legR.knee.rotation.x = knee + Math.max(0, -shift) * 0.08;
 }
 
 // TEMPORARY flicker hunt: ?dbg=noink,noskin,noblade,nolight,nocull hides parts of the figure (not for merging)
@@ -562,10 +600,7 @@ export function renderShowcase(dt){
   if (pv.id) previewPose(dt);
   else if (shown === 'jedi' && swapT < 0){
     if (!idle.on) idleStart();
-    idlePose(dt, t);
-    R.hips.position.y += IDLE_FEET.crouch * 0.5;
-    R.legL.hip.rotation.z = -0.05 - IDLE_FEET.splay * 0.32 - shift * 0.035; R.legR.hip.rotation.z = 0.05 + IDLE_FEET.splay * 0.32 - shift * 0.035;
-    R.legL.knee.rotation.x = 0.12 + Math.max(0, shift) * 0.1; R.legR.knee.rotation.x = 0.12 + Math.max(0, -shift) * 0.1;   // the knee off the weight eases
+    idlePose(dt, t, shift);
   } else if (!pv.id){
     const L = P.legL, Rr = P.legR;
     R.legL.hip.rotation.z = L.hip[2] - shift * 0.035; R.legR.hip.rotation.z = Rr.hip[2] - shift * 0.035;

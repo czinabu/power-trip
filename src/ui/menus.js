@@ -39,6 +39,7 @@ import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
+import { SABER_ASSIST } from '../data/saber-assist.js';
 
 /* ============================================================
    INPUT
@@ -301,6 +302,14 @@ function setCutMouse(on){
 }
 setCutMouse(localStorage.getItem('sw_cutaim') === 'mouse');
 document.getElementById('cutaimctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setCutMouse(!G.cutMouse); });
+// SABER ASSIST — the per-cut aim assist: LOW (the default), NORMAL or OFF (data/saber-assist.js, player/jedi/saberassist.js)
+function setSaberAssist(m){
+  G.saberAssist = SABER_ASSIST.modes.includes(m) ? m : 'low';
+  try { localStorage.setItem('sw_saberassist', G.saberAssist); } catch(e){}
+  const v = document.getElementById('assistval'); if (v) v.textContent = G.saberAssist.toUpperCase();
+}
+{ let v; try { v = localStorage.getItem('sw_saberassist'); } catch(e){} setSaberAssist(v); }
+document.getElementById('assistctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); const M = SABER_ASSIST.modes; setSaberAssist(M[(M.indexOf(G.saberAssist) + 1) % M.length]); });
 // SABER GRIP — regular or reverse grip for Niman (and the Mando); a look preference, swings hit the same either way.
 // The other forms hold their own grip (data/forms.js): Shien reverse, the rest forward
 export function setSaberGrip(grip){

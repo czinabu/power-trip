@@ -19,12 +19,15 @@ export const ENEMY_TYPES = {
   brute:   { hp: 205, speed: 4.0, dmg: 27, range: 3.3,  windup: 0.8,  recover: 0.85, swing: 0.24,
              scale: 1.55, color: 0x55404a, eye: 0xff2060, model: 'heavy', ranged: false, weapon: 'maul', heavy: true, score: 3 },
   // staff duelist — telegraphed melee meant to be PARRIED (click RMB as the staff falls)
+  // (DUELLIST HEIGHT: the hero's rig stands at 1.18x, crown ~2.78 m; the magnaguard and acolyte models are ~2.3 units
+  // tall, so at 1.2 they look you in the eye, give or take enemies/mesh.js's per-unit variation. A named champion's own
+  // scale in data/missions.js multiplies this, so a boss duellist stands a little over you, not a head over you)
   duelist: { hp: 98,  speed: 6.0, dmg: 18, range: 3.2,  windup: 0.54, recover: 0.7,  swing: 0.18,
-             scale: 1.08, color: 0x6f5a3a, eye: 0xffd24a, model: 'magna', cloth: 0x2b2420, ranged: false, weapon: 'staff', staff: true, score: 2 },
+             scale: 1.2, color: 0x6f5a3a, eye: 0xffd24a, model: 'magna', cloth: 0x2b2420, ranged: false, weapon: 'staff', staff: true, score: 2 },
   // SITH ACOLYTE — a saber duellist (see data/duel.js): holds a guard, feints, strings cuts, binds blades in a lock,
   // and bats blaster fire back. A real duel, not a speed bump: read the guard, break it, punish the opening.
   acolyte: { hp: 145, speed: 6.6, dmg: 19, range: 3.0,  windup: 0.5,  recover: 0.6,  swing: 0.15,
-             scale: 1.03, color: 0x2c2a30, eye: 0xff2a36, model: 'acolyte', cloth: 0x1c1416, ranged: false, weapon: 'saber', score: 4 },
+             scale: 1.2,  color: 0x2c2a30, eye: 0xff2a36, model: 'acolyte', cloth: 0x1c1416, ranged: false, weapon: 'saber', score: 4 },
   // JET TROOPER — a HOVERING ranged skirmisher. It floats above the fray, matches your altitude (so you can't just
   // fly/hover above it) and rains bolts. Squishy & a priority target: counter it with ranged tools / Force powers /
   // by deflecting its own fire back — the saber can't reach it. Dies by tumbling out of the sky.

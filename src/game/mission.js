@@ -894,7 +894,7 @@ function placeOnPath(s, q, dt = 0, spd = 0){
   g.rotation.set(0, s.yaw, 0);
   updateLegs(q, g, dt, b[2] === 'leap' ? 'air' : 'ground');   // its stride, lean and footing are the troopers' (enemies/gait.js)
   updateUpper(q, g, dt, nearHero(g.position.x, g.position.z).pos);   // and it keeps looking back at you (enemies/upper.js)
-  q.tag.position.set(x, y + 2.7 * (q.def.scale || 1) + Math.sin(G.gt * 5) * 0.12, z);
+  q.tag.position.set(x, y + 2.7 * g.scale.x + Math.sin(G.gt * 5) * 0.12, z);
 }
 // standing still: turn to face the hero
 function faceHero(q, dt){
@@ -1525,7 +1525,7 @@ function updateMissionGuest(dt){
     const q = M.quarry, g = q.g, w = ms.q;
     g.position.x += (w[0] - g.position.x) * k; g.position.y += (w[1] - g.position.y) * k; g.position.z += (w[2] - g.position.z) * k;
     g.rotation.y += ang(g.rotation.y, w[3]) * k; g.rotation.x = 0;
-    q.tag.visible = !!w[4]; q.tag.position.set(g.position.x, g.position.y + 2.7 * (q.def.scale || 1) + Math.sin(G.gt * 5) * 0.12, g.position.z);
+    q.tag.visible = !!w[4]; q.tag.position.set(g.position.x, g.position.y + 2.7 * g.scale.x + Math.sin(G.gt * 5) * 0.12, g.position.z);
     updateLegs(q, g, dt, 'ground'); updateUpper(q, g, dt, nearHero(g.position.x, g.position.z).pos);
   }
   if (ms.sw){   // the host's duel foe still carries its wounds: the same marks and trail on this screen's puppet of it

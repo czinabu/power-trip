@@ -27,8 +27,8 @@
   Math.random = rnd;
   const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
 
-  const FAMILY = { shiicho: 'speed', ataru: 'speed', juyo: 'speed', staff: 'speed', makashi: 'guard', soresu: 'guard', vaapad: 'guard', djemso: 'power', shien: 'power', niman: null };
-  const BEATS = { power: 'guard', guard: 'speed', speed: 'power' };
+  // the game's own counter table (data/foe-forms.js), handed in by sim.mjs so a new form or a regrouping needs no edit here
+  const FAMILY = __FORM_FAMILY__, BEATS = __BEATS__;
   const edge = (a, b) => { const fa = FAMILY[a], fb = FAMILY[b]; if (!fa || !fb || fa === fb) return 0; return BEATS[fa] === fb ? 1 : BEATS[fb] === fa ? -1 : 0; };
   const GUARD_ANG = { R: 0, H: 90, L: 180, Lo: 270 };
   const angDist = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);

@@ -21,7 +21,7 @@ export const HUM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.
 /* what every lit blade is doing this frame, filled in by fx/trail.js (which already follows every blade for its streak)
    and read by director.js: tip speeds (m/s against the owner's body) of the hero's blade, the saber staff's far end and
    the Darksaber in hand, and every other lit blade (its tip in the world, speed, dark, thrown) */
-export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [] };
+export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null };   // lock: the hero's saber lock, set by enemies/duel.js
 
 /* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
    e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
@@ -125,28 +125,31 @@ export function burn(pos, pw){
   crackle(pos, 2, 0.16, 0.03);
 }
 
-/* the ELECTRIC IMPACT at the heart of every blade-on-blade hit and deflect: no metal and no bell, the way blades meet on
-   screen. A hard distorted crack, a gritty hiss that tears down from bright to dark, a snarling buzz (a driven saw
-   wobbled by a fast FM growl) falling away, and a shower of spitting crackle. k = how hard, len = how long it fizzes,
-   bright = where its energy sits (a fencer's blade crackles higher, a heavy one lower). */
-function zap(pos, k, len, bright, at = 0){
-  k *= 0.82;
-  N({ pos, at, g: 0.15 * k, a: 0.001, d: 0.045, filt: { type: 'bandpass', f: 3200 * bright, q: 0.7 }, drive: 0.85, pri: 2 });
-  N({ pos, at, g: 0.085 * k, a: 0.002, d: len, rate: rand(0.45, 0.7), filt: { type: 'bandpass', f: 4200 * bright, f2: 900, q: 0.8 }, drive: 0.9 });
-  T({ pos, at, type: 'sawtooth', f: rand(230, 300) * bright, f2: 75, ft: len, g: 0.06 * k, a: 0.002, d: len * 0.85,
-      fm: { r: rand(2.3, 2.9), i: 6, i2: 0.6 }, filt: { type: 'bandpass', f: 1700 * bright, q: 0.8 }, drive: 0.75, verb: 0.12 });
-  crackle(pos, Math.round(5 * k), len * 1.2, 0.05 * k, at + 0.01);
-}
-
-/* blade on blade / blade on beskar: the electric impact, voiced by form (FORM_SOUND ring = how bright, damp = how long it
-   fizzes: Soresu soaks a blow dead, Djem So's spits on), the hum surging under it and a thump for weight */
+/* BLADE ON BLADE — "KCHHH-ZZZing!": a heavy, explosive strike. A deep punchy thud and a violent high-voltage pop land
+   together, a gritty "kchhh" tears off them, then as the blades part a bright, ringing harmonic resonance sings out
+   (a super-heated sword struck: whole-number partials through a resonant band sweeping up, never a clanking bell) and
+   dissolves into a brief crackling static hiss. Voiced by form: FORM_SOUND ring = how high it sings, damp = how long
+   (Soresu soaks a blow dead, Djem So's rings on); a big hit (a parry, a bind) is heavier all through. */
 export function clash(pos, big, form){
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
-  const k = big ? 1.4 : 1, v = FORM_SOUND[form] || FORM_SOUND.niman, r = v.ring * rand(0.94, 1.06), dm = v.damp;
-  zap(pos, k, 0.22 * k * dm, r);
-  // the two hums shoved together: a low buzzing surge that bends down as the blades part
-  T({ pos, type: 'sawtooth', f: 125 * r, f2: 82 * r, g: 0.05 * k, a: 0.004, d: 0.2 * k * dm, det: rand(-15, 15), filt: { type: 'lowpass', f: 1600, f2: 500 }, drive: 0.3 });
-  if (big || v.thump){ T({ pos, type: 'sine', f: 95 * r, f2: 40, g: big ? 0.2 : 0.12, d: 0.22 }); }
+  const k = big ? 1.35 : 1, v = FORM_SOUND[form] || FORM_SOUND.niman, r = v.ring * rand(0.95, 1.05), dm = v.damp;
+  // the thud: weight under the blow
+  T({ pos, type: 'sine', f: 120 * rand(0.92, 1.08), f2: 40, g: 0.2 * k, a: 0.002, d: 0.17 * k, pri: 2 });
+  N({ pos, color: 'brown', g: 0.13 * k, a: 0.001, d: 0.09, filt: { type: 'lowpass', f: 520 } });
+  // the pop: a violent electrical discharge, and the "kchhh" tearing off it
+  N({ pos, g: 0.16 * k, a: 0.0008, d: 0.035, filt: { type: 'bandpass', f: 2600 * r, q: 0.6 }, drive: 0.95, pri: 2 });
+  N({ pos, g: 0.075 * k, a: 0.002, d: 0.13 * k, rate: rand(0.5, 0.75), filt: { type: 'bandpass', f: 4200 * r, f2: 1800, q: 0.7 }, drive: 0.85 });
+  if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one ring between them
+  // "ZZZing": the blades parting. A buzzing saw an octave down gives it the electric edge; over it the struck blade sings
+  const f = rand(560, 640) * r, at = 0.03, ring = 0.34 * dm * (big ? 1.25 : 1);
+  T({ pos, at, type: 'sawtooth', f: f * 0.5, f2: f * 0.42, g: 0.04 * k, a: 0.004, d: ring * 0.6, fm: { r: 3, i: 1.2, i2: 0.1 },
+      filt: { type: 'bandpass', f: 1600, f2: 3000, q: 1.6 }, drive: 0.5 });
+  T({ pos, at, type: 'sawtooth', f, f2: f * 1.04, g: 0.045 * k, a: 0.006, d: ring, vib: { r: rand(24, 32), d: 22 },
+      filt: { type: 'bandpass', f: 2400 * r, f2: 5200 * r, q: 6, t: ring * 0.5 }, verb: 0.22, pri: 2 });
+  T({ pos, at, type: 'sine', f: f * 4, g: 0.022 * k, a: 0.004, d: ring * 0.7, vib: { r: 29, d: 18 }, verb: 0.2 });
+  // ...dissolving into static
+  N({ pos, at: 0.07, g: 0.04 * k, a: 0.02, d: 0.28 * dm, filt: { type: 'highpass', f: 4800 }, drive: 0.4, pri: 0 });
+  crackle(pos, big ? 7 : 4, 0.32 * dm, 0.04 * k, 0.06);
 }
 
 /* blade dragged through a wall or a pillar. first = the moment it bites in (a crack and a buzz); after that a
@@ -161,13 +164,37 @@ export function wall(pos, first, dark){
   crackle(pos, 2, 0.12, 0.025);
 }
 
-/* a bolt batted off the blade: a sharp electric spit where it strikes, and the bolt's own zing torn round and falling
-   away as it flies off (no ring: the screen deflect is all crackle and zap) */
+/* A BOLT DEFLECTED — "PZINGTT!" / "KRYZZ-ZING!": light, ultra-fast and percussive. A sharp, instantaneous electrical
+   whip-crack and a high metallic ping as the super-heated bolt is flung off the blade's field, a ricochet zing tearing
+   away, and a tiny electrical sizzle at the tail. All over in a fifth of a second. */
 export function deflect(pos){
-  zap(pos, 0.75, 0.12, rand(1.05, 1.25));
-  const f = rand(1900, 2600);
-  T({ pos, type: 'sawtooth', f, f2: f * rand(0.25, 0.38), ft: 0.13, g: 0.05, d: 0.15, fm: { r: 0.5, i: 0.8, i2: 0.05 },
-      filt: { type: 'lowpass', f: 6000, f2: 1200 }, verb: 0.1, pri: 2 });
+  const b = rand(0.92, 1.1);
+  // the whip-crack: a hard snap of driven noise and a click
+  N({ pos, g: 0.17, a: 0.0006, d: 0.018, filt: { type: 'highpass', f: 2600 }, drive: 0.95, pri: 2 });
+  T({ pos, type: 'square', f: 3200 * b, f2: 900, g: 0.04, a: 0.0006, d: 0.02, filt: { type: 'lowpass', f: 9000 } });
+  // the ping: a bright, very short harmonic tone (high, clean and gone at once; no bell body under it)
+  T({ pos, type: 'sine', f: 3900 * b, f2: 3600 * b, g: 0.05, a: 0.0015, d: 0.075, fm: { r: 2, i: 0.5, i2: 0.02 }, verb: 0.15, pri: 2 });
+  // the zing: the bolt torn round and flung off, falling fast
+  T({ pos, type: 'sawtooth', f: 4600 * b, f2: 1300 * b, ft: 0.07, g: 0.035, a: 0.002, d: 0.09, filt: { type: 'bandpass', f: 4200, f2: 1600, q: 3.5 } });
+  // the tiny sizzle at the tail
+  N({ pos, at: 0.035, g: 0.022, a: 0.01, d: 0.12, filt: { type: 'bandpass', f: 6500, f2: 3500, q: 1.2 }, drive: 0.4, pri: 0 });
+  crackle(pos, 2, 0.1, 0.022, 0.04);
+}
+
+/* BLADE LOCK — "KRRRZZZZ-SZS-SNAP!": the held bind itself is a loop in director.js (LOCK_GRIND there), fed by
+   BLADE_AUDIO.lock; these are its one-shots. arc: one of the aggressive electric arcs that spit out of it at random
+   (big = a surge bearing down, or a press of yours heaving the blade); snap: the bind breaking apart. */
+export function lockArc(pos, big){
+  const k = big ? 1.4 : 1;
+  N({ pos, g: 0.08 * k, a: 0.001, d: 0.03, filt: { type: 'bandpass', f: rand(1800, 4200), q: 0.8 }, drive: 0.9, pri: big ? 2 : 0 });
+  T({ pos, type: 'sawtooth', f: rand(90, 160), f2: rand(50, 70), g: 0.05 * k, a: 0.002, d: rand(0.06, 0.12) * k,
+      fm: { r: rand(2.2, 3.6), i: 7, i2: 1 }, filt: { type: 'bandpass', f: rand(900, 1700), q: 0.9 }, drive: 0.8, pri: big ? 1 : 0 });
+  if (big){ T({ pos, type: 'sine', f: 80, f2: 38, g: 0.14, d: 0.22 }); crackle(pos, 4, 0.2, 0.04); }
+}
+export function lockSnap(pos){
+  N({ pos, g: 0.15, a: 0.0006, d: 0.03, filt: { type: 'highpass', f: 1800 }, drive: 0.95, pri: 2 });
+  T({ pos, type: 'sawtooth', f: 260, f2: 60, g: 0.06, a: 0.001, d: 0.12, fm: { r: 2.7, i: 4, i2: 0.2 }, filt: { type: 'bandpass', f: 1800, q: 0.9 }, drive: 0.7 });
+  crackle(pos, 4, 0.18, 0.035, 0.02);
 }
 
 /* a PERFECT parry: a big impact that flares, the hum surging up through it and a long spitting shower */

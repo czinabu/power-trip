@@ -3,9 +3,13 @@
 // counter each other (rock, paper, scissors): switch to the form that beats your opponent's.
 
 /* THE TRIANGLE — every form belongs to a FAMILY, and each family beats the next:
-     POWER breaks GUARD   (Djem So and Shien hammer through a defensive guard: Anakin's Djem So over Dooku's Makashi)
-     GUARD outlasts SPEED (Soresu, Makashi and Vaapad turn a flurry and punish it: Obi-Wan's Soresu against Maul)
-     SPEED outpaces POWER (Shii-Cho, Ataru, Juyo and the saber staff get inside a heavy wind-up before it lands)
+     POWER breaks GUARD   (Djem So, Shien, Juyo, Vaapad and the saber staff: heavy hits, fury and posture-breaking sweeps
+                           crush a high-defence setup)
+     GUARD outlasts SPEED (Soresu and Shii-Cho absorb a blitz with no wasted energy: Obi-Wan's Soresu against Maul)
+     SPEED outpaces POWER (Makashi and Ataru, and Jar'Kai to come, get inside a heavy wind-up before it lands: Dooku's
+                           Makashi against Anakin's Djem So)
+   Three families of forms for each side to pick from. The family is only the duel counter: each form keeps its own job
+   outside it (Shii-Cho is still the crowd form, Shien still sends bolts home).
    Niman, the jack of all forms, sits outside it: no form counters it and it counters none. The Mandalorian has no form,
    so for him every fight is even. */
 export const FAMILIES = {
@@ -14,9 +18,9 @@ export const FAMILIES = {
   speed: { name: 'SPEED', beats: 'power', color: '#7dffa8' },
 };
 export const FORM_FAMILY = {
-  shiicho: 'speed', ataru: 'speed', juyo: 'speed', staff: 'speed',
-  makashi: 'guard', soresu: 'guard', vaapad: 'guard',
-  djemso: 'power', shien: 'power',
+  djemso: 'power', shien: 'power', juyo: 'power', vaapad: 'power', staff: 'power',
+  makashi: 'speed', ataru: 'speed',
+  soresu: 'guard', shiicho: 'guard',
   niman: null,
   jarkai: 'speed',   // Jar'Kai: two blades that get inside a heavy wind-up, shut down by a tight guard
 };
@@ -156,19 +160,20 @@ export const NAMED_FORMS = {
   'THE CHALLENGER':       { form: 'staff',  rank: 'master' },
   'THE CLAN CHAMPION':    { form: 'staff',  rank: 'master' },
 };
-// the bosses: Darth Vexis fights in Juyo as a master (a guard form outlasts him); the Mandalorian boss has no form
+// the bosses: Darth Vexis fights in Juyo as a master (a speed form gets inside him); the Mandalorian boss has no form
 export const BOSS_FORM = { sith: { form: 'juyo', rank: 'master' } };
 
 /* MASTERS CHANGE FORM — the fight becomes a real back and forth: sit in a form that counters a master's for `after` s and
    it changes to one of its forms that counters yours (at most once every `cd` s). It twirls, calls the change out, and
    now you have to answer again. Knights and below hold one form. Who switches, and between which forms:
      a wave's master (a late elite): its acolyte pool at that depth · the named below: their own repertoire · the boss.
-   A trial's form master and anyone not listed keeps the form it teaches. */
+   A trial's form master and anyone not listed keeps the form it teaches. Each repertoire holds a form of every family,
+   so whatever you switch to, it has an answer. */
 export const FORM_SWITCH = {
   after: 6, cd: 15,
   named: {
-    'THE GRAND INQUISITOR': ['djemso', 'makashi', 'ataru'],
+    'THE GRAND INQUISITOR': ['djemso', 'makashi', 'soresu'],
     'THE ECHO':             ['djemso', 'soresu', 'ataru'],
   },
-  boss: { sith: ['juyo', 'djemso', 'makashi'] },
+  boss: { sith: ['juyo', 'makashi', 'soresu'] },
 };

@@ -12,7 +12,7 @@ import { floater } from '../fx/floaters.js';
 import { shared, G, solids, keys, player, enemies, isGunner } from '../state.js';
 import { staggerEnemy } from '../enemies/damage.js';
 import { fwd, rightV, playerPos } from './helpers.js';
-import { launchFlip } from './anim/agility.js';
+import { launchFlip, rushFlip } from './anim/agility.js';
 import { STEP_UP } from '../world/collision.js';
 import { tutEvent } from '../game/tutor-bus.js';
 
@@ -280,26 +280,32 @@ export function wallBeside(pp, range){
     if (d < bestD){ bestD = d; best = V3(nx, 0, nz); }
   }
   if (best){ best.d = bestD; return best; }   // (d: how far the face is, for the wall-run's feet)
-  const h = shared.arenaHalf - 1, hz = shared.arenaHalfZ - 1, H = shared.arenaHalf, HZ = shared.arenaHalfZ;
+  // the arena's edge is a wall to run on only in a room that has one standing there (the sandbox rooms): an open
+  // arena's edge is an invisible limit, and running along it would be running on air
+  const F = shared.arenaWalled && shared.arenaWallFace;
+  if (!F) return null;
   const edge = (n, d) => { n.d = d; return n; };
-  if (pp.x >  h - range) return edge(V3(-1, 0, 0), H - pp.x);
-  if (pp.x < -h + range) return edge(V3( 1, 0, 0), H + pp.x);
-  if (pp.z >  hz - range) return edge(V3( 0, 0, -1), HZ - pp.z);
-  if (pp.z < -hz + range) return edge(V3( 0, 0,  1), HZ + pp.z);
+  if (pp.x >  F - range) return edge(V3(-1, 0, 0), F - pp.x);
+  if (pp.x < -F + range) return edge(V3( 1, 0, 0), F + pp.x);
+  if (pp.z >  F - range) return edge(V3( 0, 0, -1), F - pp.z);
+  if (pp.z < -F + range) return edge(V3( 0, 0,  1), F + pp.z);
   return null;
 }
 
-/* WALL-RUN (every hero; the Mando only off a plain hop or fall, never under thrust) — jump alongside a wall at speed with W held and the feet catch it: a short run along the face
-   that barely loses height. SPACE kicks off it (movement.js), letting go of W or running out of time drops you. */
+/* WALL-RUN (every hero; the Mando only off a plain hop or fall, never under thrust) — jump, double-jump or flip at or
+   alongside a wall with a direction held and the feet catch it: a short run along the face that barely loses height,
+   the body drawn in so the feet are on the wall. SPACE kicks off it (movement.js); letting go of the keys, the wall
+   ending or running out of time drops you. */
+const steering = () => keys['w'] || keys['a'] || keys['s'] || keys['d'];
 export function updateWallRun(dt, pp){
   const gunner = isGunner(), jets = gunner && (player.jetActive || player.hovering || player.boosting);   // the Mando's jets own the air: no wall-run under thrust
   if (jets && !player.wallRun) return;
   const wr = player.wallRun;
   if (wr){
     wr.t += dt;
-    const n = wallBeside(pp, 1.5);
+    const n = wallBeside(pp, MOVE.wallRunReach);
     // the face must stay the same one: rounding a corner or the wall ending drops you off
-    if (player.grounded || !keys['w'] || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || player.gliding || jets){
+    if (player.grounded || !steering() || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || player.gliding || jets){
       if (!player.grounded && !player.mantle && !player.slamming){ player.vel.x += wr.nx * MOVE.wallRunPeel; player.vel.z += wr.nz * MOVE.wallRunPeel; }   // peel off the face, carrying the run's speed
       player.wallRun = null;
       return;
@@ -311,18 +317,29 @@ export function updateWallRun(dt, pp){
     player.moveVel.set(ax * MOVE.wallRunSpeed, 0, az * MOVE.wallRunSpeed);
     const vn = player.vel.x * n.x + player.vel.z * n.z;
     player.vel.x -= n.x * vn; player.vel.z -= n.z * vn;
+    // drawn in to the face (the catch can be well out from it), so the feet run on the wall instead of beside it
+    const gap = n.d - MOVE.wallRunHug;
+    if (gap > 0){ const k = gap * Math.min(1, MOVE.wallRunPull * dt); pp.x -= n.x * k; pp.z -= n.z * k; n.d -= k; }
     wr.d = n.d;   // (the pose reaches the feet out to the face: anim/agility.js)
     if (Math.random() < 0.35) burst(V3(pp.x - n.x * 0.5, pp.y + 0.3, pp.z - n.z * 0.5), 0x9a9288, 1, 2, 1, 0.6);
     return;
   }
-  if (player.grounded || player.wallRunUsed || player.gliding || player.flip || player.mantle || player.slamming || !keys['w']) return;
-  if (player.vy < -6) return;   // already falling hard: too late to catch the wall
+  // (a jump, a double jump, a flip or a Force leap can all be caught; an aerial cut, a slam or a ledge can't)
+  if (player.grounded || player.wallRunUsed || player.airCut || player.mantle || player.hang || player.slamming || !steering()) return;
+  if (player.vy < MOVE.wallRunFall) return;   // already falling hard: too late to catch the wall
+  if (pp.y - (player.groundY || 0) < MOVE.wallRunFrom) return;   // still leaving the floor
   const vx = player.moveVel.x + player.vel.x, vz = player.moveVel.z + player.vel.z, sp = Math.hypot(vx, vz);
   if (sp < MOVE.wallRunMinSpeed) return;
-  const n = wallBeside(pp, 1.3);
+  const n = wallBeside(pp, MOVE.wallRunReach);
   if (!n) return;
-  if (Math.abs(vx * n.x + vz * n.z) / sp > 0.55) return;   // heading into (or away from) the wall, not along it
-  const dir = Math.sign(-n.z * vx + n.x * vz) || 1;          // which way along the face
+  const into = -(vx * n.x + vz * n.z) / sp;
+  if (into < -0.3) return;   // moving away from the wall
+  if (into > MOVE.wallRunHeadOn) return;   // straight at it: no run, so SPACE can backflip off the face (movement.js); any angle at all runs
+  // which way along the face: the way you're moving along it, or, coming in nearly square, the way you're looking along it
+  const tx = -n.z, tz = n.x, along = tx * vx + tz * vz;
+  const f = fwd(), look = tx * f.x + tz * f.z;
+  const dir = Math.abs(along) > 0.35 * sp ? Math.sign(along) : (Math.sign(look) || Math.sign(along) || 1);
+  if (player.flip) rushFlip(0.1);   // a flip into the wall finishes its turn as the feet land on it
   player.wallRun = { t: 0, nx: n.x, nz: n.z, dir, d: n.d };
   player.wallRunUsed = true;
   tutEvent('wallrun');

@@ -126,7 +126,7 @@ export const player = {
   blockHeld: false, blockT: 0, parryT: 0, riposteT: 0,
   beskarT: 0, beskarLockT: 0, beskarPose: 0, beskarHit: false, spin: 0, burstLeft: 0, burstT: 0,   // the Mando's beskar parry (data/mando.js BESKAR_PARRY) · the repeater's spin-up · a carbine burst in flight
   castT: 0, castMax: 0.3, castKind: '', swingFlip: false,   // force-cast hand gesture + neutral swing alternator
-  holstered: false, palmT: 0, palmMax: 0, palmStep: 0, palm: null, palmQueued: false, lastPalmEnd: -9, palmHold: null, lastPalmHit: -9, pullStrikeT: 0, stomp: false, kickKind: '',   // Jedi saber on the belt + the Force strike string (jedi/palm.js)
+  holstered: false, wardHit: null, lead: 'L', palmT: 0, palmMax: 0, palmStep: 0, palm: null, palmQueued: false, lastPalmEnd: -9, palmHold: null, lastPalmHit: -9, pullStrikeT: 0, stomp: false, kickKind: '',   // Jedi saber on the belt + the Force strike string (jedi/palm.js)
   // skill-tree upgrade multipliers/bonuses (reset each new campaign)
   up: { dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
         atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,

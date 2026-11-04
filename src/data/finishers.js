@@ -27,7 +27,7 @@ export const FINISHER = {
 
 /* EACH FORM'S FINISHER — a short run of beats, each one a saber cut from the form's own keyframes (data/poses.js
    SWINGS: left right forward back diagL diagR riseL riseR thrust), played straight after each other.
-   pat     the cut · dur: seconds · spin: whole turns of the body through it · hop: how high it leaves the ground (m)
+   pat     the cut · keys: a key set of the grip's own to strike it with instead (data/poses.js: the reverse grip's stab) · dur: seconds · spin: whole turns of the body through it · hop: how high it leaves the ground (m)
    travel  metres it carries the body toward the foe; 'past' carries it right past and out behind (Ataru, Shien)
    share   the part of the finisher's damage this beat lands on the foe (the last beat is the kill)
    edge    what the beat does besides (finisher.js EDGES): sweep (cuts everything round you) · shock (a shockwave that
@@ -57,8 +57,9 @@ export const FINISHERS = {
     { pat: 'diagR', dur: 0.3, share: 0.15, fx: 'kneel' },
     { pat: 'forward', dur: 0.5, hop: 0.15, travel: 0.5, share: 0.7, edge: 'shock', fx: 'kneel' },
   ] },
-  shien: { name: 'TOGRUTA PASS', line: 'A reverse-grip spin past the foe, the blade drawn across it as you go: you end behind it, breath back', beats: [
-    { pat: 'right', dur: 0.6, spin: 1, travel: 'past', share: 1, edge: 'stam' },
+  shien: { name: 'TOGRUTA PASS', line: 'A close stab, then a reverse-grip spin past the foe, the blade drawn across it as you go: you end behind it, breath back', beats: [
+    { pat: 'thrust', keys: 'stab', dur: 0.24, share: 0.2 },
+    { pat: 'right', dur: 0.56, spin: 1, travel: 'past', share: 0.8, edge: 'stam' },
   ] },
   niman: { name: 'PALM AND BLADE', line: 'A Force palm throws it back off its feet and the cut follows it: Force back', beats: [
     { pat: 'thrust', dur: 0.3, share: 0.15, fx: 'palm' },

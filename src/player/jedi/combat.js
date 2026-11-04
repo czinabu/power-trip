@@ -6,13 +6,13 @@ import { CFG } from '../../data/config.js';
 import { stamDelay } from '../stamina.js';
 import { SWING_PATTERNS, backLineMul, swordMul } from '../../data/stances.js';
 import { edgeMul } from '../../enemies/foeform.js';
-import { SWING_SPINS, DEFLECT_SPINS } from '../../data/poses.js';
+import { SWING_SPINS, SWING_SPINS_GRIP, DEFLECT_SPINS } from '../../data/poses.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, barrels, keys, player, isGunner } from '../../state.js';
-import { fwd, rightV, playerPos, stance } from '../helpers.js';
+import { fwd, rightV, playerPos, stance, heldGrip } from '../helpers.js';
 import { damageEnemy, flinchEnemy, nearestEnemyInCone, staggerEnemy, interruptEnemy } from '../../enemies/damage.js';
 import { damageBoss } from '../../boss/boss.js';
 import { FOCUS, focusTier, focusDmgMul, addFocus, freeRiposte } from './focus.js';
@@ -24,6 +24,7 @@ import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry } from '../../
 import { bodyRadius } from './bladehit.js';
 import { bounceOff, contactPoint } from './clash.js';
 import { inReach } from '../../enemies/bodyshape.js';
+import { palmPoints } from '../../fx/palms.js';
 import { scarBody, severLimbs } from '../../enemies/scars.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 import { masteryXp } from '../../game/progression.js';
@@ -170,7 +171,7 @@ export function tryAttack(flow = false){
    cooldown, with the stamina to pay its surcharge. */
 function pickSpin(form, step, dirKey, o){
   if (isGunner() || !player.grounded || player.flip || step === 2 || o.ripNow || o.backStrike || o.mom || o.held) return null;   // (a held press is drawing a heavy: no spin)
-  const S = SWING_SPINS[form];
+  const GS = SWING_SPINS_GRIP[heldGrip()], S = GS && GS[form] ? { ...SWING_SPINS[form], ...GS[form] } : SWING_SPINS[form];   // (a grip's own take)
   if (!S || !o.flow) return null;
   const sp = (step === 1 && S.mid) || ((dirKey === 'left' || dirKey === 'right') ? S.move : null);
   if (!sp || G.gt - (player._spinT || -9) < sp.cd || player.stam < sp.stam * o.st.stamina) return null;
@@ -506,6 +507,13 @@ export function forceKick(){
 /* DEFLECT ANIMATION — start a blade catch toward something arriving at `from` (a bolt, or a blocked blow). The
    catch itself (which cover, which side) is picked in anim/saber.js. A swing already in flight keeps the blade. */
 export function deflectAnim(from, line, contact){
+  if (!isGunner() && player.holstered && from && !(player.palmT > 0)){   // no blade to catch it on: a palm flicks out to meet the blow (animation.js forceHands)
+    const c = catchState(from);
+    player.wardHit = { t: 0, dur: 0.3, side: c.side, h: c.h };
+    const hands = palmPoints([c.side > 0 ? 'R' : 'L']);
+    if (hands[0]) sparks(hands[0], stance().blade, 4, 6, { dir: V3(0, 0, 0), cone: 3, life: 0.16, grav: 0, size: 0.4 });
+    return;
+  }
   if (isGunner() || player.atkT > 0 || !from) return;
   const cur = player.deflectAnim;
   if (cur && cur.spin && cur.t < cur.dur) return;   // a spin already sweeping the blade round covers the next bolt too

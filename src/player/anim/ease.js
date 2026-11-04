@@ -14,6 +14,8 @@ import { MANDO_WEAPONS } from '../../data/mando.js';
 export const AT_EASE = {
   inRate: 5, outRate: 7,   // how fast the stance lets go when a scene starts, and comes back when it ends (per second)
   relaxOut: 22,            // a cut, a guard or a power out of the relaxed stand (blade put out): the arms go to it straight away
+  relaxIn: 3.2,            // putting the blade out: the guard melts away slowly as the hand takes the hilt to the belt
+  relaxBack: 4.5,          // lighting it with 5: the arm rises into the guard over a beat, not in a snap
   // the arms hang loose at the sides, elbows soft, hands a touch in front of the thighs (armR is the weapon hand)
   armR: { sh: [-0.08, 0.04, -0.07], el: [-0.28, 0, 0], wr: [0.1, 0, 0] },
   armL: { sh: [-0.06, -0.04, 0.07], el: [-0.24, 0, 0], wr: [0.1, 0, 0] },
@@ -41,12 +43,50 @@ export const atEase = () => !!G.cutscene;
 export const RELAXED = {
   swing: 0.5,     // how far the arms swing with the stride at full pace (shoulder, radians each way)
   elbow: 0.55,    // and how much more the elbows bend at a run
+  air: { lift: -0.25, out: 0.4, elbow: 0.35 },   // in the air (a jump, a flip): arms up and out from the sides, elbows soft
+  breath: 0.025,  // the shoulders rising and falling with the breath at a standstill
+  // the arms at rest: hanging off the shoulders with a little room from the body (not pinned to the sides), elbows
+  // soft, hands loose by the thighs (armR is the weapon hand: the hilt's on the belt, so it hangs like the other)
+  armR: { sh: [-0.06, 0.05, 0.22], el: [-0.32, 0, 0], wr: [0.18, 0, 0] },   // (+z swings the right arm out from the body)
+  armL: { sh: [-0.06, -0.05, -0.22], el: [-0.3, 0, 0], wr: [0.18, 0, 0] },   // (and -z the left)
+  // the weapon hand reaching across to the belt at the left hip (to clip the hilt on, or take it off)
+  reach: { sh: [-0.25, -0.55, -0.3], el: [-1.05, 0, 0], wr: [0.25, 0, 0] },
 };
 export function relaxed(){
   if (G.mode !== 'play' || G.cutscene || !player.unlit) return false;
   if (isGunner() ? player.weapon !== 'darksaber' : player.holstered) return false;
+  // (a jump or a flip keeps the loose arms: only what needs the hands or a guard takes them back)
   return !(player.atkT > 0 || player.castT > 0 || player.blockHeld || player.judgeT > 0 || player.mendT > 0 || player.darkT > 0 ||
-    player.flip || player.hang || player.mantle || player.wallRun || player.slideT > 0 || player.dashT > 0 || player.saberLock || player.kickT > 0);
+    player.hang || player.mantle || player.wallRun || player.slideT > 0 || player.dashT > 0 || player.saberLock || player.kickT > 0);
+}
+
+/* THE FLOURISH — lighting or putting out the blade on purpose (5, a draw from the belt) spins the hilt one full turn in
+   the fingers, end over end, as the blade runs up (the arm rises into the guard on its own as the at-ease stand lets
+   go) or sucks back in (the arm settling to the hip). It turns the weapon in the hand (the saber or the Darksaber),
+   over the pose: animatePlayer puts the hilt back to its mount grip first (flourishReset), poses the arms, then
+   spins it (flourishApply). The spun hilt rides the pose sync, so a co-op partner sees it as well. */
+export const FLOURISH = {
+  ignite:  { dur: 0.34, turns: 1 },    // fast out, easing to a stop square in the hand as the blade reaches full length
+  retract: { dur: 0.44, turns: -1 },   // the other way round, slower, the hilt settling as the blade goes in
+};
+const FL = { t: 0, F: null, node: null };
+const flNode = () => isGunner() ? (player.weapon === 'darksaber' ? player.darksaberMesh : null) : (player.holstered ? null : player.saberHand);
+export function startFlourish(dir){ FL.F = dir > 0 ? FLOURISH.ignite : FLOURISH.retract; FL.t = 0; FL.node = flNode(); }
+export const flourishing = () => !!FL.F;
+const _ax = new THREE.Vector3(1, 0, 0), _fq = new THREE.Quaternion();
+export function flourishReset(){
+  const m = FL.node;
+  if (m && m.userData.restQ && m.parent === m.userData.hand) m.quaternion.copy(m.userData.restQ);
+}
+export function flourishApply(dt){
+  if (!FL.F) return;
+  const m = FL.node, F = FL.F;
+  FL.t += dt;
+  const k = Math.min(1, FL.t / F.dur);
+  if (!m || m !== flNode() || !m.userData.restQ || m.parent !== m.userData.hand){ FL.F = null; return; }   // (thrown, holstered, swapped)
+  const e = F.turns > 0 ? 1 - Math.pow(1 - k, 3) : k * k * (3 - 2 * k);
+  m.quaternion.copy(m.userData.restQ).multiply(_fq.setFromAxisAngle(_ax, Math.PI * 2 * F.turns * e));
+  if (k >= 1){ m.quaternion.copy(m.userData.restQ); FL.F = null; }
 }
 const _e = new THREE.Euler(), _q = new THREE.Quaternion();
 const qe = (x, y, z) => _q.setFromEuler(_e.set(x, y, z));
@@ -54,7 +94,8 @@ const qe = (x, y, z) => _q.setFromEuler(_e.set(x, y, z));
 export function easePose(dt, vis, R, gait){
   const scene = atEase(), loose = !scene && relaxed();
   const want = scene || loose ? 1 : 0, cur = player._ease || 0;
-  const rate = want > cur ? AT_EASE.inRate : scene ? AT_EASE.outRate : AT_EASE.relaxOut;   // (a move out of the relaxed stand takes the arms at once)
+  const busy = player.atkT > 0 || player.blockHeld || player.castT > 0 || player.kickT > 0 || player.dashT > 0 || player.judgeT > 0;
+  const rate = want > cur ? (scene ? AT_EASE.inRate : AT_EASE.relaxIn) : scene ? AT_EASE.outRate : busy ? AT_EASE.relaxOut : AT_EASE.relaxBack;   // (a move out of the relaxed stand takes the arms at once; lighting it with 5 eases into the guard)
   const k = player._ease = cur + (want - cur) * Math.min(1, dt * rate);
   if (k < 0.002){ player._ease = 0; return; }
   const s = k * k * (3 - 2 * k);   // eased, so the guard melts away and comes back without a snap
@@ -83,10 +124,16 @@ function relaxedArms(R, s, gait){
   R.chest.quaternion.slerp(ZERO, s);
   const g = gait || {}, on = g.moving && player.grounded ? (g.inten || 0) : 0;
   const sw = Math.sin(g.ph || 0) * RELAXED.swing * on, bend = RELAXED.elbow * on;
-  for (const [A, key, k] of [[R.armR, 'armR', -1], [R.armL, 'armL', 1]]){
-    const P = AT_EASE[key];
-    A.sh.quaternion.slerp(qe(P.sh[0] + k * sw, P.sh[1], P.sh[2]), s);
-    A.el.quaternion.slerp(qe(P.el[0] - bend, P.el[1], P.el[2]), s);
-    A.wr.quaternion.slerp(qe(P.wr[0], P.wr[1], P.wr[2]), s);
+  const air = player.grounded ? 0 : 1, A_ = RELAXED.air;   // off the ground: the arms come up and out a little for balance
+  const br = Math.sin(G.gt * 1.6) * RELAXED.breath;         // a slow breath in the shoulders, so standing still isn't a statue
+  // the reach to the belt and back (player/holster.js player.reach): the weapon hand crosses to the left hip and back
+  const RC = player.reach, rk = RC ? Math.sin(Math.PI * Math.min(1, RC.t / REACH_DUR)) : 0;
+  for (const [A, P, k] of [[R.armR, RELAXED.armR, -1], [R.armL, RELAXED.armL, 1]]){
+    const reach = A === R.armR ? rk : 0, H = RELAXED.reach;
+    A.sh.quaternion.slerp(qe(lerp(P.sh[0] + k * sw + air * A_.lift + br, H.sh[0], reach), lerp(P.sh[1], H.sh[1], reach), lerp(P.sh[2] - k * air * A_.out, H.sh[2], reach)), s);
+    A.el.quaternion.slerp(qe(lerp(P.el[0] - bend - air * A_.elbow, H.el[0], reach), P.el[1], P.el[2]), s);
+    A.wr.quaternion.slerp(qe(lerp(P.wr[0], H.wr[0], reach), P.wr[1], P.wr[2]), s);
   }
 }
+const lerp = (a, b, t) => a + (b - a) * t;
+const REACH_DUR = 0.36;   // (player/holster.js REACH.dur)

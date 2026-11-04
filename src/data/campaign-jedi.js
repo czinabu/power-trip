@@ -45,10 +45,12 @@ export const JEDI_ACT_TWO_WARN = 'Whichever you leave for second will not wait w
 // per chapter id, laid over the shared slot (data/campaign.js storyChapter; the fields are listed in data/campaign-mando.js).
 // Besides those: `guests` fight beside you for the chapter (squadmates of the story's own: allies/squad.js addSquadmate),
 // `evacuees` retells who a hold's evacuees are ({ kind, name }: game/mission.js), `says` replaces the voice's line on a mission chapter's objectives, by objective (null keeps the mission's),
-// `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES), and `doorway` ends the chapter's
-// calm at the temple's great doors: they open, the hero walks through, and the next chapter comes up on the far side
-// (game/aftermath.js, world/doorway.js). Its words: `label` the HUD's title, `to` and `through` its line before and
-// after the doors open, `open` what is said as they do ([who, say], who null: the story's voice).
+// `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES), and `doorway` walks the hero on
+// into the next chapter: the calm after it ends where the next one starts, the screen fades and the next chapter comes up
+// right there (game/aftermath.js THE WAY ON, world/doorway.js). `at` is where ('next': the next chapter's start on this
+// same map; [x, z]: a door out of this map; none: the temple's great doors, which open first). Its words: `label` the
+// HUD's title, `to` its line on the way, and for the temple doors `through` after they open and `open` what is said as
+// they do ([who, say], who null: the story's voice). The ways on that aren't the siege's are in JEDI_WAYS_ON below.
 export const JEDI_CHAPTERS = {
   // ---------------- ACT I: THE FALL OF JEDHA ----------------
   'last-lesson': {
@@ -362,3 +364,12 @@ export const JEDI_DUELS = {
 export const JEDI_BOSS = [[VEXIS, 'Oren\'s last student. Did he ever tell you what I was to him? Did he tell you about Ilsa?'],
                           [VAEL, 'Do not listen to him. Finish it.']];
 export const JEDI_EPILOGUE_SCENE = { by: 'vexis', vael: [[VAEL, 'Come, my old apprentice. We have a long way to go.']], ended: [[VAEL, 'It is over.']] };
+
+// THE WAYS ON (see `doorway` above): the chapters that share a place with the next one walk straight into it
+export const JEDI_WAYS_ON = {
+  refuge: { at: 'next', label: 'TO THE DOOR', to: 'WALK TO TARN AT THE REFUGE DOOR' },
+  lothal: { at: 'next', label: 'AFTER SERA', to: 'WALK TO WHERE SERA WAITS' },
+  hoth:   { at: [26, 60.6], label: 'TO THE HANGAR', to: 'WALK TO THE HANGAR DOOR' },   // (the base's blast wall: world/arenas/icefront.js)
+  chains: { at: 'next', label: 'TO THE THRONE', to: 'WALK ON TOWARD THE THRONE' },
+};
+for (const [id, way] of Object.entries(JEDI_WAYS_ON)) JEDI_CHAPTERS[id].doorway = way;

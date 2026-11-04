@@ -249,7 +249,7 @@ import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
-Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn });   // the story's voice lines (game/story.js), for tests
+Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
 Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });

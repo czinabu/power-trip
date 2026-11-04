@@ -11,9 +11,13 @@
 // a guest's upgrade screen waits for it to end (game/campaign.js). A lone mission, survival, training and the sandbox have
 // no next chapter to wait for: they end as they always have.
 //
-// THROUGH THE DOORS. A chapter with a `doorway` (the Jedi's siege: data/campaign-jedi.js) puts its rally point before the
-// temple's great doors (world/doorway.js). Reaching it opens them; walking through them fades to black and closes the
-// chapter, and the next one comes up out of the dark on the other side (the archive's south doors).
+// THE WAY ON. A chapter with a `doorway` (data/campaign-*.js) leads straight into the next one: its rally point is where
+// the next chapter starts, and reaching it fades the screen to black and closes the chapter, so the next one comes up out
+// of the dark right there (world/doorway.js lifts it). Its `at` says where:
+//   'next'     the next chapter's start (its mission's `start`, or a wave chapter's spawn): two chapters on one map
+//   [x, z]     a spot on this map (a door out of it: the next chapter is on another map)
+//   (none)     the temple's great doors (world/arenas/temple.js): reaching them opens them, and walking through them
+//              is what fades (the Jedi's siege into the archive)
 
 import { G, shared, enemies } from '../state.js';
 import { playerPos } from '../player/helpers.js';
@@ -22,6 +26,7 @@ import { comms, commsBusy } from './story.js';
 import { stageHolds } from '../ui/hud-stage.js';
 import { onSetFigures, meetAt } from './onset.js';
 import { CALM, CALM_CFG } from '../data/calm.js';
+import { LEVELS } from '../data/levels.js';
 import { chapterOrder, storyHero, storyVoice } from '../data/campaign.js';
 import { MISSIONS } from '../data/missions.js';
 import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision.js';
@@ -53,7 +58,7 @@ function exchangeFor(c){
 // the rally point: where the voice stands, if they stayed on set and are a walk away; otherwise open ground a walk off
 function rallySpot(){
   const pp = playerPos(), cast = onSetFigures()[0];
-  if (A.door){ const f = doorFront(); return { x: f.x, z: f.z, who: cast && meetAt(f.x + 4.5, f.z - 0.5) ? cast.name : '' }; }   // (the voice meets you beside the doors, out of the doorway)
+  if (A.door){ const f = wayOn(A.door); return { x: f.x, z: f.z, who: cast && meetAt(f.x + 4.5, f.z - 0.5) ? cast.name : '' }; }   // (the voice meets you beside it, out of the way)
   if (cast){
     const d = Math.hypot(cast.pos.x - pp.x, cast.pos.z - pp.z);
     if (d >= CALM_CFG.near){ const k = Math.max(0, (d - 1.6) / d); return { x: pp.x + (cast.pos.x - pp.x) * k, z: pp.z + (cast.pos.z - pp.z) * k, who: cast.name }; }
@@ -75,6 +80,18 @@ function rallySpot(){
   const met = cast && meetAt(c.x, c.z);   // (the voice was too close to walk to: they go on ahead and meet you there, unseen)
   return { x: c.x, z: c.z, who: met ? cast.name : '' };
 }
+// where a chapter's `doorway` leads (THE WAY ON above)
+function wayOn(d){
+  if (Array.isArray(d.at)) return findClearSpawn(d.at[0], d.at[1], 1.0);
+  if (d.at === 'next'){
+    const n = chapterOrder(G.actTwo)[G.chapter + 1], m = n && n.kind === 'mission' && MISSIONS[n.mission];
+    if (m && m.start) return findClearSpawn(m.start[0], m.start[1], 1.0);
+    const L = n && n.kind === 'waves' && { ...LEVELS[n.level], ...n.arena };
+    if (L) return findClearSpawn(0, L.arena / 2 * 0.5, 1.0);   // (where a wave chapter puts the hero: game/flow.js startLevel)
+  }
+  return doorFront() || playerPos();
+}
+const twoStep = (d) => !d.at;   // the temple doors: open them, then walk through
 function showMark(x, z){
   if (A.mark) removeMarker(A.mark);
   A.mark = makeBeacon(x, z, groundAt(x, z, 3), COLOR, 1.4);
@@ -91,7 +108,7 @@ export function startCalm(){
   // the field goes quiet: whatever is left of the fight is swept away
   for (const e of enemies){ if (!e.dead && e.group) burst(new THREE.Vector3(e.group.position.x, 1.2, e.group.position.z), 0xffd28a, 10, 4, 3, 0.8); removeEnemy(e); }
   enemies.length = 0; G.spawnQueue.length = 0;
-  const door = c.doorway && templeDoors() ? c.doorway : null;   // (through the temple doors: THROUGH THE DOORS above)
+  const door = c.doorway && (c.doorway.at || templeDoors()) ? c.doorway : null;   // (the way on: THE WAY ON above)
   Object.assign(A, { on: true, guest: false, t: 0, at: null, said: false, reached: false, lines, door, label: (door && door.label) || (CALM[storyHero()] || CALM.jedi).label || 'REGROUP', who: '' });
   G.calm = true;
   shared.levelPhase = 'aftermath'; shared.phaseT = 0;
@@ -112,7 +129,7 @@ export function endCalm(quiet){
 export function calmHud(){
   if (!A.on) return null;
   const d = A.door, st = d ? (A.guest ? A.doorSt || 0 : doorState()) : 0;
-  const status = !A.at ? 'TAKE A BREATH' : d ? (st ? d.through || 'WALK THROUGH THE DOORS' : d.to || 'WALK TO THE DOORS') : A.reached ? 'REGROUPED' : 'NO RUSH · WALK TO THE MARKER';
+  const status = !A.at ? 'TAKE A BREATH' : d ? (st ? d.through || 'WALK THROUGH THE DOORS' : d.to || 'WALK TO THE MARKER') : A.reached ? 'REGROUPED' : 'NO RUSH · WALK TO THE MARKER';
   return { title: A.who ? A.label + ' · ' + A.who : A.label, status };
 }
 export const calmTarget = () => A.on && A.at ? A.at : null;
@@ -141,8 +158,12 @@ export function updateAftermath(dt){
 // a doorway calm: at the doors they open and the marker moves just past them; through them the screen goes dark and
 // the chapter closes. Past the calm's time limit the doors open on their own, and a while after that it closes anyway
 function updateDoor(talked){
-  const st = doorState();
-  if (st === 0 && ((A.reached && talked && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max)){
+  const st = doorState(), due = (A.reached && talked && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max;
+  if (!twoStep(A.door)){   // a spot: there, the screen goes dark
+    if (st === 0 && due){ dropMark(); goThrough(() => endCalm(false)); }
+    return;
+  }
+  if (st === 0 && due){
     openDoors();
     const t = doorThrough();
     A.at = { x: t.x, z: t.z }; A.reached = false; A.doorT = A.t;
@@ -165,11 +186,11 @@ export function calmSnap(){
 export function calmSync(af){
   if (af){
     A.seen = true;
-    const c = chapterNow(), door = af.length > 2 && c && c.doorway && templeDoors() ? c.doorway : null;
+    const c = chapterNow(), door = af.length > 2 && c && c.doorway ? c.doorway : null;
     if (!A.on || !A.at || A.at.x !== af[0] || A.at.z !== af[1]){ Object.assign(A, { on: true, guest: true, at: { x: af[0], z: af[1] }, who: '', reached: false, sent: false, door, label: (door && door.label) || (CALM[storyHero()] || CALM.jedi).label || 'REGROUP' }); showMark(af[0], af[1]); G.calm = true; }
     if (door){   // the host's doors: open with them, and go dark with them
       A.doorSt = af[2];
-      if (af[2] >= 1) openDoors();
+      if (af[2] >= 1 && twoStep(door)) openDoors();
       if (af[2] >= 2){ goThrough(); dropMark(); }
     }
   } else if (A.on && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); }

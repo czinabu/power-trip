@@ -268,3 +268,13 @@ export const TROOPER_EPILOGUE = {
           'Kast came to the yards last week. She says the signal under the spire was older than the chips, and older than the Republic, and that it was not finished.',
           'A Jedi heard the same signal on Jedha. A Mandalorian heard it out past the Rim. Something is coming, brother. When it does, nobody gives us the order. We choose.'],
 };
+
+// THE WAYS ON (a chapter's `doorway`: game/aftermath.js THE WAY ON): the chapters that share a place with the next one
+// walk straight into it. `at` 'next' is the next chapter's start on this same map; [x, z] a way off this map
+export const TROOPER_WAYS_ON = {
+  refuge:    { at: 'next', label: 'RALLY POINT', to: 'WALK TO THE MUSTER POINT' },
+  lothal:    { at: 'next', label: 'TO THE COURSE', to: 'WALK TO THE OLD KILL HOUSE' },
+  hoth:      { at: [26, 60.6], label: 'TO THE HANGAR', to: 'WALK TO THE HANGAR DOOR' },   // (the base's blast wall: world/arenas/icefront.js)
+  spearhead: { at: 'next', label: 'UP THE SPIRE', to: 'WALK ON TO THE SPIRE' },
+};
+for (const [id, way] of Object.entries(TROOPER_WAYS_ON)) TROOPER_CHAPTERS[id].doorway = way;

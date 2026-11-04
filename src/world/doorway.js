@@ -1,4 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+// THE WAY ON between two chapters (game/aftermath.js): the screen's fade to black as the hero walks into the next chapter,
+// and the one set of doors that opens on the way (below). Any chapter's walk on ends in goThrough's fade.
+//
 // THE TEMPLE DOORS: the great doors in the Jedha courtyard's temple front (world/arenas/temple.js), shut in every mode.
 // The Jedi's story opens them at the end of the siege (a chapter's `doorway`: game/aftermath.js runs it): they swing in,
 // a passage opens past the edge of the play space (the movement clamp lets the hero into the doorway: player/locomotion.js),
@@ -40,13 +43,14 @@ export function openDoors(){
 // through the doors: the screen goes to black, then `then` (the chapter closes: game/aftermath.js)
 export function goThrough(then){
   if (D.state >= 2) return;
-  openDoors();
+  if (D.doors) openDoors();
   D.state = 2; D.t = 0; D.then = then || null;
   fadeTo(1, FADE_OUT);
 }
 
 // every frame of play (main.js)
 export function updateDoorway(dt){
+  if (D.state === 2 && D.then && (D.t += dt) >= FADE_OUT + 0.25){ const f = D.then; D.then = null; f(); }   // (through: the chapter closes)
   if (!D.doors) return;
   const want = D.state >= 1 ? 1 : 0;
   if (D.open !== want){
@@ -54,7 +58,6 @@ export function updateDoorway(dt){
     const k = D.open * D.open * (3 - 2 * D.open);   // (eased: heavy doors start slow and settle)
     for (const h of D.doors.hinges) h.g.rotation.y = h.sx * k * SWING;    // both leaves swing in, away from the courtyard
   }
-  if (D.state === 2 && D.then && (D.t += dt) >= FADE_OUT + 0.25){ const f = D.then; D.then = null; f(); }
 }
 
 /* the passage clamp (player/locomotion.js): true when the hero is in the open doorway, kept between its walls and short

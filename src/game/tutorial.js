@@ -16,7 +16,7 @@ import { setStanceHud, setLoadout, switchStance } from '../player/jedi/stance.js
 import { switchWeapon } from '../player/mando/weapons.js';
 import { setKit } from './armory.js';
 import { kitOf } from '../data/mando.js';
-import { toggleHolster } from '../player/holster.js';
+import { toggleHolster, toggleBlade, atEase, clearUnlit } from '../player/holster.js';
 import { spawnEnemy } from '../enemies/spawn.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { startLevel, queueSpawn, syncMandoChips, syncJediChips } from './flow.js';
@@ -119,7 +119,7 @@ export function retryTutorial(){ retryId = T.lesson ? T.lesson.id : null; startT
 export function endTutorial(){
   if (!T.on) return;
   T.on = false;
-  if (T.hero !== 'mando' && player.holstered) toggleHolster();   // leave with the blade drawn, whatever the lesson left
+  if (T.hero !== 'mando'){ clearUnlit(); if (player.holstered) toggleHolster(); }   // leave with the blade drawn, whatever the lesson left
   setTutListener(null);
   clearSpawned();
   clearBeacons();
@@ -138,7 +138,13 @@ function beginLesson(L){
   baseKit();
   if (T.hero !== 'mando'){
     setLoadout(L.loadout || trainingLoadout());
-    if (!!player.holstered !== !!L.holstered) toggleHolster();   // movement lessons keep the saber on the belt; the blade lesson ignites it
+    // movement lessons start at ease (the blade out, the hilt on the belt); the unarmed lesson holsters; the rest ignite it
+    if (L.atEase) atEase();
+    else {
+      if (player.unlit && !L.holstered && !player.holstered && G.mode === 'play') toggleBlade();   // off the belt and lit, the way 5 / Z does it
+      else clearUnlit();
+      if (!!player.holstered !== !!L.holstered) toggleHolster();
+    }
     switchStance(G.loadout.find(Boolean) || 'shiicho', true); setStanceHud();
   }
   player.hp = maxHp(); player.force = CFG.player.maxForce; player.stam = maxStam();

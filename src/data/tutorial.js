@@ -14,7 +14,8 @@
 //   kit / any   a gear or power lesson: it opens once the story has reached that unlock (an auto-unlock key or a store
 //            id from data/store.js), or any of the ids in `any`
 //   loadout  the three forms on 1 / 2 / 3 while it runs (Jedi). The basics teach in Shii-Cho alone
-//   holstered  (Jedi) the saber starts on the belt, unignited; lessons without it start with the blade drawn
+//   atEase     (Jedi) the blade out and the hilt clipped to the belt, walking at ease (Z lights it): the movement lessons
+//   holstered  (Jedi) the saber holstered for unarmed fighting (4); lessons with neither start with the blade drawn
 //   done     the teacher's line when it's passed
 //
 // Step fields
@@ -82,7 +83,7 @@ const BASE = ['shiicho', null, null];   // the basics teach in Shii-Cho, Form I,
 export const LESSONS = {
   jedi: [
     /* ---------------- THE BASICS ---------------- */
-    { id: 'steps', group: 'basics', name: 'FIRST STEPS', sub: 'Walk, jump, dash, sprint, slide and glide', loadout: BASE, holstered: true,
+    { id: 'steps', group: 'basics', name: 'FIRST STEPS', sub: 'Walk, jump, dash, sprint, slide and glide', loadout: BASE, atEase: true,
       done: 'Good. Your feet know the Force now. Next, the lanes.',
       steps: [
         { sec: 'THE TERRACE', say: 'Every lesson begins with a single step. Come to the circle.',
@@ -100,7 +101,7 @@ export const LESSONS = {
         { say: 'In a fight, never turn your back. Keep your eyes on the foe and let your feet circle.',
           keys: 'ALT + A / D / S', do: 'Strafe: press ALT (or hold it, with Settings · STRAFE on HOLD) and sidestep or backpedal while you keep facing the crosshair (hold LB on a controller)', poll: 'strafe', need: 1.5 },
       ] },
-    { id: 'lanes', group: 'basics', name: 'THE LANES', sub: 'Vault, climb, roll, run the wall, then the gauntlet', loadout: BASE, holstered: true,
+    { id: 'lanes', group: 'basics', name: 'THE LANES', sub: 'Vault, climb, roll, run the wall, then the gauntlet', loadout: BASE, atEase: true,
       done: 'You flow over the ground like water. Now, the blade.',
       steps: [
         { sec: 'THE LANES', say: 'Stones in your path are only stones. Do not jump them: run straight at one and flow over it without breaking stride.',

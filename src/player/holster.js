@@ -160,6 +160,15 @@ export function clearUnlit(){
   syncHolster();
 }
 
+// AT EASE at once (a training lesson's start: game/tutorial.js): the Jedi's blade out, the hilt on the belt, no sound
+export function atEase(){
+  if (isGunner()) return;
+  player.holstered = false; player.unlit = true; player.stowed = true; player.reach = null; player.stowPend = false;
+  player.palmT = 0; player.palm = null; player.palmQueued = false; player.palmHold = null; player.manualDraw = false;
+  extendBlade(0);
+  syncHolster();
+}
+
 /* ---------- A DUEL'S ENTRANCE (game/cutscene.js) ----------
    Before a fight with a saber wielder, the hero waits through the scene with the hilt on the belt and the blade out (the
    Jedi's saber in any form, the staff, both Jar'Kai hilts, or the Mando's Darksaber when it's the weapon in hand). The

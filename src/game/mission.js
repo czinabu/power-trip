@@ -53,6 +53,7 @@ import { players, targetable } from '../player/players.js';
 import { diffDmgMul, diffBossCheckpoint } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
+import { spawnFinale, dropFinale } from '../boss/finale.js';
 import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
 import { TAUNTS, SCARRED, SCARS, scarOf, pickLine } from '../data/duel-taunts.js';
 import { punchIn } from '../engine/camera.js';
@@ -635,6 +636,13 @@ const KINDS = {
                               : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, form: o.form, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
         }
         if (o.quarry && M.qHp) M.qHp = Math.max(0.6, M.qHp);   // the run wore it down, but it still has a fight in it
+        // a FINAL BOSS on the final boss layer (boss/finale.js: the trooper's Marshal at the Broadcast): his own
+        // phases, moves and defeat; the duel only waits for him to fall
+        if (o.finale){
+          s.foe = spawnFinale(o.finale, { x: o.at[0], z: o.at[1] }, { mission: true });
+          storyBeat('duel', { name: o.name, quarry: false });
+          return;
+        }
         // a rematch: it still wears the wounds you gave it when it got away (SCARS, data/duel-taunts.js)
         const sc = s.scar = scarsOn(o.name), q = o.quarry && heroKey(M.def.quarry), kick = q ? q.kicker : o.kicker;
         const scarKick = sc && (kick ? kick + ' · ' : '') + 'WOUNDED AT ' + sc.where.toUpperCase();
@@ -649,6 +657,16 @@ const KINDS = {
         storyBeat('duel', { name: o.name, quarry: !!o.quarry });
       }
       const e = s.foe, gone = e.dead || !enemies.includes(e);
+      if (o.finale){
+        // his bar is the boss bar; the objective keeps the squad's side of it (the trooper's last stand)
+        if (o.trickle && !gone && !e.fin.over && (s.trickT = (s.trickT ?? o.trickle.every) - dt) <= 0){
+          s.trickT = o.trickle.every;
+          if (hostilesAlive() + G.spawnQueue.length < o.trickle.cap + 1) queueGroup(o.trickle.group, { at: o.from && (() => arcSpawn(o.from[0], o.from[1])) });
+        }
+        setObjectiveHud({ kicker: M.kick, title: o.title, frac: gone ? 0 : e.hp / e.maxHp, status: o.name, warn: true });
+        if (gone && (s.doneT = (s.doneT ?? 1.2) - dt) <= 0){ dropFinale(); clearScars(o.name); return true; }   // (his fall plays out first)
+        return;
+      }
       if (o.escape && !gone && e.hp <= e.hpFloor + 0.01){ escapeDuel(o, e); return true; }
       if (!s.raged && !gone && e.hp <= e.maxHp * o.rage){
         s.raged = true;

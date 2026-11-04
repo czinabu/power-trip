@@ -102,6 +102,7 @@ import { CANYON_SPOTS } from '../world/arenas/canyon.js';
 import { RELAY_SPOTS } from '../world/arenas/relay.js';
 import { OUTPOST_SPOTS } from '../world/arenas/outpost.js';
 import { TURNED, PURGE, DRILL, MARSHAL } from './allies.js';
+import { MARSHAL_BOSS } from './bosses.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
 export const MISSION_COLOR = { jedi: 0x5ad2ff, mando: 0xffa040, trooper: 0x4aa8ff };
@@ -1516,10 +1517,10 @@ export const MISSIONS = {
         say: all('He is coming down the spire himself. No more running, for either of you. Remember how he fights.'),
         task: all('Face the Marshal'),
         enter: all('The Marshal walks out of the lift. His helmet is off.'),
-        foe: 'officer', dress: MARSHAL, name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', hp: 6.5, dmg: 1.25, scale: 1.14, tint: 0xc9a040, at: RELAY_SPOTS.duel,
+        // the trooper's final boss (boss/marshal.js): his own phases and moves on the final boss layer
+        finale: 'marshal', foe: 'officer', dress: MARSHAL_BOSS.dress, name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER · THE LAST ORDER', scale: MARSHAL_BOSS.scale, tint: 0xc9a040, at: RELAY_SPOTS.duel,
         line: all('It is not the Empire\'s order, brother. It never was. It is older than all of us. I only wanted to hear the end of it.'),
-        rage: 0.45, rageDuel: {},
-        trickle: { every: 14, cap: 4, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
+        trickle: { every: 16, cap: 3, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
     ],
     done: all('The Marshal is down, and the spire is quiet. But under it, something is still listening.'),
   },

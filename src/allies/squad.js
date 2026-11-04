@@ -65,7 +65,7 @@ export const isFodder = e => !!FODDER[e.type] && !e.champion && !e.warbringer;
 export const squadSize = () => allies.length;
 export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
-export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
+export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && !(a.turnT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
 
 /* ============================================================
    CALLING THEM IN
@@ -1003,6 +1003,20 @@ function updateAlly(a, dt, medic, pp){
     return;
   }
   if (g.rotation.x !== 0) g.rotation.x += (0 - g.rotation.x) * Math.min(1, dt * 8);
+  // TURNED (the Marshal's signal, boss/marshal.js): the order has them. They stand and fire on you, slowly and weakly,
+  // till it passes or you get to them (a.turn: { dmg, every })
+  if (a.turnT > G.gt && a.turn){
+    g.rotation.z = Math.sin(G.gt * 3.4 + a.slot) * 0.08;
+    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    const dx = pp.x - p.x, dz = pp.z - p.z;
+    g.rotation.y = dampAngle(g.rotation.y, Math.atan2(dx, dz), 6, dt);
+    if ((a.turnFire = (a.turnFire ?? 0.6) - dt) <= 0 && !player.dead){
+      a.turnFire = a.turn.every * rand(0.85, 1.2);
+      const from = V3(p.x + Math.sin(g.rotation.y) * 0.5, 1.4 * a.t.scale, p.z + Math.cos(g.rotation.y) * 0.5);
+      fireBolt(from, V3(pp.x - from.x + rand(-0.6, 0.6), pp.y + 1.1 - from.y, pp.z - from.z + rand(-0.6, 0.6)), 40, a.turn.dmg, false, false);
+    }
+    return;
+  }
   // dazed (a mission twist's signal got into their heads): they stand where they are and sway till it passes
   if (a.dazeT > G.gt){
     g.rotation.z = Math.sin(G.gt * 2.6 + a.slot) * 0.12;

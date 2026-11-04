@@ -603,6 +603,14 @@ export function weaponArm(k, t, w){
     k.add(block(0.055, 0.3, 0.09, 0.3), 'gun', grip, [0, -0.17, 0.02]);
     k.add(loft([{ y:0, w:0.04, d:0.04 }, { y:0.12, w:0.035, d:0.035 }], ngon(8, PI/8)), 'gun', grip, [0, -0.32, 0.03], [PI, 0, 0]);
     k.add(block(0.045, 0.06, 0.13, 0.3), 'gun', grip, [0, -0.02, -0.04], [0.3, 0, 0]);
+  } else if (t.weapon === 'commander'){
+    // THE MARSHAL'S right hand (boss/marshal.js): a heavy sidearm (pistolR) for phases I and II, and the shock baton he
+    // draws in phase III (batonR: hidden till then); its lit head is batonGlow
+    const pr = k.slot('pistolR', grip);
+    commanderPistol(k, t, pr);
+    k.live(new THREE.Object3D(), pr, 'muzzleR').position.set(0, -0.4, 0.03);
+    const bt = k.slot('batonR', grip);
+    shockBaton(k, t, bt, [0, -0.06, 0], [0, 0, 0]);
   } else if (t.weapon === 'deto'){
     // a thermal detonator cupped in the throwing hand
     k.add(new THREE.SphereGeometry(0.11, 10, 8), 'metal', grip, [0, -0.06, 0.04]);
@@ -639,6 +647,26 @@ export function weaponArm(k, t, w){
     for (const s of [-1, 1]) k.glow(new THREE.BoxGeometry(0.03, 0.22, 0.01), t.eye, grip, [0.09*s, -1.1, 0.176]);
   }
   return a;
+}
+
+// THE MARSHAL'S kit: a heavy sidearm, barrel down the forearm's line, a gold-banded slide; and the shock baton, a dark
+// rod with a gripped handle and a lit head (batonGlow[]: it crackles brighter as he winds up)
+function commanderPistol(k, t, g){
+  k.add(block(0.06, 0.32, 0.1, 0.3), 'gun', g, [0, -0.18, 0.02]);
+  k.add(block(0.064, 0.05, 0.104, 0.3), 'gold', g, [0, -0.08, 0.02], [0,0,0], { outline: false });
+  k.add(loft([{ y:0, w:0.045, d:0.045 }, { y:0.14, w:0.04, d:0.04 }], ngon(8, PI/8)), 'gun', g, [0, -0.34, 0.03], [PI, 0, 0]);
+  k.add(block(0.05, 0.07, 0.14, 0.3), 'gun', g, [0, -0.02, -0.045], [0.3, 0, 0]);
+  k.add(block(0.02, 0.06, 0.03, 0.3), 'black', g, [0, -0.26, 0.085], [0,0,0], { outline: false });   // the power cell
+}
+function shockBaton(k, t, g, at, rot){
+  const b = k.group(g, at, rot);
+  k.add(loft([{ y:-0.08, w:0.05, d:0.05 }, { y:0.14, w:0.048, d:0.048 }], ngon(8, PI/8)), 'leather', b);   // the grip
+  k.add(loft([{ y:-0.66, w:0.04, d:0.04 }, { y:-0.08, w:0.044, d:0.044 }], ngon(8, PI/8)), 'gun', b);    // the rod
+  k.add(loft([{ y:0, w:0.07, d:0.07 }, { y:0.03, w:0.07, d:0.07 }], ngon(8, PI/8)), 'gold', b, [0, -0.1, 0], [0,0,0], { outline: false });   // the guard
+  for (const y of [-0.5, -0.58, -0.66]) k.add(loft([{ y:0, w:0.058, d:0.058 }, { y:0.025, w:0.058, d:0.058 }], ngon(8, PI/8)), 'metal', b, [0, y, 0], [0,0,0], { outline: false });
+  k.glow(new THREE.CylinderGeometry(0.03, 0.03, 0.24, 8), 0x7ad8ff, b, [0, -0.58, 0], [0,0,0], { opacity: 0.55, tag: 'batonGlow[]', unique: true });
+  k.live(new THREE.Object3D(), b, 'batonTip').position.set(0, -0.7, 0);
+  return b;
 }
 
 // blaster rifle held at the ready across the chest (E-11 style; long = the sniper's DLT-19x, shouldered), with both
@@ -899,6 +927,53 @@ export const MODELS = {
     rifle(k, t, w, false); rifleSling(k, w);
     helmet(k, 'marshal', t);
   },
+  /* THE MARSHAL, AS THE TROOPER'S FINAL BOSS (boss/marshal.js): the batch-brother as a commander built for the last
+     fight. Helmet off (it hangs at his belt), a scarred clone face; a broader frame than the officers in black-and-gold
+     purge plate; a commander's gold pauldron and a half-cape over the left shoulder; a long kama of armoured cloth
+     behind; two heavy sidearms (pistolR in the right fist, pistolL in the left); the shock baton across his back
+     (batonBack) that he draws in phase III (batonR); and the signal rig, a transmitter on his back with an antenna
+     and a lit wrist emitter (signal[]: violet, it builds as he sends the order) */
+  commander(k, t){
+    const w = 1.1;
+    legs(k, w, { boot: 'armor2' }); hips(k, w, { holster: true });
+    // the kama: long armoured cloth behind, gold at the hem, and plated flaps over the hips
+    const km = cape(k, [[-0.3,0],[0.3,0],[0.34,-0.6],[0.22,-0.7],[0,-0.66],[-0.22,-0.7],[-0.34,-0.6]], [0, 1.08, -0.19], 0.1, 0.018, 'armor2');
+    k.add(plate([[-0.34,-0.56],[0.34,-0.56],[0.34,-0.6],[0.22,-0.7],[0,-0.66],[-0.22,-0.7],[-0.34,-0.6]].map(([x, y]) => [x, y + km.seg * 2]), 0.022, 0.004), 'gold', km.bones[2], [0, 0, -0.006], [0,0,0], { outline: false });
+    for (const [x, ry] of [[-0.22, -0.5], [0.22, 0.5]]){
+      const kg = k.group(k.root, [x*w, 1.06, 0.07], [0.08, ry, 0]);
+      k.add(plate([[-0.13,0],[0.13,0],[0.15,-0.42],[-0.15,-0.42]], 0.024, 0.006), 'armor2', kg);
+      k.add(plate([[-0.15,-0.38],[0.15,-0.38],[0.15,-0.42],[-0.15,-0.42]], 0.028, 0.004), 'gold', kg, [0, 0, 0.004], [0,0,0], { outline: false });
+    }
+    k = upper(k); torso(k, w);
+    pauldrons(k, w, 'armor', 0.95);
+    // the commander's pauldron: a broad gold bell over the left shoulder, a dark rim, and the half-cape under it
+    k.add(loft(cap(0.4, 0.38), SOFT), 'gold', k.root, [-0.42*w, 1.84, 0], [0, 0, 0.38]);
+    k.add(loft([{ y:-0.11, w:0.415, d:0.395 }, { y:-0.085, w:0.41, d:0.39 }], SOFT), 'armor2', k.root, [-0.42*w, 1.84, 0], [0, 0, 0.38]);
+    k.add(plate([[-0.2,0],[0.16,0],[0.2,-0.5],[0.04,-0.62],[-0.12,-0.56],[-0.22,-0.4]], 0.016, 0.004), 'rag', k.root, [-0.34*w, 1.86, -0.16], [0.18, 0.5, 0.12], { outline: false });
+    // rank: gold chevrons, the stripe down the chest, and the scars of the war across the plate
+    for (let i = 0; i < 3; i++) k.add(block(0.17, 0.03, 0.03, 0.3), 'gold', k.root, [0.11*w, 1.74 - i*0.065, 0.2], [0, 0, 0.5], { outline: false });
+    k.add(block(0.045, 0.44, 0.03, 0.3), 'gold', k.root, [-0.08*w, 1.55, 0.2], [0,0,0], { outline: false });
+    k.add(block(0.22, 0.014, 0.01, 0.2), 'black', k.root, [0.12*w, 1.5, 0.205], [0, 0, -0.45], { outline: false });
+    k.add(block(0.12, 0.012, 0.01, 0.2), 'black', k.root, [-0.16*w, 1.66, 0.2], [0, 0, 0.6], { outline: false });
+    // the signal rig: a transmitter pack, an antenna up off it, the emitter lit violet
+    const pack = k.group(k.root, [0.04, 1.52, -0.29]);
+    k.add(block(0.32, 0.36, 0.14, 0.3), 'armor2', pack);
+    k.add(block(0.24, 0.05, 0.05, 0.3), 'gold', pack, [0, 0.14, -0.08], [0,0,0], { outline: false });
+    k.add(loft([{ y:0, w:0.022, d:0.022 }, { y:0.6, w:0.012, d:0.012 }], ngon(6)), 'metal', pack, [0.11, 0.16, -0.02], [-0.12, 0, -0.08]);
+    k.glow(new THREE.SphereGeometry(0.03, 6, 5), 0xb06aff, pack, [0.135, 0.78, -0.09], [0,0,0], { opacity: 0.2, tag: 'signal[]', unique: true });
+    k.glow(new THREE.BoxGeometry(0.16, 0.03, 0.012), 0xb06aff, pack, [0, -0.06, -0.075], [0,0,0], { opacity: 0.2, tag: 'signal[]', unique: true });
+    // the shock baton across his back, till he draws it
+    const bb = k.slot('batonBack', k.root, [-0.12, 1.42, -0.38], [0, 0, 0.75]);
+    shockBaton(k, t, bb, [0, 0.3, 0], [0, 0, 0]);
+    // the right: a sidearm (and the baton he'll draw); the left: the other sidearm, with the signal emitter on its wrist
+    weaponArm(k, t, w);
+    const gl = sideArm(k, w, -1, [-0.35, 0, 0.05], { hand: 'grip', gr: 0.026, bend: -0.15 });
+    const pl = k.slot('pistolL', gl);
+    commanderPistol(k, t, pl);
+    k.live(new THREE.Object3D(), pl, 'muzzleL').position.set(0, -0.4, 0.03);
+    k.glow(new THREE.BoxGeometry(0.03, 0.08, 0.012), 0xb06aff, gl.parent, [0, -0.28, 0.075], [0,0,0], { opacity: 0.2, tag: 'signal[]', unique: true });
+    helmet(k, 'marshal', t);
+  },
   // MANDALORIAN WARRIOR — a squadmate: beskar in its own colour, a cloth kama, a jetpack, a blaster rifle
   mandalorian(k, t){
     const w = 1;
@@ -910,7 +985,7 @@ export const MODELS = {
     rifle(k, t, w, false); rifleSling(k, w);
     helmet(k, 'mandalorian', t);
   },
-  /* THE IRON MAGISTRATE — the Mandalorian's (and, for now, the trooper's) final boss (boss/magistrate.js). A beskar
+  /* THE IRON MAGISTRATE — the Mandalorian's final boss (boss/magistrate.js). A beskar
      warlord: a broad frame in dark, battle-scarred plate trimmed in gold, a cuirass with a gold sigil, stacked
      pauldrons, a jetpack with rocket pods, a flame projector on the left vambrace, a round beskar shield on that arm
      (u.shield: he casts it aside after phase I), a war-spear in the right, and a war-skirt behind hung with the sigils
@@ -1016,11 +1091,13 @@ const seeded = n => { let x = (n * 2654435761) >>> 0; return () => { x ^= x << 1
 export function buildEnemyMesh(t, o = {}){
   if (o.look == null && t.look) o = { ...o, look: t.look };   // (a squadmate's def can name its look: allies/squad.js)
   const rnd = o.seed != null ? seeded(o.seed + 1) : Math.random;
-  const L = resolveLook(t, o, rnd), F = L.face || null, fi = L.fi ?? -1;
+  let L = resolveLook(t, o, rnd);
+  if (t.bare) L = { ...L, bare: true, face: { ...CLONE_FACE, ...(t.face || {}) } };   // (a named foe that goes helmet off: data/bosses.js MARSHAL)
+  const F = L.face || null, fi = L.fi ?? -1;
   /* THE SABER CAST (data/saber-cast.js): a named look (o.look: its id, as data/saber-cast.js castId gives it) or, for
      an acolyte, one of the rank and file's faces (the face index). Every other model wears a look from its pool above */
   const look = t.model === 'acolyte' ? (o.look && lookById(o.look)) || ACOLYTES[(fi < 0 ? 0 : fi) % ACOLYTES.length] : null;
-  const carry = L.bare && ((FOE_LOOKS[t.model] && FOE_LOOKS[t.model].carry) || BARE[t.model]);
+  const carry = L.bare && ((t.bare && typeof t.bare === 'string' && t.bare) || (FOE_LOOKS[t.model] && FOE_LOOKS[t.model].carry) || BARE[t.model]);
   const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
     : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + lookKey(L);
   const pal = look ? lookPalette(look) : null;

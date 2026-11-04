@@ -197,6 +197,15 @@ const BOSSES = [
     beat: ['FLANK the shield, or make him attack: a swing, a charge or a bash drops it', 'Step off the charge line as it locks: a miss leaves him stuck and open',
            'Get out of the amber rings and the red cone. Shoot his back while the flamethrower burns',
            'Hit him while his cracked armour VENTS, after every big move. Dodge the last charge and he is down and open'] },
+  { id: 'marshal', kind: 'boss', boss: 'trooper', name: 'THE MARSHAL', kicker: 'YOUR BATCH-BROTHER', threat: 5,
+    lore: 'Same batch, same tank, same instructors. He gave the order to fire, and he means to give it again.',
+    weapons: ['Two heavy sidearms', 'Thermal detonators', 'The signal rig', 'Shock baton'],
+    watch: ['Phase I: a gunfighter. Suppressing fire down a marked lane, detonators, a roll away when you crowd him, and his purge troopers',
+            'Phase II: he sends the order. A violet pulse across the floor that turns your squad against you, and his jet troopers',
+            'Phase III: the guns are gone. A baton flurry, a shoulder charge, and one last stand'],
+    beat: ['Break line of sight when the red lane goes down: cover stops his suppressing fire', 'Jump or dash the violet pulse, then get to a turned squadmate to snap them out of it',
+           'PARRY the last, heavy blow of the flurry and he is thrown open. Step off the charge line as it locks',
+           'Get out of the amber ring of his last stand and he is on his knees, open'] },
 ].map(e => ({ ...e, tab: 'bosses' }));
 
 /* ALLIES: everyone on your side the hero meets. `squad` names a squadmate (data/allies.js SQUAD.roster: the def it is
@@ -252,7 +261,7 @@ const ALLIES = ALLY_LIST.map(a => {
 
 export const CODEX = [...TROOPS, ...DUELISTS, ...BOSSES, ...ALLIES];
 export const CODEX_BY_ID = Object.fromEntries(CODEX.map(e => [e.id, e]));
-export const BOSS_ENTRY = { sith: 'vexis', mando: 'magistrate' };
+export const BOSS_ENTRY = { sith: 'vexis', mando: 'magistrate', trooper: 'marshal' };
 
 // the elite traits (data/enemies.js ELITES) as the preview's looks name them
 export const ELITE_NOTES = { swift: 'faster', vital: 'tougher', volatile: 'explodes when it dies' };

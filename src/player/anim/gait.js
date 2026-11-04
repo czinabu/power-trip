@@ -147,17 +147,18 @@ export function gaitLegs(g, fwd, right, R, vis){
 /* Drop the stance locks (the gait isn't driving the legs). */
 export function releaseGait(g){ if (g) g.locks = null; }
 
-// two-bone IK in the leg's plane: thigh then shin, the knee bending forward. dz forward, dy down (negative), dx to the
-// body's right. Returns [hip pitch, knee bend, hip roll, ankle].
+// two-bone IK: thigh then shin, the knee bending forward. dz forward, dy down (negative), dx to the body's right.
+// The hip rolls the leg out to the side first (rotation.z, applied before the pitch), so the whole hip→ankle length
+// reaches the target: a wide stance's feet land where they're put instead of falling in under the hips.
+// Returns [hip pitch, knee bend, hip roll, ankle].
 export function solveLeg(dz, dy, dx, toe){
   const a = DIM.thigh, b = DIM.shin;
-  const d3 = Math.hypot(dz, dy, dx);
-  const roll = Math.asin(clamp(dx / Math.max(d3, 1e-4), -0.6, 0.6));
-  const dSag = Math.hypot(dz, dy);
-  const D = clamp(dSag, 0.2, a + b - 0.001);
+  const D = clamp(Math.hypot(dz, dy, dx), 0.2, a + b - 0.001);
   const bend = Math.PI - Math.acos(clamp((a*a + b*b - D*D) / (2*a*b), -1, 1));
-  const toward = Math.atan2(dz, -dy);                                        // forward of straight down
   const alpha = Math.acos(clamp((a*a + D*D - b*b) / (2*a*D), -1, 1));         // thigh ahead of the hip→ankle line
-  const hip = -(toward + alpha);
+  const down = D * Math.cos(alpha);                                           // the leg's reach down its own line
+  const sr = clamp(dx / Math.max(down, 1e-4), -0.85, 0.85), roll = Math.asin(sr);
+  const toward = Math.atan2(dz, -dy);                                        // forward of straight down
+  const hip = -(toward + Math.atan2(Math.sin(alpha), Math.cos(alpha) * Math.cos(roll)));
   return [hip, bend, roll, -(hip + bend) + toe];
 }

@@ -23,7 +23,7 @@ import { updateJetSlam } from './mando/gadgets.js';
 import { animatePlayer } from './animation.js';
 import { updateLockOn } from './lockon.js';
 import { updateGuardLine } from './jedi/guardline.js';
-import { holstered } from './holster.js';
+import { holstered, updateBladeAuto } from './holster.js';
 import { updateDashCharges } from './mobility.js';
 import { updateJetCharges } from './mando/mobility.js';
 import { updateForceStrike } from './jedi/palm.js';
@@ -68,6 +68,7 @@ function updatePlayerMeters(dt, pp, st){
   else player.stam = clamp(player.stam + stamRegen() * player.up.stamRegen * (player.exhausted ? 0.85 : 1) * (player.blockHeld && st.guardRegen || 1) * dt, 0, maxStam());   // (Soresu rests behind its guard)
   if (player.dashT > 0) player.dashT -= dt;
   updateDashCharges(dt);   // Force dash charges refill (player/mobility.js)
+  updateBladeAuto(dt);   // the blade goes out in a calm and lights when foes close in (player/holster.js)
   updateJetCharges(dt);    // the Mando's air-dodge charges (mando/mobility.js)
   if (player.riposteT > 0) player.riposteT -= dt;
   // a parry window that runs out without catching anything was a GUESS: the guard is slow to re-time for a moment

@@ -7,6 +7,8 @@ import { G, shared, player, isGunner, isMando, isTrooper } from '../state.js';
 import { sfx, S } from '../audio/sfx.js';
 import { floater } from '../fx/floaters.js';
 import { extendBlade } from '../fx/trail.js';
+import { startFlourish } from './anim/ease.js';
+import { inCombat } from './mobility.js';
 import { showBanner } from '../ui/banners.js';
 import { weaponUnlocked, MANDO_WEAPONS } from '../data/mando.js';
 import { playerPos } from './helpers.js';
@@ -71,17 +73,19 @@ const bladeKind = () => isGunner() ? 'dark' : G.stance === 'staff' ? 'staff' : G
 // is there a hilt in hand with its blade out?
 export const bladeUnlit = () => !!player.unlit && (isGunner() ? isMando() && player.weapon === 'darksaber' : !player.holstered);
 
-function setUnlit(on){
+function setUnlit(on, flourish = true){   // (flourish: the hilt spin; a fight move lighting it skips it, the cut needs the hand)
   if (!!player.unlit === on) return;
   player.unlit = on;
   if (on){
     if (player.atkT > 0) cancelSwing();
     player.blockHeld = false; player.parryT = 0; player.deflectAnim = null; player.firing = false;
     extendBlade(-1, () => { if (player.unlit) syncHolster(); });   // it sucks back into the hilt, then it's gone
+    startFlourish(-1);   // the hilt turned over in the fingers as it goes
     S.retract(bladeKind(), null, true);
   } else {
     syncHolster();
     extendBlade(1);   // the blade runs up out of the emitter
+    if (flourish) startFlourish(1);   // ...as the hilt spins up in the hand
     S.ignite(bladeKind(), null, true);
   }
 }
@@ -109,7 +113,7 @@ export function toggleBlade(){
    just lit, so the move carries on with the blade coming up */
 export function wakeBlade(){
   if (!bladeUnlit()) return false;
-  setUnlit(false);
+  setUnlit(false, false);
   return true;
 }
 // a weapon change, a holster, a fresh run: the blade state starts over lit (no sound: whatever changed makes its own)
@@ -149,6 +153,29 @@ export function toggleHolster(){
   } else {
     showBanner('', 'SABER DRAWN', 0.8);
     extendBlade(1);   // snap-hiss: the blade runs up out of the emitter
+    startFlourish(1);   // the hilt spun up off the belt
     S.ignite(bladeKind(), null, true);
+  }
+}
+
+/* ON ITS OWN — the blade looks after itself between fights:
+   · the calm after a chapter (game/aftermath.js G.calm) with no foe about for `calm` seconds: it goes out, with the
+     flourish, and the hero walks the rally point at ease (once per calm: light it again and it stays lit)
+   · put out (by 5 or by the calm), foes coming close (player/mobility.js inCombat turning on) light it, flourish and all
+   Only in play, never in a cutscene, and never while it's in flight or on the belt. */
+export const BLADE_AUTO = { calm: 2.5 };
+const AUTO = { quiet: 0, calmDone: false, fight: false };
+export function updateBladeAuto(dt){
+  const fight = G.mode === 'play' && inCombat();
+  const arrived = fight && !AUTO.fight;   // a fight just came to you
+  AUTO.fight = fight;
+  if (!G.calm) AUTO.calmDone = false;
+  if (G.mode !== 'play' || G.cutscene || isTrooper() || player.downed) { AUTO.quiet = 0; return; }
+  if (arrived && bladeUnlit()){ setUnlit(false); return; }
+  AUTO.quiet = fight ? 0 : AUTO.quiet + dt;
+  const lit = !player.unlit && (isGunner() ? isMando() && player.weapon === 'darksaber' && !shared.darkProj : !player.holstered && !shared.saberProj);
+  if (G.calm && !AUTO.calmDone && lit && AUTO.quiet >= BLADE_AUTO.calm && player.atkT <= 0 && !player.blockHeld){
+    AUTO.calmDone = true;
+    setUnlit(true);
   }
 }

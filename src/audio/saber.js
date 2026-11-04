@@ -92,7 +92,7 @@ export function retract(kind, o = {}){
      filter, a hiss drawn in after it (a slow swell cut off sharp, so it sounds pulled back rather than blown out), and
      the emitter's click and a soft thud as it seals */
 function igniteFull(kind, o){
-  const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * 0.85;
+  const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * 0.75;   // (rendered: ~2x a swing at its peak was too forward; now ~1.6x)
   // the crack and the knock of air
   N({ pos, at, g: 0.13 * g, a: 0.001, d: 0.06, filt: { type: 'highpass', f: 2200 }, drive: 0.8, pri: 2 });
   T({ pos, at, type: 'sine', f: 180, f2: 48, g: 0.16 * g, d: 0.2, pri: 2 });
@@ -103,6 +103,10 @@ function igniteFull(kind, o){
   for (const [det, gg, f0] of [[8, 0.12, 40], [-11, 0.075, 40.6]])
     T({ pos, at, type: 'sawtooth', f: f0 * p, f2: 90 * p, ft: 0.16, g: gg * g, a: 0.012, hold: 0.06, d: 0.8, det,
         filt: { type: 'lowpass', f: dark ? 3200 : 6400, f2: 380, t: 0.7 }, drive: dark ? 0.55 : 0.2, verb: 0.25, pri: 2 });
+  // the run-up said an octave and more higher, where a small speaker can carry it: the climb you hear as the blade
+  // grows (the fundamental alone sits too low to read on a laptop)
+  T({ pos, at, type: 'sawtooth', f: 85 * p, f2: 200 * p, ft: 0.22, g: 0.045 * g, a: 0.01, d: 0.4, det: 5,
+      filt: { type: 'bandpass', f: 500, f2: 1400, q: 1.4, t: 0.22 } });
   // the edge zinging out to the tip and ringing a moment once it's there
   T({ pos, at: at + 0.012, type: 'sawtooth', f: 170 * p, f2: 360 * p, ft: 0.15, g: 0.05 * g, a: 0.01, d: 0.32, vib: { r: 7, d: 14 },
       filt: { type: 'bandpass', f: dark ? 450 : 650, f2: dark ? 2400 : 4800, q: 4, t: 0.15 }, verb: 0.2 });
@@ -122,7 +126,7 @@ function retractFull(kind, o){
   T({ pos, at, type: 'sawtooth', f: 300 * p, f2: 95 * p, ft: dur * 0.8, g: 0.04 * g, a: 0.01, d: dur * 0.85, vib: { r: 9, d: 12 },
       filt: { type: 'bandpass', f: dark ? 1900 : 3800, f2: 380, q: 3.5, t: dur * 0.8 } });
   // the hiss drawn in after it: a slow swell, cut off sharp at the hilt
-  N({ pos, at, color: 'pink', g: 0.075 * g, a: dur * 0.75, d: 0.05, filt: { type: 'bandpass', f: 4200, f2: 700, q: 1.1, t: dur * 0.8 }, pri: 2 });
+  N({ pos, at, color: 'pink', g: 0.1 * g, a: dur * 0.75, d: 0.05, filt: { type: 'bandpass', f: 4200, f2: 700, q: 1.1, t: dur * 0.8 }, pri: 2 });
   // the emitter sealing: a click and a soft thud
   N({ pos, at: at + dur * 0.82, g: 0.05 * g, a: 0.001, d: 0.03, filt: { type: 'highpass', f: 2800 }, drive: 0.4 });
   T({ pos, at: at + dur * 0.82, type: 'sine', f: 120, f2: 55, g: 0.07 * g, d: 0.1 });

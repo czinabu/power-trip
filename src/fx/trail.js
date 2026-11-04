@@ -312,12 +312,18 @@ export function extendBlade(dir, done){
   applyExt();
 }
 export const bladeExtending = () => extDir !== 0;
+// how far out a blade looks for extE e going up (dir > 0: fast out, settling) or down (slow to start, snapping in)
+export const extShown = (e, dir) => Math.max(0.02, dir > 0 ? 1 - Math.pow(1 - e, 3) : e >= 1 ? 1 : 1 - Math.pow(1 - e, 2));
+// any hero's blade at length s (1 = full): the saber (scaled by len) or the Darksaber. A co-op partner's puppet
+// uses it too (net/pose.js), so their blade slides out and back the way yours does
+export function fitBlade(hero, s, dark, len = 1){
+  if (dark){
+    const D = hero.darkBlades;   // [glow, edge, blade]: the glow and edge centred on the blade, the black core from its base
+    if (D){ D[0].scale.y = D[1].scale.y = D[2].scale.y = s; D[0].position.y = 0.07 + 0.65 * s; D[1].position.y = 0.1 + 0.62 * s; }
+  } else if (hero.blade) setBladeLen(hero.blade, len * s);
+}
 function applyExt(){
-  const shown = Math.max(0.02, extDir > 0 ? 1 - Math.pow(1 - extE, 3) : extE >= 1 ? 1 : 1 - Math.pow(1 - extE, 2));
-  if (isGunner()){
-    const D = player.darkBlades;   // [glow, edge, blade]: the glow and edge centred on the blade, the black core from its base
-    if (D){ D[0].scale.y = D[1].scale.y = D[2].scale.y = shown; D[0].position.y = 0.07 + 0.65 * shown; D[1].position.y = 0.1 + 0.62 * shown; }
-  } else if (player.blade) setBladeLen(player.blade, (stance().bladeLen || 1) * shown);
+  fitBlade(player, extShown(extE, extDir), isGunner(), stance().bladeLen || 1);
 }
 function stepExt(dt){
   if (!extDir) return;

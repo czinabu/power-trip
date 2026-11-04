@@ -41,12 +41,43 @@ export const atEase = () => !!G.cutscene;
 export const RELAXED = {
   swing: 0.5,     // how far the arms swing with the stride at full pace (shoulder, radians each way)
   elbow: 0.55,    // and how much more the elbows bend at a run
+  air: { lift: -0.25, out: 0.4, elbow: 0.35 },   // in the air (a jump, a flip): arms up and out from the sides, elbows soft
 };
 export function relaxed(){
   if (G.mode !== 'play' || G.cutscene || !player.unlit) return false;
   if (isGunner() ? player.weapon !== 'darksaber' : player.holstered) return false;
+  // (a jump or a flip keeps the loose arms: only what needs the hands or a guard takes them back)
   return !(player.atkT > 0 || player.castT > 0 || player.blockHeld || player.judgeT > 0 || player.mendT > 0 || player.darkT > 0 ||
-    player.flip || player.hang || player.mantle || player.wallRun || player.slideT > 0 || player.dashT > 0 || player.saberLock || player.kickT > 0);
+    player.hang || player.mantle || player.wallRun || player.slideT > 0 || player.dashT > 0 || player.saberLock || player.kickT > 0);
+}
+
+/* THE FLOURISH — lighting or putting out the blade on purpose (5, a draw from the belt) spins the hilt one full turn in
+   the fingers, end over end, as the blade runs up (the arm rises into the guard on its own as the at-ease stand lets
+   go) or sucks back in (the arm settling to the hip). It turns the weapon in the hand (the saber or the Darksaber),
+   over the pose: animatePlayer puts the hilt back to its mount grip first (flourishReset), poses the arms, then
+   spins it (flourishApply). The spun hilt rides the pose sync, so a co-op partner sees it as well. */
+export const FLOURISH = {
+  ignite:  { dur: 0.34, turns: 1 },    // fast out, easing to a stop square in the hand as the blade reaches full length
+  retract: { dur: 0.44, turns: -1 },   // the other way round, slower, the hilt settling as the blade goes in
+};
+const FL = { t: 0, F: null, node: null };
+const flNode = () => isGunner() ? (player.weapon === 'darksaber' ? player.darksaberMesh : null) : (player.holstered ? null : player.saberHand);
+export function startFlourish(dir){ FL.F = dir > 0 ? FLOURISH.ignite : FLOURISH.retract; FL.t = 0; FL.node = flNode(); }
+export const flourishing = () => !!FL.F;
+const _ax = new THREE.Vector3(1, 0, 0), _fq = new THREE.Quaternion();
+export function flourishReset(){
+  const m = FL.node;
+  if (m && m.userData.restQ && m.parent === m.userData.hand) m.quaternion.copy(m.userData.restQ);
+}
+export function flourishApply(dt){
+  if (!FL.F) return;
+  const m = FL.node, F = FL.F;
+  FL.t += dt;
+  const k = Math.min(1, FL.t / F.dur);
+  if (!m || m !== flNode() || !m.userData.restQ || m.parent !== m.userData.hand){ FL.F = null; return; }   // (thrown, holstered, swapped)
+  const e = F.turns > 0 ? 1 - Math.pow(1 - k, 3) : k * k * (3 - 2 * k);
+  m.quaternion.copy(m.userData.restQ).multiply(_fq.setFromAxisAngle(_ax, Math.PI * 2 * F.turns * e));
+  if (k >= 1){ m.quaternion.copy(m.userData.restQ); FL.F = null; }
 }
 const _e = new THREE.Euler(), _q = new THREE.Quaternion();
 const qe = (x, y, z) => _q.setFromEuler(_e.set(x, y, z));
@@ -83,10 +114,11 @@ function relaxedArms(R, s, gait){
   R.chest.quaternion.slerp(ZERO, s);
   const g = gait || {}, on = g.moving && player.grounded ? (g.inten || 0) : 0;
   const sw = Math.sin(g.ph || 0) * RELAXED.swing * on, bend = RELAXED.elbow * on;
+  const air = player.grounded ? 0 : 1, A_ = RELAXED.air;   // off the ground: the arms come up and out a little for balance
   for (const [A, key, k] of [[R.armR, 'armR', -1], [R.armL, 'armL', 1]]){
     const P = AT_EASE[key];
-    A.sh.quaternion.slerp(qe(P.sh[0] + k * sw, P.sh[1], P.sh[2]), s);
-    A.el.quaternion.slerp(qe(P.el[0] - bend, P.el[1], P.el[2]), s);
+    A.sh.quaternion.slerp(qe(P.sh[0] + k * sw + air * A_.lift, P.sh[1], P.sh[2] - k * air * A_.out), s);
+    A.el.quaternion.slerp(qe(P.el[0] - bend - air * A_.elbow, P.el[1], P.el[2]), s);
     A.wr.quaternion.slerp(qe(P.wr[0], P.wr[1], P.wr[2]), s);
   }
 }

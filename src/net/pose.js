@@ -8,6 +8,8 @@
 import * as THREE from 'three';
 import { setFistGlow } from '../player/jedi/palm.js';
 import { S } from '../audio/sfx.js';
+import { G } from '../state.js';
+import { fitBlade, extShown } from '../fx/trail.js';
 import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod, setSaberStaff, saberIsStaff } from '../player/model/weapons.js';
 
 // the rig joints, in a fixed order (model/rig.js): their rotations travel as quaternions
@@ -40,6 +42,7 @@ export function readPose(hero){
   const fx = {
     blade: B && B.blade.visible ? 1 : 0, bc: B ? B.glow.material.color.getHex() : 0,
     staff: saberIsStaff(hero) ? 1 : 0,   // the saber staff's long hilt and second blade (model/weapons.js)
+    fm: G.hero === 'jedi' ? G.stance : '',   // the form, so their ignite and retract carry its hum's pitch (audio/saber.js HUM_PITCH)
     dark: hero.darkBlades && hero.darkBlades[0].visible ? 1 : 0,
     jet: jet ? r3(jet.material.opacity) : 0, jetS: jet ? r3(jet.scale.y) : 1,
     miss: hero.jetMissileMesh && hero.jetMissileMesh.visible ? 1 : 0,
@@ -78,6 +81,7 @@ export function pushPose(track, hero, pose, now){
 }
 
 export function stepPose(track, hero, now){
+  stepBlades(hero, performance.now());
   const to = track.to;
   if (!to) return;
   const from = track.from, k = from ? Math.min(1, (now - track.t0) / track.span) : 1;
@@ -132,9 +136,35 @@ function bladeSound(hero, fx){
   hero._litBits = now;
   if (was == null || was === now || !hero.group) return;   // (the first pose just says how it is)
   _at.copy(hero.group.position); _at.y += 1.1;
-  for (const [bit, kind] of [[1, fx.staff ? 'staff' : 'niman'], [2, 'dark']]){
-    if ((now & bit) && !(was & bit)) S.ignite(kind, _at.clone(), true);
-    else if (!(now & bit) && (was & bit)) S.retract(kind, _at.clone(), true);
+  const X = hero._ext || (hero._ext = {}), t = performance.now();
+  for (const [bit, kind] of [[1, fx.staff ? 'staff' : (fx.fm || 'niman')], [2, 'dark']]){
+    if ((now & bit) && !(was & bit)){ S.ignite(kind, _at.clone(), true); X[bit] = { dir: 1, t0: t }; }
+    else if (!(now & bit) && (was & bit)){ S.retract(kind, _at.clone(), true); X[bit] = { dir: -1, t0: t }; }
+  }
+  holdRetracting(hero);
+  stepBlades(hero, t);   // (a blade lighting starts short, not at full length for a frame)
+}
+/* ...and their blade slides out and sucks back in over the same time yours does (fx/trail.js EXT): a retracting blade
+   stays shown until it's in, then goes */
+const EXT_MS = { up: 200, down: 260 };
+function holdRetracting(hero){
+  const X = hero._ext; if (!X) return;
+  if (X[1] && X[1].dir < 0 && hero.blade) hero.blade.blade.visible = hero.blade.glow.visible = true;
+  if (X[2] && X[2].dir < 0 && hero.darkBlades) for (const b of hero.darkBlades) b.visible = true;
+}
+function stepBlades(hero, now){
+  const X = hero._ext; if (!X) return;
+  for (const bit of [1, 2]){
+    const A = X[bit]; if (!A) continue;
+    const k = Math.min(1, Math.max(0, (now - A.t0) / (A.dir > 0 ? EXT_MS.up : EXT_MS.down)));
+    fitBlade(hero, extShown(A.dir > 0 ? k : 1 - k, A.dir), bit === 2);
+    if (k < 1) continue;
+    delete X[bit];
+    fitBlade(hero, 1, bit === 2);
+    if (A.dir < 0){   // in: now it goes
+      if (bit === 1 && hero.blade){ hero.blade.blade.visible = hero.blade.glow.visible = false; }
+      if (bit === 2 && hero.darkBlades) for (const b of hero.darkBlades) b.visible = false;
+    }
   }
 }
 

@@ -28,7 +28,7 @@ import { saberPose, guardPose, swingPose, deflectPose, applySaberPose, releaseSa
 import { advanceGait, gaitLegs, gaitHipOffset, releaseGait } from './anim/gait.js';
 import { MOCAP_ON, MOCAP_LAND_T, mocapLand, mocapAirLegs, airPhase, mocapCut } from './anim/mocap.js';
 import { footingLegs, releaseFooting } from './anim/footing.js';
-import { easePose, atEase, relaxed } from './anim/ease.js';
+import { easePose, atEase, relaxed, flourishReset, flourishApply } from './anim/ease.js';
 import { stepCloth } from './model/cloth.js';
 import { blink, gripHands, express } from './model/life.js';
 import { jediAirLegs, jediAgilityArms, jediAgilityPost, mandoAgilityPost, gunnerAgilityLegs, landingStyle, slamPitch, headToReticle } from './anim/agility.js';
@@ -45,6 +45,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   const POSE = footwork();
 
   const vis = player.vis, R = player.rig;
+  flourishReset();   // the hilt back to its grip before the pose aims it (anim/ease.js: the ignite / retract spin goes on after)
   mocapUpper(R, null);   // take last frame's captured chest twist off, so every pose below works from its own values
   poseBody(dt, dr, vis, planted, POSE, moving);
   const { ph, inten, gait } = animateLegsAndTorso(dt, dr, R, planted, POSE);
@@ -54,7 +55,8 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   if (!isGunner()) jediAgilityPost(dt, dr, vis, R, { ph, inten, planted });
   if (isGunner()){ animateMandoPose(dt, dr, vis, R, pp, f, r); mandoAgilityPost(dt, dr, vis, R, f, r); }
   mocapUpper(R, player._gait);
-  easePose(dt, vis, R, { ph, inten, moving });   // (and in play while the blade is put out: the stride swings the arms)   // in a cutscene every hero stands up straight, arms at their sides (anim/ease.js)
+  easePose(dt, vis, R, { ph, inten, moving });
+  flourishApply(dt);   // the hilt spinning in the fingers as the blade lights or goes out (5)   // (and in play while the blade is put out: the stride swings the arms)   // in a cutscene every hero stands up straight, arms at their sides (anim/ease.js)
   secondaryMotion(dt, vis, R);
   stepCloth(player, dt, player.group.position.y + 0.02);   // the robe panels and cape hem (model/cloth.js), after the pose
   blink(player, dt); gripHands(player, dt, handGrip());   // the eyes blink, the fingers close on what they hold (model/life.js)

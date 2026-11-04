@@ -427,7 +427,7 @@ export function updateEnemies(dt){
             // melee: commit to a visible swing the player can time a parry against
             e.state = 'strike'; e.st = e.swDur = (t.swing || 0.16) * (e.plan && e.plan.swingMul || 1); e.struck = false;
             if (e.plan) startCut(e, dist);   // its step in, spread through the strike (duel.js)
-            if (e.form) S.swing(e.form, g.position); else S.whoosh(g.position, heavy);   // the whoosh of the swing starting (a form master's blade in its form's voice)
+            if (e.form || t.weapon === 'saber') S.swing(e.form || 'niman', g.position); else S.whoosh(g.position, heavy);   // (a lightsaber foe: the saber's swing, placed)   // the whoosh of the swing starting (a form master's blade in its form's voice)
           }
         }
         break;

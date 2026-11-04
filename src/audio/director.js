@@ -55,7 +55,8 @@ function ensureLoops(){
   L.dark = loop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
                   filt: { f: 380, q: 2 }, lfo: { r: 5.3, d: 60 }, drive: 0.35, verb: 0.08 });
   // two placed hums for the nearest other lit blades (foes, the boss, a co-op partner, an ally)
-  for (let i = 0; i < 2; i++) L.near.push({ h: loop({ base: 90, layers: [{ f: 90 }, { f: 90.8, det: 5, g: 0.7 }, { type: 'sine', f: 180, g: 0.5 }], filt: { f: 500, q: 1 }, lfo: { r: 3.3 + i, d: 40 } }), wob: rand(0, 6) });
+  // (the same projector-motor hum as your own blade, with a little of its TV buzz mixed straight in)
+  for (let i = 0; i < 2; i++) L.near.push({ h: loop(Object.assign(HUM(), { layers: HUM().layers.concat([{ type: 'square', f: 90, g: 0.14 }]), lfo: { r: 3.3 + i, d: 35 } })), wob: rand(0, 6) });
   // LOCK_GRIND — two blades held against each other: the clash's own sound held for as long as the bind lasts (saber.js
   // clash; its blaster "pyew" is only on the moment the blades meet). The buzzing arc, driven noise chopped at a mains-like
   // rate so it buzzes rather than hisses, over the hum overdriven and thrown wide open (the surge), its TV buzz an octave

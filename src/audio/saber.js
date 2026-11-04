@@ -187,32 +187,38 @@ export function ignite(kind, o = {}){
      the suck-in   the clash, the "kssh" and the faint "pyew" all reversed into it: the arc, the surge and the hiss
                    swelling in, the pyew's echoes arriving before it as a rising chirp, and the crack, the knock and the
                    thump drawn in last, ending the whole sound dead at the hilt
-   Timed by the form's group like its ignition (IGNITE_FAMILY rise); o.short: a form change's quick one. */
+   It all happens in about the time the blade takes to vanish (~0.27 s, a touch longer or shorter by the form's group),
+   loud from the instant it's pressed; o.short: a form change's quick one. */
 export function retract(kind, o = {}){
   const full = !!o.full, dark = kind === 'dark', pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * (full ? 0.75 : 0.55);
   const fam = familyOf(kind), F = IGNITE_FAMILY[fam], br = F.bright, dr = (dark ? 0.45 : 0.15) + F.drive;
-  const sc = (full ? 1 : o.short ? 0.4 : 0.55) * F.rise * rand(0.92, 1.08);
+  // timed to the blade itself (fx/trail.js EXT.down: it's gone in ~0.26 s), so the whole thing lands as you press it
+  const sc = (full ? 1 : o.short ? 0.6 : 0.8) * Math.min(1.15, Math.max(0.85, F.rise)) * rand(0.94, 1.06);
   const p = (HUM_PITCH[kind] || SABER_PITCH) * rand(0.98, 1.02), hp = p;
-  const LA = 0.75 * sc, LB = 0.22 * sc, E = at + LA + LB;   // the swell, the drop, and where it all ends
+  const LA = 0.12 * sc, LB = 0.15 * sc, E = at + LA + LB;   // the swell, the drop, and where it all ends (~0.27 s)
   const rv = (o2) => T(Object.assign({ pos, verb: 0.15 }, o2));   // (a reversed voice: a long attack, a cut-off end)
-  // the swell: the hum rising loud off its idle, its filter opening, its pitch lifting a hair
-  for (const [f, type, gg, det] of [[90, 'sawtooth', 1, 6], [90.33, 'sawtooth', 0.8, -6], [180, 'sine', 0.5], [45, 'sine', 0.55], [45, 'square', 0.12]])
+  // the swell: the hum rising loud off its idle the instant you press it, its filter opening, its pitch lifting a hair
+  // (a steady layer from the first moment under a fast swell, so there's no silent start)
+  for (const [f, type, gg, det] of [[90, 'sawtooth', 1, 6], [90.33, 'sawtooth', 0.8, -6], [180, 'sine', 0.5], [45, 'sine', 0.55], [45, 'square', 0.12]]){
+    rv({ at, type, f: f * p, f2: f * p * 1.04, ft: LA, g: 0.07 * g * gg, a: 0.004, hold: LA, d: LB * 0.5, det,
+         filt: { type: 'lowpass', f: 600, f2: 1800 * br, t: LA }, drive: dr });
     rv({ at, type, f: f * p, f2: f * p * 1.04, ft: LA, g: 0.12 * g * gg, a: LA, d: LB * 0.6, det,
          filt: { type: 'lowpass', f: 380, f2: 1800 * br, t: LA }, drive: dr });
+  }
   // the drop: the whole stack diving to a growl as it swells, the filter flaring open, cut off at the bottom
   for (const [f, type, gg, det] of [[90, 'sawtooth', 1, 6], [90.33, 'sawtooth', 0.8, -6], [180, 'sine', 0.5], [45, 'sine', 0.55], [45, 'square', 0.12], [90, 'square', 0.22], [180.4, 'sawtooth', 0.1]])
     rv({ at: at + LA - LB * 0.3, type, f: f * p * 1.04, f2: f * p * rand(0.36, 0.44), ft: LB * 1.3, g: 0.1 * g * gg, a: LB * 1.25, d: 0.012, det,
          filt: { type: 'lowpass', f: 1800 * br, f2: (dark ? 2600 : 4800) * br, t: LB * 1.3 }, drive: dr + 0.05 });
   // the edge zinging back in
-  rv({ at: E - LB * 1.6, type: 'sawtooth', f: 360 * p, f2: 170 * p, ft: LB * 1.6, g: 0.035 * g, a: LB * 1.55, d: 0.01, vib: { r: 7, d: 12 },
+  rv({ at: Math.max(at, E - LB * 1.6), type: 'sawtooth', f: 360 * p, f2: 170 * p, ft: LB * 1.6, g: 0.035 * g, a: LB * 1.55, d: 0.01, vib: { r: 7, d: 12 },
        filt: { type: 'bandpass', f: (dark ? 2200 : 4200) * br, f2: dark ? 450 : 650, q: 3.5, t: LB * 1.6 } });
   // the "kssh" drawn back in
-  N({ pos, at: E - 0.37 * sc, color: 'pink', g: 0.075 * g, a: 0.36 * sc, d: 0.01, filt: { type: 'bandpass', f: (dark ? 2600 : 4800) * br, f2: 900, q: 0.9, t: 0.36 * sc }, verb: 0.15, pri: 2 });
-  if (F.crackle) crackle(pos, Math.round((dark ? 6 : 3) * F.crackle * (full ? 1.5 : 1)), LA * 0.8, 0.04 * g, at + LA * 0.3);
+  N({ pos, at: E - (LA + LB) * 0.95, color: 'pink', g: 0.075 * g, a: (LA + LB) * 0.93, d: 0.01, filt: { type: 'bandpass', f: (dark ? 2600 : 4800) * br, f2: 900, q: 0.9, t: (LA + LB) * 0.93 }, verb: 0.15, pri: 2 });
+  if (F.crackle) crackle(pos, Math.round((dark ? 6 : 3) * F.crackle * (full ? 1.5 : 1)), (LA + LB) * 0.8, 0.04 * g, at);
   if (o.second) return;
   // the boot-up clash, reversed into the end of it (on the clash bus, like the clash)
   const C = o2 => play(Object.assign({ pos, bus: 'clash' }, o2)), CN = o2 => C(Object.assign({ src: 'noise' }, o2));
-  const k = g * (full ? 1.3 : 1) * rand(0.9, 1.05) * 1.4, lc = (full ? 0.62 : 0.4) * sc / Math.max(0.5, F.rise), buzz = rand(55, 85);
+  const k = g * (full ? 1.3 : 1) * rand(0.9, 1.05) * 1.4, lc = (E - at) * 0.97, buzz = rand(55, 85);   // (the reversed clash fills the whole of it)
   CN({ at: E - lc, g: 0.085 * k, a: lc, d: 0.008, trem: { r: buzz, d: 0.9, type: 'square' },
        filt: { type: 'bandpass', f: 1500, f2: rand(3600, 4400), q: 0.8, t: lc }, drive: 0.9, pri: 2 });
   for (const [mul, det, gg] of [[1, 6, 0.04], [1.004, -8, 0.027]])
@@ -220,10 +226,10 @@ export function retract(kind, o = {}){
         filt: { type: 'lowpass', f: 600, f2: 4200, t: lc }, drive: 1, pri: 2 });
   C({ at: E - lc * 0.8, type: 'square', f: 162 * hp, f2: 184 * hp, ft: lc * 0.8, g: 0.03 * k, a: lc * 0.78, d: 0.008, trem: { r: buzz, d: 0.6, type: 'square' },
       filt: { type: 'bandpass', f: 1100, f2: 2200, q: 1.4, t: lc * 0.8 }, drive: 0.8 });
-  CN({ at: E - lc * 1.4, g: 0.035 * k, a: lc * 1.38, d: 0.01, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });   // the sparks
+  CN({ at: E - lc, g: 0.035 * k, a: lc * 0.98, d: 0.01, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });   // the sparks
   // the punch drawn in last: the thump, the knock, the pink body and the crack, each swelling up and cut off dead
   const sub = rand(72, 88);
-  C({ at: E - 0.15, type: 'sine', f: sub * 0.6, f2: sub * 1.6, ft: 0.15, g: 0.2 * k, a: 0.145, d: 0.006, panK: 0.25, pri: 2 });
+  C({ at: E - Math.min(0.15, E - at), type: 'sine', f: sub * 0.6, f2: sub * 1.6, ft: Math.min(0.15, E - at), g: 0.2 * k, a: Math.min(0.145, E - at), d: 0.006, panK: 0.25, pri: 2 });
   CN({ at: E - 0.07, color: 'brown', g: 0.08 * k, a: 0.068, d: 0.004, filt: { type: 'lowpass', f: 450 }, panK: 0.4 });
   C({ at: E - 0.06, type: 'sine', f: 85, f2: rand(200, 240), ft: 0.06, g: 0.16 * k, a: 0.058, d: 0.004, drive: 0.5, panK: 0.3, pri: 2 });
   CN({ at: E - 0.035, color: 'pink', g: 0.09 * k, a: 0.033, d: 0.003, filt: { type: 'bandpass', f: 320, q: 1.1 }, drive: 0.6, panK: 0.3 });
@@ -232,11 +238,12 @@ export function retract(kind, o = {}){
   const pb = rand(0.75, 1.3), tw = 0.155, pk = k * 0.35 * 1.6;
   for (const [echo, eg] of [[0.09, 0.2], [0.045, 0.45], [0, 1]])
     for (const [mul, rate, gg, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']]){
-      const L = tw * rate * 1.1;
+      const L = Math.min(tw * rate * 1.1, E - at - 0.01 - echo);
+      if (L < 0.03) continue;
       C({ at: E - 0.01 - echo - L, type, f: 300 * pb * mul, f2: 4600 * pb * mul, ft: L, g: gg * eg * pk, a: L * 0.97, d: 0.003,
           filt: { type: 'lowpass', f: 1400, f2: 9000, t: L }, verb: 0.12, pri: echo ? 0 : 1 });
     }
-  C({ at: E - 0.04 - 0.35, type: 'square', f: 220 * pb, f2: 900 * pb, ft: 0.35, g: 0.02 * pk, a: 0.34, d: 0.005, filt: { type: 'lowpass', f: 500, f2: 3000, t: 0.35 } });
+  { const fl = Math.max(0.05, E - at - 0.04); C({ at, type: 'square', f: 220 * pb, f2: 900 * pb, ft: fl, g: 0.02 * pk, a: fl * 0.97, d: 0.005, filt: { type: 'lowpass', f: 500, f2: 3000, t: fl } }); }
   const g2 = o.g ?? 1;
   if (kind === 'staff') retract('staff', { pos, at: at + 0.05, g: 0.75 * g2, short: o.short, full, second: true });
   if (kind === 'jarkai') retract('jarkai', { pos, at: at + 0.07, g: 0.8 * g2, short: o.short, full, second: true });

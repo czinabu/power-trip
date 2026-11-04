@@ -229,8 +229,8 @@ export const SABER_GUARDS = {
 
 /* JAR'KAI WITH THE HANDS IN DIFFERENT GRIPS (data/forms.js DUAL_GRIPS: the right forward, the left reversed), keyed 'main/off': its own guards (Ahsoka,
    The Clone Wars). Idle: the forward blade stood straight up by the shoulder, the reversed one laid level out past the
-   off hip from a fist before the waist. Block: the reversed fist raised high by the head with its blade hung down beside it,
-   the forward fist low before the chest with its blade laid level across. Every other block: the reversed fist thrown
+   off hip from a fist before the waist. Block: hunched in, the right arm high with its blade angled down at the foe, the left
+   arm straight out. Every other block: the reversed fist thrown
    up over the head with its blade level across above it, the forward blade level across the waist the other way. */
 export const DUAL_GUARDS = {
   'regular/reverse': {
@@ -238,8 +238,10 @@ export const DUAL_GUARDS = {
     // its blade laid level out past the off hip
     ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.18, lean: 0.16, pole: [0.9, -0.4, -0.2],
              off: { hand: [-0.02, -0.08, 0.4], pole: [-0.9, -0.3, -0.3], sway: 0.3 }, offBlade: [-0.92, -0.14, 0.34] },
-    block: { hand: [0.06, -0.06, 0.44], blade: [0.86, 0.08, 0.5], twist: 0.0, lean: 0.12, pole: [0.6, -0.75, -0.2],
-             off: { hand: [-0.3, 0.4, 0.14], pole: [-0.85, 0.1, -0.5] }, offBlade: [-0.42, -0.86, 0.3] },
+    // hunched in behind it: the right arm thrown up high, its blade held out level and angled down at the foe; the left
+    // arm straight out to its side, the reversed blade laid out forward past it
+    block: { hand: [0.26, 0.58, 0.3], blade: [-0.04, -0.24, 0.97], twist: 0.14, lean: 0.4, pole: [0.85, 0.2, -0.45],
+             off: { hand: [-0.66, 0.0, 0.2], pole: [-0.5, -0.8, -0.3] }, offBlade: [-0.85, -0.04, 0.52] },
     block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, pole: [0.6, -0.75, -0.2],
               off: { hand: [-0.16, 0.62, 0.18], pole: [-0.8, 0.3, -0.4] }, offBlade: [0.95, 0.1, 0.25] },
   },

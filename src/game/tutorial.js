@@ -45,6 +45,11 @@ const T = { on: false, hero: 'jedi', lesson: null, steps: [], i: 0, count: 0, wa
 let exitTraining = () => {};
 let retryId = null;   // the lesson to put the hero back into after a fall (RETRY on the death screen)
 export function setTrainingExit(fn){ exitTraining = fn; }
+// a story run left waiting (ui/menus.js: the unlock screen's TRAIN, or a loaded save): the board offers RETURN TO STORY,
+// which picks the run up where it left off. storyLesson: the form's lesson TRAIN opened on; once it is passed, going back
+// is the board's main button
+let story = { waiting: () => false, go: () => {} }, storyLesson = null;
+export function setStoryReturn(hooks){ story = hooks; }
 // the basics passed (the first-run prompt and the menu's tick read this)
 export function trainingDone(hero){ try { return localStorage.getItem('sw_trained_' + hero) === '1'; } catch(e){ return false; } }
 const lessonKey = (hero, id) => 'sw_lesson_' + hero + '_' + id;
@@ -113,7 +118,7 @@ export function startTutorial(){
 const LESSON_OF = { shien: 'formv', vaapad: 'formvii' };
 export function trainOnForm(formId){
   const L = LESSONS.jedi.find(x => x.id === LESSON_OF[formId] || x.form === formId);
-  retryId = L ? L.id : null;
+  retryId = L ? L.id : null; storyLesson = retryId;
 }
 export function retryTutorial(){ retryId = T.lesson ? T.lesson.id : null; startTutorial(); }
 export function endTutorial(){
@@ -392,7 +397,9 @@ const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&l
 export const boardUp = () => !!board && board.classList.contains('open');
 function openBoard(){
   if (!board || !T.on) return;
-  const list = lessonList(T.hero), pick = suggested(list), N = heroKey(LESSON_GROUPS, T.hero);
+  const list = lessonList(T.hero), N = heroKey(LESSON_GROUPS, T.hero);
+  const back = story.waiting(), backFirst = back && !!storyLesson && lessonDone(T.hero, storyLesson);   // (the form's lesson passed: back to the story next)
+  const pick = backFirst ? null : suggested(list);
   const card = (x) => {
     const L = x.L;
     if (!x.open) return '<div class="lb-card sealed"><b>' + (L.form ? N.sealed : N.sealedPower) + '</b><span>Opens when the story teaches it</span></div>';
@@ -414,10 +421,12 @@ function openBoard(){
     '<div class="cc-voice"><div class="cc-who">' + heroKey(TEACHER, T.hero) + '</div><p>' + line + '</p></div>' +
     '<div class="lb-sec">' + N.basics + '<span>' + nb + ' / ' + basics.length + '</span></div><div class="lb-grid">' + basics.map(card).join('') + '</div>' +
     '<div class="lb-sec">' + N.more + '<span>' + more.filter(x => x.open).length + ' open</span></div><div class="lb-grid">' + more.map(card).join('') + '</div>' +
-    '<div class="cc-btns"><div class="btn" data-leave="1">LEAVE TRAINING</div>' +
-    (pick ? '<div class="btn primary go" data-go="1">' + esc(pick.L.name) + '</div>' : '') + '</div>' +
-    '<div class="cc-hint">Pick any open lesson · Enter starts the highlighted one · TAB pauses</div></div>';
-  board.dataset.pick = pick ? pick.L.id : '';
+    '<div class="cc-btns"><div class="btn" data-leave="1">' + (back ? 'MAIN MENU' : 'LEAVE TRAINING') + '</div>' +
+    (back && !backFirst ? '<div class="btn" data-story="1">RETURN TO STORY</div>' : '') +
+    (pick ? '<div class="btn primary go" data-go="1">' + esc(pick.L.name) + '</div>' : '') +
+    (backFirst ? '<div class="btn primary go" data-story="1">RETURN TO STORY</div>' : '') + '</div>' +
+    '<div class="cc-hint">' + (backFirst ? 'Your story waits where you left it · Enter returns to it · or pick any open lesson' : 'Pick any open lesson · Enter starts the highlighted one · TAB pauses') + '</div></div>';
+  board.dataset.pick = pick ? pick.L.id : backFirst ? 'story' : '';
   board.classList.add('open');
   G.skillSelect = true; G.cardUp = true;   // freeze the field and keep the pause screen away while the cursor is free
   document.exitPointerLock();
@@ -439,6 +448,12 @@ function choose(id){
   S.reward(1);
   beginLesson(L);
 }
+// RETURN TO STORY: leave the training and pick the waiting run up (ui/menus.js)
+function backToStory(){
+  storyLesson = null;
+  closeBoard(true); endTutorial();
+  story.go();
+}
 // LESSON BOARD on the pause screen: leave the lesson in progress and pick another
 export function openLessonBoard(){
   if (!T.on) return;
@@ -453,11 +468,13 @@ if (board){
     const t = e.target, c = t.closest('[data-lesson]');
     if (c){ choose(c.dataset.lesson); return; }
     if (t.closest('[data-go]')){ choose(board.dataset.pick); return; }
-    if (t.closest('[data-leave]')){ closeBoard(true); endTutorial(); exitTraining(); }
+    if (t.closest('[data-story]')){ backToStory(); return; }
+    if (t.closest('[data-leave]')){ storyLesson = null; closeBoard(true); endTutorial(); exitTraining(); }
   });
   document.addEventListener('keydown', (e) => {
     if (!boardUp() || e.key !== 'Enter' || !board.dataset.pick) return;
-    e.preventDefault(); e.stopPropagation(); choose(board.dataset.pick);
+    e.preventDefault(); e.stopPropagation();
+    if (board.dataset.pick === 'story') backToStory(); else choose(board.dataset.pick);
   }, true);
 }
 

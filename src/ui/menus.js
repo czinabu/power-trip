@@ -13,7 +13,7 @@ import { setStrafeMode } from '../player/strafe.js';
 import { startLevel, retryLevel, retryIsBoss, startCoopCampaign } from '../game/flow.js';
 import { coopRun } from '../net/run.js';
 import { startEndless } from '../game/survival.js';
-import { startTutorial, retryTutorial, skipStep, setTrainingExit, trainingDone, openLessonBoard, trainOnForm } from '../game/tutorial.js';
+import { startTutorial, retryTutorial, skipStep, setTrainingExit, setStoryReturn, trainingDone, openLessonBoard, trainOnForm } from '../game/tutorial.js';
 import { setTrainHook } from '../game/meditation.js';
 import { startMission, startCoopMission, retryMission, missionTitle } from '../game/mission.js';
 import { isArcadeId, randomArcadeId } from '../data/arcade.js';
@@ -34,6 +34,7 @@ import { buildArena } from '../world/arena.js';
 import { findClearSpawn } from '../world/collision.js';
 import { playerPos, heldGrip } from '../player/helpers.js';
 import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun } from '../game/saves.js';
+import { autosave } from '../game/autosave.js';
 import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
@@ -623,10 +624,16 @@ document.getElementById('restartBtn').addEventListener('click', (e) => { e.stopP
 // the stance unlock screen's TRAIN button (game/meditation.js): the campaign run is kept for CONTINUE CAMPAIGN, and the
 // training opens on the lesson for the form just learned; leaving training lands back on the menu with the run waiting
 setTrainHook((formId) => {
-  G.resumeRun = captureRun();
+  G.resumeRun = captureRun();   // (saved at the chapter's close: the trial stays won, game/saves.js resumeRun)
   trainOnForm(formId);
   setModeSel('training');
   restartRun(true);
+  autosave('training from the story');   // the autosave keeps the run as it left, so a reload doesn't replay the trial
+});
+// the lesson board's RETURN TO STORY (game/tutorial.js): straight back into the waiting run, as CONTINUE CAMPAIGN would
+setStoryReturn({
+  waiting: () => canResume(),
+  go: () => { setModeSel('campaign'); goHome(); launch(); },
 });
 // MAIN MENU — abandon the run and go back to the title screen. From pause it asks first (a run is easy to lose
 // by accident); from the fallen/victory screens the run is already over, so it goes straight there.

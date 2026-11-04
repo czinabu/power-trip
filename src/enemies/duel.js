@@ -544,7 +544,7 @@ export function maybeFeint(e, wk){
   pl.w0 = armNow(e);
   e.lastSide = pl.side;
   e.wu = e.wuBase = DUEL.feintRewind; e.st = e.wu;
-  if (e.form) S.swing(e.form, e.group.position); else S.whoosh(e.group.position, false);
+  if (e.form || (e.t && e.t.weapon === 'saber')) S.swing(e.form || 'niman', e.group.position); else S.whoosh(e.group.position, false);
   sparks(V3(e.group.position.x, 1.9, e.group.position.z), e.t.eye, 4, 5, { life: 0.2 });
   return true;
 }

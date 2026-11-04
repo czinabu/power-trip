@@ -248,7 +248,7 @@ export function updateLungeWind(e, dt, pp){
   if (hooks.lunge) hooks.lunge(e, g.position, g.rotation.y, e.lungeLen, e.lungeLocked, k);   // co-op: the guest sees the line too
   if (e.st > 0) return;
   e.state = 'lunge'; e.lungeAllyHit = null; e.st = Math.min(0.6, e.lungeLen / LUNGE.speed); e.lungeLocked = false;
-  S.whoosh(g.position, true);
+  if (e.t && e.t.weapon === 'saber') S.swing(e.form || 'niman', g.position); else S.whoosh(g.position, true);
 }
 // pp is the hero this lancer is after; a partner's puppet (remote) only gets the show, no blow (co-op phase 2)
 export function updateLunge(e, dt, pp, remote = false){

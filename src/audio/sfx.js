@@ -92,7 +92,7 @@ export const S = {
   },
   // a lightsaber striking anything (a foe, the boss, a shield): the one blade-contact sound, the clash (saber.js), a
   // heavy blow landing as a big one
-  saberHit: (pos, power) => { if (!tooSoon('shit', 0.04)) SB.clash(pos, (power || 1) >= 1.3); },
+  saberHit: (pos, power, form) => { if (!tooSoon('shit', 0.04)) SB.clash(pos, (power || 1) >= 1.3, form); },
   // the snap-hiss: kind is a form id ('staff' lights both ends) or 'dark' (the Darksaber); retract is the reverse;
   // reignite drops the blade and lights it again in a new form (from = the form it was in)
   // (full: the showpiece version, for the ignite / retract key and a draw from the belt)

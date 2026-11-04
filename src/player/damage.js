@@ -326,6 +326,9 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     G.shake = Math.max(G.shake, 0.45);
     if (fromPos){ player.camKickT = G.gt; player.camKickX = fromPos.x; player.camKickZ = fromPos.z; }   // the camera recoils away from the blow
     S.hurt();
+    // cut by a foe's lightsaber: the same blade-contact sound as your own blade landing (the clash), in its form's voice
+    const by = opts && opts.by;
+    if (melee && by && by.t && by.t.weapon === 'saber' && fromPos) S.saberHit(V3((fromPos.x + playerPos().x) / 2, 1.4, (fromPos.z + playerPos().z) / 2), raw >= CFG.player.flinch.heavyDmg ? 1.4 : 1, by.form);
     const v = document.getElementById('vig');
     v.style.opacity = '1';
     setTimeout(()=>{ v.style.opacity = '0'; }, 120);

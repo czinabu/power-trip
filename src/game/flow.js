@@ -33,7 +33,10 @@ import { spawnChampion, startEndlessWave, endlessWaveCleared } from './survival.
 import { applyJetTier, payWaveClear } from './progression.js';
 import { MANDO_AUTO, JEDI_AUTO } from '../data/store.js';
 import { TROOPER_AUTO } from '../data/trooper-progression.js';
-import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS } from '../data/forms.js';
+import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
+import { FORCE_LEVELS, FORCE_MAX, POWER_GROWTH, growthLine, forceShare, FORM_MASTERY } from '../data/force-level.js';
+import { storyForceLevel } from './sandbox-unlocks.js';
+import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard } from '../ui/ability-card.js';
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation } from './meditation.js';
 import { chapterOrder } from '../data/campaign.js';
@@ -187,6 +190,7 @@ export function startLevel(idx, opts){
     G.loadout = [...(kitUpFront ? DEFAULT_LOADOUT : RUN_LOADOUT)];
     G.waveTotal = -1; G.mandoChoiceShown = false;
     G.xp = 0; G.xpEarned = 0; G.skillPoints = 0; G.powerLv = {}; G.mastery = {}; G.seenTypes = {}; resetUpgrades();
+    G.forceLevel = 1; G.formRank = {}; G.formUse = {}; G.formSince = {};   // the Jedi's Force Level and form mastery (data/force-level.js)
     G.boonOffer = null; G.boonPicked = false;
     player.up = { dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
                   atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,
@@ -260,6 +264,7 @@ export function checkUnlocks(bannerDelay, closing){
   // level0/wave2; Mando's FLAMETHROWER + WRIST ROCKET both land at stage0) and the old single-`announce` version
   // only ever showed the FIRST one found, leaving the other granted but silently un-announced — no banner, ever.
   const announce = [];
+  let forceUp = 0;
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
       const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;
@@ -274,14 +279,21 @@ export function checkUnlocks(bannerDelay, closing){
     syncMandoChips();
   } else {
     const meditates = formsTaught();
-    for (const u of JEDI_AUTO){
-      const reached = (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
+    const jediReached = (u) => (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
                                 : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter)           // a form or a power: the chapter that teaches it, at its close
                                 : (G.levelIdx > u.level || (G.levelIdx === u.level && G.wave >= u.wave));
+    for (const u of JEDI_AUTO){
+      const reached = jediReached(u);
       if (!reached || u.has()) continue;
       if (u.fork && !meditates) continue;   // Form VII is a choice: only a run that can stop to make it offers it
       u.grant(); announce.push(u);
     }
+    // THE FORCE LEVEL rides the same gates (data/force-level.js): a run only climbs; the training grounds and the sandbox
+    // fight at the level the story has reached (the sandbox's slider overrides it)
+    const was = G.forceLevel || 1;
+    G.forceLevel = (G.sandbox || G.training) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
+    if (G.forceLevel > was && !G.sandbox && !G.training) forceUp = G.forceLevel;
+    if (G.mission && G.chapter < 0) missionFormRanks();
     syncJediChips();
     setStanceHud();
   }
@@ -296,10 +308,33 @@ export function checkUnlocks(bannerDelay, closing){
     } else setLoadout(autoLoadout());
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox) return;   // the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
+  if (forceUp && (closing || G.endless)) announce.push(forceLevelCard(forceUp));   // the Force Level rose: its card, with the other screens
   if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
   announceUnlocks(announce, bannerDelay, closing);
+}
+// a mission hands its forms over already practised: about a rank for every two stages the story has known each one
+function missionFormRanks(){
+  G.formRank = G.formRank || {};
+  const kit = G.waveTotal || 0;
+  for (const id of [...STARTING_FORMS, ...FORM_PATH.map(p => p.form)]){
+    if (!FORM_MASTERY[id] || !(STARTING_FORMS.includes(id) || (G.stanceUnlocked && G.stanceUnlocked[id]))) continue;
+    const p = FORM_PATH.find(q => q.form === id), r = Math.max(0, Math.min(3, Math.floor((kit - (p ? p.stage : 0)) / 2)));
+    G.formRank[id] = Math.max(G.formRank[id] || 0, r);
+  }
+}
+// the Force Level card (ui/ability-card.js): what grew, for the powers in hand, in the form in hand
+const FORCE_OWNED = { push: 'push', pull: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
+function forceLevelCard(lv){
+  const rows = Object.keys(FORCE_OWNED).filter(id => G.unlocked && G.unlocked[FORCE_OWNED[id]])
+    .map(id => [POWER_GROWTH[id].nm, growthLine(id, lv)]).filter(r => r[1]);
+  const form = STANCES[G.stance], fname = form ? form.name.split(' —')[0] : '';
+  return { key: 'forcelv', name: 'FORCE LEVEL ' + lv, card: {
+    kicker: lv >= FORCE_MAX ? 'THE FORCE AT ITS FULLEST' : 'THE FORCE ANSWERS YOU MORE STRONGLY',
+    lines: ['Every Force power you hold grows with your Force Level. How much of it you can draw on is set by your form: ' +
+            (fname ? fname + ' draws on ' + Math.round(forceShare() * 100) + '%.' : '')],
+    rows } };
 }
 // a chapter of this run (by id) is behind the hero: the run is on a later chapter, or it has just closed (G.chapterClosed):
 // what it hands out is granted and shown at its close, and its closing upgrade page offers its powers (data/store.js)

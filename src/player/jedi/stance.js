@@ -13,6 +13,8 @@ import { wakeBlade } from '../holster.js';
 import { startSwitch } from '../anim/saber.js';
 import { playerPos, stance, bladeColor, heldGrip } from '../helpers.js';
 import { applySaberGrip, setSaberStaff, setSaberDual } from '../model/weapons.js';
+import { FORCE_MAX, FORM_MASTERY, forceLevel, forceShare, formRank } from '../../data/force-level.js';
+import { onFormRank } from '../../game/upgrades.js';
 
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
 
@@ -30,7 +32,11 @@ export function setStanceHud(){
     if (f) chip.style.setProperty('--c', hex(STANCES[id].blade)); else chip.style.removeProperty('--c');   // an emptied slot: skipped by 1 / 2 / 3, the wheel and the D-pad
     chip.classList.toggle('active', !!f && id === G.stance);
     chip.classList.toggle('locked', !!f && !stanceUnlocked(id));   // dim the forms you haven't earned yet
+    // FORM MASTERY: a star per rank beside the form's tag, once it has one (data/force-level.js)
+    const r = f && FORM_MASTERY[id] ? formRank(id) : 0;
+    if (r) chip.querySelector('.sty').insertAdjacentHTML('beforeend', '<span class="fmr">' + '★'.repeat(r) + '<i>' + '★'.repeat(3 - r) + '</i></span>');
   }
+  forceLevelHud();
   // the form's strengths read for a few seconds after a change, then fade so they don't crowd the action. Only a change:
   // the HUD is refreshed at a run's start and at a chapter's close too (game/flow.js checkUnlocks), where the hint would
   // only pile onto the closing card and the briefing's words (ui/hud-stage.js)
@@ -42,6 +48,20 @@ export function setStanceHud(){
   }
   _synSeen = st.syn;
 }
+
+// the Force meter's level badge, the form in hand's share of it, and a pip per level (data/force-level.js)
+function forceLevelHud(){
+  const lv = document.getElementById('fplv'), pips = document.getElementById('fplvpips');
+  if (!lv || !pips) return;
+  const on = !isGunner();
+  lv.style.display = pips.style.display = on ? '' : 'none';
+  if (!on) return;
+  const L = forceLevel(), f = FORMS[G.stance];
+  lv.innerHTML = '<b class="flv">LV ' + L + '</b>' + (f ? '<span class="fsh">' + f.name + ' ' + Math.round(forceShare() * 100) + '%</span>' : '');
+  if (pips.childElementCount !== FORCE_MAX) pips.innerHTML = '<i></i>'.repeat(FORCE_MAX);
+  [...pips.children].forEach((p, i) => p.classList.toggle('on', i < L));
+}
+onFormRank(() => setStanceHud());
 
 /* ---------- the loadout: which forms sit on 1 / 2 / 3 ---------- */
 // set the slots (cleaned: ready forms only, none twice). If the form in hand left the loadout, take the first

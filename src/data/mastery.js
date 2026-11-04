@@ -5,6 +5,7 @@ import { CFG } from './config.js';
 import { MANDO } from './mando.js';
 import { TROOPER } from './trooper.js';
 import { G, isGunner, isTrooper } from '../state.js';
+import { growPower } from './force-level.js';
 
 /* ============================================================
    POWER MASTERY — every ability you own can be mastered twice, by USING it in a fight (game/upgrades.js trainAbility).
@@ -104,7 +105,7 @@ export function abil(id){
     for (const k in rk.mul || {}) v[k] *= rk.mul[k];
     for (const k in rk.add || {}) v[k] += rk.add[k];
   }
-  return v;
+  return growPower(id, v);   // the Jedi's Force Level, by the share the form in hand draws on (data/force-level.js)
 }
 // the heal fraction mendComplete() restores — Force Mend for the Jedi, Bacta Stim for the Mando
 export function healFrac(){ return abil(isGunner() ? 'bacta' : 'mend').heal; }

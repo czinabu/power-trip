@@ -5,6 +5,9 @@
 // Before the campaign is beaten, what the story hasn't reached yet shows dimmed and locked (game/sandbox-unlocks.js).
 // It holds the game still while it's open and frees the cursor, the same way the upgrade screen does.
 
+import { FORCE_MAX, FORM_RANKS } from '../data/force-level.js';
+import { storyForceLevel } from '../game/sandbox-unlocks.js';
+import { setStanceHud } from '../player/jedi/stance.js';
 import { RANKS, RANK_ORDER } from '../data/foe-forms.js';
 import { formName } from '../enemies/foeform.js';
 import { renderer } from '../engine/renderer.js';
@@ -82,6 +85,12 @@ function render(){
   const jedi = !isGunner();
   $('sbformslbl').style.display = $('sbforms').style.display = jedi ? '' : 'none';
   $('sbtabyou').textContent = jedi ? '· FORMS & POWERS' : '· GEAR';
+  // THE FORCE (data/force-level.js): STORY is where the campaign has reached; a number overrides it
+  $('sbforce').style.display = jedi ? '' : 'none';
+  if (jedi){
+    $('sbflv').innerHTML = [null, ...Array.from({ length: FORCE_MAX }, (_, i) => i + 1)].map(n => `<span data-flv="${n || ''}" class="${(G.sbForceLevel || null) === n ? 'on' : ''}">${n ? n : 'STORY · ' + storyForceLevel()}</span>`).join('');
+    $('sbfmr').innerHTML = [null, 0, 1, 2, 3].map(r => `<span data-fmr="${r == null ? '' : r}" class="${(G.sbFormRank ?? null) === r ? 'on' : ''}">${r == null ? 'STORY' : r ? FORM_RANKS.names[r] : 'NONE'}</span>`).join('');
+  }
   $('sbkitlbl').firstChild.textContent = jedi ? 'POWERS ' : 'GEAR ';
   if (jedi) $('sbforms').innerHTML = Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
     const id = G.loadout[i], f = id && FORMS[id];
@@ -114,6 +123,9 @@ panel.addEventListener('click', (e) => {
   const ff = t.closest('[data-fform]'), fr = t.closest('[data-frank]');
   if (ff){ G.sbFoeForm = ff.dataset.fform || null; render(); return; }
   if (fr){ G.sbFoeRank = fr.dataset.frank || null; render(); return; }
+  const fl = t.closest('[data-flv]'), fm = t.closest('[data-fmr]');
+  if (fl){ G.sbForceLevel = +fl.dataset.flv || null; saveForcePicks(); setStanceHud(); render(); return; }
+  if (fm){ G.sbFormRank = fm.dataset.fmr === '' ? null : +fm.dataset.fmr; saveForcePicks(); setStanceHud(); render(); return; }
   if (foe){ sandboxSpawn(foe.dataset.foe); foe.classList.remove('pop'); void foe.offsetWidth; foe.classList.add('pop'); return; }
   if (kit){ const on = kit.classList.contains('on'); setSandboxKit(kit.dataset.kit, !on); render(); return; }
   if (t.closest('#sbelite')){ SB.elite = !SB.elite; render(); return; }
@@ -140,3 +152,6 @@ document.addEventListener('keydown', (e) => {
 });
 // LB / RB on a pad (engine/gamepad.js)
 document.addEventListener('sb-tab', (e) => { if (isOpen()) stepTab(e.detail); });
+
+// the sandbox's FORCE picks are kept between visits (read back as the sandbox opens: game/sandbox.js)
+function saveForcePicks(){ try { localStorage.setItem('sw_sandbox_force', JSON.stringify({ lv: G.sbForceLevel || null, rank: G.sbFormRank ?? null })); } catch(e){} }

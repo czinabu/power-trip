@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Saber swings, parry, swing damage, and the Force kick.
 
+import { trainForm } from '../../game/upgrades.js';
 import { CFG } from '../../data/config.js';
 import { stamDelay } from '../stamina.js';
 import { SWING_PATTERNS, backLineMul, swordMul } from '../../data/stances.js';
@@ -345,6 +346,7 @@ export function applySwingDamage(step, only){
       if (shat){ e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.1); tutEvent('shatter'); }
       damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
       foesHit++;
+      trainForm(e.dead ? 'kill' : 'hit', { finisher, air: !player.grounded, backLine: backLineMul(st, e) > 1, heavy: !!e.t.heavy, blade: swordMul(st, e) > 1 });   // FORM MASTERY (game/upgrades.js)
       addFury(st.furyHit);   // JUYO (and a little VAAPAD): every cut that lands feeds the fury
       if (shat && !e.dead) staggerEnemy(e, f.x, f.z);
       // the blade leaves its mark: a burnt cut where it crossed, and a killing blow may take the sword arm (enemies/scars.js)

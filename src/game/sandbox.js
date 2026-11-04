@@ -37,6 +37,9 @@ function savedMap(){ try { const m = localStorage.getItem('sw_sandbox_map'); if 
 // opts.replay: the fallen screen's retry, which goes back into the battle that was set up (game/battlesim.js)
 export function startSandbox(opts){
   refreshSandboxScope();
+  // the FORCE picks from the panel (ui/sandbox-ui.js): a Force Level and a form mastery rank, or the story's (null)
+  { let f = null; try { f = JSON.parse(localStorage.getItem('sw_sandbox_force')); } catch(e){}
+    G.sbForceLevel = (f && f.lv) || null; G.sbFormRank = f && f.rank != null ? f.rank : null; }
   if (!mapOffered(SB.map)) SB.map = 'room';   // a world the story hasn't reached yet
   startLevel(0, { level: sandboxLevel(), sandbox: true });   // fresh hero and starting kit, in the hero's room (or the picked battle map)
   G.waveTotal = 0;   // foes at their base toughness (HP and elite odds climb with waveTotal)

@@ -7,6 +7,7 @@
 // Neither names a form the hero hasn't learned: the forms still to come stand as one sealed card.
 //   · FORMS on the pause screen — the same page, read only, for the run in progress.
 
+import { FORM_MASTERY, FORM_RANKS, formRank, forceShare, forceLevel } from '../data/force-level.js';
 import { G } from '../state.js';
 import { FINISHERS } from '../data/finishers.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
@@ -135,6 +136,13 @@ function tile(id){
     '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + '</div>';
 }
 // its SABER FINISHER (data/finishers.js): what the next attack on a foe with its guard broken does
+// THE FORCE in this form (data/force-level.js): its share of the Force Level, its mastery rank and what practises it
+function forceBlock(id){
+  const m = FORM_MASTERY[id]; if (!m) return '';
+  const r = formRank(id), next = r < 3 ? FORM_RANKS.names[r + 1] : '';
+  return '<div class="fm-best">THE FORCE · ' + Math.round(forceShare(id) * 100) + '% SHARE · FORCE LEVEL ' + forceLevel() + '</div>' +
+    '<div class="fm-fin">MASTERY · ' + (r ? FORM_RANKS.names[r] : 'NOT YET PRACTISED') + (next ? '. Practise it with ' + esc(m.practice) + ' to reach ' + next + ': ' + esc(m.lines.join(', ').toLowerCase()) + '.' : '. Mastered.') + '</div>';
+}
 const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-best">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
 function detail(){
   const id = ctx.focus;
@@ -143,7 +151,7 @@ function detail(){
   return '<div class="fm-detail" style="--c:' + hex(STANCES[id].blade) + '"><div class="fm-no">' + formTitle(id) + ' · ' + esc(F.tag) + loreInfo(C) + '</div><b>' + esc(F.name) + '</b>' +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + counterBlock(id) + '</div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + forceBlock(id) + counterBlock(id) + '</div>';
 }
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';

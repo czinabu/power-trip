@@ -37,7 +37,8 @@ function snapshotRun(){
     idx: G.levelIdx, chapter: G.chapter, chapterId: G.chapter >= 0 ? (chapterOrder(G.actTwo)[G.chapter] || {}).id : null, actTwo: G.actTwo, story: clone(G.story) || {}, checkpoint: clone(G.checkpoint), stance: G.stance, loadout: [...G.loadout], mandoKit: { ...(G.mandoKit || RUN_KIT) }, weapon: player.weapon, rifleMod: player.rifleMod || 'burst',
     unlocked: clone(G.unlocked), stanceUnlocked: clone(G.stanceUnlocked), formFork: G.formFork || null, mandoChoiceShown: G.mandoChoiceShown,
     xp: G.xp, xpEarned: G.xpEarned, skillPoints: G.skillPoints, skillSpent: G.skillSpent,
-    powerLv: clone(G.powerLv), mastery: clone(G.mastery), masteryUse: clone(G.masteryUse), xpPoints: G.xpPoints, seenTypes: clone(G.seenTypes),
+    powerLv: clone(G.powerLv), mastery: clone(G.mastery), masteryUse: clone(G.masteryUse),
+    forceLevel: G.forceLevel, formRank: clone(G.formRank), formUse: clone(G.formUse), formSince: clone(G.formSince), xpPoints: G.xpPoints, seenTypes: clone(G.seenTypes),
     up: clone(player.up), phoenixReady: !!player.phoenixReady, boon: clone(player.boon), boons: clone(player.boons), skills: clone(player.skills),
     stats: G.stats ? { ...clone({ ...G.stats, summary: null }), elapsed: G.gt - (G.stats.startGt || 0) } : null,
   };
@@ -68,7 +69,9 @@ export function restoreRun(run){
   G.formFork = run.formFork || null; clearMeditation();   // (forms the saved chapter has passed are taught again as it starts)
   G.xp = run.xp || 0; G.xpEarned = run.xpEarned || 0; G.skillPoints = run.skillPoints || 0; G.skillSpent = run.skillSpent || 0;
   G.powerLv = clone(run.powerLv) || {}; G.mastery = clone(run.mastery) || {}; G.seenTypes = clone(run.seenTypes) || {};
-  G.masteryUse = clone(run.masteryUse) || {}; G.xpPoints = run.xpPoints;   // (undefined on an older save: game/upgrades.js starts counting from its XP)
+  G.masteryUse = clone(run.masteryUse) || {};
+  G.forceLevel = run.forceLevel || 1; G.formRank = clone(run.formRank) || {}; G.formUse = clone(run.formUse) || {}; G.formSince = clone(run.formSince) || {};   // (an older save: level 1, recomputed by checkUnlocks on load)
+  G.xpPoints = run.xpPoints;   // (undefined on an older save: game/upgrades.js starts counting from its XP)
   G.boonOffer = null; G.boonPicked = false;
   Object.assign(player.up, clone(run.up));
   player.boon = clone(run.boon) || {}; player.boons = clone(run.boons) || {}; player.skills = clone(run.skills) || {};

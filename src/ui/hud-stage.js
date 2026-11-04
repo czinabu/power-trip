@@ -8,7 +8,8 @@
 //    list as it grows and shrinks, on every screen size
 //  · ONE VOICE AT A TIME: a closing card is the chapter's last words. It waits for a line already on the strip to finish,
 //    then the strip holds its next line until the card has been read (a line that cuts in still does: game/story.js asks
-//    stageHolds), and the upgrade screen waits for it too (game/flow.js, game/aftermath.js). A power's drill waits for the
+//    stageHolds; the calm's brisk exchange only waits for it to be up a moment: game/aftermath.js), and the upgrade screen waits
+//    for it too, unless the hero has already walked out (finishCard) (game/flow.js, game/aftermath.js). A power's drill waits for the
 //    strip to go quiet (game/tutorial.js)
 //  · QUIET SIDES: while a closing card is up the form hint by the action bar stays down (body.stage-card, styles/hud.css)
 //
@@ -18,8 +19,9 @@
 export const STAGE = {
   gap: 12,            // px between boxes
   waitMax: 4,         // s: the longest a closing card waits for a line already on the strip
-  read: [5, 8],       // s: how long a closing card stays up (by how much it says: base + perChar, held to this range)
-  base: 2.4, perChar: 0.035,
+  read: [4, 6.5],     // s: how long a closing card stays up (by how much it says: base + perChar, held to this range)
+  base: 2, perChar: 0.03,
+  briskAfter: 1.5,    // s: a brisk line (the calm's exchange: game/story.js) waits for the card this long once it's up, not its whole read
   every: 0.1,         // s: how often the boxes are measured (and at once whenever a card goes up)
   cardLow: 0.55,      // the card's top never goes lower than this share of the screen's height, however long the list above it
 };
@@ -34,8 +36,10 @@ export const readFor = (text) => Math.min(STAGE.read[1], Math.max(STAGE.read[0],
 // show: puts the card up (called once its turn comes) · hide: takes it down once read · text: what it says (its read time)
 export function stageCard(show, hide, text){
   dropCard();
-  card = { show, hide, hold: readFor(text), wait: 0, up: false };
+  card = { show, hide, hold: readFor(text), wait: 0, up: false, upT: 0 };
 }
+// the hero has walked out (the calm's way on reached: game/aftermath.js): the card has had its turn, take it down now
+export function finishCard(){ if (card){ const c = card; dropCard(); if (c.up) c.hide(); } }
 // someone else took the card down or put another up (game/objectives.js): its turn is over
 export function dropCard(){
   if (!card) return;
@@ -44,6 +48,8 @@ export function dropCard(){
 }
 // a closing card is waiting or up: the strip and the upgrade screen hold for it
 export const stageHolds = () => !!card;
+// the same for a brisk line: only until the card has been up a moment (STAGE.briskAfter)
+export const stageHoldsBrisk = () => !!card && !(card.up && card.upT >= STAGE.briskAfter);
 
 /* ---------- once a frame (main.js): dt is the sim's time (held while paused or on the upgrade screen) ---------- */
 let measureT = 0;
@@ -56,7 +62,7 @@ export function updateHudStage(dt, playing){
         document.body.classList.add('stage-card');
         measureT = 0;
       }
-    } else if ((card.hold -= dt) <= 0){ const c = card; dropCard(); c.hide(); }
+    } else if ((card.upT += dt, card.hold -= dt) <= 0){ const c = card; dropCard(); c.hide(); }
   }
   if ((measureT -= Math.max(dt, 1 / 60)) <= 0){ measureT = STAGE.every; layout(); }
 }

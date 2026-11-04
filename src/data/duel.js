@@ -60,12 +60,14 @@ export const DUEL_PROFILES = {
      drain     breath a landed cut / finisher takes off it
      open      seconds a broken posture leaves it staggered and open (damage × DUEL.open.dmg while it lasts)
      swing     its held overhead, modelled on the brute's (TROOP_MELEE.brute): every swing is held at the top, longer than a
-               brute's, and comes down unblockable (the shared parry-or-dodge tell). The leap slam stays dodge-only. */
+               brute's, and comes down unblockable. The hold's length is a guess on purpose, so the shared parry-or-dodge
+               tell flares as it lets go, not as it reaches the top: `cue` s before the maul starts down (it lands half the
+               brute's swing after that), a fixed beat a player can learn to parry off. The leap slam stays dodge-only. */
 export const WARBRINGER = {
   posture: 150, coop: 0.6, stam: 120,
   cut: 0.35, drain: { cut: 5, finisher: 16 },
   open: 2.6,
-  swing: { hold: 1, holdT: [0.5, 0.8], feint: 0 },
+  swing: { hold: 1, holdT: [0.5, 0.8], feint: 0, cue: 0.2 },
 };
 // the duel profile it carries (enemies/duel.js initDuel): `brace` = no guard and no duellist's plan, just posture and breath
 export const WARBRINGER_PROFILE = { block: 0, brace: true, posture: WARBRINGER.posture, feint: 0, delay: 0, chain: 0, counter: 0, thrust: 0, dodge: 0, stam: WARBRINGER.stam };

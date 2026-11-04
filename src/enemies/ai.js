@@ -400,8 +400,9 @@ export function updateEnemies(dt){
           g.userData.weaponArm.rotation.z = coil * (heavy ? 0.9 : 0.6);
         }
         holdTremble(e, wk);   // a held swing shakes at the apex
-        // the Warbringer's overhead comes down unblockable: at the top of the hold the shared parry-or-dodge tell flares
-        if (e.dp && e.dp.brace && wk >= 1 && !e.heldTell){ e.heldTell = true; tellFx('parry', g.position, 3.6, 0.5); }
+        // the Warbringer's overhead comes down unblockable: the shared parry-or-dodge tell flares as the hold LETS GO, a
+        // fixed beat before the maul lands (data/duel.js WARBRINGER.swing.cue), so the parry is read off it, not guessed
+        if (e.dp && e.dp.brace && e.st <= ((e.swing && e.swing.cue) || 0.2) && !e.heldTell){ e.heldTell = true; tellFx('parry', g.position, 3.6, 0.5); }
         // charging embers stream off the weapon near the apex
         if (coil > 0.6 && Math.random() < (heavy ? 0.5 : 0.32))
           burst(V3(g.position.x + tx*0.3, g.position.y + (heavy?3.0:2.3), g.position.z + tz*0.3), heavy ? 0xff5522 : t.eye, 1, 3, 4, 0.7);

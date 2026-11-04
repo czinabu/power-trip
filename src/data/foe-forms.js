@@ -39,11 +39,14 @@ export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
      posture  × the strain each blocked cut puts on its guard (how fast you break it)
      dmg      × your saber's damage on it
      tricks   × its feints and held strikes (you read them, or it reads you)
-     hurt     × the damage its blade does to you */
+     hurt     × the damage its blade does to you
+     guard    × the stamina your held guard spends on its blows and the chip that gets through them (player/damage.js)
+     window   × your parry window against its blows: a form that beats yours is harder to parry, so the counter decides
+              a long duel on defence as well as offence (Caleb's call, 2026-11-04: Soresu was turtling Djem So out) */
 export const MATCHUP = {
-  win:  { seal: 0.7, block: 0.6,  parry: 0.5, posture: 1.4,  dmg: 1.15, tricks: 0.5, hurt: 0.85 },
-  even: { seal: 1,   block: 1,    parry: 1,   posture: 1,    dmg: 1,    tricks: 1,   hurt: 1 },
-  lose: { seal: 1,   block: 1.15, parry: 1.15, posture: 0.85, dmg: 0.95, tricks: 1.15, hurt: 1.08 },
+  win:  { seal: 0.7, block: 0.6,  parry: 0.5, posture: 1.4,  dmg: 1.15, tricks: 0.5, hurt: 0.8,  guard: 0.75, window: 1 },
+  even: { seal: 1,   block: 1,    parry: 1,   posture: 1,    dmg: 1,    tricks: 1,   hurt: 1,    guard: 1,    window: 1 },
+  lose: { seal: 1,   block: 1.15, parry: 1.15, posture: 0.85, dmg: 0.95, tricks: 1.15, hurt: 1.15, guard: 1.8,  window: 0.6 },
 };
 // +1: form `a` counters form `b` · -1: `b` counters `a` · 0: even (the same family, Niman, or no form)
 export function formEdge(a, b){

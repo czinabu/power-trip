@@ -74,6 +74,7 @@ export function buildThroneArena(L){
   };
   for (const s of ['n', 's', 'e', 'w']) wallAt(s);
   shared.arenaWalled = true;   // the walls are only a picture to the movement clamp; bolts stop on them (enemies/bolts.js)
+  shared.arenaWallFace = H + 0.5;   // the inner face of the pilasters and plinth: the hero can walk up to it and wall-run on it
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(1.8, W, 1.8), greenD, sx*(H + 0.9), W/2, sz*(H + 0.9));
   // ceiling girders, high over the floor
   for (let z = -Math.floor((H - 4) / 10) * 10 + 5; z <= H - 6; z += 10){ K.deco(new THREE.BoxGeometry(H*2 + 2.4, 1.0, 0.8), frame, 0, W + 0.3, z); K.slab(0, z, H, 0.4, W - 0.2, W + 0.8); }

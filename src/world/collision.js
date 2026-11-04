@@ -40,8 +40,9 @@ export function segBlockedBySolids(ax, az, bx, bz){
   return null;
 }
 
-export function clampToArena(pos, vel, enemy){
-  const h = shared.arenaHalf - 1, hz = shared.arenaHalfZ - 1;
+// lim: the player's own limit in a walled room (up to its walls' faces), instead of a metre inside the edge
+export function clampToArena(pos, vel, enemy, lim){
+  const h = lim || shared.arenaHalf - 1, hz = lim || shared.arenaHalfZ - 1;
   if (Math.abs(pos.x) > h){
     if (vel && Math.abs(vel.x) > 10){
       burst(pos, 0x99bbdd, 6, 5, 4);

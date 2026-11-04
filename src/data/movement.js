@@ -30,9 +30,14 @@ export const MOVE = {
   grabDist: 0.5,        // how close to the face the body must be (beyond its radius) to grab
   mantleTime: 0.34,     // seconds for a full-reach pull-up; low ledges scale down from here
   vaultTime: 0.24,
-  // wall-run: airborne, running along a wall with W held
+  // wall-run: airborne, running along a wall with a direction held
   wallRunTime: 1.0,    // longest run before you drop off
-  wallRunMinSpeed: 5,   // horizontal speed needed to start one
+  wallRunMinSpeed: 3,   // horizontal speed needed to start one (a jog or a standing jump with a direction held is enough)
+  wallRunReach: 1.8,    // how far from a face (body centre to face, m) a jump or flip catches it
+  wallRunFrom: 0.6,     // feet at least this high off the floor before the wall catches them (the jump gets to rise first)
+  wallRunFall: -9,      // falling faster than this (m/s) is too late to catch a wall
+  wallRunHug: 0.68,     // body centre to face while running (m): just past the collision radius, so the feet are on the wall
+  wallRunPull: 14,      // how fast (1/s) the body is drawn in to that distance after the catch
   wallRunGravity: 0.22, // gravity multiplier while running the wall
   wallRunLift: 3.2,     // a small upward kick as the feet catch the wall
   wallRunPeel: 2.5,     // coming off the wall (time out, W released) the body is eased this fast away from it, so the run ends in a natural peel instead of grinding along the face

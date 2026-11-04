@@ -59,6 +59,7 @@ export function buildDojoArena(L){
   };
   for (const s of ['n', 's', 'e', 'w']) wallAt(s);
   shared.arenaWalled = true;   // the walls are only a picture to the movement clamp; bolts stop on them (enemies/bolts.js)
+  shared.arenaWallFace = H + 0.5;   // the inner face of the pilasters and plinth: the hero can walk up to it and wall-run on it
   // the corners: tall square posts where the walls meet
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(1.6, W, 1.6), woodD, sx*(H + 0.9), W/2, sz*(H + 0.9));
   // ceiling beams over the floor, high enough to stay out of a jetpack's way

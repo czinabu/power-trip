@@ -5,7 +5,7 @@ import { CFG } from '../data/config.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { G, keys, player, isGunner } from '../state.js';
+import { shared, G, keys, player, isGunner } from '../state.js';
 import { strafing } from './strafe.js';
 import { MANDO, JEDI_FORCE, JUMP_HOLD_THRESH, forceJumpPow } from '../data/mando.js';
 import { stance, maxHp } from './helpers.js';
@@ -256,5 +256,6 @@ export function updateGravityAndLanding(dt, pp){
     // JUMP BUFFER — a jump pressed just before touchdown fires now
     if (!wasGrounded && G.gt - (player.jumpBufT ?? -9) < MOVE.jumpBuffer){ player.jumpBufT = -9; doJump(); }
   } else player.grounded = false;
-  clampToArena(pp, null, null);
+  // in a walled room the hero goes right up to the walls (to run on them), not a metre short of an invisible line
+  clampToArena(pp, null, null, shared.arenaWalled && shared.arenaWallFace ? shared.arenaWallFace - CFG.player.radius : 0);
 }

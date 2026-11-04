@@ -216,12 +216,12 @@ document.addEventListener('keydown', (e) => {
       // between a regular and a reverse (Starkiller-style) grip; every other form holds its own forward grip (data/forms.js)
       const own = !isGunner() && FORMS[G.stance] && FORMS[G.stance].grip;
       if (swapVariant()){ /* swapped: the new form brings its own grip and guard */ }
-      else if (!isGunner() && isDual(G.stance)){   // Jar'Kai: both forward → off reversed → main reversed → both reversed
+      else if (!isGunner() && isDual(G.stance)){   // Jar'Kai: both forward → off reversed → both reversed
         setDualGrip(dualGripIndex() + 1);
         applySaberGrip(player, heldGrip());
         startSwitch();
         const [m, o] = DUAL_GRIPS[dualGripIndex()];
-        showBanner('', m === o ? (m === 'reverse' ? 'BOTH SABERS REVERSED' : 'BOTH SABERS FORWARD') : (m === 'reverse' ? 'MAIN REVERSED · OFF FORWARD' : 'MAIN FORWARD · OFF REVERSED'), 0.9);
+        showBanner('', m === o ? (m === 'reverse' ? 'BOTH SABERS REVERSED' : 'BOTH SABERS FORWARD') : 'RIGHT FORWARD · LEFT REVERSED', 0.9);
         sfx(520, 0.06, 'triangle', 0.04, 760);
       }
       else if (own){ showBanner('', FORMS[G.stance].name + ' HOLDS A ' + (own === 'reverse' ? 'REVERSE' : 'FORWARD') + ' GRIP', 1.0); sfx(200, 0.06, 'triangle', 0.03, 160); }

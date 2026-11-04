@@ -73,7 +73,7 @@ export const RUN_LOADOUT = ['shiicho', null, null];
 export const FORM_PATH = [
   { form: 'makashi', chapter: 'archive',       level: 0, wave: 3, stage: 2 },   // Vael: a duellist's form, for Ilsa
   { form: 'soresu',  chapter: 'trial-first',   level: 1, wave: 0, stage: 3 },   // the Wall
-  { form: 'ataru',   chapter: 'trial-acrobat', level: 1, wave: 1, stage: 5 },   // the Acrobat
+  { form: 'ataru',   chapter: 'trial-acrobat', hothFirst: 'hoth', level: 1, wave: 1, stage: 5 },   // the Acrobat (Hoth first: the enclave's holocron, so Ataru answers the Knight's Djem So)
   { form: 'djemso',  chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },   // the Knight: Form V's strong road
   { form: 'shien',   chapter: 'jakku',         level: 1, wave: 2, stage: 7 },   // …and its other one, from a holocron in the salvage
   { form: 'niman',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // Form VI: the forms brought together

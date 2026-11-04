@@ -152,7 +152,10 @@ export const JEDI_CHAPTERS = {
            [HERO, 'Ilsa did not wait. She opened the temple gate for the Empire.'],
            [SERA, 'Ilsa did? Then the Order is worse off than I thought. Come on. Show me you can keep up.']] },
     lines: {
-      clear: ['Sera laughs for the first time in a year. She teaches you Ataru the only way she knows: at full speed.', say(SERA, 'I will fly with you. Not for Vael. For the kids in that Ledger.')] } },
+      // (Hoth first: Ataru came from the enclave's holocron, data/forms.js FORM_PATH, so Sera sharpens it instead)
+      clear: [{ by: 'actTwo', lothal: 'Sera laughs for the first time in a year. She teaches you Ataru the only way she knows: at full speed.',
+                hoth: 'Sera laughs for the first time in a year. The holocron taught you Ataru\'s shapes. She teaches you its speed.' },
+              say(SERA, 'I will fly with you. Not for Vael. For the kids in that Ledger.')] } },
   hoth: {
     harder: 'lothal',   // left for second (the pens picked first): its foes are dug in
     title: 'THE LAST ENCLAVE', world: 'HOTH, AN ENCLAVE UNDER THE ICE',
@@ -169,7 +172,10 @@ export const JEDI_CHAPTERS = {
     lines: {
       chapter: [say(KAST, 'Clones on the left, rebels on the right. You take the middle, Knight.')],
       duel: [say(KAST, 'Their siege trooper. I have the left. Take it, and I will see how you fight.')],
-      clear: ['The line held, and every transport cleared the shield. Kast saw you hold it.', say(KAST, 'Meet me in the hangar. There is one more ship to load, and I want to see your blade first.')] } },
+      // (Hoth first: the enclave's holocron teaches Ataru here, before the Knight's Djem So trial: data/forms.js FORM_PATH)
+      clear: ['The line held, and every transport cleared the shield. Kast saw you hold it.',
+              { by: 'actTwo', hoth: 'In the empty enclave, the children\'s old teacher left a holocron behind: Form IV, Ataru, the acrobat\'s form.' },
+              say(KAST, 'Meet me in the hangar. There is one more ship to load, and I want to see your blade first.')] } },
   'trial-knight': {
     title: 'TRIAL OF GENERAL KAST',
     brief: ['Kast has buried too many soldiers for an Order that no longer exists.', 'She fights blade to blade, and she punishes a careless block.'],

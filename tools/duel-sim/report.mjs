@@ -3,13 +3,12 @@
 // to kill, damage taken, stamina a second), the same split by the counter edge, and the foe forms ranked.
 //   node tools/duel-sim/report.mjs results.jsonl [more.jsonl …] [--md]
 import { readFileSync } from 'fs';
+import { formEdge } from '../../src/data/foe-forms.js';
 
 const files = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const MD = process.argv.includes('--md');
 const rows = files.flatMap(f => readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)));
-const FAMILY = { shiicho: 'speed', ataru: 'speed', juyo: 'speed', staff: 'speed', makashi: 'guard', soresu: 'guard', vaapad: 'guard', djemso: 'power', shien: 'power', niman: null };
-const BEATS = { power: 'guard', guard: 'speed', speed: 'power' };
-const edge = (a, b) => { const fa = FAMILY[a], fb = FAMILY[b]; if (!fa || !fb || fa === fb) return 0; return BEATS[fa] === fb ? 1 : BEATS[fb] === fa ? -1 : 0; };
+const edge = formEdge;   // the game's own counter table, so the report follows any change to it
 const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
 
 function agg(rs){

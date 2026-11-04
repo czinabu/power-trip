@@ -3,7 +3,7 @@
 
 import { G } from '../state.js';
 import { heroName } from '../game/wardrobe.js';   // (the trooper's rank, as that slot has it)
-import { SLOTS, AUTO, readSlot, writeSlot, deleteSlot, loadSlotProgress, clearProgress, slotSummary } from '../game/saves.js';
+import { SLOTS, AUTO, readSlot, writeSlot, deleteSlot, loadSlotProgress, clearProgress, slotSummary, latestRun, clearParked } from '../game/saves.js';
 import { setHero } from '../player/hero.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
@@ -76,6 +76,7 @@ function load(i){
   if (d.diff) setDiff(d.diff);
   if (d.missionId) setMission(d.missionId);
   G.resumeRun = d.run ? { ...d.run, hero: G.hero } : null;
+  clearParked(); try { localStorage.removeItem('sw_newgame_at'); } catch(e){}   // (the loaded progress is the one the menu follows now: game/saves.js latestRun)
   reloadLook();
   refreshMenu();   // the locks follow the loaded wins before the mode is picked again
   let m = d.run ? 'campaign' : (d.modeSel || 'campaign');
@@ -118,3 +119,14 @@ document.getElementById('newYes').addEventListener('click', (e) => {
   beginFromMenu();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('newconfirming')) overlay.classList.remove('newconfirming'); });
+
+// ON LAUNCH: the newest saved campaign run waits on the title screen with its hero picked, so CONTINUE CAMPAIGN is the
+// default (the pad's focus ring and Enter start on it); with no saved run the menu opens on BEGIN as before
+export function continueOnLaunch(){
+  const run = latestRun(); if (!run) return;
+  setHero(run.hero === 'mando' || run.hero === 'trooper' ? run.hero : 'jedi');
+  G.resumeRun = { ...run, hero: G.hero };
+  setModeSel('campaign');
+  refreshMenu();
+  showMenuStep('hero');   // straight to CONTINUE CAMPAIGN (‹ MODES goes back to the other modes)
+}

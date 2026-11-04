@@ -129,9 +129,10 @@ import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
-import './ui/saves-ui.js';   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
+import { continueOnLaunch } from './ui/saves-ui.js';   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
 
 setHero(G.hero);   // initialise control text + crosshair for the default hero
+continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINUE CAMPAIGN, as its hero
 
 /* ============================================================
    MAIN LOOP

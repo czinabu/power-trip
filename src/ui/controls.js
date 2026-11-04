@@ -23,7 +23,7 @@ const CONTROLS = {
       ['SHIFT', 'Landing roll', 'Just before a hard landing, or you stagger', 1],
     ]},
     { title: 'FIGHT', rows: [
-      ['LMB', 'Saber combo', 'TAP for a quick light cut · HOLD and the blade draws back into a slower, harder heavy cut that cracks guards (costs more stamina). The key you hold picks the cut (the needle through the crosshair shows the next one): A / D sweep sideways, W chops overhead (a thrust aimed low), W or S with A / D cut diagonally down or up, S whirls behind you; nothing held walks your form\'s string of cuts. The crosshair sits where your aim from the hero lands and turns red on a foe, and where it sits on them picks how high the cut goes: head or shoulders for a high cut, chest for a middle one, legs for a low one (Settings · AIM HINT turns the red off). A cut that starts where the last one finished flows on quicker. Every third is a finisher. Settings · CUT AIM: MOUSE lets a flick of the mouse just before you click aim the cut at any angle round the clock. Settings · SABER ASSIST (LOW by default, NORMAL, OFF): a foe near the crosshair turns your body a little toward it for that cut and the lunge goes for it; it never holds a lock or moves the view'],
+      ['LMB', 'Saber combo', 'TAP: a quick light cut · HOLD: the blade draws back into a slower, harder heavy cut that cracks guards (costs more stamina) · The key you hold picks the cut, and the needle through the crosshair shows the next one: A / D sweep sideways, W chops overhead (a thrust aimed low), W or S with A / D cut diagonally down or up, S whirls behind you, nothing held walks your form\'s string of cuts · Where the crosshair sits on a foe picks how high the cut goes: head or shoulders high, chest middle, legs low; it turns red on a foe (Settings · AIM HINT turns the red off) · A cut that starts where the last one finished flows on quicker · Every third cut is a finisher · Settings · CUT AIM: MOUSE lets a flick of the mouse just before you click aim the cut at any angle round the clock · Settings · SABER ASSIST (LOW by default, NORMAL, OFF): a foe near the crosshair turns your body a little toward it for that cut and the lunge goes for it; it never holds a lock or moves the view'],
       ['LMB ON A BROKEN GUARD', 'Saber finisher', 'A foe reeling with its guard broken shows a gold hilt over it: attack while it is up, square in front of you, and your form plays its finisher. Most foes die to it; a master duellist, a champion or a boss is floored and badly hurt. You still take half damage while it plays, and RMB, a dash or a Force power bails out of it'],
       ['FLOW', 'Perfect string', 'Land both links into the third cut in rhythm (one press each, late in the swing, no mashing) and the third cut is the perfect finisher: bigger, harder, more Focus', 1],
       ['HOLD RMB', 'Block', 'Soaks most of a blow; heavy hits drain stamina'],
@@ -213,8 +213,48 @@ function padTip(t, hero){
 function keycaps(keys){
   return keys.split(' ').map(k => (k === '/' || k === '+') ? '<span>' + k + '</span>' : '<kbd>' + k + '</kbd>').join('');
 }
+/* a row's detail note opens in a floating card beside its column (hover, keyboard focus or a tap), never inline,
+   so a long note can't stretch the column and push the other rows off the panel. The note reads as short points:
+   split on ' · ' (but not 'Settings · X', which names a setting) and at sentence ends */
+const notePoints = (n) => n.split(/(?<!Settings) · |(?<=[.!?])\s+(?=[A-Z])/).map(x => x.trim()).filter(Boolean);
+let tip = null, hoverRow = null, focusRow = null;
+function placeTip(){
+  const row = hoverRow || focusRow, note = row && row.querySelector('.ca small');
+  if (!note || !row.offsetParent){ if (tip) tip.classList.remove('on'); return; }
+  if (tip.dataset.for !== note.innerHTML){
+    const pts = notePoints(note.innerHTML);
+    tip.innerHTML = '<b>' + row.querySelector('.ca').firstChild.textContent + '</b>' +
+      (pts.length > 1 ? '<ul>' + pts.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p>' + pts[0] + '</p>');
+    tip.dataset.for = note.innerHTML;
+  }
+  tip.classList.add('on');
+  const col = row.closest('.cg').getBoundingClientRect(), r = row.getBoundingClientRect();
+  const W = innerWidth, H = innerHeight, gap = 10, tw = Math.min(380, W - 2 * gap);
+  tip.style.width = tw + 'px';
+  const th = tip.offsetHeight;
+  let x, y;
+  if (W - col.right - gap >= tw + gap) x = col.right + gap;          // beside the column: right if it fits,
+  else if (col.left - gap >= tw + gap) x = col.left - gap - tw;     // else left,
+  else { x = Math.min(Math.max(gap, r.left), W - tw - gap); y = r.bottom + 4; if (y + th > H - gap) y = r.top - th - 4; }   // else under the row
+  if (y === undefined) y = r.top - 6;
+  tip.style.left = Math.round(x) + 'px';
+  tip.style.top = Math.round(Math.max(gap, Math.min(y, H - th - gap))) + 'px';
+}
+function wireTip(el){
+  if (tip) return;
+  tip = document.createElement('div'); tip.id = 'ctltip'; tip.setAttribute('role', 'tooltip');
+  (document.getElementById('howto') || document.body).appendChild(tip);   // inside the overlay: closing it hides the card too
+  const rowOf = (t) => { const r = t && t.closest && t.closest('.cr'); return r && r.querySelector('.ca small') ? r : null; };
+  el.addEventListener('pointerover', (e) => { hoverRow = rowOf(e.target); placeTip(); });
+  el.addEventListener('pointerleave', () => { hoverRow = null; placeTip(); });
+  el.addEventListener('focusin', (e) => { focusRow = rowOf(e.target); placeTip(); });
+  el.addEventListener('focusout', () => { focusRow = null; placeTip(); });
+  document.addEventListener('scroll', () => { if (tip.classList.contains('on')) placeTip(); }, true);
+  addEventListener('resize', () => { if (tip.classList.contains('on')) placeTip(); });
+}
 export function renderControls(hero){
   const el = document.getElementById('ctl'); if (!el) return;
+  wireTip(el); hoverRow = focusRow = null; placeTip();
   const groups = device === 'pad' ? padGroups(hero) : CONTROLS[hero] || CONTROLS.jedi;
   // no spoilers: a row or tip about a form shows once the story has taught it (a row's 5th entry: any of these forms;
   // a tip's `forms`: all of them)

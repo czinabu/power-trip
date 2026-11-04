@@ -339,11 +339,20 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 /* basics only by default; detail notes open on hover / focus / tap, advanced moves behind SHOW ALL */
 .ctl:not(.all) .adv{display:none}
 .ctl .cr{cursor:default;outline:none}
-.ctl .cr .ca small{display:none!important}
-.ctl .cr:hover .ca small,.ctl .cr:focus .ca small{display:block!important}
+.ctl .cr .ca small{display:none!important}   /* the note is read into the floating card (#ctltip, ui/controls.js) */
+.ctl .cr:hover,.ctl .cr:focus{background:rgba(108,168,214,.06)}
 .ctl:not(.all) .adv{display:none!important}
 .ctl .cr:has(small):not(.adv) .ca::after{content:'  ⓘ';font-size:11px;color:var(--ink-dim)}
 .ctl .ca small{display:block;font:500 13px/1.35 var(--font-body);color:var(--ink-dim);margin-top:1px}
+#ctltip{position:fixed;z-index:30;display:none;box-sizing:border-box;padding:12px 14px 10px;pointer-events:none;
+  background:rgba(10,20,34,.97);border:1px solid var(--edge-lit);border-radius:var(--r-lg);box-shadow:0 10px 30px rgba(0,0,0,.55);
+  font:500 13px/1.4 var(--font-body);color:var(--ink-soft)}
+#ctltip.on{display:block}
+#ctltip b{display:block;margin-bottom:6px;font-size:14px;color:var(--ink)}
+#ctltip p{margin:0}
+#ctltip ul{margin:0;padding:0;list-style:none}
+#ctltip li{position:relative;padding-left:14px;margin:3px 0}
+#ctltip li::before{content:'◆';position:absolute;left:0;top:.1em;font-size:8px;color:var(--gold)}
 .ctl .tips{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 22px;margin:0;padding:0;list-style:none}
 .ctl .tips li{position:relative;padding-left:16px;font:500 14px/1.45 var(--font-body);line-height:1.4;color:var(--ink-soft)}
 .ctl .tips li::before{content:'◆';position:absolute;left:0;top:.05em;font-size:9px;color:var(--gold)}

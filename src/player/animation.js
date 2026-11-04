@@ -69,7 +69,6 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   // the face works with the fight: brows knit through a swing or a cast, jump on a hit; the jaw talks in a cutscene line
   express(player, dt, { effort: player.atkT > 0 || player.castT > 0 || player.palmT > 0 || player.judgeT > 0 ? 1 : 0,
     hurt: player.flinchT > 0 ? clamp(player.flinchT / (player.flinchMax || 0.3), 0, 1) : 0, talk: !!player.talking });
-  player.arcMesh.material.opacity = Math.max(0, player.arcMesh.material.opacity - dt*4);
 
   // (the saber hum is driven from audio/director.js)
 }

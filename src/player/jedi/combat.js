@@ -414,7 +414,6 @@ export function applySwingDamage(step, only){
       G.hitstop = Math.max(G.hitstop, 0.22);
       G.shake = Math.max(G.shake, 1.7);
       G.slowmo = Math.min(G.slowmo, 0.42); G.slowmoT = Math.max(G.slowmoT, 0.14);
-      player.arcMesh.scale.setScalar(1.6);
       const pp0 = playerPos(), ip = V3(pp0.x + fwd().x*1.6, 1.2, pp0.z + fwd().z*1.6);
       spawnGroundShock(V3(ip.x, 0.1, ip.z), st.blade, 5.5, 0.34, 0.6);
       spawnGroundShock(V3(ip.x, 0.1, ip.z), 0xffffff, 8, 0.5, 0.3);
@@ -425,16 +424,8 @@ export function applySwingDamage(step, only){
       spawnHitSpark(ip, 0xffffff, 2.0);
       screenFlash('radial-gradient(ellipse at center, rgba(180,90,255,.4), transparent 62%)', 0.7, 0.3);
       S.slam(ip); S.clash(ip, true);
-    } else { player.arcMesh.scale.setScalar(1); }
+    }
   }
-  // arc flash in the blade's color — leaned toward the side the cut travels (back strikes flash to the rear)
-  if (!fxPass) return;
-  const sw = player.swing;
-  const turn = sw && sw.pat ? Math.sign(sw.pat.yT - sw.pat.yF) : 0;
-  player.arcMesh.rotation.z = (sw && sw.back ? Math.PI : 0) + turn * 0.55;
-  player.arcMesh.material.opacity = sw && (sw.perfect || sw.finBeat) ? 1 : 0.7;   // a perfect string's finisher, and a finisher, burn brighter
-  if (sw && sw.perfect && sw.step === 2) player.arcMesh.scale.setScalar(Math.max(player.arcMesh.scale.x, 1.35));
-  player.arcMesh.material.color.setHex((isGunner() && player.weapon === 'darksaber') ? 0xc9a6ff : st.blade);
 }
 
 /* JAR'KAI'S FOLLOW-UP (jedi/bladehit.js sweepOffBlade): the off hand's blade strikes what it passed through, on the

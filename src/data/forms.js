@@ -77,7 +77,7 @@ export const FORM_PATH = [
   { form: 'staff',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // the saber staff, won off the academy's overseers
   { form: 'juyo',    chapter: 'chase',         level: 2, wave: 0, stage: 9 },   // Form VII, offered after the chase
   { form: 'vaapad',  chapter: 'chase',         level: 2, wave: 0, stage: 9 },
-  { form: 'jarkai',  chapter: 'chains',        level: 2, wave: 2, stage: 10 },  // Jar'Kai: the second saber, won in Act III
+  { form: 'jarkai',  chapter: 'chains', alt: 'spearhead', level: 2, wave: 2, stage: 11 },  // Jar'Kai: the second saber, won in Act III (alt: a Jedi guest in a Mando or trooper story, which skips the chains)
 ];
 // the run's Form VII choice locks the other for good: G.formFork holds the one kept
 export const forkClosed = (id, kept) => !!(FORMS[id] && FORMS[id].fork && kept && kept !== id);

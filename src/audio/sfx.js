@@ -169,7 +169,7 @@ export const S = {
   block: (pos, form) => SB.clash(pos, false, form),
   clash: (pos, big, form) => SB.clash(pos, big, form),
   // a PERFECT parry: a big clash that flares into a surge of the hum and a spitting shower, the perfect-parry reward on
-  // top (the sub shockwave and the crystal chime), and the score and ambience duck ~6 dB for half a second under it
+  // top (the sub shockwave), and the score and ambience duck ~6 dB for half a second under it
   parry: (pos, form) => {
     SB.clash(pos, true, form);
     SB.parryFlare(pos);

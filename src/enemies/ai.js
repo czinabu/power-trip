@@ -670,6 +670,8 @@ export function updateEnemies(dt){
         break;
     }
     if (e.dp && !e.dead) updateDuel(e, dt, dist);   // guard, posture, the guard arc (duel.js)
+    // VAAPAD's mark: the Shatterpoint it found glints violet on the foe until the strike comes (player/jedi/combat.js)
+    if (e.shatterUntil > G.gt && !e.dead && Math.random() < dt * 10) burst(V3(g.position.x + rand(-0.15, 0.15), g.position.y + 1.35 + rand(-0.2, 0.2), g.position.z + rand(-0.15, 0.15)), 0xd08bff, 1, 0.6, 0.4, 0.55);
     else { if (e.postBar) e.postBar.visible = false; if (e.formTag) e.formTag.visible = false; }  // the dead don't keep a posture bar (or a form tag) up through the ragdoll
     if (e.lungeLine && e.lungeLine.visible && !LUNGING[e.state]) dropLungeLine(e);   // knocked out of a lunge: the line goes
     // ranged-hit recoil — a quick backward flinch that reads as "I felt that"

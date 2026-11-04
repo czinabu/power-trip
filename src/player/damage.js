@@ -298,6 +298,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (hyper) dmg *= (1 - stance().heavyArmor);
   else if (player.atkT > 0 && !isGunner() && stance().atkDR) dmg *= (1 - stance().atkDR);
   if (!isGunner() && stance().dmgTaken) dmg *= stance().dmgTaken;   // FORM VII gives its defence away for its fury
+  if (!isGunner() && stance().furyTaken) dmg *= 1 + (player.fury || 0) * (stance().furyTaken - 1);   // FORM VII: the fuller the fury, the nearer the edge
   if (player.fin) dmg *= FINISHER.hurt;   // mid-FINISHER: you can still be hit, at half (data/finishers.js)
   if (player.cancelDR > 0) dmg *= 0.55;   // DJEM SO heavy cancel — soaks the blow during its committed recovery
   if (player.barrierT > 0){            // FORCE BARRIER soaks most of what gets through

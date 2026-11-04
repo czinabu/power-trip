@@ -100,7 +100,9 @@ export function tryAttack(flow = false){
   if (player.slideT > 0){ player.slideT = 0; if (!isGunner()) player.flip = null; }
   const mom = momentumStrike();
   // slightly longer arcs read as deliberate sword strokes rather than a twitchy flurry
-  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1)) * (PF && PF.dur || 1);
+  // JUYO's fury quickens the blade as well as sharpening it (STANCES.juyo furySpeed: at full fury, cuts take that much less time)
+  const quick = !isGunner() && st.furySpeed ? 1 - st.furySpeed * (player.fury || 0) : 1;
+  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1)) * (PF && PF.dur || 1) * quick;
   player.atkT = dur;
   // Jedi Academy style: the movement key picks the cut's direction, where you aim picks its height (cutaim.js)
   const cut = pickCut(step);
@@ -169,6 +171,16 @@ export function tryAttack(flow = false){
   if (aimed) player.swing.assist = aimed;
   const tgt = backStrike ? nearestEnemyInCone(CFG.player.comboRange, -0.35, true)
                          : aimed || nearestEnemyInCone(comboRange(st), 0.6);
+  // VAAPAD — THE SHATTERPOINT STRIKE: a cut at the foe whose attack it turned is one decisive lunge into the flaw it found,
+  // the world slowing round it (the hit itself lands ×2 and floors it: applySwingDamage)
+  if (tgt && !backStrike && !isGunner() && st.shatter && tgt.shatterUntil > G.gt && !ripNow){
+    lunge *= 1.6; player.swing.shatterCut = true;
+    G.slowmo = Math.min(G.slowmo, 0.45); G.slowmoT = Math.max(G.slowmoT, 0.22);
+    screenFlash('radial-gradient(ellipse at center, rgba(208,139,255,.18), rgba(120,40,200,.06) 35%, transparent 55%)', 0.45, 0.2);
+    const tp = tgt.group.position;
+    burst(V3(tp.x, 1.5, tp.z), 0xd08bff, 10, 4, 2, 0.8);
+    sfx(1900, 0.12, 'sine', 0.03, 600);
+  }
   if (tgt && !backStrike){
     TMP.subVectors(tgt.group.position, playerPos()); TMP.y = 0;
     const d = TMP.length();
@@ -187,6 +199,7 @@ export function tryAttack(flow = false){
     stepIntoCut(fwd(), 7 * (mom === 'polevault' ? lunge / 2.2 : lunge));   // step into the strike (a vault with no foe ahead to land on is a plain step)
   }
   if (spin) spinTravel(spin, dirKey);
+  else if (onslaught(st, dirKey, flow, ripNow, mom)){}   // JUYO: a forward link in rhythm breaks off the line, zig then zag
   else if (ang != null && !backStrike) cutFootwork(ang);
   // the blade's whoosh, voiced by form (a held cut keeps it back: it sounds when the charge resolves, jedi/weight.js)
   if (!player.swing.charging) S.swing(isGunner() ? 'dark' : G.stance);
@@ -223,6 +236,22 @@ function spinTravel(spin, dirKey){
 // drag in locomotion.js), but laid along the swing so the body drives through the strike with the lead foot
 // (locomotion.js moves it, anim/footing.js steps the feet). In the air it stays a shove.
 const GROUND_DRAG = 9;
+/* JUYO — THE ONSLAUGHT: W struck in rhythm, on the ground, drives the cut in on a slant, zig then zag, so the next one
+   comes from somewhere new. The fuller the fury, the further each break and the quicker the cut. (STANCES.juyo zigzag) */
+function onslaught(st, dirKey, flow, ripNow, mom){
+  const Z = !isGunner() && st.zigzag, sw = player.swing;
+  if (!Z || dirKey !== 'forward' || !flow || ripNow || mom || !player.grounded || !sw) return false;
+  const fury = player.fury || 0, side = player.zig = -(player.zig || 1), f = fwd(), r = rightV();
+  const reach = Z.reach * (1 + Z.furyReach * fury);
+  sw.travel = { x: (f.x * Z.fwd + r.x * side) * reach, z: (f.z * Z.fwd + r.z * side) * reach, done: 0 };
+  sw.dur *= 1 - Z.fast * fury; player.atkT = sw.dur;
+  sw.zig = side;
+  const pp = playerPos();
+  burst(V3(pp.x, 0.2, pp.z), 0xff3a3a, 5, 3, 1.2, 0.7);
+  if (fury > 0.5) floater(pp, 'ONSLAUGHT', '#ff5a3a');
+  tutEvent('onslaught', { fury });
+  return true;
+}
 // the Forward Stomp's foot comes down: a shock round it that shoves back and rocks the foes close by (not the one it answers)
 function stompShock(r){
   const pp = playerPos();
@@ -389,7 +418,15 @@ export function applySwingDamage(step, only){
       }
       // VAAPAD — SHATTERPOINT: the foe whose attack you parried takes the next cut ×2, and it floors it
       const shat = !!(st.shatter && e.shatterUntil > G.gt);
-      if (shat){ e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.1); tutEvent('shatter'); }
+      if (shat){
+        e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.16); tutEvent('shatter');
+        // the flaw gives: a violet crack of light out of the foe, a ring along the floor
+        const sp = e.group.position;
+        clashFlash(V3(sp.x, 1.4, sp.z), 0xd08bff, true);
+        clashSparks(V3(sp.x, 1.4, sp.z), 0xe6c2ff, 8, { dir: f, cone: 0.9 });
+        spawnGroundShock(V3(sp.x, 0.05, sp.z), 0xb04dff, 2.2, 0.35, 0.6);
+        G.shake = Math.max(G.shake, 0.7);
+      }
       damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
       foesHit++;
       trainForm(e.dead ? 'kill' : 'hit', { finisher, air: !player.grounded, backLine: backLineMul(st, e) > 1, heavy: !!e.t.heavy, blade: swordMul(st, e) > 1 });   // FORM MASTERY (game/upgrades.js)

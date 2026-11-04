@@ -130,23 +130,26 @@ export const STANCES = {
             forceSwing: 5,        // ROLE: each swing burns this much Force on top of its stamina (no Force: double the stamina)
             furyHit: 0.12,        // every cut that lands feeds fury (player/jedi/fury.js)…
             furyDmg: 1.35,        // …up to +35% saber damage at full
-            dmgTaken: 1.25,       // LORE: it opens the user up: blows land 25% harder
+            furySpeed: 0.2,       // …and quickens the blade: at full fury each cut takes 20% less time
+            dmgTaken: 1.1,        // LORE: it opens the user up: blows land 10% harder…
+            furyTaken: 1.3,       // …and the fuller the fury, the more open (×1.3 more at full: 43% in all) (player/damage.js)
+            zigzag: { reach: 1.1, fwd: 1.2, furyReach: 0.8, fast: 0.15 },   // THE ONSLAUGHT: W in rhythm breaks the cut in on a slant, zig then zag; further and quicker with fury (jedi/combat.js)
             deflectScatter: 0.12,
             gait: { amp: 1.15, lift: 1.15, bob: 0.6, lean: 1.3 },   // MOVEMENT: driving forward, never still
-            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg) · fast, savage strings · TAKES +25% damage' },
+            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg, quicker cuts) · W in rhythm: the Onslaught zig-zags in · TAKES more damage the fuller the fury' },
   /* FORM VII VAAPAD — Mace Windu's own Form VII: Juyo's ferocity let in and turned outward. It feeds on the opponent's
      aggression: every blow turned on its guard builds fury, a parry finds the attacker's SHATTERPOINT (the next cut on
      that foe lands double and floors it). Juyo and Vaapad fork. */
   vaapad: { name: 'VAAPAD — CONTROL', form: 'vaapad', formNo: 'VII', blade: 0xb04dff,
-            dmg: 1.6, heavyDmg: 1.4, speed: 0.72, knock: 1.0, stamina: 9, lunge: 1.25, move: 1.02, accel: 1.1, twist: 0.8, bladeLen: 1.0,
+            dmg: 1.4, heavyDmg: 1.25, speed: 0.72, knock: 1.0, stamina: 9, lunge: 1.25, move: 1.02, accel: 1.1, twist: 0.8, bladeLen: 1.0,
             radiusMult: 1.0, postureMul: 1.2, comboGap: 1.1, fovKick: 1, parryBonus: 0.08, blockStamMul: 0.7,
-            furyBlock: 0.18, furyParry: 0.35, furyHit: 0.04,   // ROLE: its fury comes from what it turns aside…
-            furyDmg: 1.4,         // …up to +40% saber damage at full
+            furyBlock: 0.25, furyParry: 0.45, furyHit: 0.04,   // ROLE: its fury comes from what it turns aside…
+            furyDmg: 1.5,         // …up to +50% saber damage at full
             shatter: 2.0,         // SHATTERPOINT: a parried attacker is marked; your next cut on it lands ×2 and floors it
-            dmgTaken: 1.1,        // walking the edge of the dark side: blows land 10% harder
+            furyTaken: 1.3,       // walking the edge of the dark side: the fuller the fury, the harder blows land (+30% at full)
             deflectScatter: 0.06,
             gait: { amp: 1.05, lift: 1.0, bob: 0.45, lean: 1.1 },   // MOVEMENT: poised, then explosive
-            syn: 'CONTROL · blocks and parries build fury (+40% dmg) · a parry finds the Shatterpoint: next cut ×2 · TAKES +10% damage' },
+            syn: 'CONTROL · blocks and parries build fury (+50% dmg) · a parry finds the Shatterpoint: next cut ×2, a strike through it · the fuller the fury, the harder you are hit' },
   /* THE SABER STAFF — not one of the seven forms but a weapon of its own (the Jedi Temple Guard, Maul): a long hilt
      held in both hands with a blade at each end (data/forms.js staff). A SPEED weapon: quick, flowing strings that wheel
      from one end to the other, so every cut sweeps the front with one blade and the back with the other (jedi/bladehit.js

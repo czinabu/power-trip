@@ -283,9 +283,11 @@ export const LESSONS = {
       steps: [
         { sec: 'JUYO', say: 'Juyo lets the fury in. Every cut that lands feeds it, and the fury makes the next one harder. It burns Force as it goes.',
           keys: '2 · LMB', do: 'In Juyo, cut down 5 targets', ev: 'kill', stance: 'juyo', need: 5, respawn: true, spawn: dummies(CROWD) },
+        { say: 'Never come at them the same way twice. Cut, then hold W and cut again in rhythm: the Onslaught breaks in on a slant, zig, then zag. The more fury, the further and faster.',
+          keys: 'LMB · W + LMB', do: 'In Juyo, land 3 Onslaught cuts', ev: 'onslaught', stance: 'juyo', need: 3, respawn: true, spawn: dummies(CROWD, { sparring: true }) },
         { sec: 'VAAPAD', loadout: ['shiicho', 'vaapad', null], say: 'Vaapad takes the fury from the one who attacks you. Your blocks and parries feed it.',
           keys: '2 · TAP RMB', do: 'In Vaapad, parry 2 strikes', ev: 'parry', stance: 'vaapad', need: 2, spawn: partner() },
-        { say: 'A parry in Vaapad finds the attacker\'s Shatterpoint. Your next cut on it lands double and floors it.',
+        { say: 'A parry in Vaapad finds the attacker\'s Shatterpoint. It glints on them: strike, and the blade drives into the flaw, lands double and floors them.',
           keys: 'TAP RMB · LMB', do: 'Parry, then strike the Shatterpoint', ev: 'shatter', stance: 'vaapad', need: 1, spawn: partner() },
       ] },
 

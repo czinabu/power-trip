@@ -13,6 +13,8 @@ import { puff, inkSprite, sparks } from '../fx/ink.js';
 import { FLAME } from '../player/mando/weapons.js';
 import { spawnPushWave, spawnGroundShock } from '../fx/vfx.js';
 import { palmPoints } from '../fx/palms.js';
+import { S } from '../audio/sfx.js';
+import { noteLightning } from '../audio/force.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 
@@ -43,6 +45,9 @@ const mateHands = (mate) => mate && mate.fistGlow && mate.fistGlow[0].material.o
 export function partnerPower(mate, k, color, r, hands, x, z){
   const seen = mate && mate.group.visible && mate.rig;
   const hs = hands > 1 ? ['L', 'R'] : ['L'];
+  // heard where they stand, placed in the world (your own powers play on the Force bus: audio/force.js)
+  const at = V3(x, 1.4, z);
+  if (k === 'push') S.push(at); else if (k === 'pull') S.pull(at); else if (k === 'repulse') S.repulse(at); else if (k === 'slam') S.slam(at);
   if (seen && (k === 'push' || k === 'pull')){
     const y = mate.group.rotation.y, dir = V3(Math.sin(y), 0, Math.cos(y));
     if (k === 'push'){ spawnPushWave(null, dir, color, 0.6, hs, mate); return; }
@@ -94,6 +99,7 @@ export function updatePartnerFx(st, dt, g, shown, mate){
   } else blade.visible = false;
   // the Force lightning
   const tg = live && live.jt ? live.jt : [];
+  if (tg.length) noteLightning(g.position);   // its held crackle, heard from where they stand (audio/force.js)
   while (bolts.length < tg.length) bolts.push(makeLine());
   const nb = Math.floor(G.gt / 0.055), roll = nb !== st.beat; st.beat = nb;
   bolts.forEach((l, i) => {

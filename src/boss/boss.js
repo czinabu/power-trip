@@ -463,7 +463,7 @@ export function updateBoss(dt){
         burst(V3(g.position.x, 1.8, g.position.z), 0x8a3aff, 16, 9, 6); spawnGroundShock(g.position.clone(), 0x8a3aff, 3, 0.4, 0.5);
         g.position.x = pp.x - tx * BOSS_CFG.blink.dist; g.position.z = pp.z - tz * BOSS_CFG.blink.dist;   // reappear right on top of you
         burst(V3(g.position.x, 1.8, g.position.z), 0x8a3aff, 18, 10, 6);
-        G.shake = Math.max(G.shake, 0.6); S.pull(); S.zap(g.position);
+        G.shake = Math.max(G.shake, 0.6); S.pull(g.position); S.zap(g.position);
       }
       if (shared.boss.st <= 0){
         g.userData.bodyMat.emissiveIntensity = 0;

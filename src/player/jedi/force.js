@@ -391,7 +391,7 @@ export function forceRepulse(){
   dustRing(pp, radius * 0.8);
   screenFlash('radial-gradient(ellipse at center, rgba(150,210,255,'+(up?0.55:0.4)+'), transparent 60%)', up ? 0.9 : 0.6, 0.32);
   G.shake = Math.max(G.shake, up ? 1.5 : 1.1); G.hitstop = Math.max(G.hitstop, 0.1);
-  S.slam(); S.boom(null, up ? 1.4 : 1); S.push();
+  S.repulse(null, up);
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
     TMP.subVectors(e.group.position, pp);
@@ -470,7 +470,7 @@ export function forceMend(){
   player.mendT = player.mendMax = MEND_CHANNEL;   // begin the channel — the heal lands when it completes
   const pp = playerPos();
   spawnGroundShock(pp.clone().setY(0.1), 0x6fd0ff, 2.4, 0.55, 0.5);   // a BLUE force ring blooms as you start
-  S.push(); sfx(240, 0.5, 'sine', 0.09, 760); sfx(360, 0.5, 'sine', 0.06, 1020);   // a rising channel hum (wind-up cue)
+  S.mend();   // the channel turns inward: a riser, a bowl, a heartbeat, and the world goes muffled (audio/force.js)
   floater(V3(pp.x, 1.0, pp.z), 'MENDING…', '#bfe8ff');
 }
 // the channel succeeded — knit the wound and erupt in green light
@@ -485,7 +485,8 @@ export function mendComplete(){
   sparks(V3(pp.x, pp.y + 1.2, pp.z), 0x7bffae, 10, 7, { dir: V3(0, 1, 0), cone: 0.8, life: 0.4, grav: -2 });
   screenFlash('radial-gradient(ellipse at center, rgba(80,255,140,.32), transparent 60%)', 0.5, 0.36);
   floater(V3(pp.x, 1.0, pp.z), '+' + healed, '#7bffae');
-  sfx(440, 0.35, 'sine', 0.13, 980); sfx(880, 0.3, 'sine', 0.08, 1500);   // a bright restorative chime
+  if (isGunner()){ sfx(440, 0.35, 'sine', 0.13, 980); sfx(880, 0.3, 'sine', 0.08, 1500); }   // the Mando's bacta: a bright restorative chime
+  else S.mendDone();   // the Jedi's Mend: a bowl and a choir bloom, and the world comes back in
 }
 
 /* FORCE JUDGEMENT — channel chain lightning through the front cone */
@@ -540,5 +541,5 @@ export function updateJudgement(dt){
     tpos.push(V3(end.x + side.x*rand(-1.2, 1.2), end.y + rand(-0.4, 0.5), end.z + side.z*rand(-1.2, 1.2)));
   }
   player.judgeTargets = tpos;
-  S.arc(tpos[0]);
+  S.arc(tpos[0], true);
 }

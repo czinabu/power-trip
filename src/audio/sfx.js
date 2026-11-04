@@ -9,6 +9,7 @@ import { MUSIC } from './music.js';
 import { AE, initEngine, play, tooSoon, duck, setBusVol } from './engine.js';
 import * as SB from './saber.js';
 import { FORM_SOUND, swing, formSwing } from './saber.js';
+import * as FX from './force.js';
 import { clamp, rand } from '../utils.js';
 import { shared, G, player, isGunner } from '../state.js';
 
@@ -189,39 +190,25 @@ export const S = {
     T({ pos, type: 'square', f: 300, f2: 170, g: 0.055, d: 0.12, filt: { type: 'lowpass', f: 1300 } });
     T({ pos, type: 'sine', f: 1250, fm: { r: 0.5, i: 1, i2: 0.05 }, g: 0.05, d: 0.14, verb: 0.15 });
   },
-  // ── the Force ──
-  push: () => {
-    N({ color: 'pink', g: 0.24, a: 0.03, d: 0.45, filt: { type: 'bandpass', f: 240, f2: 1500, q: 0.9, t: 0.14 }, verb: 0.3, pri: 2 });
-    T({ type: 'sine', f: 110, f2: 36, g: 0.22, a: 0.01, d: 0.4 });
-    T({ type: 'sine', f: 330, f2: 90, g: 0.05, a: 0.02, d: 0.35, vib: { r: 9, d: 40 } });
-  },
-  // a pull: the push run backwards — air drawn in, a low suck
-  pull: () => {
-    N({ color: 'pink', g: 0.2, a: 0.25, d: 0.12, filt: { type: 'bandpass', f: 1600, f2: 260, q: 0.9 }, verb: 0.3, pri: 2 });
-    T({ type: 'sine', f: 45, f2: 120, g: 0.18, a: 0.2, d: 0.15 });
-  },
-  // the barrier snapping up: a bright shimmering chord over a hum
-  barrier: () => {
-    for (const [f, at] of [[523, 0], [784, 0.03], [1046, 0.06]]) T({ type: 'sine', f, at, fm: { r: 3.01, i: 0.4, i2: 0.02 }, g: 0.04, a: 0.02, d: 0.6, verb: 0.45 });
-    T({ type: 'sawtooth', f: 110, g: 0.05, a: 0.05, d: 0.5, filt: { type: 'lowpass', f: 600 }, vib: { r: 7, d: 25 } });
-  },
-  // one crack of chained lightning landing (Force Judgement's ticks)
-  arc: (pos) => {
-    if (tooSoon('arc', 0.07)) return;
-    for (let i = 0; i < 3; i++) N({ pos, at: i * 0.02, g: 0.06, d: 0.035, filt: { type: 'highpass', f: rand(2000, 3800) }, drive: 0.8 });
-    T({ pos, type: 'sawtooth', f: 70, g: 0.035, d: 0.1, vib: { r: 31, d: 600 }, drive: 0.5 });
-  },
+  // ── the Force ── (layered: audio/force.js). pos = a foe's or a partner's power, placed in the world; none = your own
+  push: (pos) => FX.push(pos),
+  pull: (pos) => FX.pull(pos),
+  // the 360° blast: the push all round you, with an explosion's roar under it
+  repulse: (pos, big) => { FX.repulse(pos, big); boom(pos, big ? 1.1 : 0.75); },
+  barrier: () => FX.barrier(),
+  // one strike of chained lightning landing (Force Judgement's ticks; self = yours)
+  arc: (pos, self) => { if (!tooSoon(self ? 'arc' : 'farc', 0.07)) FX.arc(pos, self); },
   slam: (pos) => {
     T({ pos, type: 'sine', f: 72, f2: 22, g: 0.36, d: 0.7, pri: 2 });
     N({ pos, color: 'brown', g: 0.38, d: 0.7, filt: { type: 'lowpass', f: 1300, f2: 80 }, drive: 0.4, verb: 0.4 });
     N({ pos, g: 0.1, at: 0.02, d: 0.35, filt: { type: 'bandpass', f: 700, q: 1 } });   // stone grit
     duck(0.4, 0.15);
   },
-  // Force lightning / electric zaps: a run of crackling snaps over a buzzing drone
-  zap: (pos) => {
-    for (let i = 0; i < 7; i++) N({ pos, at: i * 0.028 + rand(0, 0.015), g: 0.07, d: 0.04, filt: { type: 'highpass', f: rand(1800, 3500) }, drive: 0.8 });
-    T({ pos, type: 'sawtooth', f: 62, g: 0.06, d: 0.26, vib: { r: 31, d: 700 }, drive: 0.6, filt: { type: 'lowpass', f: 2400 } });
-  },
+  // Force lightning / electric zaps: the ignition spark, the fry and the tear, stuttering through the tremolo
+  zap: (pos) => FX.zap(pos),
+  // Force Mend: the channel turning inward, and the bloom when it lands
+  mend: () => FX.mend(),
+  mendDone: () => FX.mendDone(),
   // ── movement ──
   dash: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.1, a: 0.02, d: 0.17, filt: { type: 'bandpass', f: 700, f2: 2300, q: 1.4 } }); },
   jump: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.06, a: 0.015, d: 0.12, filt: { type: 'bandpass', f: 500, f2: 1400, q: 1.2 } }); },

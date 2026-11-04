@@ -56,6 +56,8 @@ toggle(lp2, 'boost', on => { G.hero = 'mando'; player.boosting = on; });
 toggle(lp2, 'flamethrower', on => { G.hero = 'mando'; player.flaming = on; });
 toggle(lp2, 'low health', on => { player.hp = on ? 12 : 100; });
 toggle(lp2, 'paused (muffle)', on => { G.paused = on; });
+toggle(lp2, 'Niman (Force +3 dB, longer tail)', on => { G.hero = 'jedi'; G.stance = on ? 'niman' : 'ataru'; });
+toggle(lp2, 'channel Judgement (held lightning)', on => { G.hero = 'jedi'; player.judgeT = on ? 999 : 0; });
 
 // ── one-shots ──
 const pos = section('Play one-shots from');
@@ -69,7 +71,13 @@ const groups = {
                  ['deflect', () => S.deflect(here())], ['block', () => S.block(here())], ['parry', () => S.parry(here())], ['riposte', () => S.riposte()], ['heavy', () => S.heavy(here())]],
   'Blasters': [['blaster', () => S.blaster()], ['dual blasters', () => S.blasterDual()], ['disruptor', () => S.disruptor()], ['enemy shot', () => S.enemyShot(here())], ['enemy heavy shot', () => S.enemyShot(here(), true)],
                ['near miss', () => S.whiz(here())], ['bolt hits wall', () => S.boltImpact(here())], ['bolt hits foe', () => S.blastHit(here(), 1)], ['shield catch', () => S.shieldHit(here())]],
-  'The Force': [['push', () => S.push()], ['pull', () => S.pull()], ['slam', () => S.slam(here())], ['barrier', () => S.barrier()], ['lightning', () => S.zap(here())], ['judgement arc', () => S.arc(here())], ['stun', () => S.stun(here())]],
+  // (yours: on the Force bus, louder and wetter with 'Niman' on; a foe's: placed by the left / centre / right buttons)
+  'The Force': [['push', () => S.push()], ['pull', () => S.pull()], ['repulse', () => S.repulse()], ['repulse (final rank)', () => S.repulse(null, true)], ['barrier', () => S.barrier()],
+                ['lightning cast', () => S.zap()], ['judgement arc', () => S.arc(here() || V3(0, 1.4, -4), true)],
+                ['mend (channel + bloom)', () => { player.mendT = 0.7; S.mend(); setTimeout(() => { player.mendT = 0; S.mendDone(); }, 700); }],
+                ['slam', () => S.slam(here())], ['stun', () => S.stun(here())]],
+  "A foe's Force": [['push', () => S.push(here() || V3(0, 1.4, -4))], ['pull', () => S.pull(here() || V3(0, 1.4, -4))], ['repulse', () => S.repulse(here() || V3(0, 1.4, -4))],
+                    ['lightning', () => S.zap(here() || V3(0, 1.4, -4))], ['arc', () => S.arc(here() || V3(0, 1.4, -4))]],
   'Bodies': [['punch', () => S.punch(here(), 1)], ['kill', () => S.kill(here())], ['kill (heavy)', () => S.kill(here(), true)], ['hurt', () => S.hurt()],
              ['jump', () => S.jump()], ['dash', () => S.dash()], ['land soft', () => S.land(0.1)], ['land hard', () => S.land(1)]],
   'Enemies': [['windup', () => S.windup(here())], ['windup (brute)', () => S.windup(here(), true)], ['weapon whoosh', () => S.whoosh(here())], ['roar', () => S.roar(here())]],

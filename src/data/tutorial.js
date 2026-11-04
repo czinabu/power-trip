@@ -110,7 +110,7 @@ export const LESSONS = {
         { say: 'From this height a fall breaks the careless. Step off, and roll as you meet the ground.',
           keys: 'SHIFT', do: 'Drop off the sheer north side, and press SHIFT just before you land', ev: 'roll', need: 1, mark: [-17.4, -11] },
         { say: 'A wall is a path for those who move fast enough. Run along the long wall.',
-          keys: 'W + SPACE', do: 'Run at the east wall, jump alongside it and hold W', ev: 'wallrun', need: 2, mark: [12.2, 7.5] },
+          keys: 'W + SPACE', do: 'Run at the east wall and jump or flip onto it, holding W', ev: 'wallrun', need: 2, mark: [12.2, 7.5] },
         { sec: 'THE GAUNTLET', say: 'Now all of it, without stopping. Under, over, up, down, along the wall, and back to me.',
           course: [
             { at: [-8, 11], r: 1.6, slide: true, keys: 'W · Z', do: 'Sprint west and Force-slide under the bar', hint: 'SLIDE UNDER IT' },

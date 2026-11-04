@@ -3,14 +3,14 @@
 //   ignite / retract   the snap-hiss: a crack, the blade running up (or sucking back) through a filter that flares open
 //                      (full: the showpiece version, for the ignite / retract key and a draw from the belt)
 //   swing              the "vwoom": the hum bending up through the arc, a doppler pass, moving air; every stroke different
-//   clash              blade on blade: inharmonic FM ring, a crack, the electric bite of the bind and its spitting crackle
+//   clash              blade on blade, in four layers: a crack, a sub thump, a plasma sizzle and a hum tail, glued on one bus
 //   burn               blade through a body: a scorching sear over a dull thump
 //   wall               blade dragged through stone or metal: a sizzling scrape that spits sparks
-//   deflect            a bolt batted away: the bolt's zing turned round, a ring, a spark of its energy
+//   deflect            a bolt batted away, in four layers: a burst, a falling twang, a hiss and the bolt whizzing off
 // The held hum (the loop that bends with the blade's real tip speed) lives in director.js and uses HUM_PITCH below.
 
-import { play, tooSoon } from './engine.js';
-import { G, isGunner } from '../state.js';
+import { play, tooSoon, duck, place } from './engine.js';
+import { G, isGunner, shared } from '../state.js';
 import { rand } from '../utils.js';
 
 const N = o => play(Object.assign({ src: 'noise' }, o));
@@ -22,7 +22,7 @@ export const HUM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.
 /* what every lit blade is doing this frame, filled in by fx/trail.js (which already follows every blade for its streak)
    and read by director.js: tip speeds (m/s against the owner's body) of the hero's blade, the saber staff's far end and
    the Darksaber in hand, and every other lit blade (its tip in the world, speed, dark, thrown) */
-export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null };   // lock: the hero's saber lock, set by enemies/duel.js
+export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null, hduck: -1 };   // lock: the hero's saber lock, set by enemies/duel.js; hduck: when a deflect last dipped the hum (audio time)
 
 /* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
    e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
@@ -179,30 +179,70 @@ export function burn(pos, pw){
   crackle(pos, 2, 0.16, 0.03);
 }
 
-/* BLADE ON BLADE — "KCHHH-ZZZing!": a heavy, explosive strike. A deep punchy thud and a violent high-voltage pop land
-   together, a gritty "kchhh" tears off them, then as the blades part a bright, ringing harmonic resonance sings out
-   (a super-heated sword struck: whole-number partials through a resonant band sweeping up, never a clanking bell) and
-   dissolves into a brief crackling static hiss. Voiced by form: FORM_SOUND ring = how high it sings, damp = how long
-   (Soresu soaks a blow dead, Djem So's rings on); a big hit (a parry, a bind) is heavier all through. */
+/* BLADE ON BLADE — a heavy, explosive strike built the way a film clash is: FOUR LAYERS on one timeline (0 to ~1.5 s),
+   all routed into the clash bus (engine.js), whose glue compressor squeezes them into one object.
+     L1 TRANSIENT (0 s)      the crack: the instant the two plasma fields meet. A driven, brick-walled snap of noise and
+                             an electric click, all in the 2–5 kHz bite that cuts straight through the score.
+     L3 SUB-BASS  (0 s)      the weight: a 50–80 Hz sine drop landing on the exact same frame as the crack, peaking at
+                             once and dying fast so it never muddies the mix (with a knock an octave up for laptops).
+     L2 SIZZLE    (+0.05 s)  the plasma fighting: high-passed noise chopped by a fast, uneven tremolo and a band that
+                             wanders, so the crack melts straight into a spitting hiss, then fades slowly out.
+     L4 HUM TAIL  (+0.03 s)  the power connection after it: two detuned saws drifting out of phase in the 150–300 Hz
+                             low mids, kept centred, on a slow release.
+   Between L1 and L4 the struck blade still sings (the form's ring: FORM_SOUND ring = how high, damp = how long; Soresu
+   soaks a blow dead, Djem So's rings on). Each clash rolls its own pitch, level and a slight pan drift (the blades
+   sliding past each other), so a fast duel never plays the same clash twice. A big hit (a parry, a bind) is heavier
+   all through and holds its tail longer. */
 export function clash(pos, big, form){
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
-  const k = big ? 1.35 : 1, v = FORM_SOUND[form] || FORM_SOUND.niman, r = v.ring * rand(0.95, 1.05), dm = v.damp;
-  // the thud: weight under the blow
-  T({ pos, type: 'sine', f: 120 * rand(0.92, 1.08), f2: 40, g: 0.2 * k, a: 0.002, d: 0.17 * k, pri: 2 });
-  N({ pos, color: 'brown', g: 0.13 * k, a: 0.001, d: 0.09, filt: { type: 'lowpass', f: 520 } });
-  // the pop: a violent electrical discharge, and the "kchhh" tearing off it
-  N({ pos, g: 0.16 * k, a: 0.0008, d: 0.035, filt: { type: 'bandpass', f: 2600 * r, q: 0.6 }, drive: 0.95, pri: 2 });
-  N({ pos, g: 0.075 * k, a: 0.002, d: 0.13 * k, rate: rand(0.5, 0.75), filt: { type: 'bandpass', f: 4200 * r, f2: 1800, q: 0.7 }, drive: 0.85 });
-  if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one ring between them
-  // "ZZZing": the blades parting. A buzzing saw an octave down gives it the electric edge; over it the struck blade sings
+  const k = (big ? 1.3 : 1) * rand(0.86, 1.06), v = FORM_SOUND[form] || FORM_SOUND.niman, dm = v.damp;
+  const r = v.ring * rand(0.94, 1.06), pt = rand(0.92, 1.08);           // this clash's tuning and pitch
+  const drift = (Math.random() < 0.5 ? -1 : 1) * rand(0.08, 0.2);       // which way the blades slide apart
+  const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  const CN = o => C(Object.assign({ src: 'noise' }, o));
+  // the score steps aside for an instant so the crack lands on top of it (a flurry only ducks once)
+  if (!tooSoon('clashduck', 0.12)) duck(big ? 0.3 : 0.16, big ? 0.08 : 0.03);
+
+  // L1 · the transient: a brick-walled snap (hard-driven, so its peak is flat and loud) in the high mids, and a click
+  CN({ g: 0.17 * k, a: 0.0006, d: 0.03, filt: { type: 'bandpass', f: 3200 * r, q: 0.7 }, drive: 1, pri: 2 });
+  CN({ g: 0.09 * k, a: 0.0005, d: 0.012, filt: { type: 'highpass', f: 1800 }, drive: 1, pri: 2 });
+  C({ type: 'square', f: 2600 * pt, f2: 700, g: 0.035 * k, a: 0.0005, d: 0.018, filt: { type: 'lowpass', f: 7000 } });
+  // the "kchhh" tearing off the crack
+  CN({ g: 0.07 * k, a: 0.002, d: 0.11 * k, rate: rand(0.5, 0.75), filt: { type: 'bandpass', f: 4200 * r, f2: 1800, q: 0.7 }, drive: 0.85 });
+
+  // L3 · the sub-bass: lands with the crack, peaks at once and drops away (kept centred, like any low end)
+  const sub = rand(62, 80) * (v.thump ? 0.88 : 1);
+  C({ type: 'sine', f: sub * 1.6, f2: sub * 0.6, ft: 0.12, g: 0.24 * k, a: 0.0015, d: (big ? 0.26 : 0.18) * (v.thump ? 1.2 : 1), panK: 0.25, pri: 2 });
+  C({ type: 'sine', f: sub * 2.2, f2: sub * 1.1, g: 0.08 * k, a: 0.0015, d: 0.09, panK: 0.4 });   // the knock a small speaker can carry
+  CN({ color: 'brown', g: 0.12 * k, a: 0.001, d: 0.08, filt: { type: 'lowpass', f: 480 }, panK: 0.4 });
+
+  const flurry = tooSoon('clashring', 0.03);   // a flurry of blocks in one frame: one ring and one tail between them
+  if (flurry) return;
+
+  // L2 · the plasma sizzle: 0.05 s after the crack, high-passed hiss chopped by a fast uneven tremolo, its band
+  // wandering down as it fades; a second, rougher strand on another rate keeps it chaotic rather than a steady buzz
+  const sz = (big ? 0.85 : 0.55) * dm;
+  CN({ at: 0.05, g: 0.075 * k, a: 0.006, hold: 0.04, d: sz, rate: rand(0.9, 1.15), trem: { r: rand(19, 31), d: 0.85, type: 'triangle' },
+       filt: { type: 'bandpass', f: rand(5200, 6400) * r, f2: 2600, q: 0.9, t: sz }, drive: 0.35, pdrift: drift, verb: 0.15, pri: 1 });
+  CN({ at: 0.055, g: 0.04 * k, a: 0.01, d: sz * 0.7, rate: rand(0.6, 0.8), trem: { r: rand(37, 53), d: 0.9, type: 'square' },
+       filt: { type: 'highpass', f: 3800 }, pdrift: drift * 1.3, pri: 0 });
+
+  // the struck blade singing as the blades part: the form's ring, with a buzzing saw an octave down for its edge
   const f = rand(560, 640) * r, at = 0.03, ring = 0.34 * dm * (big ? 1.25 : 1);
-  T({ pos, at, type: 'sawtooth', f: f * 0.5, f2: f * 0.42, g: 0.04 * k, a: 0.004, d: ring * 0.6, fm: { r: 3, i: 1.2, i2: 0.1 },
-      filt: { type: 'bandpass', f: 1600, f2: 3000, q: 1.6 }, drive: 0.5 });
-  T({ pos, at, type: 'sawtooth', f, f2: f * 1.04, g: 0.045 * k, a: 0.006, d: ring, vib: { r: rand(24, 32), d: 22 },
-      filt: { type: 'bandpass', f: 2400 * r, f2: 5200 * r, q: 6, t: ring * 0.5 }, verb: 0.22, pri: 2 });
-  T({ pos, at, type: 'sine', f: f * 4, g: 0.022 * k, a: 0.004, d: ring * 0.7, vib: { r: 29, d: 18 }, verb: 0.2 });
-  // ...dissolving into static
-  N({ pos, at: 0.07, g: 0.04 * k, a: 0.02, d: 0.28 * dm, filt: { type: 'highpass', f: 4800 }, drive: 0.4, pri: 0 });
+  C({ at, type: 'sawtooth', f: f * 0.5, f2: f * 0.42, g: 0.035 * k, a: 0.004, d: ring * 0.6, fm: { r: 3, i: 1.2, i2: 0.1 },
+      filt: { type: 'bandpass', f: 1600, f2: 3000, q: 1.6 }, drive: 0.5, pdrift: drift * 0.6 });
+  C({ at, type: 'sawtooth', f, f2: f * 1.04, g: 0.04 * k, a: 0.006, d: ring, vib: { r: rand(24, 32), d: 22 },
+      filt: { type: 'bandpass', f: 2400 * r, f2: 5200 * r, q: 6, t: ring * 0.5 }, verb: 0.22, pdrift: drift * 0.6, pri: 2 });
+  C({ at, type: 'sine', f: f * 4, g: 0.018 * k, a: 0.004, d: ring * 0.7, vib: { r: 29, d: 18 }, verb: 0.2 });
+
+  // L4 · the hum tail: two saws a few cents apart beating against each other, low-passed into the 150–300 Hz low mids,
+  // centred, swelling in under the ring and letting go slowly. A quick run of blocks shares one tail.
+  if (!tooSoon('clashtail', 0.22)){
+    const hp = (HUM_PITCH[form] || 1) * pt, tl = (big ? 1.3 : 0.85) * Math.min(1.25, dm);
+    for (const [det, gg] of [[9, 0.05], [-12, 0.034]])
+      C({ at: 0.03, type: 'sawtooth', f: 180 * hp, f2: 168 * hp, ft: tl, g: gg * k, a: 0.05, hold: 0.06, d: tl, det, vib: { r: rand(3, 5), d: 9 },
+          filt: { type: 'lowpass', f: 900, f2: 300, t: tl }, panK: 0.2, verb: 0.12, pri: 0 });
+  }
   crackle(pos, big ? 7 : 4, 0.32 * dm, 0.04 * k, 0.06);
 }
 
@@ -218,21 +258,46 @@ export function wall(pos, first, dark){
   crackle(pos, 2, 0.12, 0.025);
 }
 
-/* A BOLT DEFLECTED — "PZINGTT!" / "KRYZZ-ZING!": light, ultra-fast and percussive. A sharp, instantaneous electrical
-   whip-crack and a high metallic ping as the super-heated bolt is flung off the blade's field, a ricochet zing tearing
-   away, and a tiny electrical sizzle at the tail. All over in a fifth of a second. */
+/* A BOLT DEFLECTED — a hit-and-ping in two phases (the impact, then the bolt flung away), four layers on a ~1 s
+   timeline, glued on the clash bus (engine.js) with the blade clashes:
+     L1 INCINERATION BURST (0 s)       the bolt slamming into the blade: a gated, hard-saturated pop with a narrow
+                                       1–3 kHz bite, and a whip-crack click on top. Instant, and gone in ~30 ms.
+     L3 THERMAL HISS       (0 s)       the bolt's steam: a very short burst of noise with everything under 4 kHz cut,
+                                       bridging the impact into the redirection.
+     L2 THE TWANG          (+0.03 s)   the blade's field throwing it: a resonant, springy tone whose pitch falls
+                                       sharply from high to low in a tenth of a second (the "pew"), the beat after
+                                       the impact so you hear the hit first and the redirect second.
+     L4 THE WHIZ-BY        (+0.05 s)   the bolt flying off: a chorus of detuned tones dropping in pitch (doppler),
+                                       panning fast across the stereo field away from where it hit while its highs
+                                       roll off and its level falls away over about a second.
+   And the hero's own saber hum dips ~3 dB for an instant (BLADE_AUDIO.hduck, read by director.js) so the deflect
+   punches out of it. Every deflect rolls its own pitch, level and flight. */
 export function deflect(pos){
-  const b = rand(0.92, 1.1);
-  // the whip-crack: a hard snap of driven noise and a click
-  N({ pos, g: 0.17, a: 0.0006, d: 0.018, filt: { type: 'highpass', f: 2600 }, drive: 0.95, pri: 2 });
-  T({ pos, type: 'square', f: 3200 * b, f2: 900, g: 0.04, a: 0.0006, d: 0.02, filt: { type: 'lowpass', f: 9000 } });
-  // the ping: a bright, very short harmonic tone (high, clean and gone at once; no bell body under it)
-  T({ pos, type: 'sine', f: 3900 * b, f2: 3600 * b, g: 0.05, a: 0.0015, d: 0.075, fm: { r: 2, i: 0.5, i2: 0.02 }, verb: 0.15, pri: 2 });
-  // the zing: the bolt torn round and flung off, falling fast
-  T({ pos, type: 'sawtooth', f: 4600 * b, f2: 1300 * b, ft: 0.07, g: 0.035, a: 0.002, d: 0.09, filt: { type: 'bandpass', f: 4200, f2: 1600, q: 3.5 } });
-  // the tiny sizzle at the tail
-  N({ pos, at: 0.035, g: 0.022, a: 0.01, d: 0.12, filt: { type: 'bandpass', f: 6500, f2: 3500, q: 1.2 }, drive: 0.4, pri: 0 });
-  crackle(pos, 2, 0.1, 0.022, 0.04);
+  const b = rand(0.9, 1.1), k = rand(0.86, 1.06);
+  const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  const CN = o => C(Object.assign({ src: 'noise' }, o));
+  BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0;
+  // L1 · the burst: gated (instant on, hard cut), saturated, a narrow band in the 1–3 kHz bite; the whip-crack on top
+  CN({ g: 0.16 * k, a: 0.0005, hold: 0.012, d: 0.016, filt: { type: 'bandpass', f: rand(1700, 2600), q: 2.2 }, drive: 1, pri: 2 });
+  CN({ g: 0.11 * k, a: 0.0005, d: 0.014, filt: { type: 'highpass', f: 2600 }, drive: 0.95, pri: 2 });
+  C({ type: 'square', f: 3200 * b, f2: 900, g: 0.035 * k, a: 0.0006, d: 0.02, filt: { type: 'lowpass', f: 9000 } });
+  C({ type: 'sine', f: 190 * b, f2: 70, g: 0.08 * k, a: 0.001, d: 0.06, panK: 0.4 });   // a little body under the pop
+  // L3 · the thermal hiss: everything below 4 kHz cut, short, a bridge from the hit into the twang
+  CN({ at: 0.004, g: 0.06 * k, a: 0.003, d: 0.075, rate: rand(0.9, 1.2), filt: { type: 'highpass', f: rand(4200, 5200), q: 0.9 }, drive: 0.3, pri: 1 });
+  // L2 · the twang: a sprung cable struck and bent down. A clean tone and a metallic FM partner both falling fast
+  const tw = rand(0.1, 0.14);
+  C({ at: 0.03, type: 'sine', f: 4200 * b, f2: 520 * b, ft: tw, g: 0.06 * k, a: 0.001, d: tw * 1.4, fm: { r: 1.5, i: 0.6, i2: 0.05 }, verb: 0.12, pri: 2 });
+  C({ at: 0.032, type: 'sawtooth', f: 2900 * b, f2: 360 * b, ft: tw * 1.1, g: 0.026 * k, a: 0.001, d: tw * 1.2,
+      filt: { type: 'bandpass', f: 3600, f2: 900, q: 5, t: tw }, pri: 1 });
+  if (tooSoon('deflwhiz', 0.08)) return;   // a volley of deflects: one bolt whizzes off at a time
+  // L4 · the whiz-by: off the side it hit (or a random side if dead ahead), across the stereo field and away
+  const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
+  const fly = rand(0.7, 1), drift = -side * rand(0.9, 1.3) * (Math.random() < 0.35 ? -1 : 1);   // mostly back across you
+  for (const [det, gg] of [[0, 0.03], [14, 0.022], [-17, 0.018]])
+    C({ at: 0.05, type: 'sine', f: 1900 * b, f2: 820 * b, ft: fly, g: gg * k, a: 0.035, d: fly, det, vib: { r: rand(5, 8), d: 12 },
+        filt: { type: 'lowpass', f: 9000, f2: 900, t: fly }, pdrift: drift, verb: 0.15, pri: 0 });
+  CN({ at: 0.05, color: 'pink', g: 0.03 * k, a: 0.03, d: fly * 0.6, filt: { type: 'bandpass', f: 5200, f2: 1400, q: 1.4, t: fly * 0.6 }, pdrift: drift, pri: 0 });
+  crackle(pos, 2, 0.1, 0.02, 0.04);
 }
 
 /* BLADE LOCK — "KRRRZZZZ-SZS-SNAP!": the held bind itself is a loop in director.js (LOCK_GRIND there), fed by
@@ -257,4 +322,33 @@ export function parryFlare(pos){
       filt: { type: 'lowpass', f: 900, f2: 4200, t: 0.15 }, drive: 0.25, verb: 0.35 });
   N({ pos, color: 'pink', g: 0.05, a: 0.02, d: 0.55, filt: { type: 'bandpass', f: 2200, f2: 6000, q: 1 }, verb: 0.3 });
   crackle(pos, 6, 0.6, 0.04, 0.08);
+}
+
+/* THE PERFECT-PARRY REWARD — three layers stacked on the exact frame of a perfect parry, over its clash or deflect
+   (sfx.js parry / boltParry), so you hear you hit the window without looking for a label:
+     L6 THE IMPLOSION (-eta → 0 s)  parryRise: the field snatching the bolt's energy before it throws it back. A
+                                    reversed sweep (suction rising in pitch and level) that ends exactly on impact.
+                                    Only a bolt can have it, since only a bolt's arrival is known ahead
+                                    (enemies/bolts.js starts it when the parry window will still be open on arrival).
+     L7 THE SHOCKWAVE (0 s)         parryChime: a ~60 Hz sub punch with its attack pushed hard, gated off fast.
+     L5 THE CHIME     (0 s)         parryChime: a crystalline ring band-locked at 6–8 kHz, high above the combat's
+                                    mid-range noise, with a long clean reverb tail (~2.5 s).
+   The score and ambience duck ~6 dB for half a second with it (sfx.js), leaving the chime ringing alone. */
+export function parryRise(pos, eta){
+  const d = Math.max(0.05, Math.min(0.22, eta)), C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  // the suck-back: noise swelling up through a rising band, and a low tone climbing into the hit; cut off dead at 0
+  C({ src: 'noise', color: 'pink', g: 0.07, a: d, d: 0.008, filt: { type: 'bandpass', f: 500, f2: 5200, q: 1.6, t: d }, pri: 2 });
+  C({ type: 'sine', f: 45, f2: 140, ft: d, g: 0.11, a: d, d: 0.01, panK: 0.3, pri: 2 });
+  C({ type: 'sawtooth', f: 160, f2: 900, ft: d, g: 0.025, a: d, d: 0.01, filt: { type: 'lowpass', f: 600, f2: 4000, t: d } });
+}
+export function parryChime(pos){
+  const C = o => play(Object.assign({ pos, bus: 'clash' }, o)), c = rand(0.97, 1.03);
+  // L7 · the shockwave: a sub punch, attack pushed hard (held at peak a beat), then gated off fast
+  C({ type: 'sine', f: 120 * c, f2: 52, ft: 0.06, g: 0.34, a: 0.0008, hold: 0.025, d: 0.1, panK: 0, pri: 2 });
+  C({ src: 'noise', color: 'brown', g: 0.16, a: 0.0008, hold: 0.01, d: 0.05, filt: { type: 'lowpass', f: 260 }, panK: 0 });
+  // L5 · the chime: a struck crystal. Three close partials in the 6–8 kHz band (beating gently against each other),
+  // a bright FM strike for the attack, and a long send into the room so it rings on after the hit has gone
+  for (const [f, g, d] of [[6400, 0.03, 2.4], [7060, 0.024, 2.0], [7880, 0.016, 1.5]])
+    C({ type: 'sine', f: f * c, g, a: 0.002, d, filt: { type: 'bandpass', f: 7000, q: 2 }, verb: 0.6, jit: 0.004, pri: 2 });
+  C({ type: 'sine', f: 6800 * c, g: 0.03, a: 0.001, d: 0.25, fm: { r: 1.41, i: 1.4, i2: 0.05 }, filt: { type: 'bandpass', f: 7000, q: 1.5 }, verb: 0.5 });
 }

@@ -178,6 +178,12 @@ export function updateBolts(dt){
       const blocking = near && facing && player.blockHeld && !airGuardLost() && player.stam > 0 && (!isGunner() || player.weapon === 'darksaber');
       // a certain catch is about to land: let the blade start its flourish early (jedi/combat.js anticipateDeflect)
       if (!b.anticip && near && facing && d > 2.6 && d < 2.6 + b.speed * 0.14){ b.anticip = true; anticipateDeflect(b.mesh.position, (d - 2.5) / b.speed); }
+      // a perfect parry is about to land (the window will still be open when it arrives): the reward's implosion rises
+      // into the hit so it peaks on the exact frame (audio/saber.js parryRise)
+      if (!b.rise && near && facing && airOk && d > 2.6 && d < 2.6 + b.speed * 0.2){
+        const eta = (d - 2.6) / b.speed;
+        if (eta > 0.04 && (player.parryT >= eta || (G.hero === 'mando' && player.beskarT >= eta))){ b.rise = true; S.parryRise(b.mesh.position, eta); }
+      }
       if (d < abil('barrier').radius && near && player.barrierT > 0){
         // FORCE BARRIER auto-deflects bolts from any angle back into the crowd — no aim, no timing
         b.friendly = true; b.speed *= 1.3; b.dmg = 20;
@@ -204,7 +210,7 @@ export function updateBolts(dt){
           G.shake = Math.max(G.shake, 0.15);
           spawnParryFlash(V3(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z), 0xffd24a);
           screenFlash('radial-gradient(ellipse at center, rgba(255,230,150,.1), transparent 40%)', 0.3, 0.12);
-          S.parry(b.mesh.position); floater(pp, 'PARRY!', '#ffe27a'); if (G.stats) G.stats.parries++; noteDefense('parries', null, { src: b.src }); masteryXp('boltParry');
+          S.boltParry(b.mesh.position); floater(pp, 'PARRY!', '#ffe27a'); if (G.stats) G.stats.parries++; noteDefense('parries', null, { src: b.src }); masteryXp('boltParry');
         } else { clashFlash(b.mesh.position.clone(), stance().blade, false); S.deflect(b.mesh.position); floater(pp, 'DEFLECT', '#7fd4ff'); if (G.stats) G.stats.deflects++; noteDefense('deflects', null, { src: b.src }); }
         tutEvent('deflect');
         addFocus(parried ? FOCUS.gainParry : FOCUS.gainDeflect);   // deflecting fire feeds the flow
@@ -214,7 +220,7 @@ export function updateBolts(dt){
         redirect(b, true);   // home to the shooter (or the nearest foe ahead)
         b.mesh.material.color.setHex(0xffd08a);
         beskarCatch(b);
-        S.parry(b.mesh.position); floater(pp, 'RICOCHET!', '#ffd08a');
+        S.boltParry(b.mesh.position); floater(pp, 'RICOCHET!', '#ffd08a');
         if (G.stats) G.stats.parries++; noteDefense('parries', null, { src: b.src }); masteryXp('boltParry');
         addFocus(FOCUS.gainParry);
       } else if (d < 2.5 && shielding){

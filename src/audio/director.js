@@ -160,6 +160,8 @@ export function updateAudio(dt){
   const staff = jedi && !thrown && (G.stance === 'staff' || G.stance === 'jarkai');   // (the staff's far blade, or Jar'Kai's off-hand saber: a second hum)
   const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt), mH2 = ease('hero2', motionOf(BA.hero2), dt);
   const mD = ease('dark', Math.max(motionOf(BA.dark), swinging && darkOn ? 0.3 : 0), dt);
+  // a deflect just landed (saber.js deflect): the hero's hum dips ~3 dB for an instant so the deflect punches out of it
+  const hd = t - BA.hduck < 0.12, hk = hd ? 0.7 : 1, htc = tc => hd ? 0.012 : tc;
   if (L.hum){
     const p = HUM_PITCH[G.stance] || 1;
     // a thrown blade: loud, open and wobbling as it spins (each turn sweeps the blade toward you and away)
@@ -168,19 +170,19 @@ export function updateAudio(dt){
     const lvl = (playing && jedi) ? (thrown ? 0.08 + spin * 0.02 : 0.034 + m * 0.07 + (player.blockHeld ? 0.012 : 0) + walk * 0.008) : 0;
     const hz = thrown ? 1700 + spin * 600 : 420 + m * 2600 + walk * 150;
     const pitch = 90 * p * (1 + m * 0.2 + spin * 0.045);
-    L.hum.set(lvl, hz, pitch, m > 0.05 || thrown ? 0.02 : 0.1);
+    L.hum.set(lvl * hk, hz, pitch, htc(m > 0.05 || thrown ? 0.02 : 0.1));
     const P = thrown ? place(shared.saberProj.mesh.position) : null;
     L.hum.pan.pan.setTargetAtTime(P ? P.pan : 0, t, 0.05);
     // the saber staff's far blade: its own hum, a touch quieter and sharper, moving with its own end
     const m2 = Math.max(mH2, mH * 0.6);
-    L.hum2.set((playing && staff) ? 0.02 + m2 * 0.045 : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), m2 > 0.05 ? 0.02 : 0.1);
+    L.hum2.set((playing && staff) ? (0.02 + m2 * 0.045) * hk : 0, 420 + m2 * 2400, 90 * p * 1.013 * (1 + m2 * 0.22), htc(m2 > 0.05 ? 0.02 : 0.1));
   }
   if (L.hiss){
     const m = darkOn ? mD : thrown ? 0.5 : Math.max(mH, mH2 * 0.7);
     const on = playing && (jedi || darkOn);
     L.hiss.set(on ? 0.004 + m * (darkOn ? 0.03 : 0.022) : 0, darkOn ? 1500 + m * 1500 : 2200 + m * 3800, 0, 0.03);
   }
-  if (L.dark) L.dark.set((playing && darkOn) ? 0.04 + mD * 0.07 : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), mD > 0.05 ? 0.02 : 0.12);
+  if (L.dark) L.dark.set((playing && darkOn) ? (0.04 + mD * 0.07) * hk : 0, 380 + mD * 2000, 62 * (1 + mD * 0.16), htc(mD > 0.05 ? 0.02 : 0.12));
 
   // the saber lock's grind: louder, brighter and rawer in a surge, quivering higher as you're driven back
   if (L.grind){

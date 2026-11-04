@@ -4,6 +4,7 @@
 //
 //   sources ─┬─ sfx bus ───┐
 //            ├─ amb bus ───┼─ muffle (lowpass) ─ masterGain (VOLUME slider) ─ limiter ─ speakers
+//            │  clash bus (glue compressor) ─┘   every saber-on-saber clash's layers, squeezed into one sound
 //            ├─ music bus ─┘        ▲
 //            ├─ reverb send ─ room ─┘
 //            └─ ui bus ──────────────────────── masterGain   (menus never get muffled by the pause filter)
@@ -99,6 +100,14 @@ export function initEngine(){
   AE.bus.music = mk(AE.duck, AE.vol.music);
   AE.bus.amb = mk(AE.duck, AE.vol.sfx * 0.9);
   AE.bus.ui = mk(shared.masterGain, AE.vol.sfx * 0.9);
+  // the CLASH bus: a saber clash is four layers (saber.js clash), glued into one object by a fast-attack, medium-release
+  // bus compressor, then set so the glued hit sits a little over a heavy saber hit, well above the score. It feeds the sfx bus, so the SFX slider and the
+  // pause muffle still apply.
+  AE.clashComp = A.createDynamicsCompressor();
+  AE.clashComp.threshold.value = -20; AE.clashComp.knee.value = 8; AE.clashComp.ratio.value = 3.5;
+  AE.clashComp.attack.value = 0.003; AE.clashComp.release.value = 0.14;
+  AE.bus.clash = A.createGain(); AE.bus.clash.gain.value = 1;
+  AE.bus.clash.connect(AE.clashComp); AE.clashComp.connect(mk(AE.bus.sfx, 0.9));
 
   AE.room = A.createConvolver();
   AE.roomOut = mk(AE.muffle, 0.3);
@@ -173,7 +182,10 @@ export function place(pos){
      vib   { r, d }             vibrato rate (Hz) and depth (cents)
      drive  waveshaper amount (0..1) — grit for explosions, buzz for the darksaber
      verb   reverb send (0..1)  pos  world position (pan + distance)  pan  fixed pan  at  start delay (s)
-     bus    'sfx' (default) | 'ui' | 'amb' | 'music'   jit  random pitch spread (fraction, default 0.03)
+     bus    'sfx' (default) | 'ui' | 'amb' | 'music' | 'clash'   jit  random pitch spread (fraction, default 0.03)
+     trem   { r, d, type }      tremolo: the level wobbled at r Hz by depth d (0..1), for a chaotic, vibrating texture
+     panK   scales a placed voice's pan (0 = dead centre: keep the low end in the middle)
+     pdrift the pan slides this far (±) over the voice's life (a moving source: doppler-ish spatial weight)
      pri    priority: a voice with pri 0 is dropped first when the voice cap is hit                       */
 const _curves = {};
 function driveCurve(k){
@@ -240,12 +252,24 @@ export function play(s){
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   node.connect(g);
   let out = g;
-  const pan = P ? P.pan : s.pan;
-  if (pan){ const p = A.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); out = p; }
+  const voices = [];   // extra oscillators (tremolo) to stop with the voice
+  if (s.trem){
+    const tg = A.createGain(), lfo = A.createOscillator(), lg = A.createGain(), dep = clamp(s.trem.d, 0, 1);
+    tg.gain.value = 1 - dep * 0.5; lfo.type = s.trem.type || 'sine'; lfo.frequency.value = s.trem.r; lg.gain.value = dep * 0.5;
+    lfo.connect(lg); lg.connect(tg.gain); lfo.start(t); voices.push(lfo);
+    out.connect(tg); out = tg;
+  }
+  const pan = (P ? P.pan : s.pan || 0) * (s.panK ?? 1);
+  if (pan || s.pdrift){
+    const p = A.createStereoPanner(), p0 = clamp(pan, -1, 1); p.pan.setValueAtTime(p0, t);
+    if (s.pdrift) p.pan.linearRampToValueAtTime(clamp(p0 + s.pdrift, -1, 1), t + dur);
+    out.connect(p); out = p;
+  }
   out.connect(AE.bus[s.bus || 'sfx']);
   if (s.verb){ const r = A.createGain(); r.gain.value = s.verb; out.connect(r); r.connect(AE.roomIn); }
   if (s.src === 'noise') src.start(t, Math.random() * 1.5); else src.start(t);
   src.stop(t + dur + 0.03);
+  for (const v of voices) v.stop(t + dur + 0.05);
   AE.live++; src.onended = () => { AE.live--; try { out.disconnect(); } catch(e){} };
 }
 

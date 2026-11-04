@@ -28,7 +28,7 @@ export const HUM_PITCH = Object.fromEntries(Object.entries(HUM_BASE).map(([k, v]
 /* what every lit blade is doing this frame, filled in by fx/trail.js (which already follows every blade for its streak)
    and read by director.js: tip speeds (m/s against the owner's body) of the hero's blade, the saber staff's far end and
    the Darksaber in hand, and every other lit blade (its tip in the world, speed, dark, thrown) */
-export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null, hduck: -1, charge: 0, chargeAt: -1 };   // lock: the hero's saber lock, set by enemies/duel.js; hduck: when a deflect last dipped the hum (audio time); charge: a heavy cut's draw 0..1 (player/jedi/weight.js), chargeAt: when it was last set (G.gt)
+export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null, hduck: -1, charge: 0, chargeAt: -1, igniteAt: -9, igniteK: 0 };   // lock: the hero's saber lock, set by enemies/duel.js; hduck: when a deflect last dipped the hum (audio time); charge: a heavy cut's draw 0..1 (player/jedi/weight.js), chargeAt: when it was last set (G.gt)
 
 /* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
    e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
@@ -178,7 +178,9 @@ export function ignite(kind, o = {}){
   // the boot-up: a full, loud clash as the blade bursts out of the emitter (its hum shorting out, with the punch), with a
   // subtle blaster "pyew" in it, before the hum shoots up and settles (the main blade only; a second blade just hums up)
   if (!o.second){
-    const boot = () => clash(pos, full, kind, 0.35);
+    // your own blade (no pos): its held hum (director.js) comes in loud off the clash and eases down to its idle level
+    if (!pos && shared.AC){ BLADE_AUDIO.igniteAt = shared.AC.currentTime + at; BLADE_AUDIO.igniteK = full ? 1 : 0.7; }
+    const boot = () => clash(pos, full, kind, 0.35, rand(1.5, 1.8));   // (a longer one, so it runs on into the hum)
     if (at > 0 && shared.AC){ setTimeout(boot, at * 1000); } else boot();
   } else bladePunch(pos, at, g * 0.85 * Math.max(0.5, Math.min(1.15, F.crack)), Math.max(0.25, F.crack));
   // "kssh": the plasma catching, a burst of hiss that brightens fast and trails off
@@ -345,10 +347,10 @@ export function chargeRelease(form, c, pos){
    All on the clash bus (engine.js glue compressor). The form tunes the surge (its hum pitch) and how long the arc spits
    (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, length (a short spit to a long tear), arc rate and a
    slight pan drift, so a duel never repeats; a big hit (a parry, a bind) is heavier and longer all through. */
-export function clash(pos, big, form, pew = 1){   // pew: how loud its blaster "pyew" (an ignition's is subtle)
+export function clash(pos, big, form, pew = 1, lenK = 1){   // pew: how loud its blaster "pyew" (an ignition's is subtle); lenK: stretch it
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
   const v = FORM_SOUND[form] || FORM_SOUND.niman, dm = v.damp, k = (big ? 1.3 : 1) * rand(0.86, 1.06);
-  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.65, 1.5);   // short spits to long tearing ones
+  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.65, 1.5) * lenK;   // short spits to long tearing ones
   const drift = (Math.random() < 0.5 ? -1 : 1) * rand(0.06, 0.16), buzz = rand(55, 85);   // the arc's buzz rate (Hz)
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
   const CN = o => C(Object.assign({ src: 'noise' }, o));

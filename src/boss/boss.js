@@ -15,7 +15,7 @@ import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, TMP, clamp } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { shared, G, enemies, bolts, rings, player, isGunner } from '../state.js';
+import { shared, G, enemies, bolts, rings, player, isGunner, isTrooper } from '../state.js';
 import { fwd, playerPos } from '../player/helpers.js';
 import { SCALE, heroScale } from '../data/coop.js';
 import { heroesHere } from '../player/players.js';
@@ -40,15 +40,17 @@ import { meetBoss } from '../game/codex.js';
 import { spawnFinale } from './finale.js';
 import './vexis.js';   // (registers Darth Vexis with the final boss layer)
 import './magistrate.js';   // (and the Iron Magistrate)
+import './marshal.js';   // (and the Marshal)
 
 /* ============================================================
    BOSS — DARTH VEXIS
    ============================================================ */
-// the final boss steps in: the Jedi's is DARTH VEXIS (a duellist's body, boss/vexis.js), the gunners' THE IRON MAGISTRATE
-// (boss/magistrate.js), each with the final boss layer on him (boss/finale.js). Returns him (his .group is where he stands)
+// the final boss steps in: the Jedi's is DARTH VEXIS (a duellist's body, boss/vexis.js), the Mandalorian's THE IRON
+// MAGISTRATE (boss/magistrate.js), the ARC trooper's THE MARSHAL (boss/marshal.js), each with the final boss layer on
+// him (boss/finale.js). Returns him (his .group is where he stands)
 export function spawnBoss(){
   const half = shared.arenaHalfZ || LEVELS[G.levelIdx].arena/2;   // (the arena built: a chapter can stage a level on its own map)
-  return spawnFinale(isGunner() ? 'magistrate' : 'vexis', { x: 0, z: -half + 6 });   // (the Mandalorian's and, for now, the trooper's: the Iron Magistrate)
+  return spawnFinale(isTrooper() ? 'marshal' : isGunner() ? 'magistrate' : 'vexis', { x: 0, z: -half + 6 });
 }
 // THE OLD STATE-MACHINE BOSS: no fight spawns it any more (both final bosses are on the final boss layer). Kept, with
 // what reads shared.boss, until the trooper's Marshal lands and it can all go at once

@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE IRON MAGISTRATE — the Mandalorian's final boss (and the trooper's, for now): his signature moves and his look, on
+// THE IRON MAGISTRATE — the Mandalorian's final boss: his signature moves and his look, on
 // the final boss layer (boss/finale.js). His numbers are data/bosses.js MAGISTRATE. A gun hero's fight first: every move
 // has an answer a blaster, a dash or a flank can give, in the shared tell colours (fx/tells.js):
 //   THE SHIELD     (I)   fire from the front glances off it while he's on guard. Flank him, or make him attack.

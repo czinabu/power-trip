@@ -14,7 +14,7 @@
 // Names the lines use that aren't here (the hero's 'YOU', a stranger) stay off screen: their lines play over comms.
 
 import { MARSHAL } from './allies.js';
-import { MAGISTRATE } from './bosses.js';
+import { MAGISTRATE, MARSHAL_BOSS } from './bosses.js';
 
 const jedi = (look, o = {}) => ({ kind: 'hero', as: 'jedi', look: { jedi: look }, saber: true, ...o });
 const mando = (look, o = {}) => ({ kind: 'hero', as: 'mando', look: { mando: look }, ...o });
@@ -48,6 +48,7 @@ export const CAST = {
   'SGT. VANT': clone(0x2f7fd6, { bound: true }),
   'BRISK': clone(0x2f7fd6, { bound: true, variant: 4 }),
   'HAMMER': clone(0x2f7fd6, { bound: true, scale: 1.06 }),
-  'THE MARSHAL': { kind: 'foe', t: { ...MARSHAL }, scale: 1.12, foe: true },   // his own black-and-gold commander's armour (enemies/mesh.js marshal)
+  'THE MARSHAL': { kind: 'foe', t: { ...MARSHAL }, scale: 1.12, foe: true },
+  'THE MARSHAL AT THE SPIRE': { kind: 'foe', t: { ...MARSHAL_BOSS.dress }, scale: 1.04 * MARSHAL_BOSS.scale, foe: true },   // the final boss: helmet off, two pistols, the baton (enemies/mesh.js commander)   // his own black-and-gold commander's armour (enemies/mesh.js marshal)
   'CAPTAIN VORN': { kind: 'foe', t: { model: 'clone', color: 0x2c2e34, eye: 0xff2a2a, cloth: 0x8a1a1a }, variant: 4, foe: true },
 };

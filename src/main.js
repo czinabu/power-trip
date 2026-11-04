@@ -44,7 +44,7 @@ import { tacticsRamp } from './enemies/tactics.js';
 import './boss/light.js';
 import { updateVents, updateBarrels, hazardContains, updateHazardZones } from './world/hazards.js';
 import { spawnBoss, damageBoss, bossStagger, updateBoss, updateRings } from './boss/boss.js';
-import { updateFinale, finaleMove } from './boss/finale.js';
+import { updateFinale, finaleMove, spawnFinale } from './boss/finale.js';
 import { FOCUS, focusTier, focusDmgMul, focusRegenMul, addFocus, updateFocus } from './player/jedi/focus.js';
 import { tryAttack, applySwingDamage } from './player/jedi/combat.js';
 import { cutHeight } from './player/jedi/cutaim.js';
@@ -227,7 +227,7 @@ window.GAME = { shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMa
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,
-  spawnBoss, updateBoss, bossStagger, BOSS_CFG, BOSS_MANDO, rings, finaleMove,
+  spawnBoss, updateBoss, bossStagger, BOSS_CFG, BOSS_MANDO, rings, finaleMove, spawnFinale,
   BOONS, BOON_BY_ID, rollBoons, pickBoon, hurtPlayer, abil, MASTERY_JEDI, MASTERY_MANDO, trainAbility, masteryNext, earnWavePoint,
   FOCUS, focusTier, focusDmgMul, focusRegenMul, addFocus, updateFocus, enemyDmgScale, applySwingDamage,
   hitMarker, spawnBlasterBolt, mandoWeapon, updateBolts, updateHud,

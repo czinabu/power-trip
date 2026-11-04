@@ -15,7 +15,7 @@ import { ENEMY_TYPES } from '../src/data/enemies.js';
 import { buildEnemyMesh } from '../src/enemies/mesh.js';
 import { lookPool } from '../src/data/foe-looks.js';
 import { buildBoss } from '../src/boss/mesh.js';
-import { VEXIS, MAGISTRATE } from '../src/data/bosses.js';
+import { VEXIS, MAGISTRATE, MARSHAL_BOSS } from '../src/data/bosses.js';
 import { updateUpper } from '../src/enemies/upper.js';
 import { markHit } from '../src/enemies/marks.js';
 import { ELITES } from '../src/data/enemies.js';
@@ -74,6 +74,17 @@ if (SET === 'bosses'){
     if (q.get('cracks') === '1') for (const c of g.userData.cracks || []){ c.material.opacity = 0.9; c.visible = true; }
     if (q.get('jets') === '1') for (const c of g.userData.thrusters || []){ c.material.opacity = 0.9; c.visible = true; c.scale.set(1, 2, 1); }
     figs.push({ g, label: 'Iron Magistrate', w: 4.0 });
+  }
+  // the Marshal: an officer's body in his own model (data/bosses.js MARSHAL_BOSS); &baton=1 shows his phase III hands
+  if (q.get('old') !== '1'){
+    const g = buildEnemyMesh({ ...ENEMY_TYPES[MARSHAL_BOSS.type], ...MARSHAL_BOSS.dress });
+    g.scale.multiplyScalar(MARSHAL_BOSS.scale);
+    const u = g.userData, baton = q.get('baton') === '1';
+    if (u.batonR) u.batonR.visible = baton;
+    if (u.batonBack) u.batonBack.visible = !baton;
+    for (const k of ['pistolR', 'pistolL']) if (u[k]) u[k].visible = !baton;
+    if (q.get('signal') === '1') for (const s of u.signal || []) s.material.opacity = 1;
+    figs.push({ g, label: 'The Marshal', w: 3.4 });
   }
   for (const kind of q.get('old') === '1' ? ['sith', 'mando'] : []){
     const g = buildBoss(kind);

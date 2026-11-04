@@ -145,7 +145,7 @@ export const VEXIS = {
 };
 
 /* ============================================================
-   THE IRON MAGISTRATE — the Mandalorian's final boss (and the trooper's, until the Marshal takes that fight), fought
+   THE IRON MAGISTRATE — the Mandalorian's final boss, fought
    on the final boss layer (boss/finale.js, boss/magistrate.js)
    ============================================================
    A beskar warlord on a purge lancer's body (its legs, its spear work), in his own armour (enemies/mesh.js magistrate).
@@ -208,4 +208,68 @@ export const MAGISTRATE = {
   rocketColor: 0xffa23a, flameColor: 0xff7a1a,
   // the arena in phase III: smoke and furnace light
   mood: { fill: 0.62, sun: 0.5, rim: 1.3, sky: 0.5, fog: 0x2a1408, blade: 1.1, near: 0.8, far: 0.85 },
+};
+
+/* ============================================================
+   THE MARSHAL — the ARC trooper's final boss (boss/marshal.js on boss/finale.js)
+   ============================================================
+   His batch-brother, the commander who gave the order, on a purge officer's body (its pistol work, its cover and its
+   standoff), in his own model (enemies/mesh.js commander): helmet off, two sidearms, a shock baton across his back and
+   the signal rig. The trooper's fight: cover, the squad and the dash all have answers, in the shared tell colours
+   (fx/tells.js: parry = white and red, dodge = red, area = amber).
+     I   THE GUNFIGHTER  he moves cover to cover with two pistols. SUPPRESSING FIRE (a marked lane of bolts: break line
+                         of sight or step off it), DETONATORS onto amber marks, a COMBAT ROLL away when you crowd him,
+                         and he CALLS IN the purge troopers
+     II  THE SIGNAL      he sends the order: a violet SIGNAL PULSE out across the floor (jump or dash it) that TURNS a
+                         squadmate it passes against you till you get to them; his purge FLIGHT of jet troopers; still the guns
+     III BROTHER TO BROTHER he drops the guns and draws the baton: fast and close. A BATON FLURRY whose last blow is the
+                         parry, a SHOULDER CHARGE down a marked line, and one LAST STAND slam */
+export const MARSHAL_BOSS = {
+  id: 'marshal', codex: 'trooper',
+  name: 'THE MARSHAL', title: 'THE MARSHAL — YOUR BATCH-BROTHER', look: 'THE MARSHAL',
+  intro: 'Your batch-brother · the last order',
+  phases: ['THE GUNFIGHTER', 'THE SIGNAL', 'BROTHER TO BROTHER'],
+  phaseLines: ['', 'Hear it, brother? It was always in there.', 'No more orders. Just us.'],
+  fallLine: 'THE MARSHAL FALLS',
+  type: 'officer',                 // the body he fights on (data/enemies.js): a pistol, cover, a standoff
+  // his own model over it (enemies/mesh.js commander): black-and-gold purge plate, helmet off, a scarred clone face
+  dress: { model: 'commander', weapon: 'commander', color: 0x24262c, eye: 0xff3a2a, cloth: 0xc9a040, trim: 0xc9a040, rag: 0x5a3a12,
+           bare: 'marshal', face: { scar: true, beard: 'stubble' } },
+  over: { officer: false, range: 20, standoff: 12, windup: 0.5, recover: 0.75, boltSpeed: 34 },   // (no ORDERS of a line officer: his own moves are the calls)
+  hp: 2100, dmg: 1.6, scale: 1.3, speed: 1.0,   // hp (before difficulty and co-op), × the officer's damage, size, pace
+  pace: [1, 1.05, 1.3],
+  phaseAt: [0.66, 0.33],
+  armour: 0.7, hitCap: 0.06, hitCapOpen: 0.12, phaseResist: [1, 0.9, 0.82], burstCap: 0.15, burstWin: 1.6,
+  sigGap: [3.8, 3.4, 2.6], sigMin: 1.8,
+  // phase III's body: the guns are gone, he closes in with the baton (a fast melee foe on the same legs)
+  melee: { range: 2.8, windup: 0.42, recover: 0.5, swing: 0.15, dmgMul: 1.9 },
+  beat: { kneel: 1.3, rise: 0.9, slowmo: 0.35, slowT: 0.7, ring: { r: 8, dmg: 12 }, push: 10 },
+  defeat: { kneel: 3.6, slowmo: 0.3, slowT: 1.2, xp: 1400 },
+  moves: {
+    // I+ SUPPRESSING FIRE: both pistols down a lane at you (a red lane on the floor as he plants): get behind cover,
+    // or off the lane; it sweeps after you, slowly
+    suppress: { from: 1, to: 2, minDist: 5, maxDist: 30, windup: 0.7, dur: 2.2, every: 0.09, dmg: 5, spread: 0.06, track: 1.4, lane: 22, cd: 7 },
+    // I+ DETONATORS: two (three in phase II) lobbed onto amber marks round you
+    grenade: { from: 1, to: 2, minDist: 6, maxDist: 26, windup: 0.5, n: [2, 3], gap: 0.3, spread: 3.2, r: 3.4, fuse: 1.1, dmg: 24, cd: 9 },
+    // I+ COMBAT ROLL: crowd him and he's gone, rolling away to a new angle (and a shot as he comes up)
+    roll: { from: 1, to: 2, crowd: 5.5, after: 0.8, dist: 6.5, dur: 0.5, cd: 4 },
+    // I+ CALL IN: "purge squad, on me" (not in the sandbox)
+    callIn: { from: 1, to: 2, windup: 0.9, troops: [{ blaster: 2, grunt: 1 }, { blaster: 1, grenadier: 1, grunt: 1 }], cd: 26 },
+    // II SIGNAL PULSE: a violet ring out across the floor from him (jump or dash it): it TURNS the squadmates it
+    // passes (they shoot at you, weakly, till you get to them) and hurts a hero it catches on the ground
+    signal: { from: 2, to: 2, windup: 1.2, spd: 12, len: 30, w: 1.2, dmg: 14, turn: 5, reach: 1.8, grace: 0.8, turnDmg: 4, turnEvery: 1.1, cd: 11 },
+    // II JET TROOPERS: he calls his purge flight down on you (not in the sandbox)
+    flight: { from: 2, to: 2, windup: 0.8, n: 2, cd: 22 },
+    // III BATON FLURRY: three quick blows, the last a heavy one (parry it: he's thrown open)
+    flurry: { from: 3, maxDist: 6, hits: [{ t: 0.42, dmg: 14 }, { t: 0.36, dmg: 14 }, { t: 0.62, dmg: 24, parry: true }], step: 1.3, reach: 3.0, open: 1.6, cd: 4.5 },
+    // III SHOULDER CHARGE: a line at you, then he drives down it: parry him off it, or step off it as it locks; a miss
+    // leaves him stumbling, open
+    tackle: { from: 3, minDist: 3.5, maxDist: 20, tell: 0.85, lockAt: 0.7, speed: 20, over: 3, hitR: 1.4, dmg: 24, knock: 13, stumble: 1.4, cd: 7 },
+    // III LAST STAND (once, at this share of his bar): up, and the baton down into the floor: an amber ring of charge
+    // out from him (get out of it), and he's on his knees, open
+    lastStand: { at: 0.14, windup: 1.2, r: 6.5, dmg: 30, knock: 14, open: 3.6 },
+  },
+  boltColor: 0xff3a2a, signalColor: 0xb06aff, batonColor: 0x7ad8ff,
+  // phase III: the spire's light, cold and violet
+  mood: { fill: 0.64, sun: 0.5, rim: 1.25, sky: 0.5, fog: 0x1e1430, blade: 1.1, near: 0.8, far: 0.85 },
 };

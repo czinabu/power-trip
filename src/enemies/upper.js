@@ -38,6 +38,7 @@ const STANCE = {
   purge:    { br: 1.9, ba: 0.02, sw: 0.6, sa: 0.02, cp: 0.08, hp: 0.06, gl: [1.2, 3], gr: 14, tilt: 0.05 },
   lancer:   { br: 1.9, ba: 0.02, sw: 0.6, sa: 0.02, cp: 0.08, hp: 0.06, gl: [1.2, 3], gr: 14, tilt: 0.05 },
   magistrate: { br: 1.2, ba: 0.028, sw: 0.3, sa: 0.03, cp: 0.02, hp: -0.04, gl: [2.5, 5], gr: 6, tilt: 0 },
+  commander: { br: 1.3, ba: 0.02, sw: 0.3, sa: 0.02, cp: 0, hp: -0.06, gl: [2.5, 5], gr: 7, tilt: 0 },
   acolyte:  { br: 1.5, ba: 0.016, sw: 0.4, sa: 0.015, cp: 0.04, hp: 0.08, gl: [2, 4], gr: 9, tilt: 0 },
 };
 

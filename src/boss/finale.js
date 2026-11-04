@@ -50,7 +50,8 @@ const ROMAN = ['', 'I', 'II', 'III'];
 const ss = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
 
 /* ---------------- spawn ---------------- */
-export function spawnFinale(id, at){
+// opts.mission: a story mission's duel spawned him (game/mission.js): his defeat ends that objective, not the run
+export function spawnFinale(id, at, opts = {}){
   const D = REG()[id];
   if (!D) return null;
   const def = D.def;
@@ -58,7 +59,7 @@ export function spawnFinale(id, at){
   spawnEnemy(def.type, V3(at.x, 0, at.z), def.dress ? { dress: def.dress, keep: true } : { look: def.look, keep: true });
   const e = enemies[enemies.length - 1];
   e.champion = true; e.noFloor = true; e.look = def.look;   // (his look names him to a co-op guest: net/foes.js)
-  e.fin = { id, def, D, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0 };
+  e.fin = { id, def, D, mission: !!opts.mission, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0 };
   e.t = { ...e.t, ...(def.over || {}), dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
   e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));
   e.spd = e.t.speed * def.speed;
@@ -207,7 +208,7 @@ function pickMove(e, F){
   const moves = F.D.moves, ready = [];
   for (const id in moves){
     const mv = moves[id], cfg = F.def.moves[id] || {};
-    if ((cfg.from || 1) > F.phase || (F.cds[id] || 0) > 0 || (mv.once && F.used[id])) continue;
+    if ((cfg.from || 1) > F.phase || (cfg.to && cfg.to < F.phase) || (F.cds[id] || 0) > 0 || (mv.once && F.used[id])) continue;
     if (!mv.can(e, C, F)) continue;
     if (mv.urgent) return mv;   // the answers to what you're doing (a held block, a crowd, his last stand) go first
     ready.push(mv);
@@ -339,6 +340,7 @@ const DEFEAT = {
       M.done = true;
       e.dead = true; e.state = 'fade'; e.st = 3.2; e.hp = 0; hideIndicators(e);   // (he stays on his knees, then sinks away: enemies/ai.js fade)
       hideHud();
+      if (e.fin.mission) return false;   // (a mission's duel: the objective sees him gone, and the mission goes on from there)
       if (hooks.bossDead) hooks.bossDead();   // co-op: the guest's fight ends too
       if (G.sandbox) showBanner('', 'BOSS DEFEATED', 1.6);   // the training floor: no win screen, the floor back
       else victory();

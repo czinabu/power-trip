@@ -54,29 +54,32 @@ export const DEFAULT_LOADOUT = ['ataru', 'niman', 'djemso'];
 export const STARTING_FORMS = ['shiicho'];   // Form I, which every Jedi learns first
 export const RUN_LOADOUT = ['shiicho', null, null];
 
-/* THE PATH — where a run learns each form (the auto-unlocks in data/store.js are built from this).
+/* THE PATH — where a run learns each form (the auto-unlocks in data/store.js are built from this), in story order.
    chapter  the campaign chapter whose clear teaches it (data/campaign.js): the trials are the masters who teach
+   alt      the chapter that teaches it instead in a story that never plays `chapter` (a chapter only the Jedi's own story
+            has, data/campaign.js `story`): a Jedi in a co-op partner's Mando or trooper story still learns it
    level / wave   the same point for a run that plays the levels straight through (no chapters)
    stage    survival and the missions: the run's depth (waveTotal)
-   The forms come in the tiers the Order teaches them in (lineage above is how they were made, not how they are taught):
-     FOUNDATION   Shii-Cho, from the start: every youngling begins there
-     CORE         Soresu and Ataru, the styles a Padawan grows into: the Wall and the Acrobat
-     INTERMEDIATE Djem So and Shien (the Knight), Makashi (Jakku), Niman, which blends them all (Mustafar)
-     PEAK         Form VII, never taught early: after the chase, and only one of its two roads
-     THE STAFF    the saber staff, taken from the Ember Academy's overseers on Mustafar (with Niman)
-     JAR'KAI      a second saber: the Grand Inquisitor's own, taken at Vael's chains (Act III)
-   Form V's two variants come together from the Knight (G swaps them). Form VII is a fork: the run offers both and the
-   hero keeps one. */
+   The story hands out one form a chapter at most, spread over all three acts, in the order the lineage above has them:
+     ACT I    Shii-Cho from the start (the last lesson in the dojo) · Makashi from Vael after the Inquisitor finds
+              you in the archive, so you meet Ilsa at the refuge with a duellist's form · Soresu from Tarn, the Wall
+     ACT II   Ataru from Sera, the Acrobat · Djem So from Kast, the Knight · Shien from a Jedi captain's holocron in the
+              Jakku wreck (the hull snipers are what it is for) · Niman on Mustafar, once Vael is taken: the forms come
+              together in you
+     ACT III  Form VII after the chase, only one of its two roads · the saber staff, a Temple Guard's, back in the
+              temple on Jedha · Jar'Kai at Vael's chains
+   Form V's two variants share a slot (G swaps them) once both are known. Form VII is a fork: the run offers both and
+   the hero keeps one. */
 export const FORM_PATH = [
+  { form: 'makashi', chapter: 'archive',       level: 0, wave: 3, stage: 2 },   // Vael: a duellist's form, for Ilsa
   { form: 'soresu',  chapter: 'trial-first',   level: 1, wave: 0, stage: 3 },   // the Wall
   { form: 'ataru',   chapter: 'trial-acrobat', level: 1, wave: 1, stage: 5 },   // the Acrobat
-  { form: 'djemso',  chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },   // the Knight: Form V…
-  { form: 'shien',   chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },   // …both its variants
-  { form: 'makashi', chapter: 'jakku',         level: 1, wave: 2, stage: 7 },   // a duellist's holocron in the salvage
-  { form: 'niman',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // Form VI: the five forms brought together
-  { form: 'staff',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // the saber staff, won off the academy's overseers
+  { form: 'djemso',  chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },   // the Knight: Form V's strong road
+  { form: 'shien',   chapter: 'jakku',         level: 1, wave: 2, stage: 7 },   // …and its other one, from a holocron in the salvage
+  { form: 'niman',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // Form VI: the forms brought together
   { form: 'juyo',    chapter: 'chase',         level: 2, wave: 0, stage: 9 },   // Form VII, offered after the chase
   { form: 'vaapad',  chapter: 'chase',         level: 2, wave: 0, stage: 9 },
+  { form: 'staff',   chapter: 'return', alt: 'spearhead', level: 2, wave: 1, stage: 10 },   // a Temple Guard's saber staff, home on Jedha
   { form: 'jarkai',  chapter: 'chains', alt: 'spearhead', level: 2, wave: 2, stage: 11 },  // Jar'Kai: the second saber, won in Act III (alt: a Jedi guest in a Mando or trooper story, which skips the chains)
 ];
 // the run's Form VII choice locks the other for good: G.formFork holds the one kept

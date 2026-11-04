@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { clamp } from '../utils.js';
-import { shared, G, enemies, player, isGunner, isTrooper } from '../state.js';
+import { shared, G, enemies, player, isGunner, isTrooper, isMando } from '../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon } from '../data/mando.js';
 import { abil } from '../data/mastery.js';
 import { maxHp, maxStam } from '../player/helpers.js';
@@ -269,7 +269,7 @@ export function updateHud(){
     renderChecklist(c); }
   // THE CUT DIAL (player/jedi/cutaim.js): the angle the next cut comes from (hidden for a keyed cut: the thrust, the
   // back strike). Its height is where the crosshair sits on the foe, so the crosshair itself shows that
-  { const on = G.mode === 'play' && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);
+  { const on = G.mode === 'play' && !player.unlit && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);   // (unlit: the blade put out with 5)
     const cd = $('cutdial');
     if (cd){
       cd.style.transform = dynamicCrosshair() ? jx.tf : '';
@@ -280,6 +280,12 @@ export function updateHud(){
   if (!isGunner()){   // holstered (4): LMB is a Force strike and RMB a ward instead of saber and block
     setText($('ab-atk').querySelector('.an'), player.holstered ? 'FORCE STRIKE' : 'SABER');
     setText($('ab-block').querySelector('.an'), player.holstered ? 'WARD' : 'BLOCK');
+    setText($('ab-lit').querySelector('.an'), player.holstered ? 'DRAW + IGNITE' : player.unlit ? 'IGNITE' : 'RETRACT');   // 5 (player/holster.js toggleBlade)
+    $('ab-lit').classList.toggle('off', !!player.unlit || !!player.holstered);
+  } else {   // the Mando's 5 works on the Darksaber in hand
+    const dl = $('ab-dlit'), on = isMando() && player.weapon === 'darksaber';
+    if (dl.style.display !== (on ? '' : 'none')) dl.style.display = on ? '' : 'none';
+    if (on){ setText(dl.querySelector('.an'), player.unlit ? 'IGNITE' : 'RETRACT'); dl.classList.toggle('off', !!player.unlit); }
   }
   // the crosshair turns red on a foe: that's who a cut or a power aimed now would land on (jediReticle). The Mando
   // draws it too while the Darksaber is out, in place of the blaster reticle

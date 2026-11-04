@@ -70,7 +70,7 @@ const KINDS = {
         L.intensity = 7 * TW.k;
       }
       // a hero with no blade lit wears a lamp (the Mandalorian's helmet, the trooper's)
-      const lit = !isGunner() ? !player.holstered : player.weapon === 'darksaber';
+      const lit = !player.unlit && (!isGunner() ? !player.holstered : player.weapon === 'darksaber');
       const H = TW.lights[1] || (TW.lights[1] = holdPoolLight(0xd6e4ff, 0, 10));
       if (H){
         const p = playerPos();

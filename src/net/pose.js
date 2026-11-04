@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { setFistGlow } from '../player/jedi/palm.js';
+import { S } from '../audio/sfx.js';
 import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod, setSaberStaff, saberIsStaff } from '../player/model/weapons.js';
 
 // the rig joints, in a fixed order (model/rig.js): their rotations travel as quaternions
@@ -117,6 +118,7 @@ function applyGear(hero, pose){
     if (hero.offSaber){ hero.offSaber.blade.visible = hero.offSaber.glow.visible = !!fx.blade; }
   }
   if (hero.darkBlades) for (const b of hero.darkBlades) b.visible = !!fx.dark;
+  bladeSound(hero, fx);
   if (hero.darkLight) hero.darkLight.intensity = fx.dark ? PARTNER_LIGHT * 0.8 : 0;
   if (hero.jetGlow) for (const g of hero.jetGlow){ g.material.opacity = fx.jet || 0; g.scale.y = fx.jetS || 1; }
   if (hero.jetMissileMesh) hero.jetMissileMesh.visible = !!fx.miss;
@@ -124,6 +126,20 @@ function applyGear(hero, pose){
   setRifleMod(hero, RIFLE_MOD_IDS[fx.rm | 0] || 'burst');   // the partner trooper's DC-15 module
   if (hero.repeaterSpin && fx.spin != null) hero.repeaterSpin.rotation.z = fx.spin;
   if (fx.fist || hero.fistGlow) setFistGlow(hero, fx.fist || 0, fx.fc || null);
+}
+
+/* the partner's blade going out or lighting (their 5, a holster, a draw) is heard where they stand, the same
+   showpiece snap-hiss their own screen plays (audio/saber.js): their saber (both ends of a staff) or their Darksaber */
+const _at = new THREE.Vector3();
+function bladeSound(hero, fx){
+  const now = (fx.blade ? 1 : 0) | (fx.dark ? 2 : 0), was = hero._litBits;
+  hero._litBits = now;
+  if (was == null || was === now || !hero.group) return;   // (the first pose just says how it is)
+  _at.copy(hero.group.position); _at.y += 1.1;
+  for (const [bit, kind] of [[1, fx.staff ? 'staff' : 'niman'], [2, 'dark']]){
+    if ((now & bit) && !(was & bit)) S.ignite(kind, _at.clone(), true);
+    else if (!(now & bit) && (was & bit)) S.retract(kind, _at.clone(), true);
+  }
 }
 
 export const POSE_JOINTS = JOINTS;   // for the co-op smoke test

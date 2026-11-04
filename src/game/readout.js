@@ -5,6 +5,7 @@
 
 import { G, shared, enemies, player } from '../state.js';
 import { maxStam } from '../player/helpers.js';
+import { trainForm } from './upgrades.js';
 
 const MAX_SEGMENTS = 60;   // a long survival run keeps its latest waves; the totals still count them all
 const LOW_STAM = 0.32;     // the same line as the danger vignette (player/update.js)
@@ -64,6 +65,7 @@ export function noteDamage(dmg, fromPos, opts, chip, silent){
 }
 // a blow that never landed: 'parries', 'deflects', 'blocks' or 'dodges'
 export function noteDefense(kind, fromPos, opts){
+  trainForm(kind);   // FORM MASTERY: the guard forms rank up on what they turn aside (game/upgrades.js)
   const c = cur(); if (!c) return;
   c[kind]++;
   if (fromPos || opts) RO().lastSrc = sourceOf(fromPos, opts);

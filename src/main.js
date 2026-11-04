@@ -287,3 +287,6 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
 }) });
 import { arcadeContract, arcadeBoard, missionById } from './data/arcade.js';
 Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById } });   // the arcade's dealt contracts (data/arcade.js), for tests
+import * as forceLevelData from './data/force-level.js';
+import { trainForm } from './game/upgrades.js';
+Object.assign(window.GAME, { force: { ...forceLevelData, trainForm } });   // the Jedi's Force Level, form shares and form mastery (data/force-level.js), for tests

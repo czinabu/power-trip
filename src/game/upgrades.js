@@ -9,9 +9,11 @@
 import { S } from '../audio/sfx.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { G, shared, enemies } from '../state.js';
+import { G, shared, enemies, isGunner } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { masterySet, masteryRank } from '../data/mastery.js';
+import { FORM_MASTERY, FORM_RANKS, formRank, noteBestRank, forceShare } from '../data/force-level.js';
+import { STANCES } from '../data/stances.js';
 
 export const SURVIVAL_EVERY = 3;     // survival: the upgrade page opens every 3rd wave cleared
 const RANK_NUM = ['', 'I', 'II', 'III'];
@@ -84,6 +86,7 @@ function settle(m){
 // a power was used (player/jedi/force.js, player/mando/gadgets.js …). id is its mastery id (data/mastery.js)
 export function trainAbility(id){
   if (!learning() || !inFight()) return;
+  trainForm('cast');   // (Niman's signature: a power cast in the fight)
   const m = masteryOf(id);
   if (!m || !m.owned() || !masteryNext(m)) return;
   if (!G.masteryUse) G.masteryUse = {};
@@ -97,7 +100,55 @@ export function trainHeld(id, dt){
   if (heldT[id] >= 1){ heldT[id] -= 1; trainAbility(id); }
 }
 // a rank II that was earned before its wave opened lands as soon as it does (called at each wave clear)
-export function settleMastery(){ for (const m of masterySet()) if (m.owned()) settle(m); }
+export function settleMastery(){
+  for (const m of masterySet()) if (m.owned()) settle(m);
+  if (!isGunner() && G.formUse) for (const id in G.formUse) settleForm(id);
+}
+
+/* ---------------- form mastery by use (data/force-level.js) ---------------- */
+// what a moment of the fight is worth to the form in hand: a cut that lands 1, a kill 2 more, a block, parry or deflect 1;
+// the form's signature (FORM_MASTERY sig) 2 more on top. kind: hit | kill | parries | blocks | deflects | cast
+const SIG = {
+  finisher: (k, c) => !!c.finisher,
+  blade:    (k, c) => !!c.blade,
+  guard:    (k) => k === 'parries' || k === 'blocks' || k === 'deflects',
+  deflect:  (k) => k === 'deflects',
+  air:      (k, c) => !!(c.air || c.backLine),
+  heavy:    (k, c) => !!(c.heavy || c.finisher),
+  cast:     (k) => k === 'cast',
+};
+export function trainForm(kind, ctx = {}){
+  if (isGunner() || !learning() || !inFight()) return;
+  const id = G.stance, m = FORM_MASTERY[id];
+  if (!m || kind === 'dodges') return;
+  const r = formRank(id);
+  if (r >= 3) return;
+  const sig = SIG[m.sig] && SIG[m.sig](kind, ctx);
+  if (kind === 'cast' && !sig) return;   // a cast only counts for the form that is built on it
+  const pts = (kind === 'kill' ? 3 : 1) + (sig ? 2 : 0);
+  G.formUse = G.formUse || {}; G.formSince = G.formSince || {};
+  if (G.formSince[id] == null) G.formSince[id] = G.waveTotal || 0;   // practice starts the first time it is used
+  G.formUse[id] = (G.formUse[id] || 0) + pts;
+  settleForm(id);
+}
+// a rank lands once its practice is in and its stages have passed (also checked at each wave clear: settleMastery)
+function settleForm(id){
+  const r = formRank(id), m = FORM_MASTERY[id];
+  if (!m || r >= 3) return;
+  if ((G.formUse && G.formUse[id] || 0) < FORM_RANKS.need[r]) return;
+  if ((G.waveTotal || 0) < (G.formSince[id] || 0) + FORM_RANKS.gap * (r + 1)) return;
+  G.formRank = G.formRank || {};
+  G.formRank[id] = r + 1;
+  noteBestRank(id, r + 1);
+  const nm = STANCES[id].name.split(' —')[0], pp = playerPos();
+  floater(pp, nm + ' ' + FORM_RANKS.names[r + 1], '#ffd24a');
+  burst(pp.clone().setY(1.6), 0xffd24a, 14, 5, 4);
+  S.reward(r + 1 >= 3 ? 2 : 1);
+  upToast(nm + ' · ' + FORM_RANKS.names[r + 1], m.lines.slice(0, 2).join(' · ') + ' · Force share ' + Math.round(forceShare(id) * 100) + '%', 'mast');
+  formRankHook && formRankHook();
+}
+let formRankHook = null;   // the stance strip redraws its stars (player/jedi/stance.js)
+export const onFormRank = (fn) => { formRankHook = fn; };
 
 /* ---------------- skill points ---------------- */
 // the story campaign: every XP_PER_POINT XP earned is a skill point, the one thing its upgrade page spends (powers

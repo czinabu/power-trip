@@ -16,6 +16,7 @@ import { BATTLE_MAPS } from '../data/battlemaps.js';
 import { FORMS, STARTING_FORMS } from '../data/forms.js';
 import { JEDI_AUTO, MANDO_AUTO, JEDI_STORE, MANDO_STORE } from '../data/store.js';
 import { STORE_TIER_STAGE } from './progression.js';
+import { FORCE_LEVELS, FORCE_MAX } from '../data/force-level.js';
 
 const HEROES = ['jedi', 'mando'];
 const CHAPTERS = ALL_CHAPTERS.filter(c => !c.story);   // the story every hero shares (a story's own chapter, the ARC trooper's prologue, isn't a gate)
@@ -157,3 +158,6 @@ export function storyReached(id){
   if (FORMS[id]) return formOffered(id);
   return S().full || reached(id);
 }
+
+// THE FORCE LEVEL the story has reached (data/force-level.js): the training grounds and the sandbox fight at it
+export function storyForceLevel(){ return S().full ? FORCE_MAX : 1 + FORCE_LEVELS.filter(S().autoReached).length; }

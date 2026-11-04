@@ -3,11 +3,12 @@
 // counter each other (rock, paper, scissors): switch to the form that beats your opponent's.
 
 /* THE TRIANGLE — every form belongs to a FAMILY, and each family beats the next:
-     POWER breaks GUARD   (Djem So, Shien, Juyo, Vaapad and the saber staff: heavy hits, fury and posture-breaking sweeps
-                           crush a high-defence setup)
-     GUARD outlasts SPEED (Soresu and Shii-Cho absorb a blitz with no wasted energy: Obi-Wan's Soresu against Maul)
-     SPEED outpaces POWER (Makashi and Ataru, and Jar'Kai to come, get inside a heavy wind-up before it lands: Dooku's
-                           Makashi against Anakin's Djem So)
+     POWER breaks GUARD   (Djem So, Juyo and Vaapad: heavy hits, fury and posture-breaking blows crush a high-defence
+                           setup)
+     GUARD outlasts SPEED (Soresu, Shii-Cho and Shien absorb a blitz with no wasted energy, and Shien sends the bolts
+                           home: Obi-Wan's Soresu against Maul)
+     SPEED outpaces POWER (Makashi, Ataru, Jar'Kai and the saber staff get inside a heavy wind-up before it lands:
+                           Dooku's Makashi against Anakin's Djem So)
    Three families of forms for each side to pick from. The family is only the duel counter: each form keeps its own job
    outside it (Shii-Cho is still the crowd form, Shien still sends bolts home).
    Niman, the jack of all forms, sits outside it: no form counters it and it counters none. The Mandalorian has no form,
@@ -18,9 +19,11 @@ export const FAMILIES = {
   speed: { name: 'SPEED', beats: 'power', color: '#7dffa8' },
 };
 export const FORM_FAMILY = {
-  djemso: 'power', shien: 'power', juyo: 'power', vaapad: 'power', staff: 'power',
-  makashi: 'speed', ataru: 'speed',
-  soresu: 'guard', shiicho: 'guard',
+  // Caleb's triangle (2026-11-04): Shien, the blaster-deflection form, guards; the staff's quick wheeling strings are speed;
+  // Niman stays outside it (it already draws the most on the Force: data/force-level.js)
+  djemso: 'power', juyo: 'power', vaapad: 'power',
+  makashi: 'speed', ataru: 'speed', staff: 'speed',
+  soresu: 'guard', shiicho: 'guard', shien: 'guard',
   niman: null,
   jarkai: 'speed',   // Jar'Kai: two blades that get inside a heavy wind-up, shut down by a tight guard
 };

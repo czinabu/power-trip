@@ -46,7 +46,7 @@ const bossOpen = (b) => !!(b && b.hp > 0 && (b.state === 'vulnerable' || b.state
 
 /* the foe the next attack would finish: reeling, in reach (past its body) and square in front of you; the nearest */
 export function finishTarget(){
-  if (!bladeHero() || G.mode !== 'play' || shared.saberProj) return null;
+  if (!bladeHero() || G.mode !== 'play' || shared.saberProj || shared.offProj) return null;
   const pp = playerPos(), f = fwd();
   let best = null, bd = 1e9;
   const look = (e, extra) => {

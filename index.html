@@ -89,8 +89,9 @@
       <div class="barwrap" id="hpwrap"><div class="bar" id="hpbar"></div></div>
     </div>
     <div class="meter" id="fpmeter">
-      <div class="mrow"><span class="barlabel" id="fplabel">FORCE</span><span class="mval" id="fpval"></span></div>
+      <div class="mrow"><span class="barlabel"><span id="fplabel">FORCE</span><span id="fplv"></span></span><span class="mval" id="fpval"></span></div>
       <div class="barwrap" id="fpwrap"><div class="bar" id="fpbar"></div></div>
+      <div id="fplvpips"></div>
     </div>
     <div class="barwrap" id="smwrap"><div class="bar" id="smbar"></div></div>
   </div>
@@ -492,6 +493,11 @@
       <section class="sb-page" data-sbpage="you">
         <div class="sec-label" id="sbformslbl">FORMS <span class="sb-hint">Click a slot to change its form · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> in the fight</span></div>
         <div class="sb-grid kit three" id="sbforms"></div>
+        <div id="sbforce">
+          <div class="sec-label">THE FORCE <span class="sb-hint">How strongly your powers hit, and how practised each form is</span></div>
+          <div class="sb-pick"><span class="sb-pl">FORCE LEVEL</span><div class="sb-seg wide" id="sbflv"></div></div>
+          <div class="sb-pick"><span class="sb-pl">FORM MASTERY</span><div class="sb-seg wide" id="sbfmr"></div></div>
+        </div>
         <div class="sec-label" id="sbkitlbl">POWERS <span class="sb-hint">Powers on the same key are a pair: one at a time</span></div>
         <div class="sb-grid kit" id="sbkit"></div>
         <div class="sb-row">

@@ -228,7 +228,18 @@ thrownSaber.add(thrownBlade, thrownGlow);
 thrownGlow.userData.saberTrail = { hilt: -1 }; thrownSaber.userData.trailAlways = true;   // a streak the whole flight (fx/trail.js)
 thrownSaber.visible = false;
 scene.add(thrownSaber);
-export function hideThrownSaber(){ thrownSaber.visible = false; _throwLight.intensity = 0; }
+// JAR'KAI: the off-hand saber has a flyer of its own, so each blade can be thrown on its own (no light: see above)
+const offThrown = new THREE.Group();
+const offThrownGlow = new THREE.Mesh(thrownGlow.geometry, thrownGlow.material.clone());
+offThrown.add(new THREE.Mesh(thrownBlade.geometry, thrownBlade.material), offThrownGlow);
+offThrownGlow.userData.saberTrail = { hilt: -1 }; offThrown.userData.trailAlways = true;
+offThrown.visible = false;
+scene.add(offThrown);
+export function hideThrownSaber(){
+  thrownSaber.visible = false; _throwLight.intensity = 0;
+  if (shared.offProj){ offThrown.visible = false; shared.offProj = null; player.offAway = false; }
+}
+const dualHeld = () => !!(player.saberBladeRoot && player.saberBladeRoot.userData.dual && player.offSaber);
 // the hilt in the hand goes while the blade is in flight. Shrunk and dimmed, NOT hidden: its blade light is part of the
 // scene's light count, and hiding it (like adding one) makes three.js recompile every material, the throw hitch
 let _handLight = 0;
@@ -236,6 +247,7 @@ export function stowHandSaber(away){
   const h = player.saberHand, B = player.blade;
   if (!h) return;
   h.scale.setScalar(away ? 1e-4 : 1);
+  player.mainAway = away;   // (Jar'Kai: the left saber stays in its hand while the right one flies: model/weapons.js syncOffSaber)
   if (!B) return;
   if (away){ if (B.light.intensity > 0) _handLight = B.light.intensity; B.light.intensity = 0; }
   else if (_handLight && !(player.holstered && !isGunner())){ B.light.intensity = _handLight; }
@@ -243,7 +255,25 @@ export function stowHandSaber(away){
 export function saberThrow(){
   const A = abil('throw');
   const cost = fcost(A.cost);
-  if (!G.unlocked.throw || player.cds.throw > 0 || player.force < cost || shared.saberProj || G.mode !== 'play') return;
+  if (!G.unlocked.throw || player.force < cost || shared.saberProj || G.mode !== 'play') return;
+  // JAR'KAI throws one saber at a time: the left one first while the right fights on, then the right one too
+  // (the left one still cooling down from its own throw: the right one goes instead)
+  if (dualHeld() && !player.offAway && !shared.offProj && !player.holstered && !(player.cds.throwOff > 0)){
+    player.force -= cost; player.cds.throwOff = A.cd * (stance().cdMult || 1); trainAbility('throw');
+    player.cds.throw = Math.max(player.cds.throw, 0.3);   // (a beat before the right one can follow it)
+    faceAbilityAim(A.range);
+    castGesture('push', 0.3);
+    const n = player.offSaber.node, start = new THREE.Vector3();
+    n.updateWorldMatrix(true, false); start.setFromMatrixPosition(n.matrixWorld);
+    const aim = aimFrom(start);
+    offThrownGlow.material.color.setHex(stance().blade);
+    offThrown.rotation.set(0, 0, Math.PI/2); offThrown.position.copy(start); offThrown.visible = true;
+    player.offAway = true;
+    shared.offProj = { mesh: offThrown, dir: aim.dir.clone(), traveled: 0, returning: false, hitSet: new Set(), off: true };
+    S.swing();
+    return;
+  }
+  if (player.cds.throw > 0) return;
   player.force -= cost; player.cds.throw = A.cd * (stance().cdMult || 1); trainAbility('throw');
   faceAbilityAim(A.range);   // line the throw up on the nearest target
   castGesture('push', 0.3);  // face the throw direction
@@ -263,8 +293,12 @@ export function saberThrow(){
   S.swing();
 }
 export function updateSaberThrow(dt){
-  if (!shared.saberProj) return;
-  const A = abil('throw'), sp = shared.saberProj;
+  if (shared.saberProj) flyThrown(shared.saberProj, dt);
+  if (shared.offProj) flyThrown(shared.offProj, dt);
+}
+// one thrown blade: out down its line to the end of its reach (or the floor, or a prop), then back to the hand
+function flyThrown(sp, dt){
+  const A = abil('throw');
   const pp = playerPos();
   if (!sp.returning){
     sp.mesh.position.addScaledVector(sp.dir, A.speed * dt);
@@ -279,15 +313,16 @@ export function updateSaberThrow(dt){
     TMP.set(pp.x, pp.y + 1.5, pp.z).sub(sp.mesh.position);
     const d = TMP.length();
     if (d < 1.2){
-      sp.mesh.visible = false; shared.saberProj = null; throwLight().intensity = 0;
-      stowHandSaber(false);
+      sp.mesh.visible = false;
+      if (sp.off){ shared.offProj = null; player.offAway = false; }   // (caught in the left hand)
+      else { shared.saberProj = null; throwLight().intensity = 0; stowHandSaber(false); }
       return;
     }
     TMP.normalize();
     sp.mesh.position.addScaledVector(TMP, A.speed * 1.3 * dt);
   }
   sp.mesh.rotation.y += dt * 22;
-  throwLight().position.copy(sp.mesh.position);
+  if (!sp.off) throwLight().position.copy(sp.mesh.position);
   // the spinning blade smears into a disc of light: short-lived flat echoes laid down along its flight
   sp.echoT = (sp.echoT || 0) - dt;
   if (sp.echoT <= 0){
@@ -391,7 +426,7 @@ export function forceRepulse(){
   dustRing(pp, radius * 0.8);
   screenFlash('radial-gradient(ellipse at center, rgba(150,210,255,'+(up?0.55:0.4)+'), transparent 60%)', up ? 0.9 : 0.6, 0.32);
   G.shake = Math.max(G.shake, up ? 1.5 : 1.1); G.hitstop = Math.max(G.hitstop, 0.1);
-  S.slam(); S.boom(null, up ? 1.4 : 1); S.push();
+  S.repulse(null, up);
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
     TMP.subVectors(e.group.position, pp);
@@ -470,7 +505,7 @@ export function forceMend(){
   player.mendT = player.mendMax = MEND_CHANNEL;   // begin the channel — the heal lands when it completes
   const pp = playerPos();
   spawnGroundShock(pp.clone().setY(0.1), 0x6fd0ff, 2.4, 0.55, 0.5);   // a BLUE force ring blooms as you start
-  S.push(); sfx(240, 0.5, 'sine', 0.09, 760); sfx(360, 0.5, 'sine', 0.06, 1020);   // a rising channel hum (wind-up cue)
+  S.mend();   // the channel turns inward: a riser, a bowl, a heartbeat, and the world goes muffled (audio/force.js)
   floater(V3(pp.x, 1.0, pp.z), 'MENDING…', '#bfe8ff');
 }
 // the channel succeeded — knit the wound and erupt in green light
@@ -485,7 +520,8 @@ export function mendComplete(){
   sparks(V3(pp.x, pp.y + 1.2, pp.z), 0x7bffae, 10, 7, { dir: V3(0, 1, 0), cone: 0.8, life: 0.4, grav: -2 });
   screenFlash('radial-gradient(ellipse at center, rgba(80,255,140,.32), transparent 60%)', 0.5, 0.36);
   floater(V3(pp.x, 1.0, pp.z), '+' + healed, '#7bffae');
-  sfx(440, 0.35, 'sine', 0.13, 980); sfx(880, 0.3, 'sine', 0.08, 1500);   // a bright restorative chime
+  if (isGunner()){ sfx(440, 0.35, 'sine', 0.13, 980); sfx(880, 0.3, 'sine', 0.08, 1500); }   // the Mando's bacta: a bright restorative chime
+  else S.mendDone();   // the Jedi's Mend: a bowl and a choir bloom, and the world comes back in
 }
 
 /* FORCE JUDGEMENT — channel chain lightning through the front cone */
@@ -540,5 +576,5 @@ export function updateJudgement(dt){
     tpos.push(V3(end.x + side.x*rand(-1.2, 1.2), end.y + rand(-0.4, 0.5), end.z + side.z*rand(-1.2, 1.2)));
   }
   player.judgeTargets = tpos;
-  S.arc(tpos[0]);
+  S.arc(tpos[0], true);
 }

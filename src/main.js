@@ -110,7 +110,7 @@ import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush } from './ene
 import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
 import { bladeSegment } from './player/jedi/bladehit.js';
 import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partner.js';
-import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft } from './allies/squad.js';
+import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, duelRingOn } from './allies/squad.js';
 import { updateWheel, wheelOpen } from './allies/wheel.js';
 import { downed } from './game/revive.js';
 import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/story.js';
@@ -233,7 +233,7 @@ window.GAME = { shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMa
   duel: { DUEL, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint, bladeSegment, lockPush },
   scars: { scarBody, severLimbs },
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
-  squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed },
+  squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn },
   aim: { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim },
   get boss(){ return shared.boss; }, get saberProj(){ return shared.saberProj; }, get darkProj(){ return shared.darkProj; } };
 

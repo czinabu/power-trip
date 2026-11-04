@@ -726,6 +726,15 @@ function hurtStatus(ev, n){ return (n > 1 ? n + ' ' + (heroKey(ev.name) || 'EVAC
 function hitEvacuee(s, k, by, how){
   if (k.down > 0 || !M.o || !M.o.evacuees) return;
   const o = M.o, ev = evac(o), p = k.m.position;
+  // a line you're walking out has you right beside it, so the fire meant for you comes its way: a stray bolt or a blast
+  // (a grenade lobbed at you) only makes them stagger. A shot aimed at them (a trooper sent at the line) puts them down
+  if (s.travel && !(how === 'bolt' && by && by.src && by.src.civShot)){
+    const d = by && by.dir, bp = by && by.ball && by.ball.position;
+    if (d) k.shove(d.x * 0.5, d.z * 0.5);
+    else if (bp){ const dx = p.x - bp.x, dz = p.z - bp.z, l = Math.hypot(dx, dz) || 1; k.shove(dx / l * 0.8, dz / l * 0.8); }
+    else k.flinch = 0.5;
+    return;
+  }
   k.down = EVAC_HIT.down; k.flinch = 0;
   const dir = by && by.dir ? by.dir : null;
   k.fy = dir ? Math.atan2(dir.x, dir.z) : how === 'blast' && by && by.ball ? Math.atan2(p.x - by.ball.position.x, p.z - by.ball.position.z) : k.m.rotation.y + Math.PI;

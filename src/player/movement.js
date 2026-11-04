@@ -11,6 +11,7 @@ import { fwd, rightV, playerPos, stance } from './helpers.js';
 import { cancelSwing } from './jedi/combat.js';
 import { STEP_UP } from '../world/collision.js';
 import { flipStyle, launchFlip } from './anim/agility.js';
+import { tryOverflip } from './jedi/overflip.js';
 import { MOVE } from '../data/movement.js';
 import { tryVault, findLedge, startMantle, requestRoll, hangClimb, wallBeside } from './parkour.js';
 import { tutEvent } from '../game/tutor-bus.js';
@@ -124,6 +125,8 @@ export function doJump(){
   if (player.landStagT > 0) return;   // knees still buckled from a hard landing
   // (in a fight the evade spends a dash charge; with none left it's a plain jump out of the guard)
   const fight = inCombat();
+  // ATARU — guard up, W and SPACE with a foe close in front: the FLIP OVER it, landing at its back (jedi/overflip.js)
+  if (fight && player.blockHeld && player.grounded && keys['w'] && stance().overflip && tryOverflip()) return;
   if (player.blockHeld && player.grounded && (!fight || !MOBILITY.air.evadeCharge || spendCharge())){
     // FORCE-ASSISTED EVADE out of the guard — a long, clean acrobatic leap that carries you clear.
     //   W = FRONT handspring · A/D = SIDE flip · S/neutral = BACK flip. Out of a fight the i-frames last the whole

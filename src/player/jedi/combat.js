@@ -33,6 +33,8 @@ import { momentumStrike } from '../parkour.js';
 import { MOVE } from '../../data/movement.js';
 import { pickCut } from './cutaim.js';
 import { CUT_ANGLE } from '../../data/stances.js';
+import { disarmBlade } from '../../enemies/disarm.js';
+import { OVERFLIP } from './overflip.js';
 import { lineCatch, ripostePattern } from './guardline.js';
 import { addFury, furyMul } from './fury.js';
 import { tryFinisher, finisherStrike, endFinisher, finishType } from './finisher.js';
@@ -74,6 +76,9 @@ export function tryAttack(flow = false){
   if (!isGunner() || player.weapon === 'darksaber'){
     let cost = (player.riposteT > 0 && freeRiposte()) ? 0 : st.stamina * (step === 2 ? 1.4 : 1);   // UNLEASHED: the riposte is free
     // JUYO burns Force with every swing; with too little Force left the swing takes it out of the body instead (×2 stamina)
+    // ATARU'S EXHAUSTION (lore): each cut in an unbroken run costs more than the last, so it wins in bursts or not at all
+    const SR = !isGunner() && st.strain, run = SR && G.gt - (player.lastAtkEnd ?? -9) < SR.gap ? (player.strainRun || 0) + 1 : 0;
+    if (SR) cost *= 1 + SR.per * Math.min(run, SR.max);
     const fs = !isGunner() && st.forceSwing && cost > 0 ? st.forceSwing : 0;
     if (fs && player.force < fs) cost *= 2;
     if (player.stam < cost){
@@ -82,6 +87,7 @@ export function tryAttack(flow = false){
     }
     player.stam -= cost;
     player.stamDelay = stamDelay();
+    if (SR) player.strainRun = run;
     if (fs && player.force >= fs) player.force -= fs;
   }
   player.comboStep = step;
@@ -139,6 +145,9 @@ export function tryAttack(flow = false){
     launchFlip({ ...flipStyle('double'), t: 0, dur: 0.42, side: 1 }, 'fwd');
     floater(playerPos(), 'POLE VAULT', '#ffd23a');
     tutEvent('polevault');
+  }
+  if (mom === 'overflip'){   // ATARU: the cut straight out of the FLIP OVER, into the back it landed behind (jedi/overflip.js)
+    floater(playerPos(), 'STRIKE TO THE BACK', '#7fe0ff');
   }
   if (mom === 'swoop'){
     lunge *= 2; player.vy = Math.max(player.vy, 4.5); player.grounded = false;
@@ -305,6 +314,7 @@ export function applySwingDamage(step, only){
   const mom = sw0 && sw0.mom;
   if (mom){ dmg *= MOVE.flow.strikeDmg; knock *= MOVE.flow.strikeKnock; }
   if (mom === 'polevault') knock = Math.max(knock, FINISHER_FLOOR);   // POLE VAULT: the feet land on it and floor it
+  if (mom === 'overflip') dmg *= OVERFLIP.dmg;   // ATARU's FLIP OVER: the cut into the back lands harder, and no guard turns it (below)
   if (st.airCutDmg && !player.grounded) dmg *= st.airCutDmg;   // ATARU: a cut struck off the ground lands harder
   // FAST cleaves wide through crowds; STRONG is a narrow, focused blow. FAST's finisher fans ~10% wider still.
   const radius = (finisher ? CFG.player.hitRadius + 1 : CFG.player.hitRadius) * (st.radiusMult || 1)
@@ -345,7 +355,7 @@ export function applySwingDamage(step, only){
       if (riposte && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
         turned++; if (!blocker){ blocker = e; blockAt = sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at; } return false;
       }
-      if (!riposte && !back){
+      if (!riposte && !back && mom !== 'overflip'){
         const pre = sw0 && sw0.duel && sw0.duel.get(e);
         const at = pre === undefined && only && only.length ? contactPoint(e) : undefined;
         const dres = pre !== undefined ? pre : duelDefend(e, line, finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
@@ -368,6 +378,9 @@ export function applySwingDamage(step, only){
       if (!riposte && !e.dead) interruptEnemy(e, f, finisher || st.form === 'djemso' || isDark);   // striking first beats a wind-up
       if (mom === 'slide' && !riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a SLIDE CUT sweeps the legs out
       if (riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a RIPOSTE floors what it answers — a true counter, wide open after
+      // MAKASHI — BIND AND DISARM: the riposte off a bound blade takes it out of the duellist's hand (enemies/disarm.js)
+      if (riposte && st.bind && !e.dead && disarmBlade(e, f.x, f.z, st.bind)) tutEvent('disarm');
+      if (mom === 'overflip' && !e.dead && !sw0.overHit){ sw0.overHit = true; tutEvent('flipStrike'); }
       // DISARMING SLASH (Shii-Cho) — the finisher knocks a blaster trooper's gun out of its hands for a while (enemies/ai.js)
       if (finisher && st.disarm && e.t.ranged && !e.dead && !e.converted && !(e.disarmUntil > G.gt)){
         e.disarmUntil = G.gt + st.disarm; floater(e.group.position, 'DISARMED', '#9cc4ff');

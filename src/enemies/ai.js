@@ -30,6 +30,7 @@ import { updateDuel, planAttack, quickStrike, windupPose, strikePose, maybeFeint
 import { TROOP_MELEE, TROOP_FIRE, GRENADE } from '../data/tactics.js';
 import { tickTactics, planTroopMelee, troopFeint, holdTremble, planShot, approachSteer, tryOrder, updateOrder, tryLunge, updateLungeWind,
   updateLunge, dropLungeLine } from './tactics.js';
+import { bindBlade, BIND } from './disarm.js';
 import { removeEnemy } from './cleanup.js';
 import { throwGrenade } from './grenades.js';
 import { updateLegs } from './gait.js';
@@ -328,7 +329,8 @@ export function updateEnemies(dt){
           // the hero is DOWN (game/revive.js): a blade doesn't finish them, it circles and waits; the squad is coming
           else if (!t.ranged && !e.converted && !onAlly && hero.down){ /* hold */ }
           // DISARMED (Shii-Cho's Disarming Slash, player/jedi/combat.js): its blaster is on the ground for a few seconds
-          else if (t.ranged && !e.converted && e.disarmUntil > G.gt){ /* empty-handed — keeps its distance */ }
+          // (or a duellist's blade, bound and taken by Makashi: enemies/disarm.js, until it calls it back to its hand)
+          else if (!e.converted && (t.ranged ? e.disarmUntil > G.gt : !!e.disarm)){ /* empty-handed — keeps its distance */ }
           // RANGED SLOTS: only a few troopers aim at once, so a firing line staggers its shots
           else if (t.ranged && !e.converted && !onAlly && !tgtCiv && !rangedSlotFree(t, hero)){ /* hold — sidestep and wait */ }
           // the Warbringer out of breath can't swing: it stands blowing until it has recovered (duel.js)
@@ -483,8 +485,12 @@ export function updateEnemies(dt){
                 // a duellist may keep the EXCHANGE going: it recovers to meet your riposte instead of reeling (duel.js)
                 // VAAPAD finds the SHATTERPOINT: the next cut on this foe lands double (player/jedi/combat.js)
                 if (!isGunner() && stance().shatter){ e.shatterUntil = G.gt + 4; burst(V3(g.position.x, 1.6, g.position.z), 0xd08bff, 10, 3, 2); }
-                if (rallyOnParry(e)) break;
-                if (!(e.dp && e.dp.brace && addPosture(e, DUEL.posture.parry, -tx, -tz))) staggerEnemy(e, -tx, -tz);
+                // MAKASHI binds a duellist's blade: no exchange, and the riposte off the bind disarms it (disarm.js)
+                // (held there, open, rather than reeling: the answer is the riposte, not a finisher)
+                const bound = !isGunner() && !!stance().bind && bindBlade(e);
+                if (!bound && rallyOnParry(e)) break;
+                if (bound){ e.state = 'recover'; e.st = BIND.window; e.openUntil = G.gt + BIND.window; }
+                else if (!(e.dp && e.dp.brace && addPosture(e, DUEL.posture.parry, -tx, -tz))) staggerEnemy(e, -tx, -tz);
                 drainBreath(e, DUEL.breath.parried);
                 break;
               } else if (res === 'blocked'){

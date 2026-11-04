@@ -32,6 +32,7 @@ import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
 import { ringOpacity, bladeCue } from './guardcue.js';
 import { cutMul } from '../player/jedi/weight.js';
 import { forceCostMul } from '../data/force-level.js';
+import { updateDisarm, endDisarm } from './disarm.js';
 // a light cut strains a guard a little less, a heavy one far more (player/jedi/weight.js); other blows keep their own
 const weighed = kind => kind === 'cut' || kind === 'finisher' ? cutMul(player.swing, 'posture') : 1;
 
@@ -170,6 +171,7 @@ const showsGuard = e => e.dp && e.dp.block >= 0.4;
 /* ---------------- per-frame (called from ai.js for every living duelling foe) ---------------- */
 export function updateDuel(e, dt, dist){
   const g = e.group, p = e.dp;
+  if (e.disarm) updateDisarm(e, dt);   // MAKASHI took its blade: the hilt in flight, on the floor, or coming back (disarm.js)
   // posture drains back once the foe has been left alone for a moment
   if (e.posture > 0 && G.gt - e.postureAt > DUEL.posture.regenDelay) e.posture = Math.max(0, e.posture - DUEL.posture.regen * dt);
   // breath comes back once it stops spending; winded, it stays out of the fight until it has enough of it again
@@ -217,7 +219,7 @@ export function updateDuel(e, dt, dist){
       g.position.x += ax / al * v * dt; g.position.z += az / al * v * dt;
     } else e.skipT = 0;
   }
-  const guarding = !p.brace && GUARDING[e.state] && dist < DUEL.guardRange && !e.converted;   // (a bracing foe holds no guard: no pose, no arc)
+  const guarding = !p.brace && GUARDING[e.state] && dist < DUEL.guardRange && !e.converted && !e.disarm;   // (a bracing foe holds no guard: no pose, no arc; nor a disarmed one, empty-handed)
   // hold the weapon on the guarded line (the readable tell), back to the carry otherwise
   if (guarding && !(e.dodgeT > 0)){
     readCut(e, dist);
@@ -229,7 +231,7 @@ export function updateDuel(e, dt, dist){
   // the real tell (data/foe-stances.js), so the crescent fades as you learn to read it (GUARD RINGS: enemies/guardcue.js)
   if (showsGuard(e)){
     if (!g.userData.guardArc) makeGuardArc(e);
-    const a = g.userData.guardArc, up = guarding && !e.dead && !e.winded;   // winded: the guard is down
+    const a = g.userData.guardArc, up = guarding && !e.dead && !e.winded;   // (disarmed: no guard, so no arc)   // winded: the guard is down
     const read = up && e.lineStreak >= DUEL.adaptAfter;
     e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
     if (up){
@@ -270,6 +272,7 @@ export function updateDuel(e, dt, dist){
 }
 
 export function cleanupDuel(e){
+  endDisarm(e);   // (a hilt still lying where Makashi sent it goes with the body)
   if (e.postBar){ scene.remove(e.postBar); e.postBar = null; }
   if (e.formTag){ e.formTag.material.map.dispose(); e.formTag.material.dispose(); e.formTag = null; }   // (it rides the body, which goes with it)
 }
@@ -597,7 +600,7 @@ export function stringDone(e){
 export function duelDefend(e, line, kind, heavy, at){
   if (e.net) return netDefend(e, line, kind, heavy, at);   // a co-op guest's blow on the host's duellist (below)
   const p = e.dp;
-  if (!p || e.dead || e.converted || !GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0) return null;
+  if (!p || e.dead || e.converted || !GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0 || e.disarm) return null;
   const g = e.group, pp = playerPos();
   const efx = Math.sin(g.rotation.y), efz = Math.cos(g.rotation.y);
   const dx = pp.x - g.position.x, dz = pp.z - g.position.z, dl = Math.hypot(dx, dz) || 1;
@@ -702,7 +705,7 @@ function decide(e, line, kind, rhyN){
 // can it answer a blow from you at all right now (facing you, guard up, not caught open or winded, not a brace)?
 function canGuard(e){
   const p = e.dp;
-  if (!p || p.brace || e.dead || e.converted || !GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0) return false;
+  if (!p || p.brace || e.dead || e.converted || !GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0 || e.disarm) return false;
   if (G.gt < (e.openUntil || 0) || e.winded) return false;
   const g = e.group, pp = playerPos();
   const dx = pp.x - g.position.x, dz = pp.z - g.position.z, dl = Math.hypot(dx, dz) || 1;
@@ -747,12 +750,12 @@ export function guardImpact(e, amt){
   return addPosture(e, amt, dx / dl, dz / dl);
 }
 // is this foe holding a guard right now (facing you, not mid-swing)?
-export const isGuarding = e => e.net ? !!(e.ng && e.ng[1]) && !e.dead : !!e.dp && !!GUARDING[e.state] && !e.converted && !e.dead;
+export const isGuarding = e => e.net ? !!(e.ng && e.ng[1]) && !e.dead : !!e.dp && !!GUARDING[e.state] && !e.converted && !e.dead && !e.disarm;
 
 /* ---------------- a saber user bats your blaster bolt straight back ---------------- */
 export function deflectPlayerBolt(e, b){
   const p = e.dp;
-  if (!p || !p.deflect || e.dead || e.converted || !(GUARDING[e.state] || e.state === 'windup')) return false;
+  if (!p || !p.deflect || e.dead || e.converted || e.disarm || !(GUARDING[e.state] || e.state === 'windup')) return false;
   const g = e.group;
   const efx = Math.sin(g.rotation.y), efz = Math.cos(g.rotation.y);
   if (-(b.dir.x * efx + b.dir.z * efz) < 0.4) return false;   // only what comes at its front
@@ -1071,7 +1074,7 @@ const line0 = e => LINES[e.ng ? e.ng[NG.line] : 2] || 'H';
 export function duelRec(e){
   const p = e.dp;
   if (!p) return 0;
-  const up = !p.brace && GUARDING[e.state] && !e.converted && !(e.stunT > 0) && !(e.dodgeT > 0) && !(G.gt < (e.openUntil || 0)) && !e.winded;
+  const up = !p.brace && GUARDING[e.state] && !e.converted && !e.disarm && !(e.stunT > 0) && !(e.dodgeT > 0) && !(G.gt < (e.openUntil || 0)) && !e.winded;
   return [Math.max(0, LINES.indexOf(e.guard)), up ? 1 : 0, Math.round(clamp(e.posture / p.posture, 0, 1) * 100),
     e.breath != null ? Math.round(clamp(e.breath / e.breathMax, 0, 1) * 100) : -1, e.lineStreak >= DUEL.adaptAfter ? 1 : 0,
     Math.round((p.block || 0) * 100), p.brace ? 1 : 0, e.winded ? 1 : 0,

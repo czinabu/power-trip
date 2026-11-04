@@ -363,12 +363,12 @@ export function burn(pos, pw){
      the "pyew"   (+0.01)  a blaster bolt's guy-wire chirp and its echoes (pyew), up front over the short
      the sparks   (+0.04)  a scatter of crackle and a fizz of high hiss dying away
    All on the clash bus (engine.js glue compressor). The form tunes the surge (its hum pitch) and how long the arc spits
-   (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, arc rate and a
+   (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, length (a short spit to a long tear), arc rate and a
    slight pan drift, so a duel never repeats; a big hit (a parry, a bind) is heavier and longer all through. */
 export function clash(pos, big, form){
   form = form || (!isGunner() ? G.stance : null);   // (no form named: the hero's own blade)
   const v = FORM_SOUND[form] || FORM_SOUND.niman, dm = v.damp, k = (big ? 1.3 : 1) * rand(0.86, 1.06);
-  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.9, 1.15);
+  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.94, 1.06), len = (big ? 0.42 : 0.28) * Math.min(1.3, dm) * rand(0.65, 1.5);   // short spits to long tearing ones
   const drift = (Math.random() < 0.5 ? -1 : 1) * rand(0.06, 0.16), buzz = rand(55, 85);   // the arc's buzz rate (Hz)
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
   const CN = o => C(Object.assign({ src: 'noise' }, o));
@@ -393,7 +393,7 @@ export function clash(pos, big, form){
 
   // the blaster bolt's "PYEW" off the strike (the guy-wire chirp and its echoes, pyew below), up front in the mix, the
   // hero's hum dipping for it
-  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 1.6 : 1.4), rand(0.86, 1.06)); }
+  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 1.6 : 1.4)); }
   if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one shower of sparks between them
   // the sparks fizzing away
   CN({ at: 0.04, g: 0.035 * k, a: 0.01, d: len * 1.4 * dm, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });
@@ -413,18 +413,26 @@ export function wall(pos, first, dark){
 }
 
 /* the blaster's "PYEW" thrown off every clash and bolt deflect: the guy-wire's falling chirp and its echoes ringing
-   back along the wire, then the last of it flying off across the stereo field */
-function pyew(pos, k, b){
+   back along the wire, then the last of it flying off across the stereo field. No two are alike: each rolls its own
+   pitch (about half an octave either way, never too near the last one's), where its fall ends, how long it rings (a
+   short zip to a long whining "pyeeew"), how far apart its echoes come and whether there are two or three of them */
+let lastPew = 1;
+function pyew(pos, k){
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  let b = rand(0.7, 1.35);
+  for (let i = 0; i < 4 && Math.abs(b / lastPew - 1) < 0.08; i++) b = rand(0.7, 1.35);
+  lastPew = b;
   const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
-  const drift = -side * rand(0.6, 1.1), tw = rand(0.13, 0.18);
-  for (const [echo, eg] of [[0, 1], [0.045, 0.45], [0.09, 0.2]])
+  const drift = -side * rand(0.6, 1.1), tw = rand(0.09, 0.3), end = rand(220, 420), gap = tw * rand(0.25, 0.4);
+  const echoes = Math.random() < 0.6 ? [[0, 1], [gap, 0.45], [gap * 2, 0.2]] : [[0, 1], [gap, 0.4]];
+  for (const [echo, eg] of echoes)
     for (const [mul, rate, g, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']])
-      C({ at: 0.01 + echo, type, f: 4600 * b * mul, f2: 300 * b * mul, ft: tw * rate, g: g * eg * k, a: 0.0012, d: tw * rate * 1.1,
+      C({ at: 0.01 + echo, type, f: 4600 * b * mul, f2: end * b * mul, ft: tw * rate, g: g * eg * k, a: 0.0012, d: tw * rate * 1.1,
           fm: { r: 0.5, i: 0.35, i2: 0.05 }, filt: { type: 'lowpass', f: 9000, f2: 1400, t: tw }, pdrift: drift * (0.4 + echo * 6),
           verb: 0.12, pri: echo ? 0 : 2 });
-  // the bolt flying off: the last of it, panning away and dulling
-  T({ pos, at: 0.04, type: 'square', f: 900 * b, f2: 220 * b, ft: 0.35, g: 0.02 * k, a: 0.02, d: 0.35,
+  // the bolt flying off: the last of it, panning away and dulling (a longer pyew trails off longer)
+  const fly = 0.35 * tw / 0.155;
+  T({ pos, at: 0.04, type: 'square', f: 900 * b, f2: 220 * b, ft: fly, g: 0.02 * k, a: 0.02, d: fly,
       filt: { type: 'lowpass', f: 3000, f2: 500 }, pdrift: drift, bus: 'clash', pri: 0 });
 }
 

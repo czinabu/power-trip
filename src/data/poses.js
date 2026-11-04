@@ -228,14 +228,16 @@ export const SABER_GUARDS = {
 };
 
 /* JAR'KAI WITH THE HANDS IN DIFFERENT GRIPS (data/forms.js DUAL_GRIPS: the right forward, the left reversed), keyed 'main/off': its own guards (Ahsoka,
-   The Clone Wars). Idle: crouched with both arms thrown out wide at the waist, the forward blade raised up and out, the
-   reversed one hung down and out. Block: the reversed fist raised high by the head with its blade hung down beside it,
+   The Clone Wars). Idle: the forward blade stood straight up by the shoulder, the reversed one laid level out past the
+   off hip from a fist before the waist. Block: the reversed fist raised high by the head with its blade hung down beside it,
    the forward fist low before the chest with its blade laid level across. Every other block: the reversed fist thrown
    up over the head with its blade level across above it, the forward blade level across the waist the other way. */
 export const DUAL_GUARDS = {
   'regular/reverse': {
-    ready: { hand: [0.58, -0.14, 0.12], blade: [0.8, 0.56, 0.12], twist: 0.04, lean: 0.2, pole: [0.75, -0.6, -0.3],
-             off: { hand: [-0.6, 0.0, 0.14], pole: [-0.6, -0.3, -0.75], sway: 0.3 }, offBlade: [-0.12, -0.96, 0.24] },
+    // the right fist up by the shoulder, its blade standing straight up; the reversed left fist low before the waist,
+    // its blade laid level out past the off hip
+    ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.18, lean: 0.16, pole: [0.9, -0.4, -0.2],
+             off: { hand: [-0.02, -0.08, 0.4], pole: [-0.9, -0.3, -0.3], sway: 0.3 }, offBlade: [-0.92, -0.14, 0.34] },
     block: { hand: [0.06, -0.06, 0.44], blade: [0.86, 0.08, 0.5], twist: 0.0, lean: 0.12, pole: [0.6, -0.75, -0.2],
              off: { hand: [-0.3, 0.4, 0.14], pole: [-0.85, 0.1, -0.5] }, offBlade: [-0.42, -0.86, 0.3] },
     block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, pole: [0.6, -0.75, -0.2],

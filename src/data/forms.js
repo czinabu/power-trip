@@ -171,6 +171,6 @@ export const FORM_CODEX = {
     cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },
   jarkai: { who: 'Ahsoka Tano, Asajj Ventress, Darth Revan, Starkiller', lore: 'Not a form but a way of fighting: a saber in each hand. Ventress and Revan held both blades forward, Ahsoka both reversed. The second blade is always coming, from the other side, before the first one is done.',
     best: 'Heavy hitters: Djem So, Juyo and the saber staff',
-    pros: ['Every cut is two: the off-hand blade follows the same way, a beat behind', 'Gets inside a heavy wind-up before it lands', 'Crossed blades: blocking a blade costs 15% less stamina', 'The finisher throws the off-hand saber on to the next foe', 'G cycles the grips: both forward, the off hand reversed, both reversed'],
+    pros: ['Every cut is two: the off-hand blade follows the same way, a beat behind', 'Gets inside a heavy wind-up before it lands', 'Crossed blades: blocking a blade costs 15% less stamina', 'The finisher throws the off-hand saber on to the next foe', 'G cycles the grips: both forward, mixed grip (right forward, left reversed), both reversed'],
     cons: ['A tight guard turns both beats: Soresu and Shii-Cho shut it down', 'A narrow arc that crowds punish, and little against armour', 'Two blades are less exact: deflected bolts scatter and cost 20% more', 'A hand comes off a hilt to cast: Force powers cost 20% more'] },
 };

@@ -2,7 +2,8 @@
 // FORCE SOUND: every Force power is built from layers, all synthesized, on its own bus.
 //
 //   TELEKINETIC (push, pull, repulse)   a localized sonic boom, not a whoosh:
-//       1 the pressure snap    a compressed crack of air, the frame the power lands on
+//       1 the pressure snap    a compressed crack of air, the frame the power lands on (push and pull lead with a
+//                              bass thump instead, a kick's pitch drop with only a whisper of edge)
 //       2 the displacement     a 40-60 Hz sub drop: the weight that moves the room
 //       3 the vacuum rip       a jet of torn air through a flanger with heavy feedback; its sweep crashes DOWN for a
 //                              push and rises UP for a pull, so you hear which way the Force is flowing
@@ -144,27 +145,34 @@ function snap(pos, s, self){
   VN({ pos, color: 'brown', g: 0.3 * s, a: 0.001, d: 0.085, filt: { type: 'lowpass', f: 1100, f2: 180 }, drive: 0.55 }, 'force', self);   // the air-cannon's bark
 }
 
+/* the bass thump push and pull lead with: a kick's fast pitch drop into the 40-60 Hz sub, a dull knock of air on top
+   (no bright crack: the weight is the impact). s scales it. */
+function thump(pos, s, self, at = 0){
+  V({ pos, at, type: 'sine', f: 150, f2: 46, ft: 0.07, g: 0.27 * s, a: 0.003, d: 0.2, pri: 2, jit: 0.02 }, 'force', self);
+  VN({ pos, at, color: 'brown', g: 0.22 * s, a: 0.002, d: 0.1, filt: { type: 'lowpass', f: 420, f2: 120 }, drive: 0.3 }, 'force', self);
+  VN({ pos, at, g: 0.025 * s, a: 0.001, d: 0.02, filt: { type: 'lowpass', f: 2200 } }, 'force', self);   // only a whisper of edge
+}
+
 /* ---------- telekinetic ---------- */
 
 export function push(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  snap(pos, 1, self);
-  V({ pos, type: 'sine', f: 60, f2: 38, g: 0.32, a: 0.006, d: 0.55, pri: 2 }, 'force', self);                  // the sub drop
-  V({ pos, type: 'triangle', f: 98, f2: 44, g: 0.1, a: 0.004, d: 0.3, filt: { type: 'lowpass', f: 260 } }, 'force', self);
-  rip({ pos, at: 0.008, g: 0.24, a: 0.014, dur: 0.44, f: 2800, f2: 300, d0: 0.0011, d1: 0.009 });              // crashing downward
-  if (self) duck(0.22, 0.08);
+  thump(pos, 1, self);
+  V({ pos, type: 'sine', f: 58, f2: 34, g: 0.32, a: 0.008, hold: 0.06, d: 0.65, pri: 2 }, 'force', self);       // the sub drop, held so it rattles
+  V({ pos, type: 'triangle', f: 88, f2: 40, g: 0.12, a: 0.006, d: 0.38, filt: { type: 'lowpass', f: 220 } }, 'force', self);
+  rip({ pos, at: 0.02, g: 0.13, a: 0.03, dur: 0.42, f: 1400, f2: 180, d0: 0.0016, d1: 0.011, q: 0.7, color: 'brown', verb: 0.25 });   // a deep rush, crashing down
+  if (self) duck(0.25, 0.1);
 }
 
-// the pull: the air drawn IN — a smaller snap, the rip rising, the sub swelling as the target is dragged in, a thud as it lands
+// the pull: the air drawn IN — the sub swelling up as the target is dragged toward you, the rush rising, a thump as it lands
 export function pull(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  snap(pos, 0.6, self);
-  rip({ pos, g: 0.22, a: 0.2, dur: 0.34, f: 320, f2: 3200, d0: 0.009, d1: 0.0011 });                           // rising
-  V({ pos, type: 'sine', f: 38, f2: 60, g: 0.26, a: 0.18, d: 0.2, pri: 2 }, 'force', self);
-  V({ pos, at: 0.22, type: 'sine', f: 110, f2: 46, g: 0.14, d: 0.16 }, 'force', self);
-  VN({ pos, at: 0.22, color: 'brown', g: 0.12, d: 0.1, filt: { type: 'lowpass', f: 600 } }, 'force', self);
+  V({ pos, type: 'sine', f: 34, f2: 58, g: 0.27, a: 0.2, d: 0.14, pri: 2 }, 'force', self);
+  rip({ pos, g: 0.12, a: 0.2, dur: 0.3, f: 180, f2: 1300, d0: 0.011, d1: 0.0016, q: 0.7, color: 'brown', verb: 0.25 });   // rising
+  thump(pos, 0.85, self, 0.2);
+  V({ pos, at: 0.2, type: 'sine', f: 56, f2: 36, g: 0.2, a: 0.006, d: 0.4 }, 'force', self);
 }
 
 // the repulse: the push gone round all of you at once — a harder snap, a deeper and longer drop, a rip in each ear

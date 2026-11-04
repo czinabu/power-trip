@@ -15,8 +15,20 @@ import { playerPos, stance, bladeColor, heldGrip } from '../helpers.js';
 import { applySaberGrip, setSaberStaff, setSaberDual } from '../model/weapons.js';
 import { FORCE_MAX, FORM_MASTERY, forceLevel, forceShare, formRank } from '../../data/force-level.js';
 import { onFormRank } from '../../game/upgrades.js';
+import { FAMILIES, FORM_FAMILY } from '../../data/foe-forms.js';
 
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
+
+/* the form's counter group beside its name on the chip, the same shapes the duellists' badges wear (enemies/foeform.js
+   familyIcon): chevrons SPEED, a burst POWER, a shield GUARD, a ring for a form outside the triangle. Shape and colour
+   both, so the group reads without telling colours apart. */
+const FAM_PATH = {
+  speed: '<path d="M2 3l4 5-4 5M8 3l4 5-4 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  power: '<path d="M8 1.5l1.3 4 3.9-1.6-1.9 3.6 3.6 1.9-4 .9.9 4-3.8-2-3.8 2 .9-4-4-.9 3.6-1.9-1.9-3.6 3.9 1.6z" fill="currentColor"/>',
+  guard: '<path d="M8 1.5l5 2-.3 5c-.3 3-2.5 5-4.7 6-2.2-1-4.4-3-4.7-6L3 3.5z" fill="currentColor"/>',
+  none:  '<circle cx="8" cy="8" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/>',
+};
+const famIcon = (id) => { const f = FORM_FAMILY[id], F = FAMILIES[f]; return '<svg class="sfam" viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" style="color:' + (F ? F.color : '#cfd6e0') + '">' + FAM_PATH[F ? f : 'none'] + '</svg>'; };
 
 /* ---------- the HUD: one chip per loadout slot ---------- */
 let _synT = 0, _synSeen = null;   // (the hint last set: it shows again only when it changes)
@@ -27,7 +39,7 @@ export function setStanceHud(){
     if (!chip) continue;
     const id = G.loadout[i], f = id && FORMS[id];
     chip.classList.toggle('empty', !f);
-    chip.querySelector('.snm').textContent = f ? f.name : '—';
+    const nm = chip.querySelector('.snm'); if (f) nm.innerHTML = famIcon(id) + f.name.replace(/[&<>]/g, ''); else nm.textContent = '—';
     chip.querySelector('.sty').textContent = f ? f.tag : 'EMPTY';
     if (f) chip.style.setProperty('--c', hex(STANCES[id].blade)); else chip.style.removeProperty('--c');   // an emptied slot: skipped by 1 / 2 / 3, the wheel and the D-pad
     chip.classList.toggle('active', !!f && id === G.stance);

@@ -3,7 +3,7 @@
 // and the hero's, and the tag over its head that shows both (▲ your form counters it · ▼ its form counters yours).
 
 import * as THREE from 'three';
-import { FAMILIES, FORM_FAMILY, FOE_FORM_NAMES, MATCHUP, RANKS, RANK_ORDER, FOE_FORMS, NAMED_FORMS, BOSS_FORM, FORM_SWITCH, CAMPAIGN_RANK_CAP, MASTER_CAP, formEdge, foeProfile } from '../data/foe-forms.js';
+import { FAMILIES, FORM_FAMILY, FOE_FORM_NAMES, MATCHUP, matchupAt, RANKS, RANK_ORDER, FOE_FORMS, NAMED_FORMS, BOSS_FORM, FORM_SWITCH, CAMPAIGN_RANK_CAP, MASTER_CAP, formEdge, foeProfile } from '../data/foe-forms.js';
 import { STANCES } from '../data/stances.js';
 import { G, isGunner, enemies } from '../state.js';
 import { floater } from '../fx/floaters.js';
@@ -80,12 +80,13 @@ export function updateFormSwitch(e, dt){
   floater(V3(p.x, p.y + 2.6 * e.group.scale.y, p.z), 'CHANGES STANCE', '#ffb35a');   // (the badge shows to what)
 }
 
-// your edge on this foe: +1 your form counters its form, −1 its form counters yours, 0 even (the Mando: always even)
+// your edge on this foe: +1 your form counters its form, −1 its form counters yours, ±½ a lore edge (data/foe-forms.js
+// LORE_EDGES), 0 even (the Mando: always even)
 export const edgeOn = (e) => (e && e.ff && !isGunner()) ? formEdge(G.stance, e.ff) : 0;
 /* can the hero answer this form right now: a form in the loadout (1 / 2 / 3) that counters it? The wrong form only
    costs you when you had the right one to hand: a hero with only Shii-Cho is never punished for not switching */
 export const canCounter = (ff) => (G.loadout || []).some(id => id && formEdge(id, ff) > 0);
-export const matchup = (e) => { const k = edgeOn(e); return k > 0 ? MATCHUP.win : k < 0 && canCounter(e.ff) ? MATCHUP.lose : MATCHUP.even; };
+export const matchup = (e) => { const k = edgeOn(e); return k > 0 || (k < 0 && canCounter(e.ff)) ? matchupAt(k) : MATCHUP.even; };
 // × your saber's damage on it
 export const edgeMul = (e) => matchup(e).dmg;
 // the chance its sealed guard holds against your cut (its rank's seal, less when your form counters it)

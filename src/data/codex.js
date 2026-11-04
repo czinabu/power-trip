@@ -3,6 +3,7 @@
 
 import { PURGE, DRILL, MARSHAL, SQUAD } from './allies.js';
 import { FAMILIES, FORM_FAMILY, NAMED_FORMS, FOE_FORMS, BOSS_FORM } from './foe-forms.js';
+import { FORMS } from './forms.js';
 
 /* Every entry is short on purpose: a lore line, what it carries, two things to watch for and two ways to beat it.
    Counters name actions (PARRY, KICK, PUSH, DASH, BRACE), never keys, so they read the same on a keyboard, a pad or a phone.
@@ -76,7 +77,7 @@ const TROOPS = [
     lore: 'An old war droid with a spinning electrostaff.',
     weapons: ['Electrostaff'],
     watch: ['Its weapon sits on the side it guards (the ring shows it while you learn)', 'Mash and it parries you'],
-    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', 'Its staff is a SPEED form: a GUARD form (Soresu, Shii-Cho, Shien) counters it'] },
+    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', `Its staff is a SPEED form: a GUARD form (${familyForms('guard')}) counters it`] },
   { id: 'brute', name: 'BRUTE', kicker: 'HEAVY', threat: 3,
     lore: 'A wall of muscle and plate behind a vibro-maul.',
     weapons: ['Vibro-maul'],
@@ -90,12 +91,18 @@ const TROOPS = [
 ].map(e => ({ ...e, tab: 'troops', kind: 'type' }));
 
 /* the form counter (data/foe-forms.js): which family of forms beats a duellist's form, as a codex line */
-const FAMILY_FORMS = { power: 'Djem So, Juyo, Vaapad', guard: 'Soresu, Shii-Cho, Shien', speed: 'Makashi, Ataru, Jar\'Kai, the saber staff' };
+// the forms of a family, by name ('Soresu, Makashi, Vaapad'), straight from FORM_FAMILY so a regroup needs no edit here
+function familyForms(fam){
+  const nice = (id) => id === 'staff' ? 'the saber staff' : FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-|')(\w)/g, (m, a, b) => a + b.toUpperCase());
+  return Object.keys(FORMS).filter(id => FORM_FAMILY[id] === fam).map(nice).join(', ');
+}
 function counterLine(form){
   const fam = FORM_FAMILY[form];
+  if (form === 'niman') return 'Its form is NIMAN, the master of none: any form with a family has a slight edge on it';
+  if (form === 'shiicho') return 'Its form is SHII-CHO, outside the triangle: Makashi, made to beat it, has a slight edge on it';
   if (!fam) return null;
   const by = Object.keys(FAMILIES).find(k => FAMILIES[k].beats === fam);
-  return `Its form is ${FAMILIES[fam].name}: a ${FAMILIES[by].name} form counters it (${FAMILY_FORMS[by]})`;
+  return `Its form is ${FAMILIES[fam].name}: a ${FAMILIES[by].name} form counters it (${familyForms(by)})`;
 }
 // how a form master fights (data/foe-forms.js FORM_STYLE)
 const FORM = {

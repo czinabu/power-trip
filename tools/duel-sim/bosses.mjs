@@ -11,7 +11,7 @@ export function bossFoes(hpm){
     inquisitor:  champ('ataru', 'knight', 4, 1.1, 4),                                    // the refuge (act I)
     warden:      champ('djemso', 'knight', 4.5, 1.15, 9),                                // the archive (act II)
     rematch:     champ('ataru', 'knight', 5.5, 1.3, 14, { duel: { block: 0.78, posture: 170, feint: 0.45, chain: 3, counter: 0.6 } }),   // the act III rematch
-    grand:       champ('djemso', 'master', 4.5, 1.2, 18, { rep: ['djemso', 'makashi', 'soresu'] }),   // the Grand Inquisitor
+    grand:       champ('djemso', 'master', 4.5, 1.2, 18, { rep: ['djemso', 'ataru', 'soresu'] }),   // the Grand Inquisitor
     trialknight: champ('djemso', 'master', 4.5, 1.1, 14),                                // the Trial of the Knight
   };
 }

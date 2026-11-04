@@ -2,31 +2,37 @@
 // FOE FORMS: every saber NPC fights in one of the hero's lightsaber forms at a RANK, Jedi Academy style, and the forms
 // counter each other (rock, paper, scissors): switch to the form that beats your opponent's.
 
-/* THE TRIANGLE — every form belongs to a FAMILY, and each family beats the next:
-     POWER breaks GUARD   (Djem So, Juyo and Vaapad: heavy hits, fury and posture-breaking blows crush a high-defence
-                           setup)
-     GUARD outlasts SPEED (Soresu, Shii-Cho and Shien absorb a blitz with no wasted energy, and Shien sends the bolts
-                           home: Obi-Wan's Soresu against Maul)
-     SPEED outpaces POWER (Makashi, Ataru, Jar'Kai and the saber staff get inside a heavy wind-up before it lands:
-                           Dooku's Makashi against Anakin's Djem So)
-   Three families of forms for each side to pick from. The family is only the duel counter: each form keeps its own job
-   outside it (Shii-Cho is still the crowd form, Shien still sends bolts home).
-   Niman, the jack of all forms, sits outside it: no form counters it and it counters none. The Mandalorian has no form,
-   so for him every fight is even. */
+/* THE TRIANGLE — every form belongs to a FAMILY, and each family beats the next. The families follow the lore's own
+   matchups (Caleb's regroup, 2026-11-04, from the forms deep dive):
+     POWER breaks GUARD   (Djem So and Shien, Form V's two roads: Form V was made to fix Soresu's passivity, and
+                           Makashi's named weakness is raw power: Anakin's Djem So wearing Dooku down)
+     GUARD outlasts SPEED (Soresu, Makashi and Vaapad: tight, economical defence that a blitz burns itself out on:
+                           Obi-Wan's Soresu against Maul, Mace Windu's Vaapad turning a relentless attacker's fury back)
+     SPEED outpaces POWER (Ataru, Juyo, Jar'Kai and the saber staff get inside a heavy wind-up before it lands)
+   The family is only the duel counter: each form keeps its own job outside it (Shien still sends bolts home).
+   Two forms sit outside it: Niman, the jack of all forms, and Shii-Cho, the foundation every initiate starts on. No
+   family counters them and they counter none, but the LORE EDGES below give a few named pairs a half-strength edge.
+   The Mandalorian has no form, so for him every fight is even. */
 export const FAMILIES = {
   power: { name: 'POWER', beats: 'guard', color: '#ff8a4a' },
   guard: { name: 'GUARD', beats: 'speed', color: '#7ab8ff' },
   speed: { name: 'SPEED', beats: 'power', color: '#7dffa8' },
 };
 export const FORM_FAMILY = {
-  // Caleb's triangle (2026-11-04): Shien, the blaster-deflection form, guards; the staff's quick wheeling strings are speed;
-  // Niman stays outside it (it already draws the most on the Force: data/force-level.js)
-  djemso: 'power', juyo: 'power', vaapad: 'power',
-  makashi: 'speed', ataru: 'speed', staff: 'speed',
-  soresu: 'guard', shiicho: 'guard', shien: 'guard',
-  niman: null,
-  jarkai: 'speed',   // Jar'Kai: two blades that get inside a heavy wind-up, shut down by a tight guard
+  djemso: 'power', shien: 'power',
+  soresu: 'guard', makashi: 'guard', vaapad: 'guard',
+  ataru: 'speed', juyo: 'speed', staff: 'speed', jarkai: 'speed',
+  shiicho: null, niman: null,   // outside the triangle (the lore edges below still reach them)
 };
+/* LORE EDGES — named pairs outside the triangle, at `LORE_EDGE` of a full counter (MATCHUP is blended that far toward
+   win / lose): Niman is the master of none, so every form with a family has a slight edge on it; Makashi was made to
+   beat Shii-Cho's wide, disarming sweeps. `why` is the Forms page's line. */
+export const LORE_EDGE = 0.5;
+export const LORE_EDGES = [
+  { a: 'family', b: 'niman',   why: 'the master of none' },
+  { a: 'makashi', b: 'shiicho', why: 'Makashi was made to beat its wide sweeps' },
+];
+const loreHit = (x, y) => LORE_EDGES.some(L => L.b === y && (L.a === x || (L.a === 'family' && !!FORM_FAMILY[x])));
 // a fallback name for a foe form with no stance of its own (the hero's forms, the saber staff among them, are named by data/stances.js)
 export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
 
@@ -48,11 +54,24 @@ export const MATCHUP = {
   even: { seal: 1,   block: 1,    parry: 1,   posture: 1,    dmg: 1,    tricks: 1,   hurt: 1,    guard: 1,    window: 1 },
   lose: { seal: 1,   block: 1.15, parry: 1.15, posture: 0.85, dmg: 0.95, tricks: 1.15, hurt: 1.15, guard: 1.8,  window: 0.6 },
 };
-// +1: form `a` counters form `b` · -1: `b` counters `a` · 0: even (the same family, Niman, or no form)
+// +1: form `a` counters form `b` · -1: `b` counters `a` · ±LORE_EDGE: a lore edge (LORE_EDGES) · 0: even (the same
+// family, or no form)
 export function formEdge(a, b){
   const fa = FORM_FAMILY[a], fb = FORM_FAMILY[b];
-  if (!fa || !fb || fa === fb) return 0;
-  return FAMILIES[fa].beats === fb ? 1 : FAMILIES[fb].beats === fa ? -1 : 0;
+  if (fa && fb && fa !== fb) return FAMILIES[fa].beats === fb ? 1 : FAMILIES[fb].beats === fa ? -1 : 0;
+  return loreHit(a, b) ? LORE_EDGE : loreHit(b, a) ? -LORE_EDGE : 0;
+}
+// MATCHUP blended `k` (0…1) of the way from even toward win or lose (a lore edge is a half counter); cached
+const BLEND = {};
+export function matchupAt(k){
+  if (k >= 1) return MATCHUP.win;
+  if (k <= -1) return MATCHUP.lose;
+  if (!k) return MATCHUP.even;
+  const key = String(k);
+  if (BLEND[key]) return BLEND[key];
+  const to = k > 0 ? MATCHUP.win : MATCHUP.lose, a = Math.abs(k), o = {};
+  for (const f in MATCHUP.even) o[f] = MATCHUP.even[f] + (to[f] - MATCHUP.even[f]) * a;
+  return BLEND[key] = o;
 }
 
 /* RANKS — what a duellist knows. The rank is its move set and its reactions (data/duel.js DUEL_PROFILES has what each
@@ -166,7 +185,7 @@ export const NAMED_FORMS = {
   'THE CHALLENGER':       { form: 'staff',  rank: 'master' },
   'THE CLAN CHAMPION':    { form: 'staff',  rank: 'master' },
 };
-// the bosses: Darth Vexis fights in Juyo as a master (a speed form gets inside him); the Mandalorian boss has no form
+// the bosses: Darth Vexis fights in Juyo as a master (a guard form outlasts him); the Mandalorian boss has no form
 export const BOSS_FORM = { sith: { form: 'juyo', rank: 'master' } };
 
 /* MASTERS CHANGE FORM — the fight becomes a real back and forth: sit in a form that counters a master's for `after` s and
@@ -178,8 +197,8 @@ export const BOSS_FORM = { sith: { form: 'juyo', rank: 'master' } };
 export const FORM_SWITCH = {
   after: 6, cd: 15,
   named: {
-    'THE GRAND INQUISITOR': ['djemso', 'makashi', 'soresu'],
+    'THE GRAND INQUISITOR': ['djemso', 'ataru', 'soresu'],
     'THE ECHO':             ['djemso', 'soresu', 'ataru'],
   },
-  boss: { sith: ['juyo', 'makashi', 'soresu'] },
+  boss: { sith: ['juyo', 'djemso', 'soresu'] },
 };

@@ -396,7 +396,7 @@ export function clash(pos, big, form){
 
   // the blaster bolt's "PYEW" off the strike (the guy-wire chirp and its echoes, pyew below), up front in the mix, the
   // hero's hum dipping for it
-  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 1.6 : 1.4)); }
+  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 2 : 1.8)); }
   if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one shower of sparks between them
   // the sparks fizzing away
   CN({ at: 0.04, g: 0.035 * k, a: 0.01, d: len * 1.4 * dm, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });
@@ -417,12 +417,14 @@ export function wall(pos, first, dark){
 
 /* the blaster's "PYEW" thrown off every clash and bolt deflect: the guy-wire's falling chirp and its echoes ringing
    back along the wire, then the last of it flying off across the stereo field. Always the same length; no two share a
-   pitch: each rolls its own (about half an octave either way, never too near the last one's) */
+   pitch: each rolls its own (about half an octave either way, now and then up to ~10 semitones high, never too near the
+   last one's) */
 let lastPew = 1;
 function pyew(pos, k){
   const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
-  let b = rand(0.7, 1.35);
-  for (let i = 0; i < 4 && Math.abs(b / lastPew - 1) < 0.08; i++) b = rand(0.7, 1.35);
+  const roll = () => Math.random() < 0.3 ? rand(1.35, 1.75) : rand(0.7, 1.35);   // now and then a high, whining one
+  let b = roll();
+  for (let i = 0; i < 4 && Math.abs(b / lastPew - 1) < 0.08; i++) b = roll();
   lastPew = b;
   const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
   const drift = -side * rand(0.6, 1.1), tw = 0.155;

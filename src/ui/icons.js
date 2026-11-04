@@ -2,6 +2,8 @@
 // Line icons for upgrade cards, boons and HUD slots. Data tables keep their short glyph ids (ico:'⚡');
 // icon(glyph) swaps the glyph for a drawn SVG so every icon shares one stroke weight and style.
 
+import { FAMILIES, FORM_FAMILY } from '../data/foe-forms.js';
+
 const P = {
   cross:   '<path d="M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z"/>',
   spark:   '<path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8z"/><path d="M18.5 3.5v3M17 5h3"/>',
@@ -56,3 +58,15 @@ export const SLOT_ICON = {
   'ab-frag':'deto', 'ab-scan':'nova', 'ab-bshield':'shield', 'ab-ion':'bolt', 'ab-breach':'burst', 'ab-artillery':'comet', 'ab-strafe':'rocket',   // (the ARC trooper's)
 };
 export function icon(glyph, cls){ return GLYPH[glyph] ? svgIcon(GLYPH[glyph], cls) : glyph; }
+
+/* a form's counter group (data/foe-forms.js), the same shapes the duellists' badges wear (enemies/foeform.js familyIcon):
+   chevrons SPEED, a burst POWER, a shield GUARD, a ring for a form outside the triangle. Shape and colour both, so the
+   group reads without telling colours apart. On the HUD's loadout chips (player/jedi/stance.js) and the Forms page. */
+const FAM_PATH = {
+  speed: '<path d="M2 3l4 5-4 5M8 3l4 5-4 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  power: '<path d="M8 1.5l1.3 4 3.9-1.6-1.9 3.6 3.6 1.9-4 .9.9 4-3.8-2-3.8 2 .9-4-4-.9 3.6-1.9-1.9-3.6 3.9 1.6z" fill="currentColor"/>',
+  guard: '<path d="M8 1.5l5 2-.3 5c-.3 3-2.5 5-4.7 6-2.2-1-4.4-3-4.7-6L3 3.5z" fill="currentColor"/>',
+  none:  '<circle cx="8" cy="8" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/>',
+};
+export const famIcon = (id, size = 11, cls = 'sfam') => { const f = FORM_FAMILY[id], F = FAMILIES[f];
+  return '<svg class="' + cls + '" viewBox="0 0 16 16" width="' + size + '" height="' + size + '" aria-hidden="true" style="color:' + (F ? F.color : '#cfd6e0') + '">' + FAM_PATH[F ? f : 'none'] + '</svg>'; };

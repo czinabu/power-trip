@@ -6,7 +6,7 @@ import { shared, G, enemies, barrels, player, isGunner } from '../../state.js';
 import { stance } from '../helpers.js';
 import { pointHit, partsOf } from '../../enemies/bodyshape.js';
 import { meetBlades } from './clash.js';
-import { STAFF, saberIsStaff } from '../model/weapons.js';
+import { STAFF, saberIsStaff, saberIsDual } from '../model/weapons.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 export { bodyRadius } from '../../enemies/bodyshape.js';
 
@@ -38,6 +38,51 @@ export function farBladeSegment(outB, outT){
   return true;
 }
 const FB = new THREE.Vector3(), FT = new THREE.Vector3(), FPB = new THREE.Vector3(), FPT = new THREE.Vector3();
+// Jar'Kai's off-hand saber, base → tip, in world space (false unless it's in hand: data/forms.js jarkai)
+export function offBladeSegment(outB, outT){
+  if (isGunner() || !saberIsDual(player) || player.offAway) return false;
+  const node = player.offSaber.root, len = 0.18 + 1.6 * (stance().bladeLen || 1);
+  node.updateWorldMatrix(true, false);
+  outB.set(0, 0.12 * len, 0); node.localToWorld(outB);
+  outT.set(0, len, 0); node.localToWorld(outT);
+  return true;
+}
+const OB = new THREE.Vector3(), OT = new THREE.Vector3(), OPB = new THREE.Vector3(), OPT = new THREE.Vector3();
+/* JAR'KAI'S FOLLOW-UP — the off blade is swept the same way as the main one, every frame of the swing, and cuts while its
+   own stroke runs (`live`: anim/saber.js saberPose.offLive). It keeps its OWN list of who it has cut, so the follow-up
+   lands on a foe the lead blade already struck: that is the second beat. Returns the new targets (enemies only). */
+export function sweepOffBlade(sw, live){
+  if (!offBladeSegment(OB, OT)) return null;
+  if (!sw.opb){ sw.opb = OB.clone(); sw.opt = OT.clone(); }
+  OPB.copy(sw.opb); OPT.copy(sw.opt);
+  sw.opb.copy(OB); sw.opt.copy(OT);
+  if (!live) return null;
+  const cut = sw.offCut || (sw.offCut = new Set()), out = [], pts = [];
+  sweepPoints(OPB, OB, OPT, OT, pts);
+  const at = sw.offAt || (sw.offAt = new Map());
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || cut.has(e)) continue;
+    for (let k = 0; k < pts.length; k += 3){
+      const part = pointHit(e, P.set(pts[k], pts[k + 1], pts[k + 2]), BODY.edge);
+      if (part){
+        cut.add(e); out.push(e);
+        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: new THREE.Vector3().subVectors(OT, OPT) });
+        break;
+      }
+    }
+  }
+  const boss = shared.boss;
+  if (boss && boss.hp > 0 && !cut.has(boss)){
+    const p = boss.group.position, r = BODY.bossR + BODY.edge;
+    for (let k = 0; k < pts.length; k += 3){
+      const py = pts[k + 1];
+      if (py < p.y || py > p.y + BODY.bossH) continue;
+      const dx = pts[k] - p.x, dz = pts[k + 2] - p.z;
+      if (dx * dx + dz * dz < r * r){ cut.add(boss); out.push(boss); break; }
+    }
+  }
+  return out;
+}
 
 /* the blade swings AROUND the hero, so between two frames its base and tip travel along arcs, not straight chords:
    interpolate each in cylindrical coordinates about the hero (angle, distance, height), into flat x,y,z samples. A slow

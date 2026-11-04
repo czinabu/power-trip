@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Player animation: stance posture, body facing, flips, and the rig pose (legs, torso, arms, Force cast, Mando weapon/flight poses).
 
-import { sweepBlade } from './jedi/bladehit.js';
+import { sweepBlade, sweepOffBlade } from './jedi/bladehit.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { clamp, dampAngle, wrapAngle, V3 } from '../utils.js';
@@ -14,10 +14,11 @@ import { gunLook } from '../data/trooper.js';
 import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
 import { stance, maxStam, heldGrip } from './helpers.js';
-import { tryAttack, applySwingDamage, FLOW } from './jedi/combat.js';
+import { tryAttack, applySwingDamage, applyOffBladeHit, FLOW } from './jedi/combat.js';
 import { finisherNext } from './jedi/finisher.js';
 import { inCombat } from './mobility.js';
 import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
+import { saberIsDual } from './model/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP, SWING_STYLE } from '../data/poses.js';
 import { pistolPose, riflePose, rifleLowered, restGun } from './anim/guns.js';
@@ -435,6 +436,11 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       const spun = sw.spin && sw.spin.turns && cue.k < ((sw.anim && sw.anim.ts) || 0.4) * 0.8;
       const touched = sweepBlade(sw, !sw.recoil && !spun && cue.k >= ((sw.anim && sw.anim.tc) || 0.25) * 0.6 && cue.k <= 0.92);
       if (touched && touched.length && !sw.noHit){ applySwingDamage(sw.step, touched); sw.bite = BITE.time; }
+      // JAR'KAI: the off hand's follow-up cuts on its own beat (anim/saber.js saberPose.offLive)
+      if (held.off){
+        const offT = sweepOffBlade(sw, saberPose.offLive && !spun && !sw.noHit);
+        if (offT && offT.length){ applyOffBladeHit(offT); sw.bite = Math.max(sw.bite || 0, BITE.time * 0.6); }
+      }
     }
     if (!sw.applied && cue.k > 0.35){ sw.applied = true; applySwingDamage(sw.step, held || sw.cutSet || sw.noHit ? [] : undefined); }   // (noHit: the aerial cut struck on contact, jedi/aerial.js)
     // IN-RHYTHM LINK (Jedi): one well-timed press this swing → the next cut leaves from the follow-through
@@ -610,7 +616,7 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
 
 // the bladed weapon in hand right now (or null): the Jedi saber, or the Mando's darksaber when it's equipped
 function heldBlade(){
-  if (!isGunner()) return player.saberHand && !player.holstered ? { node: player.saberHand, root: player.saberBladeRoot } : null;
+  if (!isGunner()) return player.saberHand && !player.holstered ? { node: player.saberHand, root: player.saberBladeRoot, off: saberIsDual(player) && !player.offAway ? player.offSaber : null } : null;   // (off: Jar'Kai's second saber)
   if (player.weapon === 'darksaber' && player.darksaberMesh) return { node: player.darksaberMesh, root: null };
   return null;
 }

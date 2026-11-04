@@ -237,6 +237,7 @@ export const FOE_STRINGS = {
   makashi: { cuts: ['thrust', 'diagR', 'thrust', 'diagL', 'riseR'], fin: 'thrust', finAfter: 2 },            // the fencer: thrust, a short cut off it, thrust again
   shien:   { cuts: ['flatL', 'flatR', 'riseR', 'riseL', 'diagR'], fin: 'slam', finAfter: 2 },                // reverse-grip backhands whipped out and back across
   juyo:    { cuts: ['diagL', 'riseR', 'flatR', 'riseL', 'flatL', 'overhead', 'diagR'], fin: 'spin', finAfter: 2 },   // savage, broken: no two alike
+  jarkai:  { cuts: ['flatR', 'flatL', 'riseR', 'riseL', 'diagR', 'diagL'], fin: 'spin', finAfter: 2 },     // Jar'Kai: one hand then the other, side to side
   reset: 1.6,             // seconds without swinging before it starts a fresh string (somewhere new in the order)
 };
 /* FOOTWORK — a duellist fights at the edge of your reach, the way a real duel is spaced: with its attack turn it

@@ -413,6 +413,45 @@ export function applySwingDamage(step, only){
   player.arcMesh.material.color.setHex((isGunner() && player.weapon === 'darksaber') ? 0xc9a6ff : st.blade);
 }
 
+/* JAR'KAI'S FOLLOW-UP (jedi/bladehit.js sweepOffBlade): the off hand's blade strikes what it passed through, on the
+   OTHER line from the lead cut (a duellist guarding the lead cut's line meets it on the open one). Damage and posture
+   only: `offDmg` of the lead cut, no fury, Focus, Force or boon effects (those fire once a swing, on the lead cut), so
+   two blades are one cut's budget. It still beats a wind-up, which is the form's whole point. It doesn't count toward a
+   duellist's read of a mash (its rhythm), or Jar'Kai would be parried for swinging at all. */
+const MIRROR_LINE = { L: 'R', R: 'L', H: 'H', Lo: 'Lo' };
+export function applyOffBladeHit(only){
+  const st = stance(), sw0 = player.swing;
+  if (!sw0 || !only || !only.length || !st.offDmg) return;
+  const step = sw0.step || 0, finisher = step === 2;
+  const dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul() * st.offDmg;
+  const knock = (finisher ? 10 : 4) * st.knock * player.up.knock;
+  const f = fwd(), line = MIRROR_LINE[cutLine(sw0)] || 'H';
+  const finFoe = sw0.fin ? sw0.fin.e : null;
+  let hits = 0, turned = 0, blocker = null;
+  for (const e of only){
+    if (e === shared.boss){
+      if (e.hp > 0 && e !== finFoe){ scarBody(e.group, f, 'neutral', false); damageBoss(dmg * st.heavyDmg * edgeMul(e)); hits++; }
+      continue;
+    }
+    if (e.dead || e.converted || e === finFoe) continue;
+    if (!sw0.riposte && !sw0.back){
+      const n = e.rhyN, a = e.rhyAt;
+      const at = sw0.offAt && sw0.offAt.get(e);
+      const dres = duelDefend(e, line, finisher ? 'finisher' : 'cut', false, at && at.at);
+      if (e.rhyN !== undefined){ e.rhyN = n; e.rhyAt = a; }   // (not part of a mash: see above)
+      if (dres === 'block' || dres === 'dodge'){ turned++; if (!blocker) blocker = e; continue; }
+    }
+    const at = sw0.offAt && sw0.offAt.get(e);
+    damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * edgeMul(e), f.clone(), knock, false, false, bladeOpts(at));
+    scarBody(e.group, f, sw0.dir === 'left' ? 'right' : sw0.dir === 'right' ? 'left' : sw0.dir, false, at);
+    if (e.dead) severLimbs(e, f, 0.35, at);
+    else interruptEnemy(e, f, false);   // the second blade gets inside the wind-up
+    hits++;
+  }
+  if (hits){ G.shake = Math.max(G.shake, 0.15); tutEvent('offBlade'); }
+  if (turned && !hits) S.clash(V3(playerPos().x + f.x * 1.2, 1.4, playerPos().z + f.z * 1.2), false);
+}
+
 // JEDI FRONT KICK (E) — the Jedi's hands are full of saber, so the free melee is a leg: a snapping Force-assisted
 // front kick that STAGGERS the front rank (a step back and a reel, no launch) to make room. Always available, NO Force cost, light damage — a pure
 // space-maker (the Mando's gauntlet-punch counterpart). The short recovery (kickT) keeps it from being mashed.

@@ -18,6 +18,7 @@ export const FORM_FAMILY = {
   makashi: 'guard', soresu: 'guard', vaapad: 'guard',
   djemso: 'power', shien: 'power',
   niman: null,
+  jarkai: 'speed',   // Jar'Kai: two blades that get inside a heavy wind-up, shut down by a tight guard
 };
 // a fallback name for a foe form with no stance of its own (the hero's forms, the saber staff among them, are named by data/stances.js)
 export const FOE_FORM_NAMES = { staff: { name: 'SABER STAFF', no: '' } };
@@ -93,6 +94,8 @@ export const FORM_STYLE = {
   vaapad:  { moves: 'niman', mul: { counter: 1.3, parry: 1.2, rally: 1.2 } },
   // THE SABER STAFF (and the magnaguard's electrostaff) — both ends: long strings that sweep round to the spin
   staff:   { moves: 'staff', mul: { finisher: 1.2, side: 1.2 }, add: { chain: 1 } },
+  // JAR'KAI — a saber in each hand: long, relentless strings side to side, a light guard that is easy to strain
+  jarkai:  { moves: 'jarkai', mul: { block: 0.75, posture: 0.75, feint: 1.1, delay: 0.55, counter: 0.9, thrust: 0.5, parry: 0.85, side: 1.2, finisher: 1.1 }, add: { chain: 1 } },
 };
 
 const CAP = { block: 0.9, dodge: 0.6, parry: 0.85, feint: 0.5, counter: 0.85, rally: 0.8, finisher: 0.95, side: 0.7, deflect: 1, thrust: 0.4 };
@@ -127,6 +130,7 @@ export const FOE_FORMS = {
     { from: 0, forms: ['shiicho'] },
     { from: 4, forms: ['shiicho', 'makashi', 'ataru', 'soresu'] },
     { from: 8, forms: ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo'] },
+    { from: 10, forms: ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo', 'jarkai'] },   // Jar'Kai: late, at knight rank
   ] },
   duelist: { rank: 'adept', form: 'staff' },   // the magnaguard: its electrostaff fights as the saber staff does
 };

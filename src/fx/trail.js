@@ -46,7 +46,8 @@ const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (
   shien:     { life: 0.2, core: 0.7, base: 0.18 },
   juyo:      { life: 0.16, core: 0.95, base: 0.22 },   // hot, ragged streaks
   vaapad:    { life: 0.19, core: 0.8, base: 0.16 },
-  staff:     { life: 0.12, core: 0.6, base: 0.42 },    // two wheeling streaks, one off each end: kept short and thin, or a whirl of both washes the view out
+  staff:     { life: 0.12, core: 0.6, base: 0.42 },
+  jarkai:    { life: 0.12, core: 0.85, base: 0.32 },   // two quick streaks, one from each hand: thin and short so the pair stays readable    // two wheeling streaks, one off each end: kept short and thin, or a whirl of both washes the view out
   darksaber: { life: 0.2, core: 0.35, base: 0.15 },
   thrown:    { life: 0.14, core: 0.7, base: 0.1 },     // a spinning disc of light, short so it doesn't swallow the hilt
 };

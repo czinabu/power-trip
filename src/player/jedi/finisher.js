@@ -27,6 +27,8 @@ import { tutEvent } from '../../game/tutor-bus.js';
 import { hooks } from '../../net/run.js';
 import { addFocus, FOCUS } from './focus.js';
 import { addFury } from './fury.js';
+import { throwOffSaber } from './offthrow.js';
+import { addPosture } from '../../enemies/duel.js';
 
 const FIN = FINISHER;
 const isDark = () => isGunner() && player.weapon === 'darksaber';
@@ -264,6 +266,26 @@ function edge(b, sw, target, st){
   } else if (k === 'parry'){
     player.finParryT = G.gt + EDGES.parry.t;
     floater(playerPos(), 'SHATTERPOINT · PARRY WIDE', '#d08bff');
+  } else if (k === 'throw'){
+    // JAR'KAI: the off-hand saber thrown on to the nearest other foe in reach, and back (jedi/offthrow.js)
+    const E = EDGES.throw;
+    let o = null, bd = E.r;
+    for (const c of enemies){
+      if (c === target || c.dead || c.converted || c.state === 'spawn') continue;
+      const d = Math.hypot(c.group.position.x - pp.x, c.group.position.z - pp.z) - bodyRadius(c);
+      if (d < bd && Math.abs(c.group.position.y - pp.y) < 2.5){ bd = d; o = c; }
+    }
+    if (o){
+      const dx = o.group.position.x - pp.x, dz = o.group.position.z - pp.z, d = Math.hypot(dx, dz) || 1, dir = V3(dx / d, 0, dz / d);
+      throwOffSaber(o, E.dur, () => {
+        if (o.dead) return;
+        damageEnemy(o, CFG.player.comboDamage[2] * st.dmg * (player.up.dmg || 1) * E.dmg, dir, 10, false, false, { shove: CFG.player.saberShove.max, blade: true });
+        if (!o.dead && o.dp && !o.net){
+          const amt = o.dp.posture * E.posture, room = o.dp.posture - (o.posture || 0) - 1;
+          addPosture(o, toughFoe(o) ? Math.max(0, Math.min(amt, room)) : amt, dir.x, dir.z);
+        }
+      });
+    }
   } else if (k === 'clang'){
     const ip = V3(pp.x + f.x * 1.4, 1.4, pp.z + f.z * 1.4);
     S.clash(ip, true); spawnGroundShock(V3(ip.x, 0.1, ip.z), 0xc9a6ff, 2.6, 0.3, 0.4);

@@ -8,14 +8,14 @@ import { inkRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
-import { applySaberGrip, setSaberStaff } from '../player/model/weapons.js';
+import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
 import { heroName } from '../game/wardrobe.js';
 import { STANCES, SWING_PATTERNS } from '../data/stances.js';
 import { FORM_OF, FOOTWORK } from '../data/poses.js';
-import { formGrip, isStaff } from '../data/forms.js';
+import { formGrip, isStaff, isDual } from '../data/forms.js';
 import { guardPose, swingPose, applySaberPose, releaseSaberPose, saberPose } from '../player/anim/saber.js';
 import { rexRest } from '../player/anim/guns.js';
 
@@ -256,6 +256,7 @@ function dress(hero){
   fig.darksaberMesh.visible = false;
   applySaberGrip(fig, G.saberGrip, true);
   setSaberStaff(fig, false, false);   // (the stance preview and the form rotation put the saber staff in hand themselves)
+  setSaberDual(fig, false, false);    // (…and Jar'Kai's second saber)
   const set = (o, v) => o.rotation.set(...(v || [0, 0, 0]));
   for (const s of ['armL', 'armR']){ set(R[s].sh, P[s].sh); set(R[s].el, P[s].el); }
   for (const s of ['legL', 'legR']){ set(R[s].hip, P[s].hip); set(R[s].knee, P[s].knee); }
@@ -421,7 +422,7 @@ export function previewStance(id){
   if (!id){
     if (!pv.id) return;
     pv.id = null; pv.sw = null;
-    if (R){ releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0; fig.vis.position.y = pv.vy; setSaberStaff(fig, false, false); if (shown) dress(shown); }
+    if (R){ releaseSaberPose(R, 1); R.chest.rotation.y = 0; fig.vis.rotation.y = 0; fig.vis.position.y = pv.vy; setSaberStaff(fig, false, false); setSaberDual(fig, false, false); if (shown) dress(shown); }
     document.body.classList.remove('stance-preview');
     return;
   }
@@ -432,6 +433,7 @@ export function previewStance(id){
   const st = STANCES[id];
   applySaberGrip(fig, formGrip(id, G.saberGrip), true);
   setSaberStaff(fig, isStaff(id), false);   // the saber staff shows its long hilt and second blade
+  setSaberDual(fig, isDual(id), false);     // Jar'Kai shows a saber in each hand
   const crystal = fig.look.jedi.saber != null ? fig.look.jedi.saber : st.blade;
   fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal);
   releaseSaberPose(R, 1);   // the next guard seeds the pose from the figure's own arm
@@ -440,8 +442,9 @@ export function previewStance(id){
 const SWAY = { y: 0, z: 0, off: 0, moving: false }, smooth = (k) => k * k * (3 - 2 * k);
 function previewPose(dt){
   const id = pv.id, form = FORM_OF[id], st = STANCES[id], grip = formGrip(id, G.saberGrip), F = FOOTWORK[form];
-  const held = { node: fig.saberHand, root: fig.saberBladeRoot }, plan = PV_PLAN[pv.phase];
+  const held = { node: fig.saberHand, root: fig.saberBladeRoot, off: isDual(id) ? fig.offSaber : null }, plan = PV_PLAN[pv.phase];
   pv.t += dt;
+  if (held.off) syncOffSaber(fig, true);   // (its grip follows the main hilt's)
   let cue = null, sw = null;
   if (plan.cut != null){
     if (!pv.sw){
@@ -482,6 +485,7 @@ function idleStart(){
   releaseSaberPose(R, 1);   // the pose seeds from the figure's own arm
   applySaberGrip(fig, 'regular', true);   // at rest the blade hangs forward from the fist, whatever grip the fight uses
   setSaberStaff(fig, false, false);
+  setSaberDual(fig, false, false);
 }
 function idleStop(){
   if (!idle.on) return;

@@ -8,10 +8,12 @@
 //   off   — { hand, pole } for a free off hand (a Force palm, balance) when not two-handed
 //   twist — upper-body turn (+ = weapon side back→front)      torso — hip-to-ribs turn   lean — whole-body pitch
 //   gaze  — how much of that turn the head undoes, so a side-on guard still looks at the foe (0 = head turns with the chest)
+//   offBlade — Jar'Kai only: which way the OFF hand's saber points (the off hand itself is `off`). Left out, it mirrors
+//           the main blade across the body (anim/saber.js), so a borrowed pose still holds both blades sensibly
 // Pose sets key off hold + grip + form (docs/animation-guidelines.md), so a new weapon or form is new data here.
 
 /* each stance in data/stances.js names its form; the darksaber is its own (Mando) form */
-export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu', ataru: 'ataru', niman: 'niman', djemso: 'djemso', shien: 'shien', juyo: 'juyo', vaapad: 'vaapad', staff: 'staff', darksaber: 'darksaber' };
+export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu', ataru: 'ataru', niman: 'niman', djemso: 'djemso', shien: 'shien', juyo: 'juyo', vaapad: 'vaapad', staff: 'staff', jarkai: 'jarkai', darksaber: 'darksaber' };
 
 /* FOOTWORK per form — crouch (hip drop), splay (feet apart), lead (staggered feet), lean (forward pitch),
    width (robe flare). Read when the hero is settled and planted. (atEase is the cutscene stand: anim/ease.js) */
@@ -26,6 +28,7 @@ export const FOOTWORK = {
   juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15 },   // pitched forward and low, a predator about to spring
   vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
   staff:     { crouch: -0.18, splay: 0.58, lead: 0.16, lean: 0.06, width: 1.3 },    // the saber staff: the Inquisitor's wide, square, planted stance
+  jarkai:    { crouch: -0.22, splay: 0.4,  lead: 0.34, lean: 0.12, width: 1.15 },   // Jar'Kai: low, light and staggered, both blades out in front
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
@@ -143,6 +146,20 @@ export const SABER_GUARDS = {
       ready: { hand: [0.22, 0.08, 0.24], blade: [0.1, 0.85, -0.3], two: true, twist: 0.2, lean: 0.08, pole: [0.7, -0.6, -0.2] },
       block: { hand: [0.18, 0.2, 0.42], blade: [-0.9, 0.42, 0.12], two: true, twist: 0.0, lean: 0.26, pole: [0.6, -0.8, 0] },
     },
+    /* JAR'KAI, FORWARD GRIP — Ventress and Revan: low and staggered, the lead (weapon) blade held high and forward at the
+       foe's eyes, the off blade low and forward across the line of the legs, ready to come in after it. The two blades
+       split the foe's lines between them: one high, one low. */
+    jarkai: {
+      ready: { hand: [0.3, 0.04, 0.34], blade: [-0.12, 0.62, 0.78], twist: 0.12, torso: 0.04, lean: 0.08, pole: [0.6, -0.7, -0.3],
+               off: { hand: [-0.32, -0.16, 0.34], pole: [-0.6, -0.75, -0.2], sway: 0.4 }, offBlade: [-0.22, -0.22, 0.95] },
+      // the X-BLOCK: both hilts brought together before the chest and the blades crossed above them, a scissor that
+      // catches a blow in its fork
+      block: { hand: [0.12, 0.14, 0.42], blade: [-0.62, 0.76, 0.18], twist: 0, lean: 0.08, pole: POLE,
+               off: { hand: [-0.12, 0.14, 0.42], pole: OFF_POLE }, offBlade: [0.62, 0.76, 0.18] },
+      // (every other raise) the two blades set one over the other: the lead level across the brow, the off blade upright
+      block2: { hand: [0.24, 0.42, 0.36], blade: [-0.94, 0.22, 0.2], twist: 0.04, lean: 0.06, pole: [0.8, -0.3, -0.4],
+                off: { hand: [-0.4, 0.02, 0.34], pole: OFF_POLE }, offBlade: [-0.22, 0.96, 0.12] },
+    },
   },
   // REVERSE (Shien) GRIP — blade out of the pinky side, lying back along the forearm (Ahsoka, Starkiller)
   reverse: {
@@ -188,6 +205,19 @@ export const SABER_GUARDS = {
       // weapon side and tipped down, the free hand low behind it
       block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
                off: { hand: [-0.28, -0.04, 0.34], pole: OFF_POLE } },
+    },
+    /* JAR'KAI, REVERSE GRIP — Ahsoka: crouched and coiled, both sabers reversed, the lead fist up in front of the chest
+       with its blade laid out level past the weapon side, the off fist low by the off hip with its blade raked out and
+       back the other way: a blade on each side, edges out */
+    jarkai: {
+      ready: { hand: [0.2, 0.08, 0.4], blade: [0.96, 0.08, 0.24], twist: 0.1, lean: 0.12, pole: [0.5, -0.7, -0.4],
+               off: { hand: [-0.3, -0.14, 0.3], pole: [-0.6, -0.6, -0.4], sway: 0.4 }, offBlade: [-0.82, -0.36, 0.42] },
+      // both forearms raised before the face, the blades hanging down and out on either side: a wall of two blades
+      block: { hand: [0.1, 0.3, 0.42], blade: [0.42, -0.88, 0.2], twist: 0, lean: 0.08, pole: [0.9, -0.1, -0.3],
+               off: { hand: [-0.1, 0.24, 0.42], pole: [-0.9, -0.1, -0.3] }, offBlade: [-0.42, -0.88, 0.2] },
+      // (every other raise) the lead forearm thrown up over the brow, blade out level; the off blade hung down across the legs
+      block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
+                off: { hand: [-0.16, -0.02, 0.4], pole: OFF_POLE }, offBlade: [0.3, -0.94, 0.14] },
     },
     darksaber: {   // the darksaber always uses the regular hold (it's a sword, not a duelist's saber)
       ready: { hand: [0.22, 0.08, 0.24], blade: [0.1, 0.85, -0.3], two: true, twist: 0.2, lean: 0.08, pole: [0.7, -0.6, -0.2] },
@@ -460,6 +490,12 @@ export const SWING_STYLE = {
                twist: 1.2, finisher: { pattern: 'right', spin: 1, hop: 0.2 },
                load: 0.08, accel: 2.4, lag: 0.25, recover: 0.5, weight: 0.07 },   // both ends always moving
     // the staff finishes with a spinning sweep: a full turn, both blades out, through everything around you
+  /* JAR'KAI: quick one-handed cuts with the other hand right behind: the off hand swings the same cut MIRRORED across
+     the body, `dual.lag` of the swing later (anim/saber.js), so a cut from the right is answered by one from the left */
+  jarkai:    { tc: 0.16, ts: 0.34, tf: 0.6, reach: 0.95, two: false, spinHop: 0.06, drop: 0.04, offFlare: 0, overshoot: 0,
+               twist: 0.6, finisher: { pattern: 'right', spin: 1, hop: 0.12 }, dual: { lag: 0.2 },
+               load: 0.05, accel: 2.5, lag: 0.5, recover: 0.65, weight: 0.06 },   // whippy, light, and never just one
+    // Jar'Kai finishes on a spinning double cut: one blade, then the other, all the way round
   darksaber: { tc: 0.34, ts: 0.46, tf: 0.72, reach: 1.2, two: true, spinHop: 0, drop: 0.16, offFlare: 0, overshoot: 0.35,
                twist: 0.8, finisher: { pattern: 'forward', spin: 0, hop: 0.1 },
                load: 0.1, accel: 2.6, lag: 0.08, recover: 0.4, weight: 0.08 },
@@ -507,6 +543,8 @@ export const SWING_SPINS = {
             move: null },
   staff:  { mid: { turns: 0, twirl: 1, travel: 1.1, reach: 0.8, dur: 1.2, stam: 0.3, cd: 2 },                   // the staff wheeled in one hand between cuts
             move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.3, dur: 1.25, stam: 0.4, cd: 2.5 } },           // and a strafing cut turns right round with it
+  jarkai: { mid: null,                                                                                          // no wrist twirl: two blades would tangle
+            move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.2, dur: 1.2, stam: 0.35, cd: 2.5 } },           // a strafing cut spins right round, both blades out
 };
 
 /* ---------------- DEFLECT SPINS: turning a catch into a spin ----------------

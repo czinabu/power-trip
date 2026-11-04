@@ -152,7 +152,7 @@ export function updateAudio(dt){
   const swinging = player.atkT > 0 || player.darkT > 0;
   const walk = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
   const thrown = jedi && shared.saberProj;
-  const staff = jedi && !thrown && G.stance === 'staff';
+  const staff = jedi && !thrown && (G.stance === 'staff' || G.stance === 'jarkai');   // (the staff's far blade, or Jar'Kai's off-hand saber: a second hum)
   const mH = ease('hero', Math.max(motionOf(BA.hero), swinging ? 0.3 : 0), dt), mH2 = ease('hero2', motionOf(BA.hero2), dt);
   const mD = ease('dark', Math.max(motionOf(BA.dark), swinging && darkOn ? 0.3 : 0), dt);
   if (L.hum){

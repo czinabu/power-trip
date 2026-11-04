@@ -19,7 +19,12 @@
    staff    not one of the seven: the SABER STAFF, a double-bladed hilt held in both hands (the Jedi Temple Guard's
             weapon, Maul's). It has no numeral (`kind` stands in for "FORM n" on the cards), shows the long hilt and its
             second blade (player/model/weapons.js setSaberStaff) and swings its own two-ended set (data/poses.js). Until
-            the hero has it, the forms pages name it only as ??? (ui/forms-ui.js lockedChip). */
+            the hero has it, the forms pages name it only as ??? (ui/forms-ui.js lockedChip).
+   dual     not one of the seven either: JAR'KAI, a saber in each hand (Ahsoka, Ventress, Revan, Starkiller). No numeral
+            (`kind` stands in), a second saber in the off hand (player/model/weapons.js setSaberDual), and every cut is
+            two beats: the lead blade, then the off hand's follow-up on the other line (anim/saber.js, jedi/bladehit.js).
+            It has no grip of its own: like Niman it takes the hero's grip preference (Settings / G), so both blades
+            run forward (Revan, Ventress) or reverse (Ahsoka). Shown as ??? until it's in hand, like the staff. */
 export const FORMS = {
   shiicho: { no: 'I',   name: 'SHII-CHO', tag: 'CROWDS',   needs: [], ready: true, grip: 'regular' },
   makashi: { no: 'II',  name: 'MAKASHI',  tag: 'DUELS',    needs: ['shiicho'], ready: true, grip: 'regular' },
@@ -31,11 +36,15 @@ export const FORMS = {
   juyo:    { no: 'VII', name: 'JUYO',     tag: 'FURY',     needs: [], anyOf: 5, variant: 'vii', fork: true, ready: true, grip: 'regular' },
   vaapad:  { no: 'VII', name: 'VAAPAD',   tag: 'CONTROL',  needs: [], anyOf: 5, variant: 'vii', fork: true, ready: true, grip: 'regular' },
   staff:   { no: null,  name: 'SABER STAFF', tag: 'SWEEPS', kind: 'DOUBLE BLADE', needs: [], ready: true, grip: 'regular', staff: true },
+  jarkai:  { no: null,  name: "JAR'KAI",   tag: 'FLURRY', kind: 'DUAL BLADES', needs: [], ready: true, dual: true },
 };
 // the line a card heads a form with: "FORM VI", or the saber staff's "DOUBLE BLADE"; and the one a locked chip shows
 // (the staff stays a mystery until it's in hand: ???)
 export const formTitle = (id) => FORMS[id] ? (FORMS[id].no ? 'FORM ' + FORMS[id].no : FORMS[id].kind || FORMS[id].name) : '';
 export const isStaff = (id) => !!(FORMS[id] && FORMS[id].staff);
+export const isDual = (id) => !!(FORMS[id] && FORMS[id].dual);
+// a form that is a weapon of its own rather than one of the seven: the forms pages keep it a mystery (???) until it's known
+export const isSecret = (id) => isStaff(id) || isDual(id);
 
 /* THE LOADOUT — three slots on 1 / 2 / 3 (and the wheel). A slot holds a form id or null (an empty slot is skipped).
    DEFAULT_LOADOUT is the training grounds' and the missions' fallback; a campaign or survival run starts on RUN_LOADOUT,
@@ -55,6 +64,7 @@ export const RUN_LOADOUT = ['shiicho', null, null];
      INTERMEDIATE Djem So and Shien (the Knight), Makashi (Jakku), Niman, which blends them all (Mustafar)
      PEAK         Form VII, never taught early: after the chase, and only one of its two roads
      THE STAFF    the saber staff, taken from the Ember Academy's overseers on Mustafar (with Niman)
+     JAR'KAI      a second saber: the Grand Inquisitor's own, taken at Vael's chains (Act III)
    Form V's two variants come together from the Knight (G swaps them). Form VII is a fork: the run offers both and the
    hero keeps one. */
 export const FORM_PATH = [
@@ -67,6 +77,7 @@ export const FORM_PATH = [
   { form: 'staff',   chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },   // the saber staff, won off the academy's overseers
   { form: 'juyo',    chapter: 'chase',         level: 2, wave: 0, stage: 9 },   // Form VII, offered after the chase
   { form: 'vaapad',  chapter: 'chase',         level: 2, wave: 0, stage: 9 },
+  { form: 'jarkai',  chapter: 'chains',        level: 2, wave: 2, stage: 10 },  // Jar'Kai: the second saber, won in Act III
 ];
 // the run's Form VII choice locks the other for good: G.formFork holds the one kept
 export const forkClosed = (id, kept) => !!(FORMS[id] && FORMS[id].fork && kept && kept !== id);
@@ -141,4 +152,8 @@ export const FORM_CODEX = {
     best: 'Crowds closing in from every side',
     pros: ['Two blades: every cut sweeps the front and the back at once', 'Fast, flowing strings that wheel from one end to the other', 'Wheels the staff into a catch on a volley of bolts', 'The spinning finisher cuts all round you', 'Its own acrobatics: a whirling cartwheel, handsprings and a pike leap with the staff level overhead'],
     cons: ['A long hilt is slow to bring square: blocking costs 25% more stamina', 'Both hands on the staff: Force casts come 20% slower', 'Less bite per cut than a single blade'] },
+  jarkai: { who: 'Ahsoka Tano, Asajj Ventress, Darth Revan, Starkiller', lore: 'Not a form but a way of fighting: a saber in each hand. Ventress and Revan held both blades forward, Ahsoka both reversed. The second blade is always coming, from the other side, before the first one is done.',
+    best: 'Heavy hitters: Djem So, Juyo and the saber staff',
+    pros: ['Every cut is two: the off-hand blade follows in on the other line', 'Gets inside a heavy wind-up before it lands', 'Crossed blades: blocking a blade costs 15% less stamina', 'The finisher throws the off-hand saber on to the next foe', 'Forward or reverse grip (G), both blades together'],
+    cons: ['A tight guard turns both beats: Soresu and Shii-Cho shut it down', 'A narrow arc that crowds punish, and little against armour', 'Two blades are less exact: deflected bolts scatter and cost 20% more', 'A hand comes off a hilt to cast: Force powers cost 20% more'] },
 };

@@ -29,6 +29,8 @@ import { updateJetCharges } from './mando/mobility.js';
 import { updateForceStrike } from './jedi/palm.js';
 import { noteStamina } from '../game/readout.js';
 import { updateTrooperKit } from './trooper/kit.js';
+import { updateOffThrow } from './jedi/offthrow.js';
+import { syncOffSaber } from './model/weapons.js';
 
 // Per-frame player update. Each step below runs in this exact order every frame; the order matters
 // (e.g. movement feeds the jetpack, both feed gravity/landing, and the pose reads the landed state).
@@ -48,7 +50,9 @@ export function updatePlayer(dt){
   updateGravityAndLanding(dt, pp);
   updateGuardLine();   // a held guard waits on a duellist's line (jedi/guardline.js)
   updateFinisherCue();   // the hilt over a foe the next attack would finish (jedi/finisher.js)
+  updateOffThrow(dt);    // Jar'Kai's off-hand saber in flight off the finisher (jedi/offthrow.js)
   animatePlayer(dt, pp, st, f, r, moving);
+  syncOffSaber(player, !isGunner());   // Jar'Kai's second saber keeps in step with the first (model/weapons.js)
 }
 
 // Cooldowns, regen, Force barrier/mend upkeep, and the low-stamina guard break + danger vignette.

@@ -76,6 +76,10 @@ export const FINISHERS = {
     { pat: 'right', dur: 0.44, spin: 1, share: 0.3, edge: 'both' },
     { pat: 'forward', dur: 0.44, hop: 0.2, travel: 0.4, share: 0.7 },
   ] },
+  jarkai: { name: "NIGHTSISTER'S CROSS", line: 'Both blades cut across each other through it, then the off-hand saber flies on to the next foe and comes back', beats: [
+    { pat: 'diagR', dur: 0.26, share: 0.3 },
+    { pat: 'diagL', dur: 0.42, travel: 0.5, share: 0.7, edge: 'throw' },
+  ] },
   darksaber: { name: "MAND'ALOR'S VERDICT", line: 'A cut, then the darksaber two-handed overhead, beskar ringing', beats: [
     { pat: 'diagL', dur: 0.34, share: 0.2 },
     { pat: 'forward', dur: 0.56, hop: 0.1, travel: 0.4, share: 0.8, edge: 'clang', fx: 'kneel' },
@@ -91,6 +95,9 @@ export const EDGES = {
   guard: { soak: 0.7 },                 // seconds of the heavy-cancel soak after (player.cancelDR)
   stam:  { n: 28 }, force: { n: 25 }, fury: { n: 1 },   // refunds (fury: a share of the full meter)
   parry: { t: 4, bonus: 0.06 },         // seconds, and seconds added to the parry window
+  // Jar'Kai's thrown off saber: the nearest other foe within r m takes dmg × a finisher cut and `posture` of its guard
+  // (never the last of it on a tough foe: a master, a champion, the Warbringer: the throw alone opens no finisher there)
+  throw: { r: 8, dmg: 0.5, posture: 0.5, dur: 0.55 },
 };
 
 /* PERFECT STRINGS — a string struck fully in rhythm (both links into the third cut were clean, single presses in the
@@ -111,6 +118,7 @@ export const PERFECT = {
     juyo:     { spin: 1, dur: 1.1 },
     vaapad:   { lunge: 1.3 },
     staff:    { spin: 1, dur: 1.15 },
+    jarkai:   { spin: 1, dur: 1.15 },
     darksaber:{ hop: 0.2, lunge: 1.2 },
   },
 };

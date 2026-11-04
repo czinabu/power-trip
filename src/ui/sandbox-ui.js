@@ -50,7 +50,7 @@ function showTab(t){
 }
 function stepTab(d){ showTab(TABS[(TABS.indexOf(tab) + d + TABS.length) % TABS.length]); }
 
-const SB_FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo'];   // (a magnaguard always fights with its staff)
+const SB_FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo', 'jarkai'];   // (a magnaguard always fights with its staff)
 function pill(id, on){ const el = $(id); el.classList.toggle('on', on); el.querySelector('.setval').textContent = on ? 'ON' : 'OFF'; }
 const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing

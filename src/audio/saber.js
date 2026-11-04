@@ -16,7 +16,7 @@ const N = o => play(Object.assign({ src: 'noise' }, o));
 const T = o => play(o);
 
 /* the hum's pitch by form: lighter forms ride higher; the Darksaber sits far under all of them */
-export const HUM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.1, niman: 1, djemso: 0.86, shien: 0.92, juyo: 1.04, vaapad: 0.9, staff: 1.08, dark: 0.69 };
+export const HUM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.1, niman: 1, djemso: 0.86, shien: 0.92, juyo: 1.04, vaapad: 0.9, staff: 1.08, jarkai: 1.12, dark: 0.69 };
 
 /* what every lit blade is doing this frame, filled in by fx/trail.js (which already follows every blade for its streak)
    and read by director.js: tip speeds (m/s against the owner's body) of the hero's blade, the saber staff's far end and
@@ -38,6 +38,7 @@ export const FORM_SOUND = {
   juyo:    { p: 1.06, len: 0.8,  air: 1.1,  ring: 1.04, damp: 1.15, drive: 0.4 },   // ragged, snarling
   vaapad:  { p: 0.86, len: 1.1,  air: 0.9,  ring: 0.8,  damp: 1.3, drive: 0.2, thump: true },
   staff:   { p: 1.08, len: 0.9,  air: 1.2,  ring: 1.06, damp: 1, flick: true },   // the saber staff: two hums, the far end chasing the near
+  jarkai:  { p: 1.12, len: 0.75, air: 1.15, ring: 1.08, damp: 1.05, flick: true },   // Jar'Kai: two short, bright swishes, one hand then the other
 };
 
 /* the spitting of a plasma blade: a scatter of tiny bright ticks over `spread` seconds (cheap: each is one short voice,
@@ -66,6 +67,7 @@ export function ignite(kind, o = {}){
   N({ pos, at, color: 'pink', g: 0.07 * g, a: 0.012, d: 0.26, filt: { type: 'bandpass', f: 1300, f2: dark ? 2400 : 4600, q: 1 } });
   crackle(pos, dark ? 5 : 3, 0.22, 0.04 * g, at + 0.02);
   if (kind === 'staff') ignite('niman', { pos, at: at + 0.075, g: 0.8 * g });   // the far blade answers a beat behind
+  if (kind === 'jarkai') ignite('ataru', { pos, at: at + 0.12, g: 0.85 * g });   // Jar'Kai: the second saber lights from the other hand
 }
 
 /* a blade going out: the hum sucking back down into the hilt, the hiss closing, a last pop */
@@ -78,6 +80,7 @@ export function retract(kind, o = {}){
   N({ pos, at, color: 'pink', g: 0.05 * g, a: 0.015, d: dur * 0.75, filt: { type: 'bandpass', f: 2800, f2: 600, q: 1 } });
   N({ pos, at: at + dur * 0.85, g: 0.03 * g, a: 0.001, d: 0.025, filt: { type: 'highpass', f: 3000 } });   // the emitter's last pop
   if (kind === 'staff') retract('niman', { pos, at: at + 0.05, g: 0.55 * g, short: o.short });
+  if (kind === 'jarkai') retract('ataru', { pos, at: at + 0.07, g: 0.6 * g, short: o.short });
 }
 
 /* a form change: the blade drops and lights again in its new form's colour (fx/trail.js reigniteBlade) */

@@ -42,7 +42,7 @@ const lockedRow = () => { const l = ORDER.filter(id => !ctx.known.includes(id));
 const famOf = (fam) => ORDER.filter(id => FORM_FAMILY[id] === fam);
 const pct = (m) => Math.round(Math.abs(m - 1) * 100) + '%';
 function famList(fam){
-  const all = famOf(fam), known = all.filter(id => ctx.known.includes(id)).map(id => FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-)(\w)/g, (m, a, b) => a + b.toUpperCase()));
+  const all = famOf(fam), known = all.filter(id => ctx.known.includes(id)).map(id => FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-|')(\w)/g, (m, a, b) => a + b.toUpperCase()));
   const hidden = all.length - known.length;
   return known.concat(hidden ? [hidden === 1 ? 'a form still to learn' : hidden + ' forms still to learn'] : []).join(', ');
 }

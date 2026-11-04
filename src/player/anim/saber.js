@@ -25,7 +25,12 @@ const shiftToMid = (hand, from, to) => hand.addScaledVector(to, STAFF_MID).addSc
 // cache the data as vectors once
 const vecOff = o => o && { hand: V(o.hand), pole: V(o.pole || [-0.55, -0.8, -0.25]).normalize(), sway: o.sway ?? 1 };   // sway: how much of the stride a free hand picks up (0 = held still, tucked)
 const vecPose = p => p && ({ ...p, hand: V(p.hand), blade: V(p.blade).normalize(), pole: V(p.pole || [0.55, -0.8, -0.25]).normalize(),
-  off: vecOff(p.off), offMove: vecOff(p.offMove), offFight: vecOff(p.offFight) });
+  off: vecOff(p.off), offMove: vecOff(p.offMove), offFight: vecOff(p.offFight), offBlade: p.offBlade ? V(p.offBlade).normalize() : null });
+/* JAR'KAI (data/forms.js jarkai): the off hand holds a saber of its own. A pose names where it points (offBlade); a pose
+   that doesn't (an air guard, a catch) has it MIRROR the main blade across the body, so both blades read as a pair. */
+const mirror = (v, out) => out.set(-v.x, v.y, v.z);
+const _mo = new THREE.Vector3(), _mb = new THREE.Vector3();
+const dualIn = (held) => !!(held && held.off && held.root && held.root.userData.dual);
 const GUARDS = {}, SWINGS = {};
 for (const g in SABER_GUARDS){ GUARDS[g] = {}; for (const f in SABER_GUARDS[g]) GUARDS[g][f] = { ready: vecPose(SABER_GUARDS[g][f].ready), block: vecPose(SABER_GUARDS[g][f].block), block2: vecPose(SABER_GUARDS[g][f].block2) }; }
 const AIR = {};
@@ -100,6 +105,8 @@ export const saberPose = {
   hand: new THREE.Vector3(), blade: new THREE.Vector3(0, 1, 0), pole: new THREE.Vector3(0.55, -0.8, -0.25),
   off: new THREE.Vector3().copy(OFF_REST), offPole: new THREE.Vector3().copy(OFF_POLE), two: 0,
   twist: 0, lean: 0,
+  offBlade: new THREE.Vector3(0, 1, 0),   // Jar'Kai: which way the off hand's saber points (chest space)
+  offLive: false,   // Jar'Kai: the off hand's follow-up is in its stroke right now (jedi/bladehit.js cuts with it)
   palm: 0,   // how open the free hand is held (1: the flat Force palm of Niman's reaching guard), for the fingers
   gaze: 0,   // how much of the upper body's turn the head undoes, so a side-on guard (Soresu) still looks at the foe
 };
@@ -154,6 +161,7 @@ export function guardPose(dt, R, held, grip, form, blocking, sway, over = null, 
     _p.copy(off.hand); if (sway.off){ const so = sway.off * off.sway; _p.z += so; _p.y += Math.abs(so) * 0.3; }
     saberPose.off.lerp(_p, Math.min(1, dt * 8 * rate)); saberPose.offPole.lerp(off.pole, k).normalize();
   }
+  if (dualIn(held)){ slerpDir(saberPose.offBlade, g.offBlade || mirror(saberPose.blade, _mo), k, saberPose.offBlade); saberPose.offLive = false; }
   saberPose.palm += ((g.palm && off === g.off ? g.palm : 0) - saberPose.palm) * Math.min(1, dt * 8);
   saberPose.gaze += ((g.gaze || 0) - saberPose.gaze) * Math.min(1, dt * 9 * rate);
   saberPose.twist += ((g.twist || 0) - saberPose.twist) * Math.min(1, dt * 9 * rate);
@@ -331,7 +339,8 @@ export function swingPose(R, held, grip, form, sw){
   // the free hand works against the blade (data/poses.js SWING_OFF): a forehand reaches it out at the foe on the wind-up
   // and draws it back to the hip as the blade comes through (the counter-pull that turns the body), a backhand tucks it in
   // and flings it out the other way; it opens for balance on the follow-through and returns to the guard's place
-  if (!style.two){
+  if (style.dual && dualIn(held)) dualSwing(A, k, style, sw);
+  else if (!style.two){
     const O = style.offKeys ? (style.offV || (style.offV = style.offKeys.map(V))) : OFF_KEYS[A.side > 0 ? 'back' : 'fore'], fl = style.offFlare;
     const rOff = A.rest.offFight || A.rest.off, guardOff = (rOff && rOff.hand) || OFF_REST;
     const key = i => _p.copy(guardOff).lerp(O[i], fl);
@@ -479,6 +488,8 @@ export function deflectPose(dt, R, held, grip, form, d){
   saberPose.two += ((bg.two ? 1 : 0) - saberPose.two) * Math.min(1, dt * 14);
   const off = bg.off || G0.ready.off;
   if (off){ saberPose.off.lerp(off.hand, Math.min(1, dt * 12)); saberPose.offPole.lerp(off.pole, Math.min(1, dt * 12)).normalize(); }
+  // Jar'Kai: the off blade crosses the catch (the X-block) or, on a bolt, mirrors it
+  if (dualIn(held)){ slerpDir(saberPose.offBlade, (!d.contact && bg.offBlade) || mirror(saberPose.blade, _mo), Math.min(1, dt * 16), saberPose.offBlade); saberPose.offLive = false; }
   saberPose.lean += ((bg.lean || 0) - saberPose.lean) * Math.min(1, dt * 12);
   return { torso: 0 };
 }
@@ -514,8 +525,42 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   // two-handed, the off elbow flares out to its own side (as a real two-handed grip does), so the arm reads past the
   // body from the camera behind instead of tucking out of sight in front of the chest
   if (saberPose.two > 0.5) _p.set(-0.85, -0.5, -0.15).normalize();
+  if (dualIn(held)){
+    // JAR'KAI: the off hand's own saber, kept out of the body and aimed like the main one
+    _mb.copy(saberPose.offBlade);
+    keepClear(_t, _mb);   // (the body column is symmetric: the same test keeps the off blade out of it)
+    solveArm(R.armL, _t, _p);
+    R.armL.wr.updateWorldMatrix(true, false);
+    aimHeld(R.chest, R.armL.wr, held.off.node, bladeAxis({ root: held.off.root }, _ax), _mb, 0.4);
+    return;
+  }
   solveArm(R.armL, _t, _p);
   R.armL.wr.quaternion.identity();
+}
+
+/* JAR'KAI'S FOLLOW-UP — the off hand swings the main cut MIRRORED across the body, `style.dual.lag` of the swing
+   behind it: wind-up from wherever it held, the stroke, the follow-through, then back to the guard. The same phases and
+   easing as the main cut, on its own clock. While its stroke runs, saberPose.offLive is up (jedi/bladehit.js cuts). */
+function dualSwing(A, k, style, sw){
+  if (!A.offK){
+    A.offK = A.keys.map(kf => ({ hand: mirror(kf.hand, new THREE.Vector3()), blade: mirror(kf.blade, new THREE.Vector3()).normalize() }));
+    A.offStart = { hand: saberPose.off.clone(), blade: saberPose.offBlade.clone() };
+    const rOff = A.rest.off;
+    A.offRest = { hand: rOff ? rOff.hand.clone() : OFF_REST.clone(), blade: (A.rest.offBlade || mirror(A.rest.blade, new THREE.Vector3())).clone() };
+  }
+  const lagT = style.dual.lag || 0.2, k2 = (k - lagT) / (1 - lagT);
+  const [C, S, F] = A.offK, wind = A.wind, R0 = A.rec;
+  let a, b, t;
+  if (k2 <= 0){ a = A.offStart; b = A.offStart; t = 0; }
+  else if (k2 < wind){ a = A.offStart; b = C; t = powOut(k2 / wind, 3); }
+  else if (k2 < A.ts){ a = C; b = S; t = powIn((k2 - wind) / (A.ts - wind), A.a); }
+  else if (k2 < A.tf){ a = S; b = F; t = powOut((k2 - A.ts) / (A.tf - A.ts), A.b); }
+  else { a = F; b = A.offRest; t = R0 * settle(Math.min(1, (k2 - A.tf) / (1 - A.tf)), A.recM); }
+  arcLerp(a.hand, b.hand, t, PIVOT, saberPose.off);
+  slerpDir(a.blade, b.blade, t, saberPose.offBlade);
+  saberPose.offPole.copy(OFF_POLE);
+  saberPose.offLive = !sw.recoil && k2 >= A.tc * 0.6 && k2 <= Math.min(0.92, A.tf + 0.05);
+  saberPose.palm = 0;
 }
 
 const REV_ALONG = 0.12;   // the most the reverse blade may point on along the forearm (dot of blade and elbow → wrist)

@@ -72,6 +72,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
    free hand rests half open, opens flat to push, claws as it pulls and hooks to pour out lightning; with the saber
    holstered both hands are his weapon. The Mando's are always on a weapon, the off hand on the rifle's foregrip */
 function handGrip(){
+  if (player.stowed && relaxed()) return { R: 0.3, L: 0.3 };   // the blade put out and clipped on (5): both hands hang loose, half open
   if (isGunner()){
     const w = gunLook(player.weapon);   // (the trooper's guns are held like the Mando's: data/trooper.js)
     return { R: 1, L: w === 'dual' || w === 'fists' ? 1 : MANDO_WEAPONS[w] && MANDO_WEAPONS[w].twoHand ? 0.8 : 0.45 };

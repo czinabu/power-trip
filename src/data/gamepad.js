@@ -56,7 +56,7 @@ export const PAD_BINDS = {
       RB: { key: 'v', label: 'Barrier' },
       L3: { key: 'q', label: 'Run / walk' },
       DOWN: { key: 'g', label: 'Switch grip', note: 'Regular or reverse' },
-      LEFT: { key: '5', label: 'Ignite / retract saber', note: 'Blade out, hilt in hand: walk or run at ease · any attack, block, power or blow lights it again' },
+      LEFT: { key: '5', label: 'Ignite / retract saber', note: 'Blade out, hilt to the belt: walk or run at ease · any attack, block, power or blow lights it again' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
       VIEW: { key: 'h', label: 'Squad orders' },

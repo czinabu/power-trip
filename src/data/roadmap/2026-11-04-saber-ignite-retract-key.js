@@ -4,7 +4,7 @@ export default {
   status: 'done',
   date: '2026-11-04',
   items: [
-    "5 (LB + D-pad left on a controller) puts the blade out with the hilt still in hand, and 5 lights it again; 4 is still the holster for unarmed fighting",
+    "5 (LB + D-pad left on a controller) puts the blade out and clips the hilt to the belt, and 5 draws and lights it again; 4 is still the holster for unarmed fighting",
     "Put out, you stand at ease and walk or run normally: arms loose and swinging with the stride, no guard and no hum",
     "A new, fuller snap-hiss on ignition and a hum that sinks into the hilt on retraction, all synthesized; the blade visibly runs up out of the emitter and sucks back in",
     "Any attack, block, Force power or kick lights it first and carries on, and a blow landing on you lights it on reflex (too late to guard that one)",

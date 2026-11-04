@@ -255,7 +255,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), stance().blade, false);   // the blow meets the blade
         G.shake = Math.max(G.shake, 0.15 * heavy);
         player.vel.addScaledVector(fwd(), -2.5 * heavy);   // the blow drives you back a step
-        sfx(900, 0.07, 'square', 0.05, 500);
+        S.deflect(contact || V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8));   // the one blade-contact sound (clash + pyew), whatever weapon it was
         noteDefense('blocks', fromPos, opts);
         // a block is not a parry: some of a melee blow still gets through the guard
         // DJEM SO — FLUID RIPOSTE: a blow taken square on the held guard readies a counter (a lighter one than a parry's)

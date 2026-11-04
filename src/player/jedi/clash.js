@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 import { CFG } from '../../data/config.js';
 import { DUEL } from '../../data/duel.js';
-import { sfx } from '../../audio/sfx.js';
 import { clashSparks } from '../../fx/ink.js';
 import { shared, G, enemies, player, isGunner } from '../../state.js';
 import { playerPos, stance } from '../helpers.js';
@@ -163,13 +162,12 @@ export function bounceOff(e, cp){
 }
 
 /* RECOIL — the swing runs backwards a short way from where it met the other blade, then hands back to the guard
-   (player/animation.js plays it). Sparks spit from the contact and the blades ring. */
+   (player/animation.js plays it). Sparks spit from the contact (its sound is the caller's clash). */
 export function recoilSwing(cp){
   const sw = player.swing;
   if (cp){
     clashSparks(cp, 0xffe9b0, 4);
     clashSparks(cp, stance().blade, 2);
-    sfx(2400, 0.09, 'triangle', 0.035, 1500);   // the bright ring of blade on blade, over the clash
   }
   if (!sw || sw.recoil || sw.finBeat || player.atkT <= 0) return;   // (a FINISHER's beat rides through a blade it meets: jedi/finisher.js)
   const C = DUEL.clash;

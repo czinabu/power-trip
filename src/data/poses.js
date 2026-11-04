@@ -30,7 +30,7 @@ export const FOOTWORK = {
   vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
   staff:     { crouch: -0.2,  splay: 0.6,  lead: 0.3,  lean: 0.06, width: 1.3 },    // the saber staff: wide and planted, the off foot a step ahead
   jarkai:    { crouch: -0.22, splay: 0.4,  lead: 0.34, lean: 0.12, width: 1.15 },   // Jar'Kai: low, light and staggered, both blades out in front
-  jarkaiMix: { crouch: -0.3,  splay: 0.62, lead: -0.14, lean: 0.16, width: 1.45, roll: -0.32, shift: -0.36, sit: 0.08 },   // Jar'Kai, mixed grip (Ahsoka): a wide low lunge onto the bent right knee, the left leg stretched out after it, the left shoulder leading
+  jarkaiMix: { crouch: -0.3,  splay: 0.62, lead: -0.14, lean: 0.16, width: 1.45, roll: -0.08, shift: -0.36, sit: 0.08 },   // Jar'Kai, mixed grip (Ahsoka): a wide low lunge onto the bent right knee, the left leg stretched out after it, the left shoulder leading
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading

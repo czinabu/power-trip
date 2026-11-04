@@ -244,7 +244,7 @@ export const DUAL_GUARDS = {
     // (Ahsoka's) dropped low and hunched in behind it: the right fist drawn back and high, palm down, its blade
     // pointed forward and down at the foe; the left arm thrust straight out ahead, fist forward, the reversed blade
     // laid out to the left and a little up
-    block: { hand: [0.34, 0.56, -0.04], blade: [-0.16, -0.12, 0.98], twist: 0.2, lean: 0.36, gaze: 1, sink: 0.1, pole: [0.9, 0.2, -0.35],
+    block: { hand: [0.36, 0.44, -0.02], blade: [-0.16, -0.12, 0.98], twist: 0.2, lean: 0.36, gaze: 1, sink: 0.1, pole: [0.9, 0.2, -0.35],
              off: { hand: [-0.46, 0.24, 0.54], pole: [-0.55, -0.8, -0.2] }, offBlade: [-0.96, 0.24, 0.1] },
     block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, gaze: 1, pole: [0.6, -0.75, -0.2],
               off: { hand: [-0.16, 0.62, 0.18], pole: [-0.8, 0.3, -0.4] }, offBlade: [0.95, 0.1, 0.25] },

@@ -203,7 +203,7 @@ export const S = {
     T({ pos, type: 'square', f: 300, f2: 170, g: 0.055, d: 0.12, filt: { type: 'lowpass', f: 1300 } });
     T({ pos, type: 'sine', f: 1250, fm: { r: 0.5, i: 1, i2: 0.05 }, g: 0.05, d: 0.14, verb: 0.15 });
   },
-  // ── the Force ── (layered: audio/force.js; push and pull: a rush, a deep hum, then the impact). pos = a foe's or a partner's
+  // ── the Force ── (layered: audio/force.js; push and pull: a heavy, bassy gust of wind). pos = a foe's or a partner's
   // power, placed in the world; none = your own
   push: (pos) => FX.push(pos),
   pull: (pos) => FX.pull(pos),

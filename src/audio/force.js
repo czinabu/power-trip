@@ -1,7 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // FORCE SOUND: every Force power is built from layers, all synthesized, on its own bus.
 //
-//   TELEKINETIC (push, pull, repulse)   the films' recipe, all weighted low:
+//   PUSH / PULL   a gust of wind (a broad bed of air, a howl and a whistle sweeping away from you or in toward you,
+//   surging once) made heavy by a low rumble of air and a deep tone that swell with it (no thump)
+//   REPULSE   the films' recipe, all weighted low:
 //       1 the rush             torn air through a flanger with heavy feedback; its sweep falls for a push and rises
 //                              for a pull, so you hear which way the Force is flowing
 //       2 the hum              a deep, pitch-bent drone as the power takes hold, the Force itself
@@ -177,25 +179,42 @@ function impact(pos, s, self, at = 0){
   for (let i = 0; i < 3; i++) VN({ pos, at: at + rand(0.04, 0.2), color: 'brown', g: 0.05 * s, d: 0.05, filt: { type: 'bandpass', f: rand(300, 700), q: 2 }, pri: 0 }, 'force', self);   // what it hit, settling
 }
 
+const HIT = 0.13;   // when the repulse's impact lands after its rush starts
+
+/* a GUST of wind: a broad bed of air plus two resonant bands that howl and whistle as they sweep (dir 1: blowing away,
+   the howl falling; dir -1: drawn in, rising). Its loudness surges once mid-gust, the way real wind does. */
+function gust(pos, self, { at = 0, g = 0.2, a = 0.08, d = 0.6, dir = 1 } = {}){
+  const sw = (lo, hi) => dir > 0 ? [hi, lo] : [lo, hi];
+  const [b0, b1] = sw(500, 2400), [h0, h1] = sw(300, 820), [w0, w1] = sw(700, 1700);
+  VN({ pos, at, color: 'pink', g, a, d, filt: { type: 'bandpass', f: b0, f2: b1, q: 0.6 }, verb: 0.35, jit: 0.1 }, 'force', self);                 // the body of the gust
+  VN({ pos, at: at + 0.02, color: 'pink', g: g * 0.55, a: a * 1.3, d: d * 0.9, filt: { type: 'bandpass', f: h0, f2: h1, q: 5 }, verb: 0.35, jit: 0.1 }, 'force', self);   // its howl
+  VN({ pos, at: at + 0.04, color: 'white', g: g * 0.18, a: a * 1.5, d: d * 0.7, filt: { type: 'bandpass', f: w0, f2: w1, q: 9 }, verb: 0.3, jit: 0.1 }, 'force', self);  // a thin whistle on top
+  VN({ pos, at: at + a + 0.05, color: 'pink', g: g * 0.6, a: 0.06, d: d * 0.6, filt: { type: 'bandpass', f: (b0 + b1) / 2, q: 0.8 }, verb: 0.3, jit: 0.15 }, 'force', self);   // the second surge
+}
+// the bass IN the wind (no thump): a heavy low rumble of air and a deep tone that swell and fade with the gust itself
+function windBass(pos, self, { at = 0, g = 0.3, a = 0.08, d = 0.6, f = 52, f2 = 42 } = {}){
+  VN({ pos, at, color: 'brown', g, a, d, filt: { type: 'lowpass', f: 220, f2: 140 }, verb: 0.2 }, 'force', self);
+  V({ pos, at, type: 'sine', f, f2, g: g * 0.75, a: a * 1.2, d: d * 1.1, vib: { r: 3.3, d: 18 }, pri: 2 }, 'force', self);
+  V({ pos, at, type: 'triangle', f: f * 1.5, f2: f2 * 1.5, g: g * 0.25, a: a * 1.2, d, filt: { type: 'lowpass', f: 200 } }, 'force', self);
+}
+
 /* ---------- telekinetic ---------- */
 
-const HIT = 0.13;   // when the impact lands after the rush starts (short, so the shove still feels instant)
+// the push: a heavy gust of wind thrown out from you
 export function push(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  rip({ pos, g: 0.17, a: 0.07, dur: HIT + 0.2, f: 1600, f2: 200, d0: 0.0016, d1: 0.011, q: 0.7, color: 'pink', verb: 0.3 });   // the rush, falling away from you
-  hum(pos, self, { at: 0.04, g: 0.2, a: 0.06, hold: 0.08, d: 0.45, f: 58, f2: 44 });
-  impact(pos, 1, self, HIT);
-  if (self) duck(0.25, 0.12);
+  gust(pos, self, { g: 0.38, a: 0.05, d: 0.62, dir: 1 });
+  windBass(pos, self, { g: 0.46, a: 0.06, d: 0.66 });
+  if (self) duck(0.2, 0.12);
 }
 
-// the pull: the rush rising as the air is drawn in, the hum swelling as the target is dragged, the impact as it lands
+// the pull: the heavy wind drawn back in toward you, rising
 export function pull(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  rip({ pos, g: 0.16, a: 0.18, dur: 0.26, f: 200, f2: 1600, d0: 0.011, d1: 0.0016, q: 0.7, color: 'pink', verb: 0.3 });   // rising toward you
-  hum(pos, self, { at: 0.02, g: 0.2, a: 0.16, hold: 0.04, d: 0.35, f: 44, f2: 58 });
-  impact(pos, 0.85, self, 0.22);
+  gust(pos, self, { g: 0.36, a: 0.2, d: 0.32, dir: -1 });
+  windBass(pos, self, { g: 0.44, a: 0.2, d: 0.36, f: 42, f2: 54 });
 }
 
 // the repulse: the same recipe round all of you at once — a rush in each ear, a deeper and longer hum, a much bigger crash

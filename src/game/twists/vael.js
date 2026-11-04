@@ -1,8 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE WALK OUT (Vael's Chains): Vael is free, but he can barely walk, and he won't leave before the last child. He goes
-// out behind the line, slow, and the hold goes with him: its zone is wherever he is, so the stand you're holding creeps
-// up the floor toward the gate as the children get out, through whatever is in the way. When the hold stalls (foes on
-// him and you away) he stops where he is and waits for you.
+// out behind the line, slow, at its tail. The hold's zone rides on the line (game/mission.js followLine), so he is in
+// the stand you're walking out; a line that doesn't walk out (escort: false) makes him the zone instead. When the hold
+// stalls (foes on him and you away) he stops where he is and waits for you.
 //   path: [[x, z]…] the way he walks (the hold's zone follows him along it as its progress climbs) · who: the cast name
 //   of the one walking (data/cast.js) · line: { jedi } the banner's line
 import { TW, line } from './kit.js';
@@ -23,7 +23,9 @@ function along(P, f){
 export default {
   begin(){ TW.s = { F: null, said: false, x: null, z: null, f: 0 }; },
   update(tw, dt, ctx){
-    const S = TW.s, f = ctx.frac || 0, [x, z, yaw] = along(tw.path, f);
+    // a line walking the whole way (game/mission.js): he comes out behind the last of them, so he's in the line you guard
+    const L = ctx.line, tail = L && L.kids[L.kids.length - 1];
+    const f = ctx.frac || 0, S = TW.s, [x, z, yaw] = tail ? along(L.path, Math.max(0, tail.d - L.gap) / L.len) : along(tw.path, f);
     const moving = f > S.f + 1e-5; S.f = f;
     if (!S.F) S.F = makeFigure(tw.who || 'MASTER VAEL', x, z, yaw);
     if (S.F){
@@ -37,7 +39,7 @@ export default {
     }
     TW.k = 0;
     if (!S.said && !ctx.guest){ S.said = true; showBanner('VAEL WALKS OUT', line(tw), 4, { kicker: 'THE HOLD MOVES' }); }
-    if (ctx.guest || !ctx.o || !ctx.s || !ctx.s.zone) return;
+    if (ctx.guest || !ctx.o || !ctx.s || !ctx.s.zone || L) return;   // (walking with the line: the zone rides on the line)
     // the hold's zone is where he is: the objective reads o.at every frame, and the foes marching on it turn with it
     if (S.x === null || Math.hypot(x - S.x, z - S.z) > 0.02){
       S.x = x; S.z = z;

@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // LIGHTSABER SOUND: every one-shot a blade makes, all synthesized (no recordings, nothing borrowed from a film or a game).
 //   ignite / retract   the snap-hiss: a crack, the blade running up (or sucking back) through a filter that flares open,
-//                      voiced by the form's group (Guard smooth, Speed snappy, Power roaring, Niman a crystal shimmer)
+//                      voiced by the form's group (Guard smooth, Speed snappy, Power roaring, Niman an airy shimmer)
 //                      (full: the showpiece version, for the ignite / retract key and a draw from the belt)
 //   swing              the "vwoom": the hum bending up through the arc, a doppler pass, moving air; every stroke different
 //   clash              blade on blade, in four layers: a crack, a sub thump, a plasma sizzle and a hum tail, glued on one bus
@@ -61,8 +61,8 @@ function crackle(pos, n, spread, g, at0 = 0){
             drops into a tight, high (200–250 Hz) turbine purr; it retracts in one instant pneumatic snap
      power  (Djem So, Juyo, Vaapad)              a roaring burst that tears the air: arc-welder snaps, a low blast and a
             gritty saw roar with white noise flickering through it; it retracts in a long crackling burn-off
-     niman  (and any blade with no form)         the hilt's snap almost gone: an airy, shimmering bloom with a crystal
-            singing-bowl ring; it retracts in a soft wind-like fade with a faint chime tail
+     niman  (and any blade with no form)         the hilt's snap almost gone: an airy, shimmering bloom; it retracts
+            in a soft wind-like fade
    The Darksaber keeps its own deep, buzzing voice. Every recipe is built on the same base voices (the snap, the run-up,
    the edge zinging out, the hiss), each scaled by the group's profile, with the group's own layers on top.
      crack  the hilt's snap   rise  how long the run-up takes   bright  how far the filter flares
@@ -102,18 +102,14 @@ function igniteLayers(fam, kind, pos, at, g, full){
         filt: { type: 'lowpass', f: 2200, f2: 500, t: 0.5 }, drive: 0.7, verb: 0.2, pri: 1 });
     N({ pos, at: at + 0.04, g: 0.035 * g * k, a: 0.03, d: 0.5 * k, trem: { r: rand(11, 16), d: 0.85, type: 'square' }, filt: { type: 'highpass', f: 2400 }, pri: 0 });
   } else if (fam === 'niman'){
-    // an airy shimmer blooming open, and a crystal singing bowl ringing over it
+    // an airy shimmer blooming open
     N({ pos, at, color: 'pink', g: 0.07 * g * k, a: 0.12, d: 0.55 * k, trem: { r: 6, d: 0.35 }, filt: { type: 'bandpass', f: 1800, f2: 6000, q: 0.9, t: 0.4 }, verb: 0.3, pri: 1 });
-    const f0 = rand(1020, 1080);
-    for (const [m, gg, d] of [[1, 0.022, 1.3], [2.71, 0.012, 0.9], [5.1, 0.006, 0.6]])
-      T({ pos, at: at + 0.05, type: 'sine', f: f0 * m, g: gg * g * k, a: 0.08, d: d * k, vib: { r: 4.5, d: 5 }, verb: 0.5, jit: 0.005 });
   }
 }
 function retractLayers(fam, kind, pos, at, g, dur, full){
   const k = full ? 1.15 : 1;
   if (fam === 'guard'){
-    // the heavy metallic magnetic latch as the hilt seals
-    T({ pos, at: at + dur * 0.9, type: 'sine', f: 420, fm: { r: 1.41, i: 2.5, i2: 0.05 }, g: 0.05 * g * k, a: 0.001, d: 0.2, verb: 0.15 });
+    // the heavy magnetic latch as the hilt seals: a low thunk and a click
     T({ pos, at: at + dur * 0.9, type: 'sine', f: 110, f2: 50, g: 0.1 * g * k, a: 0.001, d: 0.12, panK: 0.4 });
     N({ pos, at: at + dur * 0.9, g: 0.04 * g, a: 0.0008, d: 0.02, filt: { type: 'bandpass', f: 2400, q: 1.5 } });
   } else if (fam === 'speed'){
@@ -128,9 +124,8 @@ function retractLayers(fam, kind, pos, at, g, dur, full){
           fm: { r: rand(2.2, 3.6), i: 6, i2: 1 }, filt: { type: 'bandpass', f: rand(1000, 2000), q: 0.9 }, drive: 0.8, pri: 0 });
     N({ pos, at: at + dur * 0.6, g: 0.03 * g * k, a: 0.05, d: 0.55, trem: { r: rand(14, 20), d: 0.7, type: 'square' }, filt: { type: 'highpass', f: 4000 }, drive: 0.3, pri: 0 });
   } else if (fam === 'niman'){
-    // a soft wind dissolving into the hilt, and a faint crystal chime left ringing
+    // a soft wind dissolving into the hilt
     N({ pos, at, color: 'pink', g: 0.05 * g * k, a: dur * 0.3, d: dur * 0.9, filt: { type: 'lowpass', f: 2400, f2: 400, q: 0.6, t: dur }, pri: 1 });
-    T({ pos, at: at + dur * 0.8, type: 'sine', f: rand(2050, 2150), g: 0.014 * g * k, a: 0.004, d: 1.1, verb: 0.55, jit: 0.005 });
   }
 }
 
@@ -269,7 +264,7 @@ export function swing(p, len, dark, o = {}){
      guard  heavy, low "whoosh": a dense wall of air and a low body, the pitch barely bending, no highs
      speed  a laser-thin slice: a sharp, high doppler drop and high-passed air chopped by a fast LFO, cut off at once
      power  tearing: saturation and crackle that grow with the stroke's size (a heavy overhead crackles violently)
-     niman  a smooth whisper of wind through a sweeping phaser-like band, ringing faintly out into the room */
+     niman  a smooth whisper of wind through a sweeping phaser-like band */
 export function formSwing(v, pos, form, o = {}){
   const fam = FORM_FAMILY[form] || (form ? 'niman' : null), len = v.len * rand(0.9, 1.1);
   const drive = Math.max(fam === 'power' ? 0.35 + len * 0.3 : v.drive || 0, o.drive || 0);
@@ -290,7 +285,6 @@ export function formSwing(v, pos, form, o = {}){
   } else if (fam === 'niman'){
     N({ pos, color: 'pink', g: 0.06, a: d * 0.5, d: d * 1.4, trem: { r: 7, d: 0.3 }, filt: { type: 'bandpass', f: 700, f2: 3200, q: 3.5, t: d }, verb: 0.35 });
     N({ pos, color: 'pink', g: 0.035, a: d * 0.5, d: d * 1.2, filt: { type: 'bandpass', f: 2800, f2: 900, q: 4, t: d }, verb: 0.35, pdrift: rand(-0.3, 0.3) });
-    T({ pos, at: d * 0.6, type: 'sine', f: rand(1040, 1090), g: 0.008, a: 0.02, d: 0.7, verb: 0.5, jit: 0.005, pri: 0 });
   }
 }
 
@@ -483,16 +477,14 @@ export function parryFlare(pos){
   crackle(pos, 6, 0.6, 0.04, 0.08);
 }
 
-/* THE PERFECT-PARRY REWARD — three layers stacked on the exact frame of a perfect parry, over its clash or deflect
+/* THE PERFECT-PARRY REWARD — two layers stacked on the exact frame of a perfect parry, over its clash or deflect
    (sfx.js parry / boltParry), so you hear you hit the window without looking for a label:
      L6 THE IMPLOSION (-eta → 0 s)  parryRise: the field snatching the bolt's energy before it throws it back. A
                                     reversed sweep (suction rising in pitch and level) that ends exactly on impact.
                                     Only a bolt can have it, since only a bolt's arrival is known ahead
                                     (enemies/bolts.js starts it when the parry window will still be open on arrival).
      L7 THE SHOCKWAVE (0 s)         parryChime: a ~60 Hz sub punch with its attack pushed hard, gated off fast.
-     L5 THE CHIME     (0 s)         parryChime: a crystalline ring band-locked at 6–8 kHz, high above the combat's
-                                    mid-range noise, with a long clean reverb tail (~2.5 s).
-   The score and ambience duck ~6 dB for half a second with it (sfx.js), leaving the chime ringing alone. */
+   No chime or bell rings over it. The score and ambience duck ~6 dB for half a second with it (sfx.js). */
 export function parryRise(pos, eta){
   const d = Math.max(0.05, Math.min(0.22, eta)), C = o => play(Object.assign({ pos, bus: 'clash' }, o));
   // the suck-back: noise swelling up through a rising band, and a low tone climbing into the hit; cut off dead at 0
@@ -505,9 +497,4 @@ export function parryChime(pos){
   // L7 · the shockwave: a sub punch, attack pushed hard (held at peak a beat), then gated off fast
   C({ type: 'sine', f: 120 * c, f2: 52, ft: 0.06, g: 0.34, a: 0.0008, hold: 0.025, d: 0.1, panK: 0, pri: 2 });
   C({ src: 'noise', color: 'brown', g: 0.16, a: 0.0008, hold: 0.01, d: 0.05, filt: { type: 'lowpass', f: 260 }, panK: 0 });
-  // L5 · the chime: a struck crystal. Three close partials in the 6–8 kHz band (beating gently against each other),
-  // a bright FM strike for the attack, and a long send into the room so it rings on after the hit has gone
-  for (const [f, g, d] of [[6400, 0.03, 2.4], [7060, 0.024, 2.0], [7880, 0.016, 1.5]])
-    C({ type: 'sine', f: f * c, g, a: 0.002, d, filt: { type: 'bandpass', f: 7000, q: 2 }, verb: 0.6, jit: 0.004, pri: 2 });
-  C({ type: 'sine', f: 6800 * c, g: 0.03, a: 0.001, d: 0.25, fm: { r: 1.41, i: 1.4, i2: 0.05 }, filt: { type: 'bandpass', f: 7000, q: 1.5 }, verb: 0.5 });
 }

@@ -12,11 +12,14 @@ import { chromium } from 'playwright';
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
+import { FORM_FAMILY as FAMILY, FAMILIES } from '../../src/data/foe-forms.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const page_url = pathToFileURL(path.join(root, 'dist/index.html')).href;
 if (!existsSync(path.join(root, 'dist/index.html'))){ console.error('dist/index.html missing: run `npm run build` first'); process.exit(1); }
-const BOT = readFileSync(path.join(root, 'tools/duel-sim/bot.js'), 'utf8');
+const BEATS = Object.fromEntries(Object.entries(FAMILIES).map(([k, f]) => [k, f.beats]));
+const BOT = readFileSync(path.join(root, 'tools/duel-sim/bot.js'), 'utf8')
+  .replace('__FORM_FAMILY__', JSON.stringify(FAMILY)).replace('__BEATS__', JSON.stringify(BEATS));
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf('--' + k); return i >= 0 ? argv[i + 1] : d; };
@@ -30,10 +33,18 @@ const FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'nima
 const RANKS = ['initiate', 'adept', 'knight', 'master'];
 const DEPTH = { initiate: 1, adept: 4, knight: 9, master: 14 };   // where in a run each rank is met (the foes' skill ramp)
 const HPM = (d) => 1 + d * 0.05;   // a campaign foe's health this deep (enemies/elites.js enemyHpScale)
-const FAMILY = { shiicho: 'speed', ataru: 'speed', juyo: 'speed', staff: 'speed', makashi: 'guard', soresu: 'guard', vaapad: 'guard', djemso: 'power', shien: 'power', niman: null };
 // a hero's loadout around its form: one form from each family, so a wrong form is a choice (the counter penalty applies)
 const PICK = { speed: 'ataru', guard: 'soresu', power: 'djemso' };
 const loadoutFor = (form) => { const out = [form]; for (const f of ['speed', 'guard', 'power']) if (FAMILY[form] !== f && out.length < 3) out.push(PICK[f]); return out; };
+
+// a master that switches: the sandbox's foe picks only one form, so a switcher is an acolyte master given the full
+// acolyte repertoire, starting in a form the hero's form counters (it will switch off it)
+const SWITCH_REP = ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo'];
+function pickSwitcher(cfg){
+  const fam = FAMILY[cfg.form], weak = SWITCH_REP.filter(f => fam && FAMILIES[fam].beats === FAMILY[f]);
+  cfg.foes[0].form = weak.length ? weak[cfg.seed % weak.length] : SWITCH_REP[cfg.seed % SWITCH_REP.length];
+  cfg.__rep = SWITCH_REP;
+}
 
 function jobs(){
   const J = [];
@@ -76,7 +87,7 @@ async function worker(browser, queue, onDone){
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
-  await page.goto(page_url);
+  await page.goto(page_url, { timeout: 120000 });   // (four workers loading the built page at once can take longer than the default 30 s)
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
   await page.evaluate(() => {
     const { G } = GAME;
@@ -91,17 +102,8 @@ async function worker(browser, queue, onDone){
     const j = queue.shift();
     let r;
     try {
+      if (j.cfg.foes[0].master) pickSwitcher(j.cfg);
       r = await page.evaluate((cfg) => {
-        // a master that switches: the sandbox's foe picks only one form, so a switcher is an acolyte master given the
-        // full acolyte repertoire, starting in a form the hero's form counters (it will switch off it)
-        if (cfg.foes[0].master){
-          const F = { shiicho: 'speed', ataru: 'speed', juyo: 'speed', staff: 'speed', makashi: 'guard', soresu: 'guard', vaapad: 'guard', djemso: 'power', shien: 'power' };
-          const B = { power: 'guard', guard: 'speed', speed: 'power' };
-          const rep = ['shiicho', 'makashi', 'ataru', 'soresu', 'djemso', 'shien', 'juyo'];
-          const weak = rep.filter(f => F[cfg.form] && B[F[cfg.form]] === F[f]);
-          cfg.foes[0].form = weak.length ? weak[cfg.seed % weak.length] : rep[cfg.seed % rep.length];
-          cfg.__rep = rep;
-        }
         const pre = GAME.enemies.length;
         if (cfg.__rep){
           // hand the repertoire over right after the spawn (inside fight, via a one-shot hook on spawnEnemy)

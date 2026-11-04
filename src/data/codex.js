@@ -76,7 +76,7 @@ const TROOPS = [
     lore: 'An old war droid with a spinning electrostaff.',
     weapons: ['Electrostaff'],
     watch: ['Its weapon sits on the side it guards (the ring shows it while you learn)', 'Mash and it parries you'],
-    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', 'Its staff is a SPEED form: a GUARD form (Soresu, Makashi, Vaapad) counters it'] },
+    beat: ['Cut in on the open side', 'KICK twice to break its guard, then strike', 'Its staff is a POWER form: a SPEED form (Makashi, Ataru) counters it'] },
   { id: 'brute', name: 'BRUTE', kicker: 'HEAVY', threat: 3,
     lore: 'A wall of muscle and plate behind a vibro-maul.',
     weapons: ['Vibro-maul'],
@@ -90,7 +90,7 @@ const TROOPS = [
 ].map(e => ({ ...e, tab: 'troops', kind: 'type' }));
 
 /* the form counter (data/foe-forms.js): which family of forms beats a duellist's form, as a codex line */
-const FAMILY_FORMS = { power: 'Djem So, Shien', guard: 'Soresu, Makashi, Vaapad', speed: 'Shii-Cho, Ataru, Juyo, the saber staff' };
+const FAMILY_FORMS = { power: 'Djem So, Shien, Juyo, Vaapad, the saber staff', guard: 'Soresu, Shii-Cho', speed: 'Makashi, Ataru' };
 function counterLine(form){
   const fam = FORM_FAMILY[form];
   if (!fam) return null;

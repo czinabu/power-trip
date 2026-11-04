@@ -9,6 +9,7 @@ import { burst } from '../../fx/particles.js';
 import { floater } from '../../fx/floaters.js';
 import { G, player, isGunner } from '../../state.js';
 import { reigniteBlade } from '../../fx/trail.js';
+import { wakeBlade } from '../holster.js';
 import { startSwitch } from '../anim/saber.js';
 import { playerPos, stance, bladeColor, heldGrip } from '../helpers.js';
 import { applySaberGrip, setSaberStaff } from '../model/weapons.js';
@@ -90,7 +91,8 @@ export function switchStance(id, silent){
   player.blade.light.color.setHex(bladeColor(st));
   applySaberGrip(player, heldGrip(), !!silent);   // Shien turns the hilt over into its reverse grip, and back out of it
   setSaberStaff(player, isStaff(id));   // the saber staff: the long hilt and its second blade (snapped in as the blade re-ignites)
-  if (!silent){ reigniteBlade(); startSwitch(); }   // snap-hiss: the blade re-ignites in the new form's colour and turns into its guard
+  const lit = !silent && wakeBlade();   // the blade was out (5): the new form lights it, the full snap-hiss (S.reignite below then holds off)
+  if (!silent){ if (!lit) reigniteBlade(); startSwitch(); }   // snap-hiss: the blade re-ignites in the new form's colour and turns into its guard
   setStanceHud();
   if (!silent){
     const pp = playerPos();

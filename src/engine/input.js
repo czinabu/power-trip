@@ -39,7 +39,7 @@ import { overlay, setSaberGrip } from '../ui/menus.js';
 import { startSwitch } from '../player/anim/saber.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { diffWindow } from '../data/difficulty.js';
-import { toggleHolster } from '../player/holster.js';
+import { toggleHolster, toggleBlade, wakeBlade } from '../player/holster.js';
 import { strikePress, strikeRelease, holsteredKick } from '../player/jedi/palm.js';
 import { wheelKeyDown, wheelKeyUp, wheelLook, wheelPickMate, wheelCancel, wheelOpen } from '../allies/wheel.js';
 import { pingHere } from '../net/ping.js';
@@ -64,6 +64,7 @@ document.addEventListener('mousedown', (e) => {
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
   if (e.button === 2 && (player.judgeT > 0 || player.flaming || player.mendT > 0)) return;   // mid-channel (lightning / flame / mend): no bracing
+  if ((e.button === 0 || e.button === 2) && G.mode === 'play') wakeBlade();   // the blade put out (5): a swing or a guard lights it first (player/holster.js)
   if (isTrooper()){ trooperMouseDown(e.button); return; }   // the clone trooper: rifle bursts and aim, or one pistol per button (player/trooper/kit.js)
   if (isGunner()){
     if (e.button === 0 && player.clinch){ clinchThrow(); return; }   // a foe held by the collar: LMB throws it (mando/melee.js)
@@ -170,6 +171,7 @@ document.addEventListener('keydown', (e) => {
   if (k === 'm' && !e.repeat){ audioInit(); const on = MUSIC.toggle(); showBanner('', '♪ MUSIC ' + (on ? 'ON' : 'OFF'), 1.0); return; }   // music on/off (persists)
   if (k === ' ' && !e.repeat) doJump();
   if (k === '4' && !e.repeat) toggleHolster();   // HOLSTER: the Jedi fights with the Force alone, the Mando with fists and gadgets (player/holster.js)
+  if (k === '5' && !e.repeat) toggleBlade();     // IGNITE / RETRACT: the blade out with the hilt in hand, at ease (any fight move lights it again)
   if (k === 'n' && !e.repeat) pingHere();   // PING: mark the spot or foe under the crosshair for the other players (net/ping.js)
   if (k === 'h' && !e.repeat) wheelKeyDown();   // SQUAD ORDERS: tap for the smart order, hold for the command wheel (allies/wheel.js)
   if (isTrooper()) trooperKey(k, e.repeat);   // the clone trooper's keys (player/trooper/kit.js)
@@ -198,6 +200,7 @@ document.addEventListener('keydown', (e) => {
     // SHIFT dashes any way you're pressing (or rolls out of a hard landing). Sprinting has its own key: Q toggles it
     // between run (the default) and walk (locomotion.js runs it). Z out of a sprint slides; ALT strafes.
     if (k === 'shift' && !e.repeat) forceDash();
+    if (!e.repeat && G.mode === 'play' && k.length === 1 && 'fcevxr'.includes(k)) wakeBlade();   // a Force power or a kick lights a blade put out with 5
     if (k === 'q' && !e.repeat && G.mode === 'play'){
       player.sprintOn = !player.sprintOn;
       showBanner('', player.sprintOn ? 'RUN' : 'WALK', 0.6);

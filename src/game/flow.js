@@ -7,6 +7,7 @@ import { endLock } from '../enemies/duel.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { clearGrenades } from '../enemies/grenades.js';
 import { resetMandoMelee } from '../player/mando/melee.js';
+import { clearUnlit } from '../player/holster.js';
 import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { scene } from '../engine/renderer.js';
@@ -156,6 +157,7 @@ export function startLevel(idx, opts){
   resetMandoMelee();
   player.judgeT = 0;
   player.palmT = 0; player.palm = null; player.palmQueued = false; player.palmHold = null; player.pullStrikeT = 0; player.stomp = false;   // the holstered string (jedi/palm.js)
+  clearUnlit();   // a fresh fight starts with the blade lit (player/holster.js: 5 puts it out)
   player.judgeTargets = [];
   player.barrierT = 0; if (shared._barrierMesh) shared._barrierMesh.visible = false;
   player.mendT = 0;

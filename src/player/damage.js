@@ -17,6 +17,7 @@ import { flinchEnemy, staggerEnemy } from '../enemies/damage.js';
 import { FOCUS, addFocus, riposteWindow } from './jedi/focus.js';
 import { addFury } from './jedi/fury.js';
 import { deflectAnim, cancelSwing } from './jedi/combat.js';
+import { wakeBlade } from './holster.js';
 import { clashFlash, clashSparks } from '../fx/ink.js';
 import { TELLS, tellCss } from '../fx/tells.js';
 import { spawnHitSpark, spawnParryFlash, spawnGroundShock } from '../fx/vfx.js';
@@ -154,6 +155,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (G.mode !== 'play') return 'none';
   if (player.downed){ hitDownedHero(); return 'none'; }   // down: a blow drains the time left instead (game/revive.js)
   if (G.gt < (player.reviveGuardT || 0)) return 'none';   // just got up: a moment's grace
+  if (!silent) wakeBlade();   // the blade was put out (5): a blow lights it on reflex, too late to guard this one (player/holster.js)
   if (player.dashT > 0){ if (!silent) perfectDodge(fromPos); return 'none'; }
   if (melee && opts && opts.by && opts.by.ff) dmg *= matchup(opts.by).hurt;   // the form counter: a blade whose form beats yours cuts deeper (enemies/foeform.js)
   const raw = dmg;

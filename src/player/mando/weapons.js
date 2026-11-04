@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { hooks } from '../../net/run.js';
 import { scene, camera } from '../../engine/renderer.js';
 import { sfx, S } from '../../audio/sfx.js';
+import { extendBlade } from '../../fx/trail.js';
 import { V3, rand, clamp, TMP } from '../../utils.js';
 import { acquireParticle, burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
@@ -68,14 +69,15 @@ export function syncWeaponMesh(){   // show only the equipped weapon's mesh (or 
 export function switchWeapon(name){
   if (!MANDO_WEAPONS[name] || player.weapon === name) return;
   if (!weaponUnlocked(name)){ floater(playerPos(), 'LOCKED', '#ff9a66'); sfx(120, 0.1, 'square', 0.05, 70); return; }
-  const W = MANDO_WEAPONS[name], was = player.weapon;
+  const W = MANDO_WEAPONS[name], was = player.weapon, wasUnlit = !!player.unlit;
+  player.unlit = false; if (wasUnlit) extendBlade(0);   // (the Darksaber put out with 5 comes back lit next time it's drawn: player/holster.js)
   player.weapon = name; player.zoom = false;
   player.heat = 0; player.overheat = false; player.ventT = 0; player.fireCd = 0.12; player.fireCdL = 0;
   player.spin = 0; player.burstLeft = 0; player.burstQ = false; player.gunSlow = 1;
   syncWeaponMesh();
   floater(playerPos(), W.name, '#bfe8ff');
   sfx(420, 0.07, 'square', 0.05, 240); sfx(220, 0.08, 'triangle', 0.04, 110);
-  if (name === 'darksaber') S.ignite('dark'); else if (was === 'darksaber' && !shared.darkProj) S.retract('dark');   // the Darksaber's snap-hiss
+  if (name === 'darksaber') S.ignite('dark'); else if (was === 'darksaber' && !shared.darkProj && !wasUnlit) S.retract('dark');   // the Darksaber's snap-hiss
 }
 // MANUAL VENT (R) — dump heat fast for a clean weapon, at the cost of a short fire lockout (a BF2 active-cooldown beat)
 export function startReload(){

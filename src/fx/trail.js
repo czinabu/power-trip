@@ -300,11 +300,42 @@ export const trailInfo = () => [...BLADES.values()].map(b => ({ name: b.m.name |
 let igniteT = 0;
 const IGNITE = 0.24;
 export function reigniteBlade(){ igniteT = IGNITE; }
+/* IGNITE / RETRACT (player/holster.js toggleBlade): the blade runs up out of the emitter (fast out, settling at full
+   length) or sucks back down into it (slow to start, snapping into the hilt), the Jedi saber, the saber staff's far
+   blade with it, and the Mando's Darksaber alike. extE is how far out it is (1 = full); `done` runs when it gets there. */
+const EXT = { up: 0.2, down: 0.26 };
+let extE = 1, extDir = 0, extDone = null;
+export function extendBlade(dir, done){
+  if (!dir){ extE = 1; extDir = 0; extDone = null; applyExt(); return; }   // stop where it is and stand at full length
+  if (dir > 0 && extDir === 0) extE = 0;   // lighting from dark (mid-retract, it turns round where it is)
+  extDir = dir; extDone = done || null; igniteT = 0;
+  applyExt();
+}
+export const bladeExtending = () => extDir !== 0;
+function applyExt(){
+  const shown = Math.max(0.02, extDir > 0 ? 1 - Math.pow(1 - extE, 3) : extE >= 1 ? 1 : 1 - Math.pow(1 - extE, 2));
+  if (isGunner()){
+    const D = player.darkBlades;   // [glow, edge, blade]: the glow and edge centred on the blade, the black core from its base
+    if (D){ D[0].scale.y = D[1].scale.y = D[2].scale.y = shown; D[0].position.y = 0.07 + 0.65 * shown; D[1].position.y = 0.1 + 0.62 * shown; }
+  } else if (player.blade) setBladeLen(player.blade, (stance().bladeLen || 1) * shown);
+}
+function stepExt(dt){
+  if (!extDir) return;
+  extE = Math.min(1, Math.max(0, extE + extDir * dt / (extDir > 0 ? EXT.up : EXT.down)));
+  applyExt();
+  if (extE <= 0 || extE >= 1){
+    const d = extDone; extDir = 0; extDone = null;
+    if (d) d();
+    if (extE <= 0){ extE = 1; applyExt(); extE = 0; }   // (hidden now: put the meshes back to full length for whoever shows them next)
+  }
+}
 function updateBladeFX(dt){
+  stepExt(dt);
   const B = player.blade;
   if (!B) return;
   const len = stance().bladeLen || 1;
-  if (igniteT > 0){
+  if (extDir){ /* the ignite / retract above has the length */ }
+  else if (igniteT > 0){
     igniteT = Math.max(0, igniteT - dt);
     const k = 1 - igniteT / IGNITE;
     const ext = k < 0.35 ? 1 - k / 0.35 : (k - 0.35) / 0.65;          // retract, then extend (eased)

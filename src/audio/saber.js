@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // LIGHTSABER SOUND: every one-shot a blade makes, all synthesized (no recordings, nothing borrowed from a film or a game).
 //   ignite / retract   the snap-hiss: a crack, the blade running up (or sucking back) through a filter that flares open
+//                      (full: the showpiece version, for the ignite / retract key and a draw from the belt)
 //   swing              the "vwoom": the hum bending up through the arc, a doppler pass, moving air; every stroke different
 //   clash              blade on blade: inharmonic FM ring, a crack, the electric bite of the bind and its spitting crackle
 //   burn               blade through a body: a scorching sear over a dull thump
@@ -51,6 +52,7 @@ function crackle(pos, n, spread, g, at0 = 0){
 
 /* the snap-hiss of a blade lighting. kind: a form id, 'staff' (both ends, the far one a beat behind) or 'dark' */
 export function ignite(kind, o = {}){
+  if (o.full) return igniteFull(kind, o);
   const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * 0.75;
   // the snap: a hard electric crack and a knock of air off the emitter
   N({ pos, at, g: 0.1 * g, a: 0.001, d: 0.05, filt: { type: 'highpass', f: 2400 }, drive: 0.7, pri: 2 });
@@ -70,6 +72,7 @@ export function ignite(kind, o = {}){
 
 /* a blade going out: the hum sucking back down into the hilt, the hiss closing, a last pop */
 export function retract(kind, o = {}){
+  if (o.full) return retractFull(kind, o);
   const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = o.g ?? 1, dur = o.short ? 0.18 : 0.32;
   T({ pos, at, type: 'sawtooth', f: 92 * p, f2: 36 * p, ft: dur * 0.9, g: 0.09 * g, a: 0.008, d: dur, det: 6,
       filt: { type: 'lowpass', f: dark ? 1600 : 2600, f2: 180 }, drive: dark ? 0.45 : 0.1, verb: 0.15, pri: 2 });
@@ -78,6 +81,53 @@ export function retract(kind, o = {}){
   N({ pos, at, color: 'pink', g: 0.05 * g, a: 0.015, d: dur * 0.75, filt: { type: 'bandpass', f: 2800, f2: 600, q: 1 } });
   N({ pos, at: at + dur * 0.85, g: 0.03 * g, a: 0.001, d: 0.025, filt: { type: 'highpass', f: 3000 } });   // the emitter's last pop
   if (kind === 'staff') retract('niman', { pos, at: at + 0.05, g: 0.55 * g, short: o.short });
+}
+
+/* THE SHOWPIECE snap-hiss and fade-out, for a blade lit or put out on purpose (5, a draw from the belt): the quick ones
+   above stay for a form change. Built on the same voices, longer and fuller so it reads as the moment it is.
+   ignite: the emitter's crack and a knock of air, a "kssh" of plasma catching, the blade roaring up through a filter
+     that flares wide open as it reaches the tip, a bright edge zinging out with it, then a swell of hum with a slow
+     waver that settles into the held hum (director.js) instead of stopping dead
+   retract: the hum rises a hair as the blade lets go, then the whole tone sinks into the hilt through a closing
+     filter, a hiss drawn in after it (a slow swell cut off sharp, so it sounds pulled back rather than blown out), and
+     the emitter's click and a soft thud as it seals */
+function igniteFull(kind, o){
+  const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * 0.85;
+  // the crack and the knock of air
+  N({ pos, at, g: 0.13 * g, a: 0.001, d: 0.06, filt: { type: 'highpass', f: 2200 }, drive: 0.8, pri: 2 });
+  T({ pos, at, type: 'sine', f: 180, f2: 48, g: 0.16 * g, d: 0.2, pri: 2 });
+  // "kssh": the plasma catching, a burst of hiss that brightens fast and trails off
+  N({ pos, at: at + 0.005, color: 'pink', g: 0.1 * g, a: 0.008, d: 0.42, filt: { type: 'bandpass', f: 900, f2: dark ? 2600 : 5200, q: 0.9, t: 0.14 }, verb: 0.15, pri: 2 });
+  // the blade running up: two detuned saws climbing from a growl into the hum's pitch through a filter that flares open
+  // at the tip (~0.13 s) and closes back to the hum's darkness as it settles
+  for (const [det, gg, f0] of [[8, 0.12, 40], [-11, 0.075, 40.6]])
+    T({ pos, at, type: 'sawtooth', f: f0 * p, f2: 90 * p, ft: 0.16, g: gg * g, a: 0.012, hold: 0.06, d: 0.8, det,
+        filt: { type: 'lowpass', f: dark ? 3200 : 6400, f2: 380, t: 0.7 }, drive: dark ? 0.55 : 0.2, verb: 0.25, pri: 2 });
+  // the edge zinging out to the tip and ringing a moment once it's there
+  T({ pos, at: at + 0.012, type: 'sawtooth', f: 170 * p, f2: 360 * p, ft: 0.15, g: 0.05 * g, a: 0.01, d: 0.32, vib: { r: 7, d: 14 },
+      filt: { type: 'bandpass', f: dark ? 450 : 650, f2: dark ? 2400 : 4800, q: 4, t: 0.15 }, verb: 0.2 });
+  // the hum swelling in under it all with a slow waver, handing over to the held loop
+  T({ pos, at: at + 0.1, type: 'sawtooth', f: 90 * p, g: 0.05 * g, a: 0.12, hold: 0.12, d: 0.55, det: 4, vib: { r: 4.5, d: 18 },
+      filt: { type: 'lowpass', f: 900, f2: 420, t: 0.6 }, drive: dark ? 0.4 : 0.1 });
+  T({ pos, at: at + 0.06, type: 'sine', f: 45 * p, g: 0.08 * g, a: 0.08, d: 0.6 });   // the body of it, felt more than heard
+  crackle(pos, dark ? 8 : 5, 0.4, 0.045 * g, at + 0.02);
+  if (kind === 'staff') igniteFull('niman', { pos, at: at + 0.09, g: 0.7 * (o.g ?? 1) });   // the far blade a beat behind
+}
+function retractFull(kind, o){
+  const dark = kind === 'dark', p = HUM_PITCH[kind] || 1, pos = o.pos, at = o.at || 0, g = (o.g ?? 1) * 0.9, dur = 0.42;
+  // the hum lets go: up a hair, then sinking into the hilt as the filter closes
+  for (const [det, gg] of [[7, 0.1], [-10, 0.06]])
+    T({ pos, at, type: 'sawtooth', f: 96 * p, f2: 30 * p, ft: dur, g: gg * g, a: 0.02, hold: 0.04, d: dur, det,
+        filt: { type: 'lowpass', f: dark ? 1800 : 3200, f2: 140, t: dur }, drive: dark ? 0.5 : 0.15, verb: 0.2, pri: 2 });
+  T({ pos, at, type: 'sawtooth', f: 300 * p, f2: 95 * p, ft: dur * 0.8, g: 0.04 * g, a: 0.01, d: dur * 0.85, vib: { r: 9, d: 12 },
+      filt: { type: 'bandpass', f: dark ? 1900 : 3800, f2: 380, q: 3.5, t: dur * 0.8 } });
+  // the hiss drawn in after it: a slow swell, cut off sharp at the hilt
+  N({ pos, at, color: 'pink', g: 0.075 * g, a: dur * 0.75, d: 0.05, filt: { type: 'bandpass', f: 4200, f2: 700, q: 1.1, t: dur * 0.8 }, pri: 2 });
+  // the emitter sealing: a click and a soft thud
+  N({ pos, at: at + dur * 0.82, g: 0.05 * g, a: 0.001, d: 0.03, filt: { type: 'highpass', f: 2800 }, drive: 0.4 });
+  T({ pos, at: at + dur * 0.82, type: 'sine', f: 120, f2: 55, g: 0.07 * g, d: 0.1 });
+  crackle(pos, dark ? 4 : 2, dur * 0.6, 0.03 * g, at);
+  if (kind === 'staff') retractFull('niman', { pos, at: at + 0.05, g: 0.55 * (o.g ?? 1) });
 }
 
 /* a form change: the blade drops and lights again in its new form's colour (fx/trail.js reigniteBlade) */

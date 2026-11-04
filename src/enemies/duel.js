@@ -7,6 +7,7 @@ import { stamDelay } from '../player/stamina.js';
 import { DUEL, DUEL_PROFILES, WARBRINGER, WARBRINGER_PROFILE, GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS, FOE_STRINGS, FOOTWORK, STRING_DIFF } from '../data/duel.js';
 import { scene, camera } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
+import { BLADE_AUDIO } from '../audio/saber.js';
 import { V3, rand, clamp, TMP, dampToward } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater, screenFlash } from '../fx/floaters.js';
@@ -911,7 +912,7 @@ export function updateSaberLock(dt){
   else if (LOCK.tell > 0){
     if ((LOCK.tell -= dt) <= 0){
       LOCK.surge = Sg.dur; LOCK.met = 0;
-      sfx(rand(70, 85), 0.3, 'sawtooth', 0.05, rand(40, 50));   // the grind of it bearing down
+      S.lockArc(lockContact(), true);   // the grind of it bearing down: a heavy arc spits out of the bind
       G.shake = Math.max(G.shake, 0.4);
     }
   } else if ((LOCK.next -= dt) <= 0){
@@ -949,7 +950,10 @@ export function updateSaberLock(dt){
   }
   // the bind sizzles: sparks spit from the contact, a crackling buzz, the lens trembles (all of it harder in a surge)
   if ((LOCK.fx -= dt) <= 0){ LOCK.fx = surging ? 0.025 : 0.05; sparks(cp, Math.random() < 0.5 ? 0xffe9b0 : stance().blade, surging ? 3 : 2, surging ? 8 : 6, { life: 0.16, size: 0.34 }); }
-  if ((LOCK.buzz -= dt) <= 0){ LOCK.buzz = surging ? 0.07 : 0.11; sfx(rand(90, 120), 0.12, 'sawtooth', 0.03, rand(140, 180)); }
+  // the grind itself is a held loop (audio/director.js) fed from here: how hard it's bearing down, where the blades meet
+  const BL = BLADE_AUDIO.lock || (BLADE_AUDIO.lock = { pos: V3(0, 0, 0) });
+  BL.pos.copy(cp); BL.surge = surging; BL.tell = LOCK.tell > 0; BL.bal = clamp(LOCK.bal, -1, 1); BL.at = G.gt;
+  if ((LOCK.buzz -= dt) <= 0){ LOCK.buzz = rand(0.06, 0.2) * (surging ? 0.5 : 1); S.lockArc(cp, false); }   // random arcs and pops spit out of it
   G.shake = Math.max(G.shake, 0.1 + Math.abs(LOCK.bal) * 0.15 + (surging ? 0.15 : 0));
   if (lockFill) lockFill.style.left = (50 + clamp(LOCK.bal, -1, 1) * 50) + '%';
   if (LOCK.bal >= 1) winLock(K.win);
@@ -969,7 +973,7 @@ export function lockPress(){
   if (meet > 1 && ++LOCK.met === 3) floater(V3(LOCK.foe.group.position.x, LOCK.foe.group.position.y + 1.9, LOCK.foe.group.position.z), 'MET IT', '#ffe9a8');
   player.lockPush = 0.12;   // each shove jolts your blade up into its (updateSaberLock)
   sparks(lockContact(), 0xffffff, 3, 9, { life: 0.18, size: 0.4 });
-  sfx(rand(150, 190), 0.06, 'square', 0.03, 90);
+  S.lockArc(lockContact(), true);   // each heave of the blade cracks an arc off the bind
 }
 // E in a lock: a boot to the gut ends it — if you have the stamina
 export function lockKick(){
@@ -1041,6 +1045,8 @@ function splitLock(){
 }
 export function endLock(){
   const e = LOCK.foe;
+  if (e && BLADE_AUDIO.lock){ S.lockSnap(BLADE_AUDIO.lock.pos); }   // "...SZS-SNAP!": the bind tearing apart
+  BLADE_AUDIO.lock = null;
   LOCK.foe = null;
   player.saberLock = false; player.lockFace = null;
   player.deflectAnim = null;

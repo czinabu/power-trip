@@ -6,7 +6,7 @@ export default {
   seq: 14,   // summary of what has shipped so far; seq keeps these in this order
   items: [
     'The classic forms, each posed and moving like the films, grouped into three families that counter each other',
-    'The saber staff and reverse-grip styles',
+    "The saber staff, Jar'Kai dual sabers and reverse-grip styles",
     'New forms unlock as the Jedi story goes on',
   ],
 };

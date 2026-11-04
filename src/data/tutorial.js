@@ -24,7 +24,7 @@
 //   needs  the step only runs once the story has reached this form or unlock (else the lesson skips it)
 //   ev     a training event to count (game/tutor-bus.js): doubleJump dash slide vault climb roll wallrun finisher parry
 //          deflect perfectDodge cancel pushHit kill headshot vent shieldReflect catch charge takedown bash rocketHit
-//          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
+//          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike sweep forceTakedown forceCounter grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
 //          perfectString (a string struck fully in rhythm into its finisher)
@@ -166,12 +166,17 @@ export const LESSONS = {
           keys: 'C', do: 'Pull 3 times', use: ['cd', 'pull'], need: 3, respawn: true, spawn: dummies([[0, -8], [-3, -9], [3, -9]]) },
         { sec: 'HOLSTERED', say: 'Put the blade away. A Jedi is never unarmed: with both hands free, the Force flows through them harder.',
           keys: '4', do: 'Holster your saber', poll: 'holstered', need: 0.3 },
-        { say: 'Strike with the Force in your palms. Jab, cross, and the key you hold picks the finisher.',
-          keys: 'LMB LMB · W / A / D / S + LMB', do: 'Land 6 Force strikes on your partner', ev: 'palmHit', need: 6, respawn: true,
+        { say: 'Strike with the Force in your palms. Jab, cross, hook, and the key you hold picks the finisher.',
+          keys: 'LMB LMB LMB · W / A / D / S + LMB', do: 'Land 6 Force strikes on your partner', ev: 'palmHit', need: 6, respawn: true,
           spawn: dummies([[0, -3]], { sparring: true }) },
         { say: 'Gather it. Hold, and let it build in your hands, then release it all at once. A full charge breaks a guard and turns blaster fire.',
           keys: 'HOLD LMB · RELEASE', do: 'Fire a charged palm', ev: 'chargedPalm', need: 1,
           spawn: dummies([[0, -3.4]], { sparring: true }) },
+        { say: 'Take their legs. Hold back and kick low, and nothing can guard it. Then finish them while they are down.',
+          keys: 'S + E · LMB', do: 'Sweep your partner, then a Force Takedown', ev: 'forceTakedown', need: 1, respawn: true,
+          spawn: dummies([[0, -3]], { sparring: true }) },
+        { say: 'Turn the blow on the Force. Tap the ward as it lands, and strike back through the opening.',
+          keys: 'TAP RMB · LMB', do: 'Parry a strike, then land a Force Counter', ev: 'forceCounter', need: 1, spawn: partner() },
         { say: 'Land a blow and push straight out of it. The strike flows into the power, and it costs you less.',
           keys: 'LMB · F', do: 'Land a strike, then Push right after it: a Palm Push', ev: 'palmPush', need: 1, respawn: true,
           spawn: dummies([[0, -3]], { sparring: true }) },

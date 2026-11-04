@@ -234,6 +234,11 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         clashSparks(fp, 0xffe9a8, 5);
         spawnParryFlash(fp, 0xffd24a);
         screenFlash('radial-gradient(ellipse at center, rgba(255,240,180,.12), transparent 40%)', 0.35, 0.16);
+        if (!isGunner() && player.holstered){   // a Force parry: the blow is turned aside, its owner rocked, and the next strike is a free COUNTER
+          const by = opts && opts.by;
+          if (by && !by.dead && !by.net){ TMP.subVectors(by.group.position, pp); TMP.y = 0; flinchEnemy(by, TMP.lengthSq() > 0.001 ? TMP.normalize() : fwd(), 1.0); }
+          floater(pp, 'FORCE PARRY ⟲ COUNTER READY', '#ffe27a');
+        } else
         floater(pp, (player.cancelRiposte ? 'PARRY! ⟲ CRUSHING RIPOSTE' : 'PARRY! ⟲ RIPOSTE READY'), '#ffe27a');
         S.parry(fp);   // a bright ringing clash
         if (G.stats) G.stats.parries++;
@@ -250,7 +255,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
       } else if (guard && player.stam > 0){
         // a heavy blow (a brute's maul) jars the guard far harder than a grunt's chop
         const heavy = Math.max(1, dmg / CFG.player.blockHeavy);
-        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1));
+        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * (!isGunner() && player.holstered ? CFG.holster.ward.stamMul : 1));   // (a Force ward breathes harder than a blade's guard)
         player.stamDelay = stamDelay();
         clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), stance().blade, false);   // the blow meets the blade
         G.shake = Math.max(G.shake, 0.15 * heavy);

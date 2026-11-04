@@ -15,7 +15,7 @@ import { shared, G, enemies, bolts, barrels, keys, player, isGunner } from '../.
 import { forcePower, fwd, rightV, playerPos, stance } from '../helpers.js';
 import { damageEnemy, flinchEnemy, staggerEnemy } from '../../enemies/damage.js';
 import { damageBoss, bossStagger } from '../../boss/boss.js';
-import { inReach } from '../../enemies/bodyshape.js';
+import { inReach, bodyRadius } from '../../enemies/bodyshape.js';
 import { guardImpact, isGuarding } from '../../enemies/duel.js';
 import { pushGrenades } from '../../enemies/grenades.js';
 import { focusDmgMul, addFocus } from './focus.js';
@@ -57,6 +57,16 @@ export function chargeFrac(){
 export function forceStrike(){
   if (busy()) return;
   if (player.palmT > 0){ if (player.palmT < player.palmMax * 0.5) player.palmQueued = true; return; }
+  // a Force parry just turned a blow: the answer is a free COUNTER that staggers whoever it finds
+  if (player.riposteT > 0){
+    player.riposteT = 0; player.cancelRiposte = false;
+    startStrike(H().counter, 0, 0);
+    if (player.palm) floater(playerPos(), 'FORCE COUNTER', '#ffe27a');
+    return;
+  }
+  // a foe reeling or floored in reach: the string gives way to a TAKEDOWN
+  const td = takedownTarget();
+  if (td){ startTakedown(td); return; }
   const n = H().strike.length;
   const step = G.gt - player.lastPalmEnd < H().comboGap ? (player.palmStep + 1) % (n + 1) : 0;
   let B = H().strike[step], side = 0;
@@ -76,6 +86,7 @@ function startStrike(B, step, side = 0){
   player.palmT = player.palmMax = B.dur;
   const hand = B.burst || B.charge ? 'both' : B.kind === 'backhand' ? (side < 0 ? 'L' : 'R') : (step % 2 ? 'R' : 'L');
   player.palm = { B, hand, side: side || 1, landed: false };
+  if (hand === 'L' || hand === 'R') player.lead = hand === 'L' ? 'R' : 'L';   // the striking hand throws, the other takes the lead guard (animation.js)
   player.vel.addScaledVector(fwd(), B.lunge || (B.burst ? 5 : 3));   // step into it
   sfx(B.burst || B.charge ? 160 : 260, 0.08, 'sine', 0.04, B.burst || B.charge ? 70 : 120);   // the air gathering in the hand
 }
@@ -87,6 +98,90 @@ function chargedPalm(frac){
   startStrike({ kind: 'charge', charge: true, burst: true, full: frac >= 1, dmg: L(C.dmg), range: L(C.range), angle: C.angle,
                 knock: L(C.knock), posture: L(C.posture), stamina: C.stamina, dur: 0.42, contact: 0.3 }, H().strike.length);
   tutEvent('chargedPalm');
+}
+
+/* ---------------- TAKEDOWN: a reeling or floored foe is finished with the Force ---------------- */
+const DOWNED = { stagger: 1, knockdown: 1, getup: 1 };
+function takedownTarget(){
+  const K = H().takedown, pp = playerPos(), f = fwd();
+  let best = null, bd = 1e9;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || !DOWNED[e.state] || e.t.fly) continue;
+    TMP.subVectors(e.group.position, pp); const dy = Math.abs(TMP.y); TMP.y = 0;
+    const d = TMP.length();
+    if (d - bodyRadius(e) > K.range || dy > 1.8) continue;
+    if (d > 1.4 && TMP.normalize().dot(f) < 0.3) continue;
+    if (d < bd){ bd = d; best = e; }
+  }
+  return best;
+}
+function startTakedown(e){
+  const K = H().takedown, low = e.state !== 'stagger';
+  if (player.stam < K.stamina){ winded(); return; }
+  player.stam -= K.stamina; player.stamDelay = stamDelay();
+  if (player.slideT > 0) player.slideT = 0;
+  const pp = playerPos();
+  TMP.subVectors(e.group.position, pp); TMP.y = 0;
+  const d = TMP.length() || 1, dir = TMP.clone().divideScalar(d);
+  const dur = low ? K.floorDur : K.dur;
+  player.palmStep = 0; player.lastPalmEnd = -9;
+  player.palmT = player.palmMax = dur;
+  player.palm = { B: { kind: low ? 'takedownLow' : 'takedown', contact: low ? K.floorContact : K.contact, dur, takedown: true }, hand: 'both', side: 1, landed: false, td: e, dir };
+  player.vel.copy(dir).multiplyScalar(Math.max(0, d - bodyRadius(e) - (low ? 0.2 : 0.7)) * 9); player.vel.y = 0;   // close the last step
+  e.stunT = Math.max(e.stunT || 0, dur);   // held where it is until the Force arrives
+  if (e.state === 'stagger') e.st = Math.max(e.st, dur);
+  sfx(120, 0.2, 'sawtooth', 0.05, 340);   // the Force closing round it
+}
+function landTakedown(P){
+  const e = P.td, K = H().takedown;
+  if (!e || e.dead) return;
+  const g = e.group, low = P.B.kind === 'takedownLow', dir = P.dir, col = stance().blade;
+  const big = e.t.heavy || e.warbringer || e.champion;
+  const dmg = (K.dmg + (big ? 0 : (e.maxHp || e.hp) * K.maxFrac)) * blowMul();
+  damageEnemy(e, dmg, dir, 20 * forcePower(), true, false, { launch: false });
+  if (!e.dead && !e.net && !e.t.heavy && !e.t.fly){ e.state = 'knockdown'; e.st = 1.0; e.vel.set(dir.x * 2.5, low ? 0 : 3.5, dir.z * 2.5); }   // slammed flat at your feet
+  const ip = V3(g.position.x, g.position.y + (low ? 0.4 : 1.0), g.position.z);
+  spawnGroundShock(V3(g.position.x, g.position.y + 0.1, g.position.z), col, 2.6, 0.35, 0.7);
+  sparks(ip, col, 12, 9, { dir: V3(0, 1, 0), cone: 1.2, life: 0.25, grav: 1, size: 0.4 });
+  dustRing(V3(g.position.x, g.position.y, g.position.z), 1.8);
+  floater(V3(g.position.x, g.position.y + 1.8, g.position.z), 'FORCE TAKEDOWN', '#c9a6ff');
+  G.hitstop = Math.max(G.hitstop, 0.16); G.shake = Math.max(G.shake, 0.8);
+  G.slowmo = Math.min(G.slowmo, 0.4); G.slowmoT = Math.max(G.slowmoT, 0.2);
+  S.slam(); S.punch(ip, 1.5);
+  landed(1, true, 0, 0);
+  player.force = Math.min(CFG.player.maxForce, player.force + 8);
+  if (G.stats) G.stats.takedowns = (G.stats.takedowns || 0) + 1;
+  tutEvent('forceTakedown');
+  if (hooks.power) hooks.power('slam', col, 2.6);   // co-op: the partner sees the impact ring
+}
+
+/* E + S on the ground: the low sweep. Floors the light, can't be guarded, and every foe it floors is a takedown away */
+function landSweep(){
+  const K = grown(H().sweep), pp = playerPos(), f = fwd(), col = stance().blade, cosLim = Math.cos(K.arc * 0.5);
+  let hit = 0;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || e.t.fly) continue;
+    TMP.subVectors(e.group.position, pp);
+    if (Math.abs(TMP.y) > 1.6) continue;
+    TMP.y = 0;
+    if (!inReach(e, pp, K.reach)) continue;
+    const dir = TMP.lengthSq() > 0.001 ? TMP.clone().normalize() : f.clone();
+    if (TMP.lengthSq() > 1.4 && dir.dot(f) < cosLim) continue;
+    damageEnemy(e, K.dmg * blowMul(), dir, e.net && !e.t.heavy ? 18 : K.knock * forcePower());   // (a guest's foe belongs to the host: the sweep travels as a hard knock that floors it there)
+    if (!e.dead && !e.net){
+      if (e.t.heavy) staggerEnemy(e, dir.x, dir.z, 'OFF BALANCE');
+      else { e.state = 'knockdown'; e.st = K.down; e.vel.set(dir.x * 1.2, 1.5, dir.z * 1.2); }
+    }
+    hit++;
+  }
+  if (shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(pp) < K.reach + 1.2) { damageBoss(K.dmg * 0.5); hit++; }
+  const sp = V3(pp.x + f.x * 1.4, pp.y + 0.15, pp.z + f.z * 1.4);
+  spawnGroundShock(V3(pp.x, pp.y + 0.1, pp.z), col, K.reach + 1, 0.25, 0.4);
+  dustRing(V3(pp.x, pp.y, pp.z), K.reach * 0.8);
+  sparks(sp, col, 6, 6, { dir: f, cone: 1.4, life: 0.18, grav: 0, size: 0.35 });
+  landed(hit, true, 0.05, 0.3);
+  if (hit){ S.punch(sp, 1.1); tutEvent('sweep'); } else S.jump();
+  if (hooks.power) hooks.power('spin', col, K.reach);
 }
 
 /* ---------------- E: the spinning kick (mid-string) and the stomp (in the air) ---------------- */
@@ -104,8 +199,19 @@ export function holsteredKick(){
     S.dash();
     return true;
   }
+  const inString = player.palmT > 0 || G.gt - player.lastPalmEnd <= H().comboGap;
+  // S held, out of the string: the low sweep
+  if (!inString && keys['s']){
+    const K = H().sweep;
+    if (player.stam < K.stamina){ winded(); return true; }
+    player.stam -= K.stamina; player.stamDelay = stamDelay();
+    player.kickT = player.kickMax = K.recover; player.kickKind = 'sweep'; player.spinLanded = false;
+    player.vel.addScaledVector(fwd(), 2.5);
+    sfx(150, 0.14, 'sine', 0.04, 60);
+    return true;
+  }
   // in the string (a strike in flight, or just after one): the spin kick carries it
-  if (!(player.palmT > 0) && G.gt - player.lastPalmEnd > H().comboGap) return false;
+  if (!inString) return false;
   const K = H().spin;
   if (player.stam < K.stamina){ winded(); return true; }
   player.stam -= K.stamina; player.stamDelay = stamDelay();
@@ -172,11 +278,13 @@ export function updateForceStrike(dt){
     if (player.pullStrikeT <= 0){ player.pullStrikeT = 0; player.lastPalmEnd = G.gt; forceStrike(); }
   }
   if (player.kickKind === 'spin' && player.kickT > 0 && !player.spinLanded && player.kickT < player.kickMax * 0.6){ player.spinLanded = true; landSpin(); }
+  if (player.kickKind === 'sweep' && player.kickT > 0 && !player.spinLanded && player.kickT < player.kickMax * (1 - H().sweep.contact)){ player.spinLanded = true; landSweep(); }
   updateFistGlow(dt);
+  if (player.wardHit){ player.wardHit.t += dt; if (player.wardHit.t >= player.wardHit.dur) player.wardHit = null; }
   if (!(player.palmT > 0)) return;
   player.palmT -= dt;
   const P = player.palm;
-  if (P && !P.landed && player.palmMax - player.palmT >= P.B.dur * P.B.contact){ P.landed = true; landStrike(P); }
+  if (P && !P.landed && player.palmMax - player.palmT >= P.B.dur * P.B.contact){ P.landed = true; if (P.td) landTakedown(P); else landStrike(P); }
   if (player.palmT <= 0){
     player.palmT = 0; player.palm = null; player.lastPalmEnd = G.gt;
     if (player.palmQueued){ player.palmQueued = false; forceStrike(); }
@@ -209,6 +317,7 @@ function landStrike(P){
     if (launch && !e.dead && !e.net){ e.state = 'knockdown'; e.st = 1.0; e.vel.set(dir.x * 2, B.launch, dir.z * 2); }
     else flinchEnemy(e, dir, big ? 1 : 0.5);
     if (B.full && !e.dead && !e.net && (e.elite || e.t.heavy)) staggerEnemy(e, dir.x, dir.z, 'BROKEN!');
+    else if (B.counter && !e.dead && !e.net) staggerEnemy(e, dir.x, dir.z, 'COUNTERED!');   // the answer to a parried blow leaves its target open
     hit++;
   }
   if (shared.boss && shared.boss.hp > 0){
@@ -233,6 +342,7 @@ function landStrike(P){
   const fin = big || B.lunge || B.sweep || B.launch;
   landed(hit, fin, fin ? 0.06 : 0.03, fin ? 0.35 : 0.18);
   if (hit) tutEvent('palmHit');
+  if (hit && B.counter) tutEvent('forceCounter');
   if (hit){ if (big) S.push(); else S.punch(ip, B.lunge ? 1.1 : 0.8); }
   if (hooks.power && big) hooks.power('push', col, B.range * 0.5);
 }

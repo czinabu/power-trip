@@ -351,12 +351,31 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
     R.legR.knee.rotation.x = 0.15 + (1 - ext) * 0.6;
     R.legL.knee.rotation.x = 0.3 * ext;
     R.torso.rotation.x = -0.12 * ext;
+  } else if (!isGunner() && player.kickT > 0 && player.kickKind === 'sweep'){
+    // the holstered LOW SWEEP: down on the left knee, the right leg straight and wheeling round just off the floor
+    const k = 1 - clamp(player.kickT / (player.kickMax || 0.6), 0, 1), ext = Math.sin(k * Math.PI);
+    R.legL.hip.rotation.x  = -0.9 * ext;
+    R.legL.knee.rotation.x = 1.5 * ext;
+    R.legR.hip.rotation.x  = -0.3 * ext;
+    R.legR.hip.rotation.z  = -(0.6 + Math.sin(k * Math.PI * 1.5) * 0.9) * ext;
+    R.legR.knee.rotation.x = 0.08;
   } else if (!isGunner() && player.kickT > 0){
     const ext = Math.sin((1 - clamp(player.kickT / (player.kickMax || 0.4), 0, 1)) * Math.PI);
     R.legR.hip.rotation.x  = -1.55 * ext;
     R.legR.knee.rotation.x = 0.1 + (1 - ext) * 0.7;
     R.legL.knee.rotation.x = 0.28 * ext;
     R.torso.rotation.x = -0.22 * ext;
+  } else if (!isGunner() && player.holstered && player.palmT > 0 && player.palm && player.grounded){
+    // a holstered STRIKE steps into the blow: the foot on the striking side drives forward, the rear leg loads. The
+    // lunge and the counter go deep, the rising palm sinks first, a takedown drops low onto the front knee
+    const P = player.palm, kind = P.B.kind, k = 1 - player.palmT / player.palmMax, c = P.B.contact;
+    const ext = k < c ? Math.sin((k / c) * Math.PI / 2) : 1 - (k - c) / (1 - c);
+    const deep = kind === 'lunge' || kind === 'counter' ? 1.6 : kind === 'takedownLow' ? 1.8 : kind === 'takedown' ? 1.2 : kind === 'upper' ? 0.8 : 1;
+    const front = P.hand === 'R' ? R.legR : R.legL, back = P.hand === 'R' ? R.legL : R.legR;
+    front.hip.rotation.x  += (-0.5 * deep * ext - front.hip.rotation.x) * 0.6;
+    front.knee.rotation.x += (0.55 * deep * ext + 0.1 - front.knee.rotation.x) * 0.6;
+    back.hip.rotation.x   += (0.32 * deep * ext - back.hip.rotation.x) * 0.6;
+    back.knee.rotation.x  += ((kind === 'takedownLow' ? 1.4 : 0.35) * deep * ext * 0.7 + 0.1 - back.knee.rotation.x) * 0.6;
   } else if (!isGunner() && !(player.atkT > 0)) R.torso.rotation.x = dr(R.torso.rotation.x, 0, 12);   // settle a swing's lean
   // robe flare with speed
   R.skirt.rotation.x = dr(R.skirt.rotation.x, 0.13 * inten, 8);   // Jedi-only robe (hidden for the Mando)
@@ -578,6 +597,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
    off a short hip turn, alternating hands, and the burst throws both. Plain joint poses, like the Force gestures. */
 function forceHands(dr, vis, R, planted, moving, ph, inten){
   const P = player.palm;
+  if (!(P && P.B.kind === 'hook')) R.torso.rotation.z = dr(R.torso.rotation.z, 0, 10);   // (only the hook leans the body over)
   const guardArm = (A) => { A.sh.rotation.x = dr(A.sh.rotation.x, -0.7, 18); A.el.rotation.x = dr(A.el.rotation.x, -1.5, 18); };
   // SPIN KICK: one full turn on the standing foot, arms flung wide for balance (the leg is posed with the kicks above)
   if (player.kickKind === 'spin' && player.kickT > 0){
@@ -585,6 +605,16 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
     vis.rotation.y = wrapAngle(Math.PI * 2 * Math.min(1, k * 1.25));
     for (const [A, sy] of [[R.armL, -1], [R.armR, 1]]){
       A.sh.rotation.x = dr(A.sh.rotation.x, -0.5, 24); A.sh.rotation.y = dr(A.sh.rotation.y, sy * 1.1, 24); A.el.rotation.x = dr(A.el.rotation.x, -0.5, 24);
+    }
+    return;
+  }
+  // LOW SWEEP: the body drops onto the standing leg, the arms thrown out to balance, and the other leg wheels round low
+  if (player.kickKind === 'sweep' && player.kickT > 0){
+    const k = 1 - clamp(player.kickT / (player.kickMax || 0.6), 0, 1), ext = Math.sin(k * Math.PI);
+    R.torso.position.y -= 0.34 * ext; R.torso.rotation.x = dr(R.torso.rotation.x, 0.3 * ext, 30);
+    R.torso.rotation.y = dr(R.torso.rotation.y, -0.7 * ext, 26);
+    for (const [A, sy] of [[R.armL, -1], [R.armR, 1]]){
+      A.sh.rotation.x = dr(A.sh.rotation.x, -0.25, 24); A.sh.rotation.y = dr(A.sh.rotation.y, sy * (0.9 + 0.5 * ext), 24); A.el.rotation.x = dr(A.el.rotation.x, -0.3, 24);
     }
     return;
   }
@@ -609,7 +639,36 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
       A.el.rotation.x = dr(A.el.rotation.x, -1.6 + out * 1.5, 40);
     };
     const A = P.hand === 'L' ? R.armL : R.armR, O = P.hand === 'L' ? R.armR : R.armL, sy = P.hand === 'L' ? -1 : 1;
-    if (kind === 'upper'){
+    if (kind === 'takedown'){
+      // the foe hauled in by the collar: both hands claw out, then wrench down and across as it is thrown to the floor
+      const pull = k < c ? Math.sin((k / c) * Math.PI / 2) : 1;           // reaching and closing the grip
+      const slam = k < c ? 0 : clamp((k - c) / (1 - c) * 2.2, 0, 1);       // the throw down
+      for (const [Ar, s2] of [[R.armL, -1], [R.armR, 1]]){
+        Ar.sh.rotation.x = dr(Ar.sh.rotation.x, -1.55 + slam * 1.2, 40); Ar.sh.rotation.y = dr(Ar.sh.rotation.y, s2 * (0.25 - pull * 0.1), 40);
+        Ar.el.rotation.x = dr(Ar.el.rotation.x, -0.5 - pull * 0.5 + slam * 0.7, 40);
+      }
+      R.torso.rotation.x = dr(R.torso.rotation.x, -0.12 * pull + 0.55 * slam, 28);
+      R.torso.position.z = dr(R.torso.position.z, 0.1 * pull + 0.1 * slam, 24);
+    } else if (kind === 'takedownLow'){
+      // the floored foe: drop to a knee and drive an open palm straight down through it
+      const drop = k < c ? Math.sin((k / c) * Math.PI / 2) : 1;
+      R.torso.position.y -= 0.35 * drop; R.torso.rotation.x = dr(R.torso.rotation.x, 0.5 * drop, 26);
+      R.armR.sh.rotation.x = dr(R.armR.sh.rotation.x, -2.6 + drop * 2.3, 44); R.armR.sh.rotation.y = dr(R.armR.sh.rotation.y, 0.1, 40);
+      R.armR.el.rotation.x = dr(R.armR.el.rotation.x, -0.9 + drop * 0.8, 44); guardArm(R.armL);
+    } else if (kind === 'hook'){
+      // the looping blow: the arm swung wide and flat from the shoulder, the body wheeling behind it
+      A.sh.rotation.x = dr(A.sh.rotation.x, -1.4, 40); A.sh.rotation.y = dr(A.sh.rotation.y, sy * (-0.7 + ext * 1.6), 40);
+      A.el.rotation.x = dr(A.el.rotation.x, -1.1 + ext * 0.4, 40); guardArm(O);
+      R.torso.rotation.y = dr(R.torso.rotation.y, -sy * 0.55 * (ext - 0.35), 30);
+      R.torso.rotation.z = dr(R.torso.rotation.z, sy * 0.1 * ext, 30);
+    } else if (kind === 'counter'){
+      // the Force counter: sidestep the blow, then a palm driven through the gap with the whole body behind it
+      A.sh.rotation.x = dr(A.sh.rotation.x, -0.9 - ext * 0.75, 44); A.sh.rotation.y = dr(A.sh.rotation.y, sy * 0.05, 44);
+      A.el.rotation.x = dr(A.el.rotation.x, -1.7 + ext * 1.65, 44);
+      O.sh.rotation.x = dr(O.sh.rotation.x, -0.3, 30); O.sh.rotation.y = dr(O.sh.rotation.y, -sy * 0.5, 30); O.el.rotation.x = dr(O.el.rotation.x, -1.0, 30);
+      R.torso.rotation.y = dr(R.torso.rotation.y, (P.hand === 'L' ? 1 : -1) * 0.55 * ext, 30);
+      R.torso.position.z = dr(R.torso.position.z, ext * 0.3, 30);
+    } else if (kind === 'upper'){
       // the rising palm: from low at the hip, up past the face to full reach overhead
       A.sh.rotation.x = dr(A.sh.rotation.x, -0.2 - ext * 2.5, 40); A.sh.rotation.y = dr(A.sh.rotation.y, sy * 0.1, 40);
       A.el.rotation.x = dr(A.el.rotation.x, -1.4 + ext * 1.1, 40); guardArm(O);
@@ -620,19 +679,26 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
       A.el.rotation.x = dr(A.el.rotation.x, -1.5 + ext * 1.3, 40); guardArm(O);
     } else if (P.hand === 'both'){ arm(R.armL, ext, -1); arm(R.armR, ext, 1); }
     else { arm(A, ext, sy); guardArm(O); }
-    const turn = kind === 'backhand' ? -sy * 0.5 * (ext - 0.4) : P.hand === 'L' ? 1 : P.hand === 'R' ? -1 : 0;
-    R.torso.rotation.y = dr(R.torso.rotation.y, turn * (kind === 'backhand' ? 1 : 0.28 * ext), 30);
-    R.torso.position.z = dr(R.torso.position.z, ext * (kind === 'lunge' ? 0.28 : P.hand === 'both' ? 0.2 : 0.12), 30);
+    if (!OWN_TORSO[kind]){   // (the hook, the counter and the takedowns turn the body themselves, above)
+      const turn = kind === 'backhand' ? -sy * 0.5 * (ext - 0.4) : P.hand === 'L' ? 1 : P.hand === 'R' ? -1 : 0;
+      R.torso.rotation.y = dr(R.torso.rotation.y, turn * (kind === 'backhand' ? 1 : 0.28 * ext), 30);
+      R.torso.position.z = dr(R.torso.position.z, ext * (kind === 'lunge' ? 0.28 : P.hand === 'both' ? 0.2 : 0.12), 30);
+    }
     vis.rotation.y = dr(vis.rotation.y, 0, 14);
     return;
   }
-  if (player.blockHeld){
-    // the ward: both palms up and out at chest height, turning blows and bolts on the Force
+  if (player.blockHeld || player.wardHit){
+    // the ward: both palms up and out at chest height, turning blows and bolts on the Force. A blow turned on it makes
+    // the near palm flick out to meet it and the body ride the shock back before settling
+    const wh = player.wardHit, hit = wh ? Math.sin(clamp(wh.t / wh.dur, 0, 1) * Math.PI) : 0;
     for (const [A, s] of [[R.armL, -1], [R.armR, 1]]){
-      A.sh.rotation.x = dr(A.sh.rotation.x, -1.35, 16);
-      A.sh.rotation.y = dr(A.sh.rotation.y, s * 0.3, 16);
-      A.el.rotation.x = dr(A.el.rotation.x, -0.45, 16);
+      const near = wh ? clamp(1 + s * clamp(wh.side, -1, 1), 0, 2) * 0.5 : 0;   // the palm on the side the blow came from
+      A.sh.rotation.x = dr(A.sh.rotation.x, -1.35 - hit * 0.35 * near, 30);
+      A.sh.rotation.y = dr(A.sh.rotation.y, s * (0.3 + hit * 0.45 * near), 30);
+      A.el.rotation.x = dr(A.el.rotation.x, -0.45 + hit * 0.3 * near, 30);
     }
+    R.torso.rotation.x = dr(R.torso.rotation.x, -0.16 * hit, 24);
+    R.torso.rotation.y = dr(R.torso.rotation.y, wh ? -wh.side * 0.3 * hit : 0, 24);
     vis.rotation.y = dr(vis.rotation.y, 0, 12);
     return;
   }
@@ -644,15 +710,25 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
     return;
   }
   // ready: both hands up and open before him, palms out toward the foe, a faint breath in both (no hilt to hold:
-  // the hands ARE the weapon now)
-  const br = Math.sin(G.gt * 1.9) * 0.03;
-  R.armL.sh.rotation.x = dr(R.armL.sh.rotation.x, -0.75 + br, 10); R.armL.sh.rotation.y = dr(R.armL.sh.rotation.y, -0.95, 10);
-  R.armL.el.rotation.x = dr(R.armL.el.rotation.x, -0.5, 10);
-  R.armR.sh.rotation.x = dr(R.armR.sh.rotation.x, -0.7 - br, 10);  R.armR.sh.rotation.y = dr(R.armR.sh.rotation.y, 0.95, 10);
-  R.armR.el.rotation.x = dr(R.armR.el.rotation.x, -0.55, 10);
-  R.torso.rotation.x = dr(R.torso.rotation.x, 0.08, 10);   // a slight forward hunch over the wide base
+  // the hands ARE the weapon now). The lead hand rides high and forward, the rear one low at the ribs (it swaps after
+  // every blow), the body sways slowly over a wide base, and once blows are being traded the whole guard tightens
+  const br = Math.sin(G.gt * 1.9) * 0.03, sway = Math.sin(G.gt * 0.9);
+  const engaged = G.gt - (player.lastStrikeT ?? -9) < 3 || player.palmT > 0 || player.kickT > 0 || player.wardHit;
+  forceLead = dr(forceLead, player.lead === 'R' ? 1 : -1, 9);
+  forceTight = dr(forceTight, engaged ? 1 : 0, 5);
+  for (const [A, s2] of [[R.armL, -1], [R.armR, 1]]){
+    const lead = clamp(1 + s2 * forceLead, 0, 2) * 0.5;   // 1 = this is the lead hand, 0 = the rear
+    const hiX = -0.95 + forceTight * 0.1, loX = -0.5 - forceTight * 0.1;
+    A.sh.rotation.x = dr(A.sh.rotation.x, lerp(loX, hiX, lead) + br * s2 + sway * 0.05 * s2, 10);
+    A.sh.rotation.y = dr(A.sh.rotation.y, s2 * lerp(0.85, 0.55, lead) * (1 - forceTight * 0.3), 10);
+    A.el.rotation.x = dr(A.el.rotation.x, lerp(-0.4, -0.85, lead) - forceTight * 0.45, 10);
+  }
+  R.torso.rotation.x = dr(R.torso.rotation.x, 0.08 + 0.1 * forceTight, 10);   // a slight forward hunch over the wide base
+  R.torso.rotation.y = dr(R.torso.rotation.y, sway * 0.06 + forceLead * 0.12 * forceTight, 6);
   vis.rotation.y = dr(vis.rotation.y, 0, 12);
 }
+let forceLead = -1, forceTight = 0;
+const OWN_TORSO = { hook: 1, counter: 1, takedown: 1, takedownLow: 1 };   // the guard's lead hand (-1 left, 1 right) and how tight it is held (0 at ease → 1 trading blows)
 
 // the bladed weapon in hand right now (or null): the Jedi saber, or the Mando's darksaber when it's equipped
 function heldBlade(){

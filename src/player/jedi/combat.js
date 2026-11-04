@@ -438,18 +438,18 @@ export function applySwingDamage(step, only){
 }
 
 /* JAR'KAI'S FOLLOW-UP (jedi/bladehit.js sweepOffBlade): the off hand's blade strikes what it passed through, on the
-   OTHER line from the lead cut (a duellist guarding the lead cut's line meets it on the open one). Damage and posture
+   SAME line as the lead cut, a beat behind it (both blades travel the same way: anim/saber.js dualSwing), so a guard
+   that caught the lead cut has to hold for the second. Damage and posture
    only: `offDmg` of the lead cut, no fury, Focus, Force or boon effects (those fire once a swing, on the lead cut), so
    two blades are one cut's budget. It still beats a wind-up, which is the form's whole point. It doesn't count toward a
    duellist's read of a mash (its rhythm), or Jar'Kai would be parried for swinging at all. */
-const MIRROR_LINE = { L: 'R', R: 'L', H: 'H', Lo: 'Lo' };
 export function applyOffBladeHit(only){
   const st = stance(), sw0 = player.swing;
   if (!sw0 || !only || !only.length || !st.offDmg) return;
   const step = sw0.step || 0, finisher = step === 2;
   const dmg = CFG.player.comboDamage[step] * st.dmg * player.up.dmg * focusDmgMul() * furyMul() * st.offDmg * cutMul(sw0, 'dmg');
   const knock = (finisher ? 10 : 4) * st.knock * player.up.knock * cutMul(sw0, 'knock');
-  const f = fwd(), line = MIRROR_LINE[cutLine(sw0)] || 'H';
+  const f = fwd(), line = cutLine(sw0) || 'H';
   const finFoe = sw0.fin ? sw0.fin.e : null;
   let hits = 0, turned = 0, blocker = null;
   for (const e of only){

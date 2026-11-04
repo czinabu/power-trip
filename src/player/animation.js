@@ -23,6 +23,7 @@ import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
 import { saberIsDual } from './model/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP, SWING_STYLE } from '../data/poses.js';
+import { isDual, offGrip } from '../data/forms.js';
 import { pistolPose, riflePose, rifleLowered, restGun } from './anim/guns.js';
 import { MIRROR, DIM } from './model/rig.js';
 import { solveArm } from './anim/ik.js';
@@ -232,7 +233,8 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   player._landPitch = LC ? LC.pitch * player.landAmt * 2 : 0;
   // hips: crouch lowers the center of gravity per stance; on the move they sit lower and dip at each footfall
   // (set before the legs, which are solved down from here)
-  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch : 0, 8);
+  const sink = planted && !isGunner() && saberPose.live && !(player.atkT > 0) ? saberPose.sink : 0;   // a guard that drops the base (data/poses.js sink)
+  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch - sink : 0, 8);
   R.hips.position.y = DIM.hipY + player._crouch - (player._swingDrop || 0) - land*0.2 - (player._agiDrop || 0)
                       + (player.grounded && !player.flip ? gaitHipOffset(GS, gait) : 0.05);
   // a foot standing lower than the body (off a step, one foot down from a crate) needs the hips to come down to it
@@ -248,8 +250,10 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   // a cut moves the weight (set by the swing last frame): back onto the rear foot in the wind-up, through onto the front
   // one in the strike, the feet staying planted while the hips travel over them
   const SH = player._swingHip;
-  R.hips.position.x = dr(R.hips.position.x, (B ? B.sway * bw * calm : 0) + (SH ? SH.x : 0), 20);
-  R.hips.position.z = dr(R.hips.position.z, (B ? B.surge * bw : 0) + (SH ? SH.z : 0), 20);
+  // a stance can carry its weight off centre (FOOTWORK shift/sit: Jar'Kai's mixed-grip side lunge, onto the right knee)
+  const fwX = planted ? POSE.shift || 0 : 0, fwZ = planted ? -(POSE.sit || 0) : 0;
+  R.hips.position.x = dr(R.hips.position.x, (B ? B.sway * bw * calm : 0) + (SH ? SH.x : 0) + fwX, 20);
+  R.hips.position.z = dr(R.hips.position.z, (B ? B.surge * bw : 0) + (SH ? SH.z : 0) + fwZ, 20);
   R.hips.rotation.x = dr(R.hips.rotation.x, (B ? B.pitch * bw : 0) + player._landPitch, 20);
   R.hips.rotation.z = dr(R.hips.rotation.z, B ? -B.roll * bw * calm : 0, 20);
   if (GS.body) R.hips.rotation.y = dr(R.hips.rotation.y, B ? B.yaw * bw * along : 0, 20);   // (else anim/agility.js turns the Jedi's)
@@ -531,6 +535,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     applySaberPose(R, held, player.castT <= 0, dt);
     R.torso.rotation.y = dr(R.torso.rotation.y, planted ? body.torso : 0, 9);
     if (blocking || planted) vis.rotation.x = dr(vis.rotation.x, saberPose.lean + (planted ? footwork().lean : 0), 12);
+    R.torso.rotation.z = dr(R.torso.rotation.z, planted ? footwork().roll || 0 : 0, 10);   // a stance's side lean (Jar'Kai's mixed grip)
     // a catch turned into a spin (data/poses.js DEFLECT_SPINS): whole turns, clockwise toward a bolt on the weapon side
     const ds = player.deflectAnim && player.deflectAnim.spin;
     if (ds && ds.turns){
@@ -636,6 +641,7 @@ export function footwork(){
   if (isGunner() && player.weapon === 'darksaber') return FOOTWORK.darksaber;
   if (!isGunner() && player.holstered) return FOOTWORK.forceReady;   // saber on the belt: the wide, low Force-ready base
   const form = FORM_OF[G.stance] || 'niman', alt = !isGunner() && heldGrip() === 'reverse' && FOOTWORK_GRIP.reverse[form];
+  if (!isGunner() && isDual(G.stance) && offGrip(G.stance) !== heldGrip()) return FOOTWORK.jarkaiMix;   // Jar'Kai's mixed grip: Ahsoka's lunge
   return FOOTWORK[alt || form];
 }
 const _IDQ = new THREE.Quaternion();

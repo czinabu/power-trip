@@ -230,7 +230,7 @@ document.addEventListener('keydown', (e) => {
         applySaberGrip(player, heldGrip());
         startSwitch();
         const [m, o] = DUAL_GRIPS[dualGripIndex()];
-        showBanner('', m === o ? (m === 'reverse' ? 'BOTH SABERS REVERSED' : 'BOTH SABERS FORWARD') : 'RIGHT FORWARD · LEFT REVERSED', 0.9);
+        showBanner('', m === o ? (m === 'reverse' ? 'BOTH SABERS REVERSED' : 'BOTH SABERS FORWARD') : 'MIXED GRIP', 0.9);
         sfx(520, 0.06, 'triangle', 0.04, 760);
       }
       else if (own){ showBanner('', FORMS[G.stance].name + ' HOLDS A ' + (own === 'reverse' ? 'REVERSE' : 'FORWARD') + ' GRIP', 1.0); sfx(200, 0.06, 'triangle', 0.03, 160); }

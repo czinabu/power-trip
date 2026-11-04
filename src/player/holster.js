@@ -185,8 +185,14 @@ export function endSceneDraw(quiet){
 }
 // a reminder over the hero as the fight starts: the key that lights it
 function showIgniteHint(){
-  const pad = document.body.classList.contains('pad');
-  floater(playerPos(), (pad ? 'LB + ◀' : '5') + ' · IGNITE', isGunner() ? '#c9a6ff' : '#bfe8ff');
+  floater(playerPos(), igniteKey() + ' · IGNITE', isGunner() ? '#c9a6ff' : '#bfe8ff');
+}
+// the ignite key as the HUD's own chip shows it (the Jedi's #ab-lit, the Mando's Darksaber #ab-dlit), so the reminder
+// follows the binding wherever it moves; a pad's is LB + D-pad left
+function igniteKey(){
+  if (document.body.classList.contains('pad')) return 'LB + ◀';
+  const chip = document.querySelector((isGunner() ? '#ab-dlit' : '#ab-lit') + ' .key');
+  return (chip && chip.textContent.trim()) || '5';
 }
 
 export function toggleHolster(){

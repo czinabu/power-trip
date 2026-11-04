@@ -272,7 +272,7 @@ export function play(s){
     out.connect(p); out = p;
   }
   out.connect(AE.bus[s.bus || 'sfx']);
-  if (s.verb){ const r = A.createGain(); r.gain.value = s.verb; out.connect(r); r.connect(AE.roomIn); }
+  if (s.verb){ const r = A.createGain(); r.gain.value = s.verb; out.connect(r); r.connect((AE.send && AE.send[s.bus]) || AE.roomIn); }   // (a bus may bring its own room: audio/force.js)
   if (s.src === 'noise') src.start(t, Math.random() * 1.5); else src.start(t);
   src.stop(t + dur + 0.03);
   for (const v of voices) v.stop(t + dur + 0.05);

@@ -6,7 +6,8 @@
 //   - the hum of every other lit blade nearby (a foe's, the boss's, a co-op partner's), placed in the world
 //   - the jetpack roar and the flamethrower, by how hard they're running
 //   - each world's ambience bed plus its occasional distant events (Jedha bells, Mustafar lava, Exegol thunder)
-//   - the mix state: muffled under the pause menu, on death, for a beat after a hit and when badly hurt
+//   - the mix state: muffled under the pause menu, on death, for a beat after a hit, when badly hurt, and while the Jedi
+//     channels Mend (the Force's own bus stays clear of it: audio/force.js)
 //   - which reverb room and which music palette the current arena uses
 
 import { AE, loop, play, place, setRoom, setMuffle, setAmbHP } from './engine.js';
@@ -18,6 +19,7 @@ import { maxHp } from '../player/helpers.js';
 import { clamp, rand } from '../utils.js';
 import { HUM_PITCH, BLADE_AUDIO } from './saber.js';
 import { FORM_FAMILY } from '../data/foe-forms.js';
+import { updateForce, innerHz } from './force.js';
 
 const L = { humF: null, dist: null, whisper: null, riser: null, riserHiss: null, hum2: null, hiss: null, dark: null, near: [], grind: null, grindLow: null, jet: null, flame: null, amb: [], ambKey: '' };
 let nextEvt = 0, heartT = 0, lastMuffle = 0, prevMode = 'menu';
@@ -173,6 +175,7 @@ export function updateAudio(dt){
   if (!AE.ready || !shared.AC || shared.AC.state !== 'running') return;
   ensureLoops();
   updateFoley(dt);
+  updateForce(dt);   // the held lightning channels, the Force bus's level
   const t = shared.AC.currentTime;
   const playing = G.mode === 'play' && !G.paused && !G.skillSelect;
   const inWorld = G.mode === 'play' || G.mode === 'dead' || G.mode === 'victory';
@@ -310,6 +313,7 @@ export function updateAudio(dt){
     if (hpFrac < 0.28) hz = 2800 + hpFrac * 20000;
     if (G.slowmo < 0.6) hz = Math.min(hz, 3200);
     if (AE.hurtAt && t - AE.hurtAt < 0.22) hz = Math.min(hz, 1300);
+    hz = Math.min(hz, innerHz());   // an internal Force power (Mend) pulls the whole world inward; the Force itself stays clear
   }
   hz = Math.round(hz / 100) * 100;
   if (hz !== lastMuffle){ setMuffle(hz, hz < 2000 ? 0.04 : 0.18); lastMuffle = hz; }

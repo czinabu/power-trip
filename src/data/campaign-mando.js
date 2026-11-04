@@ -258,3 +258,14 @@ export const MANDO_EPILOGUE = {
 // the scenes for the Mando's story that aren't a chapter's opening (data/cutscenes.js)
 export const MANDO_BOSS = [[MAG, 'You came all this way for one boy. That is why your clans lose, Mandalorian. You never learned to let go of anything.'],
                            [A, 'This is the Way.']];
+
+// THE WAYS ON (a chapter's `doorway`: game/aftermath.js THE WAY ON): the chapters that share a place with the next one
+// walk straight into it. `at` 'next' is the next chapter's start on this same map; [x, z] a way off this map
+export const MANDO_WAYS_ON = {
+  archive:   { at: 'next', label: 'TO THE HANGAR', to: 'WALK DOWN TO THE LOWER HANGAR' },
+  refuge:    { at: 'next', label: 'TO KAEL', to: 'WALK TO WHERE KAEL WAITS' },
+  lothal:    { at: 'next', label: 'TO SKYE', to: 'WALK TO WHERE SKYE WAITS' },
+  hoth:      { at: 'next', label: 'TO BRAKKA', to: 'WALK TO WHERE BRAKKA WAITS' },
+  spearhead: { at: [0, -41], label: 'THROUGH THE GATE', to: 'WALK THROUGH THE CITADEL GATE' },   // (the gate you held: world/arenas/grassland.js)
+};
+for (const [id, way] of Object.entries(MANDO_WAYS_ON)) MANDO_CHAPTERS[id].doorway = way;

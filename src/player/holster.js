@@ -160,6 +160,15 @@ export function clearUnlit(){
   syncHolster();
 }
 
+// AT EASE at once (a training lesson's start: game/tutorial.js): the Jedi's blade out, the hilt on the belt, no sound
+export function atEase(){
+  if (isGunner()) return;
+  player.holstered = false; player.unlit = true; player.stowed = true; player.reach = null; player.stowPend = false;
+  player.palmT = 0; player.palm = null; player.palmQueued = false; player.palmHold = null;
+  extendBlade(0);
+  syncHolster();
+}
+
 export function toggleHolster(){
   if (G.mode !== 'play' || isTrooper()) return;   // (the trooper keeps its guns in hand: no holster yet)
   if (isGunner()){

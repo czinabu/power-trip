@@ -378,15 +378,17 @@ export const SABER_SWINGS = {
       { hand: [0.08, 0.4, 0.44],   blade: [0.1, 0.05, 1],       twist: 0.05, pole: [0.9, 0.4, -0.2] },
       { hand: [0.46, 0.36, 0.14],  blade: [0.55, 0.05, -0.83],  twist: 0.65, pole: [0.7, 0.3, -0.6] },
     ],
+    // LOW SWEEPS (Ahsoka's leg cut): the hero drops into a crouch (SWING_KEY_LOOK), the fist goes down by the knee and
+    // the blade hangs steeply out of it, so the tip rakes round at shin height, the elbow riding high over it
     leftLow:   [
-      { hand: [0.4, -0.04, 0.1],   blade: [0.35, -0.3, -0.88],  twist: 0.5,  pole: [0.8, 0, -0.6] },
-      { hand: [0.1, -0.12, 0.46],  blade: [-0.1, -0.35, 0.93],  twist: 0,    pole: [0.95, 0.2, -0.25] },
-      { hand: [-0.26, -0.14, 0.32], blade: [-0.4, -0.35, -0.85], twist: -0.6, pole: [0.5, 0.4, -0.75] },
+      { hand: [0.42, -0.1, 0.12],  blade: [0.4, -0.5, -0.77],   twist: 0.6,  pole: [0.8, 0.1, -0.6] },
+      { hand: [0.1, -0.18, 0.42],  blade: [-0.15, -0.62, 0.77], twist: 0,    pole: [0.95, 0.3, -0.15] },
+      { hand: [-0.24, -0.14, 0.3], blade: [-0.55, -0.45, -0.7], twist: -0.65, pole: [0.5, 0.5, -0.7] },
     ],
     rightLow:  [
-      { hand: [-0.22, -0.02, 0.3], blade: [-0.4, -0.3, -0.86],  twist: -0.55, pole: [0.6, 0.5, -0.6] },
-      { hand: [0.08, -0.12, 0.46], blade: [0.1, -0.35, 0.93],   twist: 0.05, pole: [0.95, 0.2, -0.25] },
-      { hand: [0.46, -0.16, 0.14], blade: [0.55, -0.35, -0.76], twist: 0.55, pole: [0.7, 0.1, -0.7] },
+      { hand: [-0.16, -0.12, 0.3], blade: [-0.45, -0.5, -0.74], twist: -0.6, pole: [0.6, 0.5, -0.6] },
+      { hand: [0.14, -0.18, 0.4],  blade: [0.15, -0.62, 0.77],  twist: 0.05, pole: [0.95, 0.25, -0.2] },
+      { hand: [0.46, -0.22, 0.18], blade: [0.6, -0.45, -0.66],  twist: 0.7,  pole: [0.7, 0.1, -0.7] },
     ],
     riseL:     [
       { hand: [0.38, -0.28, 0.18], blade: [0.3, -0.4, -0.87],   twist: 0.45, pole: [0.8, -0.2, -0.55] },
@@ -402,6 +404,42 @@ export const SABER_SWINGS = {
       { hand: [-0.1, 0.1, 0.24],   blade: [0.1, -0.1, 0.99],    twist: -0.35, pole: [1, 0.3, -0.2] },
       { hand: [0.06, 0.1, 0.48],   blade: [0, -0.06, 1],        twist: 0.1,  pole: [1, 0.25, 0.05] },
       { hand: [0.08, 0.08, 0.52],  blade: [0, -0.08, 1],        twist: 0.15, pole: [1, 0.25, 0.05] },
+    ],
+    /* THE REVERSE GRIP'S OWN STROKES — second takes on its cuts (SWING_VARIANTS: a cut struck again alternates with
+       its variant) and the spinning cut (SWING_SPIN_KEYS). */
+    // BACKHAND: tight and close, the arm kept bent and the blade held out in front of the fist the whole way, so the
+    // hard body turn carries it across like a scythe (the plain cut swings the arm wide and whips the blade round)
+    backhand: [
+      { hand: [-0.06, 0.1, 0.32],  blade: [-0.25, -0.15, 0.95], twist: -0.95, pole: [0.5, 0.75, 0.45] },
+      { hand: [0.14, 0.12, 0.42],  blade: [0.1, -0.12, 0.99],   twist: 0,     pole: [0.95, 0.3, -0.1] },
+      { hand: [0.4, 0.12, 0.28],   blade: [0.75, -0.12, 0.65],  twist: 0.95,  pole: [0.7, 0.6, -0.4] },
+    ],
+    // HOOK: the fist cocked back high at the weapon shoulder, then thrown across like a hook punch at shoulder height,
+    // elbow up, the blade hanging down and forward out of it so it rakes down through the body
+    hook: [
+      { hand: [0.4, 0.34, 0.1],    blade: [0.3, -0.4, 0.87],    twist: 0.6,  pole: [0.6, 0.5, -0.6] },
+      { hand: [0.02, 0.24, 0.46],  blade: [-0.1, -0.35, 0.93],  twist: -0.1, pole: [0.6, 0.4, 0.7] },
+      { hand: [-0.28, 0.16, 0.36], blade: [-0.45, -0.4, 0.8],   twist: -0.75, pole: [0.5, 0.5, 0.7] },
+    ],
+    // OVERHAND STAB (close quarters): the fist raised by the weapon ear, elbow high, the blade pointed down and forward
+    // out of it; then driven down in front of the breastbone, the elbow flared wide so the forearm lies across the
+    // chest and the blade stands straight out at the foe, all the body behind it, and held there a beat
+    stab: [
+      { hand: [0.22, 0.46, 0.16],  blade: [-0.05, -0.4, 0.92],  twist: 0.4,  pole: [0.8, 0.6, -0.3] },
+      { hand: [0.0, 0.1, 0.34],    blade: [0.02, -0.14, 0.99],  twist: -0.1, pole: [1, 0.3, -0.2] },
+      { hand: [-0.02, 0.06, 0.38], blade: [0.02, -0.2, 0.98],   twist: -0.15, pole: [1, 0.25, -0.15] },
+    ],
+    // SPINNING CUTS (one each way): the blade laid back on the chamber, then the arm thrown straight out at shoulder
+    // height with the blade standing square off the fist, and kept out at full reach while the body turns it round
+    spinR: [
+      { hand: [-0.12, 0.16, 0.28], blade: [-0.3, -0.15, -0.94], twist: -0.5, pole: [0.6, 0.55, -0.6] },
+      { hand: [0.36, 0.2, 0.48],   blade: [0.55, -0.08, 0.83],  twist: 0.2,  pole: [1, 0.25, 0.1] },
+      { hand: [0.56, 0.16, 0.2],   blade: [0.85, -0.1, -0.5],   twist: 0.6,  pole: [0.8, 0.4, -0.4] },
+    ],
+    spinL: [
+      { hand: [0.42, 0.18, 0.08],  blade: [0.35, -0.15, -0.92], twist: 0.5,  pole: [0.8, 0.2, -0.6] },
+      { hand: [-0.02, 0.2, 0.52],  blade: [-0.45, -0.08, 0.89], twist: -0.15, pole: [1, 0.35, 0] },
+      { hand: [-0.28, 0.14, 0.36], blade: [-0.8, -0.1, -0.55],  twist: -0.6, pole: [0.5, 0.5, -0.7] },
     ],
   },
   /* THE SABER STAFF (data/forms.js staff; SWING_STYLE.staff picks this set) — every cut is two: the near blade takes the
@@ -456,6 +494,22 @@ export const SABER_SWINGS = {
       { hand: [0.08, 0.06, 0.66],  blade: [-0.04, 0.02, 1],     twist: -0.2 },
     ],
   },
+};
+
+/* ---------------- a grip's VARIETY: alternate takes, spinning cuts, and the body under them ----------------
+   SWING_VARIANTS  per grip, a cut's second take (a key set above). The same cut struck again in that grip alternates
+                   between its own keys and the variant's, starting on the variant (anim/saber.js), so a string or a run
+                   of the same key never repeats one stroke. Hit timing, damage and the cut's line are the cut's own.
+   SWING_SPIN_KEYS per grip, the key set a spinning cut takes (a strafe or mid-string spin, a spinning finisher), by the
+                   way the cut travels across the body (R: out to the weapon side, L: across to the off side).
+   SWING_KEY_LOOK  what a key set does to the body on top of the form's: drop (the hips sink, m, as a low cut's do) and
+                   lean (the shoulders pitch into it). */
+export const SWING_VARIANTS = {
+  reverse: { right: 'backhand', rightHigh: 'backhand', left: 'hook', leftHigh: 'hook', thrust: 'stab' },
+};
+export const SWING_SPIN_KEYS = { reverse: { R: 'spinR', L: 'spinL' } };
+export const SWING_KEY_LOOK = {
+  reverse: { leftLow: { drop: 0.2, lean: 0.12 }, rightLow: { drop: 0.2, lean: 0.12 }, stab: { lean: 0.1 }, hook: { lean: 0.05 } },
 };
 
 /* ---------------- how each FORM performs a swing ----------------
@@ -575,8 +629,8 @@ export const SWING_SPINS = {
             move: { turns: 1, twirl: 0, travel: 1.3, reach: 1.2, dur: 1.3, stam: 0.6, cd: 3 } },               // strafing cuts turn through
   djemso: { mid: null,                                                                       // heavy: no flourish, but a strafing cut
             move: { turns: 1, twirl: 0, travel: 1.5, reach: 1.5, dur: 1.2, stam: 0.5, cd: 4 } },              // wheels its weight round
-  shien:  { mid: null,                                                                       // reverse grip: the blade stays on the arm,
-            move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.3, dur: 1.25, stam: 0.5, cd: 3 } },             // so the whole body turns the cut
+  shien:  { mid: { turns: 1, twirl: 0, travel: 1.3, reach: 1.1, dur: 1.3, stam: 0.4, cd: 3 },                   // reverse grip: the blade stays on the arm,
+            move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.3, dur: 1.25, stam: 0.5, cd: 3 } },             // so the whole body turns the cut, arm out
   juyo:   { mid: { turns: 1, twirl: 0, travel: 1.6, reach: 1.4, dur: 1.35, stam: 0.4, cd: 2 },                  // ferocious: spins into the next cut
             move: { turns: 1, twirl: 0, travel: 1.5, reach: 1.4, dur: 1.25, stam: 0.4, cd: 2 } },
   vaapad: { mid: { turns: 0, twirl: 1, travel: 1.0, reach: 0.7, dur: 1.2, stam: 0.3, cd: 3 },                   // a sudden wheel of the blade
@@ -585,6 +639,14 @@ export const SWING_SPINS = {
             move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.3, dur: 1.25, stam: 0.4, cd: 2.5 } },           // and a strafing cut turns right round with it
   jarkai: { mid: null,                                                                                          // no wrist twirl: two blades would tangle
             move: { turns: 1, twirl: 0, travel: 1.4, reach: 1.2, dur: 1.2, stam: 0.35, cd: 2.5 } },           // a strafing cut spins right round, both blades out
+};
+/* a grip's own take on a form's spins, laid over SWING_SPINS (combat.js pickSpin). A reverse-grip blade can't wheel
+   about the fist (it lies along the forearm), so the forms that twirl turn the whole body instead, arm out. */
+export const SWING_SPINS_GRIP = {
+  reverse: {
+    niman: { mid: { turns: 1, twirl: 0, travel: 1.2, reach: 1.0, dur: 1.3, stam: 0.4, cd: 3 } },
+    jarkai: { mid: { turns: 1, twirl: 0, travel: 1.2, reach: 1.0, dur: 1.25, stam: 0.35, cd: 3 } },   // both reversed (Ahsoka): the twin blades spun round together
+  },
 };
 
 /* ---------------- DEFLECT SPINS: turning a catch into a spin ----------------

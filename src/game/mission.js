@@ -218,15 +218,21 @@ const KINDS = {
     begin(o, s){
       s.prog = 0; s.pulse = 0; CIV.onAim = o.evacuees ? (e) => huntAim(o, s, e) : null; s.pulseT = 2.5; s.stage = 0;
       if (o.twist && o.twist.zones) o.at = o.twist.zones[0];   // a hold that falls back (the heat twist): its first stand (o is this run's copy)
-      M.markers.push(s.zone = makeBeacon(o.at[0], o.at[1], 0, heroKey(MISSION_COLOR), o.r / 0.9));
-      if (o.evacuees) beginEvacuees(evac(o), s);
       // the routes its waves come in by, well away from the people being got out (game/lanes.js), and the waves on their way
       s.lanes = pickLanes(o, o.evacuees ? evac(o).path : null); s.laneAt = o.at; s.inc = []; s.lastLane = -1;
+      // a hold with a line (every 'get them out'): the zone is the line itself, from where it starts to the way out, and
+      // the troops come for the people, not a spot on the floor (its lanes are still picked round o.at in the data)
+      s.escort = !!(o.evacuees && evac(o).escort !== false) && !(o.twist && o.twist.zones);   // (every line walks out, unless its data says not: escort false)
+      if (s.escort){ const p0 = evac(o).path[0]; s.at = [p0[0], p0[1]]; o.at = s.at; }   // (o is this run's copy; its own array, so the data's stays put)
+      s.goalPos = V3(o.at[0], 0, o.at[1]);
+      M.markers.push(s.zone = makeBeacon(o.at[0], o.at[1], 0, heroKey(MISSION_COLOR), o.r / 0.9));
+      if (o.evacuees) beginEvacuees(evac(o), s);
       setLanes(s.lanes);
     },
     update(o, s, dt){
       if (o.twist && o.twist.zones) fallBack(o, s);
       if (o.twist && o.twist.zones && s.laneAt !== o.at){ s.laneAt = o.at; s.lanes = pickLanes(o, o.evacuees ? evac(o).path : null); setLanes(s.lanes); }   // (the stand moved: so do its lanes)
+      if (s.escort) followLine(o, s, dt);
       const officers = enemies.some(e => !e.dead && !e.converted && e.type === 'officer');
       const alive = hostilesAlive() + G.spawnQueue.length + s.inc.reduce((n, w) => n + w.n, 0);
       if ((s.pulseT -= dt) <= 0){
@@ -247,7 +253,7 @@ const KINDS = {
         const w = s.inc[i];
         if ((w.t -= dt) > 0) continue;
         s.inc.splice(i, 1);
-        const goal = { pos: V3(o.at[0], 0, o.at[1]), aggro: o.aggro };   // they come for the ramp, not for you
+        const goal = { pos: s.escort ? s.goalPos : V3(o.at[0], 0, o.at[1]), aggro: o.aggro };   // they come for the ramp (or the line), not for you
         queueGroup(w.g, { at: () => laneSpawn(w.lane), then: e => {
           if (!e) return;
           e.goal = goal;
@@ -276,9 +282,9 @@ const KINDS = {
       const total = alive ? ' · ' + alive + ' HOSTILE' + (alive === 1 ? '' : 'S') : '';
       const who = o.evacuees ? heroKey(evac(o).name) + ' ' + (evac(o).verb || 'ABOARD') + ' ' + s.aboard + ' / ' + evac(o).count : (o.holding || 'HOLDING');
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: s.prog / o.time,
-        status: (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || 'RETAKE THE RAMP') : inZone ? who + ' · ' + mmss(o.time - s.prog)
+        status: (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || (s.escort ? 'CLEAR THEM OFF THE LINE' : 'RETAKE THE RAMP')) : inZone ? who + ' · ' + mmss(o.time - s.prog)
                : byLine ? 'GUARDING THE LINE · ' + who + ' · ' + mmss(o.time - s.prog)
-               : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || 'RAMP UNGUARDED') + ' ' + mmss(o.time - s.prog)) + total,
+               : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || (s.escort ? (heroKey(evac(o).name) || 'LINE') + ' UNGUARDED' : 'RAMP UNGUARDED')) + ' ' + mmss(o.time - s.prog)) + total,
         warn: rate === 0 || !!(gate && gate.warn) });
       if (s.prog >= o.time){
         for (const e of enemies) e.civHunt = false;
@@ -685,6 +691,8 @@ const EVAC_HIT = {
 function beginEvacuees(ev, s){
   s.path = ev.path; s.len = 0;
   for (let i = 0; i < ev.path.length - 1; i++) s.len += Math.hypot(ev.path[i+1][0] - ev.path[i][0], ev.path[i+1][1] - ev.path[i][1]);
+  // an escort line walks the whole way, start to end, over the hold: the head steps out as it begins, the last is out as it ends
+  s.travel = ev.escort !== false ? s.len + (ev.count - 1) * ev.spacing + ESCORT_HEAD : 0; s.gap = ev.spacing;
   s.aboard = 0;
   s.kids = [];
   const kind = ev.kind || (isMando() ? 'foundling' : 'youngling'), grown = kind === 'prisoner' || kind === 'archivist';
@@ -693,12 +701,24 @@ function beginEvacuees(ev, s){
     m.rotation.order = 'YXZ';   // (a lean or a fall tips them along the way they face)
     scene.add(m); M.props.push(m);
     // the head of the line is already at the ramp; the rest queue back toward the shelter door
-    const k = { m, d: s.len - i * ev.spacing - ev.spacing, ph: Math.random() * 6,
+    const k = { m, d: ev.escort !== false ? ESCORT_HEAD - i * ev.spacing : s.len - i * ev.spacing - ev.spacing, ph: Math.random() * 6,
                 r: grown ? 0.34 : 0.32, h: grown ? 1.95 : 1.6, down: 0, fall: 0, fy: 0, ox: 0, oz: 0, vx: 0, vz: 0, flinch: 0 };
     k.shove = (dx, dz) => { k.ox += dx; k.oz += dz; k.flinch = 0.5; };
     k.hit = (by, how) => hitEvacuee(s, k, by, how);
     s.kids.push(k);
   }
+}
+const ESCORT_HEAD = 0.3;   // m along its path the head of an escort line starts (just out of the stacks)
+// an escort hold: the zone rides on the line, centred on the ones out and walking (the head, before anyone else is out),
+// and the troops' goal with it
+function followLine(o, s, dt){
+  let x = 0, z = 0, n = 0;
+  for (const k of s.kids){ if (!k.m.visible || k.d >= s.len) continue; x += k.m.position.x; z += k.m.position.z; n++; }
+  if (!n){ const lead = s.kids.find(k => k.d < s.len); if (!lead) return; const p = pathPoint(s.path, Math.max(0, lead.d)); x = p[0]; z = p[1]; n = 1; }
+  const f = Math.min(1, dt * 2.5);
+  s.at[0] += (x / n - s.at[0]) * f; s.at[1] += (z / n - s.at[1]) * f;
+  s.zone.position.set(s.at[0], 0, s.at[1]);
+  s.goalPos.set(s.at[0], 0, s.at[1]);
 }
 const hurtName = (ev) => { const n = heroKey(ev.name) || 'EVACUEES'; return n === 'CHILDREN' ? 'A CHILD' : (/^[AEIOU]/.test(n) ? 'AN ' : 'A ') + n.replace(/S$/, ''); };
 function hurtStatus(ev, n){ return (n > 1 ? n + ' ' + (heroKey(ev.name) || 'EVACUEES') + ' ARE' : hurtName(ev) + ' IS') + ' DOWN · STAND BY THEM'; }
@@ -706,10 +726,19 @@ function hurtStatus(ev, n){ return (n > 1 ? n + ' ' + (heroKey(ev.name) || 'EVAC
 function hitEvacuee(s, k, by, how){
   if (k.down > 0 || !M.o || !M.o.evacuees) return;
   const o = M.o, ev = evac(o), p = k.m.position;
+  // a line you're walking out has you right beside it, so the fire meant for you comes its way: a stray bolt or a blast
+  // (a grenade lobbed at you) only makes them stagger. A shot aimed at them (a trooper sent at the line) puts them down
+  if (s.travel && !(how === 'bolt' && by && by.src && by.src.civShot)){
+    const d = by && by.dir, bp = by && by.ball && by.ball.position;
+    if (d) k.shove(d.x * 0.5, d.z * 0.5);
+    else if (bp){ const dx = p.x - bp.x, dz = p.z - bp.z, l = Math.hypot(dx, dz) || 1; k.shove(dx / l * 0.8, dz / l * 0.8); }
+    else k.flinch = 0.5;
+    return;
+  }
   k.down = EVAC_HIT.down; k.flinch = 0;
   const dir = by && by.dir ? by.dir : null;
   k.fy = dir ? Math.atan2(dir.x, dir.z) : how === 'blast' && by && by.ball ? Math.atan2(p.x - by.ball.position.x, p.z - by.ball.position.z) : k.m.rotation.y + Math.PI;
-  if (G.gt - (s.hitAt ?? -9) > EVAC_HIT.gap) s.prog = Math.max(s.aboard / ev.count * o.time, s.prog - EVAC_HIT.setback);
+  if (G.gt - (s.hitAt ?? -9) > EVAC_HIT.gap) s.prog = Math.max(outFloor(ev, s) * o.time, s.prog - EVAC_HIT.setback);
   s.hitAt = G.gt;
   floater(V3(p.x, k.h + 0.4, p.z), hurtName(ev) + ' IS HIT', '#ff8a7a');
   burst(V3(p.x, k.h * 0.6, p.z), 0xff6a4a, 8, 4, 3, 0.7);
@@ -724,9 +753,14 @@ function huntAim(o, s, e){
   floater(V3(p.x, 2.6, p.z), 'AIMING AT THE ' + n, '#ff6a4a');
   if (!s.huntTold){ s.huntTold = true; showBanner('THEY ARE SHOOTING AT THE ' + n, 'Follow the aim line: get in its way, or drop the shooter.', 3, { kicker: 'PROTECT THE LINE' }); }
 }
+// the hold's progress (0..1) the ones already out stand for: a setback never walks anyone back in
+function outFloor(ev, s){
+  if (!s.travel) return s.aboard / ev.count;
+  return s.aboard ? (s.len - ESCORT_HEAD + (s.aboard - 1) * ev.spacing) / s.travel : 0;
+}
 function updateEvacuees(ev, s, dt, frac, rate){
   const boarded = frac * ev.count;
-  s.aboard = Math.min(ev.count, Math.floor(boarded + 1e-6));
+  s.aboard = s.travel ? s.kids.filter(k => k.d >= s.len).length : Math.min(ev.count, Math.floor(boarded + 1e-6));
   s.kids.forEach((k, i) => {
     const ahead = s.kids[i - 1];
     if (k.down > 0){
@@ -735,7 +769,7 @@ function updateEvacuees(ev, s, dt, frac, rate){
       k.down -= dt * (heroIn(p.x, p.z, 2.4) ? 2 : 1);
       if (k.down <= 0){ k.down = 0; floater(V3(p.x, k.h + 0.3, p.z), 'UP', '#7bffae'); }
     } else {
-      let want = s.len - (i - boarded) * ev.spacing - ev.spacing;   // where this one's place in the line has moved to
+      let want = s.travel ? ESCORT_HEAD + frac * s.travel - i * ev.spacing : s.len - (i - boarded) * ev.spacing - ev.spacing;   // where this one's place in the line has moved to
       if (ahead && ahead.d < s.len) want = Math.min(want, ahead.d - ev.spacing * 0.75);   // (never through the one in front)
       const step = Math.min(Math.max(0, want - k.d), dt * ev.speed);
       k.d += step; k.step = step;
@@ -1203,6 +1237,8 @@ function fallBack(o, s){
 // its state, the escort, and a hand on the mission's markers (one of its own: the HUD arrow finds it, a guest is sent it)
 const twistCtx = { guest: false, frac: 0, foe: () => M.s && M.s.foe && !M.s.foe.dead ? M.s.foe : null,
   get o(){ return M.o; }, get s(){ return M.s; }, get vip(){ return M.vip; },
+  // the line a hold is getting out, walking the whole way (the host's, or the one a co-op guest draws): { kids, path, len, gap }
+  get line(){ const L = M.guest ? M.gk : M.s; return L && L.kids && L.travel ? L : null; },
   mark(m){ M.markers.push(m); return m; }, unmark(m){ removeMarker(m); M.markers = M.markers.filter(k => k !== m); } };
 // how far along the objective is, 0..1, for its twist
 function objectiveFrac(o, s){
@@ -1263,7 +1299,7 @@ function handOff(i, guest = false){
 function nextSpot(o){
   const p = playerPos(), near = (list) => list.reduce((b, c) => !b || Math.hypot(c[0] - p.x, c[1] - p.z) < Math.hypot(b[0] - p.x, b[1] - p.z) ? c : b, null);
   switch (o.kind){
-    case 'hold': return o.twist && o.twist.zones ? o.twist.zones[0] : o.at;   // (a hold that falls back: its first stand)
+    case 'hold': return o.twist && o.twist.zones ? o.twist.zones[0] : o.evacuees && o.evacuees.escort !== false ? o.evacuees.path[0] : o.at;   // (a hold that falls back: its first stand; an escort: where the line starts)
     case 'sabotage': return near(o.consoles.map(c => c.at));
     case 'capture': return o.posts[0] && o.posts[0].at;
     case 'breach': return o.stack;

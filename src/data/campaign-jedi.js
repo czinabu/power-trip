@@ -88,7 +88,7 @@ export const JEDI_CHAPTERS = {
             'Twenty years of hidden children, written down in one place. Get the archivists out, then get to the vault before anyone else does.'],
     opening: { lines: [[VAEL, 'The archive is burning, and the Ledger of Names is in the vault beneath it. Twenty years of hidden children.'],
                        [VAEL, 'That Inquisitor knows the way down. Get the archivists out, and get to the vault first.']],
-               rival: { ...INQ, line: ['THE INQUISITOR', 'Hold the hall if you like, Knight. I already know the way down.'] } },
+               rival: { ...INQ, line: ['THE INQUISITOR', 'Walk them out if you like, Knight. I already know the way down.'] } },
     escapeLines: [[ILSA, 'Do not look at me like that. Somebody had to stop hiding.'], [VAEL, 'Ilsa. No.']],
     lines: {
       chapter: ['Keep them off the archivists.', rival('THE INQUISITOR', 'You still lean left when you parry. I always told you so.')],
@@ -132,7 +132,7 @@ export const JEDI_CHAPTERS = {
       hoth: ['We are late. A ship came for half the children while we were on Hoth. The rest are still in the pens, and so is Sera.', 'Walk RX-4 in, open what is left of the cells, and get every one of them out.'] },
     opening: { lines: [[VAEL, 'Tessaril. No sun, no grass, rain that never stops. They chose a moon where nobody would hear the children cry.'],
                        [VAEL, 'RX-4 has the cell codes. Walk it to the gate, and every pen opens at once.']] },
-    says: [null, null, 'The children are running for the ship. Hold the gate until the last of them is past you. Sera is with them. She will not leave until they are clear.',
+    says: [null, null, 'The children are running for the ship. Stay with them until the last one is through the gate. Sera is with them. She will not leave until they are clear.',
            'The Warden of the pens. It never hunted a Jedi in its life: it only kept what the others caught. It wants its list back.'],
     lines: {
       chapter: ['RX-4 has sliced the prison\'s cell codes. Walk it to the gate and every pen opens.'],

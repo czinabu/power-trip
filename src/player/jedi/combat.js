@@ -131,7 +131,9 @@ export function tryAttack(flow = false){
   player.atkT = cutDur;
   player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
-  const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
+  // (Juyo's forward rhythm link is the Onslaught's zig-zag, not a spin)
+  const zigNow = !isGunner() && !!st.zigzag && dirKey === 'forward' && flow && !ripNow && !mom && player.grounded;
+  const spin = zigNow ? null : pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
     ripNow, backStrike, mom, flow, st, held: holding() });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur;

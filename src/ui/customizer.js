@@ -17,7 +17,7 @@ import { setHero, dressHeroParts } from '../player/hero.js';
 import { bladeColor, heldGrip } from '../player/helpers.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
-import { overlay, setOverlayState } from './menus.js';
+import { overlay, setOverlayState, heroPicked } from './menus.js';
 import { audioInit } from '../audio/sfx.js';
 
 const rowsEl = document.getElementById('czrows');
@@ -160,7 +160,7 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   const opt = e.target.closest('[data-opt]');
   if (opt) return pick(opt.dataset.row, opt.dataset.opt);
   const tab = e.target.closest('[data-h]');
-  if (tab && tab.dataset.h !== G.hero){ setHero(tab.dataset.h); render(); return; }
+  if (tab && tab.dataset.h !== G.hero){ setHero(tab.dataset.h); heroPicked(); render(); return; }   // (the title screen's pick follows: its saved run too)
   if (e.target.closest('#czrandom')) randomize();
   else if (e.target.closest('#czreset')) reset();
   else if (e.target.closest('#czdone')) closeCustomizer();

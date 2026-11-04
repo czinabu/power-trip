@@ -123,6 +123,29 @@ export function resumeProgress(){
   const pos = nextPos(run), list = chapterOrder(run.actTwo, run.hero), c = list[pos];
   return c ? 'ACT ' + ['I', 'II', 'III'][c.act] + ' · ' + chapterNo(pos, list).replace('CHAPTER', 'CH') : '';
 }
+// THE RUN WAITING ON THE MENU, per hero: on launch the newest saved campaign run (any slot, the autosave included) is put
+// back on the menu, with its hero picked, so CONTINUE CAMPAIGN is the title screen's default; switching hero there swaps in
+// that hero's own newest run (a run set aside by the switch comes back when its hero is picked again). Saves from before
+// the last NEW GAME are left for LOAD GAME (the slots are kept, but a fresh start shouldn't offer their runs).
+const NEWGAME_AT = 'sw_newgame_at';
+const parked = {};
+export function latestRun(hero){
+  let since = 0; try { since = +localStorage.getItem(NEWGAME_AT) || 0; } catch(e){}
+  let best = null;
+  for (const i of [AUTO, ...Array.from({ length: SLOTS }, (_, k) => k)]){
+    const d = readSlot(i);
+    if (!d || !d.run || (d.at || 0) < since || (hero && d.hero !== hero)) continue;
+    if (!best || (d.at || 0) > (best.at || 0)) best = d;
+  }
+  return best ? { ...clone(best.run), hero: best.hero } : null;
+}
+export function followHero(){
+  if (canResume()) return;
+  if (G.resumeRun) parked[G.resumeRun.hero] = G.resumeRun;
+  G.resumeRun = parked[G.hero] || latestRun(G.hero);
+  delete parked[G.hero];
+}
+export function clearParked(){ for (const k in parked) delete parked[k]; }
 export const hasSaves = () => { for (const i of [0, 1, 2, AUTO]) if (readSlot(i)) return true; return false; };
 export function resumeRun(){
   const run = G.resumeRun; G.resumeRun = null;
@@ -170,6 +193,8 @@ export function loadSlotProgress(data){
 // NEW GAME: wipe the wins, bests and training ticks (the look and the saved slots stay)
 export function clearProgress(){
   try { for (const k of progressKeys()) if (!FRESH_KEEP.test(k)) localStorage.removeItem(k); } catch(e){}
+  try { localStorage.setItem(NEWGAME_AT, String(Date.now())); } catch(e){}
+  clearParked();
   clearKept();   // (and the customizer back to its basics: game/wardrobe.js)
 }
 

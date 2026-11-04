@@ -41,6 +41,7 @@ import { STAGE } from '../data/cutscene-stage.js';
 import { chapterOrder, storyVoice } from '../data/campaign.js';
 import { meetNamed } from './codex.js';
 import { TAUNTS } from '../data/duel-taunts.js';
+import { settleHero, prepScene, blockScene, unblockScene, matesAround, sizeOf, roomFor } from './blocking.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -259,9 +260,10 @@ function discard(actors){ for (const a of actors || []){ if (a.kind) dropFigure(
 /* ---------- room to talk: nobody stands on top of the hero when a scene starts ----------
    A scene that starts as a fight ends (a duel foe breaking off, a cornered quarry) finds the hero wherever the fight left
    them, often a step from the one who is about to speak: the two bodies overlap in every close and the over-the-shoulder
-   lens sits inside the hero. So before the first shot, the speaker steps back to ROOM (a stand-in built for the scene), or,
-   when it can't (a wall behind it, or it is something already on the field: the boss, the quarry), the hero does. */
-const ROOM = 2.6;
+   lens sits inside the hero. So before the first shot, the speaker steps back to talking distance (game/blocking.js
+   roomFor: more for someone bigger, by how big they really stand) if it is a stand-in built for the scene, or, when it
+   can't (a wall behind it, or it is something already on the field: the boss, the quarry), the hero does. Everyone else
+   (co-op partners, the squad, foes in the way) is put on their marks after that (blocking.js blockScene). */
 // a clear spot `d` from (x, z) along `yaw` (or a little either side of it) on level ground with nothing in between: null if none
 function roomSpot(x, z, y, yaw, d){
   for (const da of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const k of [1, 1.2]){
@@ -275,7 +277,7 @@ function roomSpot(x, z, y, yaw, d){
 function makeRoom(actors){
   for (const a of actors || []){
     if (!a || !a.g || (a.kind && !a.bound)) continue;   // (the story's cast is set apart already: castSpots)
-    const pp = playerPos(), q = a.g.position, need = ROOM * Math.max(1, a.scale || 1), d = Math.hypot(q.x - pp.x, q.z - pp.z);
+    const pp = playerPos(), q = a.g.position, need = roomFor(sizeOf(a)), d = Math.hypot(q.x - pp.x, q.z - pp.z);
     if (d >= need) continue;
     const away = d > 0.05 ? yawTo(pp.x, pp.z, q.x, q.z) : G.yaw;   // hero → actor
     let c = a.own && !a.kind && roomSpot(pp.x, pp.z, pp.y, away, need);
@@ -285,11 +287,15 @@ function makeRoom(actors){
   }
 }
 function start(opts){
-  if (!canStart(opts.key)){ discard(opts.actors); return false; }
+  if (!canStart(opts.key)){ discard(opts.actors); if (!C.on) unblockScene(); return false; }
   if (opts.key) seen.add(opts.key);
+  settleHero();   // (on their feet, out of whatever move the fight left them in: game/blocking.js)
   makeRoom(opts.actors);
   const pp = playerPos();
   if (opts.face === 'actor'){ const g = opts.actors[0].g.position; opts.face = [g.x, g.z]; }   // (where it stands now: makeRoom)
+  // everyone else onto their marks round the hero and the speaker (co-op partners, the squad, foes in the way)
+  const a0 = opts.actors && opts.actors[0], at = Array.isArray(opts.face) ? { x: opts.face[0], z: opts.face[1] } : a0 && a0.g ? a0.g.position : opts.mark ? { x: opts.mark[0] ?? opts.mark.x, z: opts.mark[1] ?? opts.mark.z } : null;
+  const marks = blockScene(at, (opts.actors || []).map(a => a && a.g), opts.stage || null, !!opts.share);
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
                      mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null, at: performance.now() });
@@ -308,7 +314,7 @@ function start(opts){
   holdSkip(false, true);
   voted = false; lastTally = null; showVote(null);
   if (net.role === 'host' && connected()) tally();   // (a guest may already be asking to skip what they're watching)
-  if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share });
+  if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share, st: marks });   // (st: where the host stands and the speaker is: each guest's mark beside it)
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 1 });
   showShot();
   return true;
@@ -317,6 +323,7 @@ function finish(skipped){
   if (!C.on) return;
   const done = C.onDone;
   dropActors();
+  unblockScene();
   if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
   C.on = false; C.onDone = null; C.one = null;
   G.cutscene = false;
@@ -437,10 +444,8 @@ const Q = new THREE.Vector3();
 function crowded(s, side){
   lensAt(s, 0.5, side, Q);
   const p = playerPos(), b = C.actors[C.pair || 0], ends = [p, b && b.g && b.g.position].filter(Boolean);
-  let n = 0;
-  for (const a of C.actors){
-    if (!a.g || a === b) continue;
-    const o = a.g.position;
+  let n = atLens(Q);   // (a partner or a squadmate where the lens would stand)
+  for (const o of [...C.actors.filter(a => a.g && a !== b).map(a => a.g.position), ...matesAround()]){
     for (const e of ends){
       const dx = e.x - Q.x, dz = e.z - Q.z, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((o.x - Q.x) * dx + (o.z - Q.z) * dz) / L2));
       if (t > 0.05 && t < 0.95 && Math.hypot(Q.x + dx * t - o.x, Q.z + dz * t - o.z) < 0.65) n++;
@@ -473,7 +478,7 @@ function pickSide(s){
     // face (a crate or a wall there swings it wider, or in closer)
     lookPoint(s.look, L);
     const sd = Math.sign(s.from[0]) || 1, h0 = s.from[2], h1 = s.to[2], d0 = s.from[1];
-    const view = (k) => { lensAt(s, k, 1, Q); return lensView(L.x, L.y, L.z, Q.x, Q.y, Q.z); };
+    const view = (k) => { lensAt(s, k, 1, Q); return lensView(L.x, L.y, L.z, Q.x, Q.y, Q.z) - 0.5 * (atLens(Q) + inWay(Q.x, Q.z, L, null)); };
     let best = null, bestK = -1;
     search: for (const d of [d0, d0 * 0.86, d0 * 0.72]) for (const a of [0.58, 0.8, 0.4, 1.05]) for (const side of [sd, -sd]){
       s.from = [a * side, d, h0]; s.to = [a * 0.82 * side, d * 0.87, h1];
@@ -487,7 +492,8 @@ function pickSide(s){
   if (!s.mirror) return;
   lookPoint(s.look, L);
   const A = anchor(s.look.on);   // (the face, and the body under it)
-  const view = (side) => { let v = 0; for (const k of [0, 1]){ lensAt(s, k, side, Q); v += sightClear(L.x, L.y, L.z, Q.x, Q.y, Q.z) + sightClear(A.x, A.y + 0.6, A.z, Q.x, Q.y, Q.z); } return v; };
+  // (a partner on their mark or a squadmate between the lens and the face counts against that side too: people aren't props)
+  const view = (side) => { let v = 0; for (const k of [0, 1]){ lensAt(s, k, side, Q); v += sightClear(L.x, L.y, L.z, Q.x, Q.y, Q.z) + sightClear(A.x, A.y + 0.6, A.z, Q.x, Q.y, Q.z) - 0.8 * (inWay(Q.x, Q.z, L, null) + atLens(Q)); } return v; };
   if (view(-1) > view(1) + 0.05) s.side = -1;
 }
 
@@ -653,6 +659,14 @@ function inWay(x, z, L, face){
     if (t > 0.04 && t < 0.92 && Math.hypot(x + dx * t - o.x, z + dz * t - o.z) < 0.6) n++; };
   for (const a of allies) test(a.group);
   for (const a of C.actors) if (a !== face) test(a.g);
+  for (const q of matesAround()) test({ position: q, visible: true });   // (a co-op partner on their mark)
+  return n;
+}
+// how many partners or squadmates stand right where a lens would be (it would sit inside them, or their blade)
+function atLens(Q){
+  let n = 0;
+  for (const q of matesAround()) if (Math.hypot(q.x - Q.x, q.z - Q.z) < 1.3) n++;
+  for (const a of allies) if (a.group && a.group.visible && !C.actors.some(b => b.g === a.group) && Math.hypot(a.group.position.x - Q.x, a.group.position.z - Q.z) < 1.0) n++;
   return n;
 }
 const OT = {};
@@ -715,12 +729,15 @@ function watchSpot(pp){
 // where the cast stands: in front of the hero, spread across their view, on open ground in plain sight
 function castSpots(n, pp, off = 0){
   const fan = n === 1 ? [0] : n === 2 ? [-0.42, 0.42] : [-0.62, 0, 0.62], d0 = n === 1 ? 2.7 : 2.9, spots = [];
+  // (co-op partners and the squad stand where they are: the cast takes the ground round them, not a spot on top of one)
+  const others = [...matesAround(), ...allies.filter(a => a.group && a.state !== 'down').map(a => a.group.position)];
   for (const a0 of fan){
     let pick = null;
     for (const d of [d0, d0 * 1.2, d0 * 0.85, d0 * 1.45]) for (const da of [0, 0.22, -0.22, 0.45, -0.45]){
       if (pick) break;
       const yaw = G.yaw + off + a0 + da, c = findClearSpawn(pp.x + Math.sin(yaw) * d, pp.z + Math.cos(yaw) * d, 0.6);
       if (Math.hypot(c.x - pp.x, c.z - pp.z) < 1.8 || spots.some(q => Math.hypot(q.x - c.x, q.z - c.z) < 1.1)) continue;
+      if (others.some(q => Math.hypot(q.x - c.x, q.z - c.z) < 1.3)) continue;   // (not on a partner, nor a squadmate)
       if (segBlockedBySolids(pp.x, pp.z, c.x, c.z) || Math.abs(groundAt(c.x, c.z, pp.y + 1.5) - pp.y) > 0.45) continue;
       if (sightClear(pp.x, pp.y + 1.5, pp.z, c.x, pp.y + 1.5, c.z) < 0.95) continue;
       pick = c;
@@ -809,6 +826,7 @@ export function playOpening(id, title, own){
   const stage = (c && STAGE[c.story || ''] && STAGE[c.story][id]) || {};
   const talk = c && c.talk && Array.isArray(c.talk.lines) ? c.talk.lines.filter(l => Array.isArray(l) && l[1]) : [];
   if ((!o && !talk.length && !stage.goal) || C.on || G.mode !== 'play' || seen.has('open:' + id)) return false;
+  prepScene(null);   // (the hero on their feet, and off a partner they stand on top of, before the cast is placed round them)
   let lines = ((o && pick(o)) || []).slice();
   const shots = [wide(3.4, title)], actors = [], later = [];
   const pp = playerPos();
@@ -885,8 +903,10 @@ export function playOpening(id, title, own){
 
 // a mission duel's entrance (game/mission.js, before its foe steps in). spec: { mid, foe, name, kicker, tint, scale,
 // at: [x, z], line, quarry } as the host's hero sees the foe. Returns false when no scene plays (seen, or one is up).
-export function playDuelIntro(spec, share = true){
+// stage: on a guest, the host's marks for this scene (game/blocking.js)
+export function playDuelIntro(spec, share = true, stage = null){
   if (!canStart('duel:' + spec.mid)) return false;   // (a retry: seen already, so no stand-in is built for it)
+  prepScene(stage);   // (the hero on their feet, a guest on its mark beside the host, before anyone is placed round them)
   const jedi = G.chapter >= 0 && storyHero() === 'jedi' && JEDI_DUELS[spec.mid];   // (the Jedi's story has its own words for some)
   const lines = ((jedi && storyWords(jedi)) || (DUELS[spec.mid] && pick(DUELS[spec.mid])) || (spec.line ? [[null, spec.line]] : [])).slice();
   const actors = [];
@@ -898,15 +918,17 @@ export function playDuelIntro(spec, share = true){
   } else {
     const pp = playerPos();
     // it walks up to its mark, where the real foe steps in after: a hero left standing on that mark by the fight before
-    // steps back off it, so the two don't end up inside each other
-    const need = ROOM * Math.max(1, spec.scale || 1);
+    // steps back off it to talking distance (more from a bigger foe: game/blocking.js roomFor), so the two don't end up
+    // inside each other
+    const a = makeActor(spec, at[0], at[1], 0), need = roomFor(sizeOf(a));
     if (Math.hypot(at[0] - pp.x, at[1] - pp.z) < need){
       const c = roomSpot(at[0], at[1], pp.y, Math.hypot(at[0] - pp.x, at[1] - pp.z) > 0.05 ? yawTo(at[0], at[1], pp.x, pp.z) : G.yaw + Math.PI, need);
-      if (c){ pp.x = c.x; pp.z = c.z; }
+      if (c){ pp.x = c.x; pp.z = c.z; pp.y = Math.max(pp.y, groundAt(c.x, c.z, pp.y + 1.5)); }
     }
     const away = Math.atan2(at[0] - pp.x, at[1] - pp.z);
     const from = findClearSpawn(at[0] + Math.sin(away) * 5, at[1] + Math.cos(away) * 5, 1.0);
-    actors.push(makeActor(spec, from.x, from.z, away + Math.PI));
+    a.g.position.set(from.x, groundAt(from.x, from.z, 3.2), from.z); a.g.rotation.y = away + Math.PI;
+    actors.push(a);
   }
   const ov = overShoulder(spec.quarry ? 1.8 : 1.3);
   if (!spec.quarry) ov.walk = [at[0], at[1], 2.4];
@@ -920,13 +942,14 @@ export function playDuelIntro(spec, share = true){
   // the hero squares up to it: a beat on their face, low, before the fight (unless they have a line of their own)
   const ready = rest.length ? [] : [shot('hero', [0.5, 2.9, 0.0], [0.38, 2.5, -0.05], 1.2, { on: 'hero', h: -0.12, eye: true }, { eye: true, fov: 40, mirror: true, kind: 'ready' })];
   const shots = [ov, ...(track ? [track] : []), ...close, ...heroLines(rest), ...ready, settle({ on: 'actor', h: 1.2 })];
-  return start({ key: 'duel:' + spec.mid, shots, actors, face: at, share: share ? { k: 'duel', spec } : null });
+  return start({ key: 'duel:' + spec.mid, shots, actors, face: at, share: share ? { k: 'duel', spec } : null, stage });
 }
 
 // the campaign's last boss arrives (game/flow.js): framed low and wide, his line, the voice's answer
-export function playBossIntro(share = true){
-  const b = boundActor('boss');
+export function playBossIntro(share = true, stage = null){
+  const b = canStart('boss:' + G.chapter) && boundActor('boss');
   if (!b) return false;
+  prepScene(stage);
   b.scale = 1.4;
   const own = G.chapter >= 0 && { mando: MANDO_BOSS, jedi: storyWords(JEDI_BOSS) }[storyHero()];
   const lines = (own || pick(BOSS)).slice(),   // (a story's own: data/campaign-mando.js, data/campaign-jedi.js)
@@ -935,13 +958,14 @@ export function playBossIntro(share = true){
                      { line: lines[0], title: { k: 'EXEGOL', h: name, p: epithet || '' }, mirror: true });
   const g = b.g.position;
   const shots = [overShoulder(1.8), first, ...heroLines(lines.slice(1)), settle({ on: 'actor', h: 1.8 })];
-  return start({ key: 'boss:' + G.chapter, shots, actors: [b], face: [g.x, g.z], share: share ? { k: 'boss' } : null });
+  return start({ key: 'boss:' + G.chapter, shots, actors: [b], face: [g.x, g.z], share: share ? { k: 'boss' } : null, stage });
 }
 
 // any other scene by id (data/cutscenes.js SCENES): opts.mark [x, z] for a 'mark' scene, opts.onDone, opts.key (once a visit)
 export function playScene(id, opts = {}){
   const d = SCENES[id];
-  if (!d) return false;
+  if (!d || !canStart(opts.key)) return false;
+  prepScene(opts.stage || null);   // (the hero on their feet, a guest on its mark beside the host)
   const lines = (opts.lines || pick(d) || []).slice(), actors = [];   // (opts.lines: a story's own words for the scene)
   let shots;
   if (d.shots === 'mark' && opts.mark){
@@ -951,7 +975,7 @@ export function playScene(id, opts = {}){
                           : [shot('mark', [0.6, 6, 2.2], [0.4, 5, 2.0], 2.4, { on: 'mark', h: 1.0 }), ...heroLines(lines), settle()];
   } else shots = [...heroLines(lines), settle()];
   return start({ key: opts.key, shots, actors, face: actors.length ? 'actor' : opts.mark, mark: opts.mark ? { x: opts.mark[0], z: opts.mark[1] } : null,
-                 onDone: opts.onDone, share: opts.share === false ? null : { k: 'scene', id, mark: opts.mark || null } });
+                 onDone: opts.onDone, share: opts.share === false ? null : { k: 'scene', id, mark: opts.mark || null }, stage: opts.stage || null });
 }
 
 /* ---------- skipping ---------- */
@@ -1010,9 +1034,12 @@ window.addEventListener('keyup', (e) => { if (e.key === 'Enter' || e.key === ' '
 on('csp', (m) => {
   if (net.role !== 'guest' || !m.s || C.on || G.cardUp || G.mode !== 'play') return;
   const s = m.s;
-  if (s.k === 'duel'){ playDuelIntro(s.spec, false); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
-  else if (s.k === 'boss') setTimeout(() => playBossIntro(false), 120);   // (the boss's puppet lands with the host's next snapshot)
-  else if (s.k === 'scene') playScene(s.id, { mark: s.mark, share: false });
+  // (st: where the host's hero stands and the speaker is, after the host gave them room: this guest takes its mark beside
+  // the host, and a foe breaking off stands where the host's copy of it does: game/blocking.js)
+  const st = m.st && Array.isArray(m.st.lead) && Array.isArray(m.st.at) ? m.st : null;
+  if (s.k === 'duel'){ playDuelIntro(s.spec, false, st); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
+  else if (s.k === 'boss') setTimeout(() => playBossIntro(false, st), 120);   // (the boss's puppet lands with the host's next snapshot)
+  else if (s.k === 'scene') playScene(s.id, { mark: st && s.mark && SCENES[s.id] && SCENES[s.id].actor ? st.at : s.mark, share: false, stage: st });
 });
 on('csk', (m) => { if (C.on && (!m.k || m.k === C.key)) finish(false); });
 const watching = new Set();   // the guests whose cutscene is playing

@@ -29,11 +29,13 @@ import { tutEvent } from '../../game/tutor-bus.js';
 import { pushGrenades } from '../../enemies/grenades.js';
 import { flowReady, queuePullStrike } from './palm.js';
 import { trainAbility } from '../../game/upgrades.js';
+import { floorCost, baseCost } from '../../data/force-level.js';
 
 /* trigger the off-hand reaching gesture used by every Force power */
 // a Jedi power's Force cost after the survival cost cuts (ATTUNEMENT, DEEP RESERVES, FORCE NEXUS) — the same
 // player.up.abilityCostMul the Mando's gadgets already read; before this the Jedi paid full price regardless
-const fcost = (base) => base * (player.up.abilityCostMul || 1);
+// ...and never below the cost floor: every cut together leaves at least half the base cost (data/force-level.js)
+const fcost = (raw, id) => floorCost(raw * (player.up.abilityCostMul || 1), baseCost(id));
 
 export function castGesture(kind, dur){ dur *= (stance().castMul || 1); player.castT = dur; player.castMax = dur; player.castKind = kind; }   // ATARU casts snap off faster
 // turn the Jedi to FACE the direction an ability is aimed — soft-snaps the yaw onto the nearest foe in
@@ -54,7 +56,7 @@ export function forcePush(){
   const st = stance();
   // PALM PUSH: thrown right on the back of a landed unarmed blow it costs less and hits the near foes hard (jedi/palm.js)
   const flow = flowReady(), FL = CFG.holster.flow;
-  const cost = fcost(A.cost * ((st.costMult && st.costMult.push) || 1) * (st.powerCostMul || 1)) * (flow ? FL.costMul : 1);
+  const cost = fcost(A.cost * ((st.costMult && st.costMult.push) || 1) * (st.powerCostMul || 1) * (flow ? FL.costMul : 1), 'push');
   if (!G.unlocked.push || player.cds.push > 0 || player.force < cost || G.mode !== 'play') return;
   if (player.atkT > 0) cancelSwing();   // flow straight out of a saber swing into the shove
   if (flow){ player.palmT = 0; player.palm = null; player.palmQueued = false; player.lastPalmHit = -9; floater(playerPos(), 'PALM PUSH', '#7fd4ff'); tutEvent('palmPush'); }
@@ -124,7 +126,7 @@ const SLAM_WIND = { air: 0.18, leap: 0.32 };   // wind-up before the plunge: fro
 export function forceSlam(){
   const A = abil('jslam');
   const st = stance();
-  const slamCost = fcost(A.cost * (st.powerCostMul || 1));
+  const slamCost = fcost(A.cost * (st.powerCostMul || 1), 'jslam');
   if (!G.unlocked.slam || G.mode !== 'play' || player.slamming || player.mantle || player.hang || player.saberLock || shared.saberProj || player.holstered) return false;
   if (player.cds.slam > 0 || player.force < slamCost){ sfx(220, 0.06, 'sine', 0.04, 160); return false; }   // a soft "not yet"
   if (player.landStagT > 0) player.landStagT = 0;   // the Force picks you up out of a buckled landing
@@ -254,7 +256,7 @@ export function stowHandSaber(away){
 }
 export function saberThrow(){
   const A = abil('throw');
-  const cost = fcost(A.cost);
+  const cost = fcost(A.cost, 'throw');
   if (!G.unlocked.throw || player.force < cost || shared.saberProj || G.mode !== 'play') return;
   // JAR'KAI throws one saber at a time: the left one first while the right fights on, then the right one too
   // (the left one still cooling down from its own throw: the right one goes instead)
@@ -350,7 +352,7 @@ export function forcePull(){
   const st = stance();
   // PULL-IN: thrown right on the back of a landed unarmed blow it costs less, and the next strike meets them (jedi/palm.js)
   const flow = flowReady();
-  const cost = fcost(A.cost * ((st.costMult && st.costMult.pull) || 1)) * (flow ? CFG.holster.flow.costMul : 1);
+  const cost = fcost(A.cost * ((st.costMult && st.costMult.pull) || 1) * (flow ? CFG.holster.flow.costMul : 1), 'pull');
   if (!G.unlocked.pull || player.cds.pull > 0 || player.force < cost || G.mode !== 'play') return;
   if (player.atkT > 0) cancelSwing();   // flow straight out of a saber swing into the pull
   if (flow) player.lastPalmHit = -9;
@@ -404,7 +406,7 @@ export function forcePull(){
 /* FORCE REPULSE — a 360° concussive blast that hurls everything around you away (high-tier) */
 export function forceRepulse(){
   const A = abil('repulse'), st = stance();
-  const cost = fcost(A.cost * (st.powerCostMul || 1));    // DJEM SO casts cost more...
+  const cost = fcost(A.cost * (st.powerCostMul || 1), 'repulse');    // DJEM SO casts cost more...
   if (!G.unlocked.repulse || player.cds.repulse > 0 || player.force < cost || G.mode !== 'play') return;
   const up = !!player.up.repulseUp;                        // the FINAL upgrade supercharges it
   const psc = st.powerScale || 1;                          // ...but erupt with BRUTE scale
@@ -469,7 +471,7 @@ export function barrierShove(power, knock){
 }
 export function forceBarrier(){
   const A = abil('barrier');
-  const cost = fcost(A.cost);
+  const cost = fcost(A.cost, 'barrier');
   if (!G.unlocked.barrier || player.cds.barrier > 0 || player.force < cost || G.mode !== 'play') return;
   // the cooldown only starts once the bubble drops, so uptime can never reach 100% (Ataru's −35% cooldown plus
   // mastery used to let a 4.5s, 80% bubble come back every 4.6s — permanent near-immunity)
@@ -498,7 +500,7 @@ export function forceBarrier(){
 const MEND_CHANNEL = 0.7;
 export function forceMend(){
   const A = abil('mend');
-  const cost = fcost(A.cost);
+  const cost = fcost(A.cost, 'mend');
   if (!G.unlocked.mend || player.cds.mend > 0 || player.mendT > 0 || player.force < cost || G.mode !== 'play') return;
   if (player.hp >= maxHp()){ floater(playerPos(), 'UNHURT', '#7bffae'); return; }   // don't waste it at full health
   player.force -= cost; player.cds.mend = A.cd * cdMul(stance(), 'mend'); trainAbility('mend');
@@ -527,7 +529,7 @@ export function mendComplete(){
 /* FORCE JUDGEMENT — channel chain lightning through the front cone */
 export function forceJudgement(){
   const A = abil('judge');
-  const cost = fcost(A.cost);
+  const cost = fcost(A.cost, 'judge');
   if (!G.unlocked.judge || player.cds.judge > 0 || player.force < cost || G.mode !== 'play' || player.judgeT > 0) return;
   player.force -= cost;
   faceAbilityAim(A.range);   // aim the storm at the nearest foe

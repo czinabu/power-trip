@@ -35,6 +35,7 @@ import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { pickCut } from '../player/jedi/cutaim.js';
 import { aimPoint, lastAim, dynamicCrosshair } from '../player/aim.js';
+import { floorCost, baseCost } from '../data/force-level.js';
 let gaugeFullAt = -9;   // when the crosshair-side gauge last stood below full (it hides once it's been full a moment)
 
 // give every power slot its icon once (key badge top-left, icon centre, name below)
@@ -106,7 +107,7 @@ function renderWaypoint(on){
 /* ABILITY COOLDOWNS — the slot shades over and counts down while a power recharges. The full length is learned from
    the moment the timer jumps up (so stance / upgrade cooldown multipliers are reflected without duplicating them). */
 const _cdPrev = {}, _cdMax = {};
-function cdSlot(id, key, cost){
+function cdSlot(id, key, cost, base){
   const el = $(id); if (!el || el.style.display === 'none') return;
   const left = player.cds[key] || 0, prev = _cdPrev[key] || 0;
   if (left > prev + 0.05) _cdMax[key] = left;
@@ -117,7 +118,7 @@ function cdSlot(id, key, cost){
   if (el._cdt) setText(el._cdt, left >= 1 ? String(Math.ceil(left)) : '');
   if (prev > 0 && left <= 0 && (_cdMax[key] || 0) >= 2){ el.classList.remove('ready'); void el.offsetWidth; el.classList.add('ready'); }   // just came off cooldown
   el.classList.toggle('cool', left > 0);
-  if (cost != null) el.classList.toggle('nofp', left <= 0 && player.force < cost * (player.up.abilityCostMul || 1));   // the price the cast actually charges
+  if (cost != null) el.classList.toggle('nofp', left <= 0 && player.force < (base ? floorCost(cost * (player.up.abilityCostMul || 1), base) : cost * (player.up.abilityCostMul || 1)));   // the price the cast actually charges (a Jedi power: never under the cost floor)
 }
 
 // MANDO weapon slots: 1 the sidearm · 2 the primary (the loadout: data/mando.js) · 3 the signature weapon (Disruptor or
@@ -375,7 +376,7 @@ export function updateHud(){
                 ['ab-pull','pull',abil('pull').cost],['ab-judge','judge',abil('judge').cost],
                 ['ab-repulse','repulse',abil('repulse').cost],['ab-barrier','barrier',abil('barrier').cost],
                 ['ab-mend','mend',abil('mend').cost]];
-  for (const [id, key, cost] of jediSlots) cdSlot(id, key, cost);
+  for (const [id, key, cost] of jediSlots) cdSlot(id, key, cost, baseCost(key));
   dashSlot();
 }
 

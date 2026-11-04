@@ -18,7 +18,7 @@ import { JEDI_BOSS, JEDI_DUELS, JEDI_CAST } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
 import { playerPos, stance, fwd, rightV } from '../player/helpers.js';
 import { animatePlayer } from '../player/animation.js';
-import { syncHolster, stowForScene, endSceneDraw } from '../player/holster.js';
+import { stowForScene, endSceneDraw, sceneStow, sceneRestore, bladeLit } from '../player/holster.js';
 import { syncOffSaber } from '../player/model/weapons.js';
 import { stowFoe, drawFoe, stepFoe, endFoe } from './duel-draw.js';
 import { namedForm } from '../enemies/foeform.js';
@@ -312,13 +312,15 @@ function start(opts){
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
   G.cutscene = true;
-  // a scene with people on set: the Jedi's blade goes back on the belt while they talk (and comes out again after)
-  C.unholster = false;
-  if (!opts.draw && opts.actors && opts.actors.some(a => a.kind) && !isGunner() && !player.holstered){ player.holstered = true; C.unholster = true; syncHolster(); }
-  // a duel's entrance: both duellists wait with their hilts on the belt; the foe draws at its last beat (the shot marked
-  // `draw`), the hero starts the fight with it still there, to light with 5 (player/holster.js stowForScene)
-  C.draw = !!opts.draw;
+  // THE BLADE IN A SCENE: never lit. Every scene opens with the hero's hilt on the belt and the blade out, and play gets
+  // back whatever it had when the scene ends (player/holster.js sceneStow / sceneRestore). A duel's entrance: both
+  // duellists wait with their hilts on the belt; the foe draws at its last beat (the shot marked `draw`), the hero starts
+  // the fight with it still there, to light with 5 (player/holster.js stowForScene). The one way to keep it lit is a
+  // scene that asks (opts.lit), and then the hero holds the fight's stance through it, not the at-ease stand
+  C.draw = !!opts.draw; C.blade = null; G.sceneLit = false;
   if (C.draw){ stowForScene(); for (const a of C.actors) if (a.drawForm !== undefined) stowFoe(a, a.drawForm); }
+  else if (opts.lit) G.sceneLit = bladeLit();
+  else C.blade = sceneStow();
   player.firing = false; player.trigHeld = false; player.blockHeld = false;
   stillHero(); calmHero(); showBolts(false);
   document.body.classList.add('cutscene');
@@ -339,7 +341,8 @@ function finish(skipped){
   if (C.draw){ for (const a of C.actors) endFoe(a); endSceneDraw(G.mode !== 'play'); C.draw = false; }   // (the hero's hilt stays on the belt for 5)
   dropActors();
   unblockScene();
-  if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
+  if (C.blade){ sceneRestore(C.blade, G.mode !== 'play'); C.blade = null; }   // (lit before with a fight on: drawn and lit again as play resumes)
+  G.sceneLit = false;
   C.on = false; C.onDone = null; C.one = null;
   G.cutscene = false;
   showBolts(true);
@@ -536,7 +539,7 @@ export function updateCutscene(){
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
-  if (C.draw) syncOffSaber(player, !isGunner());   // (Jar'Kai's second hilt off the belt with the first: the sim that keeps it in step stands still)
+  if (C.draw || C.blade) syncOffSaber(player, !isGunner());   // (Jar'Kai's second hilt off the belt with the first: the sim that keeps it in step stands still)
   if (C.one){ oneLens(s, dt, now); placeMark(); return; }
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
   const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;

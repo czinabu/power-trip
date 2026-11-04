@@ -1,17 +1,17 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // FORCE SOUND: every Force power is built from layers, all synthesized, on its own bus.
 //
-//   TELEKINETIC (push, pull, repulse)   a localized sonic boom, not a whoosh:
-//       1 the pressure snap    a compressed crack of air, the frame the power lands on (push and pull lead with a
-//                              bass thump instead, a kick's pitch drop with only a whisper of edge)
-//       2 the displacement     a 40-60 Hz sub drop: the weight that moves the room
-//       3 the vacuum rip       a jet of torn air through a flanger with heavy feedback; its sweep crashes DOWN for a
-//                              push and rises UP for a pull, so you hear which way the Force is flowing
-//   LIGHTNING (cast, each chain tick, the held channel)   unstable electrical tearing:
+//   TELEKINETIC (push, pull, repulse)   the films' recipe, all weighted low:
+//       1 the rush             torn air through a flanger with heavy feedback; its sweep falls for a push and rises
+//                              for a pull, so you hear which way the Force is flowing
+//       2 the hum              a deep, pitch-bent drone as the power takes hold, the Force itself
+//       3 the impact           a kick's pitch drop into the sub, a dull distorted crash, debris settling
+//   LIGHTNING (cast, each chain tick, the held channel)   electricity first:
 //       1 the ignition spark   a capacitor dump: a hard pop and a welder's knock
-//       2 the fry              a sizzle sitting up in 8-12 kHz
-//       3 the tear             detuned saws thrashed by a chaotic modulator
-//       all three run through a TREMOLO wobbling at an irregular 12-18 Hz, so the current stutters and flickers
+//       2 the crackle          a dense, uneven rain of tiny discharges with bigger snaps (makeCrackle), bright and low
+//       3 the arc's buzz       a raspy, driven 120 Hz tone, the sound of a live arc
+//       4 the fry              a sizzle up in 8-12 kHz; a quiet chaotic tear and a faint deep hum under it all
+//       all of it runs through a TREMOLO wobbling at an irregular 12-18 Hz, so the current stutters and flickers
 //   INTERNAL (Force Mend's channel and its bloom)   the camera pulls inward:
 //       1 the riser            a reversed-cymbal swell and a pad opening upward
 //       2 the harmony          a singing bowl ring and a soft choral hum, in a long bright reverb
@@ -54,6 +54,28 @@ function makeIR(secs, damp){
   return ir;
 }
 
+/* real electricity, as a sound: not hiss but a dense, uneven rain of discharges. Thousands of tiny clicks (each a
+   few samples of noise dying in under 2 ms), bunched into stuttering clusters, with bigger snaps among them. Played
+   looped like the noise buffers (AE.noise.crackle), through filters, it is the crackle every lightning layer leads with. */
+function makeCrackle(){
+  const sr = ac().sampleRate, n = sr * 2, buf = ac().createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let i = 0;
+  while (i < n){
+    const burst = Math.random() < 0.3;                         // a cluster of discharges, then a ragged gap
+    const len = Math.floor(sr * (burst ? rand(0.01, 0.05) : rand(0.002, 0.012)));
+    const rate = burst ? rand(2500, 6000) : rand(150, 600);    // clicks per second inside it
+    for (let j = 0; j < len && i + j < n; j += Math.max(1, Math.floor(sr / rate * rand(0.3, 1.7)))){
+      const big = Math.random() < 0.04, amp = (big ? 1 : rand(0.1, 0.55)) * (Math.random() < 0.5 ? -1 : 1);
+      const dec = Math.floor(sr * (big ? rand(0.002, 0.005) : rand(0.0002, 0.0015)));
+      for (let k = 0; k < dec && i + j + k < n; k++) d[i + j + k] += amp * (Math.random() * 2 - 1) * Math.exp(-5 * k / dec);
+    }
+    i += len + Math.floor(sr * (burst ? rand(0.002, 0.02) : rand(0.0005, 0.004)));
+  }
+  let mx = 0; for (let k = 0; k < n; k++) mx = Math.max(mx, Math.abs(d[k]));
+  for (let k = 0; k < n; k++) d[k] = clamp(d[k] / (mx || 1) * 1.6, -1, 1);
+  return buf;
+}
+
 /* an amplitude wobble at an irregular 12-18 Hz: two LFOs a little apart, their rates themselves dragged around by a
    slow third, summed onto a gain (lightning stutters instead of buzzing evenly) */
 function tremolo(A, to, base){
@@ -81,6 +103,7 @@ function ensureBus(){
   AE.bus.zap = AE.bus.zapN = tremolo(A, F.out, 0.62);
   AE.send.zap = AE.send.force; AE.send.zapN = AE.send.forceN;
   AE.bus.zapW = tremolo(A, AE.bus.sfx, 0.62);   // a foe's lightning out in the world: the same stutter, muffled with the world
+  AE.noise.crackle = makeCrackle();
   F.ready = true;
   F.hero = zapLoop(AE.bus.zap, AE.send.force, AE.send.forceN);
   F.foe = zapLoop(AE.bus.zapW, AE.roomIn, AE.roomIn);
@@ -100,7 +123,7 @@ function V(o, kind = 'force', self = !o.pos){
 }
 const VN = (o, kind, self) => V(Object.assign({ src: 'noise' }, o), kind, self);
 
-/* LAYER 3 of a telekinetic power: the vacuum rip. Torn air (noise through a sweeping band) run into a flanger with heavy
+/* LAYER 1 of a telekinetic power: the rush. Torn air (noise through a sweeping band) run into a flanger with heavy
    feedback, whose delay sweeps with it: shortening (the comb rises) for a pull, lengthening (it crashes down) for a push. */
 function rip({ pos, self = !pos, at = 0, g, a, dur, f, f2, d0, d1, fb = 0.74, q = 0.8, color = 'pink', verb = 0.3, pan = 0 }){
   if (!ensureBus() || ac().state !== 'running' || AE.live >= 56) return;
@@ -138,53 +161,54 @@ function bowl(f, { pos, at = 0, g = 0.05, a = 0.006, d = 2, verb = 0.55 } = {}){
   });
 }
 
-/* LAYER 1 of a telekinetic power: the pressure snap, a heavily compressed crack of air (s scales it) */
-function snap(pos, s, self){
-  VN({ pos, g: 0.24 * s, a: 0.0008, d: 0.028, filt: { type: 'highpass', f: 1500 }, drive: 0.9, pri: 2, jit: 0.1 }, 'force', self);
-  V({ pos, type: 'sine', f: 2600, f2: 240, ft: 0.016, g: 0.1 * s, a: 0.0005, d: 0.026 }, 'force', self);
-  VN({ pos, color: 'brown', g: 0.3 * s, a: 0.001, d: 0.085, filt: { type: 'lowpass', f: 1100, f2: 180 }, drive: 0.55 }, 'force', self);   // the air-cannon's bark
+/* THE FILMS' RECIPE for a telekinetic power (as Star Wars sound breakdowns describe it): a whoosh of air first, then a
+   deep hum as the power takes hold, then the crash of the impact, all of it weighted low.
+   rush: torn air through the flanger (falling for a push, rising for a pull); hum: a deep, pitch-bent drone, the Force
+   itself; impact: a kick's pitch drop into the sub with a dull, distorted crash on top. */
+function hum(pos, self, { at = 0, g = 0.2, a = 0.05, hold = 0.1, d = 0.4, f = 55, f2 = 46 } = {}){
+  V({ pos, at, type: 'sawtooth', f, f2, g: g * 0.5, a, hold, d, filt: { type: 'lowpass', f: 320, f2: 160 }, vib: { r: 5.5, d: 14 }, drive: 0.25, verb: 0.2 }, 'force', self);
+  V({ pos, at, type: 'sawtooth', f: f * 1.005, f2: f2 * 1.005, det: 7, g: g * 0.35, a, hold, d, filt: { type: 'lowpass', f: 300, f2: 150 } }, 'force', self);
+  V({ pos, at, type: 'sine', f: f / 2, f2: f2 / 2, g, a, hold, d: d * 1.2, pri: 2 }, 'force', self);           // its sub-octave, felt more than heard
 }
-
-/* the bass thump push and pull lead with: a kick's fast pitch drop into the 40-60 Hz sub, a dull knock of air on top
-   (no bright crack: the weight is the impact). s scales it. */
-function thump(pos, s, self, at = 0){
-  V({ pos, at, type: 'sine', f: 150, f2: 46, ft: 0.07, g: 0.27 * s, a: 0.003, d: 0.2, pri: 2, jit: 0.02 }, 'force', self);
-  VN({ pos, at, color: 'brown', g: 0.22 * s, a: 0.002, d: 0.1, filt: { type: 'lowpass', f: 420, f2: 120 }, drive: 0.3 }, 'force', self);
-  VN({ pos, at, g: 0.025 * s, a: 0.001, d: 0.02, filt: { type: 'lowpass', f: 2200 } }, 'force', self);   // only a whisper of edge
+function impact(pos, s, self, at = 0){
+  V({ pos, at, type: 'sine', f: 140, f2: 42, ft: 0.08, g: 0.27 * s, a: 0.003, d: 0.24, pri: 2, jit: 0.02 }, 'force', self);
+  VN({ pos, at, color: 'brown', g: 0.26 * s, a: 0.002, d: 0.32 * s, filt: { type: 'lowpass', f: 1100, f2: 120 }, drive: 0.5, verb: 0.3 }, 'force', self);   // the crash
+  VN({ pos, at, g: 0.025 * s, a: 0.001, d: 0.03, filt: { type: 'lowpass', f: 2400 } }, 'force', self);
+  for (let i = 0; i < 3; i++) VN({ pos, at: at + rand(0.04, 0.2), color: 'brown', g: 0.05 * s, d: 0.05, filt: { type: 'bandpass', f: rand(300, 700), q: 2 }, pri: 0 }, 'force', self);   // what it hit, settling
 }
 
 /* ---------- telekinetic ---------- */
 
+const HIT = 0.13;   // when the impact lands after the rush starts (short, so the shove still feels instant)
 export function push(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  thump(pos, 1, self);
-  V({ pos, type: 'sine', f: 58, f2: 34, g: 0.32, a: 0.008, hold: 0.06, d: 0.65, pri: 2 }, 'force', self);       // the sub drop, held so it rattles
-  V({ pos, type: 'triangle', f: 88, f2: 40, g: 0.12, a: 0.006, d: 0.38, filt: { type: 'lowpass', f: 220 } }, 'force', self);
-  rip({ pos, at: 0.02, g: 0.13, a: 0.03, dur: 0.42, f: 1400, f2: 180, d0: 0.0016, d1: 0.011, q: 0.7, color: 'brown', verb: 0.25 });   // a deep rush, crashing down
-  if (self) duck(0.25, 0.1);
+  rip({ pos, g: 0.17, a: 0.07, dur: HIT + 0.2, f: 1600, f2: 200, d0: 0.0016, d1: 0.011, q: 0.7, color: 'pink', verb: 0.3 });   // the rush, falling away from you
+  hum(pos, self, { at: 0.04, g: 0.2, a: 0.06, hold: 0.08, d: 0.45, f: 58, f2: 44 });
+  impact(pos, 1, self, HIT);
+  if (self) duck(0.25, 0.12);
 }
 
-// the pull: the air drawn IN — the sub swelling up as the target is dragged toward you, the rush rising, a thump as it lands
+// the pull: the rush rising as the air is drawn in, the hum swelling as the target is dragged, the impact as it lands
 export function pull(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  V({ pos, type: 'sine', f: 34, f2: 58, g: 0.27, a: 0.2, d: 0.14, pri: 2 }, 'force', self);
-  rip({ pos, g: 0.12, a: 0.2, dur: 0.3, f: 180, f2: 1300, d0: 0.011, d1: 0.0016, q: 0.7, color: 'brown', verb: 0.25 });   // rising
-  thump(pos, 0.85, self, 0.2);
-  V({ pos, at: 0.2, type: 'sine', f: 56, f2: 36, g: 0.2, a: 0.006, d: 0.4 }, 'force', self);
+  rip({ pos, g: 0.16, a: 0.18, dur: 0.26, f: 200, f2: 1600, d0: 0.011, d1: 0.0016, q: 0.7, color: 'pink', verb: 0.3 });   // rising toward you
+  hum(pos, self, { at: 0.02, g: 0.2, a: 0.16, hold: 0.04, d: 0.35, f: 44, f2: 58 });
+  impact(pos, 0.85, self, 0.22);
 }
 
-// the repulse: the push gone round all of you at once — a harder snap, a deeper and longer drop, a rip in each ear
+// the repulse: the same recipe round all of you at once — a rush in each ear, a deeper and longer hum, a much bigger crash
 export function repulse(pos, big){
   if (!ensureBus()) return;
   const self = !pos, s = big ? 1.2 : 1;
-  snap(pos, 1.25 * s, self);
-  V({ pos, type: 'sine', f: 56, f2: 27, g: 0.4 * s, a: 0.006, d: 0.9 * s, pri: 2 }, 'force', self);
-  VN({ pos, color: 'brown', g: 0.3 * s, a: 0.004, d: 0.75 * s, filt: { type: 'lowpass', f: 1900, f2: 90 }, drive: 0.45, verb: 0.3 }, 'force', self);   // the pressure wave rolling out
-  for (const [pan, d1] of [[-0.75, 0.0095], [0.75, 0.0072], [0, 0.0085]])
-    rip({ pos, pan: pos ? 0 : pan, at: 0.01, g: 0.17 * s, a: 0.016, dur: 0.6 * s, f: 3000, f2: 220, d0: 0.0012, d1, verb: 0.4 });
-  if (self) duck(0.4, 0.15);
+  for (const [pan, d1] of [[-0.75, 0.0105], [0.75, 0.008], [0, 0.0095]])
+    rip({ pos, pan: pos ? 0 : pan, g: 0.13 * s, a: 0.08, dur: 0.5 * s, f: 1800, f2: 160, d0: 0.0014, d1, color: 'pink', verb: 0.4 });
+  hum(pos, self, { at: 0.04, g: 0.24 * s, a: 0.06, hold: 0.12, d: 0.7 * s, f: 52, f2: 38 });
+  impact(pos, 1.3 * s, self, HIT + 0.02);
+  V({ pos, at: HIT + 0.02, type: 'sine', f: 56, f2: 27, g: 0.34 * s, a: 0.006, d: 0.9 * s, pri: 2 }, 'force', self);
+  VN({ pos, at: HIT + 0.02, color: 'brown', g: 0.28 * s, a: 0.004, d: 0.8 * s, filt: { type: 'lowpass', f: 1600, f2: 80 }, drive: 0.5, verb: 0.35 }, 'force', self);   // the blast rolling out
+  if (self) duck(0.4, 0.2);
 }
 
 // the barrier snapping up: the shove's crack, then the bubble itself rings like a struck bowl over a low shimmering hum
@@ -215,19 +239,35 @@ function tear(pos, s, dur, self){
         filt: { type: 'lowpass', f: 2800, f2: 900 }, drive: 0.5 }, 'zap', self);
 }
 
-// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): spark, fry, tear
+/* LIGHTNING, built as electricity first: the crackle (the discharge buffer, bright and dense) and the arc's buzz
+   (a raspy, driven 120 Hz mains-like tone, the sound a live arc makes), the films' deep hum kept only faintly under it. */
+function crackle(pos, s, dur, self, at = 0){
+  VN({ pos, at, color: 'crackle', g: 0.32 * s, a: 0.002, d: dur, filt: { type: 'highpass', f: 1400 }, drive: 0.35, verb: 0.15, jit: 0.15 }, 'zap', self);
+  VN({ pos, at, color: 'crackle', rate: 0.55, g: 0.16 * s, a: 0.002, d: dur * 0.8, filt: { type: 'bandpass', f: 900, q: 0.7 }, drive: 0.5, jit: 0.2 }, 'zap', self);   // its lower, heavier snaps
+}
+function buzz(pos, s, dur, self, at = 0){
+  for (const [f, fq] of [[120, 2300], [180.6, 3400]])
+    V({ pos, at, type: 'sawtooth', f, g: 0.05 * s, a: 0.003, d: dur, vib: { r: 47, d: 90 }, drive: 0.75, filt: { type: 'bandpass', f: fq, q: 0.9 } }, 'zap', self);
+}
+function zapHum(pos, s, dur, self, at = 0){
+  V({ pos, at, type: 'sine', f: 49, f2: 44, g: 0.06 * s, a: 0.03, d: dur }, 'zap', self);
+}
+
+// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): the spark, a burst of
+// crackle and the arc's buzz, the fry over it, a faint deep hum under it
 export function zap(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  spark(pos, 1, self); fry(pos, 1, 0.34, self, 0.005); tear(pos, 1, 0.3, self);
+  spark(pos, 1.1, self); crackle(pos, 1, 0.42, self); buzz(pos, 1, 0.34, self); fry(pos, 0.8, 0.36, self, 0.005);
+  tear(pos, 0.3, 0.2, self); zapHum(pos, 1, 0.45, self);
 }
 // one chained strike landing on a foe (Judgement's ticks): self = the hero's own (placed at the foe, but on the Force bus)
 export function arc(pos, self){
   if (!ensureBus()) return;
-  spark(pos, 0.55, self); fry(pos, 0.6, 0.08, self); tear(pos, 0.5, 0.09, self);
+  spark(pos, 0.7, self); crackle(pos, 0.6, 0.1, self); buzz(pos, 0.5, 0.08, self);
 }
 
-/* the held channel: a tear and a fry that run as long as lightning pours out (the hero's Judgement, the boss's
+/* the held channel: the crackle, the arc's buzz and a fry that run as long as lightning pours out (the hero's Judgement, the boss's
    lightning, a co-op partner's). Steered by updateForce. */
 function zapLoop(dest, send, sendN){
   const A = ac(), t = now();
@@ -245,12 +285,29 @@ function zapLoop(dest, send, sendN){
   mod.connect(mg);
   const oscs = [mod, w1, w2];
   for (const f of [58, 86.5]){ const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; mg.connect(o.frequency); o.connect(tf); oscs.push(o); }
+  // the crackle: the discharge buffer, looped, bright
+  const ck = A.createBufferSource(); ck.buffer = AE.noise.crackle; ck.loop = true;
+  const cf = A.createBiquadFilter(); cf.type = 'highpass'; cf.frequency.value = 1300;
+  const cg = A.createGain(); cg.gain.value = 2.2; ck.connect(cf); cf.connect(cg); cg.connect(lvl);
+  const ck2 = A.createBufferSource(); ck2.buffer = AE.noise.crackle; ck2.loop = true; ck2.playbackRate.value = 0.6;   // its heavier snaps
+  const cf2 = A.createBiquadFilter(); cf2.type = 'bandpass'; cf2.frequency.value = 850; cf2.Q.value = 0.7;
+  const cg2 = A.createGain(); cg2.gain.value = 1.1; ck2.connect(cf2); cf2.connect(cg2); cg2.connect(lvl);
+  // the arc's buzz: raspy, driven 120 Hz, wavering
+  const shp = A.createWaveShaper(), cv = new Float32Array(512);
+  for (let i = 0; i < 512; i++){ const x = i / 511 * 2 - 1; cv[i] = Math.tanh(5 * x) / Math.tanh(5); }
+  shp.curve = cv; const bfl = A.createBiquadFilter(); bfl.type = 'bandpass'; bfl.frequency.value = 2400; bfl.Q.value = 0.8;
+  const rg = A.createGain(); rg.gain.value = 0.22; shp.connect(bfl); bfl.connect(rg); rg.connect(lvl);
+  const wv = A.createOscillator(), wg = A.createGain(); wv.frequency.value = 47; wg.gain.value = 6; wv.connect(wg); oscs.push(wv);
+  for (const f of [120, 180.6]){ const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; wg.connect(o.frequency); o.connect(shp); oscs.push(o); }
+  // a faint deep hum under it
+  const hs = A.createOscillator(), hg = A.createGain(); hs.frequency.value = 46; hg.gain.value = 0.35; hs.connect(hg); hg.connect(lvl); oscs.push(hs);
+  tg.gain.value = 0.25;   // (the tear stays, quieter, under the crackle)
   // the fry: hiss up in 8-12 kHz
   const nz = A.createBufferSource(); nz.buffer = AE.noise.white; nz.loop = true;
   const nf = A.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 9800; nf.Q.value = 0.8;
   const ng = A.createGain(); ng.gain.value = 0.9; nz.connect(nf); nf.connect(ng); ng.connect(lvl);
   for (const o of oscs) o.start(t);
-  nz.start(t);
+  nz.start(t); ck.start(t, rand(0, 1.5)); ck2.start(t, rand(0, 1.5));
   let on = false;
   return {
     set(level, p, hz, nim){
@@ -308,7 +365,7 @@ export function updateForce(dt){
   const playing = G.mode === 'play' && !G.paused && !G.skillSelect;
   // the hero's Judgement, held: louder in Niman, a little brighter with the crackle thrown over it
   const heroOn = playing && !isGunner() && player.judgeT > 0, nim = niman();
-  F.hero.set(heroOn ? 0.075 * (nim ? NIMAN_FORCE.g : 1) : 0, 0, 0, nim);
+  F.hero.set(heroOn ? 0.09 * (nim ? NIMAN_FORCE.g : 1) : 0, 0, 0, nim);
   // the nearest foe's lightning: the boss's beam, or the partner's
   let at = null;
   if (playing && shared.bossLight && shared.bossLight.visible && shared.boss) at = shared.boss.group.position;

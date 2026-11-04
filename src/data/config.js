@@ -93,7 +93,8 @@ export const CFG = {
     // FORCE GRASP — hold the Pull key: after `hold` seconds the foe in your aim locks into your grasp. DARK LORD'S GRIP
     // (store) holds up to `multi` at once, picked in a wider `multiAngle` cone; each extra body adds multiCost to cost and drain
     grasp:  { hold: 0.35, multi: 3, multiAngle: 0.75, multiCost: 0.5, cost: 26, drain: 18, maxT: 5, dist: 4.2, range: 16, angle: 0.5,
-              throwSpeed: 30, throwDmg: 18, yankDmg: 4, bumpDmg: 8, bumpKnock: 20, bumpSpeed: 4.5 },
+              throwSpeed: 30, throwDmg: 18, yankDmg: 4, bumpDmg: 8, bumpKnock: 20, bumpSpeed: 4.5,
+              shieldMul: 1.25, shieldMin: 9, shieldPad: 0.3 },   // HUMAN SHIELD (enemies/bolts.js): what a hostile bolt that meets a held body does to it, and how far past its hitbox a limp body still catches one
     // the late ULTIMATES are deliberately TAXING — big Force cost + long cooldown so they're a deliberate beat, never spam
     judge:  { cost: 72, cd: 12.0, range: 14, angle: 0.9, targets: 4, time: 1.3, tick: 0.12, dmg: 7 },  // chain lightning channel
     repulse:{ cost: 82, cd: 11.0, radius: 13, dmg: 30, knock: 18 },   // FORCE REPULSE — a 360° concussive blast

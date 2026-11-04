@@ -100,7 +100,11 @@ on('s', (m) => {
   if (m.hero !== P.hero) dress(P, m.hero);
   addPlayer(mate);
   if (!P.playing) puppet.group.position.set(m.x, m.y, m.z);   // first sight, or back from the menu: snap
-  want.pos.set(m.x, m.y, m.z); want.yaw = m.yaw; want.ap = +m.ap || 0;
+  // (held on a cutscene mark: what they send from before they got there doesn't drag them back across the set)
+  const held = P.hold && performance.now() < P.hold.until && Math.hypot(m.x - P.hold.x, m.z - P.hold.z) > 0.6;
+  if (P.hold && !held) P.hold = null;
+  if (!held){ want.pos.set(m.x, m.y, m.z); want.yaw = m.yaw; }
+  want.ap = +m.ap || 0;
   mate.vel.set(m.vx || 0, 0, m.vz || 0);
   mate.down = !!m.down;
   P.dn = m.dn || null;   // down and waiting to be got up: [progress %, seconds left, someone is at it]
@@ -246,5 +250,17 @@ export function partnerSpot(slot){
   for (const P of partners.values()){ const s = spot(P); if (s && s.down) return s; if (s && !any) any = s; }
   return any;
 }
+/* A CUTSCENE'S MARKS (game/blocking.js): a partner shown standing on their mark the moment a scene starts, before their
+   own screen has put them there and said so (a second or so at most), so nobody slides into place in the first shot */
+export function holdPartner(slot, x, y, z, yaw){
+  const P = partners.get(slot);
+  if (!P || !P.mate.here || P.mate.down) return;
+  P.hold = { x, z, until: performance.now() + 2500 };
+  P.want.pos.set(x, y, z); P.want.yaw = yaw;
+  P.puppet.group.position.set(x, y, z); P.puppet.group.rotation.y = yaw;
+}
+export function releasePartners(){ for (const P of partners.values()) P.hold = null; }
+// the partners standing in this fight on this screen: { slot, pos } (down ones stay where they fell)
+export const partnerStand = () => [...partners.values()].filter(P => P.mate.here && !P.mate.down).map(P => ({ slot: P.slot, pos: P.puppet.group.position }));
 export function dropPartner(P){ P.puppet.group.visible = false; P.playing = false; P.mate.here = false; P.dn = null; if (P.tag) P.tag.style.display = 'none'; downMarks(P, false); }
 on('status', (n) => { if (n.status !== 'connected'){ for (const P of partners.values()){ dropPartner(P); removePlayer(P.mate); } forgetAll(); } });

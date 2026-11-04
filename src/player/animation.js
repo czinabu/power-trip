@@ -13,9 +13,12 @@ import { MANDO, MANDO_WEAPONS } from '../data/mando.js';
 import { gunLook } from '../data/trooper.js';
 import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
-import { stance, maxStam, heldGrip } from './helpers.js';
+import { stance, maxStam, heldGrip, playerPos, fwd } from './helpers.js';
+import { footDust } from '../fx/footdust.js';
 import { tryAttack, applySwingDamage, applyOffBladeHit, FLOW } from './jedi/combat.js';
 import { swingStep } from './jedi/weight.js';
+import { SWING_WEIGHT } from '../data/swing-weight.js';
+const HL = SWING_WEIGHT.look;
 import { finisherNext } from './jedi/finisher.js';
 import { assistFace } from './jedi/saberassist.js';
 import { inCombat } from './mobility.js';
@@ -412,14 +415,20 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     // a cut that flows out of the last one starts from that one's body turn, hop and drop and eases out of them by
     // its chamber, so a linked string never snaps back to square between strokes
     if (!sw.body) sw.body = { ry: Math.atan2(Math.sin(vis.rotation.y), Math.cos(vis.rotation.y)), py: vis.position.y, drop: player._swingDrop || 0 };
+    const hk = sw.heavy ? 1 : sw.weigh === 'pending' ? (sw.drawK || 0) : 0, HA = sw.anim;
+    const hw = !hk || !HA ? 0 : cue.k < HA.wind ? cue.k / HA.wind : cue.k < HA.ts ? 1 - (cue.k - HA.wind) / (HA.ts - HA.wind) : 0;
+    const heavyE = hk * easeInOut(clamp(hw, 0, 1));   // how wound up a heavy is right now (0 once it strikes)
     const tc = (sw.anim && sw.anim.tc) || 0.25, inB = cue.k < tc ? 1 - easeInOut(cue.k / tc) : 0;
     // captured (anim/mocap.js): the hips lead the cut and the shoulders whip through after them
     const MC = MOCAP_ON && sw.anim && !cue.spin ? mocapCut(cue.k, sw.anim.tc, sw.anim.ts, sw.anim.tf) : null;
     if (!player.flip){
       if (cue.spin) vis.rotation.y = easeInOut(cue.cut) * Math.PI * 2 * cue.spin * -(cue.side || 1);
-      else vis.rotation.y = MC ? MC.turn * st.twist * turn * 0.75 : cue.env * st.twist * turn * 0.55;
+      else vis.rotation.y = (MC ? MC.turn * st.twist * turn * 0.75 : cue.env * st.twist * turn * 0.55) * (sw.heavy ? HL.turn : 1);   // (a heavy turns through harder)
       if (cue.hop) vis.position.y = Math.sin(Math.PI * cue.k) * cue.hop;
       vis.rotation.y += sw.body.ry * inB;
+      // HEAVY (jedi/weight.js): drawn back, the body winds away from the cut and sinks onto the back leg; the wind-up
+      // lets go through the stroke (data/swing-weight.js look)
+      if (heavyE > 0 && !cue.spin) vis.rotation.y -= (turn || 1) * HL.coil * heavyE;
       vis.position.y += sw.body.py * inB;
       // (the rig is mirrored: a cut to the right is a CLOCKWISE turn seen from above, which is a negative yaw)
       // SPIN-IN (data/poses.js SWING_SPINS): whole turns laid over the cut that settle square as the blade reaches the strike.
@@ -435,7 +444,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     const coil = (cue.coil || 0) + (sw.drawK || 0) * (cue.k < ((sw.anim && sw.anim.ts) || 0.4) ? 0.7 : 0), drive = (cue.drive || 0) * (sw.heavy ? 1.3 : 1);   // a drawn heavy loads deeper and drives harder
     R.torso.position.z = dr(R.torso.position.z, (drive * 0.17 - coil * 0.06) * (sw.riposte ? 1.5 : 1), 30);
     R.torso.rotation.x = dr(R.torso.rotation.x, drive * 0.1 - coil * 0.05, 24);
-    if (!player.flip && !cue.hop && player.grounded) vis.position.y = dr(vis.position.y, -0.07 * drive, 26);
+    if (!player.flip && !cue.hop && player.grounded) vis.position.y = dr(vis.position.y, -0.07 * drive - HL.sink * heavyE, 26);
     R.torso.rotation.y = dr(R.torso.rotation.y, MC ? MC.chest * 0.22 * (turn || 1) : 0, MC ? 30 : 12);
     vis.rotation.x = dr(vis.rotation.x, saberPose.lean, 14);
     player._swingDrop = cue.drop * cue.env + sw.body.drop * inB;
@@ -455,6 +464,10 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
         const offT = sweepOffBlade(sw, saberPose.offLive && !spun && !sw.noHit);
         if (offT && offT.length){ applyOffBladeHit(offT); sw.bite = Math.max(sw.bite || 0, BITE.time * 0.6); }
       }
+    }
+    if (!sw.applied && cue.k > 0.35 && sw.heavy && player.grounded){   // a heavy's front foot stamps down: a scuff of dust
+      const pp = playerPos(), f = fwd(), at = V3(pp.x + f.x * 0.35, pp.y, pp.z + f.z * 0.35);
+      for (let i = 0; i < 3; i++) footDust(at, 7, 0.8);
     }
     if (!sw.applied && cue.k > 0.35){ sw.applied = true; applySwingDamage(sw.step, held || sw.cutSet || sw.noHit ? [] : undefined); }   // (noHit: the aerial cut struck on contact, jedi/aerial.js)
     // IN-RHYTHM LINK (Jedi): one well-timed press this swing → the next cut leaves from the follow-through

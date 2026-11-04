@@ -15,6 +15,11 @@ export const SWING_WEIGHT = {
   drawAt: 0.85,   // how far into its chamber a held cut waits (fraction of the chamber)
   light: { speed: 1.08, dmg: 0.88, knock: 0.9, posture: 0.85 },
   heavy: { speed: 0.82, dmg: 1.45, knock: 1.35, posture: 1.6, stam: 0.6, hitstop: 0.06, shake: 0.35 },
+  // how a heavy LOOKS (player/anim/saber.js, player/animation.js): the extra draw past the chamber (of the chamber-to-
+  // strike gap) and lift (m), how far the tip lays back, how far the blade carries past the follow-through, the
+  // shoulders' extra drop; the body's counter-turn away from the cut while drawn (rad), its sink (m), how much harder
+  // it turns through the strike, and how much further the cut's step drives in
+  look: { draw: 0.32, lift: 0.08, lay: 0.35, carry: 0.32, drop: 0.05, coil: 0.38, sink: 0.07, turn: 1.35, step: 1.3 },
   forms: {
     // the strong forms were made for the heavy blow
     djemso:    { heavy: { dmg: 1.55, posture: 1.8 } },

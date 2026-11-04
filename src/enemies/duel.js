@@ -31,6 +31,7 @@ import { foeBlade } from '../player/jedi/clash.js';
 import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
 import { ringOpacity, bladeCue } from './guardcue.js';
 import { cutMul } from '../player/jedi/weight.js';
+import { forceCostMul } from '../data/force-level.js';
 // a light cut strains a guard a little less, a heavy one far more (player/jedi/weight.js); other blows keep their own
 const weighed = kind => kind === 'cut' || kind === 'finisher' ? cutMul(player.swing, 'posture') : 1;
 
@@ -990,8 +991,9 @@ export function lockKick(){
 // F in a lock: a Force shove at point-blank range
 export function lockPush(){
   if (!LOCK.foe || isGunner()) return false;
-  if (player.force < DUEL.lock.pushCost) return false;
-  player.force -= DUEL.lock.pushCost;
+  const pushCost = DUEL.lock.pushCost * forceCostMul('push');   // a Force push's cost, falling with the Force Level as a push's does
+  if (player.force < pushCost) return false;
+  player.force -= pushCost;
   player.castT = player.castMax = 0.3; player.castKind = 'push';
   S.push();
   // thrown exactly as hard as a Force push at this range throws it (player/jedi/force.js pushKnock): same knock, same

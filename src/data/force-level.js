@@ -16,33 +16,43 @@ import { STANCES } from './stances.js';
 export const FORCE_MAX = 10;
 // each level and the chapter whose close brings it, with the same gates the unlocks it comes with use (data/store.js):
 // `chapter` for the story, `level`/`wave` for the old level-by-level run, `stage` (waveTotal) for survival and a mission's kit
-export const FORCE_LEVELS = [
+export const FORCE_LEVELS = [   // (`stage` keeps pace with the store, data/store.js: survival and a mission reach a power's level as it opens)
   { lv: 2,  chapter: 'siege',         level: 0, wave: 2, stage: 1 },    // Force Pull
   { lv: 3,  chapter: 'archive',       level: 0, wave: 3, stage: 2 },    // Makashi, Force Jump I
-  { lv: 4,  chapter: 'trial-first',   level: 1, wave: 0, stage: 3 },    // Soresu, Saber Throw or Barrier
-  { lv: 5,  chapter: 'trial-acrobat', level: 1, wave: 1, stage: 5 },    // Ataru, Jump Attack or Mend
-  { lv: 6,  chapter: 'trial-knight',  level: 1, wave: 2, stage: 6 },    // Djem So, Force Jump II
-  { lv: 7,  chapter: 'jakku',         level: 1, wave: 2, stage: 7 },    // Shien
-  { lv: 8,  chapter: 'mustafar',      level: 1, wave: 3, stage: 8 },    // Niman, Judgement or Repulse
-  { lv: 9,  chapter: 'chase',         level: 2, wave: 0, stage: 9 },    // Form VII, Dark Lord's Grip
-  { lv: 10, chapter: 'spearhead',     level: 2, wave: 1, stage: 10 },   // Storm of Judgement or Force Nova
+  { lv: 4,  chapter: 'trial-first',   level: 1, wave: 0, stage: 2 },    // Soresu, Saber Throw or Barrier
+  { lv: 5,  chapter: 'trial-acrobat', level: 1, wave: 1, stage: 4 },    // Ataru, Jump Attack or Mend
+  { lv: 6,  chapter: 'trial-knight',  level: 1, wave: 2, stage: 5 },    // Djem So, Force Jump II
+  { lv: 7,  chapter: 'jakku',         level: 1, wave: 2, stage: 5 },    // Shien
+  { lv: 8,  chapter: 'mustafar',      level: 1, wave: 3, stage: 6 },    // Niman, Judgement or Repulse
+  { lv: 9,  chapter: 'chase',         level: 2, wave: 0, stage: 7 },    // Form VII, Dark Lord's Grip
+  { lv: 10, chapter: 'spearhead',     level: 2, wave: 1, stage: 8 },    // Storm of Judgement or Force Nova
 ];
 
 /* POWER GROWTH — per level held above the power's `arrive` level (the level its chapter brings), times the form's share.
    `mul`: +rate of the field per step · `add`: +rate per step (capped by `cap`). Keyed by data/mastery.js id, plus
-   'grasp' (CFG.abilities.grasp, read in player/jedi/grasp.js). Costs and cooldowns never scale. Force Jump and Dash
-   don't either: the maps' perches are built to their heights. */
+   'grasp' (CFG.abilities.grasp, read in player/jedi/grasp.js, Dark Lord's Grip with it) and 'palm' (the holstered Force
+   strikes, CFG.holster, player/jedi/palm.js). Storm of Judgement and Force Nova ride on Judgement's and Repulse's growth.
+   Every power's Force COST falls with the same steps too (forceCostMul, below). Cooldowns never scale. Force Jump and
+   Dash keep their heights and reach (the maps' perches are built to them): only what they cost in Force falls. */
 export const POWER_GROWTH = {
   push:    { nm: 'FORCE PUSH',      arrive: 1, mul: { knock: 0.06, range: 0.03, angle: 0.02 }, show: ['knock', 'shove'] },
+  palm:    { nm: 'FORCE STRIKES',   arrive: 1, mul: { dmg: 0.05, knock: 0.05, range: 0.02, reach: 0.02, radius: 0.02 }, show: ['dmg', 'damage'] },
   pull:    { nm: 'FORCE PULL',      arrive: 2, add: { pwr: 0.04 }, cap: { pwr: 1 }, mul: { range: 0.03 }, show: ['range', 'reach'] },
-  grasp:   { nm: 'FORCE GRASP',     arrive: 2, mul: { throwDmg: 0.07, bumpDmg: 0.07, maxT: 0.04 } },
+  grasp:   { nm: 'FORCE GRASP',     arrive: 2, mul: { throwDmg: 0.07, bumpDmg: 0.07, maxT: 0.04, range: 0.03, multiAngle: 0.02 }, show: ['throwDmg', 'hurl'] },
   throw:   { nm: 'SABER THROW',     arrive: 4, mul: { dmg: 0.07, range: 0.03 }, show: ['dmg', 'damage'] },
-  barrier: { nm: 'FORCE BARRIER',   arrive: 4, mul: { dur: 0.04, castKnock: 0.06, expireKnock: 0.06 }, add: { dr: 0.01 }, cap: { dr: 0.9 }, show: ['dur', 'duration'] },
+  barrier: { nm: 'FORCE BARRIER',   arrive: 4, mul: { dur: 0.04, castKnock: 0.06, expireKnock: 0.06, knockR: 0.03 }, add: { dr: 0.01 }, cap: { dr: 0.9 }, show: ['dur', 'duration'] },
   jslam:   { nm: 'JUMP ATTACK',     arrive: 5, mul: { dmg: 0.07, strike: 0.07, radius: 0.03, knock: 0.06 }, show: ['strike', 'damage'] },
   mend:    { nm: 'FORCE MEND',      arrive: 5, add: { heal: 0.015 }, show: ['heal', 'heal'] },
   judge:   { nm: 'FORCE JUDGEMENT', arrive: 8, mul: { dmg: 0.07, time: 0.04, range: 0.03 }, show: ['dmg', 'damage'] },
   repulse: { nm: 'FORCE REPULSE',   arrive: 8, mul: { dmg: 0.07, radius: 0.03, knock: 0.06 }, show: ['dmg', 'damage'] },
 };
+// the Force moves that aren't powers above (no strength to grow, so only their Force cost follows the level):
+// Force Jump (its take-off, hold and float), the Force Dash, the double jump and wall kick, and Ataru's-style air cut
+export const MOVE_ARRIVE = { jump: 1, dash: 1, airCut: 1 };
+/* FORCE COST — a stronger Force answers for less: a power's Force cost (and a held power's drain) drops COST_RATE for
+   each step of growth (the same levels-above-arrival times the form's share), to COST_FLOOR at most. Held below its
+   arrival level a power never costs more than its tuning. */
+export const COST_RATE = 0.03, COST_FLOOR = 0.7;
 const FLOOR = 0.7;   // a power held below its arrival level (the sandbox's slider) shrinks at the same rates, to 70% at most
 
 /* FORCE SHARE — the share of the level's growth each form draws on, before mastery (Caleb's ranking: Niman, Jar'Kai,
@@ -118,12 +128,22 @@ export function formRank(id){
 }
 export const forceShare = (id = G.stance) => Math.min(1, (FORCE_SHARE[id] || 0.6) + formRank(id) * FORM_RANK_SHARE);
 
+const COST_KEYS = ['cost', 'drain'];
+const costMulFor = (steps) => Math.max(COST_FLOOR, 1 - COST_RATE * Math.max(0, steps));
+// what a power's (or a Force move's: MOVE_ARRIVE) Force cost is multiplied by at this level, in the form in hand
+export function forceCostMul(id, lv = forceLevel(), share = forceShare()){
+  if (!lv || isGunner()) return 1;
+  const g = POWER_GROWTH[id], at = g ? g.arrive : (MOVE_ARRIVE[id] || 1);
+  return costMulFor((lv - at) * share);
+}
 // a power's tuning `v` (already with its power mastery) grown by the Force Level and the form's share. Changes v in place.
 export function growPower(id, v, lv = forceLevel(), share = forceShare()){
   const g = POWER_GROWTH[id];
   if (!g || !lv || isGunner()) return v;
   const over = lv - g.arrive, steps = over >= 0 ? over * share : over;   // (below arrival: the full rate down, no share)
   if (!steps) return v;
+  const cm = costMulFor(steps);
+  for (const k of COST_KEYS) if (typeof v[k] === 'number') v[k] *= cm;
   for (const k in g.mul || {}) if (typeof v[k] === 'number') v[k] *= Math.max(FLOOR, 1 + g.mul[k] * steps);
   for (const k in g.add || {}) if (typeof v[k] === 'number'){
     const base = v[k];
@@ -132,14 +152,25 @@ export function growPower(id, v, lv = forceLevel(), share = forceShare()){
   }
   return v;
 }
-// what a power's headline number gains at a level, in the form in hand: '+30% shove' (the level-up card)
+// what a power's headline number gains at a level, in the form in hand: '+30% shove · −20% cost' (the level-up card)
 export function growthLine(id, lv = forceLevel(), share = forceShare()){
-  const g = POWER_GROWTH[id]; if (!g || !g.show) return '';
-  const [k, word] = g.show, steps = Math.max(0, lv - g.arrive) * share;
+  const g = POWER_GROWTH[id], steps = Math.max(0, lv - (g ? g.arrive : (MOVE_ARRIVE[id] || 1))) * share;
   if (!steps) return '';
-  if (g.mul && g.mul[k]) return '+' + Math.round(g.mul[k] * steps * 100) + '% ' + word;
-  if (k === 'heal') return '+' + (Math.round(g.add.heal * steps * 1000) / 10) + '% ' + word;
-  return '+' + Math.round(g.add[k] * steps * 100) + '% ' + word;
+  const cut = Math.round((1 - forceCostMul(id, lv, share)) * 100), cost = cut ? '−' + cut + '% Force cost' : '';
+  if (!g || !g.show) return cost;
+  const [k, word] = g.show;
+  const gain = g.mul && g.mul[k] ? '+' + Math.round(g.mul[k] * steps * 100) + '% ' + word
+    : k === 'heal' ? '+' + (Math.round(g.add.heal * steps * 1000) / 10) + '% ' + word
+    : '+' + Math.round(g.add[k] * steps * 100) + '% ' + word;
+  return cost ? gain + ' · ' + cost : gain;
+}
+// the Force Level each Jedi power opens at (data/store.js `force`): the level its chapter brings
+export const powerArrives = (id) => (POWER_GROWTH[id] || {}).arrive || 1;
+// has the Force grown enough for a power that needs Force Level `need`? (the sandbox and the training grounds hand out their kit)
+export function forceReady(need){
+  if (!need || isGunner() || G.sandbox || G.training) return true;
+  if (!(G.chapter >= 0 || G.endless || G.mission)) return true;   // (the old level-by-level run keeps its own gates)
+  return forceLevel() >= need;
 }
 
 // the form's numbers at its mastery rank: STANCES[id] with each FORM_MASTERY field moved rank/3 of the way to its Master

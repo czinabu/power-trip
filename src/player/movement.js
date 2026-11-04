@@ -16,6 +16,7 @@ import { tryVault, findLedge, startMantle, requestRoll, hangClimb, wallBeside } 
 import { tutEvent } from '../game/tutor-bus.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { inCombat, formMob, groundRoll, rollRedash, spendCharge, airborneInCombat } from './mobility.js';
+import { forceCostMul } from '../data/force-level.js';
 
 /* MOMENTUM in a chain of moves: each move sends you where it says, instead of piling its push on top of whatever the
    last move left. The run's momentum (moveVel) and the impulses (vel) are steered together. */
@@ -64,7 +65,7 @@ export function forceDash(){
   // is the FORCE DASH, which spends a charge and some Force. Out of a fight SHIFT just dashes, for free (mobility.js).
   const fight = inCombat();
   if (fight && player.grounded && !rollRedash()){ groundRoll(); return; }
-  const cost = fight ? MOBILITY.dash.cost * (formMob().dashCost ?? 1) : 0;
+  const cost = fight ? MOBILITY.dash.cost * (formMob().dashCost ?? 1) * forceCostMul('dash') : 0;   // (a stronger Force pays less: data/force-level.js)
   if (!G.unlocked.dash || player.cds.dash > 0 || player.force < cost) return;
   if (!spendCharge()) return;
   if (player.atkT > 0) cancelSwing();   // DASH-CANCEL — bail a swing into an evasive dash in any direction
@@ -158,8 +159,9 @@ export function doJump(){
   // onto the opposite wall for another run. Costs a small Force fee (data/mando.js WALLKICK_FORCE); without the Force it
   // falls through to the double-jump check below. A wall beside or behind you is no kick: that's a double jump.
   const wn = player.wallRun ? V3(player.wallRun.nx, 0, player.wallRun.nz) : facedWall(pp0);
-  if (wn && player.force >= WALLKICK_FORCE){
-    player.force -= WALLKICK_FORCE;
+  const kickCost = WALLKICK_FORCE * forceCostMul('jump');
+  if (wn && player.force >= kickCost){
+    player.force -= kickCost;
     player.vy = CFG.player.jumpVel * 1.08;
     offWall(wn.x, wn.z);                         // nothing still driving into the wall
     player.vel.addScaledVector(wn, 13);          // launch away from the surface
@@ -181,9 +183,10 @@ export function doJump(){
   // JUMP BUFFER — about to touch down: hold the press and jump on landing instead of burning the double jump
   if (player.vy < 0 && pp0.y - (player.groundY || 0) < Math.max(0.6, -player.vy * MOVE.jumpBuffer)){ player.jumpBufT = G.gt; return; }
   // DOUBLE JUMP is only available on the way UP — once you're descending, holding space FLOATS you down instead
-  if (player.airLeft > 0 && player.vy > 0 && player.force >= DJUMP_FORCE){
+  const djCost = DJUMP_FORCE * forceCostMul('jump');
+  if (player.airLeft > 0 && player.vy > 0 && player.force >= djCost){
     player.airLeft--;
-    player.force = Math.max(0, player.force - DJUMP_FORCE);   // the double jump spends Force
+    player.force = Math.max(0, player.force - djCost);   // the double jump spends Force
     player.doubleJumped = true;        // arms the aerial Force Slam
     tutEvent('doubleJump');
     player.vy = CFG.player.jumpVel * 1.35;   // a big, epic Force-leap on the second jump

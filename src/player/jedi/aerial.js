@@ -23,6 +23,7 @@ import { isGuarding, guardImpact } from '../../enemies/duel.js';
 import { inReach } from '../../enemies/bodyshape.js';
 import { SLAM_LAND_T, rushFlip, endFlip } from '../anim/agility.js';
 import { scarBody, severLimbs } from '../../enemies/scars.js';
+import { forceCostMul } from '../../data/force-level.js';
 
 /* wind: the beat with the blade drawn back (longer if a flip has to finish first) · dash: the flight in (homes on the
    foe), reaching full speed over `ramp`, skimming in at `level` above the foe's feet · range/cone: who it picks ·
@@ -67,7 +68,7 @@ export function airCut(){
   // only out of a forward run or leap: W held, and actually carrying speed the way you face
   const f0 = fwd();
   if (!keys['w'] || (player.vel.x + player.moveVel.x) * f0.x + (player.vel.z + player.moveVel.z) * f0.z < AIR_CUT.minFwd) return false;
-  const st = stance(), cost = st.stamina * AIR_CUT.stamCost, fcost = AIR_CUT.forceCost * (player.up.abilityCostMul || 1);
+  const st = stance(), cost = st.stamina * AIR_CUT.stamCost, fcost = AIR_CUT.forceCost * (player.up.abilityCostMul || 1) * forceCostMul('airCut');
   if (player.cds.airCut > 0 || player.stam < cost || player.force < fcost) return false;   // (not ready: the press is a plain air swing)
   player.stam -= cost; player.stamDelay = stamDelay();
   player.force -= fcost; player.cds.airCut = AIR_CUT.cd;

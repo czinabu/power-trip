@@ -161,7 +161,7 @@ export const STANCES = {
      Crossed blades make a cheap block against a blade, but two blades are less exact on bolts, and a hand has to come off
      a hilt to cast. No grip of its own: the hero's preference (Settings / G), both blades together. */
   jarkai: { name: 'JAR’KAI — FLURRY', form: 'jarkai', formNo: null, blade: 0x7dffa8,
-            dmg: 0.72, heavyDmg: 0.8, speed: 0.95, knock: 0.35, stamina: 6, lunge: 1.3, move: 1.12, accel: 1.25, twist: 0.5, bladeLen: 0.92,
+            dmg: 0.8, heavyDmg: 0.8, speed: 0.95, knock: 0.35, stamina: 6, lunge: 1.3, move: 1.12, accel: 1.25, twist: 0.5, bladeLen: 0.92,
             radiusMult: 0.9, comboGap: 1.3, fovKick: 3, postureMul: 0.85, parryBonus: -0.02,
             offDmg: 0.7,          // ROLE: the off hand's follow-up lands 70% of the lead cut (one cut's budget across both)
             blockStamMul: 0.85,   // the crossed-blade block: a blow on the guard costs 15% less…

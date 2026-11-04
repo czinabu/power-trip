@@ -24,7 +24,7 @@
 //   needs  the step only runs once the story has reached this form or unlock (else the lesson skips it)
 //   ev     a training event to count (game/tutor-bus.js): doubleJump dash slide vault climb roll wallrun finisher parry
 //          deflect perfectDodge cancel pushHit kill headshot vent shieldReflect catch charge takedown bash rocketHit
-//          kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
+//          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
 //          perfectString (a string struck fully in rhythm into its finisher)
@@ -132,6 +132,9 @@ export const LESSONS = {
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Where your eyes go, the blade follows. Lift your gaze and it cuts high; lower it and it sweeps low.',
           keys: 'AIM + LMB', do: 'Land a high, a middle and a low cut: put the crosshair on a head, a chest, then the legs', ev: 'cutHeight', uniq: 'h', need: 3, respawn: true,
+          spawn: dummies(CIRCLE, { sparring: true }) },
+        { say: 'A quick touch of the blade is a light cut. Hold it back a moment and let your weight carry it, and it lands heavy enough to break a guard.',
+          keys: 'TAP LMB · HOLD LMB', do: 'Land 2 heavy cuts: hold LMB until the blade draws back', ev: 'heavyHit', need: 2, respawn: true,
           spawn: dummies(CIRCLE, { sparring: true }) },
         { say: 'Three cuts make a string, and in Shii-Cho the third is the Sarlacc Sweep: it cuts all the way round you. It was made for crowds.',
           keys: 'LMB LMB LMB', do: 'Land 2 Sarlacc Sweep finishers on the crowd', ev: 'finisher', need: 2, respawn: true,

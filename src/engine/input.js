@@ -19,6 +19,7 @@ import {
   forcePush, saberThrow, forcePull, forceRepulse, forceBarrier, forceMend, forceJudgement, forceSlam
 } from '../player/jedi/force.js';
 import { airCut } from '../player/jedi/aerial.js';
+import { atkPress, atkRelease } from '../player/jedi/weight.js';
 import { forceDash, doJump } from '../player/movement.js';
 import { trySlide } from '../player/parkour.js';
 import { pullPress, pullRelease, graspThrow, graspDrop } from '../player/jedi/grasp.js';
@@ -65,7 +66,8 @@ document.addEventListener('mousedown', (e) => {
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
   if (e.button === 2 && (player.judgeT > 0 || player.flaming || player.mendT > 0)) return;   // mid-channel (lightning / flame / mend): no bracing
-  if ((e.button === 0 || e.button === 2) && G.mode === 'play') wakeBlade();   // the blade put out (5): a swing or a guard lights it first (player/holster.js)
+  if ((e.button === 0 || e.button === 2) && G.mode === 'play') wakeBlade();
+  if (e.button === 0) atkPress();   // how long LMB is held weighs the cut: tap light, hold heavy (player/jedi/weight.js)   // the blade put out (5): a swing or a guard lights it first (player/holster.js)
   if (isTrooper()){ trooperMouseDown(e.button); return; }   // the clone trooper: rifle bursts and aim, or one pistol per button (player/trooper/kit.js)
   if (isGunner()){
     if (e.button === 0 && player.clinch){ clinchThrow(); return; }   // a foe held by the collar: LMB throws it (mando/melee.js)
@@ -137,7 +139,7 @@ document.addEventListener('mousedown', (e) => {
   }
 });
 document.addEventListener('mouseup', (e) => {
-  if (e.button === 0){ player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
+  if (e.button === 0){ atkRelease(); player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
   if (e.button === 2){ player.blockHeld = false; player.zoom = false; }
   if (e.button === 1) wheelKeyUp();   // middle mouse let go: the order (allies/wheel.js)
 });
@@ -256,7 +258,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck
 // on, and no sprint or slide. Losing focus releases everything; any key event that says ALT is up releases ALT.
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; atkRelease(); });
 // (only for real input: the pad's own key events never say ALT, and LB held + a face button must keep the strafe)
 document.addEventListener('keydown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);
 document.addEventListener('mousedown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);

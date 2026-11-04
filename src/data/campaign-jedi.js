@@ -45,7 +45,10 @@ export const JEDI_ACT_TWO_WARN = 'Whichever you leave for second will not wait w
 // per chapter id, laid over the shared slot (data/campaign.js storyChapter; the fields are listed in data/campaign-mando.js).
 // Besides those: `guests` fight beside you for the chapter (squadmates of the story's own: allies/squad.js addSquadmate),
 // `evacuees` retells who a hold's evacuees are ({ kind, name }: game/mission.js), `says` replaces the voice's line on a mission chapter's objectives, by objective (null keeps the mission's),
-// and `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES).
+// `escapeLines` are the words of its duel foe's escape scene (data/cutscenes.js SCENES), and `doorway` ends the chapter's
+// calm at the temple's great doors: they open, the hero walks through, and the next chapter comes up on the far side
+// (game/aftermath.js, world/doorway.js). Its words: `label` the HUD's title, `to` and `through` its line before and
+// after the doors open, `open` what is said as they do ([who, say], who null: the story's voice).
 export const JEDI_CHAPTERS = {
   // ---------------- ACT I: THE FALL OF JEDHA ----------------
   'last-lesson': {
@@ -74,7 +77,10 @@ export const JEDI_CHAPTERS = {
       wave: [
         ['They came up the pilgrim road. Nobody stopped them at the gate. Meet them on the steps.'],
         ['Heavier troops behind the first line. Do not let them reach the doors.', 'The archivists are carrying out the Ledger\'s vault. Keep the steps clear.'] ],
-      clear: ['The steps are ours, for now.', 'Smoke over the east wing. The archive is burning, and the Ledger is still inside.'] } },
+      clear: ['The steps are ours, for now.', 'Smoke over the east wing. The archive is burning, and the Ledger is still inside.'] },
+    // the walk from the steps into the temple, and through it to the archive (chapter 2 opens at its south doors)
+    doorway: { label: 'INTO THE TEMPLE', to: 'WALK TO THE TEMPLE DOORS', through: 'GO THROUGH TO THE ARCHIVE',
+      open: [[VAEL, 'Open them. The archive is through the east hall. Stay close to me, and breathe through your sleeve.']] } },
   archive: {
     // a mission of its own in the Jedi's story (data/missions.js vault), standing in for the level's last two waves
     title: 'THE BURNING ARCHIVE', kind: 'mission', mission: 'vault', steps: 2,

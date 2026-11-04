@@ -6,6 +6,7 @@ import { V3 } from '../../utils.js';
 import { shared, hazardZones } from '../../state.js';
 import { spawnBarrel } from '../hazards.js';
 import { arenaKit, seeded, at } from './kit.js';
+import { setTempleDoors } from '../doorway.js';
 
 /* LEVEL 1 — the TEMPLE COURTYARD (half-size 21). The opener teaches the toolkit on a readable, symmetric plan:
      · a walkable ZIGGURAT in the centre: contested high ground with a summit brazier that ERUPTS on a slow, telegraphed
@@ -19,6 +20,8 @@ import { arenaKit, seeded, at } from './kit.js';
      · low rubble you step over (climbable, never a snag).
      · a BASTION in each corner (kit.js, level-design pass): steps up to a raised fall-back spot behind a wall, so the
        corners past the round edge ring are a second vantage, not dead floor 18 m from cover.
+     · the TEMPLE FRONT just past the edge behind the spawn: a pillared façade with its great doors shut. The Jedi's
+       story opens them once the siege is held, and the hero walks through them into the archive (world/doorway.js).
    The player spawns north (0, +10.5), facing the dais; the north lane is kept clear. */
 export function buildTempleArena(L){
   const pal = L.pal || {};   // the world theme's colours (data/worlds.js); the defaults are the original look
@@ -93,4 +96,82 @@ export function buildTempleArena(L){
 
   // ---- FUEL DRUMS — beside the walls and the south lane, where foes bunch up on their way in ----
   for (const [x, z] of [[10.2, -1.0], [-10.2, -1.0], [0, -10.2]]) spawnBarrel(V3(x*S, 0, z*S));
+
+  // ---- the TEMPLE FRONT behind the spawn, past the edge (no collision: the movement clamp keeps the fight off it) ----
+  templeFront(K, { stone, stoneD, trim, fireC, pal });
+}
+
+/* the temple's façade along the +z edge, its great doors in the middle: two leaves on hinges (live meshes, so they
+   can swing: world/doorway.js) and a short firelit passage behind them, the burning archive somewhere down it */
+function templeFront(K, m){
+  const H = shared.arenaHalf, F = H + 2, DW = 5.6, DH = 8.4, WH = 14, len = H * 2 + 18;
+  const mats = [];
+  const d = (geo, mat, x, y, z, rx, ry, rz) => { const o = K.deco(geo, mat, x, y, z, rx, ry, rz); o.castShadow = false; o.userData.passThrough = true; mats.push(o); return o; };
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 1, emissive: 0x3a1608, emissiveIntensity: 1 });   // (lit by the fire down the hall)
+  const glow = new THREE.MeshBasicMaterial({ color: 0xff7a32, fog: false });
+  const ember = new THREE.MeshBasicMaterial({ color: 0xffb060 });
+  const side = (len - DW) / 4;   // half the length of each wall run beside the doorway
+  // the wall, in three pieces round the doorway, a plinth course and a gold cornice along its top
+  for (const sx of [-1, 1]){
+    d(new THREE.BoxGeometry(side * 2, WH, 2.6), m.stoneD, sx * (DW / 2 + side), WH / 2, F + 1.3);
+    d(new THREE.BoxGeometry(side * 2, 1.0, 0.7), m.stone, sx * (DW / 2 + side), 0.5, F - 0.3);
+  }
+  d(new THREE.BoxGeometry(DW, WH - DH, 2.6), m.stoneD, 0, DH + (WH - DH) / 2, F + 1.3);   // over the doors
+  d(new THREE.BoxGeometry(len, 0.5, 0.9), m.trim, 0, WH - 0.25, F - 0.35);
+  d(new THREE.BoxGeometry(len, 1.4, 0.6), m.stone, 0, WH - 1.2, F - 0.2);                   // the frieze
+  // pilasters every 6 m along it (not over the doorway)
+  for (let x = DW / 2 + 4; x < len / 2 - 1; x += 6) for (const sx of [-1, 1]){
+    d(new THREE.BoxGeometry(1.4, WH - 1.9, 0.8), m.stone, sx * x, (WH - 1.9) / 2, F - 0.3);
+    d(new THREE.BoxGeometry(1.8, 0.7, 1.1), m.stoneD, sx * x, 0.35, F - 0.45);
+  }
+  // the doorway's frame: gold jambs and a stepped lintel, a tall column either side and a gable over it all
+  for (const sx of [-1, 1]){
+    d(new THREE.BoxGeometry(0.7, DH, 1.0), m.trim, sx * (DW / 2 + 0.35), DH / 2, F - 0.2);
+    d(new THREE.CylinderGeometry(0.62, 0.72, WH - 2.4, 12), m.stone, sx * (DW / 2 + 1.9), (WH - 2.4) / 2, F - 1.0);
+    d(new THREE.BoxGeometry(1.7, 0.6, 1.7), m.stoneD, sx * (DW / 2 + 1.9), 0.3, F - 1.0);
+    d(new THREE.BoxGeometry(1.7, 0.6, 1.7), m.trim, sx * (DW / 2 + 1.9), WH - 2.7, F - 1.0);
+    // a brazier on a stone foot before each column, burning
+    d(new THREE.CylinderGeometry(0.5, 0.32, 0.9, 10), m.stoneD, sx * (DW / 2 + 3.6), 0.45, F - 1.4);
+    d(new THREE.ConeGeometry(0.36, 0.75, 9), new THREE.MeshBasicMaterial({ color: m.fireC }), sx * (DW / 2 + 3.6), 1.25, F - 1.4);
+    // a long banner either side
+    const ban = d(new THREE.PlaneGeometry(1.5, 6.5), new THREE.MeshStandardMaterial({ color: m.pal.banner ?? 0x6e1f24, roughness: 0.9, side: THREE.DoubleSide }), sx * (DW / 2 + 5.6), WH - 5.4, F - 0.62);
+    ban.castShadow = false;
+  }
+  d(new THREE.BoxGeometry(DW + 0.6, 0.7, 1.2), m.trim, 0, DH + 0.35, F - 0.25);
+  d(new THREE.BoxGeometry(DW + 5.6, 0.9, 2.2), m.stone, 0, WH - 2.0, F - 0.9);                // the entablature on the columns
+  const gw = DW / 2 + 3.4, tri = new THREE.Shape([new THREE.Vector2(-gw, 0), new THREE.Vector2(gw, 0), new THREE.Vector2(0, 2.4)]);
+  d(new THREE.ExtrudeGeometry(tri, { depth: 1.8, bevelEnabled: false }), m.stoneD, 0, WH - 1.55, F - 1.8);   // the gable over it all
+  // the Order's sigil, a gold disc on the gable
+  d(new THREE.CircleGeometry(0.6, 20), m.trim, 0, WH - 0.55, F - 1.82, 0, Math.PI, 0);
+
+  // the PASSAGE behind the doors: dark walls, a low ceiling and the archive's fire glowing at the far end
+  const P = 9;
+  for (const sx of [-1, 1]) d(new THREE.BoxGeometry(0.6, DH, P), dark, sx * (DW / 2 + 0.3), DH / 2, F + P / 2);
+  d(new THREE.BoxGeometry(DW + 1.2, 0.6, P), dark, 0, DH + 0.3, F + P / 2);
+  d(new THREE.PlaneGeometry(DW, 0.02 + P), dark, 0, 0.015, F + P / 2, -Math.PI / 2);
+  // (the glow and the embers stay live: unlit colours, which the arena's bake would shade)
+  d(new THREE.PlaneGeometry(DW, DH), glow, 0, DH / 2, F + P - 0.05, 0, Math.PI, 0).userData.noBake = true;
+  for (let k = 0; k < 4; k++) d(new THREE.BoxGeometry(0.5, 0.05, 0.5), ember, (k % 2 ? 1 : -1) * 1.2, 0.03, F + 2.2 + k * 1.7).userData.noBake = true;   // embers on the floor
+
+  // the DOORS: a leaf on each hinge, shut. Bronze, banded and studded in gold
+  const leafM = new THREE.MeshStandardMaterial({ color: m.pal.door ?? 0x5a3e24, roughness: 0.6, metalness: 0.45, emissive: 0x24120a, emissiveIntensity: 1 });   // (a little firelight on the inner faces once they swing in)
+  const hinges = [];
+  for (const sx of [-1, 1]){
+    const hinge = new THREE.Group();
+    hinge.position.set(sx * DW / 2, 0, F + 0.25);
+    hinge.userData.noBake = true;
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(DW / 2 - 0.04, DH - 0.04, 0.32), leafM);
+    leaf.position.set(-sx * DW / 4, DH / 2, 0);
+    hinge.add(leaf);
+    for (const y of [1.4, DH / 2, DH - 1.4]){
+      const band = new THREE.Mesh(new THREE.BoxGeometry(DW / 2 - 0.3, 0.22, 0.38), m.trim);
+      band.position.set(-sx * DW / 4, y, 0); hinge.add(band);
+    }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 6, 14), m.trim);
+    ring.position.set(-sx * 0.42, DH * 0.45, -0.2); hinge.add(ring);
+    hinge.traverse(o => { o.castShadow = false; o.userData.passThrough = true; });
+    shared.arenaGroup.add(hinge);
+    hinges.push({ g: hinge, sx });
+  }
+  setTempleDoors({ hinges, x: 0, z: F, w: DW, depth: P });
 }

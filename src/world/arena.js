@@ -13,6 +13,7 @@ import { paintSky, paintFloor } from './paint.js';
 import { buildBackdrop } from './backdrop.js';
 import { bakeArena, toon, toonGround, farHaze } from './ink.js';
 import { resetCamBlockers } from './camblock.js';
+import { resetDoorway } from './doorway.js';
 import { buildPerches } from './perches.js';
 import { ROOM } from '../data/coop.js';
 import { JET_CEILING } from '../data/map-rules.js';
@@ -113,6 +114,7 @@ export function buildArena(L){
   shared.arenaWallFace = null;   // …and how far from the centre its walls' inner faces stand (the wall-run runs on them)
   shared.dojoRemotes = null;      // the sandbox room's hovering remotes (world/arenas/dojo.js)
   shared.templeBrazier = null;
+  resetDoorway();   // (the temple layout builds its doors again; a screen that went dark through them comes back up)
   shared.grassClear = null; shared.grassMounds = null; clearGrass();   // (an arena builder may set these: world/grass.js)   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
   pillars.length = 0;
   solids.length = 0;              // (cleared before the world: its backdrop hills that run into the play space are ground)

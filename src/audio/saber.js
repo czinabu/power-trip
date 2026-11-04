@@ -360,6 +360,7 @@ export function burn(pos, pw){
      the surge    (0 s)    the hum itself at the form's pitch, hard-overdriven and wide open, dropping a little in pitch
                            as the fields fight (the loud "BZZHH" body of the clash), with its TV buzz an octave up
      the weight   (0 s)    a short low thump under it, kept centred
+     the "pyew"   (+0.01)  the bolt deflect's guy-wire chirp and its echoes (pyew), mixed in over the short
      the sparks   (+0.04)  a scatter of crackle and a fizz of high hiss dying away
    All on the clash bus (engine.js glue compressor). The form tunes the surge (its hum pitch) and how long the arc spits
    (FORM_SOUND damp: Soresu soaks a blow, Djem So's rages on). Each clash rolls its own pitch, level, arc rate and a
@@ -390,6 +391,9 @@ export function clash(pos, big, form){
   C({ type: 'sine', f: sub * 1.5, f2: sub * 0.6, ft: 0.1, g: 0.17 * k, a: 0.0015, d: big ? 0.2 : 0.14, panK: 0.25, pri: 2 });
   CN({ color: 'brown', g: 0.08 * k, a: 0.001, d: 0.07, filt: { type: 'lowpass', f: 450 }, panK: 0.4 });
 
+  // the deflect mixed in: its "PYEW" off the strike (the guy-wire chirp and its echoes, pyew below), the hero's hum dipping
+  // for it the way a deflect does
+  if (!tooSoon('clashpew', 0.06)){ BLADE_AUDIO.hduck = shared.AC ? shared.AC.currentTime : 0; pyew(pos, k * (big ? 1.1 : 0.9), rand(0.86, 1.06)); }
   if (tooSoon('clashring', 0.03)) return;   // a flurry of blocks in one frame: one shower of sparks between them
   // the sparks fizzing away
   CN({ at: 0.04, g: 0.035 * k, a: 0.01, d: len * 1.4 * dm, filt: { type: 'highpass', f: 5200 }, drive: 0.4, verb: 0.15, pri: 0 });
@@ -406,6 +410,22 @@ export function wall(pos, first, dark){
   }
   N({ pos, g: first ? 0.06 : 0.035, a: 0.01, d: 0.16, filt: { type: 'bandpass', f: rand(3500, 6000), f2: rand(1800, 2600), q: 1.2 }, drive: 0.4, pri: first ? 1 : 0 });
   crackle(pos, 2, 0.12, 0.025);
+}
+
+/* the deflect's "PYEW" (shared by a clash, which carries it too): the guy-wire's falling chirp and its echoes ringing
+   back along the wire, then the last of it flying off across the stereo field */
+function pyew(pos, k, b){
+  const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
+  const drift = -side * rand(0.6, 1.1), tw = rand(0.13, 0.18);
+  for (const [echo, eg] of [[0, 1], [0.045, 0.45], [0.09, 0.2]])
+    for (const [mul, rate, g, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']])
+      C({ at: 0.01 + echo, type, f: 4600 * b * mul, f2: 300 * b * mul, ft: tw * rate, g: g * eg * k, a: 0.0012, d: tw * rate * 1.1,
+          fm: { r: 0.5, i: 0.35, i2: 0.05 }, filt: { type: 'lowpass', f: 9000, f2: 1400, t: tw }, pdrift: drift * (0.4 + echo * 6),
+          verb: 0.12, pri: echo ? 0 : 2 });
+  // the bolt flying off: the last of it, panning away and dulling
+  T({ pos, at: 0.04, type: 'square', f: 900 * b, f2: 220 * b, ft: 0.35, g: 0.02 * k, a: 0.02, d: 0.35,
+      filt: { type: 'lowpass', f: 3000, f2: 500 }, pdrift: drift, bus: 'clash', pri: 0 });
 }
 
 /* A BOLT DEFLECTED, the way it sounds in the films: the blade's hum spits ("TZZT") where the bolt hits it, and the
@@ -428,17 +448,7 @@ export function deflect(pos){
   CN({ g: 0.07 * k, a: 0.002, d: 0.09, trem: { r: buzz, d: 0.9, type: 'square' }, filt: { type: 'bandpass', f: 3800, f2: 1800, q: 0.9 }, drive: 0.85, pri: 2 });
   C({ type: 'sawtooth', f: 92 * hp, f2: 84 * hp, g: 0.05 * k, a: 0.002, d: 0.09, filt: { type: 'lowpass', f: 3600, f2: 800 }, drive: 1, pri: 1 });
   // the "pyew": the guy-wire's falling chirp, and its echoes ringing back along the wire
-  if (tooSoon('deflpew', 0.06)) return;   // a volley: one ricochet at a time
-  const P = place(pos), p0 = P ? P.pan : 0, side = Math.abs(p0) > 0.15 ? Math.sign(p0) : (Math.random() < 0.5 ? -1 : 1);
-  const drift = -side * rand(0.6, 1.1), tw = rand(0.13, 0.18);
-  for (const [echo, eg] of [[0, 1], [0.045, 0.45], [0.09, 0.2]])
-    for (const [mul, rate, g, type] of [[1, 1, 0.05, 'triangle'], [1.33, 0.85, 0.028, 'sine'], [0.75, 1.15, 0.03, 'square']])
-      C({ at: 0.01 + echo, type, f: 4600 * b * mul, f2: 300 * b * mul, ft: tw * rate, g: g * eg * k, a: 0.0012, d: tw * rate * 1.1,
-          fm: { r: 0.5, i: 0.35, i2: 0.05 }, filt: { type: 'lowpass', f: 9000, f2: 1400, t: tw }, pdrift: drift * (0.4 + echo * 6),
-          verb: 0.12, pri: echo ? 0 : 2 });
-  // the bolt flying off: the last of it, panning away and dulling
-  T({ pos, at: 0.04, type: 'square', f: 900 * b, f2: 220 * b, ft: 0.35, g: 0.02 * k, a: 0.02, d: 0.35,
-      filt: { type: 'lowpass', f: 3000, f2: 500 }, pdrift: drift, bus: 'clash', pri: 0 });
+  if (!tooSoon('deflpew', 0.06)) pyew(pos, k, b);   // a volley: one ricochet at a time
   crackle(pos, 2, 0.08, 0.025, 0.01);
 }
 

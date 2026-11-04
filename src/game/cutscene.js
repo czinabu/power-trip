@@ -18,7 +18,11 @@ import { JEDI_BOSS, JEDI_DUELS, JEDI_CAST } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
 import { playerPos, stance, fwd, rightV } from '../player/helpers.js';
 import { animatePlayer } from '../player/animation.js';
-import { syncHolster } from '../player/holster.js';
+import { syncHolster, stowForScene, endSceneDraw } from '../player/holster.js';
+import { syncOffSaber } from '../player/model/weapons.js';
+import { stowFoe, drawFoe, stepFoe, endFoe } from './duel-draw.js';
+import { namedForm } from '../enemies/foeform.js';
+import { BOSS_FORM } from '../data/foe-forms.js';
 import { cameraClearance, sightClear, updatePropFade } from '../world/camblock.js';
 import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
@@ -98,6 +102,7 @@ function boundActor(name){
 function walkTo(a, x, z, t){ a.walk = { x0: a.g.position.x, z0: a.g.position.z, x1: x, z1: z, t, k: 0 }; }
 function updateActor(a, dt){
   if (!a.g) return;   // (gone from the set)
+  stepFoe(a, dt);   // a duellist drawing at the scene's end (game/duel-draw.js)
   if (a.kind){ stepFigure(a, dt); return; }   // one of the story's cast (game/cast.js)
   if (!a.own){ const g = a.bind && binders[a.bind] && binders[a.bind](); if (g) a.g = g; }   // (a foe on the field keeps its pose, and only turns to you)
   const g = a.g, pp = playerPos();
@@ -218,6 +223,11 @@ function actorLines(lines, who){
 const overShoulder = (t) => shot('hero', [Math.PI + 0.42, 4.4, 2.1], [Math.PI + 0.3, 3.9, 2.0], t, { on: 'actor', h: 1.4 }, { mirror: true });
 // the last shot settles behind the hero, close to where the play camera sits, so the hand back is a short cut
 const settle = (look) => shot('hero', [Math.PI, 5.6, 2.7], [Math.PI, 4.8, 2.4], 1.1, look || { on: 'hero', ahead: 8, h: 1.2 });
+// a duel's last beat: the foe from in front and off to one side, far enough back to see its hand go to the belt, the
+// blade come up out of the hilt and its guard come up (game/duel-draw.js)
+// (h: the height it looks at, d: how far back, for a bigger figure: the warlord)
+const drawShot = (h = 1.2, d = 1) => shot('actor', [0.85, 5.0 * d, 0.95 * d], [0.62, 4.4 * d, 0.85 * d], DRAW_BEAT, { on: 'actor', h }, { fov: 44, mirror: true, kind: 'draw', draw: true });
+const DRAW_BEAT = 2.0;   // (s) the reach, the snap-hiss and the guard coming up, with a moment held in it
 // the opening's wide look: high behind the hero, over what they face
 // (in a narrow place, like the chase's alleys, it comes in closer and swings round until no wall stands in the way)
 function wide(t, title){
@@ -304,7 +314,11 @@ function start(opts){
   G.cutscene = true;
   // a scene with people on set: the Jedi's blade goes back on the belt while they talk (and comes out again after)
   C.unholster = false;
-  if (opts.actors && opts.actors.some(a => a.kind) && !isGunner() && !player.holstered){ player.holstered = true; C.unholster = true; syncHolster(); }
+  if (!opts.draw && opts.actors && opts.actors.some(a => a.kind) && !isGunner() && !player.holstered){ player.holstered = true; C.unholster = true; syncHolster(); }
+  // a duel's entrance: both duellists wait with their hilts on the belt; the foe draws at its last beat (the shot marked
+  // `draw`), the hero starts the fight with it still there, to light with 5 (player/holster.js stowForScene)
+  C.draw = !!opts.draw;
+  if (C.draw){ stowForScene(); for (const a of C.actors) if (a.drawForm !== undefined) stowFoe(a, a.drawForm); }
   player.firing = false; player.trigHeld = false; player.blockHeld = false;
   stillHero(); calmHero(); showBolts(false);
   document.body.classList.add('cutscene');
@@ -322,6 +336,7 @@ function start(opts){
 function finish(skipped){
   if (!C.on) return;
   const done = C.onDone;
+  if (C.draw){ for (const a of C.actors) endFoe(a); endSceneDraw(G.mode !== 'play'); C.draw = false; }   // (the hero's hilt stays on the belt for 5)
   dropActors();
   unblockScene();
   if (C.unholster){ player.holstered = false; C.unholster = false; syncHolster(); }
@@ -402,6 +417,7 @@ function showShot(){
   if (s.where !== undefined) setWhere(s.where);
   if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; C.talker = null; setWhere(null); }
   if (s.dropCast) dropCast();
+  if (s.draw && C.draw && !s.drawn){ s.drawn = true; for (const a of C.actors) drawFoe(a); }   // the foe reaches for its belt (the hero's is left for the player: 5)
   if (s.pair != null) C.pair = s.pair;
   // the hero turns to someone else on set (the one watching from across the field, after the talk)
   if (s.faceYaw != null) G.yaw = C.heroYaw = s.faceYaw;
@@ -520,6 +536,7 @@ export function updateCutscene(){
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)
   if (dt > 0) animatePlayer(dt, pp, stance(), fwd(), rightV(), false);
+  if (C.draw) syncOffSaber(player, !isGunner());   // (Jar'Kai's second hilt off the belt with the first: the sim that keeps it in step stands still)
   if (C.one){ oneLens(s, dt, now); placeMark(); return; }
   // the lens: eased from `from` to `to` around the shot's anchor, kept out of props like the play camera
   const k = ease(Math.min(1, C.t / s.t)), A = anchor(s.on), sc = onActor(s.on) ? Math.max(1, A.scale || 1) : 1;
@@ -941,8 +958,11 @@ export function playDuelIntro(spec, share = true, stage = null){
   if (!foeLines.length){ close[0].line = null; close[0].t = 2.2; }
   // the hero squares up to it: a beat on their face, low, before the fight (unless they have a line of their own)
   const ready = rest.length ? [] : [shot('hero', [0.5, 2.9, 0.0], [0.38, 2.5, -0.05], 1.2, { on: 'hero', h: -0.12, eye: true }, { eye: true, fov: 40, mirror: true, kind: 'ready' })];
-  const shots = [ov, ...(track ? [track] : []), ...close, ...heroLines(rest), ...ready, settle({ on: 'actor', h: 1.2 })];
-  return start({ key: 'duel:' + spec.mid, shots, actors, face: at, share: share ? { k: 'duel', spec } : null, stage });
+  // a saber wielder: both start with the hilt on the belt, and it draws at the end (game/duel-draw.js)
+  const foe = actors[0], blade = !!(foe && foe.g && foe.g.userData.saber && (spec.quarry || (ENEMY_TYPES[spec.foe] || {}).weapon === 'saber'));
+  if (blade) foe.drawForm = namedForm({ name: spec.name, form: spec.form }, spec.foe || 'acolyte').form;
+  const shots = [ov, ...(track ? [track] : []), ...close, ...heroLines(rest), ...ready, ...(blade ? [drawShot()] : []), settle({ on: 'actor', h: 1.2 })];
+  return start({ key: 'duel:' + spec.mid, shots, actors, face: at, draw: blade, share: share ? { k: 'duel', spec } : null, stage });
 }
 
 // the campaign's last boss arrives (game/flow.js): framed low and wide, his line, the voice's answer
@@ -957,8 +977,11 @@ export function playBossIntro(share = true, stage = null){
   const first = shot('actor', [0.6, 5, 0.9], [0.4, 4.4, 1.3], lineTime(lines[0]), { on: 'actor', h: 2.2 },
                      { line: lines[0], title: { k: 'EXEGOL', h: name, p: epithet || '' }, mirror: true });
   const g = b.g.position;
-  const shots = [overShoulder(1.8), first, ...heroLines(lines.slice(1)), settle({ on: 'actor', h: 1.8 })];
-  return start({ key: 'boss:' + G.chapter, shots, actors: [b], face: [g.x, g.z], share: share ? { k: 'boss' } : null, stage });
+  // Darth Vexis's blade is out while he talks, and lights at the end (the Iron Magistrate's war-spear has no hilt to draw)
+  const blade = !isGunner() && !!b.g.userData.hand;
+  if (blade) b.drawForm = (BOSS_FORM.sith || {}).form;
+  const shots = [overShoulder(1.8), first, ...heroLines(lines.slice(1)), ...(blade ? [drawShot(1.75, 1.35)] : []), settle({ on: 'actor', h: 1.8 })];
+  return start({ key: 'boss:' + G.chapter, shots, actors: [b], face: [g.x, g.z], draw: blade, share: share ? { k: 'boss' } : null, stage });
 }
 
 // any other scene by id (data/cutscenes.js SCENES): opts.mark [x, z] for a 'mark' scene, opts.onDone, opts.key (once a visit)

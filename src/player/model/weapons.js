@@ -283,13 +283,25 @@ export function setSaberDual(hero, on, remember = true){
   if (hero.offSaber) hero.offSaber.node.visible = on;
 }
 export const saberIsDual = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.dual && hero.offSaber);
+// where Jar'Kai's second hilt hangs while the first is on the belt: the right hip (the belt socket sits at the left)
+const OFF_BELT = { pos: [0.4, -0.04, 0], rot: [0.25, 0, -0.18] };
 // keep the off saber in step with the main one (call each frame after the blade FX and the holster have run)
 export function syncOffSaber(hero, allowed = true){
   const O = hero && hero.offSaber, B = hero && hero.blade;
   if (!O || !B) return;
   const on = allowed && !!(hero.saberBladeRoot && hero.saberBladeRoot.userData.dual);
-  const away = !!hero.offAway || !hero.saberHand || hero.saberHand.scale.x < 0.01 || hero.saberHand.parent !== hero.saberHand.userData.hand && !!hero.saberHand.userData.hand;
+  // the main hilt clipped to the belt (put out, holstered, a duel's entrance): the off hilt clips on at the other hip
+  const M = hero.saberHand, belt = hero.rig && hero.rig.sockets && hero.rig.sockets.belt, belted = !!(M && belt && M.parent === belt);
+  const away = !!hero.offAway || !M || M.scale.x < 0.01 || (!belted && M.parent !== M.userData.hand && !!M.userData.hand);
   O.node.visible = on && !away;
+  if (O.node.visible && belted){
+    if (O.node.parent !== belt){ belt.add(O.node); O.node.position.set(...OFF_BELT.pos); O.node.rotation.set(...OFF_BELT.rot); }
+    O.blade.visible = O.glow.visible = false;
+    return;
+  }
+  if (O.node.parent !== hero.rig?.sockets?.handL && hero.rig?.sockets?.handL){   // (back from the belt: into the off hand)
+    hero.rig.sockets.handL.add(O.node); O.node.position.set(0, GRIP_Y, 0); O.node.quaternion.copy(O.node.userData.restQ);
+  }
   if (!O.node.visible) return;
   O.blade.visible = B.blade.visible; O.glow.visible = B.glow.visible;
   O.blade.scale.copy(B.blade.scale); O.blade.position.y = B.blade.position.y;

@@ -1,17 +1,18 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // FORCE SOUND: every Force power is built from layers, all synthesized, on its own bus.
 //
-//   TELEKINETIC (push, pull, repulse)   a localized sonic boom, not a whoosh:
-//       1 the pressure snap    a compressed crack of air, the frame the power lands on (push and pull lead with a
-//                              bass thump instead, a kick's pitch drop with only a whisper of edge)
-//       2 the displacement     a 40-60 Hz sub drop: the weight that moves the room
-//       3 the vacuum rip       a jet of torn air through a flanger with heavy feedback; its sweep crashes DOWN for a
-//                              push and rises UP for a pull, so you hear which way the Force is flowing
-//   LIGHTNING (cast, each chain tick, the held channel)   unstable electrical tearing:
+//   TELEKINETIC (push, pull, repulse)   the films' recipe, all weighted low:
+//       1 the rush             torn air through a flanger with heavy feedback; its sweep falls for a push and rises
+//                              for a pull, so you hear which way the Force is flowing
+//       2 the hum              a deep, pitch-bent drone as the power takes hold, the Force itself
+//       3 the impact           a kick's pitch drop into the sub, a dull distorted crash, debris settling
+//   LIGHTNING (cast, each chain tick, the held channel)   crackling electricity with an animal roar inside it, over a
+//   deep hum, pitched down and distorted:
 //       1 the ignition spark   a capacitor dump: a hard pop and a welder's knock
-//       2 the fry              a sizzle sitting up in 8-12 kHz
-//       3 the tear             detuned saws thrashed by a chaotic modulator
-//       all three run through a TREMOLO wobbling at an irregular 12-18 Hz, so the current stutters and flickers
+//       2 the fry              a sizzle sitting up in 8-12 kHz, and the tear: saws thrashed by a chaotic modulator
+//       3 the roar             driven saws through two growling vowel formants, for the aggression
+//       4 the hum              a deep 45-50 Hz drone under it
+//       all of it runs through a TREMOLO wobbling at an irregular 12-18 Hz, so the current stutters and flickers
 //   INTERNAL (Force Mend's channel and its bloom)   the camera pulls inward:
 //       1 the riser            a reversed-cymbal swell and a pad opening upward
 //       2 the harmony          a singing bowl ring and a soft choral hum, in a long bright reverb
@@ -100,7 +101,7 @@ function V(o, kind = 'force', self = !o.pos){
 }
 const VN = (o, kind, self) => V(Object.assign({ src: 'noise' }, o), kind, self);
 
-/* LAYER 3 of a telekinetic power: the vacuum rip. Torn air (noise through a sweeping band) run into a flanger with heavy
+/* LAYER 1 of a telekinetic power: the rush. Torn air (noise through a sweeping band) run into a flanger with heavy
    feedback, whose delay sweeps with it: shortening (the comb rises) for a pull, lengthening (it crashes down) for a push. */
 function rip({ pos, self = !pos, at = 0, g, a, dur, f, f2, d0, d1, fb = 0.74, q = 0.8, color = 'pink', verb = 0.3, pan = 0 }){
   if (!ensureBus() || ac().state !== 'running' || AE.live >= 56) return;
@@ -138,53 +139,54 @@ function bowl(f, { pos, at = 0, g = 0.05, a = 0.006, d = 2, verb = 0.55 } = {}){
   });
 }
 
-/* LAYER 1 of a telekinetic power: the pressure snap, a heavily compressed crack of air (s scales it) */
-function snap(pos, s, self){
-  VN({ pos, g: 0.24 * s, a: 0.0008, d: 0.028, filt: { type: 'highpass', f: 1500 }, drive: 0.9, pri: 2, jit: 0.1 }, 'force', self);
-  V({ pos, type: 'sine', f: 2600, f2: 240, ft: 0.016, g: 0.1 * s, a: 0.0005, d: 0.026 }, 'force', self);
-  VN({ pos, color: 'brown', g: 0.3 * s, a: 0.001, d: 0.085, filt: { type: 'lowpass', f: 1100, f2: 180 }, drive: 0.55 }, 'force', self);   // the air-cannon's bark
+/* THE FILMS' RECIPE for a telekinetic power (as Star Wars sound breakdowns describe it): a whoosh of air first, then a
+   deep hum as the power takes hold, then the crash of the impact, all of it weighted low.
+   rush: torn air through the flanger (falling for a push, rising for a pull); hum: a deep, pitch-bent drone, the Force
+   itself; impact: a kick's pitch drop into the sub with a dull, distorted crash on top. */
+function hum(pos, self, { at = 0, g = 0.2, a = 0.05, hold = 0.1, d = 0.4, f = 55, f2 = 46 } = {}){
+  V({ pos, at, type: 'sawtooth', f, f2, g: g * 0.5, a, hold, d, filt: { type: 'lowpass', f: 320, f2: 160 }, vib: { r: 5.5, d: 14 }, drive: 0.25, verb: 0.2 }, 'force', self);
+  V({ pos, at, type: 'sawtooth', f: f * 1.005, f2: f2 * 1.005, det: 7, g: g * 0.35, a, hold, d, filt: { type: 'lowpass', f: 300, f2: 150 } }, 'force', self);
+  V({ pos, at, type: 'sine', f: f / 2, f2: f2 / 2, g, a, hold, d: d * 1.2, pri: 2 }, 'force', self);           // its sub-octave, felt more than heard
 }
-
-/* the bass thump push and pull lead with: a kick's fast pitch drop into the 40-60 Hz sub, a dull knock of air on top
-   (no bright crack: the weight is the impact). s scales it. */
-function thump(pos, s, self, at = 0){
-  V({ pos, at, type: 'sine', f: 150, f2: 46, ft: 0.07, g: 0.27 * s, a: 0.003, d: 0.2, pri: 2, jit: 0.02 }, 'force', self);
-  VN({ pos, at, color: 'brown', g: 0.22 * s, a: 0.002, d: 0.1, filt: { type: 'lowpass', f: 420, f2: 120 }, drive: 0.3 }, 'force', self);
-  VN({ pos, at, g: 0.025 * s, a: 0.001, d: 0.02, filt: { type: 'lowpass', f: 2200 } }, 'force', self);   // only a whisper of edge
+function impact(pos, s, self, at = 0){
+  V({ pos, at, type: 'sine', f: 140, f2: 42, ft: 0.08, g: 0.27 * s, a: 0.003, d: 0.24, pri: 2, jit: 0.02 }, 'force', self);
+  VN({ pos, at, color: 'brown', g: 0.26 * s, a: 0.002, d: 0.32 * s, filt: { type: 'lowpass', f: 1100, f2: 120 }, drive: 0.5, verb: 0.3 }, 'force', self);   // the crash
+  VN({ pos, at, g: 0.025 * s, a: 0.001, d: 0.03, filt: { type: 'lowpass', f: 2400 } }, 'force', self);
+  for (let i = 0; i < 3; i++) VN({ pos, at: at + rand(0.04, 0.2), color: 'brown', g: 0.05 * s, d: 0.05, filt: { type: 'bandpass', f: rand(300, 700), q: 2 }, pri: 0 }, 'force', self);   // what it hit, settling
 }
 
 /* ---------- telekinetic ---------- */
 
+const HIT = 0.13;   // when the impact lands after the rush starts (short, so the shove still feels instant)
 export function push(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  thump(pos, 1, self);
-  V({ pos, type: 'sine', f: 58, f2: 34, g: 0.32, a: 0.008, hold: 0.06, d: 0.65, pri: 2 }, 'force', self);       // the sub drop, held so it rattles
-  V({ pos, type: 'triangle', f: 88, f2: 40, g: 0.12, a: 0.006, d: 0.38, filt: { type: 'lowpass', f: 220 } }, 'force', self);
-  rip({ pos, at: 0.02, g: 0.13, a: 0.03, dur: 0.42, f: 1400, f2: 180, d0: 0.0016, d1: 0.011, q: 0.7, color: 'brown', verb: 0.25 });   // a deep rush, crashing down
-  if (self) duck(0.25, 0.1);
+  rip({ pos, g: 0.17, a: 0.07, dur: HIT + 0.2, f: 1600, f2: 200, d0: 0.0016, d1: 0.011, q: 0.7, color: 'pink', verb: 0.3 });   // the rush, falling away from you
+  hum(pos, self, { at: 0.04, g: 0.2, a: 0.06, hold: 0.08, d: 0.45, f: 58, f2: 44 });
+  impact(pos, 1, self, HIT);
+  if (self) duck(0.25, 0.12);
 }
 
-// the pull: the air drawn IN — the sub swelling up as the target is dragged toward you, the rush rising, a thump as it lands
+// the pull: the rush rising as the air is drawn in, the hum swelling as the target is dragged, the impact as it lands
 export function pull(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  V({ pos, type: 'sine', f: 34, f2: 58, g: 0.27, a: 0.2, d: 0.14, pri: 2 }, 'force', self);
-  rip({ pos, g: 0.12, a: 0.2, dur: 0.3, f: 180, f2: 1300, d0: 0.011, d1: 0.0016, q: 0.7, color: 'brown', verb: 0.25 });   // rising
-  thump(pos, 0.85, self, 0.2);
-  V({ pos, at: 0.2, type: 'sine', f: 56, f2: 36, g: 0.2, a: 0.006, d: 0.4 }, 'force', self);
+  rip({ pos, g: 0.16, a: 0.18, dur: 0.26, f: 200, f2: 1600, d0: 0.011, d1: 0.0016, q: 0.7, color: 'pink', verb: 0.3 });   // rising toward you
+  hum(pos, self, { at: 0.02, g: 0.2, a: 0.16, hold: 0.04, d: 0.35, f: 44, f2: 58 });
+  impact(pos, 0.85, self, 0.22);
 }
 
-// the repulse: the push gone round all of you at once — a harder snap, a deeper and longer drop, a rip in each ear
+// the repulse: the same recipe round all of you at once — a rush in each ear, a deeper and longer hum, a much bigger crash
 export function repulse(pos, big){
   if (!ensureBus()) return;
   const self = !pos, s = big ? 1.2 : 1;
-  snap(pos, 1.25 * s, self);
-  V({ pos, type: 'sine', f: 56, f2: 27, g: 0.4 * s, a: 0.006, d: 0.9 * s, pri: 2 }, 'force', self);
-  VN({ pos, color: 'brown', g: 0.3 * s, a: 0.004, d: 0.75 * s, filt: { type: 'lowpass', f: 1900, f2: 90 }, drive: 0.45, verb: 0.3 }, 'force', self);   // the pressure wave rolling out
-  for (const [pan, d1] of [[-0.75, 0.0095], [0.75, 0.0072], [0, 0.0085]])
-    rip({ pos, pan: pos ? 0 : pan, at: 0.01, g: 0.17 * s, a: 0.016, dur: 0.6 * s, f: 3000, f2: 220, d0: 0.0012, d1, verb: 0.4 });
-  if (self) duck(0.4, 0.15);
+  for (const [pan, d1] of [[-0.75, 0.0105], [0.75, 0.008], [0, 0.0095]])
+    rip({ pos, pan: pos ? 0 : pan, g: 0.13 * s, a: 0.08, dur: 0.5 * s, f: 1800, f2: 160, d0: 0.0014, d1, color: 'pink', verb: 0.4 });
+  hum(pos, self, { at: 0.04, g: 0.24 * s, a: 0.06, hold: 0.12, d: 0.7 * s, f: 52, f2: 38 });
+  impact(pos, 1.3 * s, self, HIT + 0.02);
+  V({ pos, at: HIT + 0.02, type: 'sine', f: 56, f2: 27, g: 0.34 * s, a: 0.006, d: 0.9 * s, pri: 2 }, 'force', self);
+  VN({ pos, at: HIT + 0.02, color: 'brown', g: 0.28 * s, a: 0.004, d: 0.8 * s, filt: { type: 'lowpass', f: 1600, f2: 80 }, drive: 0.5, verb: 0.35 }, 'force', self);   // the blast rolling out
+  if (self) duck(0.4, 0.2);
 }
 
 // the barrier snapping up: the shove's crack, then the bubble itself rings like a struck bowl over a low shimmering hum
@@ -215,16 +217,30 @@ function tear(pos, s, dur, self){
         filt: { type: 'lowpass', f: 2800, f2: 900 }, drive: 0.5 }, 'zap', self);
 }
 
-// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): spark, fry, tear
+/* the films' lightning: crackling electricity with an animal ROAR inside it for aggression, over a deep hum (the
+   Force itself), pitched down and distorted. The roar: detuned saws through two vowel formants, growling (FM), driven. */
+function roar(pos, s, dur, self, at = 0){
+  for (const [f, fq] of [[72, 650], [108, 1080]])
+    V({ pos, at, type: 'sawtooth', f, f2: f * 0.82, g: 0.06 * s, a: 0.02, d: dur, fm: { r: 0.5, i: 1.6, i2: 0.6 }, vib: { r: 7, d: 40 }, drive: 0.7,
+        filt: { type: 'bandpass', f: fq, f2: fq * 0.8, q: 3 }, verb: 0.25 }, 'zap', self);
+}
+function zapHum(pos, s, dur, self, at = 0){
+  V({ pos, at, type: 'sawtooth', f: 49, f2: 44, g: 0.07 * s, a: 0.03, d: dur, filt: { type: 'lowpass', f: 300 }, drive: 0.4 }, 'zap', self);
+  V({ pos, at, type: 'sine', f: 49, f2: 44, g: 0.12 * s, a: 0.03, d: dur }, 'zap', self);
+}
+
+// the cast (Force Judgement opening up; also the Mando's electric gadgets, the boss's blink): the spark, the crackle,
+// the roar tearing out of it, the deep hum under it all
 export function zap(pos){
   if (!ensureBus()) return;
   const self = !pos;
-  spark(pos, 1, self); fry(pos, 1, 0.34, self, 0.005); tear(pos, 1, 0.3, self);
+  spark(pos, 1, self); fry(pos, 1, 0.36, self, 0.005); tear(pos, 0.6, 0.28, self);
+  roar(pos, 1, 0.42, self, 0.01); zapHum(pos, 1, 0.5, self);
 }
 // one chained strike landing on a foe (Judgement's ticks): self = the hero's own (placed at the foe, but on the Force bus)
 export function arc(pos, self){
   if (!ensureBus()) return;
-  spark(pos, 0.55, self); fry(pos, 0.6, 0.08, self); tear(pos, 0.5, 0.09, self);
+  spark(pos, 0.55, self); fry(pos, 0.6, 0.08, self); tear(pos, 0.4, 0.09, self);
 }
 
 /* the held channel: a tear and a fry that run as long as lightning pours out (the hero's Judgement, the boss's
@@ -245,6 +261,17 @@ function zapLoop(dest, send, sendN){
   mod.connect(mg);
   const oscs = [mod, w1, w2];
   for (const f of [58, 86.5]){ const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; mg.connect(o.frequency); o.connect(tf); oscs.push(o); }
+  // the roar inside it: driven saws through two vowel formants, their pitch growling, under the tremolo like the rest
+  const shp = A.createWaveShaper(), cv = new Float32Array(512);
+  for (let i = 0; i < 512; i++){ const x = i / 511 * 2 - 1; cv[i] = Math.tanh(4 * x) / Math.tanh(4); }
+  shp.curve = cv; const rg = A.createGain(); rg.gain.value = 0.32; shp.connect(rg); rg.connect(lvl);
+  const growl = A.createOscillator(), gg = A.createGain(); growl.frequency.value = 33; gg.gain.value = 18; growl.connect(gg); oscs.push(growl);
+  for (const [f, fq] of [[68, 640], [102, 1060]]){
+    const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; gg.connect(o.frequency);
+    const bf = A.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = fq; bf.Q.value = 3; o.connect(bf); bf.connect(shp); oscs.push(o);
+  }
+  // and the deep hum of the Force under everything
+  const hs = A.createOscillator(), hg = A.createGain(); hs.frequency.value = 46; hg.gain.value = 0.9; hs.connect(hg); hg.connect(lvl); oscs.push(hs);
   // the fry: hiss up in 8-12 kHz
   const nz = A.createBufferSource(); nz.buffer = AE.noise.white; nz.loop = true;
   const nf = A.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 9800; nf.Q.value = 0.8;

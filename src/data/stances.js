@@ -87,10 +87,11 @@ export const STANCES = {
             powerCostMul: 0.85,   // LORE: saber and Force as one — powers cost 15% less…
             castMul: 0.85,        // …snap off a little quicker…
             castFlow: true,       // …and a power cast mid-string keeps the string going: no late-cancel stamina cost (combat.js)
+            flowCast: 0.6,        // THE FLOW CAST: a power thrown mid-roll or mid-dash costs 40% less, casts quicker and gives the dash charge back (jedi/flowcast.js)
             blockStamMul: 0.55,   // SYNERGY: economical guard — blocking/parrying drains far less stamina
             deflectScatter: 0.05, // LORE: Niman, the jack of all forms — deflects go back roughly down the line (rad)
             gait: { amp: 1.08, lift: 1.0, bob: 0.4, lean: 1.0 },   // MOVEMENT: smooth, balanced, even strides
-            syn: 'VERSATILE · cheap swings and powers · cast mid-string · −50% defence cooldowns · cheap guard · parries refund +Force' },
+            syn: 'VERSATILE · cheap swings and powers · cast mid-string · cast mid-dash: Flow Cast · −50% defence cooldowns · cheap guard · parries refund +Force' },
   djemso: { name: 'DJEM SO — STRONG', form: 'djemso', formNo: 'V', blade: 0xb24bff,
             // HEAVY & momentum-driven, not slow-motion: still the slowest swing but it now flows; the big LUNGE
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
@@ -176,12 +177,13 @@ export const STANCES = {
             dmg: 0.85, heavyDmg: 0.8, speed: 0.95, knock: 0.35, stamina: 6, lunge: 1.3, move: 1.12, accel: 1.25, twist: 0.5, bladeLen: 0.92,
             radiusMult: 0.9, comboGap: 1.3, fovKick: 3, postureMul: 0.85, parryBonus: -0.02,
             offDmg: 0.7,          // ROLE: the off hand's follow-up lands 70% of the lead cut (one cut's budget across both)
+            scissor: 1.3,         // THE SCISSOR SLIDE: a cut out of a slide crosses both blades low, as wide as a finisher, 25% further and 30% harder (jedi/combat.js)
             blockStamMul: 0.85,   // the crossed-blade block: a blow on the guard costs 15% less…
             deflectStamMul: 1.4,  // …but a bolt caught on two blades costs more (×0.85 ×1.4: ~20% more than a plain saber)
             deflectScatter: 0.14, // two blades, less exact: deflects scatter (rad)
             powerCostMul: 1.2,    // COST: a hand comes off a hilt to cast: Force powers cost 20% more
             gait: { amp: 1.06, lift: 1.05, bob: 0.4, lean: 1.05 },   // MOVEMENT: light and quick on the feet, both blades low and ready
-            syn: 'FLURRY · two blades: every cut is two beats · gets inside heavy wind-ups · crossed-blade block · finisher throws the off saber · WEAK vs tight guards, crowds and armour' },
+            syn: 'FLURRY · two blades: every cut is two beats · gets inside heavy wind-ups · crossed-blade block · finisher throws the off saber · cut out of a slide: Scissor Slide · WEAK vs tight guards, crowds and armour' },
   // THE DARKSABER — the Mando's signature melee (selected automatically when the darksaber is equipped, not a
   // switchable Jedi form). Heavy-like, but the highest damage in the game, a touch faster & more mobile than Djem So.
   darksaber: { name: 'DARKSABER', form: 'darksaber', blade: 0xc9a6ff,

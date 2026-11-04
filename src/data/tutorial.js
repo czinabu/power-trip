@@ -272,6 +272,8 @@ export const LESSONS = {
           keys: '2 · TAP RMB', do: 'In Niman, parry 2 strikes', ev: 'parry', stance: 'niman', need: 2, spawn: partner() },
         { say: 'In Niman, saber and Force are one. Throw a power in the middle of a string and the string goes on.',
           keys: 'LMB · F', do: 'In Niman, hit 3 targets with Force Push', ev: 'pushHit', stance: 'niman', need: 3, respawn: true, spawn: dummies(CIRCLE) },
+        { say: 'Do not stop to call on the Force. Roll or dash, and push as you go: the power flows out of the move, costs less, and the dash comes back to you.',
+          keys: 'SHIFT · F', do: 'In Niman, cast Force Push mid-roll or mid-dash twice', ev: 'flowCast', stance: 'niman', need: 2, respawn: true, spawn: dummies(CIRCLE) },
         { sec: 'THE GRIP', say: 'Niman is the only form that lets you choose your grip. Press G to turn the blade over into a reverse grip.',
           keys: 'G', do: 'Switch to a reverse grip', poll: 'grip', grip: 'reverse', stance: 'niman', need: 0.4 },
         { say: 'The blade hits the same either way. Fight in the grip that feels like yours. G turns it back.',
@@ -315,6 +317,9 @@ export const LESSONS = {
           spawn: dummies([[0, -2.2], [-1.4, -1.8]], { sparring: true }) },
         { say: 'Cross both blades to block: a scissor that catches a blow in its fork. G cycles the grips: both forward, mixed grip, both reversed.',
           keys: 'TAP RMB', do: 'Parry 2 strikes on the crossed blades', ev: 'parry', stance: 'jarkai', need: 2, spawn: partner() },
+        { say: 'Go in under them. Sprint, drop into a slide, and cut as you skid: both blades cross at the knees and take the legs from everything in front. That is the Scissor Slide.',
+          keys: 'W · CTRL · LMB', do: 'Land 2 Scissor Slides', ev: 'scissor', stance: 'jarkai', need: 2, respawn: true,
+          spawn: dummies([[0, -8], [-1.6, -8.4], [1.6, -8.4]], { sparring: true }) },
       ] },
 
     /* ---------------- THE POWERS — each step opens when the story reaches that power ---------------- */

@@ -156,6 +156,11 @@ export function tryAttack(flow = false){
     floater(playerPos(), 'FORWARD STOMP', '#c9a0ff');
     tutEvent('stomp');
   }
+  if (mom === 'slide' && !isGunner() && st.scissor){   // JAR'KAI — THE SCISSOR SLIDE: both blades cross low out of the skid
+    player.swing.scissor = true;
+    floater(playerPos(), 'SCISSOR SLIDE', '#ffb84a');
+    tutEvent('scissor');
+  }
   if (mom === 'overflip'){   // ATARU: the cut straight out of the FLIP OVER, into the back it landed behind (jedi/overflip.js)
     floater(playerPos(), 'STRIKE TO THE BACK', '#7fe0ff');
   }
@@ -368,7 +373,8 @@ export function applySwingDamage(step, only){
   if (st.airCutDmg && !player.grounded) dmg *= st.airCutDmg;   // ATARU: a cut struck off the ground lands harder
   // FAST cleaves wide through crowds; STRONG is a narrow, focused blow. FAST's finisher fans ~10% wider still.
   const radius = (finisher ? CFG.player.hitRadius + 1 : CFG.player.hitRadius) * (st.radiusMult || 1)
-                 * (finisher && st.finisherArc ? st.finisherArc : 1);
+                 * (finisher && st.finisherArc ? st.finisherArc : 1) * (sw0 && sw0.scissor ? 1.25 : 1);
+  if (sw0 && sw0.scissor) dmg *= st.scissor;
   const back = !!(player.swing && player.swing.back);
   const f = fwd(); if (back) f.negate();   // back strike cleaves & knocks toward your rear
   const pp = playerPos();
@@ -376,7 +382,8 @@ export function applySwingDamage(step, only){
   const line = cutLine(player.swing);   // the line this cut comes in on — a duellist's guard covers one (enemies/duel.js)
   // the ARC: a cut covers what's in front of you, a strafe sweep a little wider, the finisher wider still (data/config.js)
   const A = CFG.player.swingArc, sdir = player.swing && player.swing.dir;
-  const arcCos = finisher ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
+  const scissor = !!(sw0 && sw0.scissor);   // JAR'KAI's Scissor Slide: the two blades cross at the knees, as wide as a finisher
+  const arcCos = finisher || scissor ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
   const reachUp = radius * 0.85;   // VERTICAL reach — a swing from the air can't hit foes far below you
   const reachDown = player.grounded ? reachUp : radius * 1.4;   // ...but a cut struck mid-leap still reaches the ground at your feet (Ataru's lesson)
   const tryHit = (pos, fn, obj) => {

@@ -24,7 +24,7 @@ export const HUM_PITCH = { shiicho: 0.92, makashi: 1.06, soresu: 0.96, ataru: 1.
 /* what every lit blade is doing this frame, filled in by fx/trail.js (which already follows every blade for its streak)
    and read by director.js: tip speeds (m/s against the owner's body) of the hero's blade, the saber staff's far end and
    the Darksaber in hand, and every other lit blade (its tip in the world, speed, dark, thrown) */
-export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null, hduck: -1 };   // lock: the hero's saber lock, set by enemies/duel.js; hduck: when a deflect last dipped the hum (audio time)
+export const BLADE_AUDIO = { hero: 0, hero2: 0, dark: 0, others: [], lock: null, hduck: -1, charge: 0, chargeAt: -1 };   // lock: the hero's saber lock, set by enemies/duel.js; hduck: when a deflect last dipped the hum (audio time); charge: a heavy cut's draw 0..1 (player/jedi/weight.js), chargeAt: when it was last set (G.gt)
 
 /* EACH FORM'S VOICE — a form's swing and its clash, the same for the hero and for a master of that form (game/mission.js
    e.form). p bends the hum's pitch (light and high, or heavy and low), len is the stroke's length, air the rush of
@@ -246,24 +246,84 @@ export function reignite(kind, from){
 
 /* a lightsaber whoosh: the hum's pitch bending up through the arc ("vwoom"), a doppler pass as the blade goes by, and
    moving air. p scales the pitch (fast forms lighter and higher, Djem So heavier, the Darksaber deep and gritty).
-   No two strokes match: the length, the bend and where it peaks, the air's band and a blade tremble all vary. */
+   No two strokes match: the length, the bend and where it peaks, the air's band and a blade tremble all vary.
+   o.fam voices it by the form's group (see formSwing). */
 export function swing(p, len, dark, o = {}){
-  const pos = o.pos, at = o.at || 0, air = o.air ?? 1, gain = o.g ?? 1;
+  const pos = o.pos, at = o.at || 0, air = o.air ?? 1, gain = o.g ?? 1, fam = o.fam;
   p *= rand(0.96, 1.04); len *= rand(0.88, 1.12);
-  const d = 0.2 * len, rise = rand(1.5, 1.95), ft = d * rand(0.4, 0.7);
+  const d = 0.2 * len, ft = d * rand(0.4, 0.7);
+  // how far the pitch bends: Guard's barely moves (an anchor through the air), Niman's swells softly
+  const rise = o.rise || (fam === 'guard' ? rand(1.12, 1.22) : fam === 'niman' ? rand(1.25, 1.4) : rand(1.5, 1.95));
+  const top = fam === 'guard' ? rand(1200, 1500) : rand(2100, 3000);   // Guard keeps the highs rolled off
   const vib = Math.random() < 0.4 ? { r: rand(15, 26), d: rand(16, 32) } : undefined;   // the blade trembling through the cut
-  T({ pos, at, type: 'sawtooth', f: 96 * p, f2: 96 * p * rise, ft, g: 0.068 * gain, a: 0.03, d, det: rand(4, 12), vib,
-      filt: { type: 'lowpass', f: 550, f2: rand(2100, 3000), t: d * 0.5 }, drive: dark ? 0.45 : o.drive || 0, verb: 0.1 });
-  T({ pos, at, type: 'sawtooth', f: 97.5 * p, f2: 97.5 * p * rise * 0.94, ft, g: 0.045 * gain, a: 0.03, d, filt: { type: 'lowpass', f: 900, f2: 2000 } });
-  // the doppler pass: an octave up, swelling in and falling away as the blade sweeps by
-  T({ pos, at: at + d * 0.12, type: 'sine', f: 192 * p * rise, f2: 150 * p, g: 0.028 * gain, a: d * 0.35, d: d * 0.65, pri: 0 });
+  T({ pos, at, type: 'sawtooth', f: 96 * p, f2: 96 * p * rise, ft, g: 0.068 * gain * (fam === 'niman' ? 0.6 : 1), a: 0.03, d, det: rand(4, 12), vib,
+      filt: { type: 'lowpass', f: 550, f2: top, t: d * 0.5 }, drive: dark ? 0.45 : o.drive || 0, verb: 0.1 });
+  T({ pos, at, type: 'sawtooth', f: 97.5 * p, f2: 97.5 * p * rise * 0.94, ft, g: 0.045 * gain, a: 0.03, d, filt: { type: 'lowpass', f: 900, f2: Math.min(2000, top) } });
+  // the doppler pass: an octave up, swelling in and falling away as the blade sweeps by (Guard and Niman have none)
+  if (fam !== 'guard' && fam !== 'niman') T({ pos, at: at + d * 0.12, type: 'sine', f: 192 * p * rise, f2: 150 * p, g: 0.028 * gain, a: d * 0.35, d: d * 0.65, pri: 0 });
   N({ pos, at, color: 'pink', g: 0.085 * air * gain, a: 0.05 * len, d: 0.16 * len, rate: rand(0.85, 1.15),
-      filt: { type: 'bandpass', f: rand(380, 520), f2: rand(1600, 2300), q: 1.3 } });
+      filt: { type: 'bandpass', f: rand(380, 520), f2: rand(1600, 2300) * (fam === 'guard' ? 0.5 : 1), q: 1.3 } });
   if (dark) crackle(pos, 2, d, 0.03 * gain, at);   // the Darksaber spits as it cuts
 }
-export function formSwing(v, pos){
-  swing(v.p, v.len, false, { pos, air: v.air, drive: v.drive });
-  if (v.flick) swing(v.p * 1.12, v.len * 0.55, false, { pos, at: 0.09, air: 0.8, g: 0.6 });
+/* a form's swing (FORM_SOUND), with its group's colour on top (data/foe-forms.js FORM_FAMILY):
+     guard  heavy, low "whoosh": a dense wall of air and a low body, the pitch barely bending, no highs
+     speed  a laser-thin slice: a sharp, high doppler drop and high-passed air chopped by a fast LFO, cut off at once
+     power  tearing: saturation and crackle that grow with the stroke's size (a heavy overhead crackles violently)
+     niman  a smooth whisper of wind through a sweeping phaser-like band, ringing faintly out into the room */
+export function formSwing(v, pos, form, o = {}){
+  const fam = FORM_FAMILY[form] || (form ? 'niman' : null), len = v.len * rand(0.9, 1.1);
+  const drive = Math.max(fam === 'power' ? 0.35 + len * 0.3 : v.drive || 0, o.drive || 0);
+  swing(v.p, v.len, false, { pos, air: v.air, drive, fam, rise: o.rise });
+  if (v.flick) swing(v.p * 1.12, v.len * 0.55, false, { pos, at: 0.09, air: 0.8, g: 0.6, fam });
+  const p = v.p, d = 0.2 * len;
+  if (fam === 'guard'){
+    N({ pos, color: 'brown', g: 0.09, a: d * 0.4, d: d * 0.9, filt: { type: 'bandpass', f: 180, f2: 420, q: 1, t: d * 0.5 } });
+    T({ pos, type: 'triangle', f: 68 * p, f2: 80 * p, g: 0.05, a: d * 0.4, d: d * 0.8, panK: 0.5 });
+  } else if (fam === 'speed'){
+    T({ pos, at: d * 0.15, type: 'sawtooth', f: 520 * p, f2: 170 * p, ft: d * 0.45, g: 0.03, a: 0.006, d: d * 0.55, filt: { type: 'bandpass', f: 2600, f2: 900, q: 2.5 } });
+    N({ pos, g: 0.045, a: 0.012, d: d * 0.6, trem: { r: rand(26, 36), d: 0.8 }, filt: { type: 'highpass', f: 4200 } });
+  } else if (fam === 'power'){
+    const big = len > 1.2;
+    T({ pos, type: 'sawtooth', f: 70 * p, f2: 110 * p, ft: d * 0.5, g: 0.05 * len, a: 0.02, d, filt: { type: 'lowpass', f: 600, f2: 2200, t: d * 0.5 }, drive: 0.6 + len * 0.25 });
+    crackle(pos, big ? 6 : 3, d, 0.04, 0.02);
+    if (big) N({ pos, g: 0.04, a: 0.02, d: d * 1.2, trem: { r: rand(13, 19), d: 0.85, type: 'square' }, filt: { type: 'highpass', f: 2600 }, drive: 0.6 });
+  } else if (fam === 'niman'){
+    N({ pos, color: 'pink', g: 0.06, a: d * 0.5, d: d * 1.4, trem: { r: 7, d: 0.3 }, filt: { type: 'bandpass', f: 700, f2: 3200, q: 3.5, t: d }, verb: 0.35 });
+    N({ pos, color: 'pink', g: 0.035, a: d * 0.5, d: d * 1.2, filt: { type: 'bandpass', f: 2800, f2: 900, q: 4, t: d }, verb: 0.35, pdrift: rand(-0.3, 0.3) });
+    T({ pos, at: d * 0.6, type: 'sine', f: rand(1040, 1090), g: 0.008, a: 0.02, d: 0.7, verb: 0.5, jit: 0.005, pri: 0 });
+  }
+}
+
+/* ---------- the heavy cut's charge (player/jedi/weight.js) ----------
+   Holding the saber button draws a cut back into a heavy: a charge from 0 (a tap) to 1 (committed heavy). While it
+   builds, a riser climbs with it and the room's air is stripped away (director.js, from BLADE_AUDIO.charge); the
+   instant it's full, a crisp electrical snap says "now". When the cut goes, chargeRelease voices it on a sliding scale:
+     charge  0 → 1   doppler bend  +3 → −5 semitones   (a light cut whips up, a heavy one sinks into a rumble)
+                     saturation    clean → roaring and crackling
+                     sub kick      none → a 50 Hz thump on the frame of release (heavy only)
+                     tail          an instant cutoff → a low rumble of displaced air lingering ~1.5 s
+   The form still voices the swing (FORM_SOUND, its group's colour); its group colours the riser (director.js). */
+export function chargeFull(pos){
+  N({ pos, g: 0.08, a: 0.0005, d: 0.012, filt: { type: 'highpass', f: 4200 }, drive: 0.9, pri: 2 });
+  T({ pos, type: 'square', f: 5200, f2: 2600, g: 0.022, a: 0.0005, d: 0.02, filt: { type: 'highpass', f: 2400 }, pri: 2 });
+  crackle(pos, 2, 0.04, 0.03);
+}
+export function chargeRelease(form, c, pos){
+  c = Math.max(0, Math.min(1, c));
+  const v = FORM_SOUND[form], semis = 3 - 8 * c, rise = Math.pow(2, semis / 12);
+  if (v) formSwing(v, pos, form, { rise, drive: c * c * 0.85 });
+  else swing(form === 'dark' ? 0.68 : 1, 1.2, form === 'dark', { pos, rise, drive: c * c * 0.85 });
+  if (c < 0.5) return;
+  const k = (c - 0.5) * 2;
+  // the roar and crackle of a saturated blade, and the 50 Hz kick on the frame of release
+  T({ pos, type: 'sawtooth', f: 62, f2: 48, g: 0.06 * k, a: 0.01, d: 0.4, filt: { type: 'lowpass', f: 1400, f2: 300 }, drive: 0.9 });
+  crackle(pos, Math.round(3 + 4 * k), 0.35, 0.04);
+  if (c >= 0.99){
+    T({ pos, type: 'sine', f: 75, f2: 50, ft: 0.05, g: 0.3, a: 0.001, hold: 0.02, d: 0.2, panK: 0, pri: 2 });
+    N({ pos, color: 'brown', g: 0.14, a: 0.001, d: 0.1, filt: { type: 'lowpass', f: 220 }, panK: 0 });
+  }
+  // the displaced air rumbling on after it (up to ~1.5 s)
+  N({ pos, at: 0.05, color: 'brown', g: 0.09 * k, a: 0.08, hold: 0.1, d: 1.4 * k, filt: { type: 'lowpass', f: 380, f2: 90 }, panK: 0.3, verb: 0.2, pri: 0 });
 }
 
 /* ---------- contact ---------- */

@@ -98,7 +98,10 @@ export function initEngine(){
   AE.duck = mk(AE.muffle, 1);                       // music + ambience dip under big hits
   AE.bus.sfx = mk(AE.muffle, AE.vol.sfx);
   AE.bus.music = mk(AE.duck, AE.vol.music);
-  AE.bus.amb = mk(AE.duck, AE.vol.sfx * 0.9);
+  // the ambience runs through a highpass that's normally wide open: a heavy cut being charged pulls it up, stripping
+  // the air out of the room before the strike (setAmbHP)
+  AE.ambHP = A.createBiquadFilter(); AE.ambHP.type = 'highpass'; AE.ambHP.frequency.value = 10; AE.ambHP.Q.value = 0.6; AE.ambHP.connect(AE.duck);
+  AE.bus.amb = mk(AE.ambHP, AE.vol.sfx * 0.9);
   AE.bus.ui = mk(shared.masterGain, AE.vol.sfx * 0.9);
   // the CLASH bus: a saber clash is four layers (saber.js clash), glued into one object by a fast-attack, medium-release
   // bus compressor, then set so the glued hit sits a little over a heavy saber hit, well above the score. It feeds the sfx bus, so the SFX slider and the
@@ -146,6 +149,9 @@ export function duck(depth, hold){
   g.linearRampToValueAtTime(1 - depth, t + 0.03);
   g.setTargetAtTime(1, t + 0.03 + (hold || 0.15), 0.35);
 }
+
+/* the ambience's highpass (10 Hz = open): a heavy cut's charge-up sweeps it up (director.js) */
+export function setAmbHP(hz, tc){ if (AE.ready) AE.ambHP.frequency.setTargetAtTime(hz, now(), tc || 0.05); }
 
 /* everything in the world muffles (pause menu, low health, a big hit to the player) */
 export function setMuffle(hz, tc){ if (AE.ready) AE.muffle.frequency.setTargetAtTime(hz, now(), tc || 0.08); }

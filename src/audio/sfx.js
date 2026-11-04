@@ -83,7 +83,7 @@ export const S = {
   // blade, placed in the world (a form master's swing); the hero's own swing has none
   swing: (kind, pos) => {
     if (tooSoon(pos ? 'fswing' : 'swing', 0.05)) return;
-    if (FORM_SOUND[kind]) return formSwing(FORM_SOUND[kind], pos);
+    if (FORM_SOUND[kind]) return formSwing(FORM_SOUND[kind], pos, kind);
     if (kind === 'fast') swing(1.15, 0.85);
     else if (kind === 'strong') swing(0.82, 1.35);
     else if (kind === 'dark') swing(0.68, 1.2, true);
@@ -182,6 +182,9 @@ export const S = {
     SB.parryChime(pos);
     duck(0.5, 0.45);
   },
+  // a heavy cut's charge (player/jedi/weight.js): the snap when it's full, and the cut on release, weighed by the charge
+  chargeFull: () => SB.chargeFull(),
+  chargeRelease: (form, c) => SB.chargeRelease(form, c),
   parryRise: (pos, eta) => { if (!tooSoon('prise', 0.1)) SB.parryRise(pos, eta); },
   // the riposte answer — a heavy decisive slash
   riposte: () => {

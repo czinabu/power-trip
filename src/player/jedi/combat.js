@@ -160,7 +160,8 @@ export function tryAttack(flow = false){
   }
   if (spin) spinTravel(spin, dirKey);
   else if (ang != null && !backStrike) cutFootwork(ang);
-  S.swing(isGunner() ? 'dark' : G.stance);   // the blade's whoosh, voiced by form
+  // the blade's whoosh, voiced by form (a held cut keeps it back: it sounds when the charge resolves, jedi/weight.js)
+  if (!player.swing.charging) S.swing(isGunner() ? 'dark' : G.stance);
   if (flow && !isGunner()) sfx(1250, 0.06, 'sine', 0.022, 1900);   // a faint ring: the link landed in rhythm
   if (perfect){ sfx(1660, 0.1, 'sine', 0.03, 2400); sfx(990, 0.14, 'sine', 0.025, 1500); }   // ...and a brighter one: the string was perfect
 }

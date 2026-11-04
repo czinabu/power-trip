@@ -76,13 +76,45 @@ function pommel(u, a){
   a.parent.updateWorldMatrix(true, false); u.saber.updateWorldMatrix(true, false);
   return a.parent.worldToLocal(u.saber.localToWorld(P.fromArray(TWO_HAND.at)));
 }
+/* JAR'KAI'S SECOND SABER — a foe fighting in Jar'Kai (e.ff 'jarkai', on the host and on a co-op guest alike, from the
+   snapshot's form) carries a copy of its own saber in the off hand. It is made the first time it's needed (the same
+   meshes and materials, so it burns the same colour and streaks: fx/trail.js finds its tagged glow) and hidden whenever
+   the foe changes out of the form. */
+function offSaber(o, u){
+  const on = o.ff === 'jarkai' && !!u.saber && !!u.elbowOff;
+  if (!on){ if (u.offSaber) u.offSaber.visible = false; return null; }
+  if (!u.offSaber){
+    const c = u.saber.clone(true);
+    c.position.set(0, -0.38, 0.03);   // the off fist (enemies/mesh.js arm: the grip group sits there on the elbow)
+    c.rotation.copy(u.saber0 || u.saber.rotation);
+    u.elbowOff.add(c);
+    u.offSaber = c;
+  }
+  u.offSaber.visible = true;
+  return u.offSaber;
+}
+// the weapon arm's recent swing, so the off arm can play it back mirrored a beat later (`follow` s)
+const HIST = 24;
+function remember(u, t){
+  const h = u.armHist || (u.armHist = { i: 0, t: new Float32Array(HIST), x: new Float32Array(HIST), y: new Float32Array(HIST), z: new Float32Array(HIST) });
+  const r = u.weaponArm.rotation, i = h.i = (h.i + 1) % HIST;
+  h.t[i] = t; h.x[i] = r.x; h.y[i] = r.y; h.z[i] = r.z;
+  return h;
+}
+const _e = new THREE.Euler(), Qf = new THREE.Quaternion();
+function lagged(h, t, out){
+  for (let n = 0, i = h.i; n < HIST; n++, i = (i - 1 + HIST) % HIST) if (h.t[i] <= t){ out.set(h.x[i], -h.y[i], -h.z[i]); return out; }
+  return null;
+}
 export function stanceArms(o, u, dt){
   const a = u.offArm, el = u.elbowOff;
   if (!a || !el || !u.saber || !u.weaponArm) return;
   if (!u.offHome) u.offHome = a.parent;
-  if (a.parent !== u.offHome) return;   // a saber cut took it off: a loose piece now
+  if (a.parent !== u.offHome){ if (u.offSaber) u.offSaber.visible = false; return; }   // a saber cut took it off: a loose piece now
   if (u.elbow0 == null) u.elbow0 = el.rotation.x;
   const S = stanceOf(o), k = o.stk || 0;
+  const dual = offSaber(o, u);
+  const hist = dual ? remember(u, (o.armClock = (o.armClock || 0) + dt)) : null;
   let bend = u.elbow0;
   const H = S && OFF_HAND[S.off === 'hilt' ? 'rest' : S.off];
   if (H && k > 0.001){
@@ -99,6 +131,17 @@ export function stanceArms(o, u, dt){
     reachPose(a.position, P, TWO_HAND.tw, out, Qp);
     a.quaternion.slerp(Qp, o.thk);
     bend += (-out.b - bend) * o.thk;
+  }
+  // JAR'KAI: through a cut the off arm swings the weapon arm's cut mirrored, `follow` s behind it
+  if (dual && S && S.follow){
+    const cut = o.state === 'windup' || o.state === 'strike' || o.state === 'recover';
+    o.dfk = damp(o.dfk || 0, cut ? 1 : 0, dt, 14);
+    if (o.dfk > 0.001 && lagged(hist, o.armClock - S.follow, _e)){
+      a.quaternion.slerp(Qf.setFromEuler(_e), o.dfk);
+      bend += (-0.25 - bend) * o.dfk;
+    }
+    // the off saber's wrist: stood up off the fist in the guard, straight down the arm for a cut
+    dual.rotation.x = damp(dual.rotation.x, (u.saber0 ? u.saber0.x : 0) + (cut ? 0 : -1.05 * k), dt, 12);
   }
   el.rotation.x = bend;
 }

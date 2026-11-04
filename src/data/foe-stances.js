@@ -48,6 +48,12 @@ export const FOE_STANCE = {
              wrist: { R: [0.75, 0.2], L: [0.4, -0.6], H: [0.3, -1.5], Lo: [0.4, 0.2] }, wind: [-0.2, 0.15] },
   // VII — Vaapad: Juyo's poise held back, the blade up and waiting
   vaapad:  { twist: 0.2, lean: 0.08, drop: 0.06, off: 'claw', arm: [-0.25, 0.1], wrist: UP },
+  // JAR'KAI — a saber in each hand (enemies/foestance.js gives it the second one): low and coiled, the weapon blade up at
+  // you and the off hand's held out ahead with its own blade up, the pair splitting your lines. Its cuts are answered by
+  // the off arm, the same cut mirrored a beat behind (`follow`, s)
+  jarkai:  { twist: 0.2, lean: 0.14, drop: 0.12, off: 'pair', follow: 0.13,
+             guard: { R: [-1.2, 0.45], L: [-1.45, -0.6], H: [-2.2, 0.05], Lo: [-0.7, -0.35] },
+             wrist: UP },
   // THE SABER STAFF on a one-bladed body: carried two-handed and low across the body
   staff:   { twist: 0.1, drop: 0.08, off: 'hilt', arm: [0.1, -0.3], wrist: { R: [-0.2, -1.2], L: [-0.2, -1.2], H: [0.1, -1.4], Lo: [0.4, -1.1] } },
 };
@@ -61,6 +67,7 @@ export const OFF_HAND = {
   ward:   { at: [0.14, -0.18, 0.66],  tw: 0.3 },    // out ahead, open, warding
   spring: { at: [-0.5, -0.4, 0.3],    tw: 0.5 },    // out to the side, low, for balance
   claw:   { at: [0.02, -0.08, 0.52],  tw: 0.9 },    // up and forward, bent, clawed
+  pair:   { at: [0.04, -0.3, 0.6],    tw: 0.5 },    // Jar'Kai: out ahead and a little low, its own saber up
 };
 // two hands: where the off hand closes on the hilt (in the saber's own frame: up the hilt from the sword hand, toward the
 // pommel), how far it may stretch, and how fast it takes hold or lets go

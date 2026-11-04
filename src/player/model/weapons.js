@@ -8,6 +8,7 @@
 //   build  — returns { group, ...hooks } built in the current render style
 // Adding a weapon type = one entry here + mounting it in mountLoadout().
 
+import { offGrip } from '../../data/forms.js';
 import * as THREE from 'three';
 import { loft, plate, block, ngon, chamfer } from './shapes.js';
 import { glow } from '../../engine/renderer.js';
@@ -253,12 +254,59 @@ export function setSaberStaff(hero, on, remember = true){
   root.userData.staff = on;
 }
 export const saberIsStaff = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.staff);
+
+/* JAR'KAI (data/forms.js jarkai): a second saber in the off hand. It is the same saber model, mounted on the left hand
+   with no light of its own (a light added or hidden recompiles every material: the main blade's light is enough),
+   and its blade and glow SHARE the main saber's materials, so it burns the form's colour without being told. Every frame
+   syncOffSaber copies the main blade's length (ignite, retract, the smear) and its grip, and hides it whenever the main
+   one is away (holstered, thrown). anim/saber.js aims it (saberPose.offBlade); jedi/bladehit.js cuts with it. */
+let dualOn = false;
+function mountOffSaber(R, S, player){
+  const w = WEAPON_MODELS.saber.build(S);
+  w.light.parent.remove(w.light);
+  w.blade.material = player.blade.blade.material;
+  w.glow.material = player.blade.glow.material;
+  w.group.position.set(0, GRIP_Y, 0);
+  w.group.rotation.set(0.25, 0, 0.4);
+  w.group.userData.weapon = { id: 'saberOff', hold: 'saber-1h' };
+  w.group.userData.restQ = w.group.quaternion.clone();
+  w.group.visible = false;
+  R.sockets.handL.add(w.group);
+  player.offSaber = { node: w.group, root: w.bladeRoot, blade: w.blade, glow: w.glow };
+}
+// show or put away the off-hand saber. A model built later takes the last state set (mountLoadout), like the staff.
+export function setSaberDual(hero, on, remember = true){
+  on = !!on;
+  if (remember) dualOn = on;
+  if (!hero) return;
+  if (hero.saberBladeRoot) hero.saberBladeRoot.userData.dual = on;
+  if (hero.offSaber) hero.offSaber.node.visible = on;
+}
+export const saberIsDual = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.dual && hero.offSaber);
+// keep the off saber in step with the main one (call each frame after the blade FX and the holster have run)
+export function syncOffSaber(hero, allowed = true){
+  const O = hero && hero.offSaber, B = hero && hero.blade;
+  if (!O || !B) return;
+  const on = allowed && !!(hero.saberBladeRoot && hero.saberBladeRoot.userData.dual);
+  const away = !!hero.offAway || !hero.saberHand || hero.saberHand.scale.x < 0.01 || hero.saberHand.parent !== hero.saberHand.userData.hand && !!hero.saberHand.userData.hand;
+  O.node.visible = on && !away;
+  if (!O.node.visible) return;
+  O.blade.visible = B.blade.visible; O.glow.visible = B.glow.visible;
+  O.blade.scale.copy(B.blade.scale); O.blade.position.y = B.blade.position.y;
+  O.glow.scale.copy(B.glow.scale); O.glow.position.y = B.glow.position.y;
+  // the off hand's own grip (data/forms.js DUAL_GRIPS); anim/saber.js turns the hilt over to it
+  const to = offGrip('jarkai') === 'reverse' ? 0 : Math.PI;
+  if (O.root.userData.gripTo === undefined) O.root.rotation.x = to;
+  O.root.userData.gripTo = to;
+}
 export function applySaberGrip(player, grip, instant = false){
   saberGrip = grip === 'reverse' ? 'reverse' : 'regular';
   const root = player.saberBladeRoot;
   if (!root) return;
   root.userData.gripTo = saberGrip === 'reverse' ? 0 : Math.PI;
   if (instant) root.rotation.x = root.userData.gripTo;
+  const O = player.offSaber;   // Jar'Kai's off saber: its own grip
+  if (O){ O.root.userData.gripTo = offGrip('jarkai') === 'reverse' ? 0 : Math.PI; if (instant) O.root.rotation.x = O.root.userData.gripTo; }
 }
 
 export function mountWeapon(R, S, id, socket){
@@ -282,6 +330,9 @@ export function mountLoadout(R, S, player){
   player.blade.staff = saber.staff;
   applySaberGrip(player, saberGrip, true);
   setSaberStaff(player, staffOn, false);
+  mountOffSaber(R, S, player);
+  setSaberDual(player, dualOn, false);
+  player.offSaber.node.visible = false;   // (shown by syncOffSaber on the hero you play, by the gear on a partner, by the stance preview: never on a cutscene's actor)
 
   player.pistols = { L: mountWeapon(R, S, 'pistol', 'handL').group, R: mountWeapon(R, S, 'pistol', 'handR').group };
 

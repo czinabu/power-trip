@@ -29,7 +29,7 @@ const WORKERS = +opt('workers', 3), REPS = +opt('reps', 4), OUT = opt('out', nul
 const PRESETS = { good: null, average: { parry: 0.35, sigma: 0.1, read: 0.5, mash: 0.5, gap: 0.65, bite: 0.5, see: 0.3 } };
 const SK = opt('skill', 'good'), SKILL = SK in PRESETS ? PRESETS[SK] : JSON.parse(SK);
 
-const FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo', 'vaapad', 'staff'];
+const FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo', 'vaapad', 'staff', 'jarkai'];
 const RANKS = ['initiate', 'adept', 'knight', 'master'];
 const DEPTH = { initiate: 1, adept: 4, knight: 9, master: 14 };   // where in a run each rank is met (the foes' skill ramp)
 const HPM = (d) => 1 + d * 0.05;   // a campaign foe's health this deep (enemies/elites.js enemyHpScale)

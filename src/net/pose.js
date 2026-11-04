@@ -18,7 +18,9 @@ const JOINTS = ['vis', 'hips', 'torso', 'chest', 'head', 'back', 'cape', 'skirt'
 // ...and the ones animation also moves (the hips bob and shift, the torso leans, a flip lifts the whole visual root)
 const MOVED = ['vis', 'hips', 'torso'];
 // hand-held gear: which socket each hangs on (in hand or stowed: player/holster.js), and how it sits there
-const GEAR = ['saberHand', 'saberBladeRoot', 'pistols.L', 'pistols.R', 'rifleMesh', 'darksaberMesh'];
+// (append only: the gear travels by index. offSaber: Jar'Kai's second saber in the off hand, its hilt and its grip root)
+const GEAR = ['saberHand', 'saberBladeRoot', 'pistols.L', 'pistols.R', 'rifleMesh', 'darksaberMesh', 'offSaber.node', 'offSaber.root'];
+const ROOTS = new Set(['saberBladeRoot', 'offSaber.root']);   // a grip root inside a hilt, not on a socket
 const SOCKETS = ['handR', 'handL', 'back', 'belt', 'hipL', 'hipR'];
 
 const at = (o, path) => path.split('.').reduce((a, k) => a && a[k], o);
@@ -35,7 +37,7 @@ export function readPose(hero){
   for (const n of GEAR){
     const m = at(hero, n);
     if (!m){ gear.push(null); continue; }
-    const s = n === 'saberBladeRoot' ? -1 : SOCKETS.findIndex(k => hero.rig.sockets[k] === m.parent);
+    const s = ROOTS.has(n) ? -1 : SOCKETS.findIndex(k => hero.rig.sockets[k] === m.parent);
     gear.push([m.visible ? 1 : 0, s, r3(m.position.x), r3(m.position.y), r3(m.position.z), r3(m.quaternion.x), r3(m.quaternion.y), r3(m.quaternion.z), r3(m.quaternion.w)]);
   }
   const B = hero.blade, jet = hero.jetGlow && hero.jetGlow[0];
@@ -116,6 +118,8 @@ function applyGear(hero, pose){
     if (fx.bc){ B.glow.material.color.setHex(fx.bc); B.light.color.setHex(fx.bc); }
     B.light.intensity = fx.blade ? PARTNER_LIGHT : 0;   // dimmed, never hidden: a light switching off recompiles shaders
     setSaberStaff(hero, !!fx.staff, false);   // (their staff, not ours: the local hero's own state is left alone)
+    if (hero.saberBladeRoot) hero.saberBladeRoot.userData.dual = !!(hero.offSaber && hero.offSaber.node.visible);   // (Jar'Kai: their second saber came with the gear)
+    if (hero.offSaber){ hero.offSaber.blade.visible = hero.offSaber.glow.visible = !!fx.blade; }
   }
   if (hero.darkBlades) for (const b of hero.darkBlades) b.visible = !!fx.dark;
   bladeSound(hero, fx);

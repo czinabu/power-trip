@@ -22,7 +22,8 @@ import { STARTING_FORMS } from './forms.js';
    BALANCE (damage a second = dmg × speed, before each form's own edge): Djem So ~1.4 and ~2.75 on armour and the boss ·
    Juyo ~1.4, ~1.85 at full fury, at 8 stamina and 5 Force a swing · Makashi ~1.2, ~1.75 on blades · Shien, Vaapad ~1.15 ·
    Ataru ~1.1, ~1.75 on the back line · Niman ~1.0, the cheapest powers · Shii-Cho ~0.95 with the widest arc · Soresu
-   ~0.75, the best guard. The saber staff ~1.05 a blade, with two blades sweeping. How far a cut throws a foe is capped for every form (data/config.js saberShove). Keep a form's edge where its role is; tools/form-balance.mjs prints the table. */
+   ~0.75, the best guard. The saber staff ~1.05 a blade, with two blades sweeping. Jar'Kai ~1.15 on one foe, its two beats
+   together (dmg × (1 + offDmg) × speed). How far a cut throws a foe is capped for every form (data/config.js saberShove). Keep a form's edge where its role is; tools/form-balance.mjs prints the table. */
 export const STANCES = {
   /* FORM I SHII-CHO — the first form every initiate learns (Kit Fisto, Luke at Jabba's barge). Wide, simple sweeps built
      for many foes at once; the string ends in the SARLACC SWEEP (a full turn: everything round you), and that finisher
@@ -151,6 +152,24 @@ export const STANCES = {
             deflectScatter: 0.08,
             gait: { amp: 1.04, lift: 1.1, bob: 0.4, lean: 1.1 },   // MOVEMENT: light and turning, the staff carried across the body
             syn: 'SWEEPS · two blades: every cut covers front and back · fast wheeling strings · spinning finisher · COSTLY guard · slower Force casts' },
+  /* JAR'KAI — not one of the seven forms but a way of fighting: a saber in each hand (Ahsoka, Ventress, Revan,
+     Starkiller; data/forms.js jarkai). A SPEED form: every cut is two beats, the lead blade and then the off hand's
+     follow-up on the other line (anim/saber.js), quick enough to land inside a heavy wind-up. The budget is ONE
+     single-blade cut split across the two: the lead bites light (dmg) and the follow-up adds `offDmg` of it (damage and
+     posture only: on-hit effects fire once a swing, jedi/combat.js applyOffBladeHit), so damage a second sits with Makashi
+     and Ataru, not above them. Light posture (breaking guards is the staff's job), a narrow arc, little against armour.
+     Crossed blades make a cheap block against a blade, but two blades are less exact on bolts, and a hand has to come off
+     a hilt to cast. No grip of its own: the hero's preference (Settings / G), both blades together. */
+  jarkai: { name: 'JAR’KAI — FLURRY', form: 'jarkai', formNo: null, blade: 0x7dffa8,
+            dmg: 0.8, heavyDmg: 0.8, speed: 0.95, knock: 0.35, stamina: 6, lunge: 1.3, move: 1.12, accel: 1.25, twist: 0.5, bladeLen: 0.92,
+            radiusMult: 0.9, comboGap: 1.3, fovKick: 3, postureMul: 0.85, parryBonus: -0.02,
+            offDmg: 0.7,          // ROLE: the off hand's follow-up lands 70% of the lead cut (one cut's budget across both)
+            blockStamMul: 0.85,   // the crossed-blade block: a blow on the guard costs 15% less…
+            deflectStamMul: 1.4,  // …but a bolt caught on two blades costs more (×0.85 ×1.4: ~20% more than a plain saber)
+            deflectScatter: 0.14, // two blades, less exact: deflects scatter (rad)
+            powerCostMul: 1.2,    // COST: a hand comes off a hilt to cast: Force powers cost 20% more
+            gait: { amp: 1.06, lift: 1.05, bob: 0.4, lean: 1.05 },   // MOVEMENT: light and quick on the feet, both blades low and ready
+            syn: 'FLURRY · two blades: every cut is two beats · gets inside heavy wind-ups · crossed-blade block · finisher throws the off saber · WEAK vs tight guards, crowds and armour' },
   // THE DARKSABER — the Mando's signature melee (selected automatically when the darksaber is equipped, not a
   // switchable Jedi form). Heavy-like, but the highest damage in the game, a touch faster & more mobile than Djem So.
   darksaber: { name: 'DARKSABER', form: 'darksaber', blade: 0xc9a6ff,
@@ -228,6 +247,7 @@ export const CUT_ANGLE = {
     juyo:    [45, 225, 0, 315, 180, 90, 135],   // Juyo: a savage, broken rhythm: diagonals whipped off each other, no two alike
     vaapad:  [135, 315, 180, 45, 90],          // Vaapad: answers on the line the attack came from, then explodes down the middle     // Shien: reverse-grip backhands whipped out to the weapon side and back across          // Soresu: short cuts that come straight back to guard: heavy cuts down from the shoulder and back up the same line
     staff:   [0, 180, 45, 225, 90, 270],   // the staff: each cut leaves from where the last one finished, end over end
+    jarkai:  [0, 180, 315, 225, 45, 135],  // Jar'Kai: quick flats and rising cuts side to side, each one answered by the other hand
   },
   reset: 1.2,
   // the keys, with no flick: A / D the flat cuts · W + A / D the downward diagonals · S + A / D the rising cuts · W the

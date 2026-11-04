@@ -11,9 +11,9 @@ import { V3, clamp } from '../utils.js';
 import { floater } from '../fx/floaters.js';
 import { shared, G, keys, player, isGunner, isTrooper } from '../state.js';
 import { keyWeapon, carriedOrder } from '../data/mando.js';
-import { fwd, rightV, playerPos, stance } from '../player/helpers.js';
+import { fwd, rightV, playerPos, stance, heldGrip } from '../player/helpers.js';
 import { switchSlot, cycleSlot, swapVariant } from '../player/jedi/stance.js';
-import { FORMS } from '../data/forms.js';
+import { FORMS, isDual, DUAL_GRIPS, dualGripIndex, setDualGrip } from '../data/forms.js';
 import { tryAttack, cancelSwing, forceKick } from '../player/jedi/combat.js';
 import {
   forcePush, saberThrow, forcePull, forceRepulse, forceBarrier, forceMend, forceJudgement, forceSlam
@@ -37,6 +37,7 @@ import { startMission, retryMission } from '../game/mission.js';
 import { showBanner } from '../ui/banners.js';
 import { overlay, setSaberGrip } from '../ui/menus.js';
 import { startSwitch } from '../player/anim/saber.js';
+import { applySaberGrip } from '../player/model/weapons.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { diffWindow } from '../data/difficulty.js';
 import { toggleHolster, toggleBlade, wakeBlade } from '../player/holster.js';
@@ -218,6 +219,14 @@ document.addEventListener('keydown', (e) => {
       // between a regular and a reverse (Starkiller-style) grip; every other form holds its own forward grip (data/forms.js)
       const own = !isGunner() && FORMS[G.stance] && FORMS[G.stance].grip;
       if (swapVariant()){ /* swapped: the new form brings its own grip and guard */ }
+      else if (!isGunner() && isDual(G.stance)){   // Jar'Kai: both forward → off reversed → both reversed
+        setDualGrip(dualGripIndex() + 1);
+        applySaberGrip(player, heldGrip());
+        startSwitch();
+        const [m, o] = DUAL_GRIPS[dualGripIndex()];
+        showBanner('', m === o ? (m === 'reverse' ? 'BOTH SABERS REVERSED' : 'BOTH SABERS FORWARD') : 'RIGHT FORWARD · LEFT REVERSED', 0.9);
+        sfx(520, 0.06, 'triangle', 0.04, 760);
+      }
       else if (own){ showBanner('', FORMS[G.stance].name + ' HOLDS A ' + (own === 'reverse' ? 'REVERSE' : 'FORWARD') + ' GRIP', 1.0); sfx(200, 0.06, 'triangle', 0.03, 160); }
       else {
         setSaberGrip(G.saberGrip === 'reverse' ? 'regular' : 'reverse');

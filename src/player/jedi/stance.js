@@ -2,7 +2,7 @@
 // Lightsaber stance switching, the three-slot form loadout, and the stance HUD.
 
 import { STANCES, stanceUnlocked } from '../../data/stances.js';
-import { FORMS, LOADOUT_SLOTS, cleanLoadout, otherVariant, isStaff } from '../../data/forms.js';
+import { FORMS, LOADOUT_SLOTS, cleanLoadout, otherVariant, isStaff, isDual } from '../../data/forms.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3 } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
@@ -12,7 +12,7 @@ import { reigniteBlade } from '../../fx/trail.js';
 import { wakeBlade } from '../holster.js';
 import { startSwitch } from '../anim/saber.js';
 import { playerPos, stance, bladeColor, heldGrip } from '../helpers.js';
-import { applySaberGrip, setSaberStaff } from '../model/weapons.js';
+import { applySaberGrip, setSaberStaff, setSaberDual } from '../model/weapons.js';
 
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
 
@@ -91,6 +91,7 @@ export function switchStance(id, silent){
   player.blade.light.color.setHex(bladeColor(st));
   applySaberGrip(player, heldGrip(), !!silent);   // Shien turns the hilt over into its reverse grip, and back out of it
   setSaberStaff(player, isStaff(id));   // the saber staff: the long hilt and its second blade (snapped in as the blade re-ignites)
+  setSaberDual(player, isDual(id));     // Jar'Kai: a second saber in the off hand (it ignites with the first)
   const lit = !silent && wakeBlade();   // the blade was out (5): the new form lights it, the full snap-hiss (S.reignite below then holds off)
   if (!silent){ if (!lit) reigniteBlade(); startSwitch(); }   // snap-hiss: the blade re-ignites in the new form's colour and turns into its guard
   setStanceHud();

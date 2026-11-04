@@ -278,6 +278,16 @@ export const LESSONS = {
           keys: 'TAP RMB', do: 'With the staff, turn 4 bolts', ev: 'deflect', stance: 'staff', need: 4, spawn: shooter() },
       ] },
 
+    { id: 'jarkai', group: 'more', form: 'jarkai', name: "JAR'KAI", sub: 'A saber in each hand: every cut is two', loadout: ['shiicho', 'jarkai', null],
+      done: 'Two blades, one rhythm. Never give them time to finish a swing.',
+      steps: [
+        { sec: "JAR'KAI", say: 'A saber in each hand. Every cut you make, the other hand follows on the other side, a beat behind.',
+          keys: '2 · LMB', do: 'Land 4 follow-up cuts with the off-hand saber', ev: 'offBlade', stance: 'jarkai', need: 4, respawn: true,
+          spawn: dummies([[0, -2.2], [-1.4, -1.8]], { sparring: true }) },
+        { say: 'Cross both blades to block: a scissor that catches a blow in its fork. G turns both hilts over into a reverse grip.',
+          keys: 'TAP RMB', do: 'Parry 2 strikes on the crossed blades', ev: 'parry', stance: 'jarkai', need: 2, spawn: partner() },
+      ] },
+
     /* ---------------- THE POWERS — each step opens when the story reaches that power ---------------- */
     { id: 'powers', group: 'more', any: ['barrier', 'throw', 'jslam', 'mend', 'judge', 'repulse'], name: 'FORCE POWERS', sub: 'The powers the story has opened to you', loadout: BASE,
       done: 'In a real run each pair is a choice: you will carry one of the two.',

@@ -81,17 +81,17 @@ function liveView(){
   return { lv: forceLevel(), rank: formRank, pts: practise ? (id) => (G.formUse && G.formUse[id]) || 0 : null,
     waits: (id) => G.formSince && G.formSince[id] != null && (G.waveTotal || 0) < G.formSince[id] + FORM_RANKS.gap * (formRank(id) + 1),
     has: (k) => !!(G.unlocked && G.unlocked[k]), powerRank: masteryRank,
-    why: G.sandbox ? 'The sandbox fights at the Force Level and rank its panel sets (B).' : G.training ? 'Training fights at the Force Level and ranks the story has reached.' : '' };
+    why: G.sandbox ? 'Level and ranks set in the sandbox panel (B)' : G.training ? 'Level and ranks as far as the story has reached' : '' };
 }
 function savedView(run){
   const fr = run.formRank || {}, fu = run.formUse || {}, un = run.unlocked || {}, pm = run.mastery || {};
   return { lv: Math.max(1, Math.min(FORCE_MAX, run.forceLevel || 1)), rank: (id) => fr[id] || 0, pts: (id) => fu[id] || 0, waits: () => false,
-    has: (k) => !!un[k], powerRank: (id) => pm[id] || 0, why: 'Your saved campaign run · ' + resumeLabel() };
+    has: (k) => !!un[k], powerRank: (id) => pm[id] || 0, why: 'Saved run · ' + resumeLabel() };
 }
 function storyView(){
   const b = bestRanks();
   return { lv: storyForceLevel(), rank: (id) => b[id] || 0, pts: null, waits: () => false, has: null, powerRank: () => 0,
-    why: 'The furthest the story has taken you: the Force Level training and the sandbox fight at, and each form\'s best rank from any run.' };
+    why: 'As far as the story has reached · best ranks from any run' };
 }
 const shareOf = (id) => shareAt(id, ctx.view.rank(id));
 const pctOf = (x) => Math.round(x * 100) + '%';
@@ -145,11 +145,10 @@ function forceSection(){
   const fname = esc(FORMS[id || STARTING_FORMS[0]].name);
   const moveCut = Math.round((1 - costMulFor(Math.max(0, v.lv - MOVE_ARRIVE.jump) * share)) * 100);
   const pw = Object.keys(POWER_GROWTH).map(k => powerRow(k, share)).join('') +
-    '<div class="fm-pw"><div class="fm-pw-h"><b>FORCE JUMP &amp; DASH</b><span class="fm-pw-lv">LV 1</span></div><div class="fm-pw-l"><span class="fm-pw-up">Same height and reach</span>' +
+    '<div class="fm-pw"><div class="fm-pw-h"><b>FORCE JUMP &amp; DASH</b><span class="fm-pw-lv">LV 1</span></div><div class="fm-pw-l"><span class="fm-pw-up">Cost only</span>' +
     (moveCut ? '<span class="fm-pw-cost">−' + moveCut + '% Force</span>' : '') + '</div></div>';
   return '<div class="fm-sec">THE FORCE</div><div class="fm-force"><div class="fm-lv"><div class="fm-lv-k">FORCE LEVEL</div><div class="fm-lv-n">' + v.lv + '<span>/ ' + FORCE_MAX + '</span></div>' +
-    pips(v.lv, FORCE_MAX) + '<div class="fm-lv-in">In <b style="--c:' + hex(STANCES[id || STARTING_FORMS[0]].blade) + '">' + fname + '</b> your powers draw on <em>' + pctOf(share) + '</em> of it</div>' +
-    '<div class="fm-lv-t">It rises with the story: the higher it is, the harder your powers hit and the less Force they cost. Pick a form below to compare.</div></div>' +
+    pips(v.lv, FORCE_MAX) + '<div class="fm-lv-in" title="The Force Level rises with the story: the higher it is, the harder your powers hit and the less Force they cost. Pick a form below to compare.">In <b style="--c:' + hex(STANCES[id || STARTING_FORMS[0]].blade) + '">' + fname + '</b> your powers draw on <em>' + pctOf(share) + '</em> of it</div></div>' +
     '<div class="fm-pws">' + pw + '</div></div>';
 }
 const EDIT_HINT = ' Pick a slot, then a form for it. ✕ empties a slot.';
@@ -264,8 +263,8 @@ function render(){
   // both pages share one layout: small tiles, and one form's whole story beside them (the pause page opens on the form in hand)
   panel.innerHTML = '<div class="howto-panel fm-compact' + (ctx.view ? ' fm-mastery' : '') + '">' +
     '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'FORMS &amp; MASTERY') + '</div>' +
-    '<div class="rm-sub">' + head + '</div><div class="howto-x" data-x="1">✕</div></div>' +
-    (ctx.view ? (ctx.view.why ? '<div class="fm-note top">' + esc(ctx.view.why) + '</div>' : '') + forceSection() : '') +
+    '<div class="rm-sub">' + head + (ctx.view && ctx.view.why ? ' · ' + esc(ctx.view.why) : '') + '</div><div class="howto-x" data-x="1">✕</div></div>' +
+    (ctx.view ? forceSection() : '') +
     (ctx.loadout ? '<div class="fm-sec">YOUR THREE</div>' + slotRow() : '') +
     (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + (ctx.edit ? EDIT_HINT : '') + '</div>' : '') +
     '<div class="fm-sec">THE FORMS</div><div class="fm-body"><div class="fm-tiles">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') + '</div>' + detail() + '</div>' + lockedRow() +

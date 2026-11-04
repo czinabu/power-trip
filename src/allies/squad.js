@@ -16,7 +16,7 @@ import { burst } from '../fx/particles.js';
 import { groundRing } from '../fx/ink.js';
 import { floater } from '../fx/floaters.js';
 import { bark } from '../fx/barks.js';
-import { shared, G, enemies, bolts, player, isGunner, isMando, heroKey, isTrooper } from '../state.js';
+import { shared, G, enemies, bolts, player, isGunner, isMando, heroKey, isTrooper, bossUp } from '../state.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { SCALE } from '../data/coop.js';
 import { heroesHere, players } from '../player/players.js';
@@ -191,7 +191,7 @@ export const orderCode = (a) => !standing(a) ? 'down' : a.mark && !a.mark.dead ?
 export const orderLabel = (a) => a.net ? (a.netKind === 'down' ? 'DOWN' : a.netKind === 'follow' && DUEL.on ? 'CLEARING' : a.netKind === 'follow' && a.netPartner !== !!G.coopGuest ? 'ON PARTNER' : LABEL[a.netKind] || '') :
   orderCode(a) === 'down' ? 'DOWN' : orderCode(a) === 'follow' && DUEL.on ? 'CLEARING' : a.ord.partner ? 'ON PARTNER' : LABEL[orderCode(a)] || '';
 // a boss is the hero's alone: the level's boss always, and (for a hero whose squad leaves the duel to them: DUEL_RING) a champion too
-const heroesFoe = (e) => e === shared.boss || (!!e.champion && !!DUEL_RING.heroes[G.hero]);
+const heroesFoe = (e) => e === shared.boss || e === shared.finale || (!!e.champion && !!DUEL_RING.heroes[G.hero]);
 
 /* give an order: `id` from data/allies.js ORDERS, to squadmate `idx` (0-3) or the whole squad (null).
    Returns false when there was nothing to do (no target, no one down, the grenade still cooling).
@@ -685,7 +685,7 @@ function wantSpot(a, medic, dt){
 // duellist, survival's warbringer). Once on, it stays on until the boss falls or the hero walks well off from it
 function duelFoe(){
   if (!DUEL_RING.heroes[G.hero]) return null;
-  const b = shared.boss;
+  const b = bossUp();
   if (b && b.hp > 0 && b.group) return b;
   const pp = playerPos();
   let best = null, bd = 1e9;
@@ -895,7 +895,7 @@ export function updateSquad(dt){
   updateDuel(dt);
   if ((SQ.slotT -= dt) <= 0){ SQ.slotT = 0.25; assignSlots(); }
   // a wave or objective cleared: everyone up, patched, and the hero's second chance back
-  const hostiles = enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!shared.boss;
+  const hostiles = enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!bossUp();
   if (hostiles) SQ.fighting = true;
   else if (SQ.fighting){ SQ.fighting = false; if (!guest()) refill(); }
   // a hero is down (this one, or the co-op partner): the nearest squadmate standing drops everything and runs to them

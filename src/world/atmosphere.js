@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { renderer, scene, camera, hemi, sun, rim, glow, setSceneGlow, setGrade, aoFade } from '../engine/renderer.js';
 import { rand, clamp } from '../utils.js';
-import { shared, G, player } from '../state.js';
+import { shared, G, player, bossUp } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { HAZE } from './ink.js';
 import { SABER_LIGHT, DARK_LIGHT } from '../player/model/weapons.js';
@@ -127,7 +127,7 @@ export function clearAtmosphere(){ setMood(null); A.moodOn = false; applyGlow(0)
 
 /* how far into this level's fight we are, 0 (first wave) → 1 (final wave / boss) */
 function progress(){
-  if (shared.boss && shared.boss.hp > 0) return 1;
+  if (bossUp()) return 1;
   if (G.mission) return missionProgress();
   if (G.endless) return (((G.endlessWave || 1) - 1) % 5) / 4;
   const L = LEVELS[G.levelIdx], n = L ? L.waves.length : 4;

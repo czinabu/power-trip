@@ -47,6 +47,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     return;
   }
   if (e.ward != null){ if (!e.ward && dmg > 0) return; dmg *= e.ward; }   // warded by a mission twist: untouchable (0), or taking less (game/twists/)
+  if (e.dmgRule){ const r = e.dmgRule(e, dmg, tick, opts); if (r === null) return; dmg = r; }   // a final boss's own rules on what lands (boss/finale.js)
   const byAlly = !!(opts && opts.ally);
   if (e.scanT > G.gt && dmg > 0) dmg *= e.scanMul || 1;   // marked by the ARC trooper's recon scan (player/trooper/abilities.js)
   // the ARC trooper's SUPPRESS order (allies/squad.js): a squad bolt that lands in the zone PINS its foe (enemies/ai.js)
@@ -182,13 +183,13 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
   } else if (opts && opts.launch === false){
     // no launch: the caller decides how it reels (a flinch, a shove, a stagger)
-  } else if (knockDir && knockPow > 16 && !e.t.heavy){
+  } else if (knockDir && knockPow > 16 && !e.t.heavy && !e.noFloor){
     // a LIVE knockdown — controlled tip-back, stops acting, then gets up (NOT the free-spin death ragdoll).
     // A JET TROOPER drops out of the air too, and the crash breaks its jetpack (ai.js knockdown).
     e.state = 'knockdown'; e.st = 0.7;
     e.vel.copy(knockDir.clone().multiplyScalar(shoveCap(knockPow, opts)));
     e.vel.y = opts && opts.shove ? rand(...CFG.player.saberShove.lift) : rand(4, 7);
-  } else if (knockDir && e.t.heavy){
+  } else if (knockDir && e.t.heavy && !e.noFloor){
     if (knockPow > 26){   // only truly heavy blows (Strong stance, Slam, Repulse) floor a brute
       e.state = 'knockdown'; e.st = 0.95;   // brutes stay down a touch longer
       e.vel.copy(knockDir.clone().multiplyScalar(shoveCap(knockPow * 0.5, opts)));
@@ -338,6 +339,7 @@ export function bossTelegraph(g, tx, tz){
 
 // a parried foe stumbles: knocked off balance, weapon flung wide, open to a free hit
 export function staggerEnemy(e, awayX, awayZ, label){
+  if (e.hyper) return;   // mid-move that can't be broken (a final boss's: boss/finale.js)
   const g = e.group;
   e.state = 'stagger';
   e.st = e.t.staff ? 1.5 : (e.t.heavy ? 1.25 : 1.3);   // brutes recover slower; staff foes longest

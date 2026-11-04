@@ -15,6 +15,7 @@ import { ENEMY_TYPES } from '../src/data/enemies.js';
 import { buildEnemyMesh } from '../src/enemies/mesh.js';
 import { lookPool } from '../src/data/foe-looks.js';
 import { buildBoss } from '../src/boss/mesh.js';
+import { VEXIS } from '../src/data/bosses.js';
 import { updateUpper } from '../src/enemies/upper.js';
 import { markHit } from '../src/enemies/marks.js';
 import { ELITES } from '../src/data/enemies.js';
@@ -60,7 +61,13 @@ function pose(g, heavy){
 
 const figs = [];
 if (SET === 'bosses'){
-  for (const kind of ['sith', 'mando']){
+  // Darth Vexis: a duellist's body in his own look (data/bosses.js VEXIS); &old=1 shows the state-machine model he replaced
+  if (q.get('old') !== '1'){
+    const g = buildEnemyMesh(ENEMY_TYPES[VEXIS.type], { look: VEXIS.look });
+    g.scale.multiplyScalar(VEXIS.scale);
+    figs.push({ g, label: 'Darth Vexis', w: 3.4 });
+  }
+  for (const kind of q.get('old') === '1' ? ['sith', 'mando'] : ['mando']){
     const g = buildBoss(kind);
     if (POSE !== 'windup' && g.userData.hand) g.userData.hand.rotation.z = -0.6;
     pose(g, true);
@@ -162,7 +169,7 @@ for (const f of figs){
 
 camera.fov = 30;
 if (SET === 'bosses'){ camera.position.set(0, 3.0, 12.5); camera.lookAt(0, 2.4, 0); }
-else { const z = +q.get('z') || Math.max(5, total * 0.95); camera.position.set(0, 1.4 + z * 0.08, z); camera.lookAt(0, 1.45, 0); }
+else { const z = +q.get('z') || Math.max(5, total * 0.95), cy = q.get('cy') != null ? +q.get('cy') : 1.45; camera.position.set(0, cy - 0.05 + z * 0.08, z); camera.lookAt(0, cy, 0); }   // &cy=<height>: what the camera looks at (a close-up on a head)
 if (q.get('cam')){ const [cx, cy, cz, ly] = q.get('cam').split(',').map(Number); camera.position.set(cx, cy, cz); camera.lookAt(cx, ly ?? cy, 0); }   // &cam=x,y,z,lookY: a close-up
 camera.updateProjectionMatrix();
 const fill = new THREE.DirectionalLight(0xdfe8ff, 0.55); fill.position.set(-4, 5, 12); scene.add(fill);

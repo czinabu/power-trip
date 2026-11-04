@@ -75,3 +75,71 @@ export const BOSS_MANDO = {
   pulse: { rings: [1, 2, 3] },     // his jetpack ground-pound gains extra shock rings late
   blink: { cd: 8, range: 11 },     // ANTI-KITE: a jet CHARGE straight at a kiting hunter
 };
+
+/* ============================================================
+   DARTH VEXIS — the Jedi's final boss, fought on a duellist's body (boss/finale.js, boss/vexis.js)
+   ============================================================
+   He is a named duellist like the Grand Inquisitor (the Sith acolyte's body, the saber cast's look 'DARTH VEXIS', the
+   duel system's guards, feints, strings and saber locks) with a final boss's fight laid over it: three phases that look
+   and play differently, and signature moves that each have one clear answer, shown in the shared tell colours
+   (fx/tells.js: parry = white and red, dodge = red, area = amber).
+     I   THE DUELLIST   a Juyo master: strings, feints, locks. A held block is broken by his GUARD BREAKER, and a hero who
+                        backs off gets his saber thrown after them
+     II  THE FORCE      + lightning you catch on your guard and throw back (parry a surge, or Push), the choke, the repulse
+     III UNLIMITED POWER the lights die; + blink chains, the lightning storm, and one last stand at the end
+   Every number below is his; the duel profile keys are data/duel.js's. */
+export const VEXIS = {
+  id: 'vexis', codex: 'sith',
+  name: 'DARTH VEXIS', title: 'DARTH VEXIS — HERALD OF THE VOID', look: 'DARTH VEXIS',
+  intro: 'Herald of the Void',
+  phases: ['THE DUELLIST', 'THE FORCE', 'UNLIMITED POWER'],   // the boss bar's name for each phase
+  phaseLines: ['', 'Enough swordplay.', 'The dark answers me.'],   // the banner as each phase begins
+  fallLine: 'DARTH VEXIS FALLS',
+  type: 'acolyte',                 // the body and the duelling AI he fights on (data/enemies.js)
+  hp: 1300, dmg: 1.3, scale: 1.24, speed: 1.05,   // hp (before difficulty and co-op), × the acolyte's damage, size, pace
+  form: 'juyo', rank: 'master',    // his form (data/foe-forms.js BOSS_FORM.sith) and its repertoire (FORM_SWITCH.boss.sith)
+  phaseAt: [0.66, 0.33],           // hp fractions where phase II and phase III begin
+  // the duel profile per phase, laid over the Juyo master's own (data/foe-forms.js foeProfile)
+  duel: [
+    { posture: 240, feint: 0.36, delay: 0.32, chain: 3, counter: 0.7, thrust: 0.2, parry: 0.7, finisher: 0.85, stam: 220 },
+    { posture: 220, feint: 0.4,  delay: 0.34, chain: 3, counter: 0.74, thrust: 0.22, parry: 0.72, finisher: 0.9, stam: 220 },
+    { posture: 200, feint: 0.42, delay: 0.36, chain: 4, counter: 0.8, thrust: 0.24, parry: 0.75, finisher: 0.95, stam: 240 },
+  ],
+  pace: [1, 1.06, 1.16],           // × his speed per phase
+  // ANTI-CHEESE — no blow takes more than this share of his bar (more when he's staggered open); later phases shrug off
+  // a little of everything; a Force power that would floor a foe only rocks him
+  hitCap: 0.07, hitCapOpen: 0.13, phaseResist: [1, 0.9, 0.8],
+  // and however the blows come (a finisher's whole string, a chain of openings), no more than this share of his bar goes
+  // in any burstWin seconds: an opening is worth a good chunk, never a phase
+  burstCap: 0.16, burstWin: 1.6,
+  // between moves: how long he duels before he reaches for a signature (s), and how soon one can follow another
+  sigGap: [5.5, 4.2, 3.2], sigMin: 2.2,
+  // THE PHASE BEAT — the blow that crosses a threshold drives him to a knee; he rises in the next phase with a repulse
+  beat: { kneel: 1.3, rise: 0.9, slowmo: 0.35, slowT: 0.7, ring: { r: 9, dmg: 14 }, push: 11 },
+  // THE DEFEAT — on his knees, the blade dies; then the story (or the floor back, in the sandbox)
+  defeat: { kneel: 3.2, slowmo: 0.3, slowT: 1.2, xp: 1400 },
+  moves: {
+    // I+ GUARD BREAKER: you've held a block in his face too long. A Force palm that shatters a held guard (the parry tell)
+    guardBreak: { from: 1, held: 1.4, range: 4.2, windup: 0.6, dmg: 16, knock: 12, cd: 7 },
+    // I+ SABER THROW: you've backed off. The blade spins out at you and back to his hand; he has no guard while it flies
+    throw: { from: 1, minDist: 8.5, maxDist: 24, windup: 0.55, speed: 24, reach: 1.3, dmg: 20, turn: 0.9, cd: 10, open: 1.4 },
+    // II+ FORCE LIGHTNING: catch it on a raised guard facing him. Held, it drives you back and drains stamina; PARRY one of
+    // its surges (the white flash) or Force PUSH into it, and it goes back into him
+    lightning: { from: 2, minDist: 4.5, maxDist: 18, windup: 0.5, dur: 3.0, durP3: 3.8, tick: 0.25, dmg: 6, caughtDmg: 1.2,
+                 stam: 26, shove: 2.6, surge: [0.9, 1.2], surgeTell: 0.32, reflectDmg: 120, stun: 2.6, cd: 11 },
+    // II+ FORCE CHOKE: the marked ring under you closes; be out of it (dash) when it does, or PUSH him to break it
+    choke: { from: 2, minDist: 3.5, maxDist: 13, windup: 0.95, r: 2.2, hold: 1.2, tick: 0.2, dmg: 4, throwDmg: 10, throwKnock: 14, cd: 14 },
+    // II+ REPULSE: crowd him and he blasts the ground clear (dodge it)
+    repulse: { from: 2, crowd: 3.4, after: 2.2, windup: 0.55, r: 8, dmg: 16, knock: 10, cd: 9 },
+    // III BLINK CHAIN: he goes to smoke and comes out beside you, again and again; each cut is parryable
+    blink: { from: 3, count: 3, gap: 0.62, tell: 0.36, dist: 2.6, dmg: 18, cd: 12 },
+    // III LIGHTNING STORM: from the middle of the floor, bolts fall on marked spots spreading out from him; move off them
+    storm: { from: 3, dur: 5.5, every: 0.18, r: 1.8, tell: 0.75, dmg: 18, spread: [3, 16], cd: 17 },
+    // III LAST STAND (once, at this share of his bar): a charged lunge the length of the floor; dodge it and he is wide open
+    lastStand: { at: 0.12, windup: 1.4, speed: 30, dmg: 34, open: 3.4 },
+  },
+  // his Force lightning's look (boss/vexis.js): violet-white, three strands from his fingers
+  lightningColor: 0xb46bff, lightningCore: 0xf2e6ff, caughtColor: 0x9fe0ff,
+  // the arena in phase III (world/atmosphere.js setMood): the lights go down, the fog turns to blood
+  mood: { fill: 0.5, sun: 0.35, rim: 1.5, sky: 0.35, fog: 0x2a0710, blade: 1.35, near: 0.7, far: 0.75 },
+};

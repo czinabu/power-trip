@@ -7,13 +7,14 @@ import { scene } from '../engine/renderer.js';
 import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { shared, G, enemies, player, bolts, isGunner, heroKey } from '../state.js';
+import { shared, G, enemies, player, bolts, isGunner, heroKey, bossUp } from '../state.js';
 import { CFG } from '../data/config.js';
 import { playerPos, maxHp, maxStam } from '../player/helpers.js';
 import { spawnEnemy } from '../enemies/spawn.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { findClearSpawn } from '../world/collision.js';
 import { spawnBoss } from '../boss/boss.js';
+import { dropFinale } from '../boss/finale.js';
 import { spawnChampion } from './survival.js';
 import { startLevel, syncJediChips, syncMandoChips } from './flow.js';
 import { showBanner } from '../ui/banners.js';
@@ -160,10 +161,10 @@ export function sandboxSpawn(id){
   };
   if (!foeOffered(id)) return;
   if (id === 'boss'){
-    if (shared.boss){ showBanner('', 'ONE BOSS AT A TIME', 1.2); return; }
-    spawnBoss();
+    if (bossUp()){ showBanner('', 'ONE BOSS AT A TIME', 1.2); return; }
+    const b = spawnBoss();
     const s = spot(0, 1);
-    if (shared.boss) shared.boss.group.position.set(s.x, 0, s.z);
+    if (b) b.group.position.set(s.x, 0, s.z);
     return;
   }
   G.forceElite = SB.elite;
@@ -189,6 +190,7 @@ export function sandboxClear(){
   }
   enemies.length = 0;
   G.spawnQueue.length = 0;
+  dropFinale();
   if (shared.boss){
     scene.remove(shared.boss.group); shared.boss = null;
     if (shared.bossLight) shared.bossLight.visible = false;

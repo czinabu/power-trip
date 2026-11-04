@@ -27,6 +27,7 @@ import { setStanceHud, switchStance, setLoadout } from '../player/jedi/stance.js
 import { spawnEnemy } from '../enemies/spawn.js';
 import { damageEnemy } from '../enemies/damage.js';
 import { spawnBoss } from '../boss/boss.js';
+import { dropFinale } from '../boss/finale.js';
 import { findClearSpawn, edgeSpawn } from '../world/collision.js';
 import { buildArena } from '../world/arena.js';
 import { spawnChampion, startEndlessWave, endlessWaveCleared } from './survival.js';
@@ -111,6 +112,7 @@ export function startLevel(idx, opts){
   for (const v of vfx){ if (v.mesh) scene.remove(v.mesh); if (v.light){ if (v.pooled) v.light.intensity = 0; else scene.remove(v.light); } }
   vfx.length = 0;
   if (shared.boss){ scene.remove(shared.boss.group); shared.boss = null; }
+  dropFinale();   // (a final boss on a duellist's body went with the foes above: boss/finale.js)
   if (shared.bossLight) shared.bossLight.visible = false;
   document.getElementById('bosswrap').style.display = 'none';
   if (shared.saberProj){ hideThrownSaber(); shared.saberProj = null; stowHandSaber(false); }
@@ -220,7 +222,7 @@ export function startLevel(idx, opts){
     showBanner(place || lvl, L.sub, 2.6, place ? { kicker: lvl } : null); }
   if (bossRetry){
     G.wave = G.waveEnd; shared.levelPhase = 'bossfight';
-    spawnBossWhenReady(() => G.mode === 'play' && G.levelIdx === idx && shared.levelPhase === 'bossfight' && !shared.boss, 2600);
+    spawnBossWhenReady(() => G.mode === 'play' && G.levelIdx === idx && shared.levelPhase === 'bossfight' && !shared.boss && !shared.finale, 2600);
   }
   trooperSquad();   // the ARC trooper's clones (allies/squad.js)
   // a story's guest fighters for a wave chapter (the ARC trooper's Hoth: a Jedi on the line), beside the squad and not
@@ -525,7 +527,7 @@ export function updateFlow(dt){
         if (G.checkpoint){ G.checkpoint.boss = diffBossCheckpoint(); G.checkpoint.bossWaveTotal = G.waveTotal; if (!G.endless) autosave('boss checkpoint'); }
         showBanner('', '...something approaches.', 2.4);
         storyBeat('boss');
-        spawnBossWhenReady(() => G.mode === 'play' && !shared.boss, 2400);
+        spawnBossWhenReady(() => G.mode === 'play' && !shared.boss && !shared.finale, 2400);
       } else {
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.

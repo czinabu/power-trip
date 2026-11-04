@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { clamp } from '../utils.js';
-import { shared, G, enemies, player, isGunner, isTrooper, isMando } from '../state.js';
+import { shared, G, enemies, player, isGunner, isTrooper, isMando, bossUp } from '../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon } from '../data/mando.js';
 import { abil } from '../data/mastery.js';
 import { maxHp, maxStam } from '../player/helpers.js';
@@ -257,10 +257,10 @@ export function updateHud(){
   } else {
     const place = (L.name.split('—')[1] || L.name).trim();
     const from = G.waveFrom || 0, end = G.waveEnd ?? L.waves.length;   // a campaign chapter counts its own stretch of the waves
-    const wave = shared.boss ? 'BOSS FIGHT'
+    const wave = bossUp() ? 'BOSS FIGHT'
                              : 'WAVE ' + Math.min(G.wave - from + 1, end - from) + ' / ' + (end - from);
     setHtml($('waveinfo'), '<span class="wi-l">' + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + place) + '</span><span class="wi-w">' + wave + '</span>' +
-      (shared.boss ? '' : hostiles));
+      (bossUp() ? '' : hostiles));
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
   renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && (!!G.mission || !!calm));

@@ -78,7 +78,7 @@ const lineTime = (line) => line ? Math.max(CUT.minLine, String(line[1]).length /
 /* ---------- actors: a stand-in figure (built from a foe type), or something already on the field ---------- */
 // things already on the field a scene can frame by name: each returns its group (looked up when a scene starts, never at load)
 const binders = {
-  boss: () => shared.boss && shared.boss.group,
+  boss: () => (shared.boss && shared.boss.group) || (shared.finale && shared.finale.group),
   quarry: () => { const M = missionState(); return M.quarry && M.quarry.g; },   // the chase's quarry, where it stands
 };
 export function bindActor(name, fn){ binders[name] = fn; }
@@ -973,7 +973,7 @@ export function playBossIntro(share = true, stage = null){
   const b = canStart('boss:' + G.chapter) && boundActor('boss');
   if (!b) return false;
   prepScene(stage);
-  b.scale = 1.4;
+  b.scale = shared.finale && b.g === shared.finale.group ? b.g.scale.x : 1.4;   // (Darth Vexis on his duellist's body: his own size)
   const own = G.chapter >= 0 && { mando: MANDO_BOSS, jedi: storyWords(JEDI_BOSS) }[storyHero()];
   const lines = (own || pick(BOSS)).slice(),   // (a story's own: data/campaign-mando.js, data/campaign-jedi.js)
         [name, epithet] = (isGunner() ? BOSS_MANDO.name : BOSS_CFG.name).split(' — ');
@@ -981,7 +981,7 @@ export function playBossIntro(share = true, stage = null){
                      { line: lines[0], title: { k: 'EXEGOL', h: name, p: epithet || '' }, mirror: true });
   const g = b.g.position;
   // Darth Vexis's blade is out while he talks, and lights at the end (the Iron Magistrate's war-spear has no hilt to draw)
-  const blade = !isGunner() && !!b.g.userData.hand;
+  const blade = !isGunner() && !!(b.g.userData.hand || b.g.userData.saber);
   if (blade) b.drawForm = (BOSS_FORM.sith || {}).form;
   const shots = [overShoulder(1.8), first, ...heroLines(lines.slice(1)), ...(blade ? [drawShot(1.75, 1.35)] : []), settle({ on: 'actor', h: 1.8 })];
   return start({ key: 'boss:' + G.chapter, shots, actors: [b], face: [g.x, g.z], draw: blade, share: share ? { k: 'boss' } : null, stage });

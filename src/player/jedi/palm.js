@@ -102,11 +102,12 @@ function chargedPalm(frac){
 
 /* ---------------- TAKEDOWN: a reeling or floored foe is finished with the Force ---------------- */
 const DOWNED = { stagger: 1, knockdown: 1, getup: 1 };
+const unfloorable = e => e.finale || e.champion;   // a champion duellist (the finale's Vexis among them) is never thrown down or finished like this
 function takedownTarget(){
   const K = H().takedown, pp = playerPos(), f = fwd();
   let best = null, bd = 1e9;
   for (const e of enemies){
-    if (e.dead || e.converted || e.state === 'spawn' || !DOWNED[e.state] || e.t.fly) continue;
+    if (e.dead || e.converted || e.state === 'spawn' || !DOWNED[e.state] || e.t.fly || unfloorable(e)) continue;
     TMP.subVectors(e.group.position, pp); const dy = Math.abs(TMP.y); TMP.y = 0;
     const d = TMP.length();
     if (d - bodyRadius(e) > K.range || dy > 1.8) continue;
@@ -167,9 +168,9 @@ function landSweep(){
     if (!inReach(e, pp, K.reach)) continue;
     const dir = TMP.lengthSq() > 0.001 ? TMP.clone().normalize() : f.clone();
     if (TMP.lengthSq() > 1.4 && dir.dot(f) < cosLim) continue;
-    damageEnemy(e, K.dmg * blowMul(), dir, e.net && !e.t.heavy ? 18 : K.knock * forcePower());   // (a guest's foe belongs to the host: the sweep travels as a hard knock that floors it there)
+    damageEnemy(e, K.dmg * blowMul(), dir, e.net && !e.t.heavy && !unfloorable(e) ? 18 : K.knock * forcePower());   // (a guest's foe belongs to the host: the sweep travels as a hard knock that floors it there)
     if (!e.dead && !e.net){
-      if (e.t.heavy) staggerEnemy(e, dir.x, dir.z, 'OFF BALANCE');
+      if (e.t.heavy || unfloorable(e)) staggerEnemy(e, dir.x, dir.z, 'OFF BALANCE');
       else { e.state = 'knockdown'; e.st = K.down; e.vel.set(dir.x * 1.2, 1.5, dir.z * 1.2); }
     }
     hit++;
@@ -310,7 +311,7 @@ function landStrike(P){
     let dir = d > 0.01 ? TMP.clone().normalize() : f.clone();
     if (B.sweep) dir.addScaledVector(rightV(), P.side * 0.9).normalize();   // the backhand throws them across, the way it swept
     if (isGuarding(e)) guardImpact(e, B.posture || (big ? POSTURE.burst : POSTURE.palm));   // the Force goes round a blade: it batters the guard instead
-    const launch = B.launch && !e.t.heavy && !e.t.fly;
+    const launch = B.launch && !e.t.heavy && !e.t.fly && !unfloorable(e);
     // a guest's foe belongs to the host (co-op): the launch travels as a hard knock that floors it there
     const knock = launch && e.net ? 18 : B.knock * forcePower() * (1 - d / B.range * 0.4) * (player.up.knock || 1);
     damageEnemy(e, B.dmg * blowMul(), dir, knock);

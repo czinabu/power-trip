@@ -92,8 +92,9 @@ export const S = {
   saberHit: (pos, power) => { if (!tooSoon('shit', 0.015)) SB.burn(pos, pw01(power)); },
   // the snap-hiss: kind is a form id ('staff' lights both ends) or 'dark' (the Darksaber); retract is the reverse;
   // reignite drops the blade and lights it again in a new form (from = the form it was in)
-  ignite: (kind, pos) => { if (!tooSoon('ign', 0.05)) SB.ignite(kind, { pos }); },
-  retract: (kind, pos) => { if (!tooSoon('ret', 0.05)) SB.retract(kind, { pos }); },
+  // (full: the showpiece version, for the ignite / retract key and a draw from the belt)
+  ignite: (kind, pos, full) => { if (!tooSoon('ign', 0.05)) SB.ignite(kind, { pos, full }); },
+  retract: (kind, pos, full) => { if (!tooSoon('ret', 0.05)) SB.retract(kind, { pos, full }); },
   reignite: (kind, from) => { if (!tooSoon('ign', 0.05)) SB.reignite(kind, from); },
   // a blade dragged through a wall: first = it just bit in (fx/trail.js)
   saberWall: (pos, first, dark) => SB.wall(pos, first, dark),

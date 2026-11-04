@@ -148,7 +148,7 @@ export function updateAudio(dt){
   // ── saber hums ── each follows its blade's real tip speed (fx/trail.js BLADE_AUDIO): it bends up in pitch, swells,
   // brightens and fizzes through a cut, and settles back to a low idle hum when the blade is held still
   const BA = BLADE_AUDIO;
-  const jedi = G.hero === 'jedi' && (!player.holstered || shared.saberProj), darkOn = isGunner() && player.weapon === 'darksaber';
+  const jedi = G.hero === 'jedi' && ((!player.holstered && !player.unlit) || shared.saberProj), darkOn = isGunner() && player.weapon === 'darksaber' && !player.unlit;   // (unlit: the blade put out with 5)
   const swinging = player.atkT > 0 || player.darkT > 0;
   const walk = clamp(Math.hypot(player.moveVel.x, player.moveVel.z) / 12, 0, 1);
   const thrown = jedi && shared.saberProj;

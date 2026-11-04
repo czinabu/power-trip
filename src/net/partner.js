@@ -221,7 +221,8 @@ export const partnerShown = () => [...partners.values()].some(P => P.puppet.grou
 const infoOf = (P) => ({ slot: P.slot, shown: P.puppet.group.visible, here: P.mate.here, posed: !!P.track.to, hero: P.hero, down: P.mate.down,
   dn: P.dn, ring: !!(P.ring && P.ring.visible), chip: !!(P.chip && P.chip.style.display !== 'none'),
   armR: P.puppet.rig ? P.puppet.rig.armR.sh.quaternion.toArray().map(n => +n.toFixed(3)) : null,
-  hunters: enemies.filter(e => !e.dead && e.hero === P.mate).length });
+  hunters: enemies.filter(e => !e.dead && e.hero === P.mate).length,
+  lit: P.puppet._litBits ?? null });   // their saber (1) and Darksaber (2) lit, as their pose says (net/pose.js)
 export const partnerInfo = () => {
   const P = first();
   return { ...(P ? infoOf(P) : { shown: false, here: false, posed: false, hero: 'jedi', armR: null, hunters: 0 }), all: [...partners.values()].map(infoOf) };

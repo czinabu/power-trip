@@ -630,19 +630,29 @@ body.pad .bs-aim{display:block}
 #overlay.st-pause .ov-actions{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:26px;justify-content:stretch}
 #overlay.st-pause .ov-actions .btn{box-sizing:border-box;width:100%;padding:13px 12px;white-space:nowrap}
 #overlay.st-pause .ov-actions .go{grid-column:1/-1;margin-bottom:6px;width:100%}
-#overlay.st-pause #skipBtn,#overlay.st-pause #lessonsBtn{grid-column:span 3}
-/* pause groups, top to bottom: resume · this run (save / load / restart) · options (settings / fullscreen / help / co-op) · leave */
-#overlay.st-pause #skipBtn,#overlay.st-pause #lessonsBtn{order:1}
-#overlay.st-pause #saveBtn,#overlay.st-pause #loadBtn,#overlay.st-pause #restartBtn{grid-column:span 2;order:2}
-#overlay.st-pause #saveBtn{margin-top:10px} #overlay.st-pause #loadBtn{margin-top:10px} #overlay.st-pause #restartBtn{margin-top:10px}
-#overlay.st-pause #settoggle,#overlay.st-pause #fsBtn,#overlay.st-pause #ctltoggle,#overlay.st-pause #coopBtn{grid-column:span 3;order:3}
-#overlay.st-pause #settoggle,#overlay.st-pause #fsBtn{margin-top:10px}
-#overlay.st-pause #homeBtn{grid-column:1/-1;order:4;margin-top:14px;color:#ffcfa0;border-color:rgba(200,120,60,.45)}
+/* pause groups, top to bottom, each under a small label like the main menu's: RESUME · TRAINING (training only, gold) ·
+   THIS RUN (save / load / restart, then co-op and the forms or armory) · OPTIONS (settings / controls, codex / fullscreen) ·
+   MAIN MENU on its own. The grid is 6 wide: a row of three spans 2, a row of two spans 3. */
+.pz-sec{display:none}
+#overlay.st-pause .pz-sec{display:flex;grid-column:1/-1;margin:12px 0 -2px;font-size:11px;color:var(--ink-dim)}
+#overlay.st-pause .pz-train{order:1;color:var(--gold)}
+#overlay.st-pause .pz-train::after{background:rgba(255,210,74,.28)}
+#overlay.st-pause :is(#skipBtn,#lessonsBtn){grid-column:span 3;order:2;color:#ffe7a6;border-color:rgba(255,210,74,.4);background:rgba(40,30,8,.55)}
+#overlay.st-pause :is(#skipBtn,#lessonsBtn):hover{color:#fff4d4;border-color:var(--gold);background:rgba(64,48,12,.75)}
+#overlay.st-pause .pz-run{order:3}
+#overlay.st-pause :is(#saveBtn,#loadBtn,#restartBtn){grid-column:span 2;order:4}
+#overlay.st-pause :is(#coopBtn,#formsBtn){grid-column:span 3;order:5}
+#overlay.st-pause #formsBtn[style*="none"] ~ #coopBtn{grid-column:1/-1}   /* (the trooper has no forms page: co-op takes the row) */
+#overlay.st-pause .pz-opt{order:6}
+#overlay.st-pause :is(#settoggle,#ctltoggle){grid-column:span 3;order:7}
+#overlay.st-pause #cxtoggle{grid-column:span 3;order:8}
+#overlay.st-pause #fsBtn{grid-column:span 3;order:9}
+#overlay.st-pause #homeBtn{grid-column:1/-1;order:10;margin-top:16px;color:#ffcfa0;border-color:rgba(200,120,60,.45)}
 #overlay.st-pause #homeBtn:hover{border-color:#ffb060;color:#ffe2c4}
 #overlay.st-pause #homeconfirm{align-items:flex-start;margin-top:26px}
 #overlay.st-pause .ov-foot{text-align:left;margin-top:22px;font-size:12px}
 #overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:rise .3s var(--ease) both}
-@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:1fr} #overlay:is(.st-menu,.vpicking) .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
+@media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:repeat(2,1fr)} #overlay.st-pause .ov-actions .btn:not(.go,#homeBtn){grid-column:span 1;padding:12px 6px;font-size:12px;letter-spacing:1.5px} #overlay.st-pause .ov-actions #formsBtn[style*="none"] ~ #coopBtn.btn,#overlay.st-pause .ov-actions #restartBtn.btn{grid-column:1/-1} #overlay:is(.st-menu,.vpicking) .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}
 
 /* ---------- SAVE / LOAD: same panel as CONTROLS, one row per slot (ui/saves-ui.js) ---------- */
 #saves{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
@@ -875,7 +885,6 @@ body.pad .kbonly{display:none}
 #forms.open{display:flex}
 #forms .howto-panel{width:min(1080px,100%)}
 #overlay:not(.st-pause) #formsBtn{display:none}
-#overlay.st-pause #formsBtn{grid-column:1/-1;order:1}
 .fm-sec{margin:14px 0 8px;font-size:12px;letter-spacing:2.4px;font-weight:700;color:var(--ink-faint);border-bottom:1px solid var(--edge);padding-bottom:3px}
 .fm-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .fm-slot{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);

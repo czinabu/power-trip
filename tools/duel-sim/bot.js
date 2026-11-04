@@ -40,6 +40,26 @@
 
   // the bot's read of the next blow: seconds until it lands as the screen shows it (null: nothing coming)
   function threatOf(e){
+    if (e && e.isBoss){
+      // Darth Vexis: his blow lands the frame his wind-up runs out; a blink comes in on a short wind-up after it
+      if (e.state === 'windup') return Math.max(0, e.st);
+      if (e.state === 'gapclose') return Math.max(0, e.st) + GAME.BOSS_CFG.combo.windup * 0.85;
+      return null;
+    }
+    if (e && !e.dead && !e.plan && (e.state === 'windup' || e.state === 'strike') && !e.t.ranged){
+      // a plain melee foe: what shows is the coil, not the hold. The warbringer's overhead is parried off the tell it
+      // flares as the hold lets go (e.heldTell); until then it's coming, but not yet
+      const sw = e.t.swing || 0.16;
+      // (the bot doesn't see the hidden hold: it counts the beat it has learned from the tell, the cue plus half the swing)
+      if (e.state === 'windup' && e.dp && e.dp.brace){
+        if (!e.heldTell){ e._tellAt = null; return 1.0; }
+        if (e._tellAt == null) e._tellAt = GAME.G.gt;
+        return Math.max(0, e._tellAt + ((e.swing && e.swing.cue) || 0.2) + sw * 0.5 - GAME.G.gt);
+      }
+      if (e.state === 'windup') return Math.max(0, (e.wuBase || e.wu) - (e.wu - e.st)) + sw * 0.5;
+      if (!e.struck){ const k = 1 - Math.max(0, e.st) / (e.swDur || sw); return Math.max(0, 0.5 - k) * (e.swDur || sw); }
+      return null;
+    }
     if (!e || e.dead || !e.plan) return null;
     const t = e.t, sw = (t.swing || 0.16) * (e.plan.swingMul || 1), hk = e.plan.hitK || 0.5;
     if (e.state === 'windup'){
@@ -50,13 +70,17 @@
     return null;
   }
 
-  /* one fight. cfg: { form, loadout, foes: [{ type, form, rank }], depth, seed, tmax, skill, adaptive, spread }
-     returns what happened */
-  function fight(cfg){
+  /* one fight. cfg: { form, loadout, foes: [{ type, form, rank, hpMul, champ }], depth, seed, tmax, skill, adaptive, spread }
+     a foe's type can be 'vexis' (the boss, boss/boss.js) or 'warbringer' (survival's champion); champ: { hp, dmg, rep }
+     scales a duellist up the way a story duel does (game/mission.js spawnInquisitor). Returns what happened.
+     begin(cfg) + step(n) run the same fight a few frames at a time (tools/duel-sim/clip.mjs films it). */
+  let F = null;
+  function begin(cfg){
     stopPump();
     const { G, player, enemies, keys, shared, CFG, STANCES } = GAME;
     seed = cfg.seed || 1;
-    const S = Object.assign({ see: 0.25, parry: 0.6, sigma: 0.07, react: 0.32, read: 0.8, mash: 0.15, gap: 0.9, bite: 0.3, lockRate: 0.13 }, cfg.skill || {});
+    const S = Object.assign({ see: 0.25, parry: 0.6, sigma: 0.07, react: 0.32, read: 0.8, mash: 0.15, gap: 0.9, bite: 0.3, lockRate: 0.13,
+                              catch: 0.85, jump: 0.75, heavy: 0, turtle: false }, cfg.skill || {});
     GAME.sandboxClear();
     G.seenTypes = Object.assign(G.seenTypes || {}, { __forms: true });
     for (const k in keys) keys[k] = false;
@@ -80,54 +104,95 @@
       G.sbFoeForm = f.form || null; G.sbFoeRank = f.rank || null;
       const before = enemies.length;
       const ang = n === 1 ? 0 : (i / n) * Math.PI * 2, d = cfg.spread || 5;
-      GAME.spawnEnemy(f.type, new player.group.position.constructor(Math.sin(ang) * d, 0, Math.cos(ang) * d));
+      const at = new player.group.position.constructor(Math.sin(ang) * d, 0, Math.cos(ang) * d);
+      if (f.type === 'vexis'){
+        GAME.spawnBoss();
+        const b = GAME.boss; if (!b) return;
+        b.isBoss = true; b.group.position.copy(at); b.st = Math.min(b.st, 0.6);   // (a short walk-up, not the cinematic one)
+        foes.push(b); return;
+      }
+      if (f.type === 'warbringer') GAME.spawnChampion();
+      else GAME.spawnEnemy(f.type, at);
       const e = enemies[enemies.length - 1];
       if (enemies.length === before || !e) return;
+      e.group.position.copy(at);
       e.dummy = false;
       if (f.hpMul){ e.maxHp *= f.hpMul; e.hp = e.maxHp; }
+      if (f.champ){
+        e.champion = true;
+        e.hp = e.maxHp = Math.round(e.maxHp * f.champ.hp);
+        e.t = { ...e.t, dmg: e.t.dmg * f.champ.dmg };
+        if (f.champ.rep) e.ffRep = f.champ.rep.slice();
+        if (f.champ.duel && e.dp) Object.assign(e.dp, f.champ.duel);
+      }
       foes.push(e);
     });
     G.sbFoeForm = null; G.sbFoeRank = null;
     G.waveTotal = cfg.depth || 0;
-    const R = { frames: 0, dmg: 0, hits: 0, stam: 0, parries: 0, parryTry: 0, blocks: 0, swings: 0, switches: 0, foeSwitch: 0, locks: 0, kills: 0, firstKill: null };
-    const st = { rmb: false, plan: null, nextAtk: 0, lockAt: 0, badT: 0, lastStam: player.stam, wasLock: false, lastForm: foes.map(e => e.ff) };
+    const R = { frames: 0, dmg: 0, hits: 0, stam: 0, parries: 0, parryTry: 0, blocks: 0, swings: 0, heavies: 0, switches: 0, foeSwitch: 0, locks: 0, kills: 0, firstKill: null,
+                src: {}, dealt: { open: 0, closed: 0 }, states: {}, breaks: 0, deflects: 0, clashes: 0, phaseAt: {}, reflects: 0, novaJumps: 0, idle: 0, maxIdle: 0, lastDealt: 0 };
+    const st = { rmb: false, plan: null, nextAtk: 0, lockAt: 0, badT: 0, lastStam: player.stam, wasLock: false, lastForm: foes.map(e => e.ff), lmbUp: 0, light: null, ringJ: new Set() };
     const stats0 = { p: (G.stats && G.stats.parries) || 0 };
-    const dt = 1 / 60, tmax = cfg.tmax || 90;
-    const alive = () => foes.filter(e => !e.dead && enemies.includes(e));
-    let end = 'timeout';
-    while (G.gt >= 0){
+    F = { cfg, S, foes, R, st, stats0, maxHp, maxStam, dt: 1 / 60, tmax: cfg.tmax || 90, end: null };
+  }
+  const isLive = (e) => e.isBoss ? (GAME.boss === e && e.hp > 0 && e.state !== 'dying') : (!e.dead && GAME.enemies.includes(e));
+  const isOpen = (e) => e.isBoss ? (e.state === 'vulnerable' || e.state === 'stunned')
+    : (GAME.G.gt < (e.openUntil || 0) || e.winded || e.state === 'stagger' || e.state === 'knockdown' || e.state === 'ragdoll' || e.stunT > 0);
+  // run up to n frames of the fight; the result once it's over, else null
+  function step(nFrames){
+    const { G, player, enemies, keys, CFG, STANCES } = GAME;
+    const { cfg, S, foes, R, st, maxHp, dt, tmax } = F;
+    const alive = () => foes.filter(isLive);
+    for (let fN = 0; fN < nFrames; fN++){
       const live = alive();
-      if (!live.length){ end = 'win'; break; }
-      if (R.dmg >= maxHp){ end = 'loss'; break; }
-      if (R.frames * dt > tmax) break;
-      if (G.mode !== 'play'){ end = 'mode:' + G.mode; break; }
+      let end = null;
+      if (!live.length) end = 'win';
+      else if (R.dmg >= maxHp) end = 'loss';
+      else if (R.frames * dt > tmax) end = 'timeout';
+      else if (G.mode !== 'play') end = 'mode:' + G.mode;
+      if (end) return finish(end);
       G.paused = false; G.cardUp = false; G.skillSelect = false;
       // ---- the bot ----
       const pp = player.group.position;
+      // the target: the boss / champion first (cfg.foes[0]), else the nearest
       let tgt = null, td = 1e9;
       for (const e of live){ const d = Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z); if (d < td){ td = d; tgt = e; } }
+      const boss = live.find(e => e.isBoss) || null;
       // the soonest blow coming (any foe)
       let thr = null, tE = null;
       for (const e of live){
         const d = Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z);
-        const t = d < 6 ? threatOf(e) : null;
+        const t = d < (e.isBoss ? 7 : 6) ? threatOf(e) : null;
         if (t != null && (thr == null || t < thr)){ thr = t; tE = e; }
       }
-      const face = tE || tgt;
+      const face = tE || (boss && boss.state === 'lightning' ? boss : null) || tgt;
       if (face) G.yaw = Math.atan2(face.group.position.x - pp.x, face.group.position.z - pp.z);
       clearKeys(keys);
+      if (st.lmbUp && G.gt >= st.lmbUp){ mouse('mouseup', 0); st.lmbUp = 0; }
       const sto = STANCES[G.stance];
       const pwin = CFG.player.parryWindow + (sto.parryBonus || 0) + (player.up.parry || 0);
+      // the boss's nova: jump each ring as its edge reaches you
+      for (const r of GAME.rings){
+        if (st.ringJ.has(r)) continue;
+        const d = Math.hypot(pp.x - r.center.x, pp.z - r.center.z), gap = d - r.r;
+        if (gap > 0 && gap < 3.2 && player.grounded){ st.ringJ.add(r); if (rnd() < S.jump){ document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true })); R.novaJumps++; } }
+      }
       if (player.saberLock){
         R.locks += st.wasLock ? 0 : 1; st.wasLock = true;
         if (G.gt >= st.lockAt){ mouse('mousedown', 0); mouse('mouseup', 0); st.lockAt = G.gt + S.lockRate * (0.8 + rnd() * 0.4); }
+      } else if (boss && boss.state === 'lightning'){
+        // his lightning: catch it on the guard (held, facing him) to turn it back, or eat it
+        st.wasLock = false;
+        if (st.light !== boss.lightningCd){ st.light = boss.lightningCd; st.lightGo = rnd() < S.catch; }
+        if (st.lightGo && !st.rmb){ mouse('mousedown', 2); st.rmb = true; }
+        if (!st.lightGo && st.rmb){ mouse('mouseup', 2); st.rmb = false; }
       } else {
         st.wasLock = false;
         // DEFENCE
         if (thr != null){
-          const pl = tE.plan, key = tE.group.uuid + ':' + pl.n + ':' + pl.side + ':' + (tE.wuBase || 0).toFixed(3) + ':' + (pl.w0 ? 1 : 0);
+          const pl = tE.plan || { n: tE.swingsLeft || 0, side: (tE.cut || '-') }, key = (tE.isBoss ? 'B' : tE.group.uuid) + ':' + pl.n + ':' + pl.side + ':' + (tE.wuBase || tE.wu || 0).toFixed(3) + ':' + (pl.w0 ? 1 : 0) + ':' + (tE.isBoss ? Math.round(G.gt * 4) * 0 + tE.swingsLeft + tE.state : '');
           if (!st.plan || st.plan.key !== key){
-            const thrust = pl.side === 'T';
+            const thrust = pl.side === 'T' || !!(tE.dp && tE.dp.brace);   // (a held block can't stop either: parry it)
             const go = thrust || rnd() < S.parry;
             st.plan = { key, go, at: pwin * 0.5 + gauss() * S.sigma, bite: !!(pl.feint && rnd() < S.bite), clicked: false };
             if (go) R.parryTry++;
@@ -135,24 +200,25 @@
           const P = st.plan;
           if (P.go){
             // a bitten feint: the click goes in at the fake's break point
-            const wk = tE.state === 'windup' ? (tE.wu - tE.st) / (tE.wuBase || tE.wu) : 1;
-            if (!P.clicked && ((P.bite && tE.plan.feint && wk >= 0.62) || thr <= P.at)){
+            const wk = tE.state === 'windup' && tE.wuBase ? (tE.wu - tE.st) / (tE.wuBase || tE.wu) : 1;
+            if (!P.clicked && ((P.bite && pl.feint && wk >= 0.62) || thr <= P.at)){
               if (st.rmb) mouse('mouseup', 2);
               mouse('mousedown', 2); st.rmb = true; P.clicked = true;
             }
           } else if (!st.rmb && thr <= S.react){ mouse('mousedown', 2); st.rmb = true; }
-        } else if (st.rmb && !(player.blockHeld && G.gt < (st.holdUntil || 0))){
+        } else if (st.rmb && !S.turtle && !(player.blockHeld && G.gt < (st.holdUntil || 0))){
           mouse('mouseup', 2); st.rmb = false; st.plan = null;
         }
         // OFFENCE — nothing about to land on us
         if (thr == null || thr > 0.7){
-          if (st.rmb){ mouse('mouseup', 2); st.rmb = false; }
           const e = tgt;
-          if (e){
-            const open = player.riposteT > 0 || G.gt < (e.openUntil || 0) || e.winded || e.state === 'stagger' || e.state === 'knockdown' || e.state === 'ragdoll' || e.stunT > 0 || !e.dp;
+          const open = e && (player.riposteT > 0 || isOpen(e) || (!e.isBoss && !e.dp));
+          if (S.turtle && !open){ if (!st.rmb){ mouse('mousedown', 2); st.rmb = true; } if (td > 3.0) keys['w'] = true; }
+          else if (e){
+            if (st.rmb){ mouse('mouseup', 2); st.rmb = false; }
             const cost = sto.stamina * 1.4 + 14;
             if (td > 3.0) keys['w'] = true;   // close in
-            else if (player.stam > cost && (open || G.gt >= st.nextAtk || rnd() < S.mash * dt * 4)){
+            else if (!st.lmbUp && player.stam > cost && (open || G.gt >= st.nextAtk || rnd() < S.mash * dt * 4)){
               // pick the cut: off the guarded line if we read it
               clearKeys(keys);
               const seen = st.seen && st.seen.get(e);
@@ -163,7 +229,9 @@
                 for (const k of c[0]) keys[k] = true;
               } else if (rnd() < 0.5){ const c = CUTS[(rnd() * CUTS.length) | 0]; for (const k of c[0]) keys[k] = true; }
               const was = player.atkT;
-              mouse('mousedown', 0); mouse('mouseup', 0);
+              const heavy = rnd() < S.heavy;
+              mouse('mousedown', 0);
+              if (heavy){ st.lmbUp = G.gt + 0.26; R.heavies++; } else mouse('mouseup', 0);
               if (player.atkT > was || player.queuedAtk) R.swings++;
               clearKeys(keys);
               st.nextAtk = G.gt + (open ? 0 : S.gap * (0.9 + rnd() * 0.3));
@@ -187,24 +255,56 @@
       st.seen = new Map(foes.map((e, i) => [e, st.hist[0][1][i]]));
       foes.forEach((e, i) => { if (e.ff !== st.lastForm[i]){ R.foeSwitch++; st.lastForm[i] = e.ff; } });
       // ---- one frame ----
+      const main = foes[0];
+      const bState = boss ? boss.state : null, bSwings = boss ? boss.swingsLeft : 0, ringsUp = GAME.rings.length;
+      const open0 = main && isLive(main) ? isOpen(main) : false, mhp0 = main ? main.hp : 0, phase0 = boss ? boss.phase : 0;
+      if (bState) R.states[bState] = (R.states[bState] || 0) + dt;
       player.hp = maxHp;
       const s0 = player.stam;
       frame(1000 * dt);
       R.frames++;
       const lost = maxHp - player.hp;
-      if (lost > 0.01){ R.dmg += lost; R.hits++; }
+      if (lost > 0.01){
+        R.dmg += lost; R.hits++;
+        const src = bState === 'lightning' ? 'lightning' : ringsUp ? 'nova' : (bState === 'windup' || bState === 'gapclose') ? 'melee' : boss ? 'adds' : 'melee';
+        R.src[src] = (R.src[src] || 0) + lost;
+      }
       if (player.stam < s0) R.stam += s0 - player.stam;
-      if (R.firstKill == null && foes.some(e => e.dead)) R.firstKill = R.frames * dt;
+      if (main){
+        const dealt = Math.max(0, mhp0 - (isLive(main) ? main.hp : 0));
+        if (dealt > 0){ R.dealt[open0 ? 'open' : 'closed'] += dealt; R.idle = 0; } else { R.idle += dt; R.maxIdle = Math.max(R.maxIdle, R.idle); }
+      }
+      if (boss && isLive(boss)){
+        if (bState === 'windup' && boss.state === 'vulnerable' && boss.st > GAME.BOSS_CFG.combo.whiffTime + 0.05) R.breaks++;
+        if (bState === 'windup' && boss.state === 'windup' && boss.swingsLeft < bSwings && boss.st > GAME.BOSS_CFG.combo.windup * 0.75 && boss.st < GAME.BOSS_CFG.combo.windup * 0.9) R.deflects++;
+        if (bState === 'lightning' && boss.state === 'stunned') R.reflects++;
+        if (boss.phase !== phase0) R.phaseAt[boss.phase] = +(R.frames * dt).toFixed(1);
+      }
+      if (R.firstKill == null && foes.some(e => !isLive(e))) R.firstKill = R.frames * dt;
     }
+    return null;
+  }
+  function finish(end){
+    const { G, enemies, keys } = GAME;
+    const { foes, R, stats0, dt } = F;
     clearKeys(keys); mouse('mouseup', 0); mouse('mouseup', 2);
-    const live = alive();
-    const hpLeft = foes.reduce((a, e) => a + (enemies.includes(e) && !e.dead ? Math.max(0, e.hp) / e.maxHp : 0), 0) / Math.max(1, foes.length);
+    const live = foes.filter(isLive);
+    const hpLeft = foes.reduce((a, e) => a + (isLive(e) ? Math.max(0, e.hp) / e.maxHp : 0), 0) / Math.max(1, foes.length);
     R.parries = ((G.stats && G.stats.parries) || 0) - stats0.p;
     R.kills = foes.length - live.length;
+    const rd = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, +v.toFixed(1)]));
     startPump();
     return { end, t: +(R.frames * dt).toFixed(2), dmg: +R.dmg.toFixed(1), hits: R.hits, stam: Math.round(R.stam), parries: R.parries, parryTry: R.parryTry,
-             swings: R.swings, locks: R.locks, switches: R.switches, foeSwitch: R.foeSwitch, kills: R.kills, of: foes.length, hpLeft: +hpLeft.toFixed(3),
-             firstKill: R.firstKill, foeForms: foes.map(e => e.ff), foeRank: foes.map(e => e.rank) };
+             swings: R.swings, heavies: R.heavies, locks: R.locks, switches: R.switches, foeSwitch: R.foeSwitch, kills: R.kills, of: foes.length, hpLeft: +hpLeft.toFixed(3),
+             firstKill: R.firstKill, foeForms: foes.map(e => e.ff), foeRank: foes.map(e => e.rank),
+             src: rd(R.src), dealt: rd(R.dealt), states: rd(R.states), breaks: R.breaks, deflects: R.deflects, reflects: R.reflects, novaJumps: R.novaJumps,
+             phaseAt: R.phaseAt, maxIdle: +R.maxIdle.toFixed(1) };
   }
-  window.__duelSim = { fight, frame, startPump, stopPump };
+  function fight(cfg){
+    begin(cfg);
+    let r = null;
+    while (!(r = step(600))){}
+    return r;
+  }
+  window.__duelSim = { fight, begin, step, frame, startPump, stopPump };
 })();

@@ -146,7 +146,10 @@ export function endFinisher(){
   const F = player.fin;
   if (!F) return;
   player.fin = null;
-  if (F.e) F.e.finUntil = Math.min(F.e.finUntil || 0, G.gt + FIN.hold);
+  // a boss isn't floored by it: he stays open for the rest of the window, so it's one finisher per opening (else a
+  // posture break was three finishers back to back, half his bar)
+  if (F.e === shared.boss) F.e.finUntil = G.gt + Math.max(FIN.hold, (F.e.st || 0) + 0.1);
+  else if (F.e) F.e.finUntil = Math.min(F.e.finUntil || 0, G.gt + FIN.hold);
   player.lastAtkEnd = G.gt;
 }
 

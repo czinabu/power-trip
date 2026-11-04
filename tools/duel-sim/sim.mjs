@@ -13,6 +13,7 @@ import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import { FORM_FAMILY as FAMILY, FAMILIES } from '../../src/data/foe-forms.js';
+import { bossFoes } from './bosses.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const page_url = pathToFileURL(path.join(root, 'dist/index.html')).href;
@@ -65,6 +66,13 @@ function jobs(){
   } else if (PLAN === 'early'){
     for (const depth of [1, 2, 3, 4, 5, 6, 7, 8]) for (const form of ['shiicho', 'soresu', 'ataru']) for (let r = 0; r < REPS; r++)
       J.push({ tag: 'early', form, foe: 'wave' + depth, rank: depth >= 8 ? 'knight' : 'adept', cfg: { form, loadout: [form], foes: [{ type: 'acolyte', form: 'shiicho', rank: depth >= 8 ? 'knight' : 'adept', hpMul: HPM(depth) }], depth, seed: s++ * 4099 + r, tmax: 90 } });
+  } else if (PLAN === 'bosses'){
+    // the boss duels: Darth Vexis, survival's warbringer and the Jedi story's named duellists, scaled the way their
+    // missions scale them (data/missions.js duel entries, game/mission.js spawnInquisitor), against every form
+    const B = bossFoes(HPM), only = opt('foes', null);
+    const forms = opt('forms', FORMS.join()).split(',');
+    for (const [foe, b] of Object.entries(B)) if (!only || only.split(',').includes(foe)) for (const form of forms) for (let r = 0; r < REPS; r++)
+      J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', cfg: { form, loadout: loadoutFor(form), foes: b.foes, depth: b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
   } else {
     const form = opt('form', 'niman'), foe = opt('foe', 'niman'), rank = opt('rank', 'knight');
     for (let r = 0; r < REPS; r++) J.push({ tag: 'one', form, foe, rank, cfg: { form, loadout: loadoutFor(form), foes: [{ type: 'acolyte', form: foe, rank, hpMul: HPM(DEPTH[rank] || 9) }], depth: DEPTH[rank] || 9, seed: 17 + r, tmax: 90 } });

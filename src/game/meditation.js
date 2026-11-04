@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // MEDITATION: the pause after the hero learns a form (data/forms.js FORM_PATH, granted by game/flow.js checkUnlocks).
-// The screen names what was learned and lets the hero choose which three forms sit on 1 / 2 / 3. It is the only time a
-// run's loadout changes, so the choice means something. When the run reaches Form VII, the screen first asks which of
+// The screen names what was learned and lets the hero choose which three forms sit on 1 / 2 / 3. The three can also
+// change at the start of each chapter, and in survival between waves (the FORMS WINDOW below: the pause screen's
+// Forms page lets you re-pick until the next fight is on), so a run can prepare for the duel ahead. When the run reaches Form VII, the screen first asks which of
 // Juyo or Vaapad the hero keeps; the other is closed for the rest of the run (G.formFork).
 // It waits for whatever is in front of it (a chapter card, a cutscene, the upgrade screen, the pause menu) and freezes the fight
 // while it is up, the same way those do.
@@ -19,6 +20,9 @@ import { coopLive } from '../net/foes.js';
 import { chapterOrder, storyVoice, storyHero } from '../data/campaign.js';
 import { JEDI_FORK_LINE } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
+import { upToast } from './upgrades.js';
+import { inCombat } from '../player/mobility.js';
+import { MOBILITY } from '../data/mobility.js';
 
 const el = document.getElementById('meditate');
 const pending = [];   // form ids learned and not yet shown
@@ -46,7 +50,33 @@ export function tickMeditation(){
   open();
 }
 // a new run, a load or the main menu: forget anything still waiting
-export function clearMeditation(){ pending.length = 0; if (meditationUp()) close(true); }
+export function clearMeditation(){ pending.length = 0; windowAt = null; if (meditationUp()) close(true); }
+
+/* ---------- the FORMS WINDOW: re-pick the three before the next fight ---------- */
+// It opens as a chapter starts (game/flow.js startLevel) and as a survival wave is cleared (game/survival.js), and
+// closes once the next fight is on (a foe in reach or a blow traded, past the last fight's linger). While it is open,
+// the pause screen's Forms page (ui/forms-ui.js) edits the three.
+let windowAt = null, windowNoted = false;
+export function openFormsWindow(){ if (!formsTaught()) return; windowAt = G.gt; windowNoted = false; }
+export const formsWindowOpen = () => windowAt != null && formsTaught() && known().length > 1;
+// game/flow.js, every frame: close it when the fight starts, and say once that it is open (when there's a choice to make)
+export function tickFormsWindow(){
+  if (windowAt == null || G.paused || G.mode !== 'play') return;
+  if (G.gt - windowAt > MOBILITY.combat.linger && inCombat()){ windowAt = null; return; }
+  if (!windowNoted && !G.cardUp && !G.cutscene && !G.skillSelect && !meditationUp()){
+    windowNoted = true;
+    if (formsWindowOpen() && known().length > LOADOUT_SLOTS) upToast('CHOOSE YOUR FORMS', 'Pause and open FORMS to change your three before the fight', 'mast');
+  }
+}
+// the Forms page's pick, as the page closes
+export function repickForms(list){
+  if (!formsWindowOpen()) return;
+  const next = cleanLoadout(list);
+  if (!next.some(Boolean)) next[0] = STARTING_FORMS[0];
+  if (next.every((id, i) => id === G.loadout[i])) return;
+  setLoadout(next); setStanceHud();
+  autosave('form', { notAtClose: true });
+}
 
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
@@ -131,7 +161,7 @@ function renderSlots(learned = learnedNow){
       '<div class="cc-world">' + learned.map(id => formTitle(id) + ' · ' + formLine(id)).join('<br>') + '</div>'
     : '<div class="cc-act">MEDITATION</div><h1 class="cc-title">YOUR FORMS</h1>';
   el.innerHTML = '<div class="cc-inner hero-jedi">' + head +
-    '<div class="cc-voice"><div class="cc-who">MEDITATION</div><p>Choose the three forms you carry into the fight. You can change them again when you next learn a form.</p></div>' +
+    '<div class="cc-voice"><div class="cc-who">MEDITATION</div><p>Choose the three forms you carry into the fight. You can change them again ' + (G.endless ? 'between waves' : 'at the start of each chapter') + ', from the pause screen\'s Forms page.</p></div>' +
     '<div class="md-slots">' + Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
       const id = draft[i], x = id && draft.filter(Boolean).length > 1;   // ✕ empties a slot (the last form stays)
       return '<div class="md-slotw"><div class="md-slot' + (i === slot ? ' sel' : '') + (id ? '' : ' empty') + (x ? ' has-x' : '') + '" data-slot="' + i + '"' + (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '>' +

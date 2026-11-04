@@ -923,7 +923,8 @@ body.pad .kbonly{display:none}
 .fm-pros li,.fm-cons li{position:relative;padding-left:16px;margin:2px 0;color:var(--ink-soft)}
 .fm-pros li::before{content:'+';position:absolute;left:2px;color:#6fe39a;font-weight:700}
 .fm-cons li::before{content:'\2212';position:absolute;left:2px;color:#ff8a7a;font-weight:700}
-.fm-fam{margin-left:.35em;color:var(--fc)}
+.fm-fam{margin-left:.35em;color:var(--fc);white-space:nowrap}
+.fm-fam-ic{display:inline-block;vertical-align:-1px;margin-right:4px}
 .fm-tile .fm-no{flex-wrap:wrap;row-gap:3px}
 .fm-tile .fm-t,.fm-tile .fm-in{white-space:nowrap}
 .fm-tile .fm-in{padding-left:8px}
@@ -947,6 +948,8 @@ body.pad .kbonly{display:none}
 .fm-tile[data-gun]{cursor:pointer}
 .fm-tile[data-gun]:hover{background:var(--panel-hi);border-color:var(--c)}
 .fm-compact .fm-body{display:grid;grid-template-columns:1fr minmax(260px,330px);gap:12px;min-height:0;flex:1 1 auto}
+.fm-col{display:flex;flex-direction:column;min-width:0;min-height:0}
+.fm-col>.fm-tiles{flex:1 1 auto;min-height:0}
 .fm-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start}
 .fm-tile{padding:8px 11px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);background:var(--panel);min-width:0}
 .fm-tile.pick,.fm-tile[data-form]{cursor:pointer}
@@ -983,21 +986,27 @@ body.pad .kbonly{display:none}
 .fm-mastery .fm-tile .fm-no{flex-wrap:nowrap}
 .fm-mastery .fm-tile .fm-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .fm-mastery .fm-tiles.c2 .fm-tile .fm-best{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.fm-mastery .fm-body.few{grid-template-columns:minmax(250px,300px) minmax(0,1fr)}   /* (a few forms: one column of short tiles, the forms still to learn under them, and the detail takes the width) */
+.fm-mastery .fm-body.few .fm-tiles{flex:0 0 auto;grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;align-content:start}
+.fm-mastery .fm-body.few .fm-tile{max-height:none}
+.fm-mastery .fm-body.few .fm-tm{margin-top:10px}
+.fm-col>.fm-sec{margin-top:16px}
+.fm-col .fm-chips{gap:6px}
 .fm-hint{float:right;font-weight:600;letter-spacing:1px;text-transform:none;color:var(--ink-faint)}
 .fm-sub .fm-hint{float:none;margin-left:auto;font-size:10px}
 .fm-ctr li[title]{cursor:help}
-.fm-key{margin-top:8px;padding-top:6px;border-top:1px solid var(--edge);display:flex;flex-direction:column;gap:3px;font-size:11px;line-height:1.25;color:var(--ink-faint)}
+.fm-key{margin-top:9px;padding-top:8px;border-top:1px solid var(--edge);display:flex;flex-direction:column;gap:5px;font-size:12px;line-height:1.3;color:var(--ink-dim)}
 .fm-key .fm-pw-lv{margin:0}
 .fm-pw-cost s,.fm-key s{text-decoration:none;color:#7fd39a}
-.fm-pw-cost[title]{cursor:help}
-.fm-force{display:grid;grid-template-columns:minmax(190px,220px) 1fr;gap:8px}
+.fm-pw[title]{cursor:help}
+.fm-force{display:grid;grid-template-columns:minmax(210px,240px) 1fr;gap:8px}
 .fm-lv{padding:8px 12px;border:1px solid var(--edge-mid);border-left:3px solid var(--accent);border-radius:var(--r);background:var(--panel)}
 .fm-lv-k{font:600 11px/1 var(--font-ui);letter-spacing:2px;color:var(--accent)}
 .fm-lv-n{margin:3px 0 5px;font:700 30px/1 var(--font-display);letter-spacing:1px;color:var(--ink)}
 .fm-lv-n span{margin-left:6px;font-size:14px;letter-spacing:1.5px;color:var(--ink-faint)}
 .fm-lv .fm-pips i{width:auto;flex:1 1 0}
 .fm-lv .fm-pips{display:flex;width:100%}
-.fm-lv-in{margin-top:7px;font-size:12px;line-height:1.3;color:var(--ink-soft);cursor:help}
+.fm-lv-in{margin-top:8px;font-size:13px;line-height:1.35;color:var(--ink-soft);cursor:help}
 .fm-lv-in b{color:var(--c);font-weight:700;letter-spacing:.6px}
 .fm-lv-in em{font-style:normal;font-weight:700;color:var(--ink)}
 .fm-pws{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;align-content:start}
@@ -1017,6 +1026,8 @@ body.pad .kbonly{display:none}
 .fm-pips i.on{background:var(--gold)}
 .fm-mast{display:flex;align-items:center;gap:6px;font:600 10px/1 var(--font-ui);letter-spacing:1.2px;white-space:nowrap}
 .fm-nx{margin-left:auto;color:var(--ink-dim)}
+.fm-nx-k{color:var(--ink-faint)}
+.fm-mastery .fm-tiles.c3 .fm-tile .fm-pips{display:none}   /* (three across: the rank's name and NEXT fit without the pips) */
 .fm-sub.fm-mast{font-size:11px}
 .fm-sub.fm-mast .fm-pips{margin-left:4px}
 .fm-rk{color:var(--gold)}
@@ -1027,13 +1038,16 @@ body.pad .kbonly{display:none}
 .fm-bar.big{height:5px;margin-top:7px}
 .fm-sub .fm-pips{margin-left:8px}
 .fm-sub .fm-rk{margin-left:4px}
-.fm-rkl{margin:5px 0 0;padding:0;list-style:none;font-size:12px;line-height:1.35}
-.fm-rkl li{position:relative;padding-left:14px;margin:1px 0;color:var(--ink-soft)}
+.fm-rkl{margin:7px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.4}
+.fm-rkl li{position:relative;padding-left:14px;margin:2px 0;color:var(--ink-soft)}
 .fm-rkl li::before{content:'\25B8';position:absolute;left:1px;color:var(--ink-faint)}
 .fm-rkl li.on::before{content:'\2713';color:var(--gold)}
-.fm-fin.dim{color:var(--ink-faint);font-size:11px}
+.fm-fin.dim{margin-top:6px;color:var(--ink-dim);font-size:12px;line-height:1.4}
+.fm-detail .fm-fin{font-size:13px;line-height:1.4}
+.fm-detail .fm-fin.dim{font-size:12px}
+.fm-sub.fm-mast+.fm-bar.big+.fm-fin,.fm-sub.fm-mast+.fm-fin{margin-top:7px}
 @media (max-width:760px){ #forms .howto-panel.fm-compact.fm-mastery{overflow-y:auto} .fm-mastery .fm-body{flex:0 0 auto} .fm-force{grid-template-columns:1fr} .fm-pws{grid-template-columns:repeat(2,minmax(0,1fr))} .fm-pw-h{align-items:flex-start} .fm-pw-h b{white-space:normal} .fm-pw-l{flex-wrap:wrap;white-space:normal} }
-@media (max-width:760px){ .fm-compact .fm-body{grid-template-columns:1fr;overflow-y:auto} .fm-tiles{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:760px){ .fm-compact .fm-body,.fm-mastery .fm-body.few{grid-template-columns:1fr;overflow-y:auto} .fm-tiles{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:620px){ .fm-slots,.fm-compact.hero-mando .fm-slots{grid-template-columns:1fr} }
 
 /* ---------- the training's LESSON BOARD (game/tutorial.js): the basics, then what the story has opened ---------- */

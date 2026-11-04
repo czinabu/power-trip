@@ -94,7 +94,7 @@ export const LESSONS = {
         { say: 'Run with your whole body.',
           keys: 'W', do: 'Sprint: hold W to run forward (you run by default; Q switches to a walk and back, so tap it again if you are walking)', poll: 'sprint', need: 1.5 },
         { say: 'Now drop low and let the Force carry you, far past where your legs would. The dash is for dodging; the slide is for distance, and it bowls over whoever stands in the way.',
-          keys: 'W · Z', do: 'Force-slide: press Z during a sprint (not while strafing with ALT or walking)', ev: 'slide', need: 2 },
+          keys: 'W · CTRL', do: 'Force-slide: press Left Ctrl during a sprint (not while strafing with ALT or walking)', ev: 'slide', need: 2 },
         { say: 'Reach for the Force as you leave the ground, and it will hold you.',
           keys: 'HOLD SPACE', do: 'Force-leap and glide', poll: 'glide', need: 1.2 },
         { say: 'In a fight, never turn your back. Keep your eyes on the foe and let your feet circle.',
@@ -113,7 +113,7 @@ export const LESSONS = {
           keys: 'W + SPACE', do: 'Run at the east wall and jump or flip onto it, holding W', ev: 'wallrun', need: 2, mark: [12.2, 7.5] },
         { sec: 'THE GAUNTLET', say: 'Now all of it, without stopping. Under, over, up, down, along the wall, and back to me.',
           course: [
-            { at: [-8, 11], r: 1.6, slide: true, keys: 'W · Z', do: 'Sprint west and Force-slide under the bar', hint: 'SLIDE UNDER IT' },
+            { at: [-8, 11], r: 1.6, slide: true, keys: 'W · CTRL', do: 'Sprint west and Force-slide under the bar', hint: 'SLIDE UNDER IT' },
             { at: [-12, -8.5], after: 'vault', keys: 'W · SPACE', do: 'Vault the blocks down the west lane', hint: 'VAULT THE BLOCKS' },
             { at: [-17.4, -16, 7.4], keys: 'SPACE · W', do: 'Climb the watchtower' },
             { at: [-17.4, -9.5], r: 3, after: 'roll', land: true, keys: 'SHIFT', do: 'Drop off the north side and roll as you land', hint: 'ROLL AS YOU LAND' },

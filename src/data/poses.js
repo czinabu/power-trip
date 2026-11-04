@@ -238,13 +238,13 @@ export const DUAL_GUARDS = {
   'regular/reverse': {
     // the right fist up by the shoulder, its blade standing straight up; the reversed left fist low before the waist,
     // its blade laid level out past the off hip
-    ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.5, torso: 0.12, lean: 0.02, pole: [0.9, -0.4, -0.2],
+    ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.5, torso: 0.12, lean: 0.02, gaze: 1, pole: [0.9, -0.4, -0.2],
              off: { hand: [-0.04, 0.0, 0.4], pole: [-0.9, -0.3, -0.3], sway: 0.3 }, offBlade: [-0.9, 0.14, 0.42] },
     // hunched in behind it: the right arm thrown up high, its blade held out level and angled down at the foe; the left
     // arm straight out to its side, the reversed blade laid out forward past it
-    block: { hand: [0.26, 0.58, 0.3], blade: [-0.04, -0.24, 0.97], twist: 0.14, lean: 0.4, pole: [0.85, 0.2, -0.45],
+    block: { hand: [0.26, 0.58, 0.3], blade: [-0.04, -0.24, 0.97], twist: 0.14, lean: 0.4, gaze: 1, pole: [0.85, 0.2, -0.45],
              off: { hand: [-0.66, 0.0, 0.2], pole: [-0.5, -0.8, -0.3] }, offBlade: [-0.85, -0.04, 0.52] },
-    block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, pole: [0.6, -0.75, -0.2],
+    block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, gaze: 1, pole: [0.6, -0.75, -0.2],
               off: { hand: [-0.16, 0.62, 0.18], pole: [-0.8, 0.3, -0.4] }, offBlade: [0.95, 0.1, 0.25] },
   },
 };

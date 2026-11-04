@@ -20,8 +20,7 @@ export const CALM_CFG = {
   far: [24, 34],             // m: how far from the hero the rally point is, when nobody is waiting on set to mark it
   near: 10,                  // m: someone on set nearer than this is too close to walk to: they meet you at a new spot
   reach: 3.2,                // m: how close counts as there
-  min: 7,                    // s: the earliest it can close, even standing on the marker (the exchange gets a word in)
-  talkMax: 26,               // s: past this, reaching the marker closes it even with the exchange still going
+  min: 5,                    // s: the earliest it can close, even standing on the marker (the exchange gets a word in)
   max: 40,                   // s: it closes on its own, wherever you are
 };
 

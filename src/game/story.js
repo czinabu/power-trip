@@ -11,7 +11,7 @@ import { playerPos } from '../player/helpers.js';
 import { storyVoice, forHero } from '../data/campaign.js';
 import { hooks } from '../net/run.js';
 import { chapterAt } from './campaign.js';
-import { stageHolds } from '../ui/hud-stage.js';
+import { stageHolds, stageHoldsBrisk } from '../ui/hud-stage.js';
 
 const box = document.getElementById('comms');
 const who = box.querySelector('.cm-who'), say = box.querySelector('.cm-say');
@@ -22,6 +22,10 @@ let cur = null, left = 0;
 const speaker = (l) => typeof l === 'string' ? storyVoice(undefined, G.chapter >= 0 ? chapterAt(G.chapter) : null) : l.who;   // (the story's voice: data/campaign.js)
 const words = (l) => typeof l === 'string' ? l : l.say;
 const holdFor = (text) => 2.4 + text.length * 0.05;
+// a BRISK line (opts.brisk: the calm after a chapter's last fight, game/aftermath.js) is up for less and follows the one
+// before it sooner: it's said while you walk to the way out, and nobody should be stood waiting on it
+const BRISK = { base: 1.3, perChar: 0.038, gap: 0.15 };
+const holdOf = (l) => l.brisk ? BRISK.base + l.say.length * BRISK.perChar : holdFor(l.say);
 
 /* QUIET STRETCHES — a longer line (story, not a callout) waits while the fight is on top of you: three or more foes
    within reach of the hero (a boss counts as three). It plays as soon as the field eases off (an escort leg, the walk
@@ -48,7 +52,7 @@ export function comms(lines, opts = {}){
   if (!lines) return;
   lines = Array.isArray(lines) ? lines : [lines];
   if (!lines.length) return;
-  const list = lines.map(l => ({ who: speaker(l), say: words(l), rival: typeof l === 'object' && !!l.rival, urgent: !!(opts.now || opts.front), talk: !!opts.talk }));
+  const list = lines.map(l => ({ who: speaker(l), say: words(l), rival: typeof l === 'object' && !!l.rival, urgent: !!(opts.now || opts.front), talk: !!opts.talk, brisk: !!opts.brisk, tag: opts.tag || '' }));
   enqueue(list, !!opts.now, !!opts.front);
   if (hooks.comms && !opts.remote) hooks.comms(list, !!opts.now, !!opts.front);
 }
@@ -60,21 +64,26 @@ function enqueue(list, now, front){
 // from the host, already worked out (net/foefire.js)
 export function remoteComms(list, now, front){ enqueue(list, now, front); }
 export function clearComms(){ queue.length = 0; cur = null; left = 0; box.classList.remove('on'); }
+// drop the lines queued under a tag (comms opts.tag), and the one up if it's one of them: what they were about is over
+export function dropComms(tag){
+  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].tag === tag) queue.splice(i, 1);
+  if (cur && cur.tag === tag){ cur = null; left = 0; box.classList.remove('on'); }
+}
 
 // runs on the sim's time (held while paused or on the upgrade screen: main.js)
 export function updateComms(dt){
   if (G.mode !== 'play'){ if (cur || queue.length) clearComms(); return; }
   if (cur && (left -= dt) > 0) return;
-  if (cur){ cur = null; box.classList.remove('on'); left = 0.35; return; }   // a breath between lines
+  if (cur){ const was = cur; cur = null; box.classList.remove('on'); left = was.brisk && queue[0] && queue[0].brisk ? BRISK.gap : 0.35; return; }   // a breath between lines
   if (left > 0){ left -= dt; return; }
   if (!queue.length) return;
-  if (!queue[0].urgent && stageHolds()) return;   // a closing card is the chapter's words: the next line waits until it's read (ui/hud-stage.js)
+  if (!queue[0].urgent && (queue[0].brisk ? stageHoldsBrisk() : stageHolds())) return;   // a closing card is the chapter's words: the next line waits until it's read (ui/hud-stage.js)
   if (waits(queue[0]) && fightHot()){ queue[0].held = (queue[0].held || 0) + dt; return; }   // a story line: wait for a lull (QUIET)
   cur = queue.shift();
   who.textContent = cur.who; say.textContent = cur.say;
   box.classList.toggle('rival', cur.rival);
   box.classList.add('on');
-  left = holdFor(cur.say);
+  left = holdOf(cur);
 }
 // where the strip sits (above a mission card low on the screen, when one is up) is the HUD stage's call (ui/hud-stage.js)
 export const commsBusy = () => !!cur || queue.length > 0;
@@ -94,7 +103,7 @@ export function storyBeat(beat, info = {}){
   const c = chapterAt(G.chapter);
   if (!c) return;
   info = { ...info, chapter: c.id, pos: G.chapter, hero: G.hero };
-  if (!G.coopGuest && !info.quiet) comms(linesFor(c, beat, info), { now: CUT_IN.has(beat) });
+  if (!G.coopGuest && !info.quiet) comms(linesFor(c, beat, info), { now: CUT_IN.has(beat), brisk: !!info.brisk });   // (info.brisk: said on the walk out, BRISK)
   for (const fn of listeners[beat] || []) fn(info);
 }
 // a chapter's lines for a beat: `lines.wave` is one entry per wave of the chapter, the rest one entry per beat

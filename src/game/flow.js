@@ -532,7 +532,7 @@ export function updateFlow(dt){
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.
         showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
-        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear'); if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; } checkUnlocks(1600, true); }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
+        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear', { brisk: true }); if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; } checkUnlocks(1600, true); }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
         else { shared.levelPhase = 'travel'; shared.phaseT = 1.6; openSkillTree(); }
       }
     }

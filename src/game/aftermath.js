@@ -2,8 +2,9 @@
 // THE CALM AFTER A CHAPTER'S LAST FIGHT: a quiet beat between the loud one that closed a chapter (a duel, a hold, a
 // stretch of waves) and the next chapter card. The field is cleared and the score drops away; a marker comes up at the
 // rally point (the story's voice waits there if they stayed on set: game/onset.js) and a short exchange plays over the
-// comms while you walk to it (data/calm.js). Reaching it, once the exchange has had its say, closes the chapter as
-// before: the voice's last word, the upgrade screen, the next card (game/flow.js 'chapterdone'). It closes on its own
+// comms while you walk to it (data/calm.js), in brisk lines that don't keep you waiting. Reaching it closes the chapter at
+// once, whatever is still to be said (the rest is dropped, and the Chapter complete card goes with it): the upgrade screen,
+// then the next card (game/flow.js 'chapterdone'). It closes on its own
 // after CALM_CFG.max seconds, wherever you are. Nobody can fall during it (player/damage.js): the chapter is already won.
 //
 // Every story's campaign (Jedi, Mandalorian, ARC trooper), solo and co-op: the host runs it and its snapshots carry the
@@ -22,8 +23,8 @@
 import { G, shared, enemies } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { makeBeacon, removeMarker, pulseMarker, heroIn } from './objectives.js';
-import { comms, commsBusy } from './story.js';
-import { stageHolds } from '../ui/hud-stage.js';
+import { comms, dropComms, clearComms } from './story.js';
+import { stageHolds, finishCard } from '../ui/hud-stage.js';
 import { onSetFigures, meetAt } from './onset.js';
 import { CALM, CALM_CFG } from '../data/calm.js';
 import { LEVELS } from '../data/levels.js';
@@ -38,6 +39,8 @@ import { templeDoors, doorState, doorFront, doorThrough, openDoors, goThrough, l
 import * as THREE from 'three';
 
 const COLOR = 0x9fe0ff;
+const CALM_TAG = 'calm';   // the exchange's lines on the comms strip (game/story.js comms opts.tag): brisk, and dropped when it ends
+const say = (lines, front) => comms(lines, { brisk: true, tag: CALM_TAG, front });
 // the calm running now. host: { t, at: {x, z}, mark, said, label, who }; a guest's copy is shown, not run (A.guest)
 const A = { on: false, t: 0, at: null, mark: null, said: false, label: '', who: '', reached: false, guest: false, sent: false, then: null, wait: 0, seen: false, door: null, doorSt: 0, doorT: 0 };
 export const calmOn = () => A.on;
@@ -121,8 +124,10 @@ export function endCalm(quiet){
   const host = A.on && !A.guest;
   A.on = false; A.at = null; G.calm = false;
   dropMark();
+  dropComms(CALM_TAG);   // (the hero walked out, or the chapter's gone: the exchange's lines still to come aren't waited for)
   if (quiet || !host) return;
-  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.6;   // (the voice's last word, then the upgrade screen: it waits for the comms)
+  clearComms(); finishCard();   // walked out: nothing left on the strip or the card keeps the upgrade screen waiting
+  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.6;   // (then the upgrade screen)
 }
 
 // for the HUD (ui/hud.js): the line while it runs, and where the waypoint points
@@ -145,20 +150,19 @@ export function updateAftermath(dt){
     A.at = { x: r.x, z: r.z }; A.who = r.who;
     showMark(r.x, r.z);
     const voice = storyVoice(undefined, chapterNow());
-    if (A.lines.length) comms(A.lines.map(([who, say]) => ({ who: who || voice, say })));
+    if (A.lines.length) say(A.lines.map(([who, line]) => ({ who: who || voice, say: line })));
     A.said = true;
   }
   if (A.mark) pulseMarker(A.mark, dt, G.gt);
   if (!A.at) return;
   A.reached = A.reached || heroIn(A.at.x, A.at.z, CALM_CFG.reach);   // (either hero, in co-op)
-  const talked = !commsBusy() || A.t > CALM_CFG.talkMax;
-  if (A.door){ updateDoor(talked); return; }
-  if ((A.reached && talked && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max) endCalm(false);
+  if (A.door){ updateDoor(); return; }
+  if ((A.reached && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max) endCalm(false);   // (the exchange doesn't hold the way out)
 }
 // a doorway calm: at the doors they open and the marker moves just past them; through them the screen goes dark and
 // the chapter closes. Past the calm's time limit the doors open on their own, and a while after that it closes anyway
-function updateDoor(talked){
-  const st = doorState(), due = (A.reached && talked && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max;
+function updateDoor(){
+  const st = doorState(), due = (A.reached && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max;
   if (!twoStep(A.door)){   // a spot: there, the screen goes dark
     if (st === 0 && due){ dropMark(); goThrough(() => endCalm(false)); }
     return;
@@ -168,7 +172,7 @@ function updateDoor(talked){
     const t = doorThrough();
     A.at = { x: t.x, z: t.z }; A.reached = false; A.doorT = A.t;
     showMark(t.x, t.z);
-    if (A.door.open) comms(A.door.open.map(([who, say]) => ({ who: who || storyVoice(undefined, chapterNow()), say })), { front: true });
+    if (A.door.open) say(A.door.open.map(([who, line]) => ({ who: who || storyVoice(undefined, chapterNow()), say: line })), true);
   } else if (st === 1 && (A.reached || A.t - A.doorT >= CALM_CFG.max)){
     dropMark();
     goThrough(() => endCalm(false));
@@ -193,7 +197,7 @@ export function calmSync(af){
       if (af[2] >= 1 && twoStep(door)) openDoors();
       if (af[2] >= 2){ goThrough(); dropMark(); }
     }
-  } else if (A.on && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); }
+  } else if (A.on && A.guest){ A.on = false; A.at = null; G.calm = false; dropMark(); dropComms(CALM_TAG); finishCard(); }
 }
 // game/campaign.js: a guest's chapter cleared. What follows (its upgrade screen) waits for the host's calm, if one comes
 export function guestCalm(then){ A.then = then; A.wait = 2.0; A.seen = false; }

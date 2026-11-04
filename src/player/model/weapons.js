@@ -8,6 +8,7 @@
 //   build  — returns { group, ...hooks } built in the current render style
 // Adding a weapon type = one entry here + mounting it in mountLoadout().
 
+import { offGrip } from '../../data/forms.js';
 import * as THREE from 'three';
 import { loft, plate, block, ngon, chamfer } from './shapes.js';
 import { glow } from '../../engine/renderer.js';
@@ -293,9 +294,10 @@ export function syncOffSaber(hero, allowed = true){
   O.blade.visible = B.blade.visible; O.glow.visible = B.glow.visible;
   O.blade.scale.copy(B.blade.scale); O.blade.position.y = B.blade.position.y;
   O.glow.scale.copy(B.glow.scale); O.glow.position.y = B.glow.position.y;
-  // the same grip as the main hand (a grip change turns both hilts over together)
-  const r = hero.saberBladeRoot;
-  if (r){ O.root.rotation.x = r.rotation.x; O.root.userData.gripTo = r.userData.gripTo; }
+  // the off hand's own grip (data/forms.js DUAL_GRIPS); anim/saber.js turns the hilt over to it
+  const to = offGrip('jarkai') === 'reverse' ? 0 : Math.PI;
+  if (O.root.userData.gripTo === undefined) O.root.rotation.x = to;
+  O.root.userData.gripTo = to;
 }
 export function applySaberGrip(player, grip, instant = false){
   saberGrip = grip === 'reverse' ? 'reverse' : 'regular';
@@ -303,6 +305,8 @@ export function applySaberGrip(player, grip, instant = false){
   if (!root) return;
   root.userData.gripTo = saberGrip === 'reverse' ? 0 : Math.PI;
   if (instant) root.rotation.x = root.userData.gripTo;
+  const O = player.offSaber;   // Jar'Kai's off saber: its own grip
+  if (O){ O.root.userData.gripTo = offGrip('jarkai') === 'reverse' ? 0 : Math.PI; if (instant) O.root.rotation.x = O.root.userData.gripTo; }
 }
 
 export function mountWeapon(R, S, id, socket){

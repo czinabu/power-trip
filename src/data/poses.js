@@ -146,19 +146,19 @@ export const SABER_GUARDS = {
       ready: { hand: [0.22, 0.08, 0.24], blade: [0.1, 0.85, -0.3], two: true, twist: 0.2, lean: 0.08, pole: [0.7, -0.6, -0.2] },
       block: { hand: [0.18, 0.2, 0.42], blade: [-0.9, 0.42, 0.12], two: true, twist: 0.0, lean: 0.26, pole: [0.6, -0.8, 0] },
     },
-    /* JAR'KAI, FORWARD GRIP — Ventress and Revan: low and staggered, the lead (weapon) blade held high and forward at the
-       foe's eyes, the off blade low and forward across the line of the legs, ready to come in after it. The two blades
-       split the foe's lines between them: one high, one low. */
+    /* JAR'KAI, FORWARD GRIP — Starkiller (The Force Unleashed II): squared up and low, both arms down and wide at the hips,
+       the blades raked down and out to either side, tips toward the floor: open, and ready to come up either way */
     jarkai: {
-      ready: { hand: [0.3, 0.04, 0.34], blade: [-0.12, 0.62, 0.78], twist: 0.12, torso: 0.04, lean: 0.08, pole: [0.6, -0.7, -0.3],
-               off: { hand: [-0.32, -0.16, 0.34], pole: [-0.6, -0.75, -0.2], sway: 0.4 }, offBlade: [-0.22, -0.22, 0.95] },
-      // the X-BLOCK: both hilts brought together before the chest and the blades crossed above them, a scissor that
-      // catches a blow in its fork
-      block: { hand: [0.12, 0.14, 0.42], blade: [-0.62, 0.76, 0.18], twist: 0, lean: 0.08, pole: POLE,
-               off: { hand: [-0.12, 0.14, 0.42], pole: OFF_POLE }, offBlade: [0.62, 0.76, 0.18] },
-      // (every other raise) the two blades set one over the other: the lead level across the brow, the off blade upright
-      block2: { hand: [0.24, 0.42, 0.36], blade: [-0.94, 0.22, 0.2], twist: 0.04, lean: 0.06, pole: [0.8, -0.3, -0.4],
-                off: { hand: [-0.4, 0.02, 0.34], pole: OFF_POLE }, offBlade: [-0.22, 0.96, 0.12] },
+      ready: { hand: [0.42, -0.3, 0.2], blade: [0.5, -0.72, 0.48], twist: 0.04, torso: 0.02, lean: 0.12, pole: [0.75, -0.6, -0.25],
+               off: { hand: [-0.42, -0.3, 0.2], pole: [-0.75, -0.6, -0.25], sway: 0.3 }, offBlade: [-0.5, -0.72, 0.48] },
+      // Ahsoka (live action): the lead saber thrust out before the chest, its blade laid level across the body; the off
+      // arm raised up behind on its own side, its blade standing up over the shoulder
+      block: { hand: [0.14, 0.12, 0.5], blade: [-0.9, 0.22, 0.36], twist: 0.18, lean: 0.1, pole: [0.75, -0.55, -0.35],
+               off: { hand: [-0.38, 0.36, -0.06], pole: [-0.8, -0.2, -0.5] }, offBlade: [-0.28, 0.92, -0.26] },
+      // (every other raise) the X-BLOCK: both hilts brought together before the chest and the blades crossed above them,
+      // a scissor that catches a blow in its fork
+      block2: { hand: [0.12, 0.14, 0.42], blade: [-0.62, 0.76, 0.18], twist: 0, lean: 0.08, pole: POLE,
+                off: { hand: [-0.12, 0.14, 0.42], pole: OFF_POLE }, offBlade: [0.62, 0.76, 0.18] },
     },
   },
   // REVERSE (Shien) GRIP — blade out of the pinky side, lying back along the forearm (Ahsoka, Starkiller)
@@ -206,23 +206,38 @@ export const SABER_GUARDS = {
       block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
                off: { hand: [-0.28, -0.04, 0.34], pole: OFF_POLE } },
     },
-    /* JAR'KAI, REVERSE GRIP — Ahsoka: crouched and coiled, both sabers reversed, the lead fist up in front of the chest
-       with its blade laid out level past the weapon side, the off fist low by the off hip with its blade raked out and
-       back the other way: a blade on each side, edges out */
+    /* JAR'KAI, REVERSE GRIP — Maul and Starkiller: squared up, both fists low at the hips and both blades standing up
+       out of them past the shoulders, a blade on each side */
     jarkai: {
-      ready: { hand: [0.2, 0.08, 0.4], blade: [0.96, 0.08, 0.24], twist: 0.1, lean: 0.12, pole: [0.5, -0.7, -0.4],
-               off: { hand: [-0.3, -0.14, 0.3], pole: [-0.6, -0.6, -0.4], sway: 0.4 }, offBlade: [-0.82, -0.36, 0.42] },
-      // both forearms raised before the face, the blades hanging down and out on either side: a wall of two blades
-      block: { hand: [0.1, 0.3, 0.42], blade: [0.42, -0.88, 0.2], twist: 0, lean: 0.08, pole: [0.9, -0.1, -0.3],
-               off: { hand: [-0.1, 0.24, 0.42], pole: [-0.9, -0.1, -0.3] }, offBlade: [-0.42, -0.88, 0.2] },
-      // (every other raise) the lead forearm thrown up over the brow, blade out level; the off blade hung down across the legs
-      block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
-                off: { hand: [-0.16, -0.02, 0.4], pole: OFF_POLE }, offBlade: [0.3, -0.94, 0.14] },
+      ready: { hand: [0.36, -0.28, 0.24], blade: [0.3, 0.9, 0.3], twist: 0.04, lean: 0.12, pole: [0.8, -0.5, -0.3],
+               off: { hand: [-0.36, -0.28, 0.24], pole: [-0.8, -0.5, -0.3], sway: 0.3 }, offBlade: [-0.3, 0.9, 0.3] },
+      // one arm before the body, one behind it (Ahsoka, The Clone Wars; Starkiller): the lead fist up in front of the
+      // chest, its blade laid level out past the weapon side; the off arm drawn back behind, its blade trailing out behind
+      block: { hand: [0.16, 0.14, 0.44], blade: [0.96, 0.08, 0.24], twist: 0.22, lean: 0.12, pole: [0.5, -0.7, -0.4],
+               off: { hand: [-0.36, 0.06, -0.2], pole: [-0.45, -0.55, -0.7] }, offBlade: [-0.42, -0.2, -0.88] },
+      // (every other raise) both forearms raised before the face, the blades hanging down and out on either side: a wall
+      block2: { hand: [0.1, 0.3, 0.42], blade: [0.42, -0.88, 0.2], twist: 0, lean: 0.08, pole: [0.9, -0.1, -0.3],
+                off: { hand: [-0.1, 0.24, 0.42], pole: [-0.9, -0.1, -0.3] }, offBlade: [-0.42, -0.88, 0.2] },
     },
     darksaber: {   // the darksaber always uses the regular hold (it's a sword, not a duelist's saber)
       ready: { hand: [0.22, 0.08, 0.24], blade: [0.1, 0.85, -0.3], two: true, twist: 0.2, lean: 0.08, pole: [0.7, -0.6, -0.2] },
       block: { hand: [0.18, 0.2, 0.42], blade: [-0.9, 0.42, 0.12], two: true, twist: 0.0, lean: 0.26, pole: [0.6, -0.8, 0] },
     },
+  },
+};
+
+/* JAR'KAI WITH THE HANDS IN DIFFERENT GRIPS (data/forms.js DUAL_GRIPS), keyed 'main/off': its own ready guard (Ahsoka,
+   The Clone Wars). The reversed fist is raised high by the head with its blade hung down and out beside it; the forward
+   fist is low before the chest, its blade laid level across and out to its own side. Blocks take each hand's half from
+   its own grip's guards. */
+export const DUAL_GUARDS = {
+  'reverse/regular': {
+    ready: { hand: [0.3, 0.4, 0.14], blade: [0.42, -0.86, 0.3], twist: 0.16, lean: 0.12, pole: [0.85, 0.1, -0.5],
+             off: { hand: [-0.06, -0.06, 0.44], pole: [-0.6, -0.75, -0.2], sway: 0.3 }, offBlade: [-0.86, 0.08, 0.5] },
+  },
+  'regular/reverse': {
+    ready: { hand: [0.06, -0.06, 0.44], blade: [0.86, 0.08, 0.5], twist: 0.0, lean: 0.12, pole: [0.6, -0.75, -0.2],
+             off: { hand: [-0.3, 0.4, 0.14], pole: [-0.85, 0.1, -0.5], sway: 0.3 }, offBlade: [-0.42, -0.86, 0.3] },
   },
 };
 

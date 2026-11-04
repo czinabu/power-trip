@@ -41,6 +41,7 @@ function settle(sw){
   if (player.stam < cost){ sw.weigh = 'light'; return; }   // no breath for the bigger blow: it goes on light
   player.stam -= cost; player.stamDelay = stamDelay();
   sw.weigh = 'heavy'; sw.heavy = true;
+  if (sw.travel){ sw.travel.x *= SWING_WEIGHT.look.step; sw.travel.z *= SWING_WEIGHT.look.step; }   // it drives in further behind the blow
   sfx(95, 0.22, 'sawtooth', 0.05, 60); sfx(420, 0.12, 'sine', 0.03, 260);   // the blade's hum drops as it loads
   tutEvent('heavyDraw');
 }

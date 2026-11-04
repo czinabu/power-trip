@@ -9,6 +9,7 @@ import { CUT_ANGLE } from '../../data/stances.js';
 import { DIM } from '../model/rig.js';
 import { solveArm, aimHeld, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
 import { STAFF } from '../model/weapons.js';
+import { SWING_WEIGHT } from '../../data/swing-weight.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const PIVOT = new THREE.Vector3(0, 0.12, 0.04);   // the arc centre of a cut: between the shoulders, a touch forward
@@ -105,6 +106,7 @@ const TWIRL_OFF = new THREE.Vector3(-0.5, 0.02, 0.18);   // where a two-handed w
 const easeOut = t => 1 - (1 - t) * (1 - t);
 const DEF_POLE = new THREE.Vector3(0.55, -0.8, -0.25).normalize();
 const REV_ROUND = -0.2;   // a reverse stroke whose blade turns further than this (dot of chamber and strike) goes round level
+const HEAVY_LOOK = SWING_WEIGHT.look;
 const COIL_HOLD = 0.22;   // the share of the stroke's time the blade hangs at the top of the chamber before it goes
 /* A CUT IS ONE MOTION, not a bat swung at a ball (data/poses.js SWING_STYLE: load, accel, lag, recover):
    the wind-up eases into a chamber loaded a little deeper than its key, so the hang at the top is a slow settle, never a
@@ -349,6 +351,27 @@ export function swingPose(R, held, grip, form, sw){
     _ax.subVectors(F.blade, S.blade).multiplyScalar(o * 0.6);
     saberPose.blade.add(_ax).normalize();
   }
+  // HEAVY CUT (player/jedi/weight.js): held, the blade draws back PAST its chamber, up and behind the shoulder, the tip
+  // laid back further; committed, that extra wind-up is let go through the stroke (so it whips in faster) and the
+  // blade carries well past the follow-through before it is hauled back, the body's weight dragged after it
+  const hk = sw.heavy ? 1 : sw.weigh === 'pending' ? (sw.drawK || 0) : 0;
+  if (hk > 0){
+    const H = HEAVY_LOOK;
+    const wind = k < A.wind ? powOut(k / A.wind, 2) : k < A.ts ? 1 - powIn((k - A.wind) / (A.ts - A.wind), 1.6) : 0;
+    if (wind > 0){
+      _p.subVectors(C.hand, S.hand).multiplyScalar(H.draw * hk * wind);
+      saberPose.hand.add(_p); saberPose.hand.y += H.lift * hk * wind;
+      _ax.subVectors(C.blade, S.blade).multiplyScalar(H.lay * hk * wind);
+      saberPose.blade.add(_ax).normalize();
+    }
+    if (sw.heavy && k > A.ts){
+      const o = Math.sin(Math.min(1, (k - A.ts) / (1 - A.ts)) * Math.PI) * H.carry;
+      _p.subVectors(F.hand, S.hand).multiplyScalar(o * 0.5);
+      saberPose.hand.add(_p);
+      _ax.subVectors(F.blade, S.blade).multiplyScalar(o * 0.6);
+      saberPose.blade.add(_ax).normalize();
+    }
+  }
   // TWIRL — the blade wheels about the hand in front of the chest while it coils, and is back on the chamber's line by
   // the strike (whole turns only, so it leaves and returns on the same line). The reverse grip keeps its blade along the forearm.
   const sp = sw.spin;
@@ -371,7 +394,7 @@ export function swingPose(R, held, grip, form, sw){
   const wheel = style.two && sp && sp.twirl && grip === 'regular' && k < A.ts * 0.85 && !staffIn(held);
   saberPose.two += ((style.two && !wheel ? 1 : 0) - saberPose.two) * 0.3;
   if (wheel) saberPose.off.lerp(TWIRL_OFF, 0.2);
-  saberPose.lean = (style.drop || 0) * Math.sin(Math.PI * k) * 1.6;
+  saberPose.lean = ((style.drop || 0) + (sw.heavy ? HEAVY_LOOK.drop : 0)) * Math.sin(Math.PI * k) * 1.6;   // (a heavy throws the shoulders down into it)
   // the free hand works against the blade (data/poses.js SWING_OFF): a forehand reaches it out at the foe on the wind-up
   // and draws it back to the hip as the blade comes through (the counter-pull that turns the body), a backhand tucks it in
   // and flings it out the other way; it opens for balance on the follow-through and returns to the guard's place

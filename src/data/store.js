@@ -3,6 +3,7 @@
 
 import { stanceUnlocked } from './stances.js';
 import { FORMS, FORM_PATH } from './forms.js';
+import { chapterOrder } from './campaign.js';
 import { G, player } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { setStanceHud } from '../player/jedi/stance.js';
@@ -53,13 +54,16 @@ export const MANDO_AUTO = [
     has:()=>(player.up.cellTier||0) >= 3, grant(){ player.up.cellTier = 3; applyCellTier(); } },
 ];
 // `stage` is the survival gate (cumulative waveTotal); campaign uses level/wave. Both kept in sync in checkUnlocks.
+// the chapter that teaches a form (data/forms.js FORM_PATH) in the story this run tells: its `alt` when the story never
+// plays its own (a chapter only the Jedi's story has, met by a Jedi in a co-op partner's Mando or trooper story)
+export const formChapter = (p) => p.alt && !chapterOrder(G.actTwo).some(c => c.id === p.chapter) ? p.alt : p.chapter;
 export const JEDI_AUTO = [
   // FORCE PULL — auto-unlocks early (after wave 2); it's no longer in the starting kit
   { key:'pull',   level:0, wave:2, stage:1, chapter:'siege', hud:'C', name:'FORCE PULL',
     has:()=>!!G.unlocked.pull,        grant(){ G.unlocked.pull = true; } },
   // THE FORMS — learned along FORM_PATH (data/forms.js); game/meditation.js announces each and lets the hero re-slot.
   // A Form VII entry isn't granted here: the run offers the fork and the hero picks which one it keeps.
-  ...FORM_PATH.map(p => ({ key: p.form, form: true, chapter: p.chapter, level: p.level, wave: p.wave, stage: p.stage,
+  ...FORM_PATH.map(p => ({ key: p.form, form: true, get chapter(){ return formChapter(p); }, level: p.level, wave: p.wave, stage: p.stage,
     hud: '', name: FORMS[p.form].name + (FORMS[p.form].no ? ' · FORM ' + FORMS[p.form].no : ''), fork: !!FORMS[p.form].fork,
     has: () => stanceUnlocked(p.form) || (FORMS[p.form].fork && !!G.formFork),
     grant(){ if (!FORMS[p.form].fork){ (G.stanceUnlocked = G.stanceUnlocked || {})[p.form] = true; setStanceHud(); } } })),

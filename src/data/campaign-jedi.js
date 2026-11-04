@@ -88,7 +88,8 @@ export const JEDI_CHAPTERS = {
       chapter: ['Keep them off the archivists.', rival('THE INQUISITOR', 'You still lean left when you parry. I always told you so.')],
       duel: [rival('THE INQUISITOR', 'You should not have followed me down here.'), 'It knows how you fight. It knows the vault. I do not like what that means.'],
       escape: ['Let her go. Knight, let her go. The Ledger is still down there.'],
-      clear: ['The archivists are out. The vault roof is coming down, and the Ledger is in your hands.'] } },
+      clear: ['The archivists are out. The vault roof is coming down, and the Ledger is in your hands.',
+              'She knew every parry you have. Then learn one she has never seen: Makashi, the duellist\'s form. You will want it when she comes again.'] } },
   refuge: {
     brief: { by: 'ledger',
       saved: ['The younglings reached the refuge. So did Ilsa, and she has seen the Ledger in your hands.', 'The last transport is still loading. Hold the ramp. If she comes for it, meet her.'],
@@ -171,7 +172,7 @@ export const JEDI_CHAPTERS = {
            [HERO, 'So Vexis does not find the rest of the children before we do.'],
            [KAST, 'That is a reason. Let us see if you are one.']] },
     lines: {
-      clear: ['Kast lowers her blade, and teaches you her two edges: Djem So to break a blade, Shien to send a bolt home.',
+      clear: ['Kast lowers her blade, and teaches you Djem So, the form she breaks a blade with. Form V has another road, she says. She never had the patience for it.',
               say(KAST, 'My troopers come with me. Where I go, they go. Tell Vael that.')] } },
   jakku: {
     title: 'SALVAGE RIGHTS', world: 'JAKKU, THE WRECK OF A CHILD TRANSPORT',
@@ -187,7 +188,7 @@ export const JEDI_CHAPTERS = {
       chapter: [say(MANDO, 'Those cores tell me where my clan\'s foundlings went. Yours too, by the look of you. We can both have that.')],
       clear: ['The cores are clean. Every route ends in the same place: Mustafar.',
               say(MANDO, 'Mustafar, then. Our roads split here, Jedi. If you find any of ours there, send them home.'),
-              'And in the wreck, a holocron the crew had stolen: Captain Aurel Dace, a duellist. Makashi: precision over power.'] } },
+              'And in the wreck, a holocron the crew had stolen: Captain Aurel Dace, who held a cruiser\'s bridge against boarders. Shien, Form V\'s other road: a reverse grip that sends every bolt home.'] } },
   mustafar: {
     title: 'THE EMBER ACADEMY', world: 'MUSTAFAR, VEXIS\'S ACADEMY', mission: 'academy',   // (the forge's own mission is the Missions list's)
     brief: ['It is not only a forge. Vexis trains the children he has taken here: an academy, built around the fire.',
@@ -198,7 +199,7 @@ export const JEDI_CHAPTERS = {
       chapter: ['The academy is guarded by its own overseers. Do not let the heat drive you into the channels.', rival(VEXIS, 'Oren. You came yourself. I knew the children would bring you.')],
       duel: ['Knight, finish the overseer. I am going after him. I should have dealt with him years ago.', rival(VEXIS, 'Come then, old man. I have kept a place for you.')],
       clear: ['The academy is ash, and its children are on our ships.', say(KAST, 'Knight, this is Kast. Vael\'s signal is gone. Vexis took him. The academy was a lure, and Vael was the catch.'),
-              say(KAST, 'Sit with what you have learned. You will need all of it now.'), 'The forms come together in you: Niman.', 'The overseer\'s saber staff was taken from a fallen Temple Guard. Its blades burn gold again in a Jedi\'s hands: one hilt, two blades.'] } },
+              say(KAST, 'Sit with what you have learned. You will need all of it now.'), 'The forms come together in you: Niman.'] } },
 
   // ---------------- ACT III: THE SEVENTH BLADE ----------------
   chase: {
@@ -237,7 +238,9 @@ export const JEDI_CHAPTERS = {
         struck: rival('THE ECHO', 'You struck her down on the dock. You will finish what he started. You already have.') },
         'It is the gate talking, not her. Do not listen. Fight.'],
       clear: [{ by: 'ilsa', spared: say(ILSA, 'It is open. Exegol is on the other side, and so is Vael.'), struck: 'The gate is open. Exegol is on the other side, and so is Vael.' },
-              say(TARN, 'Something else is on the other side too. I felt it look at us.')] } },
+              say(TARN, 'Something else is on the other side too. I felt it look at us.'),
+              say(TARN, 'The Temple Guards who held this dais left their staffs here when the temple fell. One of them should go through that gate with you.'),
+              'A Temple Guard\'s saber staff, its blades burning gold again in a Jedi\'s hands: one hilt, two blades.'] } },
   spearhead: {
     voice: JEDI_VOICE_LATE,
     brief: { by: 'ilsa',

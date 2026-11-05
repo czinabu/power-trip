@@ -117,7 +117,7 @@ export function fragCharges(){
 export function updateTrooperKit(dt){
   const F = TROOPER.frag;
   if (fragCharges() < fragMax()){
-    player.fragT += dt;
+    player.fragT += dt * (player.up.fragRate || 1);   // (fragRate: the armory locker's FRAG CHARGER pack)
     if (player.fragT >= F.recharge){ player.fragT = 0; player.fragCharges++; }
   } else player.fragT = 0;
   if (player.bashCd > 0) player.bashCd -= dt;

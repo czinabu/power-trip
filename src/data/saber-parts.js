@@ -11,6 +11,8 @@
 //   { missions: n }      n different story missions won from the Missions page (side content)
 //   { arcade: n }        n arcade contracts won
 //   { waves: n }         n survival waves cleared
+//   { revives: n }       n squadmates got up by your own hand (the trooper's squad)
+//   { squadWaves: n }    n survival waves cleared with the whole squad still standing
 // No `earn`: a starter part, on the bench from the first day. A part that is earned is announced once: a card at a
 // chapter's close, a corner note anywhere else.
 //
@@ -85,7 +87,7 @@ export function earnProgress(p, earn){
   if (earn.chapter) return { have: p.cleared && p.cleared[earn.chapter] ? 1 : 0, need: 1 };
   if (earn.won) return { have: Math.min(1, p.won || 0), need: 1 };
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
-  for (const k of ['duels', 'arcade', 'waves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
+  for (const k of ['duels', 'arcade', 'waves', 'revives', 'squadWaves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
   return { have: 0, need: 1 };
 }
 export const partEarned = (p, earn) => { const e = earnProgress(p, earn); return e.have >= e.need; };
@@ -94,7 +96,9 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (!earn) return 'ON THE BENCH FROM THE START';
   if (earn.chapter) return 'CLEAR ' + chapterName(earn.chapter);
   if (earn.won) return 'BEAT THE CAMPAIGN';
-  const n = earn.duels || earn.missions || earn.arcade || earn.waves, s = n === 1 ? '' : 'S';
+  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves, s = n === 1 ? '' : 'S';
+  if (earn.revives) return 'GET ' + n + ' SQUADMATE' + s + ' BACK UP';
+  if (earn.squadWaves) return 'CLEAR ' + n + ' SURVIVAL WAVE' + s + ' WITH THE SQUAD STANDING';
   if (earn.duels) return 'BEAT ' + n + ' DUELLIST' + s;
   if (earn.missions) return 'WIN ' + n + ' STORY MISSION' + s;
   if (earn.arcade) return 'WIN ' + n + ' ARCADE CONTRACT' + s;

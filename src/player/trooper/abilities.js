@@ -90,7 +90,7 @@ export function reconScan(){
   const A = abil('scan');
   if (!ready('scan', 'scan', A)) return;
   trainAbility('scan');
-  const pp = playerPos(), until = G.gt + A.time;
+  const pp = playerPos(), until = G.gt + A.time * (player.up.scanTime || 1);   // (scanTime: the armory locker's SCAN RELAY pack)
   groundRing(V3(pp.x, 0.1, pp.z), 0x7fd0ff, A.range, 0.7, 0.8);
   spawnGroundShock(V3(pp.x, 0.1, pp.z), 0x7fd0ff, A.range, 0.6, 0.35);
   sfx(1400, 0.25, 'sine', 0.05, 500); sfx(700, 0.4, 'sine', 0.04, 1600);

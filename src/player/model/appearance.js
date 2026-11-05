@@ -5,6 +5,7 @@
 //   palette  — colour per material name (hex); anything left out uses the default below
 //   build    — proportions: bulk (limb thickness), shoulders (chest width), head (head size). Joint positions never
 //              change, so animations and hitboxes stay identical whatever the build.
+//   hilt     — the Jedi's saber, as the workbench built it: { body, emitter, pommel } (model/hilt.js)
 //   seams    — the Mando's glowing armour lines (VFX can pulse these later)
 // Looks are merged over DEFAULT_LOOK, so a saved look only needs what differs.
 
@@ -17,6 +18,7 @@ export const DEFAULT_LOOK = {
       skin: 0x5c3826, hair: 0x140e0a, eyes: 0x2a1a10, boot: 0x1a120c, trim: 0xb08a4a,
     },
     build: { bulk: 1, shoulders: 1, head: 1 },
+    hilt: { body: 'apprentice', emitter: 'plain', pommel: 'cap' },   // the saber the workbench builds (model/hilt.js, data/saber-parts.js)
   },
   mando: {
     parts: { legs: 'armored', torso: 'cuirass', arms: 'pauldrons', helmet: 'tvisor', cape: 'half', jetpack: 'standard' },

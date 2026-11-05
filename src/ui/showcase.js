@@ -7,7 +7,7 @@ import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, 
 import { inkRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
-import { buildHeroModel } from '../player/model/index.js';
+import { buildHeroModel, buildSaberModel } from '../player/model/index.js';
 import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
@@ -229,6 +229,44 @@ function build(picks){
   if (crystal != null){ fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal); }
   R = fig.rig;
   hipsY = R.hips.position.y;
+  bench.hidden = [];   // (a new figure: restyleShowcase hides it again once it is dressed)
+  buildBench(picks);
+}
+
+/* ---------- THE SABER WORKBENCH (ui/customizer.js's SABER tab): the saber alone, big and lit over the stand, turning so
+   every side of the hilt shows. The figure's meshes hide (its lights stay, so nothing recompiles) and the camera closes
+   in on the hilt. The bench saber has no light of its own for the same reason. ---------- */
+const bench = { on: false, to: 0, k: 0, saber: null, hidden: [] };
+const BENCH_Y = PED_H + 1.55, BENCH_SCALE = 2.3;
+function buildBench(picks){
+  if (bench.saber){ stage.remove(bench.saber.group); disposeTree(bench.saber.group); }
+  const look = wornLook(picks), w = buildSaberModel(look);
+  w.light.parent.remove(w.light);
+  w.group.scale.setScalar(BENCH_SCALE);
+  w.group.position.set(0, BENCH_Y, 0);
+  w.group.visible = bench.on;
+  bench.saber = w;
+  benchColor();
+  stage.add(w.group);
+}
+// the blade burns the fitted crystal's colour, or the form's own
+function benchColor(){
+  const w = bench.saber; if (!w) return;
+  const c = fig.look && fig.look.jedi.saber != null ? fig.look.jedi.saber : (STANCES[G.stance] || STANCES.niman || {}).blade ?? 0x35c8ff;
+  w.glow.material.color.setHex(c);
+}
+function hideFigure(on){
+  if (on){
+    fig.vis.traverse(o => { if (o.isMesh && o.visible){ o.visible = false; bench.hidden.push(o); } });
+  } else { for (const o of bench.hidden) o.visible = true; bench.hidden = []; }
+}
+export function benchShowcase(on){
+  on = !!on;
+  if (on === bench.on) return;
+  bench.on = on;
+  if (on){ idleStop(); setSaberDual(fig, false, false); }   // (the stance cycle waits: it would show the staff's hilt on the hidden figure)
+  hideFigure(on);
+  if (bench.saber){ bench.saber.group.visible = on; benchColor(); }
 }
 build(loadPicks());
 // the customizer restyles the figure on the stand as each option is picked
@@ -236,6 +274,7 @@ export function restyleShowcase(picks){
   idle.on = false; saberPose.live = false;   // the new figure settles into its idle afresh
   build(picks);
   if (shown) dress(shown);
+  if (bench.on) hideFigure(true);   // (the workbench keeps the figure out of the shot while the saber is rebuilt)
   for (const k in painted) if (painted[k] !== THEMES[k].word) paint(k);   // (the trooper's name follows his rank)
 }
 
@@ -403,6 +442,7 @@ function closeUp(top){
 /* ---------- per frame ---------- */
 const accent = new THREE.Color(), tmpC = new THREE.Color(), _sky = new THREE.Color();
 let spin = 0, swapT = -1, nextHero = null, warm = false;
+const _benchCam = new THREE.Vector3(), _benchLook = new THREE.Vector3(), _benchAt = new THREE.Vector3();
 function setTheme(k, now){
   const T = THEMES[k];
   if (now){ accent.setHex(T.glow); bgMat.uniforms.a.value = bgMat.uniforms.b.value = textures[k]; bgMat.uniforms.mixAB.value = 0; }
@@ -583,6 +623,15 @@ export function renderShowcase(dt){
   const cz = camZ + (fit.z - camZ) * f, cy = 1.9 + (fit.y - 1.9) * f + Math.cos(t * ORBIT_RATE * 2) * 0.12 * free;
   cam.position.set(Math.sin(orb) * cz, cy, Math.cos(orb) * cz);
   cam.lookAt(0, 1.3 + (fit.look - 1.3) * f, 0);
+  // the workbench: the camera closes in on the hilt; the saber leans a little and turns with the stand
+  bench.k += ((bench.on ? 1 : 0) - bench.k) * Math.min(1, dt * 5);
+  if (bench.k > 0.001){
+    const b = bench.k * bench.k * (3 - 2 * bench.k), ty = BENCH_Y + 0.4, tz = cam.aspect < 1.3 ? 7.4 : 6.2;
+    cam.position.lerp(_benchCam.set(0.5, ty + 0.2, tz), b);
+    _benchLook.set(0, 1.3 + (fit.look - 1.3) * f, 0).lerp(_benchAt.set(0, ty, 0), b);
+    cam.lookAt(_benchLook);
+  }
+  if (bench.saber && bench.on){ const g = bench.saber.group; g.rotation.set(0, spin * 1.4, 0.32); g.position.y = BENCH_Y + Math.sin(t * 1.3) * 0.03; }
   if (pv.id) table.rotation.y = 0.5;   // three-quarter view, not turning: the cuts are what is on show
   else {
     spin += (TURN * f + boost) * dt;
@@ -598,7 +647,7 @@ export function renderShowcase(dt){
   R.hips.position.y = hipsY + (P.drop || 0) + Math.sin(t * 1.7) * 0.008 - Math.abs(shift) * 0.012;
   R.hips.rotation.z = shift * 0.035;
   if (pv.id) previewPose(dt);
-  else if (shown === 'jedi' && swapT < 0){
+  else if (shown === 'jedi' && swapT < 0 && !bench.on){
     if (!idle.on) idleStart();
     idlePose(dt, t, shift);
   } else if (!pv.id){

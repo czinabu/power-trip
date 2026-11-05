@@ -6,6 +6,8 @@
 //   kind 'color' draws round swatches (`sw` is the swatch colour, or the first palette colour when left out)
 //   kind 'part'  draws named chips
 // Add an option: append it to a row. Add an outfit piece: write the variant in jedi.js / mando.js, then name it here.
+// `earn: {...}` (the workbench's saber parts, data/saber-parts.js) keeps it locked until the hero's PROFILE has earned it:
+// kept across every run and NEW GAME, unlike a chapter `unlock`.
 // `unlock: '<chapter id>'` (data/campaign.js) keeps an option locked until that chapter of the hero's own campaign is
 // cleared, and it is announced at that chapter's close; `unlock: 'won'` until the hero's campaign is beaten. An option
 // with no `unlock` is open from the start (the body: skin, hair, face, eyes, build; and each row's basics). A row's
@@ -14,8 +16,16 @@
 
 import { mergeLook } from '../player/model/appearance.js';
 import { optionOpen } from '../game/wardrobe.js';
+import { BENCH } from './saber-parts.js';
 
 const pal = (palette) => ({ palette });
+// the workbench's parts as customizer rows: a crystal sets the blade colour, a part its piece of the hilt (look.jedi.hilt)
+const PIECE = { hilt: 'body', emitter: 'emitter', pommel: 'pommel' };
+function benchRows(){
+  return BENCH.map(r => ({ id: r.id, label: r.label, kind: r.id === 'saber' ? 'color' : 'part', bench: true,
+    options: r.parts.map(p => ({ id: p.id, name: p.name, ...(p.earn ? { earn: p.earn } : {}),
+      ...(r.id === 'saber' ? (p.col == null ? { sw: 0x35c8ff, set: { saber: null } } : { set: { saber: p.col } }) : { set: { hilt: { [PIECE[r.id]]: p.id } } }) })) }));
+}
 const parts = (p) => ({ parts: p });
 
 export const CUSTOMIZE = {
@@ -90,16 +100,10 @@ export const CUSTOMIZE = {
       { id: 'grey',  name: 'Grey',     set: pal({ tunic: 0x6e6a66 }), unlock: 'hoth' },
       { id: 'black', name: 'Black',    set: pal({ tunic: 0x2e2a28 }), unlock: 'chase' },
     ] },
-    // the blade's colour: the form's own (blue / green / violet, so the colour tells the stance), or a crystal of
-    // the player's in a hue no form uses; the stance HUD and the form's effects keep their colour either way
-    { id: 'saber', label: 'LIGHTSABER', kind: 'color', options: [
-      { id: 'form',   name: 'Form colour', sw: 0x35c8ff, set: { saber: null } },
-      { id: 'yellow', name: 'Yellow',      set: { saber: 0xffd23a }, unlock: 'trial-knight' },
-      { id: 'orange', name: 'Orange',      set: { saber: 0xff8a2a }, unlock: 'spearhead' },
-      { id: 'white',  name: 'White',       set: { saber: 0xf0f4ff }, unlock: 'trial-first' },
-      { id: 'red',    name: 'Red',         set: { saber: 0xff3a30 }, unlock: 'won' },
-      { id: 'cyan',   name: 'Teal',        set: { saber: 0x2affe0 }, unlock: 'trial-acrobat' },
-    ] },
+    // THE SABER WORKBENCH's rows (data/saber-parts.js): the kyber crystal (the blade's colour: the form's own, blue / green /
+    // violet so the colour tells the stance, or a crystal in a hue no form uses), the hilt, the emitter and the pommel.
+    // `bench` rows show on the customizer's SABER tab, not its LOOKS; their parts are earned (`earn`, game/wardrobe.js)
+    ...benchRows(),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
       { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.9, shoulders: 0.94 } } },

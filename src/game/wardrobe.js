@@ -12,7 +12,12 @@
 // Players from before the wardrobe keep what they were wearing: on the first load their customizer picks are written
 // down once (sw_look_kept, kept on this device) and stay open until NEW GAME starts them on the basics.
 //
-// No imports on purpose: player/mesh.js dresses the hero while the modules are still loading.
+// THE SABER WORKBENCH's parts (an option with `earn`, data/saber-parts.js) are the exception: they belong to the hero's
+// persistent profile (game/profile.js, localStorage sw_profile), so NEW GAME keeps them. A hero with no profile yet falls
+// back on the campaign's own record for a chapter or a win, so a crystal earned before the workbench stays earned.
+//
+// No imports on purpose (but the leaf data/saber-parts.js): player/mesh.js dresses the hero while the modules are still loading.
+import { partEarned } from '../data/saber-parts.js';
 
 const DEV_ALL = (() => { try { return new URLSearchParams(location.search).get('looks') === 'all'; } catch(e){ return false; } })();   // ?looks=all: everything open, for testing
 const KEPT = 'sw_look_kept';
@@ -55,9 +60,27 @@ export function clearKept(){
   kept = {};
   try { localStorage.setItem(KEPT, '{}'); } catch(e){}
 }
+// the hero's profile record as last saved (game/profile.js keeps it and saves it as each count changes); parsed once per change
+let profRaw = null, profParsed = null;
+function profileRecord(hero){
+  const raw = local('sw_profile');
+  if (raw !== profRaw){ profRaw = raw; try { profParsed = JSON.parse(raw); } catch(e){ profParsed = null; } }
+  return profParsed && profParsed.heroes && profParsed.heroes[hero] || null;
+}
+// has the hero earned this workbench part (data/saber-parts.js `earn`)?
+export function partOpen(hero, earn){
+  if (!earn || DEV_ALL) return true;
+  const p = profileRecord(hero);
+  if (p) return partEarned(p, earn);
+  return earn.chapter ? chapterEarned(hero, earn.chapter) : earn.won ? campaignBeaten(hero) : false;
+}
 // can the player wear this option of this row, as this hero?
 export function optionOpen(hero, row, opt){
+  if (opt.earn) return partOpen(hero, opt.earn) || keptOpen(hero, row, opt);
   if (!opt.unlock || chapterEarned(hero, opt.unlock)) return true;
+  return keptOpen(hero, row, opt);
+}
+function keptOpen(hero, row, opt){
   const k = keptPicks()[hero];
   return !!(k && k[row.id] === opt.id);
 }

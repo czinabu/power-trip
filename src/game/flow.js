@@ -3,6 +3,7 @@
 
 import { chapterLooks } from './look-unlocks.js';
 import { noteChapterCleared, takeRankCards, noteFork } from './profile.js';
+import { attune } from './saber-bench.js';
 import { autosave } from './autosave.js';
 import { endLock } from '../enemies/duel.js';
 import { removeEnemy } from '../enemies/cleanup.js';
@@ -210,6 +211,7 @@ export function startLevel(idx, opts){
     resetReadout();
     G.stats = { kills: 0, dmgTaken: 0, parries: 0, deflects: 0, perfectDodges: 0, flawless: 0, cleanWaves: 0, shotsFired: 0, shotsHit: 0, bestStreak: 0, bossKilled: false, startGt: G.gt, summary: null };
   }
+  attune();   // the Jedi's kyber crystal: its small sidegrade on the run's numbers, never stacked (game/saber-bench.js)
   /* CHECKPOINT — a retry puts the run back where the level began: the same wave count, so the army isn't tougher
      and more elite for every death (enemy HP and elite odds climb with waveTotal). Died to the boss on Padawan or
      Knight → the retry goes straight to the boss instead of replaying all four waves. */

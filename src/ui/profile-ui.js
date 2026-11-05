@@ -9,7 +9,7 @@ import { G } from '../state.js';
 import { audioInit, S } from '../audio/sfx.js';
 import {
   profileOf, track, rankNeeds, trialsPassed, insightLeft, insightTotal, nodeState, learnNode, resetTree, treePath, setPath,
-  seenFresh, anyFresh, onPromote, resetProfile, tierRank,
+  seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
   owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck,
 } from '../game/profile.js';
 import { TRIALS, JEDI_TREE, RANK_SKILLS, BRANCHES, BRANCH, FORK_BRANCH, DECK_QUOTA, DECK_SIZE } from '../data/profile.js';
@@ -20,6 +20,9 @@ import { FORMS } from '../data/forms.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { icon } from './icons.js';
 import { upToast } from '../game/upgrades.js';
+import { EARNABLE, crystalOf, earnProgress, earnText } from '../data/saber-parts.js';
+import { CUSTOMIZE, wornOption } from '../data/customize.js';
+import { loadPicks } from '../player/mesh.js';
 
 const panel = document.getElementById('profile');
 const btn = document.getElementById('pfBtn');
@@ -61,8 +64,23 @@ function leftCol(h){
     <div class="pf-bar"><i style="width:${Math.round(frac * 100)}%"></i></div>
     ${next ? `<div class="pf-next"><h4>NEXT · ${esc(next.nm)}</h4><ul>${nx.map(n => needLine(n, h)).join('')}</ul></div>` : '<div class="pf-next"><h4>THE TOP OF THE LADDER</h4><p class="pf-note">Every rank is yours.</p></div>'}
     <div class="pf-sec"><h4>THE LADDER</h4><ol class="pf-ladder">${ladder}</ol></div>
+    ${h === 'jedi' ? saberSec() : ''}
     <div class="pf-sec"><h4>RECORD</h4><div class="pf-rec">${rec.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('')}</div></div>
     <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions and arcade contracts won, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
+  </div>`;
+}
+
+/* ---------- YOUR SABER: what the workbench has fitted, and how many parts are earned (data/saber-parts.js) ---------- */
+function saberSec(){
+  const mine = (loadPicks().jedi) || {}, at = (id) => wornOption('jedi', CUSTOMIZE.jedi.find(r => r.id === id), mine);
+  const c = crystalOf(at('saber').id), col = c.col != null ? '#' + c.col.toString(16).padStart(6, '0') : 'var(--accent)';
+  const next = EARNABLE.map(([row, part]) => ({ part, e: earnProgress(profileOf('jedi'), part.earn) })).filter(x => x.e.have < x.e.need)
+    .sort((a, b) => (b.e.have / b.e.need) - (a.e.have / a.e.need))[0];
+  return `<div class="pf-sec pf-saber"><h4>YOUR SABER<em>${partsOwned()} / ${partsTotal()} PARTS</em></h4>
+    <div class="pf-sb"><i style="--c:${col}"></i><div><b>${esc(at('hilt').name.toUpperCase())} HILT</b><span>${esc(at('emitter').name)} emitter · ${esc(at('pommel').name)} pommel</span></div></div>
+    <div class="pf-sb-att"><b>${esc(c.name.toUpperCase())} · ${esc(c.att)}</b><span>${esc(c.ds)}</span></div>
+    ${next ? `<p class="pf-note">Next part: <b>${esc(next.part.name)}</b> · ${esc(earnText(next.part.earn, (id) => chapterName(id, 'jedi')))}${next.e.need > 1 ? ' (' + next.e.have + ' / ' + next.e.need + ')' : ''}</p>` : '<p class="pf-note">Every part is yours.</p>'}
+    <p class="pf-note">Build it at the workbench: CUSTOMIZE, then SABER.</p>
   </div>`;
 }
 
@@ -195,6 +213,12 @@ onPromote((h, r) => {
   if (G.mode !== 'play') return;
   const R = track(h).ranks[r];
   upToast('RANK EARNED · ' + R.nm, (h === 'jedi' ? 'New Insight for the Force Tree' : deckOf(h) ? 'A new card for your deck' : 'A new card for your runs') + ' · see PROFILE between runs', 'mast');
+});
+// a saber part earned mid-fight (game/profile.js settleParts; at a chapter's close it is a card instead)
+onPart((what, part, line) => {
+  refreshButton();
+  if (G.mode !== 'play') return;
+  upToast('SABER PART · ' + part.name.toUpperCase() + ' ' + what, line + ' · fit it at the workbench between runs', 'mast');
 });
 new MutationObserver(refreshButton).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class', 'style'] });
 refreshButton();

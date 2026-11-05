@@ -3,7 +3,7 @@
 
 import { heroName, refreshWorn } from '../game/wardrobe.js';
 import { renderer } from '../engine/renderer.js';
-import { cycleQuality } from '../engine/quality.js';
+import { cycleQuality, resetQuality } from '../engine/quality.js';
 import { audioInit, setMasterVol, setMusicVol, setSfxVol, S } from '../audio/sfx.js';
 import { AE } from '../audio/engine.js';
 import { shared, G, player, isGunner, isTrooper } from '../state.js';
@@ -498,7 +498,7 @@ howto.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && howto.classList.contains('open')) setHowTo(false); });
 // SETTINGS — every option lives in this panel so the main menu and pause screen stay clean; it opens from either
 const settings = document.getElementById('settings');
-function setSettings(open){ settings.classList.toggle('open', open); }
+function setSettings(open){ settings.classList.toggle('open', open); if (!open) setResetConfirm(false); }
 document.getElementById('settoggle').addEventListener('click', (e) => { e.stopPropagation(); setSettings(true); });
 document.getElementById('setclose').addEventListener('click', (e) => { e.stopPropagation(); setSettings(false); });
 settings.addEventListener('click', (e) => {
@@ -506,6 +506,22 @@ settings.addEventListener('click', (e) => {
   if (e.target === settings) setSettings(false);   // click the backdrop to close
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && settings.classList.contains('open')) setSettings(false); });
+// RESET TO DEFAULTS — every option in the panel back to its stock value, after a confirm. Settings only: saves,
+// progress, mastery, difficulty and the look/loadout choices are never touched. Fullscreen is the browser's, so it stays.
+const resetBox = document.getElementById('setreset');
+const setResetConfirm = (on) => resetBox.classList.toggle('confirming', on);
+function resetSettings(){
+  setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
+  setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
+  setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
+  setFinToggle('finSlow', true); setFinToggle('finCam', true);
+  setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
+  setAimHint(true); setSwingMirror(false); setSaberGrip('regular');
+  resetQuality();
+}
+document.getElementById('setresetbtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); S.uiClick(); setResetConfirm(true); });
+document.getElementById('setresetno').addEventListener('click', (e) => { e.stopPropagation(); setResetConfirm(false); });
+document.getElementById('setresetyes').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); resetSettings(); setResetConfirm(false); S.uiClick(); });
 showMenuStep('mode');
 
 // UI SOUND — a soft tick when the pointer lands on something you can pick, a firmer blip when you pick it

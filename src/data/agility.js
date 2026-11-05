@@ -368,7 +368,7 @@ export const AIR_GUARDS = {
     // SORESU (Obi-Wan): never out of guard: the blade carried upright before the face in one hand, a shield on the run,
     // the free arm pumping
     soresu: {
-      run:    { hand: [0.12, 0.06, 0.38], blade: [-0.08, 0.95, 0.3], twist: 0.1, pole: [0.6, -0.75, -0.25],
+      run:    { hand: [0.2, 0.06, 0.38], blade: [0.04, 0.95, 0.3], twist: 0.1, pole: [0.6, -0.75, -0.25],
                 off: { hand: [-0.3, -0.12, 0.18], pole: OFF, sway: 0.8 } },
     },
     // JUYO (Vader's charge, Maul): pitched in and driving, the point carried low and forward out at the weapon side,
@@ -377,9 +377,10 @@ export const AIR_GUARDS = {
       run:    { hand: [0.4, -0.22, 0.22], blade: [0.42, -0.42, 0.8], twist: 0.08, pole: [0.8, -0.55, -0.2],
                 off: { hand: [-0.32, -0.08, 0.24], pole: OFF } },
     },
-    // VAAPAD (Mace Windu): upright and controlled, the blade held straight up beside the weapon shoulder, close and still
+    // VAAPAD (Mace Windu): upright and controlled, the fist raised to the weapon shoulder and the blade standing
+    // straight up over it, tipped a little forward: cocked to come down the moment he arrives
     vaapad: {
-      run:    { hand: [0.4, -0.04, 0.14], blade: [0.1, 0.98, 0.12], twist: 0.02, pole: [0.9, -0.4, -0.15],
+      run:    { hand: [0.36, 0.22, 0.28], blade: [0.06, 0.95, 0.3], twist: 0.02, pole: [0.9, -0.4, -0.15],
                 off: { hand: [-0.28, -0.1, 0.2], pole: OFF, sway: 0.7 } },
     },
     // JAR'KAI, BOTH REGULAR (Starkiller, Anakin): both arms swept down and out behind, the blades raked down and back

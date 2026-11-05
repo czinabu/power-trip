@@ -41,7 +41,7 @@ export const MATERIALS = {
   plate:   { c: 0xd3d5d3, r: 0.38, m: 0.45 },    // plastoid: glossy, so it catches the arena's sky and a sun glint like beskar does, not flat white
   grey:    { c: 0x26282c, r: 0.5,  m: 0.4 },
   mark:    { c: 0x2f7fd6, r: 0.4,  m: 0.45 },
-  glow:    { c: 0x2a9ae8, r: 0.2,  m: 0.1, e: 0x3ab8ff, ei: 1.5, noRim: true },   // the Commando's lit visor and wrist readout
+  glow:    { c: 0x2f86ff, r: 0.2,  m: 0.1, e: 0x2a6dff, ei: 1.3, noRim: true },   // the Commando's lit visor and wrist readout
   // weapons
   gunDark: { c: 0x16191e, r: 0.4, m: 0.6 },
   gunMetal:{ c: 0x8a929c, r: 0.3, m: 0.85 },

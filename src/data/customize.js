@@ -188,6 +188,8 @@ export const CUSTOMIZE = {
     { id: 'helmet', label: 'HELMET', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'mustafar' },
       { id: 'commando', name: 'Commando', set: parts({ helmet: 'commando' }), unlock: 'mustafar', fork: 'commando' },
+      { id: 'commandoStripe', name: 'Commando, striped', set: parts({ helmet: 'commandoStripe' }), unlock: 'mustafar', fork: 'commando' },
+      { id: 'commandoSplit',  name: 'Commando, dark',    set: parts({ helmet: 'commandoSplit' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
     ] },

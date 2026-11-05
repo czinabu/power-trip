@@ -45,14 +45,18 @@ export const TROOPER_PARTS = {
     commando(R, k){ arms(R, k, false); commandoArms(R, k); },
   },
   helmet: {
-    // Phase II bucket with the rangefinder, the legion paint round the visor and a low crest (Fives)
-    arc(R, k){ helmet(R, k, { crest: true, rangefinder: true, brow: true }); },
+    // Phase II bucket in the ARC's paint (Fives): the black brow band, a painted crest fin, chevrons over the brow,
+    // stripes on the cheeks and the rangefinder
+    arc(R, k){ helmet(R, k, { crest: true, rangefinder: true, arc: true }); },
     // rangefinder and markings, no crest (Rex)
     captain(R, k){ helmet(R, k, { rangefinder: true, brow: true }); },
     phase2(R, k){ helmet(R, k, {}); },
     // the Katarn helmet: a round dome with a ridge down the crown, the lit T-visor sweeping up at its ends, a jutting
     // jaw guard with its breather slots
-    commando(R, k){ commandoHelmet(R, k); },
+    commando(R, k){ commandoHelmet(R, k, 'plain'); },
+    // the same helmet in squad paint: a stripe over the crown and down the jaw, or the sides and jaw dark
+    commandoStripe(R, k){ commandoHelmet(R, k, 'stripe'); },
+    commandoSplit(R, k){ commandoHelmet(R, k, 'split'); },
   },
   kama: {
     // the kama: real cloth from the belt round the hips and behind, open at the front over the codpiece
@@ -162,6 +166,13 @@ function arms(R, k, kind){
       // the strap round the arm that holds it on
       k.add(limb(0.025, [[0,0.148,0.148],[1,0.146,0.146]], SOFT_LIMB), 'grey', A.sh, [0, -0.17, 0], [0, 0, 0], { outline: false });
     }
+    if (kind === 'arc' && s > 0){
+      // and on the right, the ARC's second pauldron: smaller, in the dark of the kit, its rim in the squad colour
+      const P = k.group(A.sh, [0.05*s, 0.04, 0], [0, 0, -0.4*s]);
+      P.scale.setScalar(0.8);
+      k.add(loft([{ y:-0.18, w:0.26, d:0.29, x:0.04*s }, { y:-0.08, w:0.28, d:0.3, x:0.028*s }, { y:0.02, w:0.26, d:0.27, x:0.01*s }, { y:0.09, w:0.18, d:0.21 }, { y:0.12, w:0.08, d:0.11 }], SOFT), 'grey', P);
+      k.add(loft([{ y:-0.195, w:0.265, d:0.295, x:0.042*s }, { y:-0.175, w:0.268, d:0.298, x:0.041*s }], SOFT), 'mark', P, [0, 0, 0], [0, 0, 0], { outline: false });
+    }
     // the elbow cop and the bracer, a legion band at the wrist
     k.add(loft([{ y:-0.045, w:0.115, d:0.12 }, { y:0.0, w:0.125, d:0.132 }, { y:0.045, w:0.11, d:0.116 }], SOFT_LIMB), 'plate', A.el, [0, 0.0, 0.012]);
     k.add(limb(0.22, [[0,0.112,0.108],[0.55,0.124,0.118],[1,0.106,0.102]], SOFT_LIMB), 'plate', A.el, [0, -0.045, 0]);
@@ -176,7 +187,7 @@ function arms(R, k, kind){
    brow slit sweeping down at its ends over the cheeks, a ridge running from the visor's drop to the chin between two
    breather bulbs. Then the optional crest, rangefinder (over the left ear, as Rex and Fives wear it) and the legion
    paint framing the visor. */
-function helmet(R, k, { crest, rangefinder, brow }){
+function helmet(R, k, { crest, rangefinder, brow, arc }){
   const helm = k.group(R.head);
   k.add(loft([{ y:-0.1, w:0.12, d:0.12 }, { y:0.04, w:0.11, d:0.11 }], ngon(10, Math.PI/10)), 'suit', helm);
   // the shell: flared rim, the sides over the ears, the dome
@@ -215,16 +226,35 @@ function helmet(R, k, { crest, rangefinder, brow }){
     k.add(loft([{ y:-0.012, w:0.08, d:0.08 }, { y:0.012, w:0.068, d:0.068 }], ngon(12)), 'plate', helm, [0.128*sx, 0.16, -0.01], [0, 0, Math.PI/2]);
     k.add(loft([{ y:-0.003, w:0.026, d:0.026 }, { y:0.003, w:0.026, d:0.026 }], ngon(10)), 'grey', helm, [0.141*sx, 0.16, -0.01], [0, 0, Math.PI/2], { outline: false });
   }
-  if (crest){
+  if (crest && arc){
+    // the ARC's fin: standing tall from the brow back over the crown, in the squad colour
+    k.add(plate([[-0.12,-0.05],[0.1,-0.06],[0.11,-0.03],[0.07,0.03],[-0.07,0.04],[-0.12,0.0]], 0.026, 0.006), 'mark', helm, [0, 0.39, -0.015], [0, -Math.PI/2, 0]);
+  } else if (crest){
     // a low fin from the brow back over the crown
     k.add(plate([[-0.1,-0.03],[0.1,-0.03],[0.09,0.0],[0.0,0.018],[-0.09,0.0]], 0.018, 0.006), 'plate', helm, [0, 0.39, 0.01], [0, -Math.PI/2, 0]);
+  }
+  if (arc){
+    // the black band round the brow, over the visor and back round the shell
+    k.add(loft([{ y:0.0, w:0.264, d:0.298, z:-0.009 }, { y:0.024, w:0.262, d:0.296, z:-0.01 }], SOFT_HEAD), 'grey', helm, [0, 0.236, 0], [0, 0, 0], { outline: false });
+    k.add(plate([[-0.118,0.014],[0.118,0.014],[0.114,-0.01],[-0.114,-0.01]], 0.01, 0.002), 'grey', helm, [0, 0.248, 0.146], [-0.08, 0, 0], { outline: false });
+    for (const sx of [-1, 1]){
+      // the chevrons: a slanted band each side of the fin, down from the crown toward the temples, laid on the shell
+      for (let i = 0; i < 8; i++){
+        const x = 0.03 + i * 0.012, y = 0.33 - i * 0.011, a = 0.124, b = 0.14;
+        const z = -0.011 + b * Math.sqrt(Math.max(0, 1 - (x / a) ** 2)) * Math.cos((y - 0.27) * 3.2);
+        k.add(block(0.03, 0.03 - i * 0.002, 0.006, 0.2), 'mark', helm, [x*sx, y, z + 0.002], [-0.35 - (y - 0.27) * 4, Math.atan2(x / (a*a), z / (b*b)) * sx, -0.74*sx], { outline: false, scale: [1, 1, 1] });
+      }
+      // a stripe on each cheek, below the visor's ends
+      k.add(plate([[0,0.035],[0.016,0.035],[0.022,-0.04],[0.006,-0.04]], 0.008, 0.002), 'mark', helm, [0.09*sx, 0.13, 0.142], [0, sx*0.42, 0], { outline: false, scale: [sx, 1, 1] });
+    }
   }
   if (rangefinder){
     // the stalk over the left ear, its eyepiece swung up
     const fin = k.group(helm, [-0.15, 0.19, -0.03], [0, 0, 0.05]);
     k.add(loft([{ y:-0.015, w:0.035, d:0.035 }, { y:0.015, w:0.03, d:0.03 }], ngon(10)), 'grey', fin, [0, 0, 0], [0, 0, Math.PI/2]);
     k.add(block(0.016, 0.28, 0.02, 0.3), 'grey', fin, [-0.01, 0.14, 0]);
-    k.add(block(0.024, 0.035, 0.08, 0.3), 'grey', fin, [-0.01, 0.285, 0.03]);
+    k.add(block(0.024, 0.035, arc ? 0.15 : 0.08, 0.3), 'grey', fin, [-0.01, 0.285, arc ? 0.06 : 0.03]);
+    if (arc) k.add(block(0.022, 0.03, 0.02, 0.3), 'grey', fin, [-0.01, 0.262, 0.125]);   // the eyepiece's drop at the front
   }
   if (brow){
     // the legion paint framing the T: a band over the brow slit, one down each side of the drop and a stripe up over
@@ -258,28 +288,35 @@ function commandoLegs(R, k){
 function commandoTorso(R, k){
   // the chest plate over the cuirass, squared off, and the armoured abdomen plates
   k.add(loft([
-    { y:0.02, w:0.47, d:0.31, z:0.016 }, { y:0.12, w:0.53, d:0.32, z:0.014 }, { y:0.24, w:0.55, d:0.31, z:0.01 }, { y:0.32, w:0.5, d:0.29 },
+    { y:0.02, w:0.43, d:0.32, z:0.018 }, { y:0.12, w:0.48, d:0.34, z:0.016 }, { y:0.24, w:0.5, d:0.335, z:0.012 }, { y:0.32, w:0.46, d:0.3 },
   ], SOFT_BODY), 'plate', R.chest);
-  k.add(block(0.016, 0.24, 0.012, 0.2), 'grey', R.chest, [0, 0.16, 0.172], [-0.06, 0, 0], { outline: false });
+  k.add(block(0.016, 0.24, 0.012, 0.2), 'grey', R.chest, [0, 0.16, 0.182], [-0.06, 0, 0], { outline: false });
   for (const [y, w] of [[0.1, 0.3], [0.2, 0.32]]) k.add(loft([{ y:0, w, d:0.09 }, { y:0.075, w: w + 0.02, d:0.095 }], SOFT), 'plate', R.torso, [0, y - 0.04, 0.1]);
   // a broad armoured belt with a squad-colour buckle
   k.add(loft([{ y:0.0, w:0.43, d:0.3 }, { y:0.085, w:0.425, d:0.295 }], SOFT_BODY), 'plate', R.torso, [0, -0.035, 0]);
   k.add(block(0.07, 0.05, 0.02, 0.3), 'mark', R.torso, [0, 0.01, 0.152], [0, 0, 0], { outline: false });
-  // the field pack: a big two-part box on the back, its top canted, a smaller cell on each side
-  const P = k.group(R.chest, [0, 0.17, -0.25]);
-  k.add(block(0.4, 0.42, 0.17, 0.3), 'plate', P, [0, 0, 0]);
-  k.add(block(0.34, 0.12, 0.15, 0.3, 0.85), 'plate', P, [0, 0.25, -0.01], [-0.25, 0, 0]);
-  k.add(block(0.36, 0.014, 0.172, 0.2), 'grey', P, [0, 0.06, 0], [0, 0, 0], { outline: false });
-  for (const sx of [-1, 1]) k.add(block(0.08, 0.28, 0.13, 0.3), 'plate', P, [0.23*sx, -0.04, 0.02]);
+  // the field pack: layered slabs, each angled off the one under it (kept inside the shoulders, so the arms swing clear):
+  // the frame on the back plate, the main body over it, a canted top, and a narrower power cell on the outside
+  const P = k.group(R.chest, [0, 0.17, -0.22]);
+  k.add(block(0.36, 0.4, 0.08, 0.3), 'grey', P, [0, -0.01, 0.02]);
+  k.add(block(0.34, 0.36, 0.13, 0.3, 0.9), 'plate', P, [0, -0.02, -0.07], [0.06, 0, 0]);
+  k.add(block(0.3, 0.13, 0.12, 0.3, 0.8), 'plate', P, [0, 0.21, -0.06], [-0.4, 0, 0]);
+  k.add(block(0.22, 0.24, 0.06, 0.3, 0.9), 'plate', P, [0, -0.06, -0.16], [0.1, 0, 0]);
+  k.add(block(0.32, 0.014, 0.136, 0.2), 'grey', P, [0, 0.07, -0.07], [0.06, 0, 0], { outline: false });
+  k.add(block(0.16, 0.012, 0.062, 0.2), 'grey', P, [0, -0.1, -0.162], [0.1, 0, 0], { outline: false });
+  k.add(block(0.04, 0.02, 0.01, 0.3), 'glow', P, [0.06, 0.02, -0.193], [0.1, 0, 0], { outline: false });   // the cell's charge light
 }
 function commandoArms(R, k){
   for (const A of [R.armL, R.armR]){
     const s = A.side;
-    // the shoulder plate: a broad rounded shell flaring out over the bell and the top of the arm, two plates deep
-    const P = k.group(A.sh, [0.05*s, 0.05, 0], [0, 0, -0.38*s]);
-    k.add(loft([{ y:-0.2, w:0.29, d:0.3, x:0.04*s }, { y:-0.1, w:0.31, d:0.31, x:0.03*s }, { y:0.0, w:0.29, d:0.29, x:0.012*s }, { y:0.08, w:0.21, d:0.23 }, { y:0.115, w:0.1, d:0.13 }], SOFT), 'plate', P);
-    k.add(loft([{ y:-0.25, w:0.25, d:0.27, x:0.06*s }, { y:-0.17, w:0.27, d:0.28, x:0.05*s }, { y:-0.12, w:0.24, d:0.25, x:0.045*s }], SOFT), 'plate', P);
-    k.add(loft([{ y:-0.205, w:0.293, d:0.305, x:0.041*s }, { y:-0.19, w:0.294, d:0.306, x:0.04*s }], SOFT), 'grey', P, [0, 0, 0], [0, 0, 0], { outline: false });
+    // the shoulder plate: a rounded shell over the bell, two plates deep, its edge in the squad colour. Kept to the cap
+    // of the shoulder (the arm shows below it, standing off the body) and set out from the chest
+    const P = k.group(A.sh, [0.06*s, 0.04, 0], [0, 0, -0.34*s]);
+    k.add(loft([{ y:-0.13, w:0.25, d:0.255, x:0.035*s }, { y:-0.06, w:0.26, d:0.26, x:0.025*s }, { y:0.02, w:0.24, d:0.24, x:0.01*s }, { y:0.08, w:0.17, d:0.19 }, { y:0.105, w:0.08, d:0.1 }], SOFT), 'plate', P);
+    k.add(loft([{ y:-0.18, w:0.21, d:0.225, x:0.05*s }, { y:-0.13, w:0.225, d:0.235, x:0.045*s }, { y:-0.1, w:0.2, d:0.21, x:0.04*s }], SOFT), 'plate', P);
+    k.add(loft([{ y:-0.142, w:0.255, d:0.262, x:0.037*s }, { y:-0.125, w:0.257, d:0.264, x:0.036*s }], SOFT), 'mark', P, [0, 0, 0], [0, 0, 0], { outline: false });
+    // a dark band round the bicep under it, so the arm reads apart from the chest
+    k.add(limb(0.03, [[0,0.146,0.146],[1,0.144,0.144]], SOFT_LIMB), 'grey', A.sh, [0, -0.2, 0], [0, 0, 0], { outline: false });
     // the gauntlet: a heavy shell over the bracer, flaring at the wrist
     k.add(limb(0.2, [[0,0.13,0.13,0.006],[0.6,0.15,0.145,0.008],[1,0.142,0.138,0.006]], SOFT_LIMB), 'plate', A.el, [0, -0.06, 0]);
     k.add(limb(0.022, [[0,0.152,0.147],[1,0.15,0.145]], SOFT_LIMB), 'grey', A.el, [0, -0.15, 0], [0, 0, 0], { outline: false });
@@ -287,28 +324,52 @@ function commandoArms(R, k){
     else k.add(block(0.06, 0.12, 0.03, 0.25), 'grey', A.el, [0, -0.16, 0.074]);   // the blade housing
   }
 }
-function commandoHelmet(R, k){
+function commandoHelmet(R, k, paint = 'plain'){
   const helm = k.group(R.head);
+  const dark = paint === 'split' ? 'grey' : 'plate';
   k.add(loft([{ y:-0.1, w:0.13, d:0.13 }, { y:0.04, w:0.12, d:0.12 }], ngon(10, Math.PI/10)), 'suit', helm);
-  // the dome: rounder and taller than the bucket, flaring over the nape
+  // the dome: round, wide over the ears and swelling out over the nape
   k.add(loft([
-    { y:-0.02, w:0.29, d:0.3, z:-0.03 }, { y:0.05, w:0.27, d:0.285, z:-0.014 }, { y:0.15, w:0.272, d:0.3, z:-0.006 },
-    { y:0.24, w:0.282, d:0.31, z:-0.008 }, { y:0.32, w:0.262, d:0.29, z:-0.01 }, { y:0.38, w:0.21, d:0.24, z:-0.012 },
-    { y:0.415, w:0.13, d:0.15, z:-0.012 }, { y:0.43, w:0.04, d:0.05, z:-0.012 },
+    { y:-0.02, w:0.29, d:0.31, z:-0.035 }, { y:0.05, w:0.28, d:0.3, z:-0.02 }, { y:0.15, w:0.285, d:0.31, z:-0.01 },
+    { y:0.24, w:0.29, d:0.315, z:-0.008 }, { y:0.32, w:0.27, d:0.3, z:-0.01 }, { y:0.38, w:0.22, d:0.25, z:-0.012 },
+    { y:0.415, w:0.14, d:0.16, z:-0.012 }, { y:0.432, w:0.05, d:0.06, z:-0.012 },
   ], SOFT_HEAD), 'plate', helm);
-  // the ridge down the crown to the visor
-  k.add(plate([[-0.17,-0.012],[0.15,-0.012],[0.13,0.006],[-0.15,0.006]], 0.022, 0.006), 'plate', helm, [0, 0.42, 0.0], [0, -Math.PI/2, -0.04]);
-  // the face: a broad flat plate, then the jaw guard jutting forward and down to a blunt beak
-  k.add(loft([{ y:0.08, w:0.24, d:0.05, z:0.142 }, { y:0.17, w:0.26, d:0.05, z:0.14 }, { y:0.27, w:0.255, d:0.04, z:0.135 }], SOFT), 'plate', helm);
-  k.add(loft([{ y:-0.04, w:0.09, d:0.05, z:0.178 }, { y:0.0, w:0.17, d:0.07, z:0.168 }, { y:0.06, w:0.23, d:0.065, z:0.152 }, { y:0.1, w:0.25, d:0.05, z:0.146 }], SOFT), 'plate', helm);
-  k.add(block(0.06, 0.014, 0.02, 0.2), 'grey', helm, [0, 0.005, 0.2], [0.3, 0, 0], { outline: false });   // the breather slot
-  for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) k.add(block(0.04, 0.007, 0.008, 0.2), 'grey', helm, [0.112*sx, 0.15 - i*0.018, 0.13], [0, sx*0.75, 0], { outline: false });   // the cheek vents
-  // the lit T-visor: one gull-wing piece, the brow sweeping up to its tips and the drop down the middle
-  const wing = [[-0.016,-0.1],[0.016,-0.1],[0.026,-0.006],[0.065,0.0],[0.108,0.03],[0.1,0.048],[0.06,0.026],[0.0,0.02],[-0.06,0.026],[-0.1,0.048],[-0.108,0.03],[-0.065,0.0],[-0.026,-0.006]];
-  k.add(plate(wing, 0.024, 0.003), 'glow', helm, [0, 0.225, 0.153], [-0.04, 0, 0], { outline: false });
-  // the squad stripe over the brow and the ear plates
-  k.add(plate([[-0.12,0.012],[0.12,0.012],[0.11,-0.004],[-0.11,-0.004]], 0.008, 0.002), 'mark', helm, [0, 0.29, 0.138], [-0.18, 0, 0], { outline: false });
-  for (const sx of [-1, 1]) k.add(block(0.03, 0.09, 0.08, 0.3), 'plate', helm, [0.145*sx, 0.16, -0.02]);
+  // the sides in a darker panel (one paint): a shell over each ear and the back of the dome
+  if (paint === 'split') for (const sx of [-1, 1]) k.add(loft([{ y:-0.02, w:0.07, d:0.25, z:-0.05 }, { y:0.2, w:0.07, d:0.27, z:-0.04 }, { y:0.33, w:0.05, d:0.2, z:-0.05 }], SOFT), 'grey', helm, [0.122*sx, 0, 0]);
+  // the face: flat cheeks from the visor down, a dark recess under each, the beak of the jaw jutting out between them
+  k.add(loft([{ y:0.06, w:0.24, d:0.05, z:0.142 }, { y:0.17, w:0.255, d:0.05, z:0.14 }, { y:0.27, w:0.255, d:0.045, z:0.136 }], SOFT), 'plate', helm);
+  for (const sx of [-1, 1]) k.add(plate([[0.0,0.03],[0.08,0.05],[0.1,0.0],[0.07,-0.04],[0.0,-0.03]], 0.01, 0.002), 'grey', helm, [0.03*sx, 0.1, 0.16], [0, sx*0.35, 0], { outline: false, scale: [sx, 1, 1] });
+  k.add(loft([{ y:-0.035, w:0.12, d:0.05, z:0.19 }, { y:0.02, w:0.17, d:0.075, z:0.18 }, { y:0.08, w:0.2, d:0.07, z:0.166 }, { y:0.115, w:0.18, d:0.05, z:0.158 }], SOFT), dark, helm);
+  for (const sx of [-1, 1]){
+    k.add(loft([{ y:-0.006, w:0.026, d:0.026 }, { y:0.006, w:0.026, d:0.026 }], ngon(10)), 'grey', helm, [0.062*sx, 0.012, 0.212], [Math.PI/2 - 0.3, 0, 0], { outline: false });   // the breathers
+    for (let i = 0; i < 4; i++) k.add(block(0.006, 0.05, 0.008, 0.2), 'grey', helm, [(0.128 + 0.004*i)*sx, 0.085, 0.1 - i*0.012], [0, sx*0.9, 0], { outline: false });   // the side grille
+  }
+  k.add(block(0.04, 0.045, 0.02, 0.25), 'grey', helm, [0, -0.012, 0.215], [0.2, 0, 0], { outline: false });   // the vent under the beak
+  // the V of dark seams from the foot of the T out over the cheeks to the jaw
+  for (const sx of [-1, 1]) k.add(block(0.11, 0.008, 0.006, 0.2), 'grey', helm, [0.05*sx, 0.105, 0.172], [0, sx*0.3, sx*0.42], { outline: false });
+  // the brow ledge: a hood over the visor with its row of rivets
+  k.add(loft([{ y:0.0, w:0.27, d:0.06, z:0.15 }, { y:0.026, w:0.275, d:0.055, z:0.148 }], SOFT), 'plate', helm, [0, 0.272, 0]);
+  for (const x of [-0.08, 0, 0.08]) k.add(block(0.01, 0.01, 0.006, 0.3), 'grey', helm, [x, 0.286, 0.18], [0, 0, 0], { outline: false });
+  // the lit visor: a straight brow band and the T's drop, widening as it falls, set in a dark frame
+  const band = [[-0.11,0.02],[0.11,0.02],[0.11,-0.004],[0.095,-0.02],[-0.095,-0.02],[-0.11,-0.004]];
+  const drop = [[-0.02,0.0],[0.02,0.0],[0.03,-0.12],[-0.03,-0.12]];
+  k.add(plate(band.map(([x, y]) => [x * 1.08, y * 1.4]), 0.016, 0.002), 'grey', helm, [0, 0.247, 0.158], [0, 0, 0], { outline: false });
+  k.add(plate(drop.map(([x, y]) => [x * 1.5, y * 1.04]), 0.016, 0.002), 'grey', helm, [0, 0.232, 0.161], [-0.06, 0, 0], { outline: false });
+  k.add(plate(band, 0.02, 0.002), 'glow', helm, [0, 0.247, 0.163], [0, 0, 0], { outline: false });
+  k.add(plate(drop, 0.02, 0.002), 'glow', helm, [0, 0.232, 0.166], [-0.06, 0, 0], { outline: false });
+  // the ear discs, a lit lamp on the left one
+  for (const sx of [-1, 1]){
+    k.add(loft([{ y:-0.014, w:0.1, d:0.1 }, { y:0.014, w:0.088, d:0.088 }], ngon(14)), 'plate', helm, [0.148*sx, 0.21, 0.01], [0, 0, Math.PI/2]);
+    k.add(loft([{ y:-0.004, w:0.05, d:0.05 }, { y:0.004, w:0.05, d:0.05 }], ngon(12)), 'grey', helm, [0.163*sx, 0.21, 0.01], [0, 0, Math.PI/2], { outline: false });
+  }
+  k.add(block(0.03, 0.022, 0.03, 0.3), 'plate', helm, [-0.16, 0.235, 0.06]);
+  k.add(block(0.008, 0.01, 0.008, 0.3), 'glow', helm, [-0.16, 0.235, 0.077], [0, 0, 0], { outline: false });
+  // the squad stripe (one paint): from the ledge up over the crown, and down the beak
+  if (paint === 'stripe'){
+    const segs = [[0.3, 0.135, -0.2], [0.36, 0.105, -0.75], [0.41, 0.05, -1.2], [0.43, -0.02, -1.6], [0.415, -0.09, -2.0]];
+    for (const [y, z, rx] of segs) k.add(block(0.055, 0.075, 0.01, 0.2), 'mark', helm, [0, y, z], [rx, 0, 0], { outline: false });
+    k.add(block(0.05, 0.07, 0.012, 0.2), 'mark', helm, [0, 0.04, 0.202], [-0.25, 0, 0], { outline: false });
+  }
 }
 
 /* ---------- the kama ----------

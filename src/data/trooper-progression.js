@@ -15,6 +15,9 @@ import { SQUAD } from './allies.js';
 import { TROOPER } from './trooper.js';
 import { switchWeapon } from '../player/mando/weapons.js';
 import { RANK_SKILLS } from './profile.js';
+import { recordFork } from '../game/wardrobe.js';
+// the path's kit is his from the signature chapter's close (game/wardrobe.js, game/look-unlocks.js)
+const wearFork = (id) => recordFork(id);
 
 export const TROOPER_AUTO = [
   { key:'scan', stage:1, chapter:'siege', hud:'Q', name:'RECON SCAN',
@@ -53,12 +56,12 @@ export const TROOPER_STORE = [
   // little of the other: the ARC COMMANDER is the squad's damage (most of it through the clones and from cover) with a
   // touch more grit; the COMMANDO is the front line (heavy plate, the fire drawn onto him) with a touch more punch
   { id:'commander', tier:4, stage:7, chapter:'mustafar', cost:0, fork:'t_sig', ico:'⚑', nm:'ARC COMMANDER', ds:'The squad\'s damage: ARTILLERY BARRAGE on the crosshair · Z · a fourth clone · the squad hits harder, and so do your shots from cover · a little tougher · LOCKS Commando',
-    owned:()=>!!G.unlocked.artillery, buy(){ const F = TROOPER.fork.commander;
+    owned:()=>!!G.unlocked.artillery, buy(){ const F = TROOPER.fork.commander; wearFork('commander');
       G.unlocked.artillery = true; player.up.squadExtra = (player.up.squadExtra || 0) + 1; if (squadSize() < SQUAD.max) addSquadmate();
       player.up.squadDmg = (player.up.squadDmg || 1) * F.squadDmg; player.up.coverDmg = (player.up.coverDmg || 1) * F.coverDmg;
       player.up.dr = 1 - (1 - (player.up.dr || 0)) * F.taken; } },
   { id:'commando', tier:4, stage:7, chapter:'mustafar', cost:0, fork:'t_sig', dark:true, ico:'⌖', nm:'COMMANDO', ds:'The front line: Katarn plate (more vitality, tougher in cover, no penalty in the open, a braced aim soaks fire from the front) · foes come for you over the squad · the AT LAUNCHER on key 3 · a little more damage · LOCKS ARC Commander',
-    owned:()=>!!G.unlocked.launcher, buy(){ const F = TROOPER.fork.commando;
+    owned:()=>!!G.unlocked.launcher, buy(){ const F = TROOPER.fork.commando; wearFork('commando');
       G.unlocked.launcher = true; player.up.dmg *= F.dmg; switchWeapon('launcher');
       player.up.hpMax += F.hp; player.hp = Math.min(player.hp + F.hp, maxHp());
       player.up.openArmor = (player.up.openArmor || 1) * F.open; player.up.coverArmor = (player.up.coverArmor || 1) * F.cover; player.up.brace = F.brace; player.up.taunt = F.taunt; player.up.suppRes = F.suppRes; } },

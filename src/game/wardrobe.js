@@ -74,10 +74,23 @@ export function partOpen(hero, earn){
   if (p) return partEarned(p, earn);
   return earn.chapter ? chapterEarned(hero, earn.chapter) : earn.won ? campaignBeaten(hero) : false;
 }
+// THE TROOPER'S SIGNATURE (data/trooper-progression.js): the kit of the path he took. Each pick is written down
+// (sw_camp_forks_trooper: every path taken; sw_camp_fork_trooper: the latest) so a Commando wears the Katarn plate from
+// then on and an ARC Commander the ARC kit (data/customize.js `fork`, `forkPick`)
+export const trooperForks = (src) => list(getter(src), 'sw_camp_forks_trooper');
+export const trooperFork = (src) => getter(src)('sw_camp_fork_trooper');
+export function recordFork(id){
+  try {
+    const have = trooperForks();
+    if (!have.includes(id)) localStorage.setItem('sw_camp_forks_trooper', JSON.stringify([...have, id]));
+    localStorage.setItem('sw_camp_fork_trooper', id);
+  } catch(e){}
+}
+const forkOpen = (opt) => !opt.fork || DEV_ALL || campaignBeaten('trooper') || trooperForks().includes(opt.fork);
 // can the player wear this option of this row, as this hero?
 export function optionOpen(hero, row, opt){
   if (opt.earn) return partOpen(hero, opt.earn) || keptOpen(hero, row, opt);
-  if (!opt.unlock || chapterEarned(hero, opt.unlock)) return true;
+  if ((!opt.unlock || chapterEarned(hero, opt.unlock)) && forkOpen(opt)) return true;
   return keptOpen(hero, row, opt);
 }
 function keptOpen(hero, row, opt){
@@ -97,4 +110,4 @@ export const trooperPromoted = (src) => chapterEarned('trooper', PROMOTION, src)
 // through here so neither has to import the customizer)
 export const wardrobeHooks = { refresh: null };
 export const refreshWorn = () => wardrobeHooks.refresh ? wardrobeHooks.refresh() : false;
-export const heroName = (hero, src) => hero === 'trooper' ? (trooperPromoted(src) ? 'ARC TROOPER' : 'TROOPER') : hero === 'mando' ? 'MANDALORIAN' : 'JEDI';
+export const heroName = (hero, src) => hero === 'trooper' ? (trooperFork(src) === 'commando' ? 'CLONE COMMANDO' : trooperPromoted(src) ? 'ARC TROOPER' : 'TROOPER') : hero === 'mando' ? 'MANDALORIAN' : 'JEDI';

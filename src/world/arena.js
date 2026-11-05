@@ -63,6 +63,9 @@ import { buildAir, clearAir } from './air.js';
 import { buildWarfront, clearWarfront } from './warfront.js';
 import { buildSkywar } from './skywar.js';
 import { buildGrass, clearGrass } from './grass.js';
+import { spreadMark, spreadBuilt } from './spread.js';
+import { fillCover } from './coverfill.js';
+import { SPREAD } from '../data/map-scale.js';
 
 /* ============================================================
    ARENA
@@ -171,8 +174,14 @@ export function buildArena(L){
   for (const b of barrels) scene.remove(b.mesh); barrels.length = 0;
   hazardZones.length = 0;
   // AUTHORED per-level layouts get their own builder; everything else uses the scattered procedural cover below.
-  const LP = { ...L, pal: (T && T.pal) || {} };   // builders read their colours from the world's palette
+  let LP = { ...L, pal: (T && T.pal) || {} };   // builders read their colours from the world's palette
   resetDoors();   // (an arena with breachable doors registers them as it builds: world/doors.js)
+  // a SPREAD layout (data/map-scale.js) builds at the size it was authored at, then is pulled apart to this arena's
+  // width (world/spread.js): its builder sees the authored size while it runs
+  const authored = !(L.arenaZ && L.arenaZ !== L.arena) && SPREAD[L.layout], spreadS = authored && L.arena > authored ? L.arena / authored : 1;
+  const spread0 = spreadMark();
+  shared.spreadAt = null;
+  if (spreadS > 1){ LP = { ...LP, arena: authored }; shared.arenaHalf = shared.arenaHalfZ = authored / 2; }
   if (L.layout === 'temple'){ buildTempleArena(LP); }
   else if (L.layout === 'foundry'){ buildFoundryArena(LP); }
   else if (L.layout === 'plains'){ buildPlainsArena(LP); }
@@ -272,6 +281,7 @@ export function buildArena(L){
     }
   }
   }   // end procedural (non-authored) layout
+  if (spreadS > 1){ shared.arenaHalf = shared.arenaHalfZ = L.arena / 2; LP = { ...LP, arena: L.arena }; spreadBuilt(spreadS, authored, spread0); }
 
   // RANDOM hazards — non-authored levels only (the authored builders place theirs intentionally, already done above)
   if (!L.layout){
@@ -289,6 +299,7 @@ export function buildArena(L){
   }
   shared.perches = null;
   buildPerches(LP);
+  fillCover(LP);   // real cover in the open holes of the map, clear of the perches (world/coverfill.js, data/map-scale.js COVER_FILL)
   shared.jetCeiling = jetCeilingFor(L);   // how high the Mando's pack climbs here (data/map-rules.js JET_CEILING)   // the second storey: raised decks round the outer ring of a campaign or story arena (world/perches.js)
   if (T) buildGrass(T, L);   // tall grass in the wind, where the world has it (world/grass.js)
   buildNav();   // the enemy pathing grid follows the new layout (enemies/nav.js)

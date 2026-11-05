@@ -58,7 +58,7 @@ export const TROOPER_CHAPTERS = {
   // ---------------- ACT I: THE DESERTERS ----------------
   siege: {
     title: 'DOCK SHIFT', world: 'THE VORRAN YARDS',
-    arena: { layout: 'shipyard', arena: 64 }, foeLook: PURGE,
+    arena: { layout: 'shipyard', arena: 84 }, foeLook: PURGE,
     talk: { where: 'THE VORRAN YARDS, END OF SHIFT',
       lines: [[BRISK, 'Eight years hauling cargo for a foreman who cannot count. I miss the war.'],
               [VANT, 'You do not miss the war. You miss being shot at by people who were not your foreman.'],

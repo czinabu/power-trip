@@ -93,8 +93,8 @@ export const ABILITY_CARDS = {
                       'Your own revives take half as long, and you knit slowly once clear of the fight.'] },
   ion:      { clip: at('t-ion'), name: 'ION GRENADE', hud: 'F', lines: ['Press F to throw a grenade that stuns everything in the blast and drops shields. Droids and jet troopers stay stunned twice as long.'] },
   breach:   { clip: at('t-breach'), name: 'BREACH CHARGE', hud: 'F', lines: ['Press F to slap a charge down ahead: it blows a cone forward and launches everything in it.'] },
-  commander:{ clip: at('t-commander'), name: 'COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line.'] },
-  commando: { clip: at('t-commando'), name: 'COMMANDO', hud: '3', lines: ['The rifle\'s AT launcher is on key 3: one heavy rocket a pull.', 'You hit 18% harder.'] },
+  commander:{ clip: at('t-commander'), name: 'ARC COMMANDER', hud: 'Z', lines: ['Press Z to call an artillery barrage on the crosshair: the shells walk down round it.', 'A fourth clone joins the line, the squad hits harder, and so do your shots from cover. You take a little less too.'] },
+  commando: { clip: at('t-commando'), name: 'COMMANDO', hud: '3', lines: ['Katarn plate: more vitality, tougher in cover, no penalty out in the open, and a braced aim (hold RMB, feet planted) soaks fire from the front. Foes come for you before the squad.', 'The rifle\'s AT launcher is on key 3: one heavy rocket a pull. You hit a little harder.'] },
   // the trooper's promotions (game/wardrobe.js PROMOTIONS, game/look-unlocks.js): his kit, not a power
   'promote-sergeant': { kicker: 'RANK EARNED', name: 'PROMOTED · SERGEANT',
               lines: ['You ran the yard like a sergeant. Your marks go sergeant green, and the squad is yours to lead.',

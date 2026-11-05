@@ -4,10 +4,11 @@
 // Built as a list, not "me and a partner", so the same code takes 2 to 4 players later.
 //
 // An entry: { id, local, name, pos (Vector3, the feet), vel (Vector3), down (downed or dead: no target),
-//             here (in this same arena and fighting: something enemies can go after) }
+//             here (in this same arena and fighting: something enemies can go after), trooper, cover (the ARC trooper's) }
 
-import { G, player } from '../state.js';
+import { G, player, isTrooper } from '../state.js';
 import { coopRun } from '../net/run.js';
+import { coverInfo } from './trooper/cover.js';
 
 const me = {
   id: 'local', local: true, name: 'YOU',
@@ -16,6 +17,8 @@ const me = {
   get down(){ return !!player.downed; },
   get here(){ return true; },   // the AI always has this hero to fall back on
   get away(){ return coopRun.live && (G.paused || G.skillSelect); },   // co-op: in a menu (paused, picking upgrades): foes leave them be
+  get trooper(){ return isTrooper(); },   // the ARC trooper: foes fight him the cover fight (enemies/coverfight.js)
+  get cover(){ return coverInfo(); },     // ...and the cover he is in: { nx, nz, low, top, hidden } or null (trooper/cover.js)
 };
 export const players = [me];
 export const localPlayer = me;

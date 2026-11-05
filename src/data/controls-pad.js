@@ -109,9 +109,10 @@ export const PAD_CONTROLS = {
     { title: 'MOVE', rows: [
       ['{LS}', 'Move', 'Steers any way, at the stick\'s angle'],
       ['{mouse}', 'Aim', 'Speed: Settings · STICK SENS'],
-      ['{space}', 'Jump', 'Run and jump at low cover to vault it; jump at a ledge to climb · no jetpack: the trooper fights on foot'],
-      ['{shift}', 'Combat roll', 'A dive any way you push, invulnerable through the throw, and the gun stays on target'],
-      ['{c}', 'Slide', 'Feet first out of a run, firing as you go'],
+      ['{space}', 'Jump', 'A short, heavy hop: no jetpack, no wall-runs · run and jump at low cover to vault it; jump at a ledge to climb · in low cover, {space} vaults it'],
+      ['{c}', 'Take cover', 'Beside a crate, wall or pillar: your back to it, and it soaks what comes from in front (not from the side: watch for flankers) · {LS} slides along it · {c} again or walk away to leave · at a run with nothing beside you, {c} is the slide, and a slide or a roll that ends by cover settles in'],
+      ['HOLD {rmb} (in cover)', 'Lean out', 'Rise over low cover or step out round the edge of tall cover to aim · let go to duck back · {lmb} alone pops up for the shot · ducked, fire that tears past you stops suppressing you'],
+      ['{shift}', 'Combat roll', 'A dive any way you push, invulnerable through the throw, and the gun stays on target · out of cover, the way to the next one'],
       ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move · it also opens the {alt} layer: hold it for the powers · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
     ]},
     { title: 'FIGHT', rows: [

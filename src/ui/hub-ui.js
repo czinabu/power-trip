@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// The temple's STATION PANEL (game/hub.js): tap F at a station and its panel opens over the temple, holding the game still
+// The hub's STATION PANEL (the temple's, the citadel's…) (game/hub.js): tap F at a station and its panel opens over the temple, holding the game still
 // and freeing the cursor the way the sandbox panel does. Each station lists what it does: the Temple Map and the waystones
 // travel to any wing (and show who is where in co-op), the Council Table launches the modes, the Training Wing's stations
 // the training grounds, the sandbox and survival, the Archives the codex, your profile and the mission records, the Saber
@@ -8,8 +8,7 @@
 import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
-import { HUB_WINGS, HUB_ORDER } from '../data/hub.js';
-import { setStationOpener, goWing, hubWing, runLabel } from '../game/hub.js';
+import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub.js';
 import { hubLaunch, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
@@ -45,16 +44,16 @@ const B = (t, d, go, lock) => ({ t, d, go, lock });
 function options(s){
   const G_ = G;
   switch (s.act){
-    case 'travel': return HUB_ORDER.map(id => {
-      const W = HUB_WINGS[id], here = id === G_.hubWing;
-      const who = partnerWorlds().filter(p => p.world === 'hub:' + id).map(p => p.name);
+    case 'travel': { const Hb = curHub(); return Hb.order.map(id => {
+      const W = Hb.wings[id], here = id === G_.hubWing;
+      const who = partnerWorlds().filter(p => p.world === 'hub:' + G_.hubId + ':' + id).map(p => p.name);
       return B(W.name, (here ? 'YOU ARE HERE' : W.blurb) + (who.length ? ' · ' + who.join(', ') : ''), here ? null : () => goWing(id));
-    });
+    }); }
     case 'council': {
       if (guest()){
         const list = [];
         if (coopRun.on) list.push(B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()));
-        list.push(B('THE HOST CHOOSES', 'In a party the host picks the mission at this table, and everyone in the temple goes with them.', null));
+        list.push(B('THE HOST CHOOSES', 'In a party the host picks the mission at this table, and everyone in ' + curHub().home.toLowerCase() + ' goes with them.', null));
         return list;
       }
       const sv = survivalUnlocked();
@@ -88,7 +87,7 @@ function render(){
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
-    '<div class="hb-d">' + (station.act === 'travel' ? 'Travel to any wing of the temple.' : W.blurb) + '</div>' + partyLine +
+    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : W.blurb) + '</div>' + partyLine +
     '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;

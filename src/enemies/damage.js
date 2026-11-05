@@ -12,6 +12,7 @@ import { bomberExplode, flyerBlowUp } from './specials.js';
 import { FOCUS, addFocus } from '../player/jedi/focus.js';
 import { spawnHitSpark, spawnGroundShock } from '../fx/vfx.js';
 import { sparks } from '../fx/ink.js';
+import { DEFEAT } from '../data/defeats.js';
 import { addStreak } from '../player/damage.js';
 import { gainXp, killBonus } from '../game/progression.js';
 import { ENGAGE } from '../data/enemies.js';
@@ -147,6 +148,17 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       e.vel.copy(d.multiplyScalar(Math.min(knockPow || 0, 8) * 0.35));
       e.vel.y = 1.5;
     } else {
+      // a blade's killing cut throws the body along the blade's way as well as off the hero, and a sideways sweep
+      // spins it as it goes (data/defeats.js thrown; a cut that takes a part off plays its own fall: enemies/defeat.js)
+      const sw = opts && opts.blade && opts.cut;
+      if (sw && d.lengthSq() > 1e-6){
+        const T = DEFEAT.thrown, l = Math.hypot(sw.x, sw.z), dl = d.length();
+        if (l > 1e-4){
+          const side = (sw.x * -d.z + sw.z * d.x) / (l * dl);   // the sweep across the blow: + to the blow's left
+          d.multiplyScalar(1 / dl).addScaledVector(V3(sw.x / l, 0, sw.z / l), T.sweep).normalize();
+          e.fallYaw = side * T.spin;
+        }
+      }
       e.vel.copy(d.multiplyScalar(shoveCap((knockPow||14) * (e.t.heavy ? 0.5 : 1), opts)));
       e.vel.y = (opts && opts.shove ? rand(...CFG.player.saberShove.lift) : rand(5, 9)) * (e.t.heavy ? 0.6 : 1);
     }

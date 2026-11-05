@@ -33,7 +33,7 @@ import { solveArm } from './anim/ik.js';
 import { saberPose, guardPose, swingPose, deflectPose, applySaberPose, releaseSaberPose, airGuard } from './anim/saber.js';
 import { advanceGait, gaitLegs, gaitHipOffset, releaseGait } from './anim/gait.js';
 import { MOCAP_ON, MOCAP_LAND_T, mocapLand, mocapAirLegs, airPhase, mocapCut } from './anim/mocap.js';
-import { footingLegs, releaseFooting } from './anim/footing.js';
+import { footingLegs, releaseFooting, restLocal } from './anim/footing.js';
 import { easePose, easeAmount, atEase, relaxed, flourishReset, flourishApply } from './anim/ease.js';
 import { stepHandoffs, handoffReset } from './anim/handoff.js';
 import { stepCloth } from './model/cloth.js';
@@ -207,7 +207,14 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   const tvx = player.moveVel.x + player.vel.x * shoved, tvz = player.moveVel.z + player.vel.z * shoved;
   const hSpeed = Math.hypot(tvx, tvz);
   // PER-STANCE GAIT — same skeleton, different run: FAST is light & high-kneed, STRONG is long & planted, the Mando heavy
-  const gait = (isGunner() || !stance().gait) ? MANDO_GAIT : stance().gait;
+  const gait0 = (isGunner() || !stance().gait) ? MANDO_GAIT : stance().gait;
+  // a GUARD WALK (data/poses.js FOOTWORK walk): moving with the guard up (RMB), a stance that names one keeps its own
+  // footing in the stride: shorter, lower steps on the stance's width and stagger, so the feet stay in the stance
+  const GW = planted && POSE.walk ? POSE.walk : null;
+  const gw = player._guardWalk = dr(player._guardWalk || 0, GW ? 1 : 0, 8);
+  const WK = GW || player._guardWalkLast || null;
+  if (GW) player._guardWalkLast = GW;
+  const gait = WK && gw > 1e-3 ? { ...gait0, amp: (gait0.amp || 1) * lerp(1, WK.amp ?? 1, gw), lift: (gait0.lift || 1) * lerp(1, WK.lift ?? 1, gw), mcLift: lerp(1, WK.lift ?? 1, gw) } : gait0;
   // the stride clock runs on distance travelled (anim/gait.js); it also sets player.runPhase for the arms and twist
   const GS = advanceGait(dt, hSpeed, gait);
   const ph = player.runPhase;
@@ -238,7 +245,8 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   // hips: crouch lowers the center of gravity per stance; on the move they sit lower and dip at each footfall
   // (set before the legs, which are solved down from here)
   const sink = planted && !isGunner() && saberPose.live && !(player.atkT > 0) ? saberPose.sink : 0;   // a guard that drops the base (data/poses.js sink)
-  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch - sink : 0, 8);
+  const gwm = gw * GS.w;   // (a guard walk stands a little taller than the stance, on its walk.crouch share, and drops half the guard's sink)
+  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch * lerp(1, WK && WK.crouch != null ? WK.crouch : 1, gwm) - sink * (1 - 0.5 * gwm) : 0, 8);
   R.hips.position.y = DIM.hipY + player._crouch - (player._swingDrop || 0) - land*0.2 - (player._agiDrop || 0)
                       + (player.grounded && !player.flip ? gaitHipOffset(GS, gait) : 0.05);
   // a foot standing lower than the body (off a step, one foot down from a crate) needs the hips to come down to it
@@ -255,7 +263,9 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   // one in the strike, the feet staying planted while the hips travel over them
   const SH = player._swingHip;
   // a stance can carry its weight off centre (FOOTWORK shift/sit: Jar'Kai's mixed-grip side lunge, onto the right knee)
-  const fwX = planted ? POSE.shift || 0 : 0, fwZ = planted ? -(POSE.sit || 0) : 0;
+  // (stepping out of it, a guard walk carries only `walk.shift` of that lean, or the far leg would buckle under it)
+  const offC = planted ? lerp(1, WK && WK.shift != null ? WK.shift : 1, gw * GS.w) : 0;
+  const fwX = (POSE.shift || 0) * offC, fwZ = -(POSE.sit || 0) * offC;
   R.hips.position.x = dr(R.hips.position.x, (B ? B.sway * bw * calm : 0) + (SH ? SH.x : 0) + fwX, 20);
   R.hips.position.z = dr(R.hips.position.z, (B ? B.surge * bw : 0) + (SH ? SH.z : 0) + fwZ, 20);
   R.hips.rotation.x = dr(R.hips.rotation.x, (B ? B.pitch * bw : 0) + player._landPitch, 20);
@@ -282,7 +292,13 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
     if (w > 0){
       const ffx = Math.sin(player.faceYaw), ffz = Math.cos(player.faceYaw);
       const fwd = hSpeed > 1e-3 ? (tvx*ffx + tvz*ffz) / hSpeed : 1, right = hSpeed > 1e-3 ? (tvx*(-ffz) + tvz*ffx) / hSpeed : 0;
-      gaitA = gaitLegs(GS, fwd, right, R, vis);
+      // a guard walk's feet keep to the stance's tracks: where the footing would stand them, less the plain hip line
+      let base = null;
+      if (WK && gw > 1e-3){
+        const kb = (WK.base ?? 1) * gw, legs = [[-lead, 0, splay[0], -1], [lead, 0, splay[1], 1]];
+        base = legs.map(([h, kn, r, side]) => { const q = restLocal(h, kn, r, side, _gwV); return [(q.x - DIM.hipX * side) * kb, q.z * kb]; });
+      }
+      gaitA = gaitLegs(GS, fwd, right, R, vis, base);
       gaitA[0][0] -= step; gaitA[0][1] += step*0.8; gaitA[1][0] += step*0.6; gaitA[1][1] += step*1.1;
     }
     else releaseGait(GS);
@@ -759,7 +775,7 @@ function formFootwork(){
   if (!isGunner() && isDual(G.stance) && offGrip(G.stance) !== heldGrip()) return FOOTWORK.jarkaiMix;   // Jar'Kai's mixed grip: Ahsoka's lunge
   return FOOTWORK[alt || form];
 }
-const _IDQ = new THREE.Quaternion();
+const _IDQ = new THREE.Quaternion(), _gwV = new THREE.Vector3();
 const LAND_T = 0.34;
 const MANDO_GAIT = { amp: 0.95, lift: 0.7, bob: 0.45 };   // armour and a pack: shorter, lower, heavier steps than the Jedi
 const BITE = { time: 0.05, slow: 0.3 };   // a saber cut drags this long, at this speed, as it passes through a body

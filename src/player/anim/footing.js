@@ -16,7 +16,7 @@ const _inv = new THREE.Matrix4(), _v = new THREE.Vector3(), _t = new THREE.Vecto
 
 /* Where the stance would put a foot (vis frame): forward kinematics of the stance's joint angles, dropped onto the
    floor. h = hip pitch, k = knee bend, r = hip roll, side = -1 left / +1 right. */
-function restLocal(h, k, r, side, out){
+export function restLocal(h, k, r, side, out){
   const a = DIM.thigh, b = DIM.shin;
   const down = a * Math.cos(h) + b * Math.cos(h + k);
   return out.set(DIM.hipX * side + Math.sin(r) * down, ANK, -(a * Math.sin(h) + b * Math.sin(h + k)));

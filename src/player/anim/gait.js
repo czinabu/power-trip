@@ -56,6 +56,7 @@ export function advanceGait(dt, speed, style){
   g.duty = mc ? (mc.duty[0] + mc.duty[1]) / 2 : lerp(GAIT.duty[0], GAIT.duty[1], run);
   g.body = mc ? mocapBody(mc, g.cyc % 1) : null;   // the pelvis and chest for this moment of the stride
   g.lift = lerp(GAIT.lift[0], GAIT.lift[1], run) * (style.lift || 1);
+  g.mcLift = style.mcLift ?? 1;   // (a guard walk keeps the captured stride's feet lower: animation.js)
   g.w = smooth(GAIT.blendFrom, GAIT.blendTo, speed);
   // the old sine stride had the left thigh furthest forward at sin(ph) = -1: keep that relation for the arms
   player.runPhase = g.cyc * TAU - Math.PI / 2;
@@ -77,9 +78,10 @@ export function gaitHipOffset(g, style){
    The path is followed in the body's frame (lean-compensated, so the feet stay on the floor under a leaning body),
    but a foot in its stance is LOCKED where it touched down in the world: the path alone would drag it when the
    speed or the stride shape changes under it (a hard stop, a turn). Its swing then starts from wherever the lock
-   left it and blends back onto the path. Returns [hip pitch, knee bend, hip roll, ankle] for the left leg, then
-   the right. */
-export function gaitLegs(g, fwd, right, R, vis){
+   left it and blends back onto the path. `base` ([[x, z], [x, z]] per foot, rig units, body frame) moves each foot's
+   track off the plain hip line: a guard walk (data/poses.js FOOTWORK walk) keeps the stance's width and stagger in
+   the stride. Returns [hip pitch, knee bend, hip roll, ankle] for the left leg, then the right. */
+export function gaitLegs(g, fwd, right, R, vis, base = null){
   const out = [];
   const sweep = 2 * g.step * g.duty / SCALE;   // ground contact distance per footfall, rig units
   // the legs are solved in the pelvis' frame: the captured stride tips and turns the pelvis under the body
@@ -99,7 +101,7 @@ export function gaitLegs(g, fwd, right, R, vis){
       // stretched to the stride actually taken
       const d = g.dutyF[i], f = mocapFoot(g.mc, i, p, 2 * g.step / SCALE);
       u = swing ? (p - d) / (1 - d) : p / d;
-      s = f.s; lift = f.h * g.w; toe = f.toe; side2 = f.x;
+      s = f.s; lift = f.h * g.w * g.mcLift; toe = f.toe * (0.4 + 0.6 * g.mcLift); side2 = f.x;
     } else if (!swing){
       // STANCE — on the path the foot slides back under the body at exactly the travel speed (still in the world)
       u = p / g.duty;
@@ -117,7 +119,7 @@ export function gaitLegs(g, fwd, right, R, vis){
       toe = lerp(0.5, -0.1, u);
     }
     // the path point in the hero group's frame, then into the (leaning) body's frame
-    const gz = s * fwd, gx = s * right + side2, gy = ANK + lift;
+    const gz = s * fwd + (base ? base[i][1] : 0), gx = s * right + side2 + (base ? base[i][0] : 0), gy = ANK + lift;
     _p.set(DIM.hipX * side + gx, gy * cl - gz * sl - vis.position.y, gy * sl + gz * cl);
     if (!swing){
       // touch down: lock this spot in the world and hold it for the whole stance

@@ -18,7 +18,10 @@ export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu
 
 /* FOOTWORK per form — crouch (hip drop), splay (feet apart), lead (staggered feet), lean (forward pitch),
    width (robe flare), roll (an optional side lean of the torso, + to the left), shift and sit (the hips carried off
-   centre: - to the right, and back). Read when the hero is settled and planted. (atEase is the cutscene stand: anim/ease.js) */
+   centre: - to the right, and back). Read when the hero is settled and planted. (atEase is the cutscene stand: anim/ease.js)
+   walk (optional) — the GUARD WALK, moving with the guard up (RMB): base = share of the stance's width and stagger the
+   feet keep in the stride, amp/lift scale the step length and foot lift, crouch and shift = the shares of the stance's
+   hip drop and off-centre hips kept on the move */
 export const FOOTWORK = {
   shiicho:   { crouch: -0.16, splay: 0.36, lead: 0.2,  lean: 0.08, width: 1.1 },    // square and athletic, feet under the shoulders
   makashi:   { crouch: -0.1,  splay: 0.1,  lead: 0.3,  lean: 0.0,  width: 0.9 },    // a fencer's line: feet narrow and close, upright
@@ -30,8 +33,12 @@ export const FOOTWORK = {
   juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15 },   // pitched forward and low, a predator about to spring
   vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
   staff:     { crouch: -0.2,  splay: 0.6,  lead: 0.3,  lean: 0.06, width: 1.3 },    // the saber staff: wide and planted, the off foot a step ahead
-  jarkai:    { crouch: -0.22, splay: 0.4,  lead: 0.34, lean: 0.12, width: 1.15 },   // Jar'Kai: low, light and staggered, both blades out in front
-  jarkaiMix: { crouch: -0.3,  splay: 0.62, lead: -0.14, lean: 0.16, width: 1.45, roll: -0.08, shift: -0.36, sit: 0.08 },   // Jar'Kai, mixed grip (Ahsoka): a wide low lunge onto the bent right knee, the left leg stretched out after it, the left shoulder leading
+  jarkai:    { crouch: -0.3,  splay: 0.44, lead: 0.4,  lean: 0.12, width: 1.2,    // Jar'Kai, both regular: knees well bent, the left foot a long step ahead, one blade high and one low
+               walk: { base: 0.8, amp: 0.66, lift: 0.6, crouch: 0.55 } },
+  jarkaiRev: { crouch: -0.28, splay: 0.5,  lead: 0.24, lean: 0.14, width: 1.25,   // Jar'Kai, both reverse (Ahsoka, Maul): wide, low and nearly square, coiled over the balls of the feet
+               walk: { base: 0.8, amp: 0.66, lift: 0.65, crouch: 0.55 } },
+  jarkaiMix: { crouch: -0.3,  splay: 0.62, lead: -0.14, lean: 0.16, width: 1.45, roll: -0.08, shift: -0.36, sit: 0.08,   // Jar'Kai, mixed grip (Ahsoka): a wide low lunge onto the bent right knee, the left leg stretched out after it, the left shoulder leading
+               walk: { base: 0.5, amp: 0.64, lift: 0.6, crouch: 0.6, shift: 0.15 } },
   darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
   forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
   brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
@@ -39,7 +46,7 @@ export const FOOTWORK = {
 };
 
 /* a grip can stand on another form's feet: reverse-grip Niman takes Djem So's wide stance */
-export const FOOTWORK_GRIP = { reverse: { niman: 'djemso' } };
+export const FOOTWORK_GRIP = { reverse: { niman: 'djemso', jarkai: 'jarkaiRev' } };
 
 const OFF_POLE = [-0.55, -0.8, -0.25], POLE = [0.55, -0.8, -0.25];
 
@@ -151,11 +158,13 @@ export const SABER_GUARDS = {
       ready: { hand: [0.22, 0.08, 0.24], blade: [0.1, 0.85, -0.3], two: true, twist: 0.2, lean: 0.08, pole: [0.7, -0.6, -0.2] },
       block: { hand: [0.18, 0.2, 0.42], blade: [-0.9, 0.42, 0.12], two: true, twist: 0.0, lean: 0.26, pole: [0.6, -0.8, 0] },
     },
-    /* JAR'KAI, FORWARD GRIP — Starkiller (The Force Unleashed II): squared up and low, both arms down and wide at the hips,
-       the blades raked down and out to either side, tips toward the floor: open, and ready to come up either way */
+    /* JAR'KAI, BOTH REGULAR — Anakin against Dooku (Attack of the Clones), Starkiller: knees bent, the left foot
+       leading, one blade HIGH and one LOW. The right fist up before the weapon-side chest, its blade angled up and
+       forward to frame the face; the left fist low before the off hip, its blade pointed ahead and down at the foe's
+       knees, both tips well clear of the floor */
     jarkai: {
-      ready: { hand: [0.42, -0.3, 0.2], blade: [0.5, -0.72, 0.48], twist: 0.04, torso: 0.02, lean: 0.12, pole: [0.75, -0.6, -0.25],
-               off: { hand: [-0.42, -0.3, 0.2], pole: [-0.75, -0.6, -0.25], sway: 0.3 }, offBlade: [-0.5, -0.72, 0.48] },
+      ready: { hand: [0.38, 0.1, 0.34], blade: [0.42, 0.78, 0.46], twist: -0.12, torso: -0.05, lean: 0.06, gaze: 0.6, pole: [0.8, -0.5, -0.3],
+               off: { hand: [-0.34, -0.2, 0.36], pole: [-0.75, -0.6, -0.25], sway: 0.3 }, offBlade: [-0.3, -0.36, 0.88] },
       // Ahsoka (live action): the lead saber thrust out before the chest, its blade laid level across the body; the off
       // arm raised up behind on its own side, its blade standing up over the shoulder
       block: { hand: [0.14, 0.12, 0.5], blade: [-0.9, 0.22, 0.36], twist: 0.18, lean: 0.1, pole: [0.75, -0.55, -0.35],
@@ -211,11 +220,13 @@ export const SABER_GUARDS = {
       block2: { hand: [0.04, 0.52, 0.38], blade: [0.85, -0.35, 0.35], twist: 0.1, lean: 0.06, pole: [0.9, 0.2, -0.4],
                off: { hand: [-0.28, -0.04, 0.34], pole: OFF_POLE } },
     },
-    /* JAR'KAI, REVERSE GRIP — Maul and Starkiller: squared up, both fists held up before the waist and both blades out
-       of the bottoms of them, raked down and back past the hips on either side: unmistakably reversed */
+    /* JAR'KAI, BOTH REVERSE — Ahsoka (The Clone Wars), Maul: a CROSSED guard. The off fist drawn in before the
+       weapon side of the chest, the forearm across the body and its blade laid along it, out past the off side; the
+       right fist low before the hip, its blade swept down and back out past the weapon side. One bar high across the
+       body, one blade low and wide: balanced, and unmistakably reversed */
     jarkai: {
-      ready: { hand: [0.34, 0.0, 0.36], blade: [0.58, -0.6, -0.55], twist: 0.04, lean: 0.12, pole: [0.8, -0.5, -0.3],
-               off: { hand: [-0.34, 0.0, 0.36], pole: [-0.8, -0.5, -0.3], sway: 0.3 }, offBlade: [-0.58, -0.6, -0.55] },
+      ready: { hand: [0.36, -0.06, 0.32], blade: [0.68, -0.4, -0.62], twist: 0.06, torso: 0.02, lean: 0.1, pole: [0.8, -0.5, -0.3],
+               off: { hand: [0.06, 0.12, 0.44], pole: [-0.85, -0.45, -0.25], sway: 0.25 }, offBlade: [-0.9, -0.3, 0.12] },
       // one arm before the body, one behind it (Ahsoka, The Clone Wars; Starkiller): the lead fist up in front of the
       // chest, its blade laid level out past the weapon side; the off arm drawn back behind, its blade trailing out behind
       block: { hand: [0.16, 0.14, 0.44], blade: [0.96, 0.08, 0.24], twist: 0.22, lean: 0.12, pole: [0.5, -0.7, -0.4],
@@ -232,16 +243,17 @@ export const SABER_GUARDS = {
 };
 
 /* JAR'KAI WITH THE HANDS IN DIFFERENT GRIPS (data/forms.js DUAL_GRIPS: the right forward, the left reversed), keyed 'main/off': its own guards (Ahsoka,
-   The Clone Wars). Idle: the forward blade stood straight up by the shoulder, the reversed one laid level out past the
-   off hip from a fist before the waist. Block: hunched in, the right arm high with its blade angled down at the foe, the left
+   The Clone Wars). Idle: the forward blade stood straight up by the shoulder, the reversed one angled down and back out
+   past the off hip from a fist beside it. Block: hunched in, the right arm high with its blade angled down at the foe, the left
    arm straight out. Every other block: the reversed fist thrown
    up over the head with its blade level across above it, the forward blade level across the waist the other way. */
 export const DUAL_GUARDS = {
   'regular/reverse': {
     // the right fist up by the shoulder, its blade standing straight up; the reversed left fist low before the waist,
     // its blade laid level out past the off hip
+    // (the reversed blade angled down and back out past the hip, so it reads clear of the fist's glow from any side)
     ready: { hand: [0.38, 0.26, 0.16], blade: [0.06, 0.98, -0.14], twist: 0.5, torso: 0.12, lean: 0.02, gaze: 1, pole: [0.9, -0.4, -0.2],
-             off: { hand: [-0.04, 0.0, 0.4], pole: [-0.9, -0.3, -0.3], sway: 0.3 }, offBlade: [-0.9, 0.14, 0.42] },
+             off: { hand: [-0.28, -0.1, 0.32], pole: [-0.85, -0.4, -0.3], sway: 0.3 }, offBlade: [-0.72, -0.36, -0.6] },
     // (Ahsoka's) dropped low and hunched in behind it: the right fist drawn back and high, palm down, its blade
     // pointed forward and down at the foe; the left arm thrust straight out ahead, fist forward, the reversed blade
     // laid out to the left and a little up

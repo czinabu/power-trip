@@ -380,9 +380,10 @@ document.getElementById('padinvctl').addEventListener('click', (e) => { e.stopPr
 function setFinToggle(key, on){
   G[key] = on;
   try { localStorage.setItem('sw_' + key, on ? '1' : '0'); } catch(e){}
-  const sv = document.getElementById(key === 'finSlow' ? 'finslowval' : 'fincamval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
+  const sv = document.getElementById(key.toLowerCase() + 'val'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
 }
-for (const [key, id] of [['finSlow', 'finslowctl'], ['finCam', 'fincamctl']]){
+// (and THE KILL CAM: a big kill's cinematic shot, engine/killcam.js)
+for (const [key, id] of [['finSlow', 'finslowctl'], ['finCam', 'fincamctl'], ['killCam', 'killcamctl']]){
   let v; try { v = localStorage.getItem('sw_' + key); } catch(e){}
   setFinToggle(key, v !== '0');
   const el = document.getElementById(id);
@@ -514,7 +515,7 @@ function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
   setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
   setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
-  setFinToggle('finSlow', true); setFinToggle('finCam', true);
+  setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
   setAimHint(true); setSwingMirror(false); setSaberGrip('regular');
   resetQuality();

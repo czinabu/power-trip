@@ -29,6 +29,7 @@ import { addFocus, FOCUS } from './focus.js';
 import { addFury } from './fury.js';
 import { throwOffSaber } from './offthrow.js';
 import { addPosture } from '../../enemies/duel.js';
+import { killCam } from '../../engine/killcam.js';
 
 const FIN = FINISHER;
 const isDark = () => isGunner() && player.weapon === 'darksaber';
@@ -196,6 +197,8 @@ export function finisherStrike(sw){
     tutEvent('saberFinisher', e);
     if (G.stats) G.stats.finishers = (G.stats.finishers || 0) + 1;
     addFocus(FOCUS.gainFin * 2);
+    // a duellist, a champion or the Warbringer cut down: THE KILL CAM, if nobody else is close (engine/killcam.js)
+    if (e !== shared.boss && e.dead && (e.dp || F.tough)) killCam('duel', e);
   }
 }
 

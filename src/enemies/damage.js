@@ -26,6 +26,7 @@ import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
 import { queueHit, hooks } from '../net/run.js';
+import { killCam, killCamOn } from '../engine/killcam.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -180,7 +181,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     if (!e.converted && !shared.boss){
       let hostiles = 0;
       for (const o of enemies) if (!o.dead && !o.converted) hostiles++;
-      if (hostiles === 0 && G.spawnQueue.length === 0){ G.slowmo = 0.3; G.slowmoT = 0.5; }  // wave-clear kill cam
+      // the last of the fight down: THE KILL CAM (engine/killcam.js), or with it off (or no room for it) the old slow-mo dip
+      if (hostiles === 0 && G.spawnQueue.length === 0 && !killCam('last', e) && !killCamOn()){ G.slowmo = 0.3; G.slowmoT = 0.5; }
     }
   } else if (opts && opts.launch === false){
     // no launch: the caller decides how it reels (a flinch, a shove, a stagger)

@@ -31,6 +31,7 @@ import { queueSpawn } from '../game/flow.js';
 import { storyBeat } from '../game/story.js';
 import { gainXp } from '../game/progression.js';
 import { victory } from '../game/summary.js';
+import { killCam } from '../engine/killcam.js';
 import { showBanner } from '../ui/banners.js';
 import { diffHpMul } from '../data/difficulty.js';
 import { hideIndicators } from '../enemies/cleanup.js';
@@ -176,6 +177,7 @@ function killBoss(){
   for (const e of enemies){ if (!e.dead){ e.dead = true; e.state = 'fade'; e.st = 0.6; hideIndicators(e); } }
   for (const r of rings) scene.remove(r.mesh); rings.length = 0;
   for (let i = bolts.length-1; i >= 0; i--){ if (!bolts[i].friendly){ scene.remove(bolts[i].mesh); bolts.splice(i,1); } }
+  killCam('boss', shared.boss);   // his fall, side-on and slowed (engine/killcam.js): the field is clear by now
   showBanner(shared.boss.kind === 'mando' ? 'THE MAGISTRATE FALLS' : 'THE VOID RECLAIMS ITS HERALD', '', 3);
   burst(shared.boss.group.position.clone().setY(2), shared.boss.kind === 'mando' ? 0xffaa33 : 0xff4444, 40, 14, 10);
   burst(shared.boss.group.position.clone().setY(2), shared.boss.kind === 'mando' ? 0x66ccff : 0xbb44ff, 30, 10, 8);

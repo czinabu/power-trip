@@ -14,8 +14,10 @@ import { MANDO_WEAPONS } from '../../data/mando.js';
 export const AT_EASE = {
   inRate: 5, outRate: 7,   // how fast the stance lets go when a scene starts, and comes back when it ends (per second)
   relaxOut: 22,            // a cut, a guard or a power out of the relaxed stand (blade put out): the arms go to it straight away
-  relaxIn: 3.2,            // putting the blade out: the guard melts away slowly as the hand takes the hilt to the belt
-  relaxBack: 4.5,          // lighting it with 5: the arm rises into the guard over a beat, not in a snap
+  // (these two run at an even pace over a set time, eased at both ends, so the arm sets off gently and lands in the
+  // guard without a lurch at the start or a long crawl into it at the end)
+  relaxIn: 0.6,            // putting the blade out: the guard melts away slowly as the hand takes the hilt to the belt (s)
+  relaxBack: 0.5,          // lighting it with 5: the arm rises into the guard over a beat, not in a snap (s)
   // the arms hang loose at the sides, elbows soft, hands a touch in front of the thighs (armR is the weapon hand)
   armR: { sh: [-0.08, 0.04, -0.07], el: [-0.28, 0, 0], wr: [0.1, 0, 0] },
   armL: { sh: [-0.06, -0.04, 0.07], el: [-0.24, 0, 0], wr: [0.1, 0, 0] },
@@ -62,31 +64,43 @@ export function relaxed(){
 
 /* THE FLOURISH — lighting or putting out the blade on purpose (5, a draw from the belt) spins the hilt one full turn in
    the fingers, end over end, as the blade runs up (the arm rises into the guard on its own as the at-ease stand lets
-   go) or sucks back in (the arm settling to the hip). It turns the weapon in the hand (the saber or the Darksaber),
-   over the pose: animatePlayer puts the hilt back to its mount grip first (flourishReset), poses the arms, then
-   spins it (flourishApply). The spun hilt rides the pose sync, so a co-op partner sees it as well. */
+   go) or sucks back in (the arm settling to the hip). It turns the weapon in the hand (the saber, both of Jar'Kai's
+   hilts, or the Darksaber) on top of the pose: animatePlayer puts the hilt back to its mount grip first
+   (flourishReset), poses the arms (which aim the hilt where the guard holds it), then spins it about that aim
+   (flourishApply), so the turn starts and ends exactly on the pose and never jumps into it. The spin eases in and out
+   (no frame turns it much more than the next), and the spun hilt rides the pose sync, so a co-op partner sees it too. */
 export const FLOURISH = {
-  ignite:  { dur: 0.34, turns: 1 },    // fast out, easing to a stop square in the hand as the blade reaches full length
-  retract: { dur: 0.44, turns: -1 },   // the other way round, slower, the hilt settling as the blade goes in
+  ignite:  { dur: 0.42, turns: 1 },    // out of the fingers and round, settling square in the hand as the blade reaches full length
+  retract: { dur: 0.44, turns: -1 },   // the other way round, the hilt settling as the blade goes in
 };
-const FL = { t: 0, F: null, node: null };
+const FL = { t: 0, F: null, node: null, off: null };
 const flNode = () => isGunner() ? (player.weapon === 'darksaber' ? player.darksaberMesh : null) : (player.holstered ? null : player.saberHand);
-export function startFlourish(dir){ FL.F = dir > 0 ? FLOURISH.ignite : FLOURISH.retract; FL.t = 0; FL.node = flNode(); }
+// Jar'Kai's second hilt, when it's in the off hand with the first (model/weapons.js syncOffSaber)
+const flOff = () => !isGunner() && !player.holstered && !player.offAway && player.offSaber && player.offSaber.node.visible && player.saberBladeRoot && player.saberBladeRoot.userData.dual ? player.offSaber.node : null;
+export function startFlourish(dir){ FL.F = dir > 0 ? FLOURISH.ignite : FLOURISH.retract; FL.t = 0; FL.node = flNode(); FL.off = flOff(); }
 export const flourishing = () => !!FL.F;
 const _ax = new THREE.Vector3(1, 0, 0), _fq = new THREE.Quaternion();
+const inHand = m => m && m.userData.restQ && m.userData.hand && m.parent === m.userData.hand;
 export function flourishReset(){
   const m = FL.node;
-  if (m && m.userData.restQ && m.parent === m.userData.hand) m.quaternion.copy(m.userData.restQ);
+  if (inHand(m)) m.quaternion.copy(m.userData.restQ);
+  // (the off hilt is aimed afresh by the pose only while Jar'Kai's guard holds it: start it from its grip during a spin
+  // so the turn laid over it can't build up)
+  const o = FL.F && FL.off;
+  if (o && o.parent && o.userData.restQ) o.quaternion.copy(o.userData.restQ);
 }
 export function flourishApply(dt){
   if (!FL.F) return;
   const m = FL.node, F = FL.F;
   FL.t += dt;
   const k = Math.min(1, FL.t / F.dur);
-  if (!m || m !== flNode() || !m.userData.restQ || m.parent !== m.userData.hand){ FL.F = null; return; }   // (thrown, holstered, swapped)
-  const e = F.turns > 0 ? 1 - Math.pow(1 - k, 3) : k * k * (3 - 2 * k);
-  m.quaternion.copy(m.userData.restQ).multiply(_fq.setFromAxisAngle(_ax, Math.PI * 2 * F.turns * e));
-  if (k >= 1){ m.quaternion.copy(m.userData.restQ); FL.F = null; }
+  if (!inHand(m) || m !== flNode()){ FL.F = null; return; }   // (thrown, holstered, swapped)
+  if (k >= 1){ FL.F = null; return; }   // (the pose has it square in the hand already)
+  const e = k * k * k * (k * (6 * k - 15) + 10);   // smootherstep: from still, round, and still again
+  _fq.setFromAxisAngle(_ax, Math.PI * 2 * F.turns * e);
+  m.quaternion.multiply(_fq);
+  const o = FL.off;
+  if (o && o === flOff() && o.parent) o.quaternion.multiply(_fq);   // Jar'Kai: both hilts turn together
 }
 const _e = new THREE.Euler(), _q = new THREE.Quaternion();
 const qe = (x, y, z) => _q.setFromEuler(_e.set(x, y, z));
@@ -95,9 +109,15 @@ export function easePose(dt, vis, R, gait){
   const scene = atEase(), loose = !scene && relaxed();
   const want = scene || loose ? 1 : 0, cur = player._ease || 0;
   const busy = player.atkT > 0 || player.blockHeld || player.castT > 0 || player.kickT > 0 || player.dashT > 0 || player.judgeT > 0;
-  const rate = want > cur ? (scene ? AT_EASE.inRate : AT_EASE.relaxIn) : scene ? AT_EASE.outRate : busy ? AT_EASE.relaxOut : AT_EASE.relaxBack;   // (a move out of the relaxed stand takes the arms at once; lighting it with 5 eases into the guard)
-  const k = player._ease = cur + (want - cur) * Math.min(1, dt * rate);
-  if (k < 0.002){ player._ease = 0; return; }
+  // (a move out of the relaxed stand takes the arms at once; lighting it with 5 eases into the guard)
+  const even = !scene && !(busy && want < cur), d = want - cur;
+  const k = player._ease = even
+    ? cur + Math.sign(d) * Math.min(Math.abs(d), dt / (want > cur ? AT_EASE.relaxIn : AT_EASE.relaxBack))
+    : cur + d * Math.min(1, dt * (!scene ? AT_EASE.relaxOut : want > cur ? AT_EASE.inRate : AT_EASE.outRate));
+  // a draw from the belt lights the blade with the hand still at the hip: it rises from there into the guard (held at
+  // the reach as the stand lets go), and lets go of that reach if the stand comes back first (put out again)
+  if (player._reachHold && loose) player._reachHold = Math.max(0, player._reachHold - dt * 6);
+  if (k < 0.002){ player._ease = 0; player._reachHold = 0; return; }
   const s = k * k * (3 - 2 * k);   // eased, so the guard melts away and comes back without a snap
   if (!scene){ relaxedArms(R, s, gait); return; }
   // the body squares up: no bladed twist, no lean into the guard
@@ -127,13 +147,22 @@ function relaxedArms(R, s, gait){
   const air = player.grounded ? 0 : 1, A_ = RELAXED.air;   // off the ground: the arms come up and out a little for balance
   const br = Math.sin(G.gt * 1.6) * RELAXED.breath;         // a slow breath in the shoulders, so standing still isn't a statue
   // the reach to the belt and back (player/holster.js player.reach): the weapon hand crosses to the left hip and back
-  const RC = player.reach, rk = RC ? Math.sin(Math.PI * Math.min(1, RC.t / REACH_DUR)) : 0;
+  const rk = reachK();
+  // Jar'Kai: the off hand crosses to the other hip at the same time, for the second hilt clipped on there
+  const both = !isGunner() && !player.offAway && player.offSaber && player.saberBladeRoot && player.saberBladeRoot.userData.dual;
   for (const [A, P, k] of [[R.armR, RELAXED.armR, -1], [R.armL, RELAXED.armL, 1]]){
-    const reach = A === R.armR ? rk : 0, H = RELAXED.reach;
+    const reach = A === R.armR || both ? rk : 0, H = A === R.armR ? RELAXED.reach : REACH_OFF;
     A.sh.quaternion.slerp(qe(lerp(P.sh[0] + k * sw + air * A_.lift + br, H.sh[0], reach), lerp(P.sh[1], H.sh[1], reach), lerp(P.sh[2] - k * air * A_.out, H.sh[2], reach)), s);
     A.el.quaternion.slerp(qe(lerp(P.el[0] - bend - air * A_.elbow, H.el[0], reach), P.el[1], P.el[2]), s);
     A.wr.quaternion.slerp(qe(lerp(P.wr[0], H.wr[0], reach), P.wr[1], P.wr[2]), s);
   }
 }
 const lerp = (a, b, t) => a + (b - a) * t;
-const REACH_DUR = 0.36;   // (player/holster.js REACH.dur)
+const REACH_DUR = 0.42;   // (player/holster.js REACH.dur)
+const REACH_OFF = { sh: [RELAXED.reach.sh[0], -RELAXED.reach.sh[1], -RELAXED.reach.sh[2]], el: RELAXED.reach.el, wr: RELAXED.reach.wr };   // (the reach, mirrored)
+// how far across to the belt the weapon hand is right now: through the reach (player/holster.js player.reach), or
+// held there as a draw lights the blade (player._reachHold)
+export function reachK(){
+  const RC = player.reach;
+  return RC ? Math.sin(Math.PI * Math.min(1, RC.t / REACH_DUR)) ** 2 : player._reachHold || 0;   // (sin²: the hand sets off and comes back from still)
+}

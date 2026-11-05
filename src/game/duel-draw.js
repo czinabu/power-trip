@@ -16,15 +16,18 @@
 import { S } from '../audio/sfx.js';
 import { GUARD_POSE } from '../data/duel.js';
 import { guardArm, updateStance } from '../enemies/foestance.js';
+import { holdBetween } from '../player/anim/handoff.js';
 
 // the foe's timing (s): the reach for the belt (the hilt changes hands `swap` of the way through), the blade running up,
 // how fast the arm rises into the guard (per second), and where the hilt hangs on the belt, in the body's frame
-export const FOE_DRAW = { reach: 0.4, swap: 0.5, ext: 0.22, rise: 7, belt: { pos: [0.27, 0.98, 0.15], rot: [0.12, 0, 0.16] } };
+export const FOE_DRAW = { reach: 0.4, swap: 0.5, ext: 0.22, rise: 0.45, hand: 0.12, belt: { pos: [0.27, 0.98, 0.15], rot: [0.12, 0, 0.16] } };
+// (rise: how long the arm takes from the belt up into the guard; hand: how long the hilt takes to slide from the belt
+// into the fist, rather than jumping: player/anim/handoff.js)
 // the weapon arm: hanging loose with the hilt on the belt, and reaching across to it
 const HANG = { x: 0.05, z: 0.14 }, REACH = { x: 0.12, z: -0.22 };   // (the hilt hangs at the weapon hand's hip: an easy reach down)
 
 const lerp = (a, b, t) => a + (b - a) * t;
-const damp = (a, b, dt, r) => a + (b - a) * (1 - Math.exp(-r * dt));
+const smooth = k => { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); };
 // the blade meshes in a hilt's group (its glows: the hilt itself is baked), each with where its emitter end is
 function bladesOf(node){
   const out = [];
@@ -93,26 +96,33 @@ export function stepFoe(a, dt){
   if (!arm || !u.saber) return;   // (a cut took the arm)
   const k = Math.min(1, D.t / FOE_DRAW.reach);
   if (!D.lit){
-    const r = Math.sin(Math.PI * k);
+    const r = Math.sin(Math.PI * k) ** 2;   // (sin²: the hand sets off from still)
     arm.rotation.x = lerp(HANG.x, REACH.x, r); arm.rotation.z = lerp(HANG.z, REACH.z, r);
-    if (k >= FOE_DRAW.swap && u.saber.parent !== D.home){   // the hilt off the belt, into the hand
+    if (k >= FOE_DRAW.swap && u.saber.parent !== D.home){
+      // the hilt off the belt and into the hand, sliding into the fist from where it hung (below); lit there and then,
+      // and the arm carries it straight up from the hip into the guard (not back down to the thigh first)
+      D.from = { pos: u.saber.position.clone(), quat: u.saber.quaternion.clone() };
       D.home.add(u.saber); u.saber.position.copy(D.pos); u.saber.quaternion.copy(D.quat);
-    }
-    if (k >= 1){
-      D.lit = true; D.t0 = D.t;
+      D.lit = true; D.t0 = D.t; D.armFrom = [arm.rotation.x, arm.rotation.z];
       a.group = a.g; a.ff = D.form;   // its form's stance from here (enemies/foestance.js reads these off the actor)
       S.ignite(soundOf(D.form), at(a.g), true);
+      if (D.from) holdBetween(u.saber, u.vis, D.from.pos, D.from.quat, D.pos, D.quat, 0);
     }
     return;
   }
   // lit: the blade runs up (both, in Jar'Kai: the off hand's copy is made from the main one on its first frame,
-  // enemies/foestance.js offSaber), and the arm rises into the high guard
-  const e = Math.min(1, (D.t - D.t0) / FOE_DRAW.ext), s = 1 - Math.pow(1 - e, 3);
+  // enemies/foestance.js offSaber), and the arm rises into the high guard, easing off the belt and settling into it
+  const lt = D.t - D.t0, e = Math.min(1, lt / FOE_DRAW.ext), s = 1 - Math.pow(1 - e, 3);
   fit(D.blades, s);
   if (u.offSaber && u.offSaber.visible){ if (!D.off) D.off = bladesOf(u.offSaber).map((b, i) => ({ ...b, ...(D.blades[i] ? { y: D.blades[i].y, s: D.blades[i].s, base: D.blades[i].base } : {}) })); fit(D.off, s); }
-  const p = guardArm(a, GUARD_POSE, 'H', false);
-  arm.rotation.x = damp(arm.rotation.x, p[0], dt, FOE_DRAW.rise);
-  arm.rotation.z = damp(arm.rotation.z, p[1], dt, FOE_DRAW.rise);
+  const p = guardArm(a, GUARD_POSE, 'H', false), A0 = D.armFrom || [arm.rotation.x, arm.rotation.z], rk = smooth(lt / FOE_DRAW.rise);
+  arm.rotation.x = lerp(A0[0], p[0], rk);
+  arm.rotation.z = lerp(A0[1], p[1], rk);
+  if (D.from){
+    const hk = lt / FOE_DRAW.hand;
+    if (hk >= 1){ u.saber.position.copy(D.pos); u.saber.quaternion.copy(D.quat); D.from = null; }
+    else { arm.updateWorldMatrix(true, true); holdBetween(u.saber, u.vis, D.from.pos, D.from.quat, D.pos, D.quat, smooth(hk)); }
+  }
   updateStance(a, dt, true, 'H');
 }
 // the scene is over: anything left half drawn is put back as it was (a stand-in leaves the set anyway; the quarry and
@@ -123,6 +133,7 @@ export function endFoe(a){
   a.draw = null;
   if (D.kind === 'boss'){ fit(D.blades, 1); for (const [l, i] of D.lights) l.intensity = i; return; }
   const u = D.u;
+  if (u.saber && D.from){ u.saber.position.copy(D.pos); u.saber.quaternion.copy(D.quat); }
   if (u.saber && u.saber.parent !== D.home){ D.home.add(u.saber); u.saber.position.copy(D.pos); u.saber.quaternion.copy(D.quat); }
   fit(D.blades, 1);
   if (D.off) fit(D.off, 1);

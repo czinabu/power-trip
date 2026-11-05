@@ -35,6 +35,7 @@ import { removeEnemy } from './cleanup.js';
 import { throwGrenade } from './grenades.js';
 import { updateLegs } from './gait.js';
 import { updateUpper } from './upper.js';
+import { defeatMotion, defeatLife } from './defeat.js';
 import { MOVE } from '../data/movement.js';
 import { foeAllyTarget, hurtAlly } from '../allies/squad.js';
 import { heroFor } from './targets.js';
@@ -598,6 +599,10 @@ export function updateEnemies(dt){
         }
         break;
       case 'ragdoll': {
+        // a reaction to what the killing cut took (enemies/defeat.js) owns the body until it lets go
+        const dm = defeatMotion(e, g, dt);
+        if (dm === 'down'){ e.state = 'fade'; e.st = CORPSE; break; }
+        if (dm) break;
         e.vel.y -= 22 * dt;
         g.position.addScaledVector(e.vel, dt);
         if (e.crumple){
@@ -617,7 +622,7 @@ export function updateEnemies(dt){
           const sy = Math.sin(g.rotation.y), cy = Math.cos(g.rotation.y), sp = Math.hypot(e.vel.x, e.vel.z);
           const fw = e.vel.x * sy + e.vel.z * cy, sd = e.vel.x * cy - e.vel.z * sy;
           e.fall = { s: fw > 0.3 * sp ? 1 : -1, roll: clamp(-sd / Math.max(sp, 1), -1, 1) * 0.35 + (Math.random() - 0.5) * 0.2,
-                     flip: sp > 11 && e.vel.y > 4, yaw: (Math.random() - 0.5) * (sp > 8 ? 2.4 : 0.8) };
+                     flip: sp > 11 && e.vel.y > 4, yaw: e.fallYaw ?? (Math.random() - 0.5) * (sp > 8 ? 2.4 : 0.8) };   // (fallYaw: a sideways sweep spins it, enemies/damage.js)
         }
         const F = e.fall, up = g.position.y > 0.05;
         if (F.flip && up){ g.rotation.x += F.s * dt * 7.5; g.rotation.y += F.yaw * dt; }
@@ -773,5 +778,6 @@ export function updateEnemies(dt){
     updateLegs(e, g, dt, e.legMode || (e.dead || NO_FEET[e.state] ? 'off' : (t.fly || e.state === 'leap') ? 'air' : e.walking ? 'walk' : 'ground'));   // (legMode: a final boss's move sets it, boss/finale.js)
     // UPPER BODY — aim, look, breathe, kick and flinch over the pose (enemies/upper.js)
     updateUpper(e, g, dt, tgtPos, e.upperMode || (e.state === 'stasis' ? 'hold' : e.dead || NO_REACT[e.state] ? 'off' : 'on'));
+    if (e.dead) defeatLife(e, g, dt);   // the knees, a droid's throes, the dropped blaster (enemies/defeat.js)
   }
 }

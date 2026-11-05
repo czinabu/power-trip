@@ -20,6 +20,7 @@ import { damageEnemy } from '../enemies/damage.js';
 import { finaleLook, finaleDress, adoptFinalePuppet, spawnFinale } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { severLimbs, applyCuts } from '../enemies/scars.js';
+import { defeatLife } from '../enemies/defeat.js';
 import { makeBossBar } from '../enemies/spawn.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
@@ -100,7 +101,7 @@ on('hits', (m) => {
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
     damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield ? { shove: shove || undefined, bodyShield: !!shield } : undefined);   // (shield: a bolt the guest's held body caught)
-    if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4);   // the guest's killing cut may take limbs; the snapshot shows them to both
+    if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);   // the guest's killing cut may take limbs; the snapshot shows them to both
   }
 });
 
@@ -377,6 +378,7 @@ export function updatePuppets(dt){
     }
     updateLegs(e, g, dt, e.dead || NO_FEET[e.state] ? 'off' : (e.t.fly || e.state === 'leap') ? 'air' : e.walking ? 'walk' : 'ground');
     updateUpper(e, g, dt, null, e.dead || NO_FEET[e.state] ? 'off' : 'on');   // breath, glances, the wind-up twist (enemies/upper.js)
+    defeatLife(e, g, dt);   // a felled foe: its knees, a droid's throes, the dropped blaster (enemies/defeat.js)
     updatePuppetDuel(e, dt);
   }
 }

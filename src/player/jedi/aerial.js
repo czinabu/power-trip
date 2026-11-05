@@ -109,7 +109,7 @@ function strike(pp, tgt){
     if (isGuarding(tgt)) guardImpact(tgt, DUEL.posture.charge);   // the weight of the fall cracks a guard
     damageEnemy(tgt, dmg * (tgt.t.heavy ? st.heavyDmg : 1) * backLineMul(st, tgt) * swordMul(st, tgt) * edgeMul(tgt), dir.clone(), knock, true, false, { shove: CFG.player.saberShove.max, blade: true });   // (a blade's short shove: config saberShove)
     scarBody(tgt.group, dir, 'neutral', true);   // the falling cut burns its line in (enemies/scars.js)
-    if (tgt.dead) severLimbs(tgt, dir, 0.7);
+    if (tgt.dead) severLimbs(tgt, dir, 0.7, { travel: V3(dir.x * 0.4, -1, dir.z * 0.4) });   // (the falling cut comes down through it)
     if (!tgt.dead) flinchEnemy(tgt, dir, 0.7);   // rocked back, not floored: you still have to finish it
     // the foe goes flying the way the cut was travelling: anyone it crashes into goes down with it
     player.airCutFling = { e: tgt, t: AIR_CUT.fling, dir: dir.clone(), dmg: dmg * AIR_CUT.flingDmg, knock: knock * 0.5, hit: new Set([tgt]) };

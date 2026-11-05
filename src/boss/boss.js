@@ -14,6 +14,8 @@ import { scene } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, TMP, clamp } from '../utils.js';
 import { burst } from '../fx/particles.js';
+import { sparks } from '../fx/ink.js';
+import { BOSS_FALLS } from '../data/defeats.js';
 import { floater } from '../fx/floaters.js';
 import { shared, G, enemies, bolts, rings, player, isGunner, isTrooper } from '../state.js';
 import { fwd, playerPos } from '../player/helpers.js';
@@ -166,7 +168,7 @@ export function bossStagger(){
 function killBoss(){
   if (!shared.boss || shared.boss.state === 'dying') return;   // never re-enter the death sequence
   shared.boss.hp = 0;
-  shared.boss.state = 'dying'; shared.boss.st = 1.4;
+  shared.boss.state = 'dying'; shared.boss.st = (BOSS_FALLS[shared.boss.kind === 'mando' ? 'mando' : 'sith']).dur;   // his own fall (bossFall)
   if (G.stats) G.stats.bossKilled = true;
   gainXp(1400);   // the Herald's bounty — a climactic payout worthy of felling the boss
   if (shared.bossLight) shared.bossLight.visible = false;
@@ -689,13 +691,40 @@ export function dropBossPuppet(){
 }
 /* HIS FALL (the 1.4 s death, timing unchanged): the knees buckle and he sinks onto them (enemies/gait.js kneel), sways
    a beat, then pitches forward onto his face and sinks into the floor. He no longer shrinks away */
+/* HIS FALL (data/defeats.js BOSS_FALLS), each boss his own: Vexis's blade gutters out as he sinks to his knees, bows, and
+   goes over on his side; the Magistrate staggers back sparking, drops to one knee and braces, then falls back */
 function bossFall(b, g, dt, host){
-  const t = b.dieT = (b.dieT || 0) + dt;
+  const t0 = b.dieT || 0, t = b.dieT = t0 + dt;
   const ss = (a, c, x) => { const k = Math.min(1, Math.max(0, (x - a) / (c - a))); return k * k * (3 - 2 * k); };
-  b.kneel = ss(0, 0.4, t);
-  g.rotation.x = -0.12 * ss(0, 0.3, t) * (1 - ss(0.45, 0.6, t)) + 1.45 * ss(0.5, 1.1, t) * ss(0.5, 1.1, t);
-  g.rotation.z = 0.08 * Math.sin(t * 6) * (1 - ss(0.4, 0.9, t));
-  if (host && t > 1.05) g.position.y -= dt * 0.9;
+  const u = g.userData, p = g.position;
+  if (b.kind === 'mando'){
+    const F = BOSS_FALLS.mando;
+    const back = ss(F.stagger[0], F.stagger[1], t) * (1 - ss(F.stagger[1], F.stagger[1] + 0.2, t));
+    if (host && t < F.stagger[1]){ const y = g.rotation.y; p.x -= Math.sin(y) * F.back * dt * (1 - t / F.stagger[1]) * 1.6; p.z -= Math.cos(y) * F.back * dt * (1 - t / F.stagger[1]) * 1.6; }
+    b.kneel = F.kneel * ss(F.kneelAt[0], F.kneelAt[1], t) * (1 - ss(F.topple[0], F.topple[1], t) * 0.5);
+    g.rotation.x = -0.22 * back + F.brace * ss(F.kneelAt[0], F.kneelAt[1], t) * (1 - ss(F.topple[0] - 0.1, F.topple[0] + 0.2, t)) - 1.45 * ss(F.topple[0], F.topple[1], t) ** 2;
+    g.rotation.z = 0.06 * Math.sin(t * 9) * (1 - ss(0.3, 1.2, t));
+    // the armour sparks as he goes, and his jets cough when he lands
+    if (t < F.topple[0] && Math.random() < dt * 14) sparks(V3(p.x + rand(-0.5, 0.5), p.y + rand(1.4, 2.8), p.z + rand(-0.5, 0.5)), Math.random() < 0.5 ? 0xffd080 : 0xbfe4ff, 3, 6, { cone: 1.6, life: 0.22, size: 0.4 });
+    if (t0 < F.kneelAt[1] && t >= F.kneelAt[1]){ burst(V3(p.x, 0.2, p.z), 0x8a8a8a, 10, 4, 2); G.shake = Math.max(G.shake, 0.5); }
+    if (t0 < F.topple[1] && t >= F.topple[1]){ burst(V3(p.x, 0.3, p.z), 0x8a8a8a, 16, 6, 3); burst(V3(p.x, 1, p.z), 0xffae5a, 8, 5, 4); G.shake = Math.max(G.shake, 0.8); }
+    if (host && t > F.sink) p.y -= dt * 0.9;
+    return;
+  }
+  const F = BOSS_FALLS.sith;
+  b.kneel = ss(F.kneelAt[0], F.kneelAt[1], t);
+  g.rotation.x = -0.14 * ss(0, F.recoil, t) * (1 - ss(F.recoil, F.kneelAt[1], t)) + F.bow * ss(F.kneelAt[1], F.topple[0], t) * (1 - ss(F.topple[0], F.topple[1], t) * 0.6);
+  g.rotation.z = 0.08 * Math.sin(t * 6) * (1 - ss(0.4, 0.9, t)) + F.roll * ss(F.topple[0], F.topple[1], t) ** 2;
+  // the blade gutters, then goes out in his hand
+  if (u.hand && t < F.bladeOut){ for (const c of u.hand.children) if (c.userData.live && Math.random() < dt * 30 * t) c.visible = Math.random() > t / F.bladeOut * 0.7; }
+  if (u.hand && t0 < F.bladeOut && t >= F.bladeOut){
+    for (const c of u.hand.children) if (c.userData.live) c.visible = false;
+    const hp = u.hand.getWorldPosition(V3(0, 0, 0));
+    sparks(hp, 0xff6a6a, 8, 6, { cone: 1.4, life: 0.25, size: 0.4 }); burst(hp, 0x553366, 8, 2, 2.5, 0.8);
+  }
+  if (t0 < F.kneelAt[1] && t >= F.kneelAt[1]){ burst(V3(p.x, 0.2, p.z), 0x7a7a7a, 10, 4, 2); G.shake = Math.max(G.shake, 0.45); }
+  if (t0 < F.topple[1] && t >= F.topple[1]){ burst(V3(p.x, 0.3, p.z), 0x7a7a7a, 14, 5, 3); G.shake = Math.max(G.shake, 0.6); }
+  if (host && t > F.sink) p.y -= dt * 0.9;
 }
 const dampB = (a, b2, k, dt) => a + (b2 - a) * (1 - Math.exp(-k * dt));
 function updateBossPuppet(dt){

@@ -120,13 +120,12 @@ document.getElementById('newYes').addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('newconfirming')) overlay.classList.remove('newconfirming'); });
 
-// ON LAUNCH: the newest saved campaign run waits on the title screen with its hero picked, so CONTINUE CAMPAIGN is the
-// default (the pad's focus ring and Enter start on it); with no saved run the menu opens on BEGIN as before
+// ON LAUNCH: the newest saved campaign run waits with its hero picked, but the game still opens on the home screen's mode
+// list; clicking CAMPAIGN then lands on CONTINUE CAMPAIGN
 export function continueOnLaunch(){
   const run = latestRun(); if (!run) return;
   setHero(run.hero === 'mando' || run.hero === 'trooper' ? run.hero : 'jedi');
   G.resumeRun = { ...run, hero: G.hero };
   setModeSel('campaign');
   refreshMenu();
-  showMenuStep('hero');   // straight to CONTINUE CAMPAIGN (‹ MODES goes back to the other modes)
 }

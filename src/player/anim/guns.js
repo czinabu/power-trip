@@ -4,7 +4,8 @@
 // Same chest-space IK as the saber (anim/ik.js); visual only, bolts still leave from muzzleOrigin() in weapons.js.
 
 import * as THREE from 'three';
-import { solveArm, aimHeld, pointInChest } from './ik.js';
+import { solveArm, holdAim, gripAt, pointInChest } from './ik.js';
+import { fistAt } from '../model/weapons.js';
 import { DIM } from '../model/rig.js';
 
 const Z = new THREE.Vector3(0, 0, 1), Y = new THREE.Vector3(0, 1, 0);
@@ -43,11 +44,11 @@ function pistolArm(R, arm, gun, aimDir, k, recoil, pole, rest = null){
   _p.copy(sh).addScaledVector(aimDir, reach);
   _p.y += recoil * 0.06;
   hip.lerp(_p, k);
-  solveArm(arm, hip, pole);
-  arm.wr.updateWorldMatrix(true, false);
   _d.copy(rest ? rest.dir : LOW_DIR).lerp(aimDir, k).normalize();
   _d.y += recoil * 0.5; _d.normalize();          // muzzle flip
-  aimHeld(R.chest, arm.wr, gun, Z, _d, 0.3, Y, rest ? _u.copy(rest.up).lerp(Y, k).normalize() : Y);
+  _u.copy(rest ? _u.copy(rest.up).lerp(Y, k).normalize() : Y);
+  // the gun's grip in the fist, the wrist pointing it (anim/ik.js holdAim): the hand points the gun, not the gun alone
+  gripAt(R, arm, hip, pole, gun.position, () => holdAim(R.chest, arm.wr, gun, Z, _d, gun.userData.restQ || gun.quaternion, Y, _u));
 }
 
 /* the trooper's pistols at rest (REX), for a figure with no aim to follow: the hero select's stand, the model lab */
@@ -151,15 +152,18 @@ export function riflePose(dt, R, player, worldAim, thrust = 0){
   const dir = aimFrom(R.chest, _p.set(0.1, 0.3, 0), worldAim, _aim);
   const rec = player.recoil || 0;
   _h.set(0.13, 0.17 - rec * 0.05 - (stab ? 0.14 : 0), 0.2 - rec * 0.1).addScaledVector(dir, 0.08 + thrust * 0.36);
-  solveArm(R.armR, _h, POLE_R);
-  R.armR.wr.updateWorldMatrix(true, false);
   _d.copy(dir); _d.y += rec * 0.35; _d.normalize();
-  aimHeld(R.chest, R.armR.wr, player.rifleMesh, Z, _d, 0.25, Y, Y);
-  // off hand under the barrel, about a forearm out from the trigger hand
-  pointInChest(R.chest, player.rifleMesh, _p.set(0, 0.06, 0.42), _h);
-  solveArm(R.armL, _h, _p.set(-0.3, -0.9, 0.1).normalize());
-  R.armL.wr.quaternion.identity();
+  const gun = player.rifleMesh;
+  gripAt(R, R.armR, _h, POLE_R, gun.position, () => holdAim(R.chest, R.armR.wr, gun, Z, _d, gun.userData.restQ || gun.quaternion, Y, Y));
+  // off hand under the barrel, about a forearm out from the trigger hand: its fist closed round the foregrip from below,
+  // the palm up, the fingers wrapping the far side (the barrel runs through the off fist's hollow, as the hilt does)
+  pointInChest(R.chest, gun, _p.set(0, 0.03, 0.42), _h);
+  gripAt(R, R.armL, _h, _p.set(-0.3, -0.9, 0.1).normalize(), OFF_FIST, () => holdAim(R.chest, R.armL.wr, null, FORE_AXIS, _d, FORE_REST, FORE_UP, Y));
 }
+const OFF_FIST = new THREE.Vector3(...fistAt(-1));
+/* the foregrip in the off fist, cupped from below: the barrel lies along the fist's hollow (the wrist's z, the thumb toward
+   the muzzle) and the gun sits on the palm, its top the way the left palm faces (the wrist's +x) */
+const FORE_AXIS = new THREE.Vector3(0, 0, 1), FORE_UP = new THREE.Vector3(1, 0, 0), FORE_REST = new THREE.Quaternion();
 export function rifleLowered(){ draw.rifle = 0; }
 
 /* hand a gun back to its mount rotation (when an FK pose — brace, flight, punch — owns the arm) */

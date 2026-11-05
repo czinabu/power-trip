@@ -145,3 +145,18 @@ export function stanceArms(o, u, dt){
   }
   el.rotation.x = bend;
 }
+
+/* THE FIST ON THE HILT — a saber foe's fingers (enemies/mesh.js arm: the 'fist' bone) close round its hilt, and the hilt
+   is a slot of its own the wrist tips and a form turns over (updateStance above, a bind, a clash). So each frame the fist
+   turns with it: the hilt never leaves the fingers at an angle through them. The fingers' ring is the same either way
+   along the hilt, so of the hilt's turn and the turn half way round from it the fist takes whichever bends the hand
+   least (a reverse grip is the hilt turned over in the same fist, not the hand turned back on the wrist). A hilt out
+   of the hand (on the belt, thrown) lets the fist rest. Run from enemies/upper.js after the arm and its stance. */
+const FLIP = new THREE.Quaternion(1, 0, 0, 0), Qa = new THREE.Quaternion();
+export function fistFollow(u){
+  const f = u.fist, s = u.saber;
+  if (!f) return;
+  if (!s || s.parent !== f.parent || !s.visible){ f.quaternion.identity(); return; }
+  Qa.copy(s.quaternion).multiply(FLIP);
+  f.quaternion.copy(Math.abs(s.quaternion.w) >= Math.abs(Qa.w) ? s.quaternion : Qa);
+}

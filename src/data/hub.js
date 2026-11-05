@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE HUBS: where every run starts and comes back to, one per hero. The Jedi walks the hidden temple on Tython, the ARC
-// trooper the clone citadel on Kamino (more can join HUBS below). Co-op loads the HOST's hero's hub for the whole party
+// trooper the clone citadel on Kamino, the Mando the hidden covert round its great forge (more can join HUBS below). Co-op loads the HOST's hero's hub for the whole party
 // (game/hub.js hubIdFor). Each hub is a set of wings, each its own room (its world/arenas/ builder, data/worlds.js
 // HUB_WORLDS colours it), joined by great doors: walk through one and the wing beyond loads, so only one wing is ever in
 // memory (phones and co-op hosts stay smooth). game/hub.js runs them, ui/hub-ui.js draws the station panels. Edit freely.
@@ -16,6 +16,7 @@
 //   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner).
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
+import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
 
 export const HUB = {
   doorHalf: 5.5,   // metres either side of a door's middle that count as walking through it
@@ -93,6 +94,10 @@ export const HUBS = {
     tile: 'Walk the cloning citadel on Kamino, gather your squad and pick a mission together',
     travel: 'Travel to any deck of the citadel.',
     start: 'deck', order: ['deck', 'warroom', 'range', 'halls', 'armory'], wings: KAMINO_WINGS },
+  covert: { name: 'THE HIDDEN COVERT', place: 'UNDER THE RUINS', home: 'THE COVERT', room: 'HALL',
+    tile: 'Walk the clan\'s covert round its great forge, gather your party and pick a job together',
+    travel: 'Travel to any hall of the covert.',
+    start: 'forge', order: COVERT_ORDER, wings: COVERT_WINGS },
 };
 // which hub each hero calls home (a hero without one of their own uses the temple)
 export const HERO_HUB = { jedi: 'temple', trooper: 'kamino', mando: 'covert' };

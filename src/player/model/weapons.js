@@ -18,12 +18,21 @@ import { startHandoff } from '../anim/handoff.js';
 import { buildHilt } from './hilt.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
-const GRIP_Y = -0.04;   // where the fist closes, below the wrist joint
+/* THE FIST — where a closed hand holds what it grips, in the wrist joint's frame (the right hand; the left mirrors x): the
+   hollow the curled fingers close round, below the palm and to its inner side (model/jedi.js hand). Every hand-held
+   weapon mounts its grip HERE, not on the wrist joint, so a hilt or a blaster's grip passes through the fingers, and
+   anything that turns it (the pose's aim, a flourish, a blade kept out of the body) turns it about the fist. */
+export const FIST = [-0.035, -0.1, 0];
+export const fistAt = (side = 1) => [FIST[0] * side, FIST[1], FIST[2]];
+/* A HILT IN THE FIST runs across the hand, through the curled fingers: the regular blade leaves the thumb side (the hand's
+   +z) leaning a little on toward the knuckles, as a hammer grip holds a sword, and the reverse blade leaves the little
+   finger's side. (The saber's built blade runs down its root's −y, flipped for the regular grip: see applySaberGrip.) */
+export const HILT_TURN = [-1.31, 0, 0];
 export const SABER_LIGHT = 8, DARK_LIGHT = 6;   // the blade PointLights at full, in a dark arena (scaled by glow.light)
 
 export const WEAPON_MODELS = {
   saber: {
-    hold: 'saber-1h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [0.25, 0, -0.4] },
+    hold: 'saber-1h', socket: 'handR', grip: { pos: FIST, rot: HILT_TURN },
     // hilt: the workbench's parts (look.jedi.hilt: model/hilt.js), so every saber the hero carries is the one they built
     build(S, hilt){
       const g = new THREE.Group(), root = new THREE.Group(); g.add(root);   // root flips for the regular grip (see applySaberGrip)
@@ -60,24 +69,65 @@ export const WEAPON_MODELS = {
     },
   },
 
+  /* THE SIDEARMS — one mount per hand holding three looks, only the drawn one shown (setPistolLook): the Mando's
+     BLASTER PISTOL (long barrel, silver muzzle sleeve, brass rail, wooden grip), his DUAL BLASTERS (polished steel,
+     slotted barrel with brass inlays, open sculpted grip) and the trooper's DC-17 (a boxy slab slide with a side
+     window and three slats, a straight tapered grip). All three keep the muzzle near z 0.38 (mando/weapons.js MUZZLES). */
   pistol: {
-    hold: 'pistol', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] },   // pre-tilted so the raised aim pose points at the reticle
+    hold: 'pistol', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] },   // pre-tilted so the raised aim pose points at the reticle
     build(S){
       const g = new THREE.Group();
-      S.add(block(0.05, 0.15, 0.068, 0.3), 'gunDark', g, [0, -0.02, 0], [0.34, 0, 0]);
-      S.add(block(0.05, 0.085, 0.24, 0.3), 'gunDark', g, [0, 0.09, 0.07]);
-      S.add(loft([{ y:-0.13, w:0.058, d:0.05 }, { y:0.13, w:0.058, d:0.05 }], chamfer(0.4)), 'gunMetal', g, [0, 0.135, 0.07], [Math.PI/2, 0, 0]);
-      S.add(loft([{ y:-0.08, w:0.042, d:0.042 }, { y:0.08, w:0.036, d:0.036 }], ngon(6)), 'gunMetal', g, [0, 0.115, 0.26], [Math.PI/2, 0, 0]);
-      const emit = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.03, 8), new THREE.MeshBasicMaterial({ color: 0xffb84a }));
-      emit.rotation.x = Math.PI/2; emit.position.set(0, 0.115, 0.34); g.add(emit);
-      S.add(block(0.01, 0.02, 0.03, 0.2), 'gunMetal', g, [0, 0.168, 0.18], [0,0,0], { outline: false });
-      S.add(block(0.054, 0.02, 0.04, 0.2), 'accent', g, [0, 0.115, 0.07], [0,0,0], { outline: false });
-      return { group: g };
+      const looks = { blaster: new THREE.Group(), duals: new THREE.Group(), dc17: new THREE.Group() };
+      for (const k in looks){ looks[k].visible = k === 'blaster'; g.add(looks[k]); }
+      const emitter = (par, col, z) => { const e = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.03, 8), new THREE.MeshBasicMaterial({ color: col }));
+        e.rotation.x = Math.PI/2; e.position.set(0, 0.115, z); par.add(e); };
+      const brass = S.mat('accent', { c: 0xc8a24a }), steel = S.mat('gunMetal', { c: 0xc4c9d2 }), wood = S.mat('leather', { c: 0x5a3a22 });
+      // BLASTER PISTOL (the Mando's single)
+      { const b = looks.blaster;
+        S.add(block(0.046, 0.15, 0.06, 0.3), wood, b, [0, -0.02, 0], [0.34, 0, 0]);                      // the wooden grip
+        S.add(block(0.05, 0.075, 0.2, 0.3), 'gunDark', b, [0, 0.085, 0.07]);                             // the frame
+        S.add(block(0.058, 0.04, 0.17, 0.3), 'gunMetal', b, [0, 0.14, 0.09]);                            // the slide
+        S.add(loft([{ y:-0.15, w:0.04, d:0.04 }, { y:0.15, w:0.04, d:0.04 }], ngon(8)), 'gunDark', b, [0, 0.115, 0.22], [Math.PI/2, 0, 0]);   // the barrel
+        S.add(loft([{ y:-0.05, w:0.058, d:0.058 }, { y:0.05, w:0.068, d:0.068 }], ngon(8)), steel, b, [0, 0.115, 0.34], [Math.PI/2, 0, 0]);     // the silver muzzle sleeve
+        S.add(block(0.008, 0.012, 0.26, 0.2), brass, b, [0.03, 0.095, 0.17], [0,0,0], { outline: false });   // the brass rail…
+        S.add(block(0.008, 0.012, 0.26, 0.2), brass, b, [-0.03, 0.095, 0.17], [0,0,0], { outline: false });
+        S.add(block(0.024, 0.04, 0.036, 0.2), 'gunDark', b, [0, 0.175, 0.0]);                            // the rear sight
+        const loop = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.007, 6, 14), brass); loop.rotation.y = Math.PI/2; loop.position.set(0, 0.035, 0.06); b.add(loop);   // the round trigger loop
+        emitter(b, 0xffb84a, 0.4); }
+      // DUAL BLASTERS (the Mando's pair)
+      { const d = looks.duals;
+        S.add(block(0.044, 0.15, 0.016, 0.3), 'gunMetal', d, [0, -0.02, -0.026], [0.34, 0, 0]);          // the open grip: its rear strap…
+        S.add(block(0.044, 0.15, 0.016, 0.3), 'gunMetal', d, [0, -0.02, 0.026], [0.34, 0, 0]);           // …and front strap, a gap between
+        S.add(block(0.062, 0.022, 0.08, 0.3), steel, d, [0, -0.1, -0.03], [0.34, 0, 0]);                 // the flared butt
+        S.add(block(0.05, 0.07, 0.15, 0.3), 'gunMetal', d, [0, 0.07, 0.02]);                             // the body
+        S.add(loft([{ y:-0.2, w:0.05, d:0.05 }, { y:0.2, w:0.046, d:0.046 }], ngon(10)), steel, d, [0, 0.115, 0.2], [Math.PI/2, 0, 0]);    // the long barrel
+        for (const z of [0.2, 0.3]) S.add(block(0.052, 0.012, 0.07, 0.2), brass, d, [0, 0.142, z], [0,0,0], { outline: false });             // its brass inlays
+        S.add(loft([{ y:-0.03, w:0.046, d:0.046 }, { y:0.03, w:0.07, d:0.07 }], ngon(10)), steel, d, [0, 0.115, 0.37], [Math.PI/2, 0, 0]);   // the flared muzzle
+        for (let i = 0; i < 3; i++) S.add(loft([{ y:-0.004, w:0.066, d:0.066 }, { y:0.004, w:0.066, d:0.066 }], ngon(10)), 'gunDark', d, [0, 0.115, -0.04 - i*0.014], [Math.PI/2, 0, 0], { outline: false });   // the ribbed rear cap
+        S.add(block(0.01, 0.04, 0.026, 0.2), steel, d, [0, 0.055, 0.05], [0.5, 0, 0], { outline: false });  // the trigger spur
+        emitter(d, 0xffb84a, 0.4); }
+      // DC-17 (the trooper's)
+      { const t = looks.dc17;
+        S.add(block(0.05, 0.15, 0.062, 0.3), 'gunDark', t, [0, -0.02, 0], [0.34, 0, 0]);                 // the straight grip
+        S.add(block(0.06, 0.022, 0.07, 0.3), 'accent', t, [0, -0.1, -0.03], [0.34, 0, 0]);               // the flared magazine base
+        S.add(block(0.052, 0.08, 0.27, 0.3), 'gunMetal', t, [0, 0.1, 0.12]);                             // the slab slide
+        S.add(block(0.062, 0.014, 0.3, 0.3), 'gunDark', t, [0, 0.055, 0.13]);                            // the lower rail
+        for (const sx of [-1, 1]){
+          S.add(block(0.006, 0.026, 0.1, 0.1), 'gunDark', t, [0.027*sx, 0.115, 0.1], [0,0,0], { outline: false });                          // the recessed side window
+          for (let i = 0; i < 3; i++) S.add(block(0.006, 0.05, 0.012, 0.1), 'gunDark', t, [0.027*sx, 0.1, 0.17 + i*0.035], [0.5, 0, 0], { outline: false });   // the three slats
+        }
+        S.add(loft([{ y:-0.05, w:0.034, d:0.034 }, { y:0.05, w:0.03, d:0.03 }], ngon(8)), 'gunMetal', t, [0, 0.105, 0.3], [Math.PI/2, 0, 0]);   // the barrel stub
+        S.add(loft([{ y:-0.02, w:0.03, d:0.03 }, { y:0.02, w:0.03, d:0.03 }], ngon(8)), 'gunDark', t, [0, 0.105, -0.04], [Math.PI/2, 0, 0]);   // the rear rod…
+        S.add(loft([{ y:-0.008, w:0.06, d:0.06 }, { y:0.008, w:0.06, d:0.06 }], ngon(10)), 'gunMetal', t, [0, 0.105, -0.07], [Math.PI/2, 0, 0]);   // …and its disc
+        S.add(block(0.052, 0.012, 0.16, 0.2), 'gunDark', t, [0, 0.15, 0.1], [0,0,0], { outline: false });  // the ribbed top plate
+        emitter(t, 0x6ab8ff, 0.38); }
+      g.userData.looks = looks;
+      return { group: g, looks };
     },
   },
 
   disruptor: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.96],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.96],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.06, 0.1, 0.18, 0.3), 'gunDark', g, [0, 0.06, -0.14]);
@@ -96,7 +146,7 @@ export const WEAPON_MODELS = {
   // PULSE CARBINE — a compact shouldered carbine: boxy receiver, short shrouded barrel, a power cell under the grip,
   // folding stock and a reflex sight. Muzzle at z 0.74 (muzzle below).
   carbine: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.76],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.76],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.05, 0.08, 0.26, 0.3), 'gunDark', g, [0, 0.07, -0.2]);                     // stock
@@ -116,12 +166,10 @@ export const WEAPON_MODELS = {
   // DC-15A BLASTER RIFLE — the clone trooper's: a long slim barrel in a vented shroud, a boxy receiver with the power
   // pack slotted in its left side, a scope riding the top, a skeletal stock and a white grip panel. Muzzle at z 0.95.
   dc15: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.97],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.97],
     build(S){
       const g = new THREE.Group();
-      // the stock: a skeletal frame, its butt plate and the struts back to the receiver
-      S.add(block(0.04, 0.13, 0.04, 0.3), 'gunDark', g, [0, 0.05, -0.32]);
-      for (const y of [0.1, 0.0]) S.add(block(0.022, 0.022, 0.24, 0.3), 'gunDark', g, [0, y, -0.2], [y ? 0.06 : -0.1, 0, 0]);
+      // (the stock is each module's own, below: the bare regular rifle, the Auto Barrel's skeletal frame, the Marksman's finned stock)
       // the receiver and the grip
       S.add(loft([{ y:-0.17, w:0.07, d:0.1 }, { y:0.17, w:0.066, d:0.095 }], chamfer(0.35)), 'gunMetal', g, [0, 0.1, 0.08], [Math.PI/2, 0, 0]);
       S.add(block(0.072, 0.03, 0.3, 0.3), 'gunDark', g, [0, 0.145, 0.08]);                     // its top rail
@@ -141,12 +189,20 @@ export const WEAPON_MODELS = {
       const lit = (w, h, d, col, pos, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: col })); m.position.set(...pos); par.add(m); return m; };
       const mods = { burst: new THREE.Group(), auto: new THREE.Group(), marksman: new THREE.Group() };
       for (const k in mods){ mods[k].visible = k === 'burst'; g.add(mods[k]); }
+      // the skeletal stock, the Auto Barrel's: a frame, its butt plate and the struts back to the receiver
+      { const a = mods.auto;
+        S.add(block(0.04, 0.13, 0.04, 0.3), 'gunDark', a, [0, 0.05, -0.32]);
+        for (const y of [0.1, 0.0]) S.add(block(0.022, 0.022, 0.24, 0.3), 'gunDark', a, [0, y, -0.2], [y ? 0.06 : -0.1, 0, 0]); }
       // BURST (stock): the short scope on the top rail, offset left, with its lens
       { const b = mods.burst;
         S.add(loft([{ y:-0.09, w:0.04, d:0.04 }, { y:0.07, w:0.04, d:0.04 }, { y:0.09, w:0.05, d:0.05 }], ngon(8)), 'gunDark', b, [-0.02, 0.19, 0.12], [Math.PI/2, 0, 0]);
         for (const z of [0.07, 0.17]) S.add(block(0.02, 0.03, 0.02, 0.2), 'gunDark', b, [-0.012, 0.165, z], [0, 0, 0], { outline: false });
         const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.01, 8), new THREE.MeshBasicMaterial({ color: 0x66ddff }));
-        lens.rotation.x = Math.PI/2; lens.position.set(-0.02, 0.19, 0.216); b.add(lens); }
+        lens.rotation.x = Math.PI/2; lens.position.set(-0.02, 0.19, 0.216); b.add(lens);
+        // the regular DC-15 has no stock: a short butt block and the carry sling hung under it
+        S.add(block(0.04, 0.09, 0.1, 0.3), 'gunDark', b, [0, 0.07, -0.2]);
+        S.add(block(0.008, 0.012, 0.52, 0.2), 'leather', b, [0.034, 0.03, 0.04], [0.03, 0, 0], { outline: false });
+        S.add(block(0.034, 0.012, 0.01, 0.2), 'leather', b, [0.02, 0.03, -0.2], [0,0,0], { outline: false }); }
       // AUTO BARREL: a fat finned heat sink over the front of the barrel, a drum cell slung under the receiver (its
       // charge ring lit), a foregrip, and an open reflex sight in place of the scope
       { const a = mods.auto;
@@ -159,19 +215,22 @@ export const WEAPON_MODELS = {
         S.add(block(0.05, 0.016, 0.06, 0.2), 'gunDark', a, [0, 0.165, 0.1]);   // the reflex sight: its base…
         S.add(block(0.05, 0.05, 0.008, 0.2), 'gunDark', a, [0, 0.19, 0.12], [0, 0, 0], { outline: false });   // …its frame
         lit(0.03, 0.03, 0.004, 0xffb84a, [0, 0.19, 0.124], a); }
-      // MARKSMAN SCOPE: a long scope on high mounts with a lit front lens, a barrel extension to a muzzle brake, a cheek
-      // rest on the stock and a folded bipod
+      // MARKSMAN SCOPE (the DC-15's sniper configuration): a long barrel to a boxy muzzle brake, a scope hung UNDER
+      // the barrel with a lit lens, a short open sight on top, and a finned stock with a cheek rest
       { const m = mods.marksman;
-        S.add(loft([{ y:-0.2, w:0.06, d:0.06 }, { y:-0.15, w:0.05, d:0.05 }, { y:0.12, w:0.05, d:0.05 }, { y:0.2, w:0.07, d:0.07 }], ngon(10)), 'gunDark', m, [-0.01, 0.215, 0.1], [Math.PI/2, 0, 0]);
-        for (const z of [0.0, 0.2]) S.add(block(0.026, 0.06, 0.03, 0.2), 'gunMetal', m, [-0.006, 0.172, z], [0, 0, 0], { outline: false });
-        S.add(loft([{ y:-0.02, w:0.03, d:0.03 }, { y:0.02, w:0.03, d:0.03 }], ngon(8)), 'gunMetal', m, [0.03, 0.215, 0.08], [0, 0, Math.PI/2]);   // the turret
-        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 10), new THREE.MeshBasicMaterial({ color: 0x9fe8ff }));
-        lens.rotation.x = Math.PI/2; lens.position.set(-0.01, 0.215, 0.302); m.add(lens);
+        S.add(block(0.03, 0.04, 0.05, 0.2), 'gunDark', m, [-0.01, 0.185, 0.1]);   // the top sight
+        S.add(block(0.012, 0.03, 0.02, 0.2), 'gunMetal', m, [-0.01, 0.21, 0.1], [0,0,0], { outline: false });
+        S.add(loft([{ y:-0.1, w:0.056, d:0.056 }, { y:0.1, w:0.056, d:0.056 }], ngon(10)), 'gunDark', m, [0, 0.03, 0.55], [Math.PI/2, 0, 0]);   // the scope tube under the barrel
+        S.add(loft([{ y:-0.02, w:0.07, d:0.07 }, { y:0.02, w:0.07, d:0.07 }], ngon(10)), 'gunMetal', m, [0, 0.03, 0.66], [Math.PI/2, 0, 0]);    // its objective bell
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.01, 10), new THREE.MeshBasicMaterial({ color: 0x9fe8ff }));
+        lens.rotation.x = Math.PI/2; lens.position.set(0, 0.03, 0.685); m.add(lens);
+        S.add(block(0.03, 0.05, 0.03, 0.2), 'gunMetal', m, [0, 0.07, 0.5], [0,0,0], { outline: false });   // its mount
         S.add(loft([{ y:-0.1, w:0.026, d:0.026 }, { y:0.1, w:0.024, d:0.024 }], ngon(8)), 'gunMetal', m, [0, 0.11, 1.05], [Math.PI/2, 0, 0]);   // the barrel extension
-        S.add(block(0.06, 0.04, 0.07, 0.3), 'gunDark', m, [0, 0.11, 1.17]);   // the muzzle brake…
+        S.add(block(0.06, 0.04, 0.07, 0.3), 'gunDark', m, [0, 0.11, 1.17]);   // the boxy muzzle brake…
         for (const sx of [-1, 1]) S.add(block(0.006, 0.026, 0.05, 0.1), 'gunMetal', m, [0.031 * sx, 0.11, 1.17], [0, 0, 0], { outline: false });   // …its ports
-        S.add(block(0.045, 0.05, 0.14, 0.3), 'gunMetal', m, [0, 0.12, -0.22]);   // the cheek rest
-        for (const sx of [-1, 1]) S.add(block(0.012, 0.012, 0.3, 0.2), 'gunMetal', m, [0.022 * sx, 0.078, 0.6], [0, 0, 0], { outline: false });   // the folded bipod, under the shroud
+        S.add(block(0.036, 0.1, 0.22, 0.3), 'gunDark', m, [0, 0.09, -0.27]);   // the stock body
+        S.add(block(0.045, 0.05, 0.14, 0.3), 'gunMetal', m, [0, 0.15, -0.24]);   // the cheek rest
+        S.add(block(0.012, 0.15, 0.13, 0.3), 'gunMetal', m, [0, 0.18, -0.4], [-0.45, 0, 0]);   // the stock's rear fin
       }
       return { group: g, mods };
     },
@@ -180,7 +239,7 @@ export const WEAPON_MODELS = {
   // HEAVY REPEATER — a squat, heavy gun: a fat receiver with heat-sink fins, a drum cell slung underneath, a carry
   // handle, and a three-barrel cluster that SPINS with the spin-up (the `spinner` hook, turned in anim). Muzzle at z 0.86.
   repeater: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.1, 0.88],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.1, 0.88],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.09, 0.14, 0.42, 0.3), 'gunMetal', g, [0, 0.1, 0.1]);                     // receiver
@@ -204,7 +263,7 @@ export const WEAPON_MODELS = {
   },
 
   darksaber: {
-    hold: 'saber-1h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [0.25, 0, -0.4] },
+    hold: 'saber-1h', socket: 'handR', grip: { pos: FIST, rot: [Math.PI + HILT_TURN[0], 0, 0] },   // (its blade runs up +y: the hilt turned end for end)
     build(S){
       const g = new THREE.Group();
       S.add(loft([{ y:-0.14, w:0.07, d:0.07 }, { y:0.12, w:0.082, d:0.082 }, { y:0.14, w:0.07, d:0.07 }], ngon(8, Math.PI/8)), S.mat('gunDark', { c: 0x0c0d11 }), g);
@@ -269,10 +328,11 @@ function mountOffSaber(R, S, player, hilt){
   w.light.parent.remove(w.light);
   w.blade.material = player.blade.blade.material;
   w.glow.material = player.blade.glow.material;
-  w.group.position.set(0, GRIP_Y, 0);
-  w.group.rotation.set(0.25, 0, 0.4);
+  w.group.position.set(...fistAt(-1));
+  w.group.rotation.set(...HILT_TURN);
   w.group.userData.weapon = { id: 'saberOff', hold: 'saber-1h' };
   w.group.userData.restQ = w.group.quaternion.clone();
+  w.group.userData.restP = w.group.position.clone();
   w.group.visible = false;
   R.sockets.handL.add(w.group);
   player.offSaber = { node: w.group, root: w.bladeRoot, blade: w.blade, glow: w.glow };
@@ -304,7 +364,7 @@ export function syncOffSaber(hero, allowed = true){
   }
   if (O.node.parent !== hero.rig?.sockets?.handL && hero.rig?.sockets?.handL){   // (back from the belt: into the off hand)
     const from = O.node.parent, p = O.node.position.clone(), q = O.node.quaternion.clone();
-    hero.rig.sockets.handL.add(O.node); O.node.position.set(0, GRIP_Y, 0); O.node.quaternion.copy(O.node.userData.restQ);
+    hero.rig.sockets.handL.add(O.node); O.node.position.set(...fistAt(-1)); O.node.quaternion.copy(O.node.userData.restQ);
     if (from && (hero.reach || hero._reachHold)) startHandoff(O.node, from, p, q);   // (the off hand took it off the belt with the reach: anim/handoff.js)
   }
   if (!O.node.visible) return;
@@ -330,9 +390,11 @@ export function mountWeapon(R, S, id, socket, opts){
   const def = WEAPON_MODELS[id];
   const w = def.build(S, opts);
   w.group.position.set(...def.grip.pos);
+  if ((socket || def.socket) === 'handL') w.group.position.x *= -1;   // (the left fist: FIST mirrored)
   w.group.rotation.set(...def.grip.rot);
   w.group.userData.weapon = { id, hold: def.hold };
   w.group.userData.restQ = w.group.quaternion.clone();   // the mount grip, for poses that hand the weapon back
+  w.group.userData.restP = w.group.position.clone();   // (and where the fist holds it: FIST, mirrored in the left hand)
   R.sockets[socket || def.socket].add(w.group);
   return w;
 }
@@ -372,6 +434,7 @@ function mountLongGuns(R, S, player){
   mount.position.set(...def.grip.pos); mount.rotation.set(...def.grip.rot);
   mount.userData.weapon = { id: 'long', hold: 'rifle-2h' };
   mount.userData.restQ = mount.quaternion.clone();
+  mount.userData.restP = mount.position.clone();
   R.sockets[def.socket].add(mount);
   player.longGuns = {};
   for (const id of LONG_GUNS){
@@ -401,6 +464,16 @@ export function setRifleMod(player, mod){
   if (w.group.userData.mod === mod) return;
   for (const k in w.mods) w.mods[k].visible = k === mod;
   w.group.userData.mod = mod; w.group.userData.muzzle = DC15_MUZZLE[mod];
+}
+// which sidearm look shows on both pistol mounts: the Mando's blaster, his dual blasters, the trooper's DC-17
+export const PISTOL_LOOK = { single: 'blaster', dual: 'duals', pistols: 'dc17' };
+export function setPistolLook(player, weapon){
+  const look = PISTOL_LOOK[weapon]; if (!look || !player.pistols) return;
+  for (const h of [player.pistols.L, player.pistols.R]){
+    const L = h.userData.looks; if (!L || h.userData.look === look) continue;
+    for (const k in L) L[k].visible = k === look;
+    h.userData.look = look;
+  }
 }
 // the drawn long gun's muzzle point in the mount's space
 export const longMuzzle = (player) => (player.longGuns && player.longGuns[player.rifleMesh.userData.long] || {}).group?.userData.muzzle || [0, 0.11, 0.96];

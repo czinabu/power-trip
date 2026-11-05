@@ -18,14 +18,18 @@ const ROUND = ngon(10, Math.PI / 10);
 const GRIP_LO = -0.17, GRIP_HI = 0.08, EMIT = 0.17;
 // the emitter keeps its height (the blade leaves at EMIT) and widens; the pommel widens and hangs longer below the hand
 const EMIT_SCALE = [1.3, 1, 1.3], POMMEL_SCALE = [1.3, 1.5, 1.3];
+// the builders below draw the grip to GRIP_LO; in the hand it is stretched on down to GRIP_END, so more hilt shows below
+// the fist (where the gameplay camera sees it) without moving the blade, the hands or the staff (weapons.js STAFF)
+const GRIP_END = -0.25, STRETCH = (GRIP_HI - GRIP_END) / (GRIP_HI - GRIP_LO);
 // each body's metal: the emitter and the pommel are made in it too, so a part always matches the hilt it is fitted to
+// band: the bright ring at each end of the grip, in the hilt's own colour, so the finish reads from across a room
 const FINISH = {
-  apprentice: { metal: 0x9aa4b0, dark: 0x16191e },
-  guardian: { metal: 0x2b2e35, dark: 0xb9c2cc, m: 0.7 },
-  sentinel: { metal: 0x1d2026, dark: 0xc9a24a, m: 0.6 },
-  duelist: { metal: 0xa8774a, dark: 0x2a1c12 },
-  temple: { metal: 0xe2dac6, dark: 0xc9a24a, m: 0.25, r: 0.45 },
-  exile: { metal: 0x5b4733, dark: 0x1c1712 },
+  apprentice: { metal: 0x9aa4b0, dark: 0x16191e, band: 0xd8e2ec },
+  guardian: { metal: 0x2b2e35, dark: 0xb9c2cc, m: 0.7, band: 0xeef4fa },
+  sentinel: { metal: 0x1d2026, dark: 0xc9a24a, m: 0.6, band: 0xffc84a },
+  duelist: { metal: 0xa8774a, dark: 0x2a1c12, band: 0xff9a5a },
+  temple: { metal: 0xe2dac6, dark: 0xc9a24a, m: 0.25, r: 0.45, band: 0xffd860 },
+  exile: { metal: 0x5b4733, dark: 0x1c1712, band: 0xc8925a },
 };
 const ring = (y0, y1, w) => loft([{ y: y0, w, d: w }, { y: y1, w, d: w }], ROUND);
 
@@ -139,22 +143,33 @@ export function buildHilt(S, root, parts = {}){
   const K = {
     metal: S.mat('hilt', { c: F.metal, ...(F.m != null ? { m: F.m } : {}), ...(F.r != null ? { r: F.r } : {}) }),
     dark: S.mat('hilt', { c: F.dark, m: 0.6 }),
+    band: S.mat('hilt', { c: F.band, e: F.band, ei: 0.45, m: 0.3, r: 0.3 }),
     cloth: S.mat('leather', { c: 0x6b5a44 }),
     to: null,
     add(geo, mat, p = [0, 0, 0], r = [0, 0, 0], outline = true){ return S.add(geo, mat, K.to, p, r, outline ? {} : { outline: false }); },
   };
   // each piece is a group the bench moves; the emitter and the pommel build into an inner group scaled up past the hand,
   // so at the gameplay camera (a saber a few dozen pixels long) the head and the end read as shapes and not specks
-  const piece = (scale, anchor = 0) => {
+  const piece = (scale, anchor = 0, shift = 0) => {
     const g = new THREE.Group(); root.add(g); K.to = g;
-    if (scale){ const s = new THREE.Group(); s.scale.set(...scale); s.position.y = anchor * (1 - scale[1]); g.add(s); K.to = s; }
+    if (scale){ const s = new THREE.Group(); s.scale.set(...scale); s.position.y = anchor * (1 - scale[1]) + shift; g.add(s); K.to = s; }
     return g;
   };
-  const out = { body: piece() };
+  const out = { body: piece([1, STRETCH, 1], GRIP_HI) };
+  const grip = K.to;
   BODIES[body](K);
+  // the bright bands: one where the grip meets the emitter, one at its foot just above the pommel (unstretched, so they stay thin)
+  K.to = out.body;
+  K.add(ring(GRIP_HI - 0.012, GRIP_HI, 0.084), K.band, [0, 0, 0], [0, 0, 0], false);
+  K.add(ring(GRIP_END, GRIP_END + 0.014, 0.084), K.band, [0, 0, 0], [0, 0, 0], false);
   out.emitter = piece(EMIT_SCALE, GRIP_HI);
   (EMITTERS[parts.emitter] || EMITTERS.plain)(K);
-  out.pommel = piece(POMMEL_SCALE, GRIP_LO);
+  out.pommel = piece(POMMEL_SCALE, GRIP_LO, GRIP_END - GRIP_LO);
   (POMMELS[parts.pommel] || POMMELS.cap)(K);
+  // while the saber staff is out its own long hilt runs on below the fist (weapons.js), so the grip draws back to its old end
+  out.staffFit = (on) => {
+    grip.scale.y = on ? 1 : STRETCH; grip.position.y = GRIP_HI * (1 - grip.scale.y);
+    out.body.children[out.body.children.length - 1].position.y = on ? GRIP_LO - GRIP_END : 0;
+  };
   return out;
 }

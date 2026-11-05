@@ -253,6 +253,7 @@ export function setSaberStaff(hero, on, remember = true){
   if (!sp) return;
   sp.hilt.visible = sp.blade2.visible = sp.glow2.visible = on;
   if (root.userData.pommel) root.userData.pommel.visible = !on;   // (the staff's long hilt runs on where the pommel was)
+  const P = root.userData.pieces; if (P && P.staffFit) P.staffFit(on);
   root.userData.staff = on;
 }
 export const saberIsStaff = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.staff);

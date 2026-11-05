@@ -249,7 +249,7 @@ export function updateHud(){
       (o.frac != null ? '<span class="wi-bar"><i style="width:' + (clamp(o.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : ''));
   } else if (G.hub){
     const wing = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim();
-    setHtml($('waveinfo'), '<span class="wi-l">THE HIDDEN TEMPLE · TYTHON</span><span class="wi-w">' + wing + '</span><span class="wi-h">H AT A STATION · WALK THROUGH A DOOR TO ANOTHER WING</span>');
+    setHtml($('waveinfo'), '<span class="wi-l">THE HIDDEN TEMPLE · TYTHON</span><span class="wi-w">' + wing + '</span><span class="wi-h">F AT A STATION · WALK THROUGH A DOOR TO ANOTHER WING</span>');
   } else if (G.sandbox){
     const room = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || (isGunner() ? 'THE THRONE ROOM' : 'THE TRAINING ROOM')).trim();   // the room, or the battle map picked
     setHtml($('waveinfo'), '<span class="wi-l">SANDBOX · ' + room + '</span><span class="wi-w">PRESS B FOR FOES &amp; POWERS</span>' + hostiles +

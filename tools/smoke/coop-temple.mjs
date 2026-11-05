@@ -69,7 +69,7 @@ try {
   await host.evaluate(() => { const { G, player } = GAME; player.group.position.set(0, 0.6, 7); player.vel.set(0, 0, 0); G.yaw = player.faceYaw = Math.PI; });
   const gt = await host.evaluate(() => GAME.G.gt);
   await host.waitForFunction((gt) => GAME.G.gt > gt + 0.15 && document.getElementById('hubp').classList.contains('on'), gt, poll);
-  await host.keyboard.press('h');
+  await host.keyboard.press('f');
   await host.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, poll);
   await host.locator('#hubpanel .hb-o', { hasText: 'SURVIVAL' }).first().click();
   for (let i = 0; i < 10 && !(await host.evaluate(() => GAME.G.mode === 'play' && !GAME.G.hub)); i++){

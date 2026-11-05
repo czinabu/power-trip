@@ -12,13 +12,13 @@ export const HUB = {
   doorReach: 1.8,  // ...within this of the edge
 };
 
-/* each wing: its level (what buildArena reads), its doors and its stations. A station's `act` is what tapping H at it
+/* each wing: its level (what buildArena reads), its doors and its stations. A station's `act` is what tapping F at it
    does (game/hub.js STATION_ACTS): its panel lists `opts`. x, z in metres from the wing's middle */
 export const HUB_WINGS = {
   hall: {
     name: 'THE GRAND HALL', short: 'GRAND HALL',
     blurb: 'The heart of the temple: every wing opens off it, and every journey starts here.',
-    level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap H.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
+    level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap F.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
     doors: { n: 'council', e: 'training', w: 'archives', s: 'forge' },
     spawn: [0, 30, Math.PI],
     stations: [

@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN TEMPLE ON TYTHON, the hub: walk its wings (data/hub.js), tap H at a station to open it (ui/hub-ui.js), walk
+// THE HIDDEN TEMPLE ON TYTHON, the hub: walk its wings (data/hub.js), tap F at a station to open it (ui/hub-ui.js), walk
 // through a great door and the wing beyond loads in its place. No foes, no waves, no run: it is where every run starts
 // and where it comes back to.
 //
@@ -22,7 +22,7 @@ import { coopRun } from '../net/run.js';
 import { onRunChange } from '../net/foes.js';
 import { missionTitle } from './mission.js';
 import { S } from '../audio/sfx.js';
-import { setHubTap } from '../allies/wheel.js';
+import { setHubInteract, INTERACT_KEY } from './interact.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -85,13 +85,13 @@ function pickNear(){
 
 let openStation = null;
 export function setStationOpener(fn){ openStation = fn; }   // ui/hub-ui.js
-// H was tapped (allies/wheel.js): open the station you're at. True when it did
+// F was tapped (game/interact.js): open the station you're at. True when it did
 export function hubTap(){
   if (!G.hub || !near || !openStation) return false;
   S.uiHover(); openStation(near); return true;
 }
 export const hubStationNear = () => near;
-setHubTap(hubTap);
+setHubInteract(hubTap, () => near);
 
 /* once a frame (main.js) */
 export function updateHub(dt){
@@ -102,7 +102,7 @@ export function updateHub(dt){
   const key = near ? near.id + (pad.active ? ':pad' : '') : '';
   if (el && key !== shownKey){
     shownKey = key;
-    if (near) el.innerHTML = '<kbd>' + (pad.active ? padKeys('H') : 'H') + '</kbd><span>' + near.name + '</span>';
+    if (near) el.innerHTML = '<kbd>' + (pad.active ? padKeys(INTERACT_KEY) : INTERACT_KEY) + '</kbd><span>' + near.name + '</span>';
     el.classList.toggle('on', !!near);
   }
   if (moving || G.paused || G.skillSelect || performance.now() - arrivedAt < 800) return;

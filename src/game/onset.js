@@ -2,7 +2,7 @@
 // THE CAST STAYS ON SET: the story's voice in person (Master Vael, the Armorer, the Captain: data/cast.js `stays`) doesn't
 // vanish when a chapter's opening hands back to play. They hang back a few steps behind the hero, out of the fight's way,
 // keep breathing and turning to watch you, and talk with their hands while their line is on the comms strip. Walk up to
-// one in a lull and tap H for a line (game/talk.js; the words are data/talk.js). The calm after a chapter's last fight
+// one in a lull and tap F for a line (game/talk.js; the words are data/talk.js). The calm after a chapter's last fight
 // (game/aftermath.js) sends you back to them.
 //
 // They belong to the chapter: a new chapter, the main menu or a story that isn't on its chapters takes them off the

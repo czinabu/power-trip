@@ -40,13 +40,13 @@ for (const hero of HEROES){
   // fast travel to a wing (none when already there: a run comes back to the wing it left from)
   const travel = async (w) => { if (await page.evaluate((w) => GAME.G.hubWing === w, w)) return inHub(w); await page.evaluate((w) => GAME.hub.goWing(w), w); return inHub(w); };
   const panelUp = () => page.evaluate(() => document.getElementById('hubpanel').classList.contains('open'));
-  // stand at a station and tap H: its panel opens, and the option named `label` is clicked
+  // stand at a station and tap F: its panel opens, and the option named `label` is clicked
   const station = async (x, z, yaw, label) => {
     // (the game's own frames place the hero and raise the prompt: a slow software renderer takes a while over them)
     await stand(x, z, yaw);
     const gt = await page.evaluate(() => GAME.G.gt);
     await page.waitForFunction((gt) => GAME.G.gt > gt + 0.15 && document.getElementById('hubp').classList.contains('on'), gt, { timeout: 20000 }).catch(() => {});
-    await page.keyboard.press('h');
+    await page.keyboard.press('f');
     await page.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
     if (!(await panelUp())){ console.log('  (no panel:', await page.evaluate(() => JSON.stringify({ wing: GAME.G.hubWing, p: GAME.player.group.position, yaw: GAME.G.yaw, prompt: document.getElementById('hubp').textContent, paused: GAME.G.paused, sk: GAME.G.skillSelect, mode: GAME.G.mode, ov: document.getElementById('overlay').style.display, ovc: document.getElementById('overlay').className, card: GAME.G.cardUp, cut: GAME.G.cutscene, hub: GAME.G.hub, gt: GAME.G.gt, loading: !document.querySelector('#boot, #loading')?.hidden })) + ')'); return false; }
     const o = page.locator('#hubpanel .hb-o', { hasText: label }).first();

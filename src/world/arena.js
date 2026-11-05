@@ -54,6 +54,7 @@ import { buildCanyonArena } from './arenas/canyon.js';
 import { buildRelayArena } from './arenas/relay.js';
 import { buildTythonArena } from './arenas/tython.js';
 import { buildCloneCitadel } from './arenas/clone-citadel.js';
+import { buildCovertHubArena } from './arenas/covert-hub.js';
 import { resetDoors } from './doors.js';
 import { buildNav } from '../enemies/nav.js';
 import { clearScorch } from '../fx/scorch.js';
@@ -209,6 +210,7 @@ export function buildArena(L){
   else if (L.layout === 'relay'){ buildRelayArena(LP); }
   else if (/^ty[A-Z]/.test(L.layout)){ buildTythonArena(LP); }   // the hidden temple on Tython, the Jedi's hub (data/hub.js)
   else if (/^km[A-Z]/.test(L.layout)){ buildCloneCitadel(LP); }   // the clone citadel on Kamino, the trooper's hub
+  else if (/^mf[A-Z]/.test(L.layout)){ buildCovertHubArena(LP); }   // the hidden covert, the Mando's hub (data/hub-covert.js)
   else {
   // pick a spot at least `gap` clear of every other obstacle so cover stays SPREAD OUT — clustered obstacles
   // form walls that trap the enemy AI. Returns null if no open spot is found (so we just place fewer).

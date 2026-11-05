@@ -65,6 +65,19 @@ function options(s){
         B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
       ];
     }
+    // the covert's hangar (data/hub-covert.js): the ship takes you out on the hunt, the bounty board deals a job
+    case 'ship': case 'bounties': {
+      if (guest()) return options({ act: 'council' });
+      if (s.act === 'bounties') return [
+        B('TAKE A BOUNTY', 'A random job off the board, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
+        B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
+      ];
+      return [
+        B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        B('ARCADE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
+        B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
+      ];
+    }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
     case 'proving': return [B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando')];

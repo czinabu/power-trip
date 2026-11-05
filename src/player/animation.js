@@ -34,7 +34,8 @@ import { saberPose, guardPose, swingPose, deflectPose, applySaberPose, releaseSa
 import { advanceGait, gaitLegs, gaitHipOffset, releaseGait } from './anim/gait.js';
 import { MOCAP_ON, MOCAP_LAND_T, mocapLand, mocapAirLegs, airPhase, mocapCut } from './anim/mocap.js';
 import { footingLegs, releaseFooting, restLocal } from './anim/footing.js';
-import { easePose, atEase, relaxed, flourishReset, flourishApply } from './anim/ease.js';
+import { easePose, easeAmount, atEase, relaxed, flourishReset, flourishApply } from './anim/ease.js';
+import { stepHandoffs, handoffReset } from './anim/handoff.js';
 import { stepCloth } from './model/cloth.js';
 import { blink, gripHands, express } from './model/life.js';
 import { jediAirLegs, jediAgilityArms, jediAgilityPost, mandoAgilityPost, gunnerAgilityLegs, landingStyle, slamPitch, headToReticle } from './anim/agility.js';
@@ -51,7 +52,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   const POSE = footwork();
 
   const vis = player.vis, R = player.rig;
-  flourishReset();   // the hilt back to its grip before the pose aims it (anim/ease.js: the ignite / retract spin goes on after)
+  handoffReset(); flourishReset();   // the hilt back to its grip before the pose aims it (anim/ease.js: the ignite / retract spin goes on after)
   mocapUpper(R, null);   // take last frame's captured chest twist off, so every pose below works from its own values
   poseBody(dt, dr, vis, planted, POSE, moving);
   const { ph, inten, gait } = animateLegsAndTorso(dt, dr, R, planted, POSE);
@@ -63,6 +64,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   mocapUpper(R, player._gait);
   easePose(dt, vis, R, { ph, inten, moving });
   flourishApply(dt);   // the hilt spinning in the fingers as the blade lights or goes out (5)   // (and in play while the blade is put out: the stride swings the arms)   // in a cutscene every hero stands up straight, arms at their sides (anim/ease.js)
+  stepHandoffs(dt);   // a hilt changing hands (the belt and back) slides into its new hold (anim/handoff.js)
   secondaryMotion(dt, vis, R);
   stepCloth(player, dt, player.group.position.y + 0.02);   // the robe panels and cape hem (model/cloth.js), after the pose
   blink(player, dt); gripHands(player, dt, handGrip());   // the eyes blink, the fingers close on what they hold (model/life.js)
@@ -752,8 +754,20 @@ function heldBlade(){
   if (player.weapon === 'darksaber' && player.darksaberMesh) return { node: player.darksaberMesh, root: null };
   return null;
 }
+/* the stance the feet and body hold right now: the form's own, or stood at ease (a cutscene, the blade put out with 5),
+   or on the way between the two, blended by the same amount the arms are (anim/ease.js), so lighting the blade
+   settles the body down into the guard with the arm instead of dropping it there in one go */
+const FW_KEYS = ['crouch', 'splay', 'lead', 'lean', 'width', 'roll', 'shift', 'sit'], _fw = {};
 export function footwork(){
-  if (atEase() || relaxed()) return FOOTWORK.atEase;   // (the blade put out (5): stood at ease between moves too)   // a cutscene: stood up straight until the fight starts (anim/ease.js)
+  const F = formFootwork(), e = easeAmount(), s = e * e * (3 - 2 * e);
+  if (s <= 0.001 && !(atEase() || relaxed())) return F;
+  if (s >= 0.999) return FOOTWORK.atEase;
+  const A = FOOTWORK.atEase;
+  for (const k of FW_KEYS) _fw[k] = (F[k] || 0) + ((A[k] || 0) - (F[k] || 0)) * s;
+  _fw.width = (F.width || 1) + ((A.width || 1) - (F.width || 1)) * s;
+  return _fw;
+}
+function formFootwork(){
   if (isGunner() && player.weapon === 'fists') return FOOTWORK.brawler;
   if (isGunner() && player.weapon === 'darksaber') return FOOTWORK.darksaber;
   if (!isGunner() && player.holstered) return FOOTWORK.forceReady;   // saber on the belt: the wide, low Force-ready base

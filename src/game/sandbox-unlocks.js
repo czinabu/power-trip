@@ -122,15 +122,15 @@ export const mapOffered = (id) => S().full || S().maps.has(id);
 
 // POWERS: a kit row (data/sandbox.js) names where the campaign hands it out with `from` (an auto-unlock key or a store
 // id; its own id by default), or `tiers` (auto keys, lowest first). A row with no match anywhere stays open.
-function source(id){
-  const hero = isGunner() ? 'mando' : 'jedi';
+function source(id, h){
+  const hero = isGunner(h) ? 'mando' : 'jedi';
   const a = (hero === 'mando' ? MANDO_AUTO : JEDI_AUTO).find(u => u.key === id);
   if (a) return { reached: () => S().autoReached(a) };
   const s = (hero === 'mando' ? MANDO_STORE : JEDI_STORE).find(n => n.id === id);
   if (s) return { reached: () => S().storeReached(s) };
   return null;
 }
-const reached = (id) => { const s = source(id); return !s || s.reached(); };
+const reached = (id, h) => { const s = source(id, h); return !s || s.reached(); };
 // how many of a tiered row's tiers the story has reached (all of them once the campaign is beaten)
 export function kitTier(r){
   if (!r.tiers) return 1;
@@ -154,9 +154,9 @@ export function formOffered(id){
 
 // TRAINING (game/tutorial.js): has the story reached this form, power or piece of gear yet, for the hero picked? A form
 // goes by formOffered; anything else by where the campaign hands it out (an auto-unlock key or a store id)
-export function storyReached(id){
+export function storyReached(id, hero){   // (`hero`: whose kit to look in, the hero in play by default)
   if (FORMS[id]) return formOffered(id);
-  return S().full || reached(id);
+  return S().full || reached(id, hero);
 }
 
 // THE FORCE LEVEL the story has reached (data/force-level.js): the training grounds and the sandbox fight at it

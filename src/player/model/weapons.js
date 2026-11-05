@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { loft, plate, block, ngon, chamfer } from './shapes.js';
 import { glow } from '../../engine/renderer.js';
 import { carriedLight } from '../../fx/lights.js';
+import { startHandoff } from '../anim/handoff.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
 const GRIP_Y = -0.04;   // where the fist closes, below the wrist joint
@@ -296,12 +297,14 @@ export function syncOffSaber(hero, allowed = true){
   const away = !!hero.offAway || !M || (M.scale.x < 0.01 && !hero.mainAway) || (!belted && M.parent !== M.userData.hand && !!M.userData.hand);
   O.node.visible = on && !away;
   if (O.node.visible && belted){
-    if (O.node.parent !== belt){ belt.add(O.node); O.node.position.set(...OFF_BELT.pos); O.node.rotation.set(...OFF_BELT.rot); }
+    if (O.node.parent !== belt){ const from = O.node.parent, p = O.node.position.clone(), q = O.node.quaternion.clone(); belt.add(O.node); O.node.position.set(...OFF_BELT.pos); O.node.rotation.set(...OFF_BELT.rot); if (hero.reach) startHandoff(O.node, from, p, q); }
     O.blade.visible = O.glow.visible = false;
     return;
   }
   if (O.node.parent !== hero.rig?.sockets?.handL && hero.rig?.sockets?.handL){   // (back from the belt: into the off hand)
+    const from = O.node.parent, p = O.node.position.clone(), q = O.node.quaternion.clone();
     hero.rig.sockets.handL.add(O.node); O.node.position.set(0, GRIP_Y, 0); O.node.quaternion.copy(O.node.userData.restQ);
+    if (from && (hero.reach || hero._reachHold)) startHandoff(O.node, from, p, q);   // (the off hand took it off the belt with the reach: anim/handoff.js)
   }
   if (!O.node.visible) return;
   O.blade.visible = B.blade.visible; O.glow.visible = B.glow.visible;

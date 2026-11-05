@@ -178,7 +178,7 @@ const TIPS = {
 
 import { heroName } from '../game/wardrobe.js';
 import { TELLS, tellCss } from '../fx/tells.js';
-import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
+import { formOffered, refreshSandboxScope, storyReached } from '../game/sandbox-unlocks.js';
 import { PAD_GLYPHS, PAD_MENU, padLayout } from '../data/gamepad.js';
 import { PAD_CONTROLS } from '../data/controls-pad.js';
 import { pad, padKey } from '../engine/gamepad.js';
@@ -254,20 +254,30 @@ function wireTip(el){
   document.addEventListener('scroll', () => { if (tip.classList.contains('on')) placeTip(); }, true);
   addEventListener('resize', () => { if (tip.classList.contains('on')) placeTip(); });
 }
+/* the rows for a power or gadget the story hands out (data/store.js ids and auto-unlock keys, by the row's action):
+   hidden until the story has reached it, so the page doesn't name what's still to come. A fork's two halves arrive
+   together, so a row may name the other half. */
+const POWER_ROWS = {
+  'Pull · hold to Grasp': ['pull'], 'Barrier': ['barrier', 'throw'], 'Jump attack': ['jslam', 'mend'], 'Judgement': ['judge', 'repulse'],
+  'Flamethrower': ['flame'], 'Grappling hook': ['grapple', 'mslam'], 'Whistling Birds': ['birds', 'deto'], 'Bacta stim': ['bacta'], 'Jetpack missile': ['jetmissile'],
+  'Spear stab': ['disruptor'], 'Darksaber heavy cut': ['darksaber'], 'Darksaber finisher': ['darksaber'], 'Ignite / retract Darksaber': ['darksaber'], 'Darksaber throw': ['darksaber'],
+};
 export function renderControls(hero){
   const el = document.getElementById('ctl'); if (!el) return;
   wireTip(el); hoverRow = focusRow = null; placeTip();
   const groups = device === 'pad' ? padGroups(hero) : CONTROLS[hero] || CONTROLS.jedi;
   // no spoilers: a row or tip about a form shows once the story has taught it (a row's 5th entry: any of these forms;
   // a tip's `forms`: all of them)
+  // (a power's or gadget's row the same way: POWER_ROWS, once the story has handed it out anywhere)
   refreshSandboxScope();
   const knows = (ids, any) => !ids || (any ? ids.some(formOffered) : ids.every(formOffered));
+  const reached = (action) => !POWER_ROWS[action] || POWER_ROWS[action].some(id => storyReached(id, hero));
   const tips = (TIPS[hero] || TIPS.jedi).filter(t => typeof t === 'string' || knows(t.forms)).map(t => typeof t === 'string' ? t : t.t)
     .map(t => device === 'pad' ? padTip(t, hero) : t);
   let html = '';
   for (const g of groups){
     html += '<div class="cg' + (g.adv ? ' adv' : '') + '"><h4>' + g.title + '</h4>';
-    for (const [keys, action, note, adv, forms] of g.rows) if (knows(forms, true))
+    for (const [keys, action, note, adv, forms] of g.rows) if (knows(forms, true) && reached(action))
       html += '<div class="cr' + (adv ? ' adv' : '') + '" tabindex="0"><div class="ck">' + keycaps(keys) + '</div><div class="ca">' + action + (note ? '<small>' + note + '</small>' : '') + '</div></div>';
     html += '</div>';
   }

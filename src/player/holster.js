@@ -7,7 +7,8 @@ import { G, shared, player, isGunner, isMando, isTrooper } from '../state.js';
 import { sfx, S } from '../audio/sfx.js';
 import { floater } from '../fx/floaters.js';
 import { extendBlade } from '../fx/trail.js';
-import { startFlourish, flourishing } from './anim/ease.js';
+import { startFlourish, flourishing, reachK } from './anim/ease.js';
+import { startHandoff } from './anim/handoff.js';
 import { inCombat } from './mobility.js';
 import { showBanner } from '../ui/banners.js';
 import { weaponUnlocked, MANDO_WEAPONS } from '../data/mando.js';
@@ -16,6 +17,7 @@ import { cancelSwing } from './jedi/combat.js';
 import { switchWeapon } from './mando/weapons.js';
 import { SABER_LIGHT } from './model/weapons.js';
 import { glow } from '../engine/renderer.js';
+import * as THREE from 'three';
 
 /* Where each stowed weapon hangs: a rig socket (model/rig.js) and its position + rotation there. The hilts clip on
    upright at the left hip; the blasters drop barrel-down into the thigh holsters; the rifle rides the pack. */
@@ -32,6 +34,7 @@ function place(mesh, key){
   if (!mesh) return;
   const u = mesh.userData;
   if (!u.hand) u.hand = mesh.parent;   // the hand socket it was mounted on (model/weapons.js mountWeapon)
+  const from = mesh.parent, pos = _hp.copy(mesh.position), quat = _hq.copy(mesh.quaternion);
   if (key){
     const at = STOW[key], sock = player.rig.sockets[at.socket];
     if (mesh.parent !== sock){ sock.add(mesh); mesh.position.set(...at.pos); mesh.rotation.set(...at.rot); }
@@ -41,7 +44,10 @@ function place(mesh, key){
     mesh.rotation.order = 'XYZ';   // (a stowed spot may have set its own)
     if (u.restQ) mesh.quaternion.copy(u.restQ);
   }
+  // the hand taking a hilt off the belt or clipping it on (the reach): it slides between them rather than jumping (anim/handoff.js)
+  if (player.reach && from && mesh.parent !== from) startHandoff(mesh, from, pos, quat);
 }
+const _hp = new THREE.Vector3(), _hq = new THREE.Quaternion();
 
 // is the current hero fighting without the weapon in hand?
 export function holstered(){ return isMando() ? player.weapon === 'fists' : !!player.holstered; }
@@ -77,7 +83,7 @@ export const bladeUnlit = () => !!player.unlit && (isGunner() ? isMando() && pla
    across to the belt and clips it on (player.stowed), and the arms hang free. 5 again reaches down, draws it and lights
    it. The reach is player.reach ({ dir, t }: -1 putting it on, +1 taking it off), posed by anim/ease.js; at its middle
    the hilt changes hands. A fight move doesn't wait for any of it: the hilt is in the hand and lit at once. */
-export const REACH = { dur: 0.36, swap: 0.5 };   // the reach (s) and where through it the hilt is on the belt or back in the hand
+export const REACH = { dur: 0.42, swap: 0.5 };   // the reach (s) and where through it the hilt is on the belt or back in the hand
 function startReach(dir){ player.reach = { dir, t: 0, swapped: false }; }
 
 function setUnlit(on, flourish = true){   // (flourish: the hilt spin; a fight move lighting it skips it, the cut needs the hand)
@@ -90,6 +96,7 @@ function setUnlit(on, flourish = true){   // (flourish: the hilt spin; a fight m
     startFlourish(-1);   // the hilt turned over in the fingers as it goes
     S.retract(bladeKind(), null, true);
   } else {
+    player._reachHold = reachK();   // (the hand rises from wherever the reach had it, not from the thigh: anim/ease.js)
     player.reach = null; player.stowPend = false; player.stowed = false; player.manualDraw = false;   // (a fight move: straight into the hand)
     syncHolster();
     extendBlade(1);   // the blade runs up out of the emitter
@@ -137,11 +144,11 @@ function stepReach(dt){
     if (!bladeUnlit()){ player.reach = null; return; }
     player.stowed = R.dir < 0; syncHolster();
     sfx(R.dir < 0 ? 900 : 700, 0.04, 'square', 0.025, R.dir < 0 ? 600 : 1000);   // the clip snapping shut / letting go
+    // off the belt and in the hand: light it there and then, spin and all, and the arm carries it up from the hip
+    // into the guard in one go (rather than dropping to the thigh first and rising after)
+    if (R.dir > 0){ setUnlit(false); return; }
   }
-  if (k >= 1){
-    player.reach = null;
-    if (R.dir > 0 && bladeUnlit()) setUnlit(false);   // in the hand: light it, spin and all
-  }
+  if (k >= 1) player.reach = null;
 }
 
 /* a fight move with the blade out lights it first (attack, block, a Force power, a kick, being hit): returns true if it

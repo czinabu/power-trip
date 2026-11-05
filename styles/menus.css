@@ -441,60 +441,57 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .cz-actions .btn.primary{flex:1.6}
 .cz-hint{font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .cz-hint kbd{color:var(--ink-soft)}
-/* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — four tabs over one page each ---------- */
+/* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — one page: FOES | YOU, the floor below ---------- */
 #sandbox{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
 #sandbox.open{display:flex}
-.sb-panel{width:min(920px,100%);height:min(640px,100%);display:flex;flex-direction:column;box-sizing:border-box;text-align:left;
+.sb-panel{position:relative;width:min(1240px,100%);max-height:min(800px,100%);display:flex;flex-direction:column;box-sizing:border-box;text-align:left;
   background:linear-gradient(180deg,rgba(40,22,14,.96),rgba(18,10,6,.98));border:1px solid rgba(255,200,140,.28);border-radius:16px;
-  box-shadow:0 30px 80px rgba(0,0,0,.7);padding:20px 24px 20px;animation:rise .25s var(--ease)}
-.sb-panel>.howto-head{flex:none}
+  box-shadow:0 30px 80px rgba(0,0,0,.7);padding:18px 22px 16px;animation:rise .25s var(--ease)}
+.sb-panel>.howto-head{flex:none;margin-bottom:12px}
+.sb-panel>.howto-head .rm-sub kbd{font-size:11px;margin:0 1px}
+.sb-bsimbtn{margin-left:auto}
+#sandbox .sb-bsimbtn{height:34px;box-sizing:border-box;padding:0 16px;font-size:13px;letter-spacing:2px}
+.sb-bsimbtn+.howto-x{margin-left:0}
 .sb-story{flex:none;font:600 12px/1.4 var(--font-ui);letter-spacing:1.2px;color:var(--gold);margin:-4px 0 10px}
-/* the tab strip */
-.sb-tabs{flex:none;display:flex;align-items:stretch;gap:4px;border-bottom:1px solid var(--edge);margin-bottom:14px}
-.sb-tab{pointer-events:auto;cursor:pointer;display:flex;align-items:center;padding:10px 16px 9px;margin-bottom:-1px;white-space:nowrap;
-  font:700 14px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim);border:1px solid transparent;border-radius:var(--r) var(--r) 0 0;
-  transition:color .15s,background .15s}
-.sb-tab:hover{color:var(--ink)}
-.sb-tab.on{color:var(--gold);background:rgba(255,210,74,.08);border-color:var(--edge);border-bottom-color:rgba(30,16,10,1);
-  box-shadow:inset 0 2px 0 var(--gold)}
-.sb-tabx{font-weight:600;color:inherit;opacity:.75;margin-left:.45em}
-.sb-tabkey{display:flex;align-items:center;padding:0 4px;color:var(--ink-faint)}
-.sb-tabkey kbd{font-size:11px}
-/* one page shows at a time; it scrolls on its own only if a window is too small for it */
-.sb-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
-.sb-page{display:none;flex-direction:column;gap:10px;min-width:0}
-.sb-page.on{display:flex}
-.sb-page .sec-label{margin:4px 0 0}
-.sb-page .sec-label:first-child{margin-top:0}
+/* the two columns: they scroll together only if a window is too small for them */
+.sb-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 22px;align-items:start}
+.sb-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sb-col+.sb-col{border-left:1px solid var(--edge);padding-left:22px}
+.sb-colhd{font:700 15px/1 var(--font-ui);letter-spacing:3px;color:var(--gold);display:flex;align-items:center;gap:.45em;padding:2px 0 2px}
+.sb-colx{font-weight:600;color:var(--ink-dim)}
+.sb-sec{display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:var(--r);scroll-margin:8px}
+.sb-sec.flash{animation:sbflash .6s var(--ease)}
+@keyframes sbflash{0%{box-shadow:0 0 0 1px rgba(255,210,74,.65),0 0 0 6px rgba(255,210,74,.12)}100%{box-shadow:0 0 0 1px rgba(255,210,74,0),0 0 0 6px rgba(255,210,74,0)}}
+.sb-sec .sec-label{margin:0}
 .sb-hint{font:500 12px/1 var(--font-body);letter-spacing:.3px;color:var(--ink-faint)}
 .sb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .sb-push{margin-left:auto}
 .sb-count{font:600 14px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-soft)}
 /* every control in the panel is one height: segments, toggles, buttons */
-#sandbox .sb-row .btn{height:36px;box-sizing:border-box;padding:0 18px;font-size:14px;letter-spacing:2px}
-.sb-seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:var(--r-chip);border:1px solid var(--edge);box-sizing:border-box;min-height:36px}
+#sandbox .sb-row .btn,#sandbox .sb-strip .btn:not(.primary){height:34px;box-sizing:border-box;padding:0 16px;font-size:13px;letter-spacing:2px}
+.sb-seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:var(--r-chip);border:1px solid var(--edge);box-sizing:border-box;min-height:34px}
 .sb-seg.wide{align-self:flex-start;max-width:100%}
-.sb-seg span{pointer-events:auto;cursor:pointer;display:flex;align-items:center;white-space:nowrap;font:600 13px/1 var(--font-ui);letter-spacing:1.5px;
-  padding:0 12px;min-height:28px;border-radius:var(--r-chip);color:var(--ink-dim)}
+.sb-seg span{pointer-events:auto;cursor:pointer;display:flex;align-items:center;white-space:nowrap;font:600 12px/1 var(--font-ui);letter-spacing:1.3px;
+  padding:0 10px;min-height:26px;border-radius:var(--r-chip);color:var(--ink-dim)}
 .sb-seg span:hover{color:var(--ink)}
 .sb-seg span.on{background:rgba(255,210,74,.18);color:var(--gold)}
 /* an on / off toggle: dim and OFF, or gold and ON, the same look as a picked chip */
-.setpill.sb-tog{height:36px;box-sizing:border-box;padding:0 14px;background:rgba(255,255,255,.03);backdrop-filter:none;-webkit-backdrop-filter:none}
+.setpill.sb-tog{height:34px;box-sizing:border-box;padding:0 12px;background:rgba(255,255,255,.03);backdrop-filter:none;-webkit-backdrop-filter:none}
 .setpill.sb-tog .setval{color:var(--ink-faint);min-width:28px}
 .setpill.sb-tog.on{border-color:rgba(255,210,74,.7);background:linear-gradient(90deg,rgba(54,42,10,.8),rgba(24,20,8,.7));color:var(--ink)}
 .setpill.sb-tog.on .setval{color:var(--gold)}
-/* the duellists' FORM and RANK rows: a label, then the picks */
+/* the FORM / RANK and LEVEL / MASTERY rows: a label, then the picks */
 .sb-pick{display:flex;align-items:center;gap:10px;min-width:0}
-.sb-pl{flex:none;width:44px;font:700 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint)}
-.sb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.sb-pl{flex:none;width:62px;font:700 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint)}
+.sb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
 .sb-grid.foes{grid-template-columns:repeat(3,1fr)}
 .sb-grid.three{grid-template-columns:repeat(3,1fr)}
-.sb-chip{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:var(--r);min-width:0;
-  border:1px solid var(--edge);background:rgba(255,255,255,.03);font:600 14px/1.1 var(--font-ui);letter-spacing:1.2px;color:var(--ink-soft);
+.sb-chip{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--r);min-width:0;
+  border:1px solid var(--edge);background:rgba(255,255,255,.03);font:600 13px/1.1 var(--font-ui);letter-spacing:1.1px;color:var(--ink-soft);
   transition:border-color .15s,background .15s,color .15s}
 .sb-chip:hover{border-color:var(--edge-mid);color:var(--ink)}
-.sb-chip .k{margin-left:auto;font-size:11px;letter-spacing:1px;color:var(--ink-faint);white-space:nowrap}
+.sb-chip .k{margin-left:auto;font-size:10px;letter-spacing:1px;color:var(--ink-faint);white-space:nowrap}
 .sb-chip.special{border-style:dashed;border-color:rgba(255,90,80,.45);color:#ffb4a8}
 .sb-chip.on{border-color:rgba(255,210,74,.7);background:linear-gradient(90deg,rgba(54,42,10,.8),rgba(24,20,8,.7));color:var(--ink)}
 .sb-chip.on .k{color:var(--gold)}
@@ -503,7 +500,21 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 /* not reached in the story yet (before the campaign is beaten) */
 .sb-chip.locked,.sb-seg span.locked{opacity:.32;cursor:not-allowed;border-style:dashed}
 .sb-chip.locked:hover{border-color:var(--edge);color:var(--ink-soft)}
-.sb-foot{flex:none;display:flex;justify-content:flex-end;margin-top:14px}
+/* the floor strip along the bottom: the arena, the squad, the readout, and back to the fight */
+.sb-strip{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;margin-top:12px;padding-top:12px;border-top:1px solid var(--edge);border-radius:0}
+.sb-grp{display:flex;align-items:center;gap:6px;min-width:0}
+.sb-gl{font:700 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint);margin-right:2px}
+.sb-strip.flash{animation:sbflash .6s var(--ease)}
+#sandbox .sb-done{margin-left:auto;padding:11px 40px 11px 26px;font-size:15px;letter-spacing:2.5px}
+/* the battle simulator: a small box over the panel (its own layer, so the pad's ring stays inside it) */
+.sb-bsim{position:fixed;inset:0;z-index:1;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(1,4,10,.55)}
+.sb-panel.bsim .sb-bsim{display:flex}
+.sb-bsimbox{width:min(640px,100%);max-height:100%;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:18px 20px;
+  background:linear-gradient(180deg,rgba(40,22,14,.98),rgba(18,10,6,.99));border:1px solid rgba(255,200,140,.32);border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);animation:rise .2s var(--ease)}
+.sb-bsimbox .howto-head{margin-bottom:2px}
+.sb-bsimbox .howto-title.sm{font-size:20px;letter-spacing:2.5px}
+.sb-bsimbox .sec-label{margin:4px 0 0}
 .sb-saves{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .sb-save{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:var(--r);border:1px solid var(--edge);background:rgba(8,18,33,.55);min-width:0}
 .sb-save .sv-t{font:600 12px/1.2 var(--font-ui);letter-spacing:1.2px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -512,44 +523,47 @@ body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .sb-save .btn{padding:7px 0;flex:1;font-size:12px;letter-spacing:1.5px}
 .sb-save .btn.off{opacity:.35;cursor:not-allowed}
 #sbreplay.off{opacity:.35;cursor:not-allowed}
-/* narrow (a phone held upright, a small window): short tab names, two columns */
+/* a mid-size window: the foes go to two across so their names fit */
+@media (max-width:1100px){ .sb-grid.foes{grid-template-columns:repeat(2,1fr)} }
+/* narrow (a phone held upright, a small window): one column, and the whole panel scrolls as one page */
 @media (max-width:760px){
-  .sb-tabx{display:none}
   #sandbox{padding:10px}
-  .sb-panel{height:100%;max-height:760px;padding:14px 14px 12px}
-  .sb-panel .howto-head{margin-bottom:8px}
-  .sb-panel .rm-sub,.sb-tabkey{display:none}
-  .sb-foot{display:none}
+  .sb-panel{height:100%;max-height:none;padding:14px 14px 12px;overflow-y:auto;overflow-x:hidden}
+  .sb-panel>.howto-head{margin-bottom:8px;flex-wrap:wrap}
+  .sb-panel .rm-sub{display:none}
+  .sb-body{flex:none;overflow:visible;grid-template-columns:minmax(0,1fr);gap:16px}
+  .sb-col+.sb-col{border-left:0;padding-left:0;border-top:1px solid var(--edge);padding-top:12px}
   .sb-pick{flex-direction:column;align-items:flex-start;gap:4px}
-  .sb-chip{padding:8px 10px}
-  .sb-tab{padding:9px 11px 8px;font-size:13px;letter-spacing:1.5px}
-  .sb-grid.foes{grid-template-columns:repeat(2,1fr)}
-  .sb-saves{grid-template-columns:1fr}
   .sb-push{margin-left:0}
+  .sb-strip{gap:10px 14px}
+  #sandbox .sb-done{display:none}
+  .sb-saves{grid-template-columns:1fr}
+  #sandbox .sb-bsimbtn{padding:0 10px;font-size:12px;letter-spacing:1.5px}
 }
-/* short (a phone on its side): tighter everything, the footer button goes (✕ and B still close it) */
+/* short (a phone on its side): tighter everything, the whole panel scrolls as one page (✕ and B still close it) */
 @media (max-height:560px){
   #sandbox{padding:8px}
-  .sb-panel{padding:10px 14px 10px;border-radius:12px;height:100%}
-  .sb-panel .howto-head{margin-bottom:4px}
+  .sb-panel{padding:10px 14px 10px;border-radius:12px;height:100%;overflow-y:auto;overflow-x:hidden}
+  .sb-panel>.howto-head{margin-bottom:6px}
   .sb-panel .howto-title{font-size:20px}
+  .sb-panel .rm-sub{display:none}
+  .sb-body{flex:none;overflow:visible}
   .sb-story{margin:0 0 4px;font-size:11px}
-  .sb-tabs{margin-bottom:8px}
-  .sb-tab{padding:7px 12px 6px;font-size:12px}
-  .sb-foot{display:none}
-  .sb-page{gap:6px}
-  .sb-page .sec-label{margin-top:2px}
-  .sb-chip{padding:6px 9px;font-size:12px}
+  .sb-col{gap:8px}
+  .sb-sec{gap:6px}
+  .sb-colhd{font-size:13px}
+  .sb-sec .sb-hint{display:none}
+  .sb-pick{flex-direction:column;align-items:flex-start;gap:4px}
+  .sb-chip{padding:6px 8px;font-size:12px}
   .sb-grid{gap:4px}
-  .sb-grid.foes{grid-template-columns:repeat(4,1fr)}
-  .sb-grid.kit{grid-template-columns:repeat(3,1fr)}
-  #sandbox .sb-row .btn,.setpill.sb-tog{height:30px;font-size:12px;padding:0 12px}
+  #sandbox .sb-row .btn,#sandbox .sb-strip .btn:not(.primary),#sandbox .sb-bsimbtn,.setpill.sb-tog{height:30px;font-size:12px;padding:0 10px}
   .sb-seg{min-height:30px}
-  .sb-seg span{min-height:22px;font-size:12px;padding:0 9px}
+  .sb-seg span{min-height:22px;font-size:11px;padding:0 8px}
+  .sb-strip{margin-top:10px;padding-top:10px}
+  #sandbox .sb-done{display:none}
   .sb-save{padding:5px 7px;gap:4px}
   .sb-save .btn{padding:4px 0;font-size:11px}
 }
-@media (max-height:560px) and (max-width:600px){ .sb-grid.foes,.sb-grid.kit{grid-template-columns:repeat(2,1fr)} }
 /* THE BATTLE SETUP (ui/battlesim-ui.js): a bar along the top and the palette along the bottom, over an overhead view */
 #bsplan{position:fixed;inset:0;z-index:29;display:none;user-select:none;-webkit-user-select:none}
 body.bsplan #bsplan{display:block}
@@ -967,6 +981,11 @@ body.pad .kbonly{display:none}
 .fm-tile.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
 .fm-tile.locked{opacity:.4}
 .fm-tile b{display:block;margin-top:4px;font:700 17px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
+/* the name, with the slot it's in (a gold boxed 1-3, as on the HUD's form switcher) beside it */
+.fm-nm{display:flex;align-items:center;gap:8px;min-width:0}
+.fm-nm b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fm-slotb{margin:4px 0 0 auto;flex-shrink:0;min-width:15px;box-sizing:border-box;padding:2px 3px 1px;border:1px solid var(--gold);border-radius:3px;font:700 11px/1 var(--font-ui);text-align:center;color:var(--gold);background:rgba(255,200,80,.1)}
+.fm-mastery .fm-slotb{margin-top:3px}
 .fm-tile .fm-best{margin-top:5px;font-size:11px;letter-spacing:.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fm-detail{position:relative;padding:11px 14px;border:1px solid var(--edge-mid);border-left:3px solid var(--c,var(--edge-mid));border-radius:var(--r);background:var(--panel);overflow-y:auto;min-height:0}
 .fm-detail.empty{color:var(--ink-faint);font-size:13px}
@@ -994,7 +1013,15 @@ body.pad .kbonly{display:none}
 .fm-mastery .fm-tile>*{flex-shrink:0}
 .fm-mastery .fm-tile .fm-no{flex-wrap:nowrap}
 .fm-mastery .fm-tile .fm-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.fm-mastery .fm-tiles.c2 .fm-tile .fm-best{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.fm-mastery .fm-tile .fm-fam{flex-shrink:0}   /* (the title gives way first: the group always shows) */
+.fm-mastery .fm-tile .fm-best{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+/* THE GROUPS: the key to the group icons, in the grid's spare cell */
+.fm-legend{border-left-color:var(--edge-mid);background:transparent;border-style:dashed}
+.fm-legend .fm-no{color:var(--ink-faint)}
+.fm-legend ul{margin:6px 0 0;padding:0;list-style:none;font:600 10px/1 var(--font-ui);letter-spacing:1.2px}
+.fm-legend li{display:flex;align-items:center;gap:6px;margin:0 0 6px;color:var(--ink-faint);white-space:nowrap}
+.fm-legend li .fm-fam{margin-left:0}
+.fm-legend li>span:not(.fm-fam){font-weight:500;letter-spacing:.6px;text-transform:lowercase}
 .fm-mastery .fm-body.few{grid-template-columns:minmax(250px,300px) minmax(0,1fr)}   /* (a few forms: one column of short tiles, the forms still to learn under them, and the detail takes the width) */
 .fm-mastery .fm-body.few .fm-tiles{flex:0 0 auto;grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;align-content:start}
 .fm-mastery .fm-body.few .fm-tile{max-height:none}
@@ -1070,7 +1097,7 @@ body.pad .kbonly{display:none}
 .fm-detail .fm-fin.dim{font-size:12px}
 .fm-sub.fm-mast+.fm-bar.big+.fm-fin,.fm-sub.fm-mast+.fm-fin{margin-top:7px}
 @media (max-width:760px){ #forms .howto-panel.fm-compact.fm-mastery{overflow-y:auto} .fm-mastery .fm-body{flex:0 0 auto} .fm-force{grid-template-columns:1fr} .fm-pws{grid-template-columns:repeat(2,minmax(0,1fr))} .fm-pw-h{align-items:flex-start} .fm-pw-h b{white-space:normal} .fm-pw-l{flex-wrap:wrap;white-space:normal} }
-@media (max-width:760px){ .fm-compact .fm-body,.fm-mastery .fm-body.few{grid-template-columns:1fr;overflow-y:auto} .fm-tiles{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:760px){ .fm-compact .fm-body,.fm-mastery .fm-body.few{grid-template-columns:1fr;overflow-y:auto} .fm-tiles,.fm-mastery .fm-tiles.c3{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:620px){ .fm-slots,.fm-compact.hero-mando .fm-slots{grid-template-columns:1fr} }
 
 /* ---------- the training's LESSON BOARD (game/tutorial.js): the basics, then what the story has opened ---------- */

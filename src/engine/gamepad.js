@@ -205,6 +205,8 @@ function setFocus(el){
   if (el){ el.classList.add('padfocus'); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = el.getBoundingClientRect(); focusAt = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
 }
 function navReset(){ navHold.dir = null; }
+// a panel that moves the ring itself (the sandbox panel's section jumps, ui/sandbox-ui.js)
+document.addEventListener('pad-focus', (e) => { if (pad.active && e.detail) setFocus(e.detail); });
 
 // the fixed layer an element sits in (the menu, a panel over it, the upgrade screen)
 function layerOf(el){
@@ -312,7 +314,7 @@ function menu(btn, down, lx, ly, ry, dt){
     const list = candidates(); ensureFocus(list);
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }
   }
-  if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — the sandbox panel's tabs (ui/sandbox-ui.js)
+  if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — jump between the sandbox panel's sections (ui/sandbox-ui.js)
   if (down(1)){   // B — back: close what's on top, or resume from the pause screen
     if (panelUp() || (ovUp() && ((/\bst-menu\b/.test(overlay.className) && /\b(mpage|step-hero)\b/.test(overlay.className)) || /\bvpicking\b/.test(overlay.className)))){ sendKey('escape', true); sendKey('escape', false); }   // (the Missions page or the hero step: back to the modes; the results screen's CHANGE panel: closed, ui/missions-ui.js and ui/menus.js)
     else if (ovUp() && overlay.classList.contains('st-pause')){ sendKey('tab', true); sendKey('tab', false); }

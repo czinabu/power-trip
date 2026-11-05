@@ -259,7 +259,7 @@ export const TRAINING_WORLDS = {
     ],
     ambient: { kind: 'dust', color: 0xfff0d8, count: 110, size: 0.26 },
     // peacetime above the clouds: only a cruiser passing high over the temple now and then
-    warfront: { flyers: [{ kind: 'dropship', count: 1, alt: [110, 160], speed: [30, 45], every: [18, 30], color: 0xd8d4cc, color2: 0xa83a2a }] },
+    warfront: { flyers: [{ kind: 'dropship', count: 1, alt: [110, 160], speed: [30, 45], every: [18, 30], color: 0xd8d4cc, color2: 0xa83a2a }], epic: false },   // (a calm training terrace: no sky battle)
     beats: { fog: 0xc8b0b0, fill: 1.0, tint: 0xffe0c0 },
     sound: 'temple',
   },

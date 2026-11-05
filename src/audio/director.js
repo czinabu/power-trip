@@ -145,11 +145,25 @@ export function gust(kind){
 
 /* a blast in the battle beyond the walls (world/warfront.js): a low thud that arrives after the flash, by distance,
    quieter and duller the further off it was */
-export function distantBoom(dist){
+export function distantBoom(dist, loud = 1){
   if (!AE.ready) return;
-  const far = Math.min(1, dist / 600), pan = rand(-0.6, 0.6);
-  play({ bus: 'amb', src: 'noise', color: 'brown', at: Math.min(2.5, dist / 343), g: 0.16 * (1 - far * 0.7), a: 0.02, hold: 0.08, d: 1.4,
-         filt: { type: 'lowpass', f: 420 - far * 250, f2: 60 }, drive: 0.4, pan, verb: 0.5, pri: 1 });
+  // loud: a big one (world/skywar.js: a wreck hitting the ground, a fuel dump going up) is heavier and rolls on longer
+  const far = Math.min(1, dist / (600 * Math.sqrt(loud))), pan = rand(-0.6, 0.6), big = Math.max(0, loud - 1);
+  play({ bus: 'amb', src: 'noise', color: 'brown', at: Math.min(2.5, dist / 343), g: Math.min(0.3, 0.16 * (1 - far * 0.7) * (1 + big * 0.35)), a: 0.02, hold: 0.08 + big * 0.12, d: 1.4 + big * 0.9,
+         filt: { type: 'lowpass', f: 420 - far * 250, f2: 60 }, drive: 0.4 + big * 0.1, pan, verb: 0.5 + Math.min(0.3, big * 0.15), pri: 1 });
+}
+
+/* a ship roaring past overhead (world/skywar.js): a swell of engine noise that rises as it closes and falls away,
+   louder and brighter the nearer it came. pan: -1 left .. 1 right, where it passed */
+export function flyby(dist, pan = 0, heavy = false){
+  if (!AE.ready) return;
+  const near = Math.max(0, 1 - dist / 220);
+  if (near <= 0) return;
+  const f = heavy ? 380 : 900;
+  play({ bus: 'amb', src: 'noise', color: 'pink', g: 0.035 + near * 0.07, a: 0.7, hold: 0.25, d: 1.6,
+         filt: { type: 'bandpass', f: f * 1.4, f2: f * 0.6, q: 1.1 }, drive: 0.3, pan: Math.max(-0.8, Math.min(0.8, pan)), verb: 0.35, pri: 0 });
+  if (heavy) play({ bus: 'amb', src: 'noise', color: 'brown', g: 0.05 + near * 0.08, a: 0.6, hold: 0.3, d: 1.8,
+         filt: { type: 'lowpass', f: 260, f2: 120 }, drive: 0.3, pan: pan * 0.5, verb: 0.3, pri: 0 });
 }
 
 /* ---------- the per-frame update ---------- */

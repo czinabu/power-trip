@@ -8,6 +8,7 @@ import { makeEmberSprite } from '../world/textures.js';
 import { updateAtmosphere } from '../world/atmosphere.js';
 import { updateAir } from '../world/air.js';
 import { updateWarfront } from '../world/warfront.js';
+import { updateSkywar } from '../world/skywar.js';
 import { updateGrass } from '../world/grass.js';
 import { sparks } from './ink.js';
 import { gust } from '../audio/director.js';
@@ -92,6 +93,7 @@ export function updateAmbient(dt){
   updateGusts(dt);
   updateAtmosphere(dt);
   updateAir(dt);
+  updateSkywar(dt);   // (before the warfront draws the shared pools this frame)
   updateWarfront(dt);
   updateGrass(dt);
   if (shared.templeBrazier){   // the temple brazier breathes/flickers (bloom turns it into a glow)

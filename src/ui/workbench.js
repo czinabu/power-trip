@@ -14,7 +14,6 @@ import { optionOpen, refreshWorn } from '../game/wardrobe.js';
 import { profileOf, partsOwned, partsTotal, runLive } from '../game/profile.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
-import { svgIcon } from './icons.js';
 import { openBench, setBenchSaber, igniteBench, spinBench } from './bench-stage.js';
 
 const panel = document.getElementById('workbench');
@@ -40,28 +39,29 @@ function tray([id, label, sub], n){
   const tiles = R.options.map(o => {
     const shut = !optionOpen('jedi', R, o), e = o.earn && earnProgress(prof, o.earn);
     const where = shut ? earnText(o.earn, chapterName) + (e && e.need > 1 ? ' · ' + Math.min(e.have, e.need) + '/' + e.need : '') : partLine(id, o);
-    const gem = id === 'saber' ? `<i class="wb-gem" style="--c:${hex(swatchOf(o))}"></i>` : `<i class="wb-ico wb-${id}"></i>`;
-    return `<div class="wb-tile${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${id}" data-opt="${o.id}">${gem}`
-      + `<b>${shut ? svgIcon('lock', 'lk') : ''}${esc(o.name)}</b><span>${esc(where)}</span>${o === cur ? '<em>FITTED</em>' : ''}</div>`;
+    const sw = id === 'saber' ? `<i class="wb-sw" style="--c:${hex(swatchOf(o))}"></i>` : '';
+    return `<div class="wb-part${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${id}" data-opt="${o.id}">`
+      + `<b>${sw}${esc(o.name)}</b><em>${o === cur ? 'FITTED' : shut ? 'LOCKED' : ''}</em><span>${esc(where)}</span></div>`;
   }).join('');
-  return `<section class="wb-tray"><header><i>0${n + 1}</i><h3>${label}</h3><span>${esc(cur.name)}</span></header><p>${sub}</p><div class="wb-tiles">${tiles}</div></section>`;
+  return `<section class="wb-tray"><header><i>${String(n + 1).padStart(2, '0')}</i><h3>${label}</h3></header><p>${sub}</p><div class="wb-parts">${tiles}</div></section>`;
 }
 function readout(){
   const c = crystalOf(fitted('saber').id), [gain, cost] = c.ds.split(' · ');
-  return `<div class="wb-att"><div class="wb-att-h"><i style="--c:${hex(c.col ?? 0x35c8ff)}"></i><b>ATTUNEMENT</b><span>${esc(c.att)}</span></div>`
-    + (c.fx.length ? `<div class="wb-plus">${esc(gain)}</div><div class="wb-minus">${esc(cost)}</div>` : `<div class="wb-even">${esc(c.ds)}</div>`)
-    + `<p>A crystal trades one small edge for another, never more. The grip, emitter and pommel are yours to shape: they change how the saber looks, not how hard it hits.</p></div>`;
+  return `<div class="wb-att"><div class="wb-att-h"><b>ATTUNEMENT</b><span>${esc(c.att)}</span></div>`
+    + (c.fx.length ? `<div class="wb-fx"><i>GAIN</i>${esc(gain)}</div><div class="wb-fx cost"><i>COST</i>${esc(cost)}</div>` : `<div class="wb-fx"><i>—</i>${esc(c.ds)}</div>`)
+    + `<p>A crystal trades one small edge for another. The grip, emitter and pommel change how the saber looks, not how it fights.</p></div>`;
 }
 function render(){
   const live = runLive();
   panel.innerHTML = `<div class="wb-panel">
-    <div class="wb-head"><div><div class="wb-kick">THE JEDI'S OWN BLADE</div><h2>SABER WORKBENCH</h2></div><div class="wb-x" id="wbclose">✕</div></div>
-    <div class="wb-count"><b>${partsOwned()}</b> / ${partsTotal()} PARTS EARNED<span>Duels, the masters' trials, story missions, arcade contracts and survival waves hand out the rest</span></div>
+    <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
+    <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
+    <p class="wb-note">More parts come from duels, the masters' trials, story missions, arcade contracts and survival waves.</p>
     ${live ? '<p class="wb-live">A run is on: the saber is built between runs. Look over it here, and fit new parts from the main menu.</p>' : ''}
     <div class="wb-trays${live ? ' wb-locked' : ''}">${TRAYS.map(tray).join('')}</div>
     ${readout()}
-    <div class="wb-actions"><div class="btn" id="wbtest">${lit ? 'TAKE IT APART' : 'TEST IGNITION'}</div><div class="btn primary" id="wbdone">DONE</div></div>
-    <div class="wb-hint">Drag the bench to turn the hilt · <kbd>Esc</kbd> done</div>
+    <div class="wb-actions"><div class="wb-btn" id="wbtest">${lit ? 'TAKE APART' : 'TEST IGNITION'}</div><div class="wb-btn main" id="wbdone">DONE</div></div>
+    <div class="wb-hint">Drag the bench to turn the hilt. Esc to finish.</div>
   </div>`;
 }
 

@@ -38,18 +38,22 @@ import { updateUpper } from './upper.js';
 import { MOVE } from '../data/movement.js';
 import { foeAllyTarget, hurtAlly } from '../allies/squad.js';
 import { heroFor } from './targets.js';
+import { updateBubble, heldBy, wideAim } from './bubble.js';
+import { BUBBLE } from '../data/duel-bubble.js';
 import { hooks } from '../net/run.js';
 import { CIV, CIV_TUNE, civSteer, civSeparate, civTarget } from '../game/civilians.js';
 
 const NAV_EVERY = 0.1;      // seconds between a foe's route checks (the field itself refreshes in nav.js)
 const STUCK_AFTER = 0.5;    // window (s) over which a chasing foe must make headway, or it sidesteps to work itself free
-const steer = { x: 0, z: 0 }, appr = { x: 0, z: 0 }, civNudge = { x: 0, z: 0 }, CIV_AIM = V3(0, 0, 0);
+const steer = { x: 0, z: 0 }, appr = { x: 0, z: 0 }, civNudge = { x: 0, z: 0 }, CIV_AIM = V3(0, 0, 0), WIDE = V3(0, 0, 0);
 
 // a ranged foe lets fly at its target's TORSO including height — so a foe on a ledge gets shot AT, and bolts arc up to
-// reach you (rather than skimming the ground and hitting you on top by accident). spread jitters a burst's later shots
-function fireAt(e, tgtPos, spread){
+// reach you (rather than skimming the ground and hitting you on top by accident). spread jitters a burst's later shots.
+// wide: a shot at a hero in a duel (enemies/bubble.js), which mostly tears past them
+function fireAt(e, tgtPos, spread, wide){
   const g = e.group, t = e.t;
   const muzzle = V3(g.position.x, g.position.y+1.5, g.position.z);
+  if (wide) tgtPos = wideAim(muzzle, tgtPos, WIDE);
   const aimDir = V3(tgtPos.x, tgtPos.y + 1.4, tgtPos.z).sub(muzzle).normalize();
   if (spread){ aimDir.x += rand(-spread, spread); aimDir.y += rand(-spread, spread) * 0.5; aimDir.z += rand(-spread, spread); aimDir.normalize(); }
   e.kick = 1;   // the shoulders take the recoil (enemies/upper.js)
@@ -76,6 +80,7 @@ function turnToward(g, want, rate, dt){
 export function updateEnemies(dt){
   const pp = playerPos();
   updateNav(dt, pp);    // refresh the flow field toward the player (nav.js)
+  updateBubble();       // who is in a 1v1 duel, so the troops round it give it room (bubble.js)
   updateDirector(dt);   // hand out attack tokens before anyone decides to swing
   updateSaberLock(dt);  // a bind in progress (duel.js) runs before the foe it holds
   for (let i = enemies.length-1; i >= 0; i--){
@@ -115,7 +120,10 @@ export function updateEnemies(dt){
     }
     // SQUADMATES — a trooper with one of the hero's squad clearly nearer may turn on it instead (allies/squad.js:
     // only the rank and file, and never more than a share of them). It fights it straight: no attack turns, no tricks.
-    const tgtAlly = foeAllyTarget(e, hp), onAlly = !!tgtAlly;
+    // THE DUEL BUBBLE — its hero is in a 1v1 (a boss, a champion, a duellist on its turn): the rank and file give it room
+    // (bubble.js, data/duel-bubble.js). They'd rather fight the squad, and hold back from the duel when they can't
+    const inDuel = !!heldBy(e, hero);
+    const tgtAlly = foeAllyTarget(e, hp, inDuel), onAlly = !!tgtAlly;
     if (onAlly) tgtPos = tgtAlly.group.position;
     // THE PEOPLE BEING GOT OUT — a trooper sent at them (game/mission.js civHunt) shoots at the line instead, until the
     // hero comes close enough to make it deal with them first (game/civilians.js)
@@ -129,6 +137,7 @@ export function updateEnemies(dt){
         tgtPos = CIV_AIM;
       }
     }
+    const held = inDuel && !onAlly && !tgtCiv && !(e.goal && tgtPos === e.goal.pos);   // (one marching on a mission goal keeps marching)
     let tx = 0, tz = 0, dist = 999;
     if (tgtPos){
       TMP.subVectors(tgtPos, g.position); TMP.y = 0;
@@ -169,9 +178,9 @@ export function updateEnemies(dt){
           }
         }
         // OFFICER — calls a volley or a flank with you in sight (tactics.js) · LANCER — plants and lunges from mid range
-        if (t.officer && tgtPos && !onAlly && tryOrder(e, dt, dist, tgtPos)) break;
+        if (t.officer && tgtPos && !onAlly && !held && tryOrder(e, dt, dist, tgtPos)) break;   // (no volley called on a duel)
         // (a lancer circling in the ring waits its turn like the rest: it lunges with a token, or to close from afar)
-        if (t.lancer && tgtPos && (e.token || dist > t.range + ENGAGE.ringPad + 1) && tryLunge(e, dt, dist, tgtPos)) break;
+        if (t.lancer && tgtPos && !held && (e.token || dist > t.range + ENGAGE.ringPad + 1) && tryLunge(e, dt, dist, tgtPos)) break;
         // WARBRINGER mid-boss — periodically LEAPS and quakes the ground where you stand (dash/jump it)
         if (e.warbringer && !e.converted && !e.winded && dist > 4.5 && dist < 17 && (e.leapCd = (e.leapCd || 3) - dt) <= 0){
           e.state = 'leapwind'; e.st = 0.55;
@@ -205,12 +214,13 @@ export function updateEnemies(dt){
         }
         // STALKING — a melee foe without an attack token holds a ring just outside its reach and circles,
         // so a crowd takes turns instead of piling into one wall of swings (see ENGAGE / director.js)
-        const stalking = !!tgtPos && !onAlly && usesToken(e) && !e.token;
+        // (in a DUEL BUBBLE the melee troops and the saboteurs prowl its edge instead: data/duel-bubble.js hold)
+        const stalking = !!tgtPos && !onAlly && ((usesToken(e) && !e.token) || (held && !t.ranged));
         // FOOTWORK — a duellist with its turn measures you from just outside its reach for a beat first (duel.js)
         const measure = !stalking && !!tgtPos && !onAlly && !e.converted && measuring(e, dt, dist);
         let paceMul = 1;
         if ((stalking || measure) && !pathing){
-          const ring = measure ? t.range + footReach(e) + FOOTWORK.measure : t.range + ENGAGE.ringPad;
+          const ring = measure ? t.range + footReach(e) + FOOTWORK.measure : held ? Math.max(BUBBLE.hold, t.range + ENGAGE.ringPad) : t.range + ENGAGE.ringPad;
           if (e.circle === undefined) e.circle = Math.random() < 0.5 ? 1 : -1;
           if ((e.circleT = (e.circleT || 0) - dt) <= 0){ e.circle *= -1; e.circleT = rand(1.4, 3.2); }
           const radial = clamp((dist - ring) / 1.5, -1, 1);   // >0 too far: close in · <0 too close: give ground
@@ -220,7 +230,7 @@ export function updateEnemies(dt){
           mz = tz*radial + tx*e.circle*side + sepZ;
           if (dist < ring + 3) paceMul = ENGAGE.stalkSpeed;   // a wary prowl near the fight, a run to rejoin it
         }
-        const keepR = t.standoff || (t.sniper ? 12 : t.range * 0.7);   // snipers & officers hold a fixed standoff
+        const keepR = Math.max(t.standoff || (t.sniper ? 12 : t.range * 0.7), held ? Math.min(BUBBLE.gunHold, t.range * 0.9) : 0);   // snipers & officers hold a fixed standoff (and a duel's gunners, its edge)
         // COVER — ranged ground troops (not flyers, who stay airborne by design; not converted allies) check LOS to
         // their target each frame. No clear shot → steer toward the near side of whatever's in the way and hold
         // there (peek) instead of standing exposed in the open. ANTI-TURTLE: after 3s with no shot, give up hiding
@@ -333,6 +343,8 @@ export function updateEnemies(dt){
           else if (!e.converted && (t.ranged ? e.disarmUntil > G.gt : !!e.disarm)){ /* empty-handed — keeps its distance */ }
           // RANGED SLOTS: only a few troopers aim at once, so a firing line staggers its shots
           else if (t.ranged && !e.converted && !onAlly && !tgtCiv && !rangedSlotFree(t, hero)){ /* hold — sidestep and wait */ }
+          // a DUEL BUBBLE: no detonators lobbed into a duel (data/duel-bubble.js)
+          else if (held && t.grenade){ /* waits for the squad, or the duel's end */ }
           // the Warbringer out of breath can't swing: it stands blowing until it has recovered (duel.js)
           else if (e.winded && !e.converted){ /* catching its breath */ }
           // MELEE WINDUP STAGGER: hostile (non-converted) melee foes share a cooldown so a crowd doesn't all coil &
@@ -420,7 +432,7 @@ export function updateEnemies(dt){
               throwGrenade(e, V3(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), at, e.converted);
               if (g.userData.weaponArm) g.userData.weaponArm.rotation.x = 0.5;   // the arm follows through
             } else if (tgtPos){
-              fireAt(e, tgtPos, 0);
+              fireAt(e, tgtPos, 0, held);
               if (e.burstPlan && !e.civShot){ e.burstLeft = e.burstPlan; e.burstT = TROOP_FIRE.burstGap; }   // a double-tap: one more behind it
             }
             e.volley = false;
@@ -521,7 +533,7 @@ export function updateEnemies(dt){
       case 'recover':
         if (e.burstLeft > 0 && (e.burstT -= dt) <= 0){   // the double-tap's second bolt
           e.burstLeft--; e.burstT = TROOP_FIRE.burstGap;
-          if (tgtPos && !e.dead) fireAt(e, tgtPos, TROOP_FIRE.burstSpread);
+          if (tgtPos && !e.dead) fireAt(e, tgtPos, TROOP_FIRE.burstSpread, held);
         }
         if (!e.dp || dist >= DUEL.guardRange) easeWeaponHome(g, dt);   // (a duellist settles into its guard instead: duel.js)
         g.rotation.x = dampToward(g.rotation.x, 0, dt, 10);

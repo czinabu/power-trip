@@ -296,3 +296,7 @@ Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById 
 import * as forceLevelData from './data/force-level.js';
 import { trainForm } from './game/upgrades.js';
 Object.assign(window.GAME, { force: { ...forceLevelData, trainForm } });   // the Jedi's Force Level, form shares and form mastery (data/force-level.js), for tests
+import { duelOf as bubbleDuelOf } from './enemies/bubble.js';
+import { BUBBLE as BUBBLE_CFG } from './data/duel-bubble.js';
+import { localPlayer as bubbleHero } from './player/players.js';
+Object.assign(window.GAME, { bubble: { cfg: BUBBLE_CFG, duelOf: bubbleDuelOf, get on(){ return !!bubbleDuelOf(bubbleHero); } } });   // the duel bubble (enemies/bubble.js), for tests

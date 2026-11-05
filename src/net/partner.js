@@ -61,6 +61,7 @@ function build(P, picks, heroName){
 function dress(P, heroName){
   const { puppet } = P;
   P.hero = heroName === 'mando' || heroName === 'trooper' ? heroName : 'jedi';
+  P.mate.hero = P.hero;   // (which hero they play: the duel bubble reads it, enemies/bubble.js)
   const mando = P.hero === 'mando', trooper = P.hero === 'trooper', gunner = mando || trooper;
   for (const m of puppet.mandoParts) m.visible = mando;
   for (const m of puppet.trooperParts || []) m.visible = trooper;   // (the ARC trooper's armour: player/model/trooper.js)

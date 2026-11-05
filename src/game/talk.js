@@ -17,7 +17,7 @@ import { chapterOrder, storyHero } from '../data/campaign.js';
 import { comms, fightHot, commsShowing, storySpeaking } from './story.js';
 import { missionFigures, missionId } from './mission.js';
 import { hostilesIn } from './objectives.js';
-import { pad, padKeys } from '../engine/gamepad.js';
+import { interactKey } from '../engine/interact.js';
 import { S } from '../audio/sfx.js';
 
 export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2,   // m · how squarely you face them (cos) · no foe this close · s between lines
@@ -83,11 +83,11 @@ export function updateTalk(dt){
   const v = G.mode === 'menu' ? null : (missionId() || 'run') + ':' + G.chapter;   // a new mission or chapter: everyone has things to say again
   if (v !== visit){ visit = v; said.clear(); }
   near = pickNear();
-  const key = near ? near.key + (pad.active ? ':pad' : '') : '';
+  const key = near ? near.key + ':' + interactKey() : '';
   if (key !== shownKey){
     shownKey = key;
     if (near){
-      const k = pad.active ? padKeys('H') : 'H';
+      const k = interactKey();
       prompt.innerHTML = '<kbd>' + k + '</kbd><span>TALK</span><b></b>';
       prompt.querySelector('b').textContent = near.kind ? one(near.name) : near.name;
     }

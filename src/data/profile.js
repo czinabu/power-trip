@@ -39,6 +39,11 @@ export const RANK_XP = {
   power: 20,          // a power mastery rank earned
   duel: 15,           // a guarding duellist beaten
   wave: 10,           // a survival wave cleared
+  side: 120,          // a side mission from the temple (data/side-quests.js) won the first time
+  sideAgain: 30,
+  holocron: 40,       // a hidden holocron found on a story map (data/secrets.js), once each
+  cave: 30,           // a crystal cave harvested, once each
+  meditate: 50,       // a meditation spot sat at, the first time (every sitting after still restores you)
 };
 
 export const TRACKS = {

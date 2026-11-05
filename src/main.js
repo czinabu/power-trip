@@ -121,6 +121,7 @@ import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateHub, startHub, goWing } from './game/hub.js';
+import { updateSecrets, secretsPlaced } from './game/secrets.js';
 import './ui/hub-ui.js';
 import { HUB_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
@@ -198,6 +199,7 @@ function tick(){
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
   updateHudStage(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt, G.mode === 'play');   // the words on the lower middle keep one column and take turns (ui/hud-stage.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
+  updateSecrets(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story maps' hidden holocrons, caves and meditation spots (game/secrets.js)
   updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
@@ -301,7 +303,7 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
   grassland: BATTLE_MAPS.grassland.level, icefront: BATTLE_MAPS.icefront.level, graveyard: BATTLE_MAPS.graveyard.level,
 }) });
 import { arcadeContract, arcadeBoard, missionById } from './data/arcade.js';
-Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById } });   // the arcade's dealt contracts (data/arcade.js), for tests
+Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById }, secrets: { placed: secretsPlaced } });   // the arcade's dealt contracts (data/arcade.js), for tests
 import * as forceLevelData from './data/force-level.js';
 import { trainForm } from './game/upgrades.js';
 Object.assign(window.GAME, { force: { ...forceLevelData, trainForm } });   // the Jedi's Force Level, form shares and form mastery (data/force-level.js), for tests

@@ -27,6 +27,11 @@ export function codexMeet(id){
   met[id] = 1; store();
   if (codexHooks.met) codexHooks.met(id);
 }
+// met already, with no note and no NEW mark (a holocron page a hero found before this save slot: game/secrets.js)
+export function codexQuiet(id){
+  if (!id || !CODEX_BY_ID[id] || load()[id]) return;
+  met[id] = 2; store();
+}
 // read: the NEW mark comes off
 export function codexRead(id){
   if (load()[id] === 1){ met[id] = 2; store(); }

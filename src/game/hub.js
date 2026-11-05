@@ -16,13 +16,12 @@ import { playerPos, fwd } from '../player/helpers.js';
 import { findClearSpawn } from '../world/collision.js';
 import { loadInto } from '../ui/loading.js';
 import { showBanner } from '../ui/banners.js';
-import { pad, padKeys } from '../engine/gamepad.js';
+import { interactChip, onInteract } from '../engine/interact.js';
 import { net, on, send, connected } from '../net/session.js';
 import { coopRun } from '../net/run.js';
 import { onRunChange } from '../net/foes.js';
 import { missionTitle } from './mission.js';
 import { S } from '../audio/sfx.js';
-import { setHubTap } from '../allies/wheel.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -85,13 +84,13 @@ function pickNear(){
 
 let openStation = null;
 export function setStationOpener(fn){ openStation = fn; }   // ui/hub-ui.js
-// H was tapped (allies/wheel.js): open the station you're at. True when it did
+// interact was pressed (engine/interact.js): open the station you're at. True when it did
 export function hubTap(){
   if (!G.hub || !near || !openStation) return false;
   S.uiHover(); openStation(near); return true;
 }
 export const hubStationNear = () => near;
-setHubTap(hubTap);
+onInteract(hubTap);
 
 /* once a frame (main.js) */
 export function updateHub(dt){
@@ -99,10 +98,10 @@ export function updateHub(dt){
   if (!G.hub || G.mode !== 'play'){ if (el && shownKey){ el.classList.remove('on'); shownKey = ''; } return; }
   for (const a of shared.hubAnim || []) a.fn(a.obj, G.gt, a.base);
   near = pickNear();
-  const key = near ? near.id + (pad.active ? ':pad' : '') : '';
+  const key = near ? near.id + ':' + interactChip('') : '';
   if (el && key !== shownKey){
     shownKey = key;
-    if (near) el.innerHTML = '<kbd>' + (pad.active ? padKeys('H') : 'H') + '</kbd><span>' + near.name + '</span>';
+    if (near) el.innerHTML = interactChip(near.name);
     el.classList.toggle('on', !!near);
   }
   if (moving || G.paused || G.skillSelect || performance.now() - arrivedAt < 800) return;

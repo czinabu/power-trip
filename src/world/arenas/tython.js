@@ -47,6 +47,7 @@ function stations(wing, K, pal){
     live(K.deco(new THREE.RingGeometry(r, r + 0.22, 48), ring, s.x, 0.05, s.z, -PI / 2));
     live(K.deco(new THREE.RingGeometry(r + 0.5, r + 0.58, 48), ring, s.x, 0.05, s.z, -PI / 2));
     if (s.act === 'travel' && s.id === 'waystone') waystone(K, pal, s.x, s.z);
+    if (s.act === 'quests') callStone(K, pal, s.x, s.z);
     const face = Math.atan2(sx - s.x, sz - s.z);
     K.sign(s.name, s.x, s.id === 'map' || s.id === 'table' ? 8.2 : 4.6, s.z, face, { w: 3.6 });
   }
@@ -57,6 +58,18 @@ function waystone(K, pal, x, z){
   K.deco(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 8), std(pal.trim ?? 0xd8b860, 0.5, 0.5), x, 1.55, z);
   const shard = live(K.deco(new THREE.OctahedronGeometry(0.32), glowM(pal.kyber ?? 0x5ad2ff), x, 2.25, z));
   anim(shard, (o, t, b) => { o.position.y = b.y + Math.sin(t * 1.6) * 0.12; o.rotation.y = t * 0.9; });
+}
+/* the CALLS FOR AID stone: a carved slab with the side missions' petitions glowing on its face (data/side-quests.js) */
+function callStone(K, pal, x, z){
+  const stoneD = std(pal.stoneD ?? 0xa89f8c), trim = std(pal.trim ?? 0xd8b860, 0.45, 0.55);
+  K.box(x, z - 0.9, 1.5, 0.35, 2.1, stoneD);
+  K.deco(new THREE.BoxGeometry(3.3, 0.18, 0.9), trim, x, 2.18, z - 0.9);
+  for (let i = 0; i < 6; i++){
+    const lit = glowM(pal.kyber ?? 0x5ad2ff, 0.85);   // (one each: they pulse out of step)
+    const px = x - 1.0 + (i % 3) * 1.0, py = 0.75 + Math.floor(i / 3) * 0.7;
+    const p = live(K.deco(new THREE.PlaneGeometry(0.62, 0.42), lit, px, py, z - 0.53));
+    anim(p, (o, t) => { o.material.opacity = 0.55 + Math.sin(t * 1.3 + i * 1.7) * 0.25; });
+  }
 }
 /* over every door, the name of the wing beyond it, and a lit runner from the middle of the floor out to it */
 function doorSigns(wing, K, pal){

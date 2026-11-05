@@ -17,6 +17,8 @@ import { MISSIONS } from '../data/missions.js';
 import { missionShelves, missionRank, missionShelf, missionForHero, STORIES } from '../data/mission-groups.js';
 import { audioInit } from '../audio/sfx.js';
 import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName, TWISTS, arcadeWins } from '../data/arcade.js';
+import { SIDE_QUESTS, SIDE_PREFIX, SIDE_BY_ID, isSideId } from '../data/side-quests.js';
+import { rankIndex, track } from '../game/profile.js';
 import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
 
 const listEl = document.getElementById('mplist'), infoEl = document.getElementById('mpinfo');
@@ -28,8 +30,10 @@ export const placeOf = (m) => m.level.name.replace(/^(MISSION|TRIAL)\s*—\s*/, 
 // a campaign trial joins the list once any hero has reached it in the campaign (won it there)
 const trialSeen = (id) => !MISSIONS[id] || !MISSIONS[id].trial || HEROES().some(h => missionDone(id, h));
 // a mission stays locked and unspoiled until the campaign has cleared it (game/sandbox-unlocks.js)
-export const missionOpen = (id) => isArcadeId(id) ? !!missionById(id) : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open
-const shown = (id) => isArcadeId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
+// a side mission (data/side-quests.js) opens at its rank, the same as at the temple's CALLS FOR AID stone
+const sideOpen = (id) => !!SIDE_BY_ID[id] && rankIndex() >= SIDE_BY_ID[id].rank;
+export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open
+const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
 
 export function setMission(id){
@@ -69,6 +73,33 @@ function arcadeShelf(){
     <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div>`);
 }
 
+/* ---------- the SIDE MISSIONS shelf: what the temple's CALLS FOR AID stone hands out ---------- */
+function sideCard(q){
+  const id = SIDE_PREFIX + q.slug, open = sideOpen(id), won = missionDone(id, G.hero);
+  const need = track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm;
+  return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${id === G.missionId ? ' sel' : ''}" id="msn-${id.replace(':', '-')}" data-mission="${id}">
+    <span class="mt"><span class="mtn">${q.title}</span><span class="msn-tag">SIDE</span><span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
+    <span class="mw">${open ? q.place : 'REACH ' + need + ' TO UNLOCK'}</span>${open ? pips(q.threat) : ''}
+  </div>`;
+}
+function sideShelf(){
+  const won = SIDE_QUESTS.filter(q => missionDone(SIDE_PREFIX + q.slug, G.hero)).length;
+  return fold('side', isSideId(G.missionId), 'mp-act', `SIDE MISSIONS<span class="mp-sub">calls for aid, from the temple</span>`, won + '/' + SIDE_QUESTS.length,
+    `<div class="mp-grid">${SIDE_QUESTS.map(sideCard).join('')}</div>`);
+}
+function sideInfo(id){
+  const q = SIDE_BY_ID[id]; if (!q || !infoEl) return;
+  if (!sideOpen(id)){
+    infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div><div class="mpi-b">The Council hands this one out at ${track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm}. Rise in rank to unlock it.</div>`;
+    return;
+  }
+  const marks = HEROES().map(h => HERO_NAME[h] + ' ' + (missionDone(id, h) ? '<span class="ok">✓</span>' : '<span class="no">–</span>')).join(' &nbsp;');
+  infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div>
+    <div class="mpi-w">${q.place}</div>
+    <div class="mpi-b">${q.ask}</div>
+    <div class="mpi-meta"><span>THREAT ${pips(q.threat)}</span><span>${q.take.length} OBJECTIVE${q.take.length === 1 ? '' : 'S'}</span><span>${q.reward.toUpperCase()}</span><span class="mpi-won">${marks}</span></div>`;
+}
+
 /* ---------- folding sections ---------- */
 // ARCADE and every act fold under a header with an arrow and its progress (6/7). Until the player folds one by hand, the
 // campaign act they're on and the picked mission's section open and the rest stay shut; a hand-set fold is
@@ -105,7 +136,7 @@ function render(){
     t.classList.toggle('on', t.dataset.h === G.hero);
   }
   const shelves = missionShelves(G.hero);
-  listEl.innerHTML = arcadeShelf() + shelves.map((s, si) => {
+  listEl.innerHTML = arcadeShelf() + sideShelf() + shelves.map((s, si) => {
     const acts = s.groups.map((g, ai) => {
       const ms = g.missions.filter(m => trialSeen(m.id));
       const open = ms.filter(m => missionOpen(m.id)), won = open.filter(m => missionDone(m.id, G.hero)).length;
@@ -127,6 +158,7 @@ function render(){
   if (!shown(G.missionId)) setMission(G.missionId); else refreshInfo();
 }
 function refreshInfo(){
+  if (isSideId(G.missionId)) return sideInfo(G.missionId);
   if (isArcadeId(G.missionId)) return arcadeInfo(missionById(G.missionId));
   const m = MISSIONS[G.missionId]; if (!m || !infoEl) return;
   if (!missionOpen(m.id)){

@@ -17,12 +17,13 @@ export const HUB = {
 export const HUB_WINGS = {
   hall: {
     name: 'THE GRAND HALL', short: 'GRAND HALL',
-    blurb: 'The heart of the temple: every wing opens off it, and every journey starts here.',
+    blurb: 'The heart of the temple: every wing opens off it, and every journey starts here. Calls for aid from across the galaxy reach the stone by the door.',
     level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap H.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
     doors: { n: 'council', e: 'training', w: 'archives', s: 'forge' },
     spawn: [0, 30, Math.PI],
     stations: [
       { id: 'map', x: 0, z: 0, name: 'TEMPLE MAP', act: 'travel', r: 11 },
+      { id: 'calls', x: 8, z: 24, name: 'CALLS FOR AID', act: 'quests' },   // the side missions (data/side-quests.js)
     ],
   },
   council: {

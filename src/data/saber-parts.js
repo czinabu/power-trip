@@ -11,6 +11,9 @@
 //   { missions: n }      n different story missions won from the Missions page (side content)
 //   { arcade: n }        n arcade contracts won
 //   { waves: n }         n survival waves cleared
+//   { sides: n }         n different side missions from the temple won (data/side-quests.js)
+//   { holocrons: n }     n hidden holocrons found on the story maps (data/secrets.js)
+//   { caves: n }         n crystal caves harvested on the story maps
 // No `earn`: a starter part, on the bench from the first day. A part that is earned is announced once: a card at a
 // chapter's close, a corner note anywhere else.
 //
@@ -39,6 +42,8 @@ export const CRYSTALS = [
     ds: '+12% riposte damage · −6% Force regen', fx: [['riposte', '*', 1.12], ['forceRegen', '*', 0.94]] },
   { id: 'frost', name: 'Frost', col: 0xbfe6ff, earn: { waves: 20 }, att: 'STILLFROST',
     ds: '+10% stamina regen · −4% move speed', fx: [['stamRegen', '*', 1.1], ['move', '*', 0.96]] },
+  { id: 'amethyst', name: 'Amethyst', col: 0xa86bff, earn: { caves: 3 }, att: 'DEEP ECHO',
+    ds: '+8% Force regen · −6% stamina regen', fx: [['forceRegen', '*', 1.08], ['stamRegen', '*', 0.94]] },
   { id: 'red', name: 'Bled red', col: 0xff3a30, earn: { won: 1 }, att: 'BLED',
     ds: '+7% damage · −0.02s parry window', fx: [['dmg', '*', 1.07], ['parry', '+', -0.02]] },
 ];
@@ -59,6 +64,7 @@ export const EMITTERS = [
   { id: 'crown', name: 'Crown', earn: { chapter: 'trial-knight' }, line: 'Four prongs round the blade. A Knight\'s emitter.' },
   { id: 'bell', name: 'Bell', earn: { arcade: 2 }, line: 'A wide bell mouth: the blade blooms out of it.' },
   { id: 'vented', name: 'Vented', earn: { waves: 10 }, line: 'Slotted for heat, from long nights on the line.' },
+  { id: 'seeker', name: 'Seeker', earn: { sides: 3 }, line: 'A ringed head with a window to the crystal. Built for the long errand.' },
 ];
 // POMMELS: the end below the hand
 export const POMMELS = [
@@ -67,6 +73,7 @@ export const POMMELS = [
   { id: 'flanged', name: 'Flanged', earn: { arcade: 1 }, line: 'Four fins, to stop a hand sliding off.' },
   { id: 'weighted', name: 'Weighted', earn: { chapter: 'hoth' }, line: 'A heavy ball to balance the blade.' },
   { id: 'spike', name: 'Spike', earn: { duels: 10 }, line: 'A tapered point. A duellist\'s threat.' },
+  { id: 'holocron', name: 'Holocron', earn: { holocrons: 4 }, line: 'A faceted cube that glows faintly. Cut to match the ones you found.' },
 ];
 // the bench's rows, in order (each a row of data/customize.js's jedi list, with `bench: true`)
 export const BENCH = [
@@ -85,6 +92,8 @@ export function earnProgress(p, earn){
   if (earn.chapter) return { have: p.cleared && p.cleared[earn.chapter] ? 1 : 0, need: 1 };
   if (earn.won) return { have: Math.min(1, p.won || 0), need: 1 };
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
+  if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
+  if (earn.holocrons || earn.caves){ const k = earn.holocrons ? 'holocron' : 'cave'; return { have: Object.keys(p.secrets || {}).filter(id => id.endsWith(':' + k)).length, need: earn.holocrons || earn.caves }; }
   for (const k of ['duels', 'arcade', 'waves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
   return { have: 0, need: 1 };
 }
@@ -94,7 +103,10 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (!earn) return 'ON THE BENCH FROM THE START';
   if (earn.chapter) return 'CLEAR ' + chapterName(earn.chapter);
   if (earn.won) return 'BEAT THE CAMPAIGN';
-  const n = earn.duels || earn.missions || earn.arcade || earn.waves, s = n === 1 ? '' : 'S';
+  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';
+  if (earn.sides) return 'WIN ' + n + ' SIDE MISSION' + s + ' FROM THE TEMPLE';
+  if (earn.holocrons) return 'FIND ' + n + ' HIDDEN HOLOCRON' + s;
+  if (earn.caves) return 'HARVEST ' + n + ' CRYSTAL CAVE' + s;
   if (earn.duels) return 'BEAT ' + n + ' DUELLIST' + s;
   if (earn.missions) return 'WIN ' + n + ' STORY MISSION' + s;
   if (earn.arcade) return 'WIN ' + n + ' ARCADE CONTRACT' + s;

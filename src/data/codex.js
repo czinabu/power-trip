@@ -4,6 +4,7 @@
 import { PURGE, DRILL, MARSHAL, SQUAD } from './allies.js';
 import { FAMILIES, FORM_FAMILY, NAMED_FORMS, FOE_FORMS, BOSS_FORM } from './foe-forms.js';
 import { FORMS } from './forms.js';
+import { HOLOCRONS } from './secrets.js';
 
 /* Every entry is short on purpose: a lore line, what it carries, two things to watch for and two ways to beat it.
    Counters name actions (PARRY, KICK, PUSH, DASH, BRACE), never keys, so they read the same on a keyboard, a pad or a phone.
@@ -25,6 +26,7 @@ export const CODEX_TABS = [
   { id: 'duelists', name: 'DUELISTS' },
   { id: 'bosses', name: 'BOSSES' },
   { id: 'allies', name: 'ALLIES' },
+  { id: 'holocrons', name: 'HOLOCRONS' },
 ];
 
 const TROOPS = [
@@ -127,6 +129,11 @@ const DUELISTS = [
     lore: 'A horned hunter who holds the Citadel gate.' },
   { id: 'echo', name: 'THE ECHO', foe: 'acolyte', form: 'djemso', kicker: 'THE GATE · JEDHA', threat: 4,
     lore: 'A vision out of the Sith gate, with a face of shadow.' },
+  // ---- the temple's side missions (data/side-quests.js) ----
+  { id: 'grave-knight', name: 'THE GRAVE KNIGHT', foe: 'acolyte', form: 'makashi', tint: 0x3a6a5a, kicker: 'A FALLEN JEDI · JEDHA', threat: 5,
+    lore: 'A Jedi who fell when Jedha burned, and still guards its seals.' },
+  { id: 'magpie', name: 'THE MAGPIE', foe: 'duelist', tint: 0x6a5a3a, scale: 1.04, kicker: 'RELIC THIEF · KHEL DAR', threat: 4,
+    lore: 'A thief\'s droid that robbed the temple\'s forge.' },
   { id: 'grand-inquisitor', name: 'THE GRAND INQUISITOR', foe: 'acolyte', form: 'djemso', kicker: 'THE CITADEL', threat: 5,
     lore: 'Keeper of the Ledger: every Jedi taken, by name.' },
   // ---- the field's champions ----
@@ -266,7 +273,10 @@ const ALLIES = ALLY_LIST.map(a => {
     weapons: R ? R.weapons : null, field: R ? R.field : null, tips: a.squad ? SQUAD_TIPS : null };
 });
 
-export const CODEX = [...TROOPS, ...DUELISTS, ...BOSSES, ...ALLIES];
+// HOLOCRONS: the pages the hidden holocrons on the story maps open (data/secrets.js, game/secrets.js)
+const HOLO = HOLOCRONS.map(h => ({ ...h, tab: 'holocrons', kind: 'holocron', holocron: true }));
+
+export const CODEX = [...TROOPS, ...DUELISTS, ...BOSSES, ...ALLIES, ...HOLO];
 export const CODEX_BY_ID = Object.fromEntries(CODEX.map(e => [e.id, e]));
 export const BOSS_ENTRY = { sith: 'vexis', mando: 'magistrate', trooper: 'marshal' };
 

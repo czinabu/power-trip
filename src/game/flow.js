@@ -63,6 +63,7 @@ import { startCalm } from './aftermath.js';
 import { storyBeat, clearComms, commsBusy } from './story.js';
 import { stageHolds } from '../ui/hud-stage.js';
 import { setFoeLook } from '../enemies/look.js';
+import { queueSecrets } from './secrets.js';
 
 /* ============================================================
    LEVEL / WAVE FLOW
@@ -145,6 +146,7 @@ export function startLevel(idx, opts){
   setHero(G.hero);   // make sure the rig + HUD match the chosen hero on (re)start
 
   buildArena(L);
+  queueSecrets();   // the story map's hidden holocrons, caves and meditation spots, placed once the hero stands in it (game/secrets.js)
   { const spot = findClearSpawn(0, shared.arenaHalf*0.5, CFG.player.radius + 1.0); playerPos().set(spot.x, 0, spot.z); }
   player.hp = maxHp();
   player.force = CFG.player.maxForce;

@@ -30,8 +30,8 @@ await page.waitForTimeout(1500);
 const ONLY = process.env.WINGS ? process.env.WINGS.split(',') : null;
 const VIEWS = {
   hall: [[0, 34, Math.PI, 0.05], [0, 12, Math.PI, -0.35], [30, -30, Math.PI * 0.75, 0], [-12, -38, 0.25, -0.2], [-20, 12, Math.PI * 0.85, 0.05]],
-  council: [[0, 22, Math.PI, 0.05], [-10, 4, Math.PI * 0.7, -0.1], [0, 11, Math.PI, 0.05]],
-  training: [[-30, 0, Math.PI / 2, 0.05], [10, 22, Math.PI, 0], [-6, -9, Math.PI, 0.1]],
+  council: [[0, 22, Math.PI, 0.05], [-10, 4, Math.PI * 0.7, -0.1], [0, 11, Math.PI, 0.05], [-9, -10, 0.55, 0.05]],
+  training: [[-30, 0, Math.PI / 2, 0.05], [10, 22, Math.PI, 0], [-6, -9, Math.PI, 0.1], [-6, -14.5, Math.PI, 0.12]],
   archives: [[30, 0, -Math.PI / 2, 0.05], [-6, -4, -Math.PI * 0.6, -0.1], [10, 2, -Math.PI / 2, 0.05]],
   forge: [[0, -22, 0, 0.05], [10, 18, Math.PI * 0.9, -0.1]],
 };

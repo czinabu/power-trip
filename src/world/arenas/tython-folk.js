@@ -1,148 +1,206 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE TEMPLE'S PEOPLE: the Jedi, the younglings and the archivists who live in the hidden temple on Tython (the hub's
-// wings, world/arenas/tython.js). They only walk their rounds and go through their drills: nobody to talk to or fight,
-// and nothing solid (you walk through them). Where each one is comes from the game clock alone (G.gt, through
-// shared.hubAnim), not from anything they remember, so every screen in a co-op party sees them in the same places.
-// Each figure is folded into one mesh (its colours carried on the vertices) and one outline, plus a saber where it holds
-// one, so a wing full of them stays cheap to draw.
+// wings, world/arenas/tython.js). They are hero-model figures, the same as the story's cast in a cutscene (game/cast.js:
+// a face that blinks, robes on the cloth sim), dressed and placed from data/temple-folk.js. They only walk their rounds,
+// talk among themselves and go through their drills: nobody to fight, and nothing solid (you walk through them). Where
+// each one is comes from the game clock (G.gt), not from anything they remember, so every screen in a co-op party sees
+// them in the same places. A hero figure costs far more to draw than a prop, so a wing keeps to a handful.
 
-import * as THREE from 'three';
-import { shared } from '../../state.js';
+import { shared, G } from '../../state.js';
+import { heroFigure, stepFigure } from '../../game/cast.js';
+import { settleCloth } from '../../player/model/cloth.js';
 import { toon, inkify } from '../ink.js';
-import { makeEvacuee } from './refuge.js';
+import { playerPos } from '../../player/helpers.js';
+import { groundAt } from '../collision.js';
+import { TEMPLE_FOLK, FOLK_LOOKS } from '../../data/temple-folk.js';
+import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const PI = Math.PI;
-const ROBES = [0xd8c8a0, 0xc8b48e, 0xb8a080], CLOAKS = [0x5a3a22, 0x6a4a2e, 0x4a3424, 0x3a2e28], SKIN = [0xe8c0a0, 0xb07a58, 0x7a5038, 0xd8a888, 0x8ab070];
-const BLADES = [0x5ad2ff, 0x7aff6a, 0xffd25a];
+let folk = [];   // this wing's people: { F (the hero figure), cheap (its stand-in), p (data/temple-folk.js), near }
+// up close a person is the full hero figure; further off, a cheap stand-in in the same colours takes its place (and the
+// figure's cloth and face stop being worked). At most NEAR.max are full figures at once, the nearest ones
+export const NEAR = { dist: 24, max: 3 };
 
-function liveAll(g){ g.traverse(o => { o.userData.noBake = true; o.userData.passThrough = true; }); g.userData.noBake = true; return g; }
-function anim(obj, fn){ (shared.hubAnim ||= []).push({ obj, fn, base: obj.position.clone() }); return obj; }
-
-/* a grown JEDI: a pale tunic under a dark cloak, the hood down or up */
-function jedi(seed, hood = seed % 3 === 0){
-  const g = new THREE.Group();
-  const add = (geo, color, x, y, z) => { const m = new THREE.Mesh(geo, toon(color)); m.position.set(x, y, z); m.castShadow = true; inkify(m, 0.025); g.add(m); return m; };
-  add(new THREE.CylinderGeometry(0.22, 0.28, 0.95, 10), ROBES[seed % 3], 0, 1.05, 0);
-  add(new THREE.ConeGeometry(0.42, 1.45, 12, 1, true), CLOAKS[seed % 4], 0, 0.78, -0.04);
-  add(new THREE.SphereGeometry(0.17, 12, 10), SKIN[seed % 5], 0, 1.7, 0);
-  if (hood) add(new THREE.SphereGeometry(0.22, 12, 10, 0, PI * 2, 0, PI * 0.62), CLOAKS[seed % 4], 0, 1.71, -0.03);
-  g.userData.hand = [0.28, 1.05, 0.14];
-  return g;
+function figure(kind, seed){
+  const L = FOLK_LOOKS[kind], look = L.looks[seed % L.looks.length];
+  const target = heroFigure({ kind: 'hero', as: 'jedi', look: { jedi: look }, saber: !!L.saber && !L.drawn });
+  const F = { g: target.group, target, kind: 'hero', own: true, scale: L.scale || 1, walk: null, talk: false, look: null, t: seed * 1.7, gest: 0, turn: 0 };
+  target.group.scale.setScalar(F.scale);
+  slim(target);
+  // a training saber in hand and lit (the drill)
+  const hilt = target.saberHand;
+  if (hilt && L.drawn){ hilt.visible = true; if (target.blade){ target.blade.blade.visible = target.blade.glow.visible = true; } }
+  return F;
 }
-function youngling(seed){ const g = makeEvacuee('youngling', seed); g.userData.hand = [0.24, 0.5, 0.12]; return g; }
-function archivist(seed){ const g = makeEvacuee('archivist', seed); g.userData.hand = [0.26, 1.0, 0.14]; return g; }
-
-/* a TRAINING SABER in the figure's hand, on a pivot the drill swings */
-function saber(g, color, len = 0.75){
-  const [hx, hy, hz] = g.userData.hand, piv = new THREE.Group(); piv.position.set(hx, hy, hz); g.add(piv);
-  const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, len, 6), new THREE.MeshBasicMaterial({ color, toneMapped: false }));
-  blade.position.y = 0.08 + len / 2; piv.add(blade);
-  piv.rotation.x = 0.6;
-  return piv;
+/* SLIM a figure down to what the temple draws: the Mandalorian's and the trooper's outfits and the guns that every hero
+   model carries hidden go entirely, and the rigid pieces riding each joint are merged, one mesh per material (and one
+   outline), instead of a mesh each. What the face and the saber move stays as it is. A hero model is well over a hundred
+   draws; this brings one down to a few dozen. */
+function slim(target){
+  const T = target;
+  for (const m of [...(T.mandoParts || []), ...(T.trooperParts || [])]) m.removeFromParent();
+  for (const w of [T.pistols && T.pistols.L, T.pistols && T.pistols.R, T.rifleMesh, T.darksaberMesh]) if (w) w.removeFromParent();
+  // keep whatever the figure's own code reaches for (the eyelids, the jaw, the hands, the saber): every Object3D the
+  // target names, and everything under them
+  const keep = new Set();
+  const mark = (o) => o.traverse(c => keep.add(c));
+  const look = (v, depth) => {
+    if (!v || typeof v !== 'object' || depth > 2) return;
+    if (v.isObject3D){ if (v !== T.group && v !== T.vis) mark(v); return; }
+    for (const x of Array.isArray(v) ? v : Object.values(v)) look(x, depth + 1);
+  };
+  for (const [k, v] of Object.entries(T)) if (k !== 'rig' && k !== 'group' && k !== 'vis' && k !== 'headBare' && k !== 'cloth') look(v, 0);
+  for (const C of T.cloth || []) if (C.mesh) mark(C.mesh);
+  const hullOf = (m) => m.children.length === 1 && m.children[0].isMesh && m.children[0].material.side === THREE.BackSide ? m.children[0] : null;
+  const joints = [];
+  T.vis.traverse(o => { if (!o.isMesh) joints.push(o); });
+  for (const J of joints){
+    const buckets = new Map();
+    for (const c of J.children){
+      if (!c.isMesh || c.isSkinnedMesh || !c.visible || keep.has(c) || c.morphTargetInfluences) continue;
+      if (c.children.length && !hullOf(c)) continue;
+      const key = c.material.uuid + '|' + Object.keys(c.geometry.attributes).sort().join(',') + '|' + c.castShadow;
+      (buckets.get(key) || buckets.set(key, []).get(key)).push(c);
+    }
+    for (const list of buckets.values()){
+      if (list.length < 2) continue;
+      const geos = [], hulls = new Map();
+      for (const c of list){
+        c.updateMatrix();
+        const g = c.geometry.clone().applyMatrix4(c.matrix); geos.push(g.index ? g.toNonIndexed() : g);
+        const h = hullOf(c);
+        if (h){ h.updateMatrix(); const hg = h.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(c.matrix, h.matrix));
+          const hk = h.material.uuid; (hulls.get(hk) || hulls.set(hk, { mat: h.material, g: [] }).get(hk)).g.push(hg.index ? hg.toNonIndexed() : hg); }
+      }
+      const merged = mergeGeometries(geos, false);
+      if (!merged) continue;
+      const M = new THREE.Mesh(merged, list[0].material); M.castShadow = list[0].castShadow; J.add(M);
+      for (const { mat, g } of hulls.values()){ const hg = mergeGeometries(g, false); if (hg){ const H = new THREE.Mesh(hg, mat); H.castShadow = false; J.add(H); } }
+      for (const c of list) c.removeFromParent();
+    }
+  }
+  T.group.traverse(o => { if (o.isMesh) o.castShadow = false; });   // (no shadows of their own: the temple's light falls on the floor alone)
 }
-
-/* fold a figure's body parts into one mesh: each part's colour onto its vertices, one shared cel material, one outline */
-let bodyM = null;
-function fold(g){
-  const parts = g.children.filter(c => c.isMesh);
-  if (parts.length < 2) return g;
-  const geos = parts.map(m => {
+/* the STAND-IN: a few simple shapes in the person's own colours (tunic, robe, skin, the hood up or down), folded into
+   one mesh and one outline. What's seen of someone across a hall */
+let foldM = null;
+function standIn(kind, look){
+  const P = look.palette || {}, parts = look.parts || {}, small = kind === 'youngling' || kind === 'pupil';
+  const g = new THREE.Group(), list = [];
+  const add = (geo, color, x, y, z) => { const m = new THREE.Mesh(geo, null); m.position.set(x, y, z); m.userData.c = new THREE.Color(color); list.push(m); };
+  if (small){
+    add(new THREE.ConeGeometry(0.3, 0.75, 10), P.tunic ?? 0xd2c4a2, 0, 0.42, 0);
+    add(new THREE.SphereGeometry(0.17, 10, 8), P.skin ?? 0xc58c64, 0, 0.92, 0);
+  } else {
+    add(new THREE.CylinderGeometry(0.22, 0.28, 0.95, 10), P.tunic ?? 0xd2c4a2, 0, 1.05, 0);
+    add(new THREE.ConeGeometry(0.42, 1.45, 12, 1, true), P.robe ?? 0x3b2a1e, 0, 0.78, -0.04);
+    add(new THREE.SphereGeometry(0.17, 10, 8), P.skin ?? 0xc58c64, 0, 1.7, 0);
+    if (parts.head === 'hood') add(new THREE.SphereGeometry(0.22, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), P.robe ?? 0x3b2a1e, 0, 1.71, -0.03);
+  }
+  const geos = list.map(m => {
     m.updateMatrix();
     const q = m.geometry.clone();
     for (const k of Object.keys(q.attributes)) if (k !== 'position' && k !== 'normal') q.deleteAttribute(k);
     q.applyMatrix4(m.matrix);
-    const c = m.material.color || new THREE.Color(0xffffff), n = q.attributes.position.count, col = new Float32Array(n * 3);
+    const n = q.attributes.position.count, col = new Float32Array(n * 3), c = m.userData.c;
     for (let i = 0; i < n; i++){ col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
     q.setAttribute('color', new THREE.BufferAttribute(col, 3));
     return q.index ? q.toNonIndexed() : q;
   });
-  if (!bodyM){ bodyM = toon(0xffffff).clone(); bodyM.vertexColors = true; }
-  const body = new THREE.Mesh(mergeGeometries(geos, false), bodyM);
-  for (const q of geos) q.dispose();
-  for (const m of parts) g.remove(m);
-  body.castShadow = true; inkify(body, 0.025);
-  g.add(body);
-  return g;
-}
-function place(g, x, y, z, ry){ g.position.set(x, y, z); g.rotation.y = ry; shared.arenaGroup.add(liveAll(fold(g))); return g; }
-const face = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
-
-/* someone walking a closed loop of points at `speed` m/s, `lead` metres along it (so a file of them walks one behind
-   another); y lifts the whole path (a dais) */
-function walk(g, pts, speed, lead = 0, y = 0){
-  const seg = [];
-  let L = 0;
-  for (let i = 0; i < pts.length; i++){ const a = pts[i], b = pts[(i + 1) % pts.length], d = Math.hypot(b[0] - a[0], b[1] - a[1]); seg.push([a, b, d, L]); L += d; }
-  place(g, pts[0][0], y, pts[0][1], 0);
-  anim(g, (o, t) => {
-    let d = ((t * speed + lead) % L + L) % L;
-    const s = seg.find(q => d >= q[3] && d < q[3] + q[2]) || seg[0], k = (d - s[3]) / (s[2] || 1);
-    const dx = s[1][0] - s[0][0], dz = s[1][1] - s[0][1];
-    o.position.set(s[0][0] + dx * k, y + Math.abs(Math.sin(d * 3.2)) * 0.05, s[0][1] + dz * k);
-    o.rotation.y = Math.atan2(dx, dz);
-  });
-  return g;
-}
-/* someone standing (talking, watching, keeping watch): a slow sway, now and then a turn of the head-and-shoulders */
-function stand(g, x, y, z, ry, seed = 0){
-  place(g, x, y, z, ry);
-  anim(g, (o, t) => { o.rotation.y = ry + Math.sin(t * 0.5 + seed) * 0.12; o.rotation.z = Math.sin(t * 0.9 + seed * 2) * 0.02; });
-  return g;
-}
-/* a drill: the saber swings through a guard, a cut and back, everyone on the master's count */
-function drill(piv, rate = 1.6, phase = 0){
-  anim(piv, (o, t) => { const k = t * rate + phase; o.rotation.x = 0.5 + Math.sin(k) * 0.9; o.rotation.z = -0.4 + Math.cos(k) * 0.5; });
-}
-
-export function templeFolk(wing){
-  let n = 0;
-  const S = () => ++n * 7 + 3;
-  if (wing === 'hall'){
-    // a master leading a file of younglings up and down the processional, and two knights walking the other way round
-    const loop = [[-14, -36], [14, -36], [14, 36], [-14, 36]];
-    walk(jedi(S(), true), loop, 1.2, 0);
-    for (let i = 1; i <= 4; i++) walk(youngling(S()), loop, 1.2, -1.4 * i);
-    const back = [...loop].reverse();
-    walk(jedi(S()), back, 1.3, 40); walk(jedi(S(), false), back, 1.3, 41.3);
-    // two knights by the west colossus, talking; a master by the pool watching the map
-    stand(jedi(S()), -27, 0, 6, face(-27, 6, -25.8, 7.4), 1); stand(jedi(S(), true), -25.8, 0, 7.4, face(-25.8, 7.4, -27, 6), 2);
-    stand(jedi(S(), true), 9.5, 0.4, -9.5, face(9.5, -9.5, 0, 0), 3);
-  } else if (wing === 'council'){
-    // two masters at the table, over the galaxy, and one walking round it, deep in thought
-    stand(jedi(S(), true), -4.6, 0.45, -3.6, face(-4.6, -3.6, 0, 0), 1);
-    stand(jedi(S()), 4.6, 0.45, -3.6, face(4.6, -3.6, 0, 0), 2);
-    const ring = []; for (let i = 0; i < 16; i++){ const a = -i / 16 * PI * 2; ring.push([Math.cos(a) * 7.2, Math.sin(a) * 7.2]); }
-    walk(jedi(S(), true), ring, 0.6, 0, 0.45);
-  } else if (wing === 'training'){
-    // a class on the training grounds' mat: a row of younglings drilling a form on their master's count
-    const [gx, gz] = [-6, -18];
-    const m = stand(jedi(S(), false), gx, 0, gz - 5.2, 0, 1);
-    drill(saber(m, 0x7aff6a, 0.9), 1.6, 0);
-    for (let i = 0; i < 5; i++){
-      const y = youngling(S()), x = gx - 4 + i * 2;
-      place(y, x, 0, gz - 2.4, PI);
-      drill(saber(y, BLADES[i % 3]), 1.6, 0.35);
-    }
-    // two younglings sparring on the proving ground, either side of its ring
-    const [px, pz] = [-6, 18];
-    for (const s of [-1, 1]){
-      const y = youngling(S()); place(y, px + s * 2.6, 0, pz, face(px + s * 2.6, pz, px, pz));
-      drill(saber(y, BLADES[(s + 1) / 2 * 2]), 2.4, s > 0 ? PI : 0);
-    }
-    // one at the sparring hall, turning blasts from the remotes; a knight watching from the side
-    { const y = youngling(S()); place(y, 14, 0, 3.2, PI); drill(saber(y, 0x5ad2ff), 3.1, 0);
-      anim(y, (o, t) => { o.rotation.y = PI + Math.sin(t * 0.8) * 0.7; }); }
-    stand(jedi(S()), 20.5, 0, 6.5, face(20.5, 6.5, 14, 3), 4);
-  } else if (wing === 'archives'){
-    // archivists walking the reading floor round the desk, and one at the desk
-    const loop = [[-18, -6.4], [18, -6.4], [18, 6.4], [-18, 6.4]];
-    walk(archivist(S()), loop, 0.8, 0); walk(archivist(S()), loop, 0.8, 37);
-    stand(archivist(S()), 0, 0.35, -3.3, 0, 2);
-    stand(jedi(S(), true), -14, 0, 11.25, PI / 2, 3);   // (reading down an aisle)
-  } else if (wing === 'forge'){
-    // a Jedi kneeling in meditation at the edge of the circle, facing the heart crystal
-    const k = jedi(S(), true); place(k, -4.2, 0.35, 9.2, face(-4.2, 9.2, 0, 6)); k.scale.set(1, 0.62, 1);
-    anim(k, (o, t) => { o.position.y = 0.35 + Math.sin(t * 0.7) * 0.01; });
+  if (!foldM){ foldM = toon(0xffffff).clone(); foldM.vertexColors = true; }
+  const body = new THREE.Mesh(mergeGeometries(geos, false), foldM);
+  inkify(body, 0.025); g.add(body);
+  if (kind === 'pupil'){   // (the training saber, held up)
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.75, 6), new THREE.MeshBasicMaterial({ color: 0x7aff6a, toneMapped: false }));
+    b.position.set(0.24, 0.9, 0.3); b.rotation.x = 0.6; g.add(b);
   }
+  return g;
+}
+function put(F, x, z, yaw){
+  F.g.position.set(x, 0, z); F.g.rotation.y = yaw;
+  F.g.traverse(o => { o.userData.noBake = true; o.userData.passThrough = true; });
+  shared.arenaGroup.add(F.g);
+}
+
+// a closed loop of points, walked at `speed` m/s, `lead` metres along it: where on it at time t, and which way it heads
+function onLoop(pts, speed, lead, t){
+  let L = 0; const seg = [];
+  for (let i = 0; i < pts.length; i++){ const a = pts[i], b = pts[(i + 1) % pts.length], d = Math.hypot(b[0] - a[0], b[1] - a[1]); seg.push([a, b, d, L]); L += d; }
+  const d = ((t * speed + lead) % L + L) % L, s = seg.find(q => d >= q[3] && d < q[3] + q[2]) || seg[0], k = (d - s[3]) / (s[2] || 1);
+  return [s[0][0] + (s[1][0] - s[0][0]) * k, s[0][1] + (s[1][1] - s[0][1]) * k, Math.atan2(s[1][0] - s[0][0], s[1][1] - s[0][1])];
+}
+
+/* build a wing's people (world/arenas/tython.js, inside the wing's build: they go with the arena when it's cleared) */
+export function templeFolk(wing){
+  folk = [];
+  let n = 0;
+  for (const p of TEMPLE_FOLK[wing] || []){
+    const seed = p.seed ?? n++, F = figure(p.kind, seed), L = FOLK_LOOKS[p.kind];
+    const cheap = standIn(p.kind, L.looks[seed % L.looks.length]);
+    const at = p.loop ? onLoop(p.loop, p.speed, p.lead || 0, G.gt || 0) : [p.x, p.z, p.face || 0];
+    if (p.toward) at[2] = Math.atan2(p.toward[0] - at[0], p.toward[1] - at[1]);
+    put(F, at[0], at[1], at[2]);
+    if (p.toward) F.look = { x: p.toward[0], z: p.toward[1] };
+    stepFigure(F, 0); F.target.vis.updateWorldMatrix(true, true); settleCloth(F.target, 1);
+    cheap.position.copy(F.g.position); cheap.position.y = groundAt(cheap.position.x, cheap.position.z, 3); cheap.rotation.y = F.g.rotation.y; if (p.kneel) cheap.scale.y = 0.62;
+    cheap.traverse(o => { o.userData.noBake = true; o.userData.passThrough = true; });
+    shared.arenaGroup.add(cheap);
+    F.g.visible = false;
+    folk.push({ F, cheap, p, near: false });
+  }
+}
+
+/* once a frame in the temple (game/hub.js updateHub) */
+export function stepTempleFolk(dt){
+  if (!folk.length) return;
+  if (!folk[0].F.g.parent){ folk = []; return; }   // (the wing was cleared away)
+  const t = G.gt, me = playerPos();
+  // who is near enough to be the full figure: the nearest few inside NEAR.dist
+  const d = folk.map(f => Math.hypot(f.cheap.position.x - me.x, f.cheap.position.z - me.z));
+  const order = folk.map((_, i) => i).filter(i => d[i] < NEAR.dist).sort((a, b) => d[a] - d[b]).slice(0, NEAR.max);
+  folk.forEach((f, i) => {
+    const near = order.includes(i);
+    if (near !== f.near){
+      f.near = near; f.F.g.visible = near; f.cheap.visible = !near;
+      if (near){ f.F.g.position.copy(f.cheap.position); f.F.g.rotation.y = f.cheap.rotation.y; stepFigure(f.F, 0); f.F.target.vis.updateWorldMatrix(true, true); settleCloth(f.F.target, 0.4); }
+    }
+  });
+  for (const f of folk){
+    const { F, p, cheap } = f;
+    if (p.loop){
+      const [x, z, yaw] = onLoop(p.loop, p.speed, p.lead || 0, t);
+      cheap.position.x = x; cheap.position.z = z;
+      // (turning a corner: the body comes round over a moment, not in one jump)
+      cheap.rotation.y += Math.atan2(Math.sin(yaw - cheap.rotation.y), Math.cos(yaw - cheap.rotation.y)) * Math.min(1, dt * 6);
+      cheap.position.y = groundAt(x, z, 3) + Math.abs(Math.sin(t * 5.6)) * 0.04;
+      F.walking = true;
+    }
+    if (!f.near) continue;   // (the stand-in is all that's seen: the figure rests)
+    F.g.position.x = cheap.position.x; F.g.position.z = cheap.position.z; F.g.rotation.y = cheap.rotation.y;
+    // a pair in conversation takes turns: each talks for a few seconds, then listens
+    if (p.talk != null) F.talk = Math.floor(t / 4.5 + p.talk) % 2 === 0;
+    stepFigure(F, dt);
+    if (p.drill) drill(F, t, p.drill, p.phase || 0);
+    if (p.kneel) kneel(F);
+  }
+}
+
+/* the drill: the saber arm comes up into a guard, cuts down and across, back to guard, on the master's count */
+function drill(F, t, rate, phase){
+  const R = F.target.rig, k = t * rate + phase, cut = Math.sin(k), across = Math.cos(k);
+  R.armR.sh.rotation.set(-1.05 - cut * 0.55, -0.25 + across * 0.3, -0.35);
+  R.armR.el.rotation.set(-0.55 + cut * 0.35, 0, 0);
+  R.armL.sh.rotation.set(-0.7 - cut * 0.4, 0.3, 0.35);
+  R.armL.el.rotation.set(-0.9, 0, 0);
+  R.torso.rotation.y = across * 0.18;
+}
+/* kneeling in meditation: legs folded under, hands on the knees, the head a little bowed */
+function kneel(F){
+  const R = F.target.rig;
+  R.legL.hip.rotation.set(-1.45, 0, -0.12); R.legL.knee.rotation.set(2.4, 0, 0);
+  R.legR.hip.rotation.set(-1.45, 0, 0.12); R.legR.knee.rotation.set(2.4, 0, 0);
+  R.armL.sh.rotation.set(-0.55, 0, 0.2); R.armL.el.rotation.set(-0.7, 0, 0);
+  R.armR.sh.rotation.set(-0.55, 0, -0.2); R.armR.el.rotation.set(-0.7, 0, 0);
+  R.head.rotation.x = 0.25;
+  F.target.vis.position.y = -0.55;   // (down onto the knees)
 }

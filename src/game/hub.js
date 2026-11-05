@@ -23,6 +23,7 @@ import { onRunChange } from '../net/foes.js';
 import { missionTitle } from './mission.js';
 import { S } from '../audio/sfx.js';
 import { setHubInteract, INTERACT_KEY } from './interact.js';
+import { stepTempleFolk } from '../world/arenas/tython-folk.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -98,6 +99,7 @@ export function updateHub(dt){
   const el = prompt();
   if (!G.hub || G.mode !== 'play'){ if (el && shownKey){ el.classList.remove('on'); shownKey = ''; } return; }
   for (const a of shared.hubAnim || []) a.fn(a.obj, G.gt, a.base);
+  stepTempleFolk(dt);   // the temple's people going about their day (world/arenas/tython-folk.js)
   near = pickNear();
   const key = near ? near.id + (pad.active ? ':pad' : '') : '';
   if (el && key !== shownKey){

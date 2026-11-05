@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// The temple's STATION PANEL (game/hub.js): tap H at a station and its panel opens over the temple, holding the game still
+// The temple's STATION PANEL (game/hub.js): tap F at a station and its panel opens over the temple, holding the game still
 // and freeing the cursor the way the sandbox panel does. Each station lists what it does: the Temple Map and the waystones
 // travel to any wing (and show who is where in co-op), the Council Table launches the modes, the Training Wing's stations
 // the training grounds, the sandbox and survival, the Archives the codex, your profile and the mission records, the Saber

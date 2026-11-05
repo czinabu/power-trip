@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// WALK-UP LINES: what the people on your side say when you walk up to them in a lull and tap H (game/talk.js). Optional
+// WALK-UP LINES: what the people on your side say when you walk up to them in a lull and tap F (game/talk.js). Optional
 // story, never needed: nobody repeats themselves until they've said everything they have (then they go round again).
 //
 // By the name over their head: squadmates (data/allies.js rosters), a chapter's guest fighters, the escort you walk

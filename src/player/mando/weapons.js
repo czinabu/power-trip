@@ -34,6 +34,7 @@ import { trainHeld } from '../../game/upgrades.js';
 import { squadStanding } from '../../allies/squad.js';
 import { launchAtRocket } from './gadgets.js';
 import { gunLook, TROOPER } from '../../data/trooper.js';
+import { coverHoldsFire, coverShotMul, heroSuppSpread } from '../trooper/cover.js';
 
 /* ============================================================
    MANDALORIAN — jetpack, dual blasters, flamethrower, wrist rockets
@@ -244,6 +245,7 @@ export function hitMarker(kind){
 }
 // AUTO weapons (dual) auto-fire while LMB is held; called each frame from the per-frame block
 export function firePistols(){
+  if (coverHoldsFire()){ if (player.firing) player.shotQ = true; return; }   // the trooper ducked in cover: he rises first (trooper/cover.js)
   if (mandoWeapon().fire === 'auto') fireTrigger();
 }
 // the gap to the next shot: a spinning gun's shrinks as it winds up (W.spin), and fire-rate upgrades shorten every gun's
@@ -339,10 +341,10 @@ function fireBlaster(W, hand){
   const spd01 = clamp(hsp / (MANDO.airSpeedMax || 22), 0, 1);
   // a SLIDE is a steady firing line (parkour.js): no speed bloom, and shots out of any parkour move hit harder
   const inacc = player.slideT > 0 ? 0 : spd01 * 0.7 + (player.boosting ? 1.0 : (!player.grounded && !player.hovering ? 0.35 : 0));
-  const dmg = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
+  const dmg = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * coverShotMul() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
   const foMin = steadyAim ? Math.min(1, (W.foMin || 1) + 0.25) : W.foMin;   // bracing stretches effective range
   const baseSpread = steadyAim ? W.braceSpread : W.hipSpread;
-  const spread = baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028);   // boosting blooms the cone hard
+  const spread = (baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028)) * heroSuppSpread();   // boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
   const opts = { spread, foMin, to: aim };
   const col = W.col || (steadyAim ? 0xffd24a : 0xffb84a);   // braced bolts glint hotter (a long gun, or the trooper's guns, fire their own colour)
   if (hand){   // one named pistol (the trooper's twin DC-17s)

@@ -18,7 +18,7 @@ export const TROOPER_WEAPONS = {
              heat: 0.07, cool: 0.8, overCool: 0.52, hipSpread: 0.014, braceSpread: 0.006, braceDmg: 1, foStart: 10, foEnd: 26, foMin: 0.4,
              vent: 0.5, trooper: true },
   // the Commando's anti-armour module (key 3): one heavy rocket a pull, a long reload between, and it cooks the gun
-  launcher: { name: 'AT LAUNCHER', short: 'LAUNCHER', fire: 'launcher', fireCd: 1.6, dmg: 130, radius: 4.6, knock: 26, speed: 30, dual: false, col: 0xffa04a,
+  launcher: { name: 'AT LAUNCHER', short: 'LAUNCHER', fire: 'launcher', fireCd: 2.6, dmg: 100, radius: 3.4, knock: 26, speed: 30, dual: false, col: 0xffa04a,
               heat: 0.45, cool: 0.5, overCool: 0.4, hipSpread: 0, braceSpread: 0, braceDmg: 1, foStart: 999, foEnd: 999, foMin: 1,
               twoHand: true, vent: 0.9, trooper: true },
 };
@@ -74,6 +74,38 @@ export const TROOPER = {
   // RIFLE BASH (E): a short shove with the stock that staggers whoever is right in front
   bash: { range: 2.6, arc: 0.9, dmg: 14, knock: 9, stun: 0.9, cd: 0.7 },
   squadMin: 2,   // the trooper always brings at least this many clones, in every mode that allows a squad
+  /* COVER (C, pad L3: player/trooper/cover.js). No jetpack, no blade, thin plate: he lives behind things. C beside a
+     crate, wall or pillar puts his back to it; A/D slides along it; held aim (RMB) or the trigger LEANS him out to
+     shoot (over LOW cover he rises, round TALL cover he steps out at the edge); let go and he ducks back. C again, a
+     roll, a jump (over low cover: a vault) or walking away leaves it. A slide or a roll that ends beside cover settles in.
+       reach   C finds a face this close (body centre to face, m) · `slideReach` / `rollReach` at the end of a slide / roll
+       minH    a solid at least this tall over the feet is cover · below `tallH` it's LOW (crouch behind, rise to shoot)
+       hug     body centre to the face while in it · `move` the shuffle along it (× run speed) · `edge` how far in from
+               a box's end he can shuffle; past it he's at the EDGE of tall cover, where he can lean round it
+       lean    round tall cover the lean steps him this far past the edge · `peek` the trigger alone pops him out for
+               this long after the last shot · `rise` s to come up / duck down
+       hidden  damage × from in front of the cover while ducked · `peekDr` while leaning out to shoot · from the side or
+               behind (a flank) the cover does nothing
+       leave   s of walking straight away from the face before he steps out of it */
+  cover: { reach: 1.75, slideReach: 2.4, rollReach: 2.2, minH: 0.95, tallH: 1.85, hug: 0.66, move: 0.55, edge: 0.35,
+           lean: 0.75, peek: 0.5, rise: 0.14, hidden: 0.3, peekDr: 0.45, front: 0.25, leave: 0.22 },
+  /* ARMOUR: clone plate, not beskar. Out in the open (not in cover, not rolling) every hit lands `open` × as hard;
+     in cover the face does the soaking (cover.hidden / peekDr above). The signature fork moves both: data/trooper-progression.js */
+  armor: { open: 1.22 },
+  /* SUPPRESSION, both ways.
+     ON HIM: a hostile bolt that tears past within `near` m adds `perBolt` (a hit adds `perHit`), up to 1; it drains at
+     `decay` a second (`coverDecay` ducked in cover). Past `from` it shakes his aim (spread × up to 1 + `spread`), greys
+     the edges of the screen and slows his feet (`slow` at full). Ducking into cover is the cure.
+     BY HIM: his own bolts that pass within `near` m of a foe (or hit it) add `perBolt` / `perHit` to its fear; at 1 the
+     foe is PINNED for `pin` s (the squad's SUPPRESS order: it crawls and takes its time over its shots), and a pinned
+     line trooper ducks to cover if it has one. A foe's fear drains at `decay` a second. */
+  suppress: {
+    onHero: { near: 2.4, perBolt: 0.09, perHit: 0.14, decay: 0.32, coverDecay: 0.9, from: 0.35, spread: 2.2, slow: 0.82 },
+    onFoe:  { near: 1.8, perBolt: 0.11, perHit: 0.16, decay: 0.45, pin: 2.2, duck: 1.2 },
+  },
+  // JUMP: no pack under him. A short, heavy hop (× CFG.player.jumpVel) that falls harder than it rose (× gravity): enough to
+  // vault, climb and clear a step, never a bound. No wall-runs, no wall-kicks. In the air the keys only nudge him.
+  jump: { vel: 0.7, fall: 1.7, airControl: 0.3 },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.
   // Each spends ability energy (the bar under vitality) and has a cooldown; mastery ranks (data/mastery.js) retune them.
   // RECON SCAN (Q): a pulse that marks every foe within `range` for `time` s: marked foes take `mark`× damage from
@@ -91,8 +123,19 @@ export const TROOPER = {
   breach: { cost: 34, cd: 11, fuse: 1.2, range: 9, arc: 0.85, dmg: 95, knock: 30, lift: 9 },
   // ARTILLERY BARRAGE (Z, Commander): `shells` shells land round the crosshair `delay` s after the call, `gap` s apart
   artillery: { cost: 60, cd: 20, delay: 1.3, shells: 6, gap: 0.22, spread: 4.5, radius: 4.5, dmg: 75, knock: 22, reach: 40 },
-  // ANTI-ARMOUR LAUNCHER (3, Commando): a slow, heavy rocket off the rifle's launcher module; the Commando also hits harder
-  launcher: { dmg: 1.18 },
+  // ANTI-ARMOUR LAUNCHER (3, Commando): a slow, heavy rocket off the rifle's launcher module
+  launcher: { dmg: 1.1 },
+  /* THE SIGNATURE FORK (data/trooper-progression.js), balanced against each other in tools/trooper-sim (plan forks):
+     ARC COMMANDER  the squad's damage: squad bolts × squadDmg, his own shots out of cover × coverDmg, and a little
+                    grit (damage taken × taken)
+     COMMANDO       the front line: +hp vitality, the open-ground penalty × open (1 / armor.open: gone), what cover lets
+                    through × cover, a braced aim
+                    (RMB, feet planted) takes × brace from in front, foes turn on the squad × taunt as often, suppression
+                    builds × suppRes as fast, and a little more punch (his damage × dmg) */
+  fork: {
+    commander: { squadDmg: 1.3, coverDmg: 1.15, taken: 0.9 },
+    commando:  { dmg: 1.1, hp: 40, open: 1 / 1.22, cover: 0.85, brace: 0.72, taunt: 0.35, suppRes: 0.55 },
+  },
   // GUNSHIP STRAFING RUN (X, the final power): a gunship flies a line from the hero toward the crosshair and lays
   // `blasts` blasts along it, `gap` s apart
   strafe: { cost: 80, cd: 26, length: 34, blasts: 9, gap: 0.12, delay: 1.0, radius: 3.8, dmg: 70, knock: 18 },

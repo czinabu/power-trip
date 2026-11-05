@@ -106,9 +106,10 @@ const CONTROLS = {
     { title: 'MOVE', rows: [
       ['W A S D', 'Move'],
       ['MOUSE', 'Aim'],
-      ['SPACE', 'Jump', 'Run and jump at low cover to vault it; jump at a ledge to climb · no jetpack: the trooper fights on foot'],
-      ['SHIFT', 'Combat roll', 'A dive any way you press, invulnerable through the throw, and the gun stays on target'],
-      ['C', 'Slide', 'Feet first out of a run, firing as you go'],
+      ['SPACE', 'Jump', 'A short, heavy hop: no jetpack, no wall-runs · run and jump at low cover to vault it; jump at a ledge to climb · in low cover, SPACE vaults it'],
+      ['C', 'Take cover', 'Beside a crate, wall or pillar: your back to it, and it soaks what comes from in front (not from the side: watch for flankers) · A / D slides along it · C again or walk away to leave · at a run with nothing beside you, C is the slide (feet first, firing as you go), and a slide or a roll that ends by cover settles in'],
+      ['HOLD RMB (in cover)', 'Lean out', 'Rise over low cover or step out round the edge of tall cover to aim · let go to duck back · LMB alone pops up for the shot · ducked, fire that tears past you stops suppressing you'],
+      ['SHIFT', 'Combat roll', 'A dive any way you press, invulnerable through the throw, and the gun stays on target · out of cover, the way to the next one'],
       ['ALT', 'Strafe', 'Stay square to the crosshair while you move · Settings · STRAFE: TOGGLE (the default) turns it on with one press and off with the next, HOLD strafes only while ALT is held'],
     ]},
     { title: 'FIGHT', rows: [

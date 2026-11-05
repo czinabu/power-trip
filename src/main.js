@@ -304,3 +304,10 @@ import { duelOf as bubbleDuelOf } from './enemies/bubble.js';
 import { BUBBLE as BUBBLE_CFG } from './data/duel-bubble.js';
 import { localPlayer as bubbleHero } from './player/players.js';
 Object.assign(window.GAME, { bubble: { cfg: BUBBLE_CFG, duelOf: bubbleDuelOf, get on(){ return !!bubbleDuelOf(bubbleHero); } } });   // the duel bubble (enemies/bubble.js), for tests
+/* the ARC trooper's cover fight (player/trooper/cover.js, enemies/coverfight.js), for tests and tools/trooper-sim */
+import * as TROOPER_COVER from './player/trooper/cover.js';
+import * as COVER_FIGHT from './enemies/coverfight.js';
+import { TROOPER_STORE, TROOPER_SKILLS } from './data/trooper-progression.js';
+import { clearSquad } from './allies/squad.js';
+Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
+window.GAME.squad.clearSquad = clearSquad;

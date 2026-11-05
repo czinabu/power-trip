@@ -40,6 +40,7 @@ import { victory } from '../game/summary.js';
 import { meetBoss } from '../game/codex.js';
 import { hooks } from '../net/run.js';
 import { hurtPlayer } from '../player/damage.js';
+import { killCam } from '../engine/killcam.js';
 
 // the final bosses by id (boss/vexis.js registers his). Kept on the function itself, so a boss's file can register
 // whichever order the modules load in
@@ -325,6 +326,7 @@ const DEFEAT = {
     for (const o of enemies){ if (o !== e && !o.dead){ o.dead = true; o.state = 'fade'; o.st = 0.6; hideIndicators(o); } }
     for (const r of rings) scene.remove(r.mesh); rings.length = 0;
     for (let i = bolts.length - 1; i >= 0; i--){ if (!bolts[i].friendly){ scene.remove(bolts[i].mesh); bolts.splice(i, 1); } }
+    killCam('boss', e);   // his fall, side-on and slowed (engine/killcam.js): the field is clear by now
     showBanner(F.def.fallLine || (F.def.name + ' FALLS'), '', 3.2);
     S.roar(e.group.position); S.boom(e.group.position, 2);
     F.D.look.defeatStart && F.D.look.defeatStart(e, M);

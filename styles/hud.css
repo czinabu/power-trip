@@ -686,3 +686,7 @@ body.objview #objlist{opacity:.25}
 #cutscene .cs-vote span{color:var(--ink);margin-left:2px}
 #cutscene.voted .cs-vote{animation:none;color:var(--ink-soft);border-color:var(--edge-mid)}
 @keyframes csVote{from{box-shadow:0 0 0 rgba(255,210,74,0)}to{box-shadow:0 0 14px rgba(255,210,74,.45)}}
+/* THE KILL CAM's letterbox (engine/killcam.js): two thin bars that slide in with a big kill's cinematic shot */
+.kc-bar{position:fixed;left:0;right:0;height:0;background:#000;pointer-events:none}
+.kc-bar.top{top:0}
+.kc-bar.bot{bottom:0}

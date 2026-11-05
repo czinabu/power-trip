@@ -59,6 +59,7 @@ export const G = {
   flashScale: 1,         // player preference: full-screen flash brightness (0 = off, 1.5 = extra)
   camSway: 0.8,          // player preference: how much the Jedi's camera trails him as he moves (1 = Jedi Academy's, 0 = none)
   finSlow: true, finCam: true,   // player preference: a saber finisher's slow-motion beat and its camera push (Settings · FINISHERS)
+  killCam: true,         // player preference: THE KILL CAM, a big kill's short cinematic shot and slow motion (engine/killcam.js)
   shakeScale: 1,         // player preference: screen shake strength (0 = off, 1.5 = extra)
   fov: 60,               // player preference: resting vertical FOV in degrees (the FOV slider, 50-90)
   sbMenu: false,         // the sandbox B panel is open (same cinematic cuts as the pause screen)

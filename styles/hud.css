@@ -690,3 +690,16 @@ body.objview #objlist{opacity:.25}
 .kc-bar{position:fixed;left:0;right:0;height:0;background:#000;pointer-events:none}
 .kc-bar.top{top:0}
 .kc-bar.bot{bottom:0}
+
+/* THE ARC TROOPER (player/trooper/cover.js): suppression greys and darkens the edges of the screen; the cover chip under
+   the reticle says he's in cover (and when he's leaning out of it) */
+#suppvig{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s;
+  background:radial-gradient(ellipse at center, transparent 42%, rgba(30,34,40,.55) 78%, rgba(12,14,18,.85) 100%);
+  backdrop-filter:saturate(.55);-webkit-backdrop-filter:saturate(.55);
+  -webkit-mask-image:radial-gradient(ellipse at center, transparent 38%, #000 80%);mask-image:radial-gradient(ellipse at center, transparent 38%, #000 80%)}
+#coverchip{position:fixed;left:50%;top:calc(50% + 46px);transform:translateX(-50%);pointer-events:none;z-index:6;opacity:0;
+  transition:opacity .15s;font:700 11px/1 var(--font-display, sans-serif);letter-spacing:.18em;color:#bfe8ff;
+  padding:4px 9px 4px 24px;border:1px solid rgba(120,200,255,.45);border-radius:3px;background:rgba(10,20,30,.45);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1 2 3.5v4C2 11 4.6 14 8 15c3.4-1 6-4 6-7.5v-4z' fill='none' stroke='%23bfe8ff' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-size:12px 12px;background-position:7px 50%}
+#coverchip.peek{color:#ffd9a0;border-color:rgba(255,190,110,.5)}

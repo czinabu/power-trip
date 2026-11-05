@@ -5,7 +5,9 @@ import { CFG } from '../data/config.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { shared, G, keys, player, isGunner } from '../state.js';
+import { shared, G, keys, player, isGunner, isTrooper } from '../state.js';
+import { TROOPER } from '../data/trooper.js';
+import { updateCover, heroSuppSlow } from './trooper/cover.js';
 import { strafing } from './strafe.js';
 import { MANDO, JEDI_FORCE, JUMP_HOLD_THRESH, forceJumpPow } from '../data/mando.js';
 import { stance, maxHp } from './helpers.js';
@@ -37,6 +39,7 @@ export function updateMovement(dt, pp, st, f, r){
                    * (player.boon && player.boon.adrenal && player.hp < maxHp()*0.35 ? 1.18 : 1)    // ADRENALINE boon — desperate burst
                    * focusMoveMul()                                                      // FORCE FOCUS — lighter on the feet in flow
                    * (player.gunSlow || 1)                                               // the HEAVY REPEATER weighs him down while it fires (mando/weapons.js)
+                   * heroSuppSlow()                                                      // SUPPRESSED (the ARC trooper): heavier feet under fire (trooper/cover.js)
                    * (player.atkT > 0 && !isGunner() ? swingMoveMul() : 1)       // a swing plants the feet: spacing is yours to manage (Djem So walks its cuts in)
                    * (player.landStagT > 0 ? MOVE.staggerMove : 1)                      // HARD LANDING — the knees are still buckled
                    * (player.flinchT > 0 ? CFG.player.flinch.move : 1)                  // HIT REACTION — reeling from a blow
@@ -67,8 +70,10 @@ export function updateMovement(dt, pp, st, f, r){
     }
   }
   if (player.slideT > 0) player.slideT -= dt;
-  const mandoAir = isGunner() && !player.grounded && !player.wallRun && !player.hang;
-  if (mandoAir){
+  const mandoAir = isGunner() && !isTrooper() && !player.grounded && !player.wallRun && !player.hang;   // (the trooper has no pack: a jump is a commitment)
+  if (player.cover && updateCover(dt, pp, want, moving)){
+    // IN COVER (the ARC trooper): the face owns his feet: a shuffle along it, the lean out and back (trooper/cover.js)
+  } else if (mandoAir){
     // MOMENTUM FLIGHT — WASD ADDS horizontal thrust; release and the speed CARRIES (low drag). Pressing against the
     // momentum counter-thrusts, so he turns on a dime. A soft cap keeps top speed sane; HOVERING (RMB) is a firing
     // platform that strafes quickly and holds still when you let go. Tuning: data/mobility.js MANDO_MOBILITY.air.
@@ -126,7 +131,7 @@ export function updateMovement(dt, pp, st, f, r){
       const gunRun = isGunner() && !airborne;   // Mando and trooper on their feet: quick start, firm plant
       let accel = gunRun ? (against ? MOVE.gunnerBrake : MOVE.gunnerAccel) * (st.accel || 1) : run ? (against ? MOVE.runBrake : MOVE.runAccel) * (st.accel || 1)
                       : (against ? MOVE.brake : MOVE.accel) * (st.accel || 1) * (player.sprinting && !against ? MOVE.sprintAccel : 1);
-      if (airborne) accel = MOVE.accel * (st.accel || 1) * (player.gliding ? 0.5 : MOVE.airControl) * airControlMul();   // a leap in a fight steers less
+      if (airborne) accel = MOVE.accel * (st.accel || 1) * (player.gliding ? 0.5 : isTrooper() ? TROOPER.jump.airControl : MOVE.airControl) * airControlMul();   // a leap in a fight steers less
       if (dl > 0.001) player.moveVel.addScaledVector(TMP.normalize(), Math.min(dl, accel * dt));
     }
     pp.addScaledVector(player.moveVel, dt);
@@ -203,9 +208,9 @@ export function updateGravityAndLanding(dt, pp){
   updateWallRun(dt, pp);
   // gravity / landing — gentled while the Jedi is gliding (graceful arc), fully cancelled during the Mando hover.
   // A plain Jedi jump falls HARDER than it rose (no hang at the apex) and a wall-run barely loses height.
-  const jediFall = !isGunner() && !player.gliding && player.vy < 0;
+  const jediFall = (!isGunner() || isTrooper()) && !player.gliding && player.vy < 0;   // (the trooper falls like a man with a pack of gear: data/trooper.js jump)
   const gMul = player.hovering || (player.airCut && player.airCut.phase !== 'fall') ? 0 :   // (the aerial cut flies its own line: jedi/aerial.js)
-               player.wallRun ? MOVE.wallRunGravity : player.gliding ? JEDI_FORCE.riseGravity : jediFall ? MOVE.fallGravity : 1;
+               player.wallRun ? MOVE.wallRunGravity : player.gliding ? JEDI_FORCE.riseGravity : jediFall ? (isTrooper() ? TROOPER.jump.fall : MOVE.fallGravity) : 1;
   player.vy -= CFG.player.gravity * gMul * dt;
   if (player.gliding && player.vy < -JEDI_FORCE.glideFall) player.vy = -JEDI_FORCE.glideFall;   // graceful (not floaty) descent
   if (player.vy < -MOVE.maxFall) player.vy = -MOVE.maxFall;

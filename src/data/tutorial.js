@@ -551,6 +551,17 @@ export const LESSONS = {
         { say: 'They fire out of a roll. Never stop shooting.',
           keys: 'SHIFT · LMB', do: 'Roll, firing as you come up', ev: 'dash', need: 1 },
       ] },
+    { id: 'cover', group: 'basics', name: 'IN COVER', sub: 'Take cover, lean out, roll to the next',
+      done: 'Out in the open, that armour will not save you. Behind a wall, it will.',
+      steps: [
+        { sec: 'IN COVER', say: 'This plate stops less than you think. Out in the open you are a target. Get behind something.',
+          keys: 'C', do: 'Walk up to the crate on the west lane and press C to take cover', ev: 'cover', need: 1, mark: [-11, 5.2] },
+        { say: 'Hold aim and you come up over it. Let go and you drop back down. Shoot, then hide.',
+          keys: 'HOLD RMB · LMB', do: 'Lean out of cover and drop 2 targets', ev: 'kill', need: 2, respawn: true,
+          spawn: dummies([[-13, -10], [-9, -11]]) },
+        { say: 'Never stay in one spot too long. Roll to the next crate. You settle into cover at the end of it.',
+          keys: 'C · SHIFT', do: 'Leave cover and roll into the next crate', ev: 'cover', need: 1, mark: [-11, 0.2] },
+      ] },
     { id: 'close', group: 'basics', name: 'GRENADES AND THE STOCK', sub: 'Frag out, and the rifle bash',
       done: 'That is the basics. The rest you learn with the squad.',
       steps: [

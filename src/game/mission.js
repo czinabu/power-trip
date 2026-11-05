@@ -3,6 +3,7 @@
 // walk someone across the field, chase a quarry, win a duel.
 // Built from the objective kit (game/objectives.js) so later modes can reuse the same pieces.
 
+import { champRule, trooperInFight } from '../enemies/coverfight.js';
 import { autosave } from './autosave.js';
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
@@ -1203,6 +1204,8 @@ function spawnInquisitor(o, at = o.at, opts = {}){
   const look = e.group.userData.look;
   e.hp = e.maxHp = Math.round(e.hp * o.hp * heroScale(SCALE.bossHp, heroesHere()));
   e.t = { ...e.t, dmg: e.t.dmg * o.dmg, score: 20 };   // a copy: never mutate the shared type
+  // a named GUNMAN against the ARC trooper: armoured against a stand-and-shoot, in cover and flushing him out of his (enemies/coverfight.js)
+  if (e.t.ranged && !e.ff && !e.dmgRule && trooperInFight()) e.dmgRule = champRule;
   // every named duellist fights in a form at a rank (data/foe-forms.js NAMED_FORMS): its mission's form (a trial's FORM MASTER, its blade in that form's colour), else its name's
   if (e.dp && e.ff){
     const N = namedForm(o, o.foe);

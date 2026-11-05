@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "smoke": "node tools/smoke/smoke.mjs",
     "smoke:coop": "node tools/smoke/coop.mjs",
+    "smoke:trooper": "node tools/smoke/trooper.mjs",
+    "sim:trooper": "node tools/trooper-sim/sim.mjs",
     "smoke:maps": "node tools/smoke/maps.mjs",
     "smoke:saves": "node tools/smoke/saves.mjs",
     "smoke:coop-run": "node tools/smoke/coop-run.mjs",

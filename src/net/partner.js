@@ -17,6 +17,7 @@ import { wornPicks } from '../data/customize.js';
 import { playerPos } from '../player/helpers.js';
 import { heroAim } from '../player/aim.js';
 import { addPlayer, removePlayer, worldKey } from '../player/players.js';
+import { coverInfo } from '../player/trooper/cover.js';
 import { addHeroReviver, addReviverSource, addTeamStanding, heroDownState, marker } from '../game/revive.js';
 import { showBanner } from '../ui/banners.js';
 import { makeChip, placeChip, hideChip } from '../ui/coop-marks.js';
@@ -120,6 +121,8 @@ on('s', (m) => {
   want.ap = +m.ap || 0;
   mate.vel.set(m.vx || 0, 0, m.vz || 0);
   mate.down = !!m.down;
+  mate.trooper = m.hero === 'trooper';   // the ARC trooper: foes fight them the cover fight (enemies/coverfight.js)
+  mate.cover = Array.isArray(m.cv) ? { nx: m.cv[0], nz: m.cv[1], low: !!m.cv[2], top: m.cv[3], hidden: !!m.cv[4] } : null;
   mate.away = !!m.pz;
   P.dn = m.dn || null;   // down and waiting to be got up: [progress %, seconds left, someone is at it]
   P.playing = !!m.play; P.world = m.w || '';
@@ -136,6 +139,8 @@ function leaves(slot){
 on('closed', (slot) => { if (slot < 0) for (const k of [...partners.keys()]) leaves(k); else leaves(slot); });
 on('bye', (m) => leaves(m.slot));   // another guest left (the host tells the rest)
 
+// this hero's cover, for the message: [nx, nz, low, top, hidden] or undefined
+function coverOut(){ const v = coverInfo(); return v ? [+v.nx.toFixed(2), +v.nz.toFixed(2), v.low ? 1 : 0, +v.top.toFixed(2), v.hidden ? 1 : 0] : undefined; }
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
@@ -148,6 +153,7 @@ export function updateCoop(dt){
         hero: G.hero, play: G.mode === 'play', down: !!player.downed || G.mode === 'dead', w: worldKey(),
         pz: G.paused || G.skillSelect ? 1 : 0,   // in a menu: foes leave them be (player/players.js huntable), and their tag says so
         ap: +heroAim().dir.y.toFixed(3),   // the aim's pitch (sine, + up): where their powers point up or down (player/aim.js)
+        cv: coverOut(),                      // the ARC trooper's cover: the host's foes aim and flank by it (trooper/cover.js)
         pose: player.rig ? readPose(player) : null, fx: fxOut() };
       const dn = heroDownState();   // down: how far along getting this hero up is, and how long they have (game/revive.js)
       if (dn) m.dn = [Math.round(dn.prog * 100), dn.out ? -1 : +dn.left.toFixed(1), dn.by ? 1 : 0];   // (-1: OUT, no clock)

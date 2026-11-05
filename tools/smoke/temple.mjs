@@ -54,8 +54,10 @@ for (const hero of HEROES){
   };
   // the Jedi's forms page (or the Mando's armory) before the fight: FIGHT
   const fight = async () => {
-    await page.waitForFunction(() => GAME.G.mode === 'play' || document.querySelector('#forms [data-go], #armory [data-go]'), null, { timeout: 20000 }).catch(() => {});
-    for (const sel of ['#forms [data-go]', '#armory [data-go]']) if (await page.isVisible(sel)) await page.click(sel, { timeout: 2000 }).catch(() => {});
+    for (let i = 0; i < 40 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){
+      for (const sel of ['#forms [data-go]', '#armory [data-go]']) if (await page.isVisible(sel)) await page.click(sel, { timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(500);
+    }
   };
   const runs = (pred) => page.waitForFunction(pred, null, { timeout: 120000 }).then(() => true, () => false);
   // pause the run, RETURN TO THE TEMPLE, confirm

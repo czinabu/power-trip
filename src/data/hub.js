@@ -21,6 +21,8 @@ import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden co
 export const HUB = {
   doorHalf: 5.5,   // metres either side of a door's middle that count as walking through it
   doorReach: 1.8,  // ...within this of the edge
+  stride: 1.5,     // how much faster the hero walks in the temple than in a fight: its halls are long (player/locomotion.js)
+  arrive: 10,      // metres in from the wall a hero walking through a door arrives
 };
 
 /* THE HIDDEN TEMPLE ON TYTHON: the Jedi's hub (world/arenas/tython.js builds its ty* wings) */
@@ -30,7 +32,7 @@ const TEMPLE_WINGS = {
     blurb: 'The heart of the temple: every wing opens off it, and every journey starts here.',
     level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap F.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
     doors: { n: 'council', e: 'training', w: 'archives', s: 'forge' },
-    spawn: [0, 30, Math.PI],
+    spawn: [0, 20, Math.PI],
     stations: [
       { id: 'map', x: 0, z: 0, name: 'TEMPLE MAP', act: 'travel', r: 11 },
     ],

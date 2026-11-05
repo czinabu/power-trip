@@ -25,6 +25,7 @@ import { missionTitle } from './mission.js';
 import { S } from '../audio/sfx.js';
 import { hostHero } from '../net/partner.js';
 import { setHubInteract, INTERACT_KEY } from './interact.js';
+import { stepTempleFolk } from '../world/arenas/tython-folk.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -49,7 +50,7 @@ export function startHub(wing, from){
   const side = from && doorSide(Hb.wings, G.hubWing, from);
   if (side){
     const [ox, oz] = SIDE_OUT[side], H = shared.arenaHalf;
-    x = ox * (H - 6); z = oz * (H - 6); yaw = Math.atan2(-ox, -oz);
+    x = ox * (H - HUB.arrive); z = oz * (H - HUB.arrive); yaw = Math.atan2(-ox, -oz);
   }
   // a co-op party spreads out side by side, each in their seat
   const seat = net.status === 'connected' ? net.slot : 0;
@@ -107,6 +108,7 @@ export function updateHub(dt){
   const el = prompt();
   if (!G.hub || G.mode !== 'play'){ if (el && shownKey){ el.classList.remove('on'); shownKey = ''; } return; }
   for (const a of shared.hubAnim || []) a.fn(a.obj, G.gt, a.base);
+  stepTempleFolk(dt);   // the temple's people going about their day (world/arenas/tython-folk.js)
   near = pickNear();
   const key = near ? near.id + (pad.active ? ':pad' : '') : '';
   if (el && key !== shownKey){

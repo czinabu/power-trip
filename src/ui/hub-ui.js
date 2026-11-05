@@ -20,7 +20,8 @@ import { openKitBench, kitBenchOpen } from './kitbench.js';
 import { setCodex, codexOpen } from './codex-ui.js';
 import { setProfile, profileOpen } from './profile-ui.js';
 import { openCodex as openForms, formsOpen } from './forms-ui.js';
-import { net } from '../net/session.js';
+import { net, on, send } from '../net/session.js';
+import { showBanner } from './banners.js';
 import { coopRun } from '../net/run.js';
 import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
@@ -60,10 +61,10 @@ function options(s){
       }
       const sv = survivalUnlocked();
       return [
-        B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
-        B('ARCADE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
-        B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), sv ? null : 'Beat the campaign as Jedi and Mando'),
+        B('ARCADE', 'A random mission, dealt fresh', () => askParty('AN ARCADE MISSION', () => hubLaunch('mission', randomArcadeId()))),
+        B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), sv ? null : 'Beat the campaign as Jedi and Mando'),
         B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
       ];
     }
@@ -82,7 +83,7 @@ function options(s){
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
-    case 'proving': return [B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando')];
+    case 'proving': return [B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando')];
     case 'codex': return [B('THE CODEX', 'Everyone you have met, foe or friend', () => hubOpenPanel(() => setCodex(true), codexOpen))];
     case 'profile': return [B('YOUR HOLOCRON', 'Your rank, the Force Tree and your deck', () => hubOpenPanel(() => setProfile(true), profileOpen))];
     case 'records': return [B('MISSION RECORDS', 'Every story mission, and what you have cleared', () => { hubToMenu('mode'); hubToMissions(); })];
@@ -101,6 +102,7 @@ function options(s){
 function hubToMissions(){ G.modeSel = 'mission'; document.getElementById('mode-mission').click(); }
 
 function render(){
+  if (ready) return renderReady();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
@@ -111,14 +113,17 @@ function render(){
 }
 
 function open(s){
-  if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return;
+  if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return false;
   station = s;
   G.skillSelect = true; G.sbMenu = true;   // holds the temple still and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open');
   if (document.pointerLockElement) document.exitPointerLock();
+  return true;
 }
 export function closeHubPanel(relock = true){
   if (!isOpen()) return;
+  if (ready && ready.host) endReady(false);   // (the host closing the ready check calls it off)
+  if (ready && !ready.host && !ready.answered) answer(false);
   panel.classList.remove('open');
   G.skillSelect = false; G.sbMenu = false; station = null;
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
@@ -134,8 +139,83 @@ panel.addEventListener('click', (e) => {
   const b = panel._list[+o.dataset.i];
   if (!b || !b.go){ return; }
   if (b.lock){ S.uiDeny(); o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); return; }
+  if (ready){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves)
   closeHubPanel(false);
   b.go();
-  if (G.hub && G.mode === 'play' && !G.paused && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }   // (a wing to travel to: the lock back while the click still counts)
+  if (G.hub && G.mode === 'play' && !G.paused && !isOpen() && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }   // (a wing to travel to: the lock back while the click still counts)
 });
 document.addEventListener('keydown', (e) => { if (isOpen() && (e.key === 'Escape' || e.key === 'Tab')){ e.preventDefault(); closeHubPanel(); } }, true);
+
+/* ---------------- THE READY CHECK ----------------
+   In a party, a mode the host picks at a station (the campaign, an arcade mission, survival) doesn't set off at once:
+   every guest in the temple is asked first, on a card over wherever they stand, READY or NOT YET. The run starts the
+   moment they're all ready; until then the host's card lists who is and isn't, with GO NOW to start anyway and CLOSE to
+   call it off. A guest who is on the title screen, or in a run, isn't asked (they join from the co-op panel, as ever). */
+let ready = null;   // host: { host, id, label, go, ans: Map(slot → true/false) } · guest: { id, label, answered }
+const templeGuests = () => partnerWorlds().filter(p => p.world && p.world.startsWith('hub:'));
+function askParty(label, go){
+  if (net.role !== 'host' || !party() || !templeGuests().length){ go(); return; }
+  ready = { host: true, id: Date.now() % 1e9, label, go, ans: new Map() };
+  send({ t: 'hubready', id: ready.id, label });
+  S.uiHover();
+  // (the station's panel closed as the pick was clicked: this card takes its place)
+  if (!open({ name: 'READY CHECK', act: 'ready' })) endReady(false);
+}
+function renderReady(){
+  const R = ready, list = [];
+  let line;
+  if (R.host){
+    const gs = templeGuests();
+    line = 'Starting ' + R.label + ' as soon as everyone in the temple is ready.';
+    for (const p of gs){ const a = R.ans.get(p.slot); list.push(B(p.name, a === true ? 'READY' : a === false ? 'NOT YET' : 'Deciding…', null)); }
+    list.push(B('GO NOW', 'Start without waiting: everyone in the temple comes along', () => endReady(true)));
+  } else {
+    line = R.answered ? 'Waiting for the host to start.' : 'The host wants to start ' + R.label + '. Everyone in the temple goes in together.';
+    if (!R.answered){
+      list.push(B('READY', 'Go in with the party when the host starts', () => answer(true)));
+      list.push(B('NOT YET', 'Tell the host you need a moment', () => answer(false)));
+    }
+  }
+  panel.innerHTML = '<div class="hb-box"><div class="hb-k">THE PARTY</div><div class="hb-t">READY CHECK</div><div class="hb-d">' + line + '</div>' +
+    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.d === 'READY' ? ' ready' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="btn hb-x" data-x="1">' + (R.host ? 'CALL IT OFF' : 'CLOSE') + '</div></div>';
+  panel._list = list;
+}
+// host: it's on (everyone ready, or GO NOW), or called off
+function endReady(go){
+  const R = ready; if (!R || !R.host) return;
+  ready = null;
+  send({ t: 'hubready-end', id: R.id, go });
+  if (go){ if (isOpen()) closeHubPanel(false); R.go(); }
+}
+on('hubready-ans', (m) => {
+  const R = ready; if (!R || !R.host || m.id !== R.id) return;
+  R.ans.set(m.from, !!m.ok);
+  if (!m.ok){ S.uiDeny(); showBanner('', (templeGuests().find(p => p.slot === m.from) || { name: 'A GUEST' }).name + ' ISN\'T READY YET', 1.6); }
+  if (templeGuests().every(p => R.ans.get(p.slot) === true)){ endReady(true); return; }
+  if (isOpen()) renderReady();
+});
+// guest: asked, answering, and told how it ended
+function answer(ok){
+  const R = ready; if (!R || R.host || R.answered) return;
+  R.answered = true;
+  send({ t: 'hubready-ans', id: R.id, ok });
+  if (ok){ S.uiHover(); if (isOpen()) renderReady(); }
+  else { ready = null; if (isOpen()) closeHubPanel(); }
+}
+on('hubready', (m) => {
+  if (net.role !== 'guest' || !G.hub || G.mode !== 'play') return;
+  if (isOpen()) closeHubPanel(false);
+  ready = { host: false, id: m.id, label: m.label, answered: false };
+  S.uiHover();
+  // (over whatever they're doing: a paused guest sees it when they come back)
+  const show = () => { if (!ready || ready.host || ready.id !== m.id || isOpen()) return; if (!open({ name: 'READY CHECK', act: 'ready' })) setTimeout(show, 400); };
+  show();
+});
+on('hubready-end', (m) => {
+  if (net.role !== 'guest' || !ready || ready.host || ready.id !== m.id) return;
+  ready = null;
+  if (isOpen()) closeHubPanel(!m.go);
+  if (!m.go) showBanner('', 'THE HOST CALLED IT OFF', 1.4);
+});
+export const readyCheck = () => ready && { host: ready.host, label: ready.label, answered: !!ready.answered };

@@ -11,6 +11,7 @@ import { updateCover, heroSuppSlow } from './trooper/cover.js';
 import { strafing } from './strafe.js';
 import { MANDO, JEDI_FORCE, JUMP_HOLD_THRESH, forceJumpPow } from '../data/mando.js';
 import { stance, maxHp } from './helpers.js';
+import { HUB } from '../data/hub.js';
 import { focusMoveMul } from './jedi/focus.js';
 import { slamImpact } from './jedi/force.js';
 import { stompImpact } from './jedi/palm.js';
@@ -119,7 +120,7 @@ export function updateMovement(dt, pp, st, f, r){
     // stop or turn back against your momentum brakes harder. In the AIR the jump keeps its takeoff momentum: WASD
     // only nudges it (no input = no steering at all), so a leap is a commitment instead of a floaty drift.
     const airborne = !player.grounded && !player.wallRun;
-    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? MOVE.sprintMul : player.walking ? MOVE.walkMul : 1);
+    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? MOVE.sprintMul : player.walking ? MOVE.walkMul : 1) * (G.hub ? HUB.stride : 1);   // (the temple's long halls: a longer stride there, data/hub.js)
     if (moving && !(player.pivotT > 0)) want.normalize().multiplyScalar(topSpeed);
     else if (player.pivotT > 0) want.set(0, 0, 0);   // planted: kill the old momentum first
     if (!(airborne && !moving)){

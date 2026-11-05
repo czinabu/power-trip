@@ -71,6 +71,7 @@ const RUNS = [
   ...['refuge', 'strike', 'pursuit', 'icefront', 'graveyard', 'grassland'].map(id => ['mission ' + id, `GAME.startMission('${id}')`]),
   ...['grassland', 'icefront', 'graveyard'].map(id => ['sandbox ' + id, `GAME.setSandboxMap('${id}'); GAME.startSandbox()`]),
   ['training room', `GAME.setSandboxMap('room'); GAME.startSandbox()`],
+  ...['hall', 'council', 'training', 'archives', 'forge'].map(w => ['temple ' + w, `GAME.hub.startHub('${w}')`]),   // the hidden temple's wings (game/hub.js)
 ];
 const rows = [];
 for (const [label, code] of RUNS){

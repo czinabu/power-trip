@@ -70,7 +70,7 @@ function boundAlly(name, x, z){
   const a = allies.find(a => a.def && a.def.name === name && a.state !== 'down' && !a.net && Math.hypot(a.group.position.x - x, a.group.position.z - z) < 9);   // (near the scene: one across the map gets a stand-in)
   return a ? a.group : null;
 }
-function heroFigure(def){
+export function heroFigure(def){   // (also the temple's people: world/arenas/tython-folk.js)
   const target = { group: new THREE.Group() };
   target.group.add(buildHeroModel(target, mergeLook(lookOf(CAST_BASE), def.look)));
   const mando = def.as === 'mando';
@@ -166,7 +166,7 @@ function pose(F, dt){
   // the head turns to whoever it is listening to (the body follows part of the way: F.turn), and nods along while it talks
   R.head.rotation.set(-0.04 + g * Math.sin(t * 5.3) * 0.045, F.turn * 0.65 * MIRROR, 0);
   // walking off (a scene without cuts sends them on their way: game/cutscene.js oneExit): a plain stride over the idle
-  F.stride = (F.stride || 0) + ((F.walk ? 1 : 0) - (F.stride || 0)) * k;
+  F.stride = (F.stride || 0) + ((F.walk || F.walking ? 1 : 0) - (F.stride || 0)) * k;   // (F.walking: someone moved along by its owner, the temple's people)
   if (F.stride > 0.01){
     const s = F.stride, ph = (F.ph = (F.ph || 0) + dt * 5.6), sw = Math.sin(ph), up = Math.cos(ph);
     R.legL.hip.rotation.x -= sw * 0.48 * s; R.legR.hip.rotation.x += sw * 0.48 * s;

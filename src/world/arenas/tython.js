@@ -14,6 +14,7 @@ import { arenaKit, seeded } from './kit.js';
 import { buildSanctum, shelfFaces } from '../sanctum.js';
 import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
 import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
+import { templeFolk } from './tython-folk.js';
 
 /* the dispatcher: world/arena.js hands every ty* layout here */
 export function buildTythonArena(L){
@@ -23,6 +24,7 @@ export function buildTythonArena(L){
   ({ hall, council, training, archives, forge })[wing](L, K, pal, R);
   hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z) });
   hubDoorSigns(W, wings, K, { runner: pal.kyber ?? 0x5ad2ff });
+  templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
 }
 
 /* ---------------- the pieces every wing shares ---------------- */

@@ -11,6 +11,7 @@ import { burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, bolts, barrels, vfx, player, isGunner } from '../../state.js';
 import { flashLight } from '../../fx/lights.js';
+import { bladeCoreGeo, bladeGlowGeo, bladeGlowMat, BLADE_CORE } from '../../fx/blade-glow.js';
 import { cdMul } from '../../data/stances.js';
 import { forcePower, fwd, playerPos, stance, maxHp } from '../helpers.js';
 import { inReach, distToBody, chestPos } from '../../enemies/bodyshape.js';
@@ -232,9 +233,8 @@ scene.add(_throwLight);
 function throwLight(){ return _throwLight; }
 // the thrown blade is built once and hidden between throws: building meshes and materials on the throw is the first-use hitch
 const thrownSaber = new THREE.Group();
-const thrownBlade = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 1.7, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-const thrownGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 1.75, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+const thrownBlade = new THREE.Mesh(bladeCoreGeo(0.045, 0.03, 1.7), new THREE.MeshBasicMaterial({ color: BLADE_CORE }));
+const thrownGlow = new THREE.Mesh(bladeGlowGeo(0.12, 0.09, 1.75), bladeGlowMat(0xffffff, 0.5));   // (the blade's look: fx/blade-glow.js)
 thrownSaber.add(thrownBlade, thrownGlow);
 thrownGlow.userData.saberTrail = { hilt: -1 }; thrownSaber.userData.trailAlways = true;   // a streak the whole flight (fx/trail.js)
 thrownSaber.visible = false;

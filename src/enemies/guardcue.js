@@ -6,6 +6,7 @@
 import { G } from '../state.js';
 import { clamp } from '../utils.js';
 import { GUARD_RINGS, BLADE_CUE } from '../data/guard-rings.js';
+import { BLADE } from '../fx/blade-glow.js';
 
 const KEY = 'sw_duelwins';
 let wins = 0;
@@ -50,5 +51,5 @@ export function bladeCue(e, read, flash, dt){
   const k = e.bladeRead * (0.6 + 0.4 * pulse), f = clamp(flash || 0, 0, 1);
   const s = u.cueS * (1 + R.swell * k + B.swell * f);
   gl.scale.x = gl.scale.z = s;
-  gl.material.opacity = Math.min(1, u.cue0 + R.bright * k + B.bright * f);
+  gl.material.opacity = Math.min(gl.material.isBladeGlow ? 2 : 1, u.cue0 + (R.bright * k + B.bright * f) * (gl.material.isBladeGlow ? BLADE.opacity : 1));   // (a blade glow's opacity is a brightness: fx/blade-glow.js)
 }

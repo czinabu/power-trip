@@ -17,6 +17,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { bladeGlowMat } from '../fx/blade-glow.js';
 import { makeStyle } from '../player/model/styles.js';
 
 let _S = null;
@@ -90,10 +91,11 @@ function makeBuilder(colors){
       const g = this.group(parent, p, r); g.userData.slot = name; return g;
     },
     /* an unlit glow that stays live: eyes, thrusters, cores, blades. tag names the userData hook it fills;
-       unique: true gives every unit its own material (for glows the game recolours or fades per unit) */
+       unique: true gives every unit its own material (for glows the game recolours or fades per unit);
+       blade: true draws it as a lightsaber's glow sleeve (fx/blade-glow.js: soft falloff, brighter) */
     glow(geo, color, parent = this.root, p = [0,0,0], r = [0,0,0], o = {}){
       const additive = o.opacity != null;
-      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial(additive
+      const m = new THREE.Mesh(geo, o.blade ? bladeGlowMat(color, o.opacity) : new THREE.MeshBasicMaterial(additive
         ? { color, transparent: true, opacity: o.opacity, blending: THREE.AdditiveBlending, depthWrite: false }
         : { color, toneMapped: false }));
       m.position.set(...p); m.rotation.set(...r);

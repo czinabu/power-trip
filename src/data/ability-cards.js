@@ -109,5 +109,8 @@ export const ABILITY_CARDS = {
   'promote-arc': { clip: at('t-promotion'), kicker: 'RANK EARNED', name: 'PROMOTED · ARC TROOPER',
               lines: ['You are an ARC now. The Captain\'s old kit is yours: the ARC helmet, the pauldron, the collar gear and the kama.',
                       'You wear it from the next chapter, and the customizer has it from now on.'] },
+  'promote-commando': { clip: at('t-promotion'), kicker: 'RANK EARNED', name: 'CLONE COMMANDO',
+              lines: ['You took the Commando\'s path. The Katarn plate is yours: the lit-visor helmet, the heavy shoulders, the field pack.',
+                      'You wear it from the next chapter, and the customizer has it from now on.'] },
   strafe:   { clip: at('t-strafe'), name: 'GUNSHIP STRAFING RUN', hud: 'X', lines: ['Press X to call a gunship: it lays a line of blasts from you toward the crosshair.'] },
 };

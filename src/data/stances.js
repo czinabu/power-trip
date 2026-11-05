@@ -97,7 +97,7 @@ export const STANCES = {
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
             // clearly the SLOWEST swing (well under medium's 1.0) — heavy, deliberate, weighty — but the big LUNGE
             // and high damage make each committed stroke land hard, so it reads as power, not sluggishness.
-            dmg: 2.25, heavyDmg: 2.23, speed: 0.48,   // (BALANCE: trimmed from 2.4 / 2.38, the strongest form against champions) knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
+            dmg: 2.25, heavyDmg: 2.23, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,   // (BALANCE: dmg trimmed from 2.4 / 2.38, the strongest form against champions)
             radiusMult: 0.8, postureMul: 1.5, forceRegen: 0.7, comboGap: 0.7, fovKick: -4,
             atkDR: 0.15,          // PASSIVE: armored commitment — soak 15% damage WHILE mid-swing
             heavyArmor: 0.45,     // HYPER-ARMOUR: a heavy cut (held) soaks 45% and no blow knocks it loose (player/damage.js)

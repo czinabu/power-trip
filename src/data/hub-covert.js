@@ -22,8 +22,8 @@ export const COVERT_WINGS = {
     doors: { n: 'clan', e: 'pit', w: 'vault', s: 'hangar' },
     spawn: [0, 32, Math.PI],
     stations: [
-      { id: 'anvil', x: 0, z: 17, name: 'ARMORER\'S ANVIL', act: 'forge', r: 4.2 },
-      { id: 'map', x: 20, z: 20, name: 'COVERT MAP', act: 'travel', r: 3.6 },
+      { id: 'anvil', x: -8, z: 20, name: 'ARMORER\'S ANVIL', act: 'forge', r: 4.2 },
+      { id: 'map', x: 14, z: 22, name: 'COVERT MAP', act: 'travel', r: 3.6 },
     ],
   },
   clan: {
@@ -70,7 +70,7 @@ export const COVERT_WINGS = {
     doors: { n: 'forge' },
     spawn: [0, -27, 0],
     stations: [
-      { id: 'ship', x: 0, z: -4.5, name: 'THE SHIP', act: 'ship', r: 4 },
+      { id: 'ship', x: 0, z: -11, name: 'THE SHIP', act: 'ship', r: 4 },
       { id: 'board', x: -20, z: -12, name: 'BOUNTY BOARD', act: 'bounties' },
       { id: 'console', x: 10, z: -28, name: 'COVERT MAP', act: 'travel' },
     ],

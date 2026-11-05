@@ -1027,13 +1027,13 @@ export const HUB_WORLDS = {
 // ruined city, lit warm by the forge and by braziers, a little daylight falling in through the roofs. Floors stay a value
 // above the walls and below white armour, so everyone reads against them.
 const MF_SKY = { top: 0x1a1410, horizon: 0x3a2a20, below: 0x140e0c, bands: 5, stars: 0 };
-const MF_PAL = { rock: 0x4a3e38, rockD: 0x342a26, rockL: 0x5e5048, stone: 0x6a5c52, stoneD: 0x4a4038, beskar: 0xb0b8c0,
+const MF_PAL = { rock: 0x564a46, rockD: 0x3c3432, rockL: 0x6a5e58, stone: 0x6a5c52, stoneD: 0x4a4038, beskar: 0xb0b8c0,
   metal: 0x5a6068, metalD: 0x30343a, trim: 0xc89a4a, wood: 0x5a3e2a, molten: 0xff7a1e, hot: 0xffc060, fire: 0xff8a2a,
   cloth: 0x6a2620, clothD: 0x2a2224, ring: 0xffb35a, sand: 0x8a6a4a, hull: 0x6e7a70, stripe: 0xd9a43a };
-const MF_LIGHT = { sun: 0xffd0a0, sunI: 1.5, dir: [14, 44, 20], hemiSky: 0xd09a70, hemiGround: 0x2a1c16, fill: 1.0, rim: 0xff9a50, rimI: 0.55 };
+const MF_LIGHT = { sun: 0xffd0a0, sunI: 1.55, dir: [14, 44, 20], hemiSky: 0xd8b090, hemiGround: 0x3a2c26, fill: 1.15, rim: 0xff9a50, rimI: 0.55 };
 export const COVERT_WORLDS = {
   mfForge: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x3a2418, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, sunI: 1.6 },
-    floor: { kind: 'flagstone', base: 0x6e6058, seed: 53 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    floor: { kind: 'flagstone', base: 0x5e5852, seed: 53 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
     ambient: { kind: 'embers', color: 0xff9a40, count: 160 }, beats: { fog: 0x3a2418, fill: 1.0, tint: 0xffc890 }, sound: 'foundry' },
   mfClan: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x34221a, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, dir: [-10, 44, 24] },
     floor: { kind: 'flagstone', base: 0x6a5a50, seed: 59 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],

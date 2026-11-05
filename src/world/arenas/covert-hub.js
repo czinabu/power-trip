@@ -84,7 +84,7 @@ function mapConsole(K, pal, x, z, s = 1){
   K.column(x, z, 0.6 + s * 0.6, 1.1, M.metalD, { wallKick: false, seg: 8, taper: 0.85 });
   K.deco(new THREE.CylinderGeometry(0.75 + s * 0.65, 0.75 + s * 0.65, 0.12, 8), M.brass, x, 1.14, z);
   const g = new THREE.Group(); g.position.set(x, 2.0 + s * 0.4, z); shared.arenaGroup.add(g);
-  const hm = holoM(pal.ring ?? AMBER, 0.55), k = 0.35 + s * 0.45;
+  const hm = holoM(pal.ring ?? AMBER, 0.16 + s * 0.14), k = 0.35 + s * 0.45;
   const blk = (w, d, bx, bz, h = 0.18) => { const b = live(new THREE.Mesh(new THREE.BoxGeometry(w * k, h * k, d * k), hm)); b.position.set(bx * k, 0, bz * k); g.add(b); };
   blk(1.4, 1.4, 0, 0, 0.5); blk(0.9, 0.7, 0, -1.4); blk(0.7, 0.9, 1.4, 0); blk(0.7, 0.9, -1.4, 0); blk(0.9, 0.8, 0, 1.4);
   blk(0.12, 3.6, 0, 0, 0.04); blk(3.6, 0.12, 0, 0, 0.04);
@@ -276,46 +276,50 @@ function forge(L, K, pal, R, M){
   const H = shared.arenaHalf, g = shared.arenaGroup;
   const { Wh } = room(K, M, R, 'forge', { wallH: 34, bay: 11, doorW: 11, doorH: 12, banners: true, hole: [0, 0, 11, 11] });
   // the light through the roof: a long shaft down beside the flue, warm daylight from the ruins above
-  shaft(new THREE.Vector3(4, Wh + 2, -6), new THREE.Vector3(-6, 0, 10), 9, 0xffe0b0, 0.2);
-  shaft(new THREE.Vector3(-7, Wh + 2, 3), new THREE.Vector3(-16, 0, 16), 5, 0xffe8c8, 0.12);
+  shaft(new THREE.Vector3(7, Wh + 2, -7), new THREE.Vector3(-2, 0, 6), 5, 0xcfe4ff, 0.09);
+  shaft(new THREE.Vector3(-8, Wh + 2, 5), new THREE.Vector3(-17, 0, 18), 3.2, 0xdce8ff, 0.06);
   // a bright slit of sky at the top of the shaft
   pic(K.deco(new THREE.PlaneGeometry(22, 22), new THREE.MeshBasicMaterial({ color: 0xffe2b0, fog: false }), 0, Wh + 6, 0, PI / 2));
 
   // ---- the FURNACE: a stepped plinth, an iron drum two storeys high banded in beskar, a glowing mouth toward the
   // door the hero comes in by, the flue rising through the roof ----
-  roundStep(K, 0, 0, 8, 0.45, M.stoneD, 8);
-  K.deco(new THREE.TorusGeometry(8, 0.12, 6, 8), M.brass, 0, 0.45, 0, -PI / 2).userData.noOutline = true;
-  K.column(0, 0, 5.2, 10, M.metalD, { wallKick: false, seg: 16, taper: 0.92 });
-  for (const y of [1.2, 5.0, 9.2]) K.deco(new THREE.CylinderGeometry(5.35 - y * 0.03, 5.35 - y * 0.03, 0.6, 16), M.beskar, 0, y, 0);
-  for (let i = 0; i < 16; i++){ const a = i / 16 * PI * 2; K.deco(new THREE.BoxGeometry(0.3, 8, 0.3), M.metal, Math.cos(a) * 5.15, 5, Math.sin(a) * 5.15); }   // ribs
-  K.deco(new THREE.CylinderGeometry(3.4, 4.6, 4, 16), M.metalD, 0, 12, 0);
-  const flue = K.deco(new THREE.CylinderGeometry(2.6, 3.4, Wh + 6, 14), M.metalD, 0, 14 + (Wh + 6) / 2, 0); flue.userData.passThrough = true;
-  for (const y of [18, 26, 33]) pic(K.deco(new THREE.CylinderGeometry(2.9, 2.9, 0.5, 14), M.beskar, 0, y, 0));
+  roundStep(K, 0, 0, 9, 0.45, M.stoneD, 8);
+  roundStep(K, 0, 0, 7.6, 0.9, M.stone, 8);
+  K.deco(new THREE.TorusGeometry(9, 0.12, 6, 8), M.brass, 0, 0.45, 0, -PI / 2).userData.noOutline = true;
+  K.column(0, 0, 6.2, 13, M.metalD, { wallKick: false, seg: 16, taper: 0.9 });
+  for (const y of [1.6, 6.4, 11.6]) K.deco(new THREE.CylinderGeometry(6.3 - y * 0.05, 6.3 - y * 0.05, 0.7, 16), M.beskar, 0, y, 0);
+  for (let i = 0; i < 16; i++){ const a = i / 16 * PI * 2; K.deco(new THREE.BoxGeometry(0.34, 11, 0.34), M.metal, Math.cos(a) * 5.95, 6.5, Math.sin(a) * 5.95, 0, -a, 0); }   // ribs
+  K.deco(new THREE.CylinderGeometry(3.6, 5.8, 5, 16), M.metalD, 0, 15.5, 0);   // the hood
+  K.deco(new THREE.CylinderGeometry(3.8, 3.8, 0.6, 16), M.beskar, 0, 18, 0);
+  const flue = K.deco(new THREE.CylinderGeometry(2.8, 3.6, Wh + 6, 14), M.metalD, 0, 18 + (Wh + 6) / 2, 0); flue.userData.passThrough = true;
+  for (const y of [24, 31, 37]) pic(K.deco(new THREE.CylinderGeometry(3.1, 3.1, 0.5, 14), M.beskar, 0, y, 0));
   // its mouth: an arch of molten light on the south face, a pool of it spilling out onto the plinth, the glow pulsing
-  const mouth = live(K.deco(new THREE.PlaneGeometry(4.4, 4.6), M.molten, 0, 3.0, 5.25));
-  live(K.deco(new THREE.CircleGeometry(2.2, 20, 0, PI), M.hot, 0, 5.3, 5.26));
-  K.deco(new THREE.TorusGeometry(2.4, 0.3, 8, 20, PI), M.beskar, 0, 5.3, 5.3);
-  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.6, 5.3, 0.6), M.beskar, sx * 2.4, 2.65, 5.3);
-  const core = live(K.deco(new THREE.PlaneGeometry(3.0, 3.2), M.hot, 0, 2.4, 5.27));
+  const MZ = 6.0;
+  const mouth = live(K.deco(new THREE.PlaneGeometry(5.4, 5.4), M.molten, 0, 3.6, MZ));
+  live(K.deco(new THREE.CircleGeometry(2.7, 20, 0, PI), M.molten, 0, 6.3, MZ + 0.01));
+  K.deco(new THREE.TorusGeometry(2.95, 0.36, 8, 20, PI), M.beskar, 0, 6.3, MZ + 0.05);
+  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.7, 6.3, 0.7), M.beskar, sx * 2.95, 3.15, MZ + 0.05);
+  const core = live(K.deco(new THREE.PlaneGeometry(3.6, 4.0), M.hot, 0, 3.0, MZ + 0.02));
+  live(K.deco(new THREE.CircleGeometry(3.4, 20, 0, PI), holoM(0xff9a3a, 0.35), 0, 0.93, MZ + 0.2, -PI / 2));   // its glow spilling on the plinth
   anim(core, (o, t) => { const k = 0.85 + Math.sin(t * 2.1) * 0.08 + Math.sin(t * 5.3) * 0.05; o.scale.set(k, k, 1); });
   anim(mouth, (o, t) => { o.scale.y = 1 + Math.sin(t * 1.7) * 0.03; });
   // glowing vents round the drum, sparks drifting up the flue
-  for (let i = 0; i < 6; i++){ const a = i / 6 * PI * 2 + PI / 6; live(K.deco(new THREE.PlaneGeometry(0.9, 2.4), M.molten, Math.cos(a) * 5.4, 7.2, Math.sin(a) * 5.4, 0, PI / 2 - a)); }
+  for (let i = 0; i < 6; i++){ const a = i / 6 * PI * 2 + PI / 6; live(K.deco(new THREE.PlaneGeometry(0.9, 2.4), M.molten, Math.cos(a) * 6.15, 9.2, Math.sin(a) * 6.15, 0, PI / 2 - a)); }
   const sparks = new THREE.Group(); g.add(sparks);
   for (let i = 0; i < 26; i++){
     const sp = live(new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), i % 3 ? M.hot : M.ember));
     const a = R() * PI * 2, r = 1.5 + R() * 3.5, ph = R() * 10, sp0 = 2 + R() * 3;
     sp.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); sparks.add(sp);
-    anim(sp, (o, t, b) => { const y = ((t * sp0 + ph * 4) % 30); o.position.set(b.x + Math.sin(t + ph) * 0.6, 13 + y, b.z + Math.cos(t * 0.8 + ph) * 0.6); o.scale.setScalar(1 - y / 34); });
+    anim(sp, (o, t, b) => { const y = ((t * sp0 + ph * 4) % 30); o.position.set(b.x + Math.sin(t + ph) * 0.6, 18 + y, b.z + Math.cos(t * 0.8 + ph) * 0.6); o.scale.setScalar(1 - y / 34); });
   }
 
   // ---- the RING OF BESKAR: a channel of molten metal round the furnace, under an iron grate you walk across ----
-  const RC = 13.5;
+  const RC = 15;
   live(K.deco(new THREE.RingGeometry(RC - 1.3, RC + 1.3, 96), M.molten, 0, 0.04, 0, -PI / 2));
   const glowRing = live(K.deco(new THREE.RingGeometry(RC - 0.6, RC + 0.6, 96), M.hot, 0, 0.045, 0, -PI / 2));
   anim(glowRing, (o, t) => { o.material.color.setHSL(0.1 + Math.sin(t * 0.9) * 0.012, 1, 0.62 + Math.sin(t * 1.6) * 0.05); });
   for (const r of [RC - 1.45, RC + 1.45]) K.deco(new THREE.TorusGeometry(r, 0.16, 6, 96), M.metalD, 0, 0.06, 0, -PI / 2).userData.noOutline = true;
-  for (let i = 0; i < 72; i++){ const a = i / 72 * PI * 2; K.deco(new THREE.BoxGeometry(2.9, 0.08, 0.18), M.metalD, Math.cos(a) * RC, 0.08, Math.sin(a) * RC, 0, -a); }
+  for (let i = 0; i < 56; i++){ const a = i / 56 * PI * 2; K.deco(new THREE.BoxGeometry(2.9, 0.08, 0.13), M.metalD, Math.cos(a) * RC, 0.08, Math.sin(a) * RC, 0, -a); }
   // a heat shimmer over it
   live(K.deco(new THREE.CylinderGeometry(RC + 1, RC + 1, 1.4, 64, 1, true), holoM(0xff8a3a, 0.06), 0, 0.75, 0));
 
@@ -337,7 +341,7 @@ function forge(L, K, pal, R, M){
 
   // ---- the ARMORER'S ANVIL in front of the furnace: a stump of iron, the anvil, a plate glowing hot on it, the
   // quench trough and the tool rack beside it ----
-  { const ax = 0, az = 17;
+  { const ax = -8, az = 20;
     roundStep(K, ax, az, 4.2, 0.35, M.stoneD, 12);
     K.box(ax, az, 0.75, 0.55, 1.0, M.metalD);
     K.deco(new THREE.BoxGeometry(2.4, 0.5, 1.0), M.metal, ax, 1.25, az);
@@ -358,7 +362,7 @@ function forge(L, K, pal, R, M){
     K.deco(new THREE.BoxGeometry(1.2, 1.1, 0.6), M.beskar, ax + 2.6, 2.2, az - 2.0);
     K.deco(new THREE.SphereGeometry(0.34, 10, 8), M.beskar, ax + 2.6, 3.1, az - 2.0); }
   // ---- the COVERT MAP: a holotable of the five wings ----
-  mapConsole(K, pal, 20, 20, 1);
+  mapConsole(K, pal, 14, 22, 1);
 
   // ---- the two FOUNDERS, colossal, either side of the furnace, facing the way in ----
   for (const sx of [-1, 1]) founder(K, M, sx * 30, -16, Math.atan2(sx * 30, -16 - 30) + PI, 1.55);
@@ -391,7 +395,7 @@ function forge(L, K, pal, R, M){
 function clan(L, K, pal, R, M){
   const H = shared.arenaHalf;
   room(K, M, R, 'clan', { wallH: 20, bay: 8, doorW: 9, doorH: 11, banners: true, hole: [0, 0, 6, 6] });
-  shaft(new THREE.Vector3(0, 22, 0), new THREE.Vector3(-2, 0, 4), 6, 0xffe0b8, 0.1);
+  shaft(new THREE.Vector3(0, 22, 0), new THREE.Vector3(-2, 0, 4), 5, 0xdce8ff, 0.07);
   // the raised floor and the WAR TABLE: an octagon of beskar, the hunt turning over it in amber
   roundStep(K, 0, 0, 13, 0.45, M.stoneD, 8);
   K.deco(new THREE.TorusGeometry(13, 0.14, 6, 8), M.brass, 0, 0.45, 0, -PI / 2).userData.noOutline = true;
@@ -446,7 +450,7 @@ function clan(L, K, pal, R, M){
 function pit(L, K, pal, R, M){
   const H = shared.arenaHalf;
   room(K, M, R, 'pit', { wallH: 22, bay: 9, doorW: 9, doorH: 11, banners: true, hole: [10, 0, 9, 9] });
-  shaft(new THREE.Vector3(12, 24, -2), new THREE.Vector3(10, 0, 3), 8, 0xffe0b8, 0.11);
+  shaft(new THREE.Vector3(12, 24, -2), new THREE.Vector3(10, 0, 3), 6, 0xdce8ff, 0.06);
   // the PIT: a sanded floor in a ring of iron posts, each with a fire on top, a tier of steps for the clan to watch from
   const sand = std(pal.sand ?? 0x8a6a4a, 1);
   live(K.deco(new THREE.CircleGeometry(11, 8), sand, 12, 0.03, 0, -PI / 2)).receiveShadow = true;
@@ -497,24 +501,29 @@ function pit(L, K, pal, R, M){
 function vault(L, K, pal, R, M){
   const H = shared.arenaHalf, g = shared.arenaGroup;
   room(K, M, R, 'vault', { wallH: 16, bay: 8, doorW: 9, doorH: 10, banners: false, hole: [0, 0, 4, 4], doorGlow: 0xffa060 });
-  shaft(new THREE.Vector3(0, 18, 0), new THREE.Vector3(0, 0, 2), 4.5, 0xfff0d0, 0.12);
+  shaft(new THREE.Vector3(0, 18, 0), new THREE.Vector3(0, 0, 2), 4, 0xdce8ff, 0.07);
   // the walls plated in beskar to head height inside
   for (const [x, z, w, d] of [[0, -H - 0.4, H * 2, 0.4], [0, H + 0.4, H * 2, 0.4], [-H - 0.4, 0, 0.4, H * 2]]) pic(K.deco(new THREE.BoxGeometry(w, 5, d), M.metal, x, 2.5, z));
   // the great round VAULT DOOR, rolled back beside the way in
-  pic(K.deco(new THREE.CylinderGeometry(6, 6, 1.4, 32), M.beskar, H + 1.2, 6.4, 12.5, 0, 0, PI / 2));
+  pic(K.deco(new THREE.CylinderGeometry(6, 6, 1.4, 32), M.metal, H + 1.2, 6.4, 12.5, 0, 0, PI / 2));
+  pic(K.deco(new THREE.TorusGeometry(5.6, 0.4, 8, 32), M.beskar, H + 0.4, 6.4, 12.5, 0, PI / 2, 0));
   for (let i = 0; i < 8; i++){ const a = i / 8 * PI * 2; pic(K.deco(new THREE.CylinderGeometry(0.35, 0.35, 1.8, 8), M.brass, H + 1.2, 6.4 + Math.sin(a) * 4.6, 12.5 + Math.cos(a) * 4.6, 0, 0, PI / 2)); }
   pic(K.deco(new THREE.CylinderGeometry(2.0, 2.0, 1.8, 6), M.metalD, H + 1.2, 6.4, 12.5, 0, 0, PI / 2));
   // the TROPHY SHELVES along the north and south walls: four tiers of helmets, every one a bounty brought in
   const helms = [];
-  for (const sz of [-1, 1]) for (const [x0, x1] of [[-30, -12], [-8, 8], [12, 28]]){
+  for (const sz of [-1, 1]) for (const [x0, x1] of [[-30, -12], [-8, 8], [12, 26]]){
     const cx = (x0 + x1) / 2, hx = (x1 - x0) / 2, z = sz * (H - 1.4), face = sz < 0 ? 0 : PI;
-    K.box(cx, z, hx, 0.8, 7.2, M.stoneD);
+    K.slab(cx, z, hx, 0.9, 0, 7.2);   // (the whole case is solid: you can't walk in among the helmets)
+    K.deco(new THREE.BoxGeometry(hx * 2, 7.2, 0.5), M.stoneD, cx, 3.6, z + sz * 0.65);
+    for (const ex of [x0, x1]) K.deco(new THREE.BoxGeometry(0.4, 7.4, 1.9), M.stoneD, ex, 3.7, z);
+    K.deco(new THREE.BoxGeometry(hx * 2 + 0.4, 0.3, 2.0), M.stoneD, cx, 7.3, z);
     for (let t = 0; t < 4; t++){
       const y = 0.9 + t * 1.6;
-      K.deco(new THREE.BoxGeometry(hx * 2 + 0.2, 0.16, 1.9), M.brass, cx, y - 0.08, z);
-      for (let x = x0 + 0.9; x < x1 - 0.5; x += 1.25) if (R() > 0.12) trophy(helms, x, y, z - sz * 0.45, face, TROPHIES[Math.floor(R() * TROPHIES.length)], R);
+      K.deco(new THREE.BoxGeometry(hx * 2, 0.14, 1.7), M.brass, cx, y - 0.07, z);
+      for (let x = x0 + 0.9; x < x1 - 0.5; x += 1.25) if (R() > 0.12) trophy(helms, x, y, z - sz * 0.15, face, TROPHIES[Math.floor(R() * TROPHIES.length)], R);
+      live(K.deco(new THREE.PlaneGeometry(hx * 2, 1.2), holoM(AMBER, 0.05), cx, y + 0.6, z + sz * 0.38, 0, face));   // a warm glow at the back of each shelf
     }
-    live(K.deco(new THREE.PlaneGeometry(hx * 2, 0.08), glowM(AMBER, 0.7), cx, 7.25, z - sz * 0.82, 0, face));
+    live(K.deco(new THREE.PlaneGeometry(hx * 2, 0.08), glowM(AMBER, 0.7), cx, 7.1, z - sz * 0.92, 0, face));
   }
   for (const m of helms){ m.castShadow = false; g.add(m); }
   // the BOUNTY ARCHIVE: a round dais, a projector, a quarry turning in amber over it with the puck's rings
@@ -522,13 +531,13 @@ function vault(L, K, pal, R, M){
   K.column(0, 0, 1.9, 1.15, M.metalD, { wallKick: false, seg: 12, taper: 0.9 });
   K.deco(new THREE.CylinderGeometry(2.1, 2.1, 0.14, 12), M.beskar, 0, 1.2, 0);
   const q = new THREE.Group(); q.position.set(0, 2.0, 0); g.add(q);
-  { const hm = holoM(AMBER, 0.38);
+  { const hm = holoM(AMBER, 0.2);
     const part = (geo, y, sx = 0) => { const m = live(new THREE.Mesh(geo, hm)); m.position.set(sx, y, 0); q.add(m); return m; };
     part(new THREE.SphereGeometry(0.28, 12, 8), 2.05); part(new THREE.CylinderGeometry(0.4, 0.32, 0.9, 10), 1.4);
     part(new THREE.CylinderGeometry(0.3, 0.34, 0.5, 10), 0.78); for (const sx of [-0.17, 0.17]) part(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 6), 0.15, sx);
     for (const sx of [-0.52, 0.52]) part(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6), 1.3, sx);
     for (let i = 0; i < 2; i++){ const r = live(new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.25, 0.02, 4, 40), hm)); r.rotation.x = PI / 2; r.position.y = 0.3 + i * 1.6; q.add(r); }
-    const beam = live(new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.6, 2.4, 12, 1, true), holoM(AMBER, 0.06))); beam.position.y = 1.0; q.add(beam); }
+    const beam = live(new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.6, 2.4, 12, 1, true), holoM(AMBER, 0.035))); beam.position.y = 1.0; q.add(beam); }
   spinner(q, 0.5);
   // the SIGNET and the MISSION RECORDS: a lit pedestal each before the west wall, the clan's mark huge over them
   K.column(-22, -6, 0.8, 1.2, M.stoneD, { wallKick: false, seg: 8, taper: 0.85 });
@@ -549,20 +558,33 @@ function vault(L, K, pal, R, M){
 function hangar(L, K, pal, R, M){
   const H = shared.arenaHalf;
   // open to the sky: the roof is only a rim round a great opening, the ruins of the city at its edge
-  const { Wh } = room(K, M, R, 'hangar', { wallH: 26, bay: 10, doorW: 10, doorH: 12, banners: false, hole: [0, 4, 30, 30] });
+  const { Wh } = room(K, M, R, 'hangar', { wallH: 16, bay: 10, doorW: 10, doorH: 12, banners: false, hole: [0, 4, 30, 30] });
   for (const [x, z, w, d] of [[-24, -20, 8, 5], [22, 28, 10, 6], [28, -8, 5, 12], [-28, 18, 6, 9]]){   // broken masonry on the rim
     pic(K.deco(new THREE.BoxGeometry(w, 6 + R() * 6, d), M.rockL, x * 1.3, Wh + 4, z * 1.3, 0, R() * 0.4, 0));
+    pic(K.deco(new THREE.BoxGeometry(w * 0.6, 3 + R() * 4, d * 0.5), M.stone, x * 1.3 + 2, Wh + 10, z * 1.3, 0, R() * 0.6, 0));
   }
+  // the ROOF DOORS: two great beskar plates rolled back over the rim, and a crane's boom reaching out over the pad
+  for (const sx of [-1, 1]) pic(K.deco(new THREE.BoxGeometry(26, 1.2, 64), M.metal, sx * 44, Wh + 2.6, 4, 0, 0, sx * 0.08));
+  for (const sx of [-1, 1]) for (let z = -24; z <= 32; z += 8) pic(K.deco(new THREE.BoxGeometry(26.4, 1.4, 0.6), M.beskar, sx * 44, Wh + 2.6, z, 0, 0, sx * 0.08));
+  pic(K.deco(new THREE.BoxGeometry(1.4, 1.4, 34), M.metalD, -30, Wh + 1, -4));
+  pic(K.deco(new THREE.BoxGeometry(30, 1.2, 1.2), std(0xd9a43a, 0.6, 0.4), -15, Wh + 2, -4));
+  pic(K.deco(new THREE.CylinderGeometry(0.06, 0.06, Wh - 6, 4), M.metalD, -2, Wh / 2 + 4, -4));
+  pic(K.deco(new THREE.BoxGeometry(1.6, 0.8, 1.6), M.metalD, -2, 7.6, -4));
   // the LIFT PAD and the clan's SHIP on it, ramp down toward the door
-  K.box(0, 6, 9.5, 8.5, 0.2, M.metalD, { climbable: true });
-  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.35, 0.04, 16.6), std(0xd9a43a, 0.6, 0.4), sx * 9.1, 0.21, 6);
-  for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(18.6, 0.04, 0.35), std(0xd9a43a, 0.6, 0.4), 0, 0.21, 6 + sz * 8.1);
+  const PZ = 1;
+  K.box(0, PZ, 9.5, 8.5, 0.2, M.metalD, { climbable: true });
+  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.35, 0.04, 16.6), std(0xd9a43a, 0.6, 0.4), sx * 9.1, 0.21, PZ);
+  for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(18.6, 0.04, 0.35), std(0xd9a43a, 0.6, 0.4), 0, 0.21, PZ + sz * 8.1);
   for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]){
-    const l = live(K.deco(new THREE.SphereGeometry(0.22, 8, 6), glowM(AMBER), sx * 9.3, 0.4, 6 + sz * 8.3));
+    const l = live(K.deco(new THREE.SphereGeometry(0.22, 8, 6), glowM(AMBER), sx * 9.3, 0.4, PZ + sz * 8.3));
     anim(l, (o, t) => { o.scale.setScalar(0.7 + (Math.sin(t * 3 + sx + sz * 2) > 0 ? 0.5 : 0)); });
   }
   shared.refugeShip = null;
-  buildGunship(0, 6, { hull: pal.hull ?? 0x6e7a70, dark: pal.metalD ?? 0x30343a, stripe: pal.stripe ?? 0xd9a43a });
+  // (built at its story size, then scaled up to fill the pad: its collision scaled the same way round its middle)
+  { const SZ = PZ + 2, k = 1.45, ship = buildGunship(0, SZ, { hull: pal.hull ?? 0x6e7a70, dark: pal.metalD ?? 0x30343a, stripe: pal.stripe ?? 0xd9a43a });
+    ship.group.scale.setScalar(k);
+    // (the ramp's three steps keep their heights, so it's still a walk up: only spread out under the bigger ramp)
+    for (const b of ship.solids){ b.x *= k; b.z = SZ + (b.z - SZ) * k; b.hx *= k; b.hz *= k; if (!b.climbable){ b.h *= k; if (b.y0) b.y0 *= k; } } }
   // fuel and cargo: tanks, crates stacked to climb, a cart of tools
   for (const [x, z] of [[-24, 20], [-18, 26]]){
     K.column(x, z, 1.6, 4.4, M.metal, { seg: 12, taper: 1 });
@@ -575,7 +597,7 @@ function hangar(L, K, pal, R, M){
   }
   K.gantry(24, 20, { a: M.metalD, b: M.metal, strut: std(0xd9a43a, 0.6, 0.4), beacon: AMBER }, [1, 1]);
   // a fuel line and a power cable snaking to the pad
-  for (const [x0, z0, x1, z1] of [[-22, 18, -9.5, 8], [24, -12, 9.5, 2]]){
+  for (const [x0, z0, x1, z1] of [[-22, 18, -9.5, 4], [24, -12, 9.5, -2]]){
     const len = Math.hypot(x1 - x0, z1 - z0);
     K.deco(new THREE.BoxGeometry(0.28, 0.18, len), M.metalD, (x0 + x1) / 2, 0.09, (z0 + z1) / 2, 0, Math.atan2(x1 - x0, z1 - z0)).userData.passThrough = true;
   }
@@ -593,7 +615,7 @@ function hangar(L, K, pal, R, M){
   // work lamps on tall posts round the pad
   for (const [x, z] of [[-14, -6], [14, -6], [-14, 18], [14, 18]]){
     K.column(x, z, 0.2, 5.5, M.metalD, { wallKick: false, seg: 6 });
-    live(K.deco(new THREE.BoxGeometry(0.9, 0.4, 0.5), glowM(0xffe2b0), x, 5.6, z));
+    K.deco(new THREE.BoxGeometry(0.9, 0.4, 0.5), std(0xffd8a0, 0.6, 0, 0.9), x, 5.6, z);
     live(K.deco(new THREE.CircleGeometry(3.4, 20), holoM(0xffd8a0, 0.06), x, 0.03, z, -PI / 2));
   }
   mapConsole(K, pal, 10, -28, 0.5);

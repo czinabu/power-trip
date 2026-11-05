@@ -138,7 +138,15 @@ export const DUEL = {
   // SABER LOCK — blades bind; mash LMB to drive through, or break it with a kick (E) or a Force push (F)
   /* reach: the blades meet this far out in front of you (m); clear: the foe's blade keeps this far off your body at the
      bind; armDist: a foe whose blade runs on from its arm (not a staff) stands this much further off than the kind's dist */
-  lock: { reach: 0.75, clear: 0.42, armDist: 0.3, chance: 0.7, time: 4.2, press: 0.15, stam: 3, kickStam: 22, pushCost: 18, loseDmg: 16, heavyPress: 1.35, fastPress: 0.85,
+  /* time: how long the bind can last; when it runs out whoever is ahead by `decide` takes it (inside that, the blades
+     spring apart). press: how far one press drives (a steady mash wins in two or three seconds, not one, so the surges
+     get their turn). grace: LMB presses this long after the bind ends are swallowed, so the tail of a mash doesn't
+     fire a stray cut. */
+  lock: { reach: 0.75, clear: 0.42, armDist: 0.3, chance: 0.7, time: 5, decide: 0.2, grace: 0.22, press: 0.12, stam: 3, kickStam: 22, pushCost: 18, loseDmg: 16, heavyPress: 1.35, fastPress: 0.85,
+    /* THE LOCK CAMERA (engine/camera.js): the lens swings out to a three-quarter side shot of the bind, `side` m off the
+       line between you, `back` m behind your end of it, `up` m over your feet, and eases in by `push` × the balance
+       (and `surge` in a surge) as the struggle tightens. in / out: how fast it swings over and back (per second). */
+    cam: { side: 3.3, back: 0.9, up: 1.85, look: 1.35, push: 0.14, surge: 0.07, fov: 4, in: 5, out: 2.2 },
     /* SURGE — the foe's push comes in waves: `first` / `every` s apart it gathers itself for `tell` s (its body flares,
        the bar's edge glows, a whine rises), then bears down `mul`× as hard for `dur` s. A press inside the surge MEETS
        it and counts `meet`×. */

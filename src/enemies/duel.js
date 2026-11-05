@@ -8,7 +8,7 @@ import { DUEL, DUEL_PROFILES, WARBRINGER, WARBRINGER_PROFILE, GUARD_POSE, BLOCK_
 import { scene, camera } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { BLADE_AUDIO } from '../audio/saber.js';
-import { V3, rand, clamp, TMP, dampToward } from '../utils.js';
+import { V3, rand, clamp, TMP, dampToward, dampAngle } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater, screenFlash } from '../fx/floaters.js';
 import { sparks, clashFlash, clashSparks } from '../fx/ink.js';
@@ -780,7 +780,7 @@ export function deflectPlayerBolt(e, b){
    blade gets through. Hold too long and the bind breaks apart. Where the blades met sets the kind of bind (high, low,
    mid, or body to body out of a long exchange: DUEL.lockKinds), how it looks, how hard it bears down and how it ends.
    ============================================================ */
-export const LOCK = { foe: null, bal: 0, t: 0, fx: 0, buzz: 0, kind: 'mid', next: 0, tell: 0, surge: 0, met: 0 };
+export const LOCK = { foe: null, bal: 0, t: 0, fx: 0, buzz: 0, kind: 'mid', next: 0, tell: 0, surge: 0, met: 0, show: 0, pulse: 0 };
 const lockKind = () => DUEL.lockKinds[LOCK.kind] || DUEL.lockKinds.mid;
 // how far apart you stand in the bind: a blade held out on the arm (not a staff held in the middle) stands a little
 // further off, so its length can cross yours out in front of you instead of reaching through you (not hilt to hilt)
@@ -792,16 +792,41 @@ export function lockKindAt(at){
   const y = at.y - playerPos().y;
   return y > A.high ? 'high' : y < A.low ? 'low' : 'mid';
 }
-let lockEl = null, lockFill = null;
+/* THE BAR — the balance on screen: the marker glides after it (no 22 px jump per press), the side that's winning fills
+   from the middle in its colour, each press kicks the marker, and the line under the track runs down to the end of
+   the bind (when it runs out, whoever is ahead takes it) */
+let lockEl = null, lockFill = null, lockYou = null, lockFoe = null, lockTime = null;
 function lockBar(show){
-  if (!lockEl){ lockEl = document.getElementById('lockbar'); lockFill = lockEl && lockEl.querySelector('.lb-fill'); }
+  if (!lockEl){
+    lockEl = document.getElementById('lockbar');
+    if (lockEl){ lockFill = lockEl.querySelector('.lb-fill'); lockYou = lockEl.querySelector('.lb-you'); lockFoe = lockEl.querySelector('.lb-foe'); lockTime = lockEl.querySelector('.lb-time i'); }
+  }
   if (lockEl) lockEl.classList.toggle('on', show);
-  if (lockEl && !show) lockEl.classList.remove('tell', 'surge');
+  if (lockEl && !show) lockEl.classList.remove('tell', 'surge', 'win', 'lose');
+  if (show) drawLockBar();
+}
+function drawLockBar(){
+  if (!lockEl) return;
+  const b = clamp(LOCK.show, -1, 1);
+  if (lockFill){ lockFill.style.left = (50 + b * 50) + '%'; lockFill.style.transform = 'scale(' + (1 + LOCK.pulse * 0.55).toFixed(3) + ',' + (1 + LOCK.pulse * 0.3).toFixed(3) + ')'; }
+  if (lockYou) lockYou.style.width = Math.max(0, b) * 50 + '%';
+  if (lockFoe) lockFoe.style.width = Math.max(0, -b) * 50 + '%';
+  if (lockTime) lockTime.style.transform = 'scaleX(' + clamp(1 - LOCK.t / DUEL.lock.time, 0, 1).toFixed(3) + ')';
+  lockEl.classList.toggle('win', b > 0.6); lockEl.classList.toggle('lose', b < -0.6);
+}
+/* THE LOCK CAMERA — what engine/camera.js frames while the blades are bound (DUEL.lock.cam): a three-quarter side shot
+   of the pair with the bind in the middle. `side` is picked once, the side of the pair the lens already stands on, so
+   it swings the short way round. The camera keeps the last shot after the bind ends, to ease back out of it. */
+export const LOCK_CAM = { on: false, hero: new THREE.Vector3(), foe: new THREE.Vector3(), at: new THREE.Vector3(), side: 1, bal: 0, surge: false };
+function lockCamFrame(cp){
+  const pp = playerPos(), q = LOCK.foe.group.position;
+  LOCK_CAM.hero.copy(pp); LOCK_CAM.foe.copy(q); LOCK_CAM.at.copy(cp);
+  LOCK_CAM.bal = clamp(LOCK.show, -1, 1); LOCK_CAM.surge = LOCK.surge > 0;
 }
 export function startLock(e, kind){
   if (LOCK.foe || !e.dp || !e.dp.lock) return false;
   LOCK.foe = e; LOCK.bal = 0; LOCK.t = 0; LOCK.fx = 0; LOCK.buzz = 0; LOCK.kind = DUEL.lockKinds[kind] ? kind : 'mid';
-  LOCK.next = rand(DUEL.lock.surge.first[0], DUEL.lock.surge.first[1]); LOCK.tell = LOCK.surge = 0; LOCK.met = 0;
+  LOCK.next = rand(DUEL.lock.surge.first[0], DUEL.lock.surge.first[1]); LOCK.tell = LOCK.surge = 0; LOCK.met = 0; LOCK.show = 0; LOCK.pulse = 0;
   const K = lockKind();
   e.flourishT = 0; e.fl0 = null; e.lockA = null;
   e.state = 'lock'; e.st = 99; e.plan = null;
@@ -814,6 +839,10 @@ export function startLock(e, kind){
   player.lockFace = player.faceYaw = Math.atan2(TMP.x, TMP.z);   // squared to it for the whole bind (player/animation.js)
   if (!isGunner()) player.deflectAnim = lockCatch(K);   // (whatever catch or swing the blade was in, the bind takes it over from here)
   const cp = lockContact();
+  // the lens swings out to the side of the pair it already stands on (engine/camera.js)
+  const ax = g.position.x - pp.x, az = g.position.z - pp.z, al = Math.hypot(ax, az) || 1;
+  LOCK_CAM.side = ((camera.position.x - pp.x) * (-az / al) + (camera.position.z - pp.z) * (ax / al)) < 0 ? -1 : 1;
+  lockCamFrame(cp); LOCK_CAM.on = true;
   clashFlash(cp, stance().blade, true);
   clashSparks(cp, 0xffe9b0, 6);
   S.clash(cp, true, e.form);
@@ -928,7 +957,7 @@ export function updateSaberLock(dt){
   }
   if (lockEl){ lockEl.classList.toggle('tell', LOCK.tell > 0); lockEl.classList.toggle('surge', LOCK.surge > 0); }
   const surging = LOCK.surge > 0;
-  LOCK.bal -= e.dp.push * K.push * diffMul() * dt * (0.8 + LOCK.t * 0.15) * (surging ? Sg.mul : 1);   // it bears down harder the longer it lasts
+  LOCK.bal -= e.dp.push * K.push * diffMul() * dt * (0.8 + LOCK.t * 0.1) * (surging ? Sg.mul : 1);   // it bears down harder the longer it lasts
   const g = e.group, pp = playerPos(), u = g.userData;
   // face to face, weapon on the bind's line; whoever is winning leans in, the loser bends back (body to body: chest to chest)
   const ax = g.position.x - pp.x, az = g.position.z - pp.z, ad = Math.hypot(ax, az) || 1;
@@ -961,10 +990,20 @@ export function updateSaberLock(dt){
   BL.pos.copy(cp); BL.surge = surging; BL.tell = LOCK.tell > 0; BL.bal = clamp(LOCK.bal, -1, 1); BL.at = G.gt;
   if ((LOCK.buzz -= dt) <= 0){ LOCK.buzz = rand(0.06, 0.2) * (surging ? 0.5 : 1); S.lockArc(cp, false); }   // random arcs and pops spit out of it
   G.shake = Math.max(G.shake, 0.1 + Math.abs(LOCK.bal) * 0.15 + (surging ? 0.15 : 0));
-  if (lockFill) lockFill.style.left = (50 + clamp(LOCK.bal, -1, 1) * 50) + '%';
+  // the bar's marker glides after the balance (fast enough that every press still reads), each press kicks it
+  LOCK.show += (LOCK.bal - LOCK.show) * Math.min(1, dt * 22);
+  LOCK.pulse = Math.max(0, LOCK.pulse - dt * 7);
+  drawLockBar();
+  lockCamFrame(cp);
+  // the view behind it turns to square up with the foe, so the lens comes back out of the side shot behind you, facing it
+  G.yaw = dampAngle(G.yaw, player.lockFace, 6, dt);
   if (LOCK.bal >= 1) winLock(K.win);
   else if (LOCK.bal <= -1) loseLock();
-  else if (LOCK.t > DUEL.lock.time) splitLock();
+  else if (LOCK.t > L.time){   // out of time: whoever is ahead takes it; dead even, the blades spring apart
+    if (LOCK.bal > L.decide) winLock(K.win);
+    else if (LOCK.bal < -L.decide) loseLock();
+    else splitLock();
+  }
 }
 // LMB in a lock: drive the blade. Each press costs a little stamina; a dry press barely moves it.
 export function lockPress(){
@@ -978,6 +1017,8 @@ export function lockPress(){
   LOCK.bal += L.press * formMul * (dry ? 0.35 : 1) * meet;
   if (meet > 1 && ++LOCK.met === 3) floater(V3(LOCK.foe.group.position.x, LOCK.foe.group.position.y + 1.9, LOCK.foe.group.position.z), 'MET IT', '#ffe9a8');
   player.lockPush = 0.12;   // each shove jolts your blade up into its (updateSaberLock)
+  LOCK.pulse = dry ? 0.4 : 1;   // ...and kicks the bar's marker
+  G.shake = Math.max(G.shake, dry ? 0.18 : 0.28);   // a heave you feel through the lens
   sparks(lockContact(), 0xffffff, 3, 9, { life: 0.18, size: 0.4 });
   S.lockArc(lockContact(), true);   // each heave of the blade cracks an arc off the bind
 }
@@ -1034,7 +1075,7 @@ function loseLock(){
   const e = LOCK.foe, g = e.group, K = lockKind();
   endLock();
   if (e.net && hooks.guard) hooks.guard(e, 'lockloss', 0, '');   // co-op guest: the host's foe answers
-  e.state = 'recover'; e.st = 0.25; e.counterQueued = true;
+  e.state = 'recover'; e.st = 0.6;   // its blade got through: that one blow is the cost (no second hit queued straight after it)
   player.parryT = 0;
   hurtPlayer(DUEL.lock.loseDmg * enemyDmgScale(), g.position, false, true, false, { unblockable: true, noClash: true });
   player.flinchT = player.flinchMax = CFG.player.flinch.heavy; player.flinchHeavy = true;
@@ -1057,6 +1098,8 @@ export function endLock(){
   LOCK.foe = null;
   player.saberLock = false; player.lockFace = null;
   player.deflectAnim = null;
+  if (e) player.lockGrace = G.gt + DUEL.lock.grace;   // the tail of the mash doesn't fire a stray cut (engine/input.js)
+  LOCK_CAM.on = false;
   lockBar(false);
   if (e && e.state === 'lock' && !e.dead){ e.state = 'recover'; e.st = 0.4; }
   if (e) e.flourishNext = G.gt + DUEL.flourish.after + 0.6;   // the bind broken, it resets its stance with a twirl

@@ -164,7 +164,7 @@
   <div id="cutdial"><i></i></div>
   <div id="objlist"></div>
   <div id="netping"></div>
-  <div id="lockbar"><div class="lb-k">SABER LOCK</div><div class="lb-track"><div class="lb-mid"></div><div class="lb-fill"></div></div><div class="lb-hint"><b>LMB</b> drive &nbsp;·&nbsp; <b>E</b> kick &nbsp;·&nbsp; <b>F</b> shove</div></div>
+  <div id="lockbar"><div class="lb-k">SABER LOCK</div><div class="lb-track"><div class="lb-foe"></div><div class="lb-you"></div><div class="lb-mid"></div><div class="lb-fill"></div></div><div class="lb-time"><i></i></div><div class="lb-hint"><b>LMB</b> drive &nbsp;·&nbsp; <b>E</b> kick &nbsp;·&nbsp; <b>F</b> shove</div></div>
   <div id="reticle"><span class="ring"></span><span class="rl t"></span><span class="rl r"></span><span class="rl b"></span><span class="rl l"></span><span class="dot"></span></div>
   <div id="energymeter"><div id="energyfill"></div><div id="energyfill2"></div></div>
   <div id="xpmeter"><div id="xpmetertxt"></div><div id="xpmeterbar"><div id="xpmeterfill"></div></div></div>
@@ -364,6 +364,12 @@
           <label class="setpill" title="Controller: how fast the right stick turns the view">STICK SENS<input type="range" id="padsl" min="0.4" max="2.2" step="0.05" value="1"><span class="setval" id="padval">1.0×</span></label>
           <div class="setpill" id="padinvctl" title="Controller: push the right stick up to look down">INVERT Y<span class="setval" id="padinvval">OFF</span></div>
         </div>
+      </div>
+      <div class="set-reset" id="setreset">
+        <div class="setpill" id="setresetbtn" title="Put every setting back to its default. Saves and progress are not touched">RESET TO DEFAULTS</div>
+        <span class="set-reset-ask">Reset all settings? Saves and progress stay.</span>
+        <div class="setpill" id="setresetyes">YES, RESET</div>
+        <div class="setpill" id="setresetno">CANCEL</div>
       </div>
     </div>
   </div>

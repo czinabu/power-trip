@@ -19,6 +19,12 @@ import { AE } from './engine.js';
      hero    the hero's theme over a major progression: the title screen, the final push of a mission objective,
              a boss on its last legs
      tense   a dark loop with brass alarms and string tremolo: a mission objective going wrong
+     villain a boss's own theme (VILLAINS) for its fight, until the hero's takes over
+     film    a cutscene's bed: the hero's theme on a solo voice, no drums (filmFoe: the villain's, while a foe speaks)
+     lament  the hero's theme in a minor key, slowed, once the hero falls
+
+   CUTSCENES steer it through MUSIC.scene* (called by game/cutscene.js): the bed, the dip under dialogue, a title's hit,
+   a duel's riser into its first clash.
 
    Story missions steer the score with a CUE per objective (MUSIC.setCue, called by game/mission.js): see CUES.
    One-shot STINGS mark a boss rising, a wave starting, an area or objective cleared, an unlock, victory and death.
@@ -101,7 +107,53 @@ export const THEMES = {
             [16,32,4],[20,31,4],[24,27,8],
             [32,29,3],[35,31,1],[36,34,6],[42,31,2],[44,29,4],
             [48,28,4],[52,31,4],[56,36,8] ] },
+  // the ARC trooper's: a parade-ground march, I · IV · ♭VII · I, a bugle call up the fifth on the snare's pickup
+  trooper: { calm: 'horn',
+    prog: [ { bass: 0, chord: [12,16,19] }, { bass: 5, chord: [12,17,21] }, { bass: -2, chord: [10,14,17] }, { bass: 0, chord: [12,16,19] } ],
+    lead: [ [0,19,2],[2,19,1],[3,19,1],[4,24,4],[8,26,2],[10,28,2],[12,26,4],
+            [16,29,6],[22,28,2],[24,26,4],[28,24,4],
+            [32,22,2],[34,22,1],[35,22,1],[36,26,4],[40,24,2],[42,22,2],[44,21,4],
+            [48,24,8],[56,19,2],[58,24,6] ] },
 };
+
+/* VILLAIN THEMES — original motifs, one per final boss, plus the RIVAL's for every other duel foe (the Inquisitor, VX-7,
+   the trial duellists). Each scores its boss fight (the hero's theme still takes over once the boss is on its last
+   legs) and any cutscene line its villain speaks. Same layout as a hero theme; `calm` plays it softly (a cutscene),
+   `big` is its voice once the fight is loud, `choir` lays a choir over its strings.
+     vexis       harmonic minor, i · ♭VI · iv · V: a slow descending choir line that leans on the tritone
+     magistrate  i · ♭VI · ♭II · i: hammered repeated notes in the low brass, like a forge
+     marshal     i · v · ♭VI · ♭VII: a minor march, the hero's own drill turned against him
+     rival       i · iv · i · ♭II: a creeping line in the cellos */
+export const VILLAINS = {
+  vexis: { calm: 'choir', big: 'sith', choir: true,
+    prog: [ { bass: 0, chord: [12,15,19] }, { bass: -4, chord: [12,15,20] }, { bass: 5, chord: [12,17,20] }, { bass: 7, chord: [11,14,19] } ],
+    lead: [ [0,24,6],[6,23,2],[8,24,4],[12,30,4], [16,27,8],[24,26,4],[28,24,4],
+            [32,29,6],[38,27,2],[40,26,8], [48,23,8],[56,24,8] ] },
+  magistrate: { calm: 'lowhorn', big: 'forge',
+    prog: [ { bass: 0, chord: [12,15,19] }, { bass: -4, chord: [12,15,20] }, { bass: 1, chord: [13,17,20] }, { bass: 0, chord: [12,15,19] } ],
+    lead: [ [0,24,2],[2,24,2],[4,24,2],[6,25,6],[12,24,4], [16,20,4],[20,24,2],[22,27,2],[24,25,8],
+            [32,24,2],[34,24,2],[36,24,2],[38,27,4],[42,25,2],[44,24,4], [48,22,4],[52,20,4],[56,24,8] ] },
+  marshal: { calm: 'horn', big: 'drill',
+    prog: [ { bass: 0, chord: [12,15,19] }, { bass: 7, chord: [14,19,22] }, { bass: -4, chord: [12,15,20] }, { bass: -2, chord: [10,14,17] } ],
+    lead: [ [0,31,3],[3,31,1],[4,32,4],[8,31,3],[11,29,1],[12,27,4], [16,26,6],[22,27,2],[24,24,8],
+            [32,31,3],[35,31,1],[36,32,4],[40,34,4],[44,32,4], [48,31,6],[54,26,2],[56,24,8] ] },
+  rival: { calm: 'cello', big: 'brass',
+    prog: [ { bass: 0, chord: [12,15,19] }, { bass: 5, chord: [12,17,20] }, { bass: 0, chord: [12,15,19] }, { bass: 1, chord: [13,17,20] } ],
+    lead: [ [0,24,2],[4,27,2],[6,26,6], [16,24,2],[20,30,2],[22,29,6],
+            [32,24,2],[36,27,2],[38,31,4],[42,30,2],[44,27,4], [48,25,8],[56,24,8] ] },
+};
+// which villain a name (a speaker's, or a boss's look) belongs to; anyone else hostile is the rival
+export const villainOf = (name) => { const n = String(name || '').toUpperCase();
+  return n.includes('VEXIS') ? 'vexis' : n.includes('MAGISTRATE') ? 'magistrate' : n.includes('MARSHAL') ? 'marshal' : 'rival'; };
+// the boss up now: its villain (a final boss by its id, Darth Vexis and the Magistrate by kind, a co-op guest's puppet by look)
+const bossVillain = (b) => b ? (b.fin && VILLAINS[b.fin.def.id] ? b.fin.def.id : b.kind === 'sith' ? 'vexis' : b.kind === 'mando' ? 'magistrate' : b.look ? villainOf(b.look) : null) : null;
+
+/* THE LAMENT — the hero's own theme turned minor and slowed, over i · ♭VI · iv · i: what plays once the hero falls */
+const LAMENT = [ { bass: 0, chord: [12,15,19] }, { bass: -4, chord: [8,12,15] }, { bass: 5, chord: [12,17,20] }, { bass: 0, chord: [12,15,19] } ];
+const MINOR = { 4: 3, 9: 8, 11: 10 };   // the major scale's third, sixth and seventh, flattened
+const minorOf = (lead) => lead.map(([s, n, l]) => { const k = ((n % 12) + 12) % 12; return [s, n - (MINOR[k] != null ? k - MINOR[k] : 0), l]; });
+const LAMENTS = {};
+const lamentOf = (k) => LAMENTS[k] || (LAMENTS[k] = minorOf(THEMES[k].lead));
 // the tense section: i · ♭II · i° · vii°, no melody (the brass alarms and the tremolo carry it)
 const TENSE = [ { bass: 0, chord: [12,15,19] }, { bass: 1, chord: [13,17,20] }, { bass: 0, chord: [12,15,18] }, { bass: -1, chord: [11,14,17] } ];
 
@@ -127,7 +179,17 @@ export const CUES = {
 };
 
 // intensity per game state, before a cue raises or caps it
-const BASE = { menu: 0.16, lull: 0.3, combat: 0.62, heavy: 0.84, boss: 1.0, victory: 0.2, dead: 0.0 };
+// (victory: the hero's theme stated in full after the fanfare; dead: the lament, after the death sting)
+const BASE = { menu: 0.16, lull: 0.3, combat: 0.62, heavy: 0.84, boss: 1.0, victory: 0.5, dead: 0.26 };
+// a CUTSCENE holds the score down to its film bed: pads, a choir and the melody on a solo voice, no drums or ostinato.
+// FILM is the bed's intensity, FILM_DIP the level while a line of dialogue is up (the music steps back under the words)
+const FILM = 0.26, FILM_DIP = 0.72;
+// the bed is a handful of quiet voices, and with the fight held it's most of what's heard: lifted like the menu's (×4.5,
+// about +13 dB) into the compressor, so it never vanishes under the ambience (FILM_POST lifts it again after)
+const FILM_LIFT = 4.5;
+const LOUD_STATES = new Set(['victory', 'dead']);
+// after a stinger (victory, death) the loop rests this long before its theme comes in from the top
+const REST = { victory: 3.4, dead: 2.8 };
 const FIGHTING = new Set(['lull', 'combat', 'heavy', 'boss']);
 const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is denser than the old synth score, so it sits lower
 // the title screen plays the theme softly (low intensity = few, quiet voices), which at LEVEL was all but silent
@@ -136,6 +198,10 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // still guards the peaks), since pushing it all through the compressor only squashed it. Together the theme sits
 // around -19 dBFS on the title screen, where it's the only thing playing.
 const MENU_LIFT = 7, MENU_POST = 3.2;
+// in play the score was felt more than heard: GAME_POST lifts all of it after its compressor (about +6 dB), and the
+// quiet moments with the fight held (a cutscene's bed, the victory statement, the lament) get FILM_POST on top, so they
+// sit up near the menu theme's level. The master limiter still guards the peaks
+const GAME_POST = 2, FILM_POST = 2.2;
 
 export const MUSIC = (function(){
   let bus=null, comp=null, post=null, delay=null, timer=null, started=false;
@@ -143,6 +209,7 @@ export const MUSIC = (function(){
   let pal = PALETTES.menu, want = 'menu', palName = 'menu';
   let section = 'hero', entered = false, heroKey = 'jedi', bpmMul = 1, dangerLv = 0;
   let cue = null, cueName = null;
+  let film = null, villain = null, restUntil = 0, dip = 1;   // film: the cutscene playing ({ foe, talk }), see scene*() below
   const drive = { urgency: 0, danger: false, focus: false };
   let enabled = (() => { try { return localStorage.getItem('sw_music') !== '0'; } catch(e){ return true; } })();
   const stepDur = () => 60 / (pal.bpm * bpmMul) / 4, barDur = () => stepDur() * 16;
@@ -250,7 +317,14 @@ export const MUSIC = (function(){
     n.connect(g); out(g, 0, t + dur);
   }
   const INSTR = { flute: (t, f, d, g) => voice(t, f, d, { type: 'triangle', gain: g, attack: 0.05, filter: 2600, send: 0.6, vib: 14 }),
-                  pluck, horn: (t, f, d, g) => horn(t, f / 2, d, g * 0.8), choir: (t, f, d, g) => choir(t, f, d, g * 0.9) };
+                  pluck, horn: (t, f, d, g) => horn(t, f / 2, d, g * 0.8), choir: (t, f, d, g) => choir(t, f, d, g * 0.9),
+                  lowhorn: (t, f, d, g) => horn(t, f / 2, d, g * 0.9, 0.7),
+                  cello: (t, f, d, g) => strings(t, f / 2, d, g * 0.9, 1100, true) };
+  // a villain's melody once the fight is loud (VILLAINS.big)
+  const BIG = { sith: (t, f, d) => { choir(t, f, d, 0.026); lowBrass(t, f / 2, d * 0.9, 0.016); },
+                forge: (t, f, d) => { lowBrass(t, f / 2, d * 0.9, 0.02); horn(t, f / 2, d * 0.94, 0.022); },
+                drill: (t, f, d) => { horn(t, f / 2, d * 0.94, 0.024); trumpet(t, f, d * 0.85, 0.016); },
+                brass: (t, f, d) => { horn(t, f / 2, d * 0.94, 0.026); spic(t, f / 2, d * 0.5, 0.02, true); } };
 
   /* ---------- percussion ---------- */
   function noiseHit(t, amp, type, f, q, dur){
@@ -344,30 +418,38 @@ export const MUSIC = (function(){
   // palette, section, tempo and hero only ever change on a downbeat
   // keyed on `want`, not the playing palette: leaving the menu drops the lift at once, so a run's first stings
   // never play at the title screen's level while the menu's last bar finishes
-  const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) : 0.0001;
-  const postLevel = () => want === 'menu' ? MENU_POST : 1;
+  const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) * (film ? FILM_LIFT : 1) * dip : 0.0001;
+  const postLevel = () => want === 'menu' ? MENU_POST : GAME_POST * (film || LOUD_STATES.has(state) ? FILM_POST : 1);
   function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc); }
   function barTop(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
-    const hk = isGunner() ? 'mando' : 'jedi';
+    const hk = G.hero === 'trooper' ? 'trooper' : isGunner() ? 'mando' : 'jedi';
     if (hk !== heroKey){ heroKey = hk; if (section === 'hero') step = 0; }   // a new hero picked: their theme from the top
     const C = liveCue(), b = bossUp();
-    const lift = palName === 'menu' || (C ? C.lift != null && drive.urgency >= C.lift
+    villain = state === 'boss' ? bossVillain(b) : null;
+    const lift = palName === 'menu' || state === 'victory' || (C ? C.lift != null && drive.urgency >= C.lift
       : !!(b && b.hp > 0 && b.hp < b.maxHp * 0.35 && state === 'boss'));   // a boss on its last legs
     const tense = C && palName !== 'menu' && (dangerLv > 0.5 || (section === 'tense' && dangerLv > 0.2));
-    const sec = tense ? 'tense' : lift ? 'hero' : 'main';
-    if (sec !== section){ section = sec; step = 0; entered = true; }
-    bpmMul = C ? (C.bpm || 1) * (section === 'tense' && C.dangerBpm ? C.dangerBpm : 1) : 1;
+    // a cutscene: the villain's theme while a foe has the floor, the hero's otherwise. Death: the lament. A boss fight
+    // plays its villain's theme until the hero's takes over (lift)
+    const sec = film ? (film.talk === 'foe' ? 'filmFoe' : 'film') : state === 'dead' ? 'lament'
+      : tense ? 'tense' : lift ? 'hero' : villain ? 'villain' : 'main';
+    if (sec !== section){ section = sec; step = 0; entered = !film; }
+    bpmMul = film ? 0.9 : section === 'lament' ? 0.72 : C ? (C.bpm || 1) * (section === 'tense' && C.dangerBpm ? C.dangerBpm : 1) : 1;
   }
   const soon = f => setTimeout(f, 0);
   function scheduleStep(t){
     const I = intensity; if (I < 0.04) return;   // faded out (death / muted): let the reverb ring, schedule nothing
     const ls = step % 64, bar = (ls / 16) | 0, inBar = ls % 16, sd = stepDur();
     const theme = THEMES[heroKey], heroic = section === 'hero', tense = section === 'tense', C = liveCue();
-    const P = (heroic ? theme.prog : tense ? TENSE : pal.prog)[bar];
+    // whose music this section plays: the world's, the hero's, a villain's, the lament
+    const V = section === 'filmFoe' ? VILLAINS[film && film.foe || 'rival'] : section === 'villain' ? VILLAINS[villain] : null;
+    const M = V || (heroic || section === 'film' ? theme : section === 'lament' ? { prog: LAMENT, lead: lamentOf(heroKey), calm: theme.calm }
+            : tense ? { prog: TENSE, lead: [] } : pal);
+    const P = M.prog[bar];
     if (inBar === 0){
       const bd = barDur() * 1.04;
-      const withChoir = pal.pad === 'choir' || (C && C.choir) || (heroic && I > 0.7);
+      const withChoir = pal.pad === 'choir' || (C && C.choir) || (heroic && I > 0.7) || (V && V.choir);
       // the chord's pads are the heaviest thing the score builds (a dozen voices, filters and vibratos at the top of a
       // big fight's bar): one task per note, so a frame can be drawn between them instead of waiting on all of them
       // (the step is scheduled ~0.1s ahead, so they're all built long before t)
@@ -377,7 +459,7 @@ export const MUSIC = (function(){
         if (withChoir) choir(t, nf(c), bd, 0.008 + I * 0.016);
       });
       voice(t, nf(P.bass - 12), bd, { type: 'sine', gain: 0.05 + I * 0.05, attack: 0.3, filter: 380 });   // sub drone
-      if (I > 0.4 || (heroic && I > 0.12)) timpani(t, nf(P.bass + 12), 0.06 + I * 0.2);
+      if (I > 0.4 || (heroic && I > 0.12) || (film && bar === 0)) timpani(t, nf(P.bass + 12), 0.06 + I * 0.2);
       if ((ls === 0 && I > 0.68) || (entered && I > 0.4)) crash(t, 0.04 + I * 0.05);   // the top of each phrase, and a new section
       entered = false;
       if (pal.kit === 'toll' && I > 0.2) metal(t, 0.03 + I * 0.03, nf(P.bass + 12));   // Exegol's bell tolls each bar
@@ -408,9 +490,10 @@ export const MUSIC = (function(){
       spic(t, nf(P.chord[2] + 12), sd * 0.9, 0.006 + I * 0.01);
     }
     // melody: soft in the lull, horns as the fight builds, trumpets over horns at its peak (the hero's theme sooner)
-    if (!tense) for (const L of heroic ? theme.lead : pal.lead){ if (ls !== L[0]) continue;
+    for (const L of M.lead){ if (ls !== L[0]) continue;
       const f = nf(L[1]), d = sd * L[2];
-      if (I < 0.32) INSTR[heroic ? theme.calm : pal.calm](t, f, d, 0.05);
+      if (I < 0.32) INSTR[M.calm || pal.calm](t, f, d, 0.05);
+      else if (V && I > 0.55) BIG[V.big](t, f, d);
       else if (I > 0.82 || (heroic && I > 0.5)){ horn(t, f / 2, d * 0.94, 0.03); trumpet(t, f, d * 0.88, 0.02); }
       else if (I > 0.55 || heroic) horn(t, f / 2, d * 0.94, 0.026);
     }
@@ -419,8 +502,9 @@ export const MUSIC = (function(){
     sweep(AC().currentTime);
     if (nextTime < AC().currentTime) nextTime = AC().currentTime + 0.05;   // fell behind (tab throttled): resync, no catch-up burst
     while (nextTime < AC().currentTime + 0.12){
+      if (restUntil && nextTime >= restUntil){ restUntil = 0; step = 0; }   // the rest after a stinger is over: from the top
       if (step % 16 === 0) barTop();
-      scheduleStep(nextTime);
+      if (!restUntil) scheduleStep(nextTime);
       nextTime += stepDur(); step++;
       intensity += (target - intensity) * 0.03;   // smooth swell between states
       dangerLv += ((liveCue() && drive.danger ? 1 : 0) - dangerLv) * 0.1;
@@ -455,7 +539,43 @@ export const MUSIC = (function(){
       if (s === 'boss' && prevState !== 'boss') this.bossSting();
       else if (s === 'victory') this.victorySting();
       else if (s === 'dead') this.deathSting();
+      // the fight's loop stops under the stinger; its own theme (the full statement, the lament) comes in after it
+      if (bus) setLevel(0.6);
+      if (REST[s] && AC()){ restUntil = AC().currentTime + REST[s]; intensity = Math.min(intensity, 0.3); }
+      else restUntil = 0;
     },
+
+    /* ---------- cutscenes (game/cutscene.js) ----------
+       sceneStart: the fight's drums and ostinato cut away on the next downbeat, the film bed comes in under the letterbox.
+       sceneLine(tone, who): a line comes up ('foe': that villain's theme takes the bed on the next downbeat; 'hero' or
+       'ally': the hero's) and the score steps back under it; null: no line up. sceneTitle: a title card's hit.
+       sceneDraw(dur): a duel's last beat, a riser and a timpani roll into the first clash. sceneEnd(fight): the scene is
+       over; a duel's or a boss's lands the fight on a downbeat with a hit, any other eases back into the score. */
+    sceneStart(){ film = { foe: null, talk: null };
+      if (bus) setLevel(0.4);
+      if (!this.ok()) return;
+      intensity = Math.min(intensity, FILM + 0.06); step = Math.ceil(step / 16) * 16; restUntil = 0;
+      swell(AC().currentTime, 0.035, 0.5); },
+    sceneLine(tone, who){ if (!film) return;
+      if (tone === 'foe'){ film.talk = 'foe'; film.foe = villainOf(who); }
+      else if (tone) film.talk = 'hero';
+      const d = tone ? FILM_DIP : 1;
+      if (d !== dip){ dip = d; if (bus) setLevel(0.25); } },
+    sceneTitle(foe){ if (!this.ok()) return; const t = AC().currentTime;
+      timpani(t, nf(12), 0.22); crash(t, 0.05);
+      if (foe){ for (const c of [0, 7]) lowBrass(t, nf(c + 12), 1.8, 0.03); choir(t, nf(24), 2.2, 0.02); }
+      else { [12, 19, 24, 28, 31].forEach((n, i) => pluck(t + i * 0.06, nf(n + 12), 1.2, 0.03)); for (const n of [12, 19, 24]) strings(t, nf(n), 2.6, 0.05, 2000); } },
+    sceneDraw(dur){ if (!this.ok()) return; const t = AC().currentTime; dur = Math.max(0.8, dur || 1.5);
+      riser(t, dur, 0.06); swell(t, 0.07, dur); timpRoll(t + dur * 0.45, nf(12), dur * 0.55, 0.16); },
+    sceneEnd(fight){ if (!film) return; film = null;
+      dip = 1; if (bus) setLevel(0.2);
+      if (!fight || !this.ok() || G.mode !== 'play') return;
+      intensity = Math.max(intensity, 0.7); step = Math.ceil(step / 16) * 16;
+      if (bossUp() && state !== 'boss') return;   // a boss steps in: its own sting lands the fight (setState)
+      const t = AC().currentTime;
+      crash(t, 0.12); timpani(t, nf(12), 0.4); taiko(t, 0.4);
+      for (const c of [0, 7, 12]) lowBrass(t, nf(c + 12), 1.2, 0.03); },
+    sceneOn(){ return !!film; },
     setEnabled(on){ enabled = on; try { localStorage.setItem('sw_music', on ? '1' : '0'); } catch(e){}
       if (bus) setLevel(0.3); },
     toggle(){ this.setEnabled(!enabled); return enabled; },
@@ -500,7 +620,7 @@ export const MUSIC = (function(){
       strings(t + 0.6, nf(13), 2.0, 0.05, 1000);
       choir(t, nf(24), 2.6, 0.03); timpani(t, nf(12), 0.25); },
 
-    debug(){ return { state, target, intensity: +intensity.toFixed(3), palette: palName, section, cue: cueName, drive: { ...drive },
+    debug(){ return { state, target, intensity: +intensity.toFixed(3), palette: palName, section, cue: cueName, villain, film: film && { ...film }, dip, resting: !!restUntil, drive: { ...drive },
       danger: +dangerLv.toFixed(2), bpm: Math.round(pal.bpm * bpmMul), hero: heroKey, started, enabled, step,
       ctxState: AC() ? AC().state : 'none', ctxTime: AC() ? +AC().currentTime.toFixed(2) : 0 }; },
     updateState(){ if (!started) return;
@@ -511,6 +631,7 @@ export const MUSIC = (function(){
       else if (bossUp()) s = 'boss';
       else { let warb = false, host = 0; for (const e of enemies){ if (e.dead || e.converted) continue; host++; if (e.warbringer) warb = true; }
         s = warb ? 'boss' : host >= 7 ? 'heavy' : host > 0 ? 'combat' : 'lull'; }
+      if (film && s !== 'victory' && s !== 'dead'){ target = FILM; return; }   // a cutscene holds the fight's state (a boss's sting waits for the fight)
       this.setState(s);
       let t = BASE[s];
       const C = liveCue();

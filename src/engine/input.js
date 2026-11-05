@@ -65,6 +65,7 @@ document.addEventListener('mousedown', (e) => {
   if (e.button === 1){ e.preventDefault(); wheelKeyDown(); return; }   // middle mouse: SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
+  if (e.button === 0 && G.gt < (player.lockGrace || 0)) return;   // the bind just broke: the tail of the mash is swallowed, not a stray cut
   if (e.button === 2 && (player.judgeT > 0 || player.flaming || player.mendT > 0)) return;   // mid-channel (lightning / flame / mend): no bracing
   if ((e.button === 0 || e.button === 2) && G.mode === 'play') wakeBlade();
   if (e.button === 0) atkPress();   // how long LMB is held weighs the cut: tap light, hold heavy (player/jedi/weight.js)   // the blade put out (5): a swing or a guard lights it first (player/holster.js)

@@ -8,6 +8,8 @@ import { shared, G, player, enemies, isGunner, bossUp } from '../state.js';
 import { fwd, rightV, playerPos, stance } from '../player/helpers.js';
 import { cameraClearance, updatePropFade } from '../world/camblock.js';
 import { CFG } from '../data/config.js';
+import { DUEL } from '../data/duel.js';
+import { LOCK_CAM } from '../enemies/duel.js';
 import * as THREE from 'three';
 /* the Jedi rig's aim point fixed to the hero (no lag): Jedi Academy draws its crosshair along the view from here, so it
    sits mid-screen at rest and rides out with the hero when a roll or a flip outruns the lens (player/aim.js) */
@@ -143,6 +145,30 @@ function punchLook(v, pw){
   return v.set(v.x + (a.x - v.x) * PUNCH_LOOK * pw, v.y + ((a.y || 0) + punch.up - v.y) * PUNCH_LOOK * pw, v.z + (a.z - v.z) * PUNCH_LOOK * pw);
 }
 
+/* SABER LOCK SHOT — while the blades are bound (enemies/duel.js LOCK_CAM) the lens swings off the hero's back, where
+   his own body hid the bind, out to a three-quarter side shot of the pair with the crossed blades in the middle, and
+   eases in as the struggle tightens. It blends in and out on real time (the bind opens in a hitstop and slow-mo) and,
+   once the bind breaks, back to the follow rig from the last shot. */
+let lockW = 0, lockAt = -1;
+const LOCK_LENS = new THREE.Vector3(), LOCK_LOOK = new THREE.Vector3();
+function lockShot(){
+  const now = performance.now() / 1000, rdt = lockAt < 0 ? 0 : Math.min(0.05, now - lockAt), M = DUEL.lock.cam;
+  lockAt = now;
+  const on = LOCK_CAM.on && G.mode === 'play' && !G.cutscene;
+  lockW = on ? Math.min(1, lockW + rdt * M.in) : Math.max(0, lockW - rdt * M.out);
+  if (on || lockW > 0){
+    const h = LOCK_CAM.hero, q = LOCK_CAM.foe;
+    let ax = q.x - h.x, az = q.z - h.z; const gap = Math.hypot(ax, az) || 1; ax /= gap; az /= gap;
+    const nx = -az * LOCK_CAM.side, nz = ax * LOCK_CAM.side;   // out to the side the lens was already on
+    const push = 1 - M.push * Math.abs(LOCK_CAM.bal) - (LOCK_CAM.surge ? M.surge : 0);
+    const mx = h.x + ax * gap * 0.5, mz = h.z + az * gap * 0.5, side = (M.side + gap * 0.35) * push;
+    LOCK_LENS.set(mx - ax * (gap * 0.5 + M.back) + nx * side, h.y + M.up, mz - az * (gap * 0.5 + M.back) + nz * side);
+    LOCK_LOOK.set((mx + LOCK_CAM.at.x) * 0.5, h.y + M.look + (LOCK_CAM.at.y - h.y - M.look) * 0.35, (mz + LOCK_CAM.at.z) * 0.5);
+  }
+  const w = lockW * lockW * (3 - 2 * lockW);
+  return w;
+}
+
 // a cutscene ended (game/cutscene.js): the Jedi rig starts over from its ideal spot instead of swooping in from before it
 export function resetCameraRig(){ jaLive = false; camFov = camera.fov; punch = null; }
 
@@ -176,6 +202,7 @@ export function updateCamera(dt){
   const ty = pp.y + C.pivotY;
   const rv = rightV();
   const side = updateDuelSide(pp, f, rv, dt);
+  const lw = lockShot();
   // ----- MANDO camera: HIGH + ALWAYS over a shoulder (helmet never under the crosshair) — the shoulder follows the
   //       way you last strafed, with situational distance & offset strength -----
   let camHi = 0, distMul = 1, ots = 0;
@@ -276,6 +303,7 @@ export function updateCamera(dt){
     jaLive = false; jaAim.live = false;
     TMP.set(tx - f.x*d*cosP + rv.x*ots, ty + camHi + camLift + dk*3 + d*sinP, tz - f.z*d*cosP + rv.z*ots);
   }
+  if (lw > 0){ TMP.lerp(LOCK_LENS, lw); ox = pp.x; oy = pp.y + 1.3; oz = pp.z; }   // the saber lock's side shot (clipped back toward the hero's chest)
   // aiming up swings the lens down behind the hero; never let it sink below `minLensY` over their feet, so the
   // view never comes up from the floor. Past that point the swing it would have made raises the aim point instead,
   // so you can keep looking up at the same rate
@@ -301,7 +329,7 @@ export function updateCamera(dt){
   const lagBase = (adsFly) ? 0.000004 : (isGunner() && (player.boosting || speed > 14)) ? 0.02 : 0.000008;
   // (frozen sim: dt = 0 would leave the lens stuck on the last pause cut, so the FOV preview snaps straight to the gameplay spot)
   // (the Jedi rig has already done its own easing)
-  if (jedi) camera.position.copy(TMP);
+  if (jedi || lw > 0) camera.position.copy(TMP);
   else camera.position.lerp(TMP, G.fovPreview ? 1 : 1 - Math.pow(lagBase, dt));
   // SHAKE — trauma model: strength is shake², so chip damage barely registers and a boss slam rattles the screen.
   // Smooth noise (real time, so a hitstop freeze-frame still trembles) with a touch of roll; damped while scoped.
@@ -344,8 +372,9 @@ export function updateCamera(dt){
   let td = clamp((G.pitch - C.topDownFrom) / (1.2 - C.topDownFrom), 0, 1);
   td = td*td*(3 - 2*td);
   const ahead = C.lookAhead * (1 - td * C.topDownAhead);
-  if (jedi) camera.lookAt(punchLook(LOOK, pw));   // JA: the view runs from the lens through its aim point, over the hero's head
-  else camera.lookAt(punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw));   // (and the aim leans less still)
+  const look = jedi ? punchLook(LOOK, pw)   // JA: the view runs from the lens through its aim point, over the hero's head
+    : punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw);   // (and the aim leans less still)
+  camera.lookAt(lw > 0 ? look.lerp(LOCK_LOOK, lw) : look);
   // camera ROLL into a strafe — subtle for the Jedi; a pronounced Max-Payne bank for the boosting Mando, but
   // damped right down while AIMING so the shot stays readable.
   const strafe = vx * (-f.z) + vz * f.x;
@@ -365,6 +394,6 @@ export function updateCamera(dt){
   const wantFov = player.zoom ? 30 : (baseFov(C) + (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6) + (stance().fovKick || 0) - blasterAim);
   // previewing the FOV setting (often while paused, dt = 0): snap so the view follows the slider at once
   camFov = G.fovPreview ? wantFov : camFov + (wantFov - camFov) * Math.min(1, dt * (player.zoom ? 12 : 7));
-  const fov = camFov - fovPunch - PUNCH_FOV * pw;
+  const fov = camFov - fovPunch - PUNCH_FOV * pw - lw * DUEL.lock.cam.fov * (0.5 + 0.5 * Math.abs(LOCK_CAM.bal));
   if (Math.abs(camera.fov - fov) > 0.02){ camera.fov = fov; camera.updateProjectionMatrix(); }
 }

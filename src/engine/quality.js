@@ -47,6 +47,12 @@ export function cycleQuality(){
   applyQuality();
   showQualityToast();
 }
+/* Settings · RESET TO DEFAULTS: forget the picked tier and the governor's, start again on HIGH (the governor may still step down) */
+export function resetQuality(){
+  manualQuality = false; qualityIdx = 2;
+  try { localStorage.removeItem('jpt_quality'); localStorage.removeItem('jpt_quality_auto'); } catch(e){}
+  applyQuality();
+}
 function showQualityToast(msg){
   let t = document.getElementById('qtoast');
   if (!t){

@@ -49,7 +49,7 @@ window.addEventListener('gamepaddisconnected', () => {
 });
 
 /* ---------- PROMPTS: keyboard key labels said the pad's way ('LMB' → RT, 'F' → Y, 'W A S D' → LS) ---------- */
-const KB_ALIAS = { space: ' ', lmb: 0, rmb: 2 };
+const KB_ALIAS = { space: ' ', lmb: 0, rmb: 2, ctrl: 'control' };
 export function padKey(tok, hero){
   const gl = PAD_GLYPHS[pad.family], B = PAD_BINDS[hero];
   const t = tok.toLowerCase();
@@ -71,9 +71,9 @@ export function padKeys(text, hero = padLayout(G.hero)){
 }
 // the HUD's key chips (and the saber lock's hint) follow the device being played with
 function relabelHud(){
-  for (const el of document.querySelectorAll('#actionbar .key, #stances .num, #wslots .kc, #lockbar .lb-hint b')){
+  for (const el of document.querySelectorAll('#actionbar .key, #stances .num, #wslots .kc, #lockbar .lb-hint b, #forms .fm-how kbd')){
     if (el.dataset.kb == null) el.dataset.kb = el.textContent;
-    const hero = el.closest('.j-ab') ? 'jedi' : el.closest('.m-ab') ? padLayout(G.hero === 'trooper' ? 'trooper' : 'mando') : padLayout(G.hero);
+    const hero = el.closest('.j-ab, #forms') ? 'jedi' : el.closest('.m-ab') ? padLayout(G.hero === 'trooper' ? 'trooper' : 'mando') : padLayout(G.hero);
     const v = pad.active ? padKeys(el.dataset.kb, hero) : el.dataset.kb;
     if (el.textContent !== v) el.textContent = v;
   }

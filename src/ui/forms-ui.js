@@ -15,6 +15,8 @@ import { MASTERY_JEDI, masteryRank } from '../data/mastery.js';
 import { storyForceLevel } from '../game/sandbox-unlocks.js';
 import { G } from '../state.js';
 import { FINISHERS } from '../data/finishers.js';
+import { FINISHER_HOW, SIGNATURE_MOVES } from '../data/form-moves.js';
+import { pad, padKeys } from '../engine/gamepad.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { FAMILIES, FORM_FAMILY, MATCHUP, LORE_EDGES, LORE_EDGE } from '../data/foe-forms.js';
@@ -307,7 +309,16 @@ function forceBlock(id){
     '<div class="fm-rkl' + (r >= 3 ? ' on' : '') + '"><span>' + (r >= 3 ? 'MASTERED' : 'EACH RANK') + '</span>' + m.lines.map(esc).join(' · ') + '</div>' +
     '<div class="fm-fin dim">Each rank moves these a third of the way to Master and adds ' + pctOf(FORM_RANK_SHARE) + ' to its Force share: ' + pctOf(share) + ' now.</div>';
 }
-const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-sub">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' : ''; };
+/* HOW TO DO IT (data/form-moves.js): one line of key chips, each step's keys then what it is ('[E][E] break its guard,
+   then [LMB] at the hilt'). Each chip keeps its key in data-kb, so it turns into the pad's button the
+   moment a controller takes over (engine/gamepad.js relabelHud), and back. */
+const keyChip = (k) => /^(HOLD|TAP)$/.test(k) ? '<i>' + k.toLowerCase() + '</i>' : k === '+' ? '<span>+</span>'
+  : '<kbd data-kb="' + esc(k) + '">' + esc(pad.active ? padKeys(k, 'jedi') : k) + '</kbd>';
+const howLine = (how, label) => '<div class="fm-how">' + (label ? '<b>' + esc(label) + '</b>' : '') +
+  how.map(([keys, what], i) => '<span class="fm-step">' + (i ? '<span class="then">then</span>' : '') + keys.split(' ').map(keyChip).join('') + (what ? '<em>' + esc(what) + '</em>' : '') + '</span>').join('') + '</div>';
+const finisherBlock = (id) => { const D = FINISHERS[id]; return D ? '<div class="fm-sub">FINISHER · ' + esc(D.name) + '</div><div class="fm-fin">' + esc(D.line) + '</div>' + howLine(FINISHER_HOW, 'HOW') : ''; };
+// its SIGNATURE move, named in its strengths: how to do it, under them
+const signatureLine = (id) => SIGNATURE_MOVES[id] ? howLine(SIGNATURE_MOVES[id].how, SIGNATURE_MOVES[id].name) : '';
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="fm-detail empty">Select a form to see what it is good and bad at.</div>';
@@ -318,6 +329,7 @@ function detail(){
     counterBlock(id) +
     '<div class="fm-sub">STRENGTHS &amp; WEAKNESSES</div>' +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
+    signatureLine(id) +
     '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + finisherBlock(id) + forceBlock(id) + '</div>';
 }
 function render(){

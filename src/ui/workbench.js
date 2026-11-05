@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE SABER WORKBENCH: its own screen, opened from SABER on the main menu (or the customizer's link). The saber lies in
+// THE SABER WORKBENCH: its own screen, opened from SABER on the main menu (or the customizer's link). (The trooper's and
+// the Mando's benches are ui/kitbench.js: the same button opens theirs.) The saber lies in
 // pieces on a lamp-lit bench (ui/bench-stage.js); this is the panel beside it: a tray for each slot (the kyber crystal,
 // the emitter, the grip, the pommel) holding the parts you've earned, the fitted crystal's ATTUNEMENT read out as its
 // gain and its cost, and TEST IGNITION, which slides the pieces home and lights the blade. Parts and their sources are
@@ -15,6 +16,7 @@ import { profileOf, partsOwned, partsTotal, runLive } from '../game/profile.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
 import { openBench, setBenchSaber, igniteBench, spinBench } from './bench-stage.js';
+import { openKitBench } from './kitbench.js';
 
 const panel = document.getElementById('workbench');
 const btn = document.getElementById('wbBtn');
@@ -110,7 +112,8 @@ panel.addEventListener('click', (e) => {
   }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && workbenchOpen()) closeWorkbench(); });
-if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); openWorkbench(); });
+// the menu's bench button: the Jedi's saber workbench, the trooper's armory locker or the Mando's beskar forge (ui/kitbench.js)
+if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); if (!openKitBench(G.hero)) openWorkbench(); });
 // drag on the bench (anywhere off the panel) to turn the hilt on its long axis
 let dragX = null;
 panel.addEventListener('pointerdown', (e) => { if (e.target === panel){ dragX = e.clientX; panel.setPointerCapture(e.pointerId); } });

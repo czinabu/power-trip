@@ -21,6 +21,7 @@ import { chapterOrder, forHero } from '../data/campaign.js';
 import { icon } from './icons.js';
 import { upToast } from '../game/upgrades.js';
 import { EARNABLE, crystalOf, earnProgress, earnText } from '../data/saber-parts.js';
+import { benchOf, earnableOf, SIDE_ROW, BENCH_NAME, BENCH_BUTTON } from '../data/hero-benches.js';
 import { CUSTOMIZE, wornOption } from '../data/customize.js';
 import { loadPicks } from '../player/mesh.js';
 
@@ -65,7 +66,7 @@ function leftCol(h){
     <div class="pf-bar"><i style="width:${Math.round(frac * 100)}%"></i></div>
     ${next ? `<div class="pf-next"><h4>NEXT · ${esc(next.nm)}</h4><ul>${nx.map(n => needLine(n, h)).join('')}</ul></div>` : '<div class="pf-next"><h4>THE TOP OF THE LADDER</h4><p class="pf-note">Every rank is yours.</p></div>'}
     <div class="pf-sec"><h4>THE LADDER</h4><ol class="pf-ladder">${ladder}</ol></div>
-    ${h === 'jedi' ? saberSec() : ''}
+    ${h === 'jedi' ? saberSec() : kitSec(h)}
     <div class="pf-sec"><h4>RECORD</h4><div class="pf-rec">${rec.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('')}</div></div>
     <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions, side missions and arcade contracts won, secrets found on the story maps, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
   </div>`;
@@ -77,11 +78,30 @@ function saberSec(){
   const c = crystalOf(at('saber').id), col = c.col != null ? '#' + c.col.toString(16).padStart(6, '0') : 'var(--accent)';
   const next = EARNABLE.map(([row, part]) => ({ part, e: earnProgress(profileOf('jedi'), part.earn) })).filter(x => x.e.have < x.e.need)
     .sort((a, b) => (b.e.have / b.e.need) - (a.e.have / a.e.need))[0];
-  return `<div class="pf-sec pf-saber"><h4>YOUR SABER<em>${partsOwned()} / ${partsTotal()} PARTS</em></h4>
+  return `<div class="pf-sec pf-saber"><h4>YOUR SABER<em>${partsOwned('jedi')} / ${partsTotal('jedi')} PARTS</em></h4>
     <div class="pf-sb"><i style="--c:${col}"></i><div><b>${esc(at('hilt').name.toUpperCase())} HILT</b><span>${esc(at('emitter').name)} emitter · ${esc(at('pommel').name)} pommel</span></div></div>
     <div class="pf-sb-att"><b>${esc(c.name.toUpperCase())} · ${esc(c.att)}</b><span>${esc(c.ds)}</span></div>
     ${next ? `<p class="pf-note">Next part: <b>${esc(next.part.name)}</b> · ${esc(earnText(next.part.earn, (id) => chapterName(id, 'jedi')))}${next.e.need > 1 ? ' (' + next.e.have + ' / ' + next.e.need + ')' : ''}</p>` : '<p class="pf-note">Every part is yours.</p>'}
     <p class="pf-note">Build it at the SABER WORKBENCH: SABER on the main menu.</p>
+  </div>`;
+}
+
+/* ---------- YOUR KIT: the trooper's ARMORY LOCKER, the Mando's BESKAR FORGE (data/hero-benches.js): what is fitted ---------- */
+function kitSec(h){
+  const mine = (loadPicks()[h]) || {}, at = (id) => wornOption(h, CUSTOMIZE[h].find(r => r.id === id), mine);
+  const side = benchOf(h).find(r => r.id === SIDE_ROW[h]), part = side.parts.find(p => p.id === at(side.id).id) || side.parts[0];
+  const looks = benchOf(h).filter(r => !r.side).map(r => esc(at(r.id).name)).join(' · ');
+  const spec = h === 'trooper' && benchOf(h).find(r => r.id === 'specialist');
+  const sp = spec && (spec.parts.find(p => p.id === at('specialist').id) || spec.parts[0]);
+  const next = earnableOf(h).map(([row, p]) => ({ part: p, e: earnProgress(profileOf(h), p.earn) })).filter(x => x.e.have < x.e.need)
+    .sort((a, b) => (b.e.have / b.e.need) - (a.e.have / a.e.need))[0];
+  const col = part.col != null ? '#' + part.col.toString(16).padStart(6, '0') : 'var(--accent)';
+  return `<div class="pf-sec pf-saber"><h4>YOUR KIT<em>${partsOwned(h)} / ${partsTotal(h)} PARTS</em></h4>
+    <div class="pf-sb"><i style="--c:${col}"></i><div><b>${esc(side.label)}</b><span>${looks}</span></div></div>
+    <div class="pf-sb-att"><b>${esc(part.att)}</b><span>${esc(part.ds)}</span></div>
+    ${sp ? `<div class="pf-sb-att"><b>SPECIALIST · ${esc(sp.att)}</b><span>${esc(sp.ds)}</span></div>` : ''}
+    ${next ? `<p class="pf-note">Next part: <b>${esc(next.part.name)}</b> · ${esc(earnText(next.part.earn, (id) => chapterName(id, h)))}${next.e.need > 1 ? ' (' + next.e.have + ' / ' + next.e.need + ')' : ''}</p>` : '<p class="pf-note">Every part is yours.</p>'}
+    <p class="pf-note">Fit it at the ${BENCH_NAME[h]}: ${BENCH_BUTTON[h]} on the main menu.</p>
   </div>`;
 }
 
@@ -216,10 +236,11 @@ onPromote((h, r) => {
   upToast('RANK EARNED · ' + R.nm, (h === 'jedi' ? 'New Insight for the Force Tree' : deckOf(h) ? 'A new card for your deck' : 'A new card for your runs') + ' · see PROFILE between runs', 'mast');
 });
 // a saber part earned mid-fight (game/profile.js settleParts; at a chapter's close it is a card instead)
-onPart((what, part, line) => {
+onPart((what, part, line, hero = 'jedi') => {
   refreshButton();
   if (G.mode !== 'play') return;
-  upToast('SABER PART · ' + part.name.toUpperCase() + ' ' + what, line + ' · fit it at the workbench between runs', 'mast');
+  const kind = { jedi: 'SABER PART', trooper: 'LOCKER PART', mando: 'FORGED PIECE' }[hero] || 'NEW PART';
+  upToast(kind + ' · ' + part.name.toUpperCase() + (hero === 'jedi' ? ' ' : ' · ') + what, line + ' · fit it at the ' + BENCH_NAME[hero].toLowerCase() + ' between runs', 'mast');
 });
 new MutationObserver(refreshButton).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class', 'style'] });
 refreshButton();

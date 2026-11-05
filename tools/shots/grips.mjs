@@ -75,7 +75,20 @@ async function frame(file){
       const a = new V(0, -0.27, 1).normalize().transformDirection(wr.matrixWorld), b = new V(0, 1, 0).transformDirection(root.matrixWorld);
       return Math.acos(Math.min(1, Math.abs(a.dot(b)))) * 180 / Math.PI;
     };
-    return { twoAng: ang(p.rig.armL.wr, p.saberBladeRoot), main: axisDist(p.rig.armR.wr, p.saberBladeRoot), two: axisDist(p.rig.armL.wr, p.saberBladeRoot, -1), offd: p.offSaber && p.offSaber.node.visible ? axisDist(p.rig.armL.wr, p.offSaber.root, -1) : null,
+    // THE ARMS IN THE BODY: points down each arm (from a third of the way down the upper arm to the wrist) in chest
+    // space, against the torso (an upright ellipse, rx 0.2 · rz 0.15, from the belt to the collar) — how deep (m) — and
+    // how far any of them reaches round behind the back (z < -0.16 with the point inside the shoulders' width)
+    const R = p.rig, inv = R.chest.matrixWorld.clone().invert(), W = n => new V().setFromMatrixPosition(n.matrixWorld).applyMatrix4(inv);
+    let armIn = 0, armBack = 0, worst = '';
+    for (const [A, nm] of [[R.armR, 'R'], [R.armL, 'L']]){
+      const sh = W(A.sh), el = W(A.el), wr = W(A.wr);
+      for (let t = 0.35; t <= 2.001; t += 0.1){
+        const q = t <= 1 ? sh.clone().lerp(el, t) : el.clone().lerp(wr, t - 1);
+        if (q.y > -0.75 && q.y < 0.28){ const k = Math.hypot(q.x / 0.2, q.z / 0.15); if (k < 1){ const d = (1 - k) * 0.15; if (d > armIn){ armIn = d; worst = nm + (t <= 1 ? ' upper' : ' fore'); } } }
+        if (Math.abs(q.x) < 0.3 && q.z < -0.16) armBack = Math.max(armBack, -0.16 - q.z);
+      }
+    }
+    return { armIn, armBack, worst, twoAng: ang(p.rig.armL.wr, p.saberBladeRoot), main: axisDist(p.rig.armR.wr, p.saberBladeRoot), two: axisDist(p.rig.armL.wr, p.saberBladeRoot, -1), offd: p.offSaber && p.offSaber.node.visible ? axisDist(p.rig.armL.wr, p.offSaber.root, -1) : null,
       img: shoot ? GAME.gfx.renderer.domElement.toDataURL('image/jpeg', 0.88) : null };
   }, [!!file, view, WIDE, process.env.FOCUS || '']);
   if (file) writeFileSync(file, Buffer.from(r.img.split(',')[1], 'base64'));
@@ -115,7 +128,11 @@ for (const entry of LIST){
         const f = a => a.length ? `${(Math.min(...a) * 100).toFixed(1)}–${(Math.max(...a) * 100).toFixed(1)}cm` : '-';
         const t = stats.map(s => s.two).filter(x => x != null);
         const ta = stats.filter(s => s.two != null && s.two < 0.03).map(s => s.twoAng);
-        console.log(name, ph, 'main fist↔hilt', f(m), ' off fist↔its hilt', f(o), ' off fist↔main hilt', f(t), ta.length ? ` (its turn off the hilt ${Math.min(...ta).toFixed(0)}–${Math.max(...ta).toFixed(0)}°)` : '');
+        const ai = stats.map(s => s.armIn), ab = stats.map(s => s.armBack);
+        if (process.env.ARMS === '2') stats.forEach((s, i) => { if (s.armIn > 0.02 || s.armBack > 0.02) console.log('  frame', i, (s.armIn * 100).toFixed(1), s.worst, (s.armBack * 100).toFixed(1)); });
+        if (process.env.ARMS) console.log(name, ph, 'arm in body: frames', ai.filter(x => x > 0.01).length + '/' + ai.length, 'deepest', (Math.max(...ai) * 100).toFixed(1) + 'cm', stats.reduce((a, s) => s.armIn > a.armIn ? s : a).worst,
+          ' behind the back: frames', ab.filter(x => x > 0.01).length, 'furthest', (Math.max(...ab) * 100).toFixed(1) + 'cm');
+        else console.log(name, ph, 'main fist↔hilt', f(m), ' off fist↔its hilt', f(o), ' off fist↔main hilt', f(t), ta.length ? ` (its turn off the hilt ${Math.min(...ta).toFixed(0)}–${Math.max(...ta).toFixed(0)}°)` : '');
       }
     }
   }

@@ -41,4 +41,4 @@ body.cutscene :is(#hubp,#secp){opacity:0 !important}
 
 /* a page opened from a temple station (the codex, the holocron, the forms): over the temple alone, the pause screen it
    lives on kept out of sight under it (ui/menus.js hubOpenPanel) */
-#overlay.hubpage > :not(#codex):not(#profile):not(#forms):not(#workbench){visibility:hidden}
+#overlay.hubpage > :not(#codex):not(#profile):not(#forms):not(#workbench):not(#kitbench){visibility:hidden}

@@ -10,7 +10,8 @@
 
 import { G } from '../state.js';
 import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
-import { EARNABLE, BENCH, partEarned } from '../data/saber-parts.js';
+import { partEarned } from '../data/saber-parts.js';
+import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
@@ -24,7 +25,7 @@ function load(){
   return store;
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
-const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0,
+const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
                        picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {} });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
@@ -49,7 +50,7 @@ export function profileOf(hero = G.hero){
   if (!HEROES.includes(hero)) hero = 'jedi';
   if (!s.heroes[hero]){ s.heroes[hero] = seed(hero); save(); }
   const p = s.heroes[hero];
-  if (hero === 'jedi' && !Array.isArray(p.parts)){ p.parts = earnedParts(p); save(); }   // (what a profile from before the workbench has earned comes with no fanfare)
+  if (!Array.isArray(p.parts)){ p.parts = earnedParts(hero, p); save(); }   // (what a profile from before its bench has earned comes with no fanfare)
   return p;
 }
 
@@ -87,7 +88,7 @@ const heldCards = [];
 // atClose: a chapter's close, where a rank-up is a card among what the chapter hands over; anywhere else, a corner note
 function settle(hero, atClose){
   const p = profileOf(hero), was = p.rank, now = rankFor(hero, p);
-  if (hero === 'jedi') settleParts(p, atClose);
+  settleParts(hero, p, atClose);
   if (now <= was){ save(); return; }
   p.rank = now; p.fresh = true;
   save();
@@ -112,26 +113,29 @@ function rankCard(hero, r){
 }
 export const takeRankCards = () => heldCards.splice(0);
 
-/* ---------- SABER PARTS (the workbench, data/saber-parts.js): earned once, kept, announced once ---------- */
+/* ---------- BENCH PARTS (the saber workbench, the armory locker, the beskar forge: data/hero-benches.js): earned once,
+   kept, announced once ---------- */
 const partKey = (row, part) => row + ':' + part.id;
-const earnedParts = (p) => EARNABLE.filter(([row, part]) => partEarned(p, part.earn)).map(([row, part]) => partKey(row, part));
-export const partsOwned = (hero = 'jedi') => hero === 'jedi' ? BENCH.reduce((n, r) => n + r.parts.filter(x => !x.earn || partEarned(profileOf('jedi'), x.earn)).length, 0) : 0;
-export const partsTotal = () => BENCH.reduce((n, r) => n + r.parts.length, 0);
+const earnedParts = (hero, p) => earnableOf(hero).filter(([row, part]) => partEarned(p, part.earn)).map(([row, part]) => partKey(row, part));
+export const partsOwned = (hero = 'jedi') => benchOf(hero).reduce((n, r) => n + r.parts.filter(x => !x.earn || partEarned(profileOf(hero), x.earn)).length, 0);
+export const partsTotal = (hero = 'jedi') => benchOf(hero).reduce((n, r) => n + r.parts.length, 0);
 let partHook = null;
 export const onPart = (fn) => { partHook = fn; };
+// what a part is called on its card: a crystal is a KYBER CRYSTAL, anything else its row's name
+const partWhat = (hero, row) => row === 'saber' ? 'KYBER CRYSTAL' : benchOf(hero).find(r => r.id === row).label;
+const partLine = (row, part) => part.att ? part.att + ': ' + part.ds : part.line;
 // a part just earned: a card at a chapter's close (with what the chapter hands over), a corner note anywhere else
-function settleParts(p, atClose){
+function settleParts(hero, p, atClose){
   const have = new Set(p.parts || []);
-  for (const [row, part] of EARNABLE){
+  for (const [row, part] of earnableOf(hero)){
     const k = partKey(row, part);
     if (have.has(k) || !partEarned(p, part.earn)) continue;
     have.add(k); p.fresh = true;
-    const R = BENCH.find(r => r.id === row), what = row === 'saber' ? 'KYBER CRYSTAL' : R.label;
-    const line = row === 'saber' ? part.att + ': ' + part.ds : part.line;
-    if (atClose) heldCards.push({ key: 'part-' + k, hud: '', card: { kicker: 'FOR YOUR SABER', name: part.name.toUpperCase() + ' ' + what,
-      lines: [line, 'Fit it at the SABER WORKBENCH between runs: SABER on the main menu. It stays yours in every mode, run and co-op game.'],
+    const what = partWhat(hero, row), line = partLine(row, part);
+    if (atClose) heldCards.push({ key: 'part-' + hero + '-' + k, hud: '', card: { kicker: BENCH_KICKER[hero], name: part.name.toUpperCase() + (hero === 'jedi' ? ' ' : ' · ') + what,
+      lines: [line, 'Fit it at the ' + BENCH_NAME[hero] + ' between runs: ' + BENCH_BUTTON[hero] + ' on the main menu. It stays yours in every mode, run and co-op game.'],
       rows: [['NEW ' + what, part.name.toUpperCase()]] } });
-    else if (partHook) partHook(what, part, line);
+    else if (partHook) partHook(what, part, line, hero);
   }
   p.parts = [...have];
 }
@@ -200,6 +204,16 @@ export const noteFormRank = () => counted('forms', RANK_XP.form);
 export const notePowerRank = () => counted('powers', RANK_XP.power);
 export const noteDuelWon = () => counted('duels', RANK_XP.duel);
 export const noteSurvivalWave = () => counted('waves', RANK_XP.wave);
+// the trooper's squad play (the ARMORY LOCKER's asks, data/trooper-locker.js): a squadmate got up by your own hand, a
+// survival wave cleared with nobody in the squad down. No XP of their own: they only count towards locker parts
+function tally(field){
+  if (!learning()) return;
+  const p = profileOf();
+  p[field] = (p[field] || 0) + 1;
+  settle(G.hero);
+}
+export const noteSquadRevive = () => tally('revives');
+export const noteSquadWave = () => tally('squadWaves');
 // the side of a fork the run took (ui/store-ui.js buyStore; Form VII's at its meditation), shown on the Force Tree
 export function noteFork(fork, id){
   if (G.hero !== 'jedi' || !fork || !id) return;

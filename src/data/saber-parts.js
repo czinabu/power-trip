@@ -14,6 +14,8 @@
 //   { sides: n }         n different side missions from the temple won (data/side-quests.js)
 //   { holocrons: n }     n hidden holocrons found on the story maps (data/secrets.js)
 //   { caves: n }         n crystal caves harvested on the story maps
+//   { revives: n }       n squadmates got up by your own hand (the trooper's squad)
+//   { squadWaves: n }    n survival waves cleared with the whole squad still standing
 // No `earn`: a starter part, on the bench from the first day. A part that is earned is announced once: a card at a
 // chapter's close, a corner note anywhere else.
 //
@@ -94,7 +96,7 @@ export function earnProgress(p, earn){
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
   if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
   if (earn.holocrons || earn.caves){ const k = earn.holocrons ? 'holocron' : 'cave'; return { have: Object.keys(p.secrets || {}).filter(id => id.endsWith(':' + k)).length, need: earn.holocrons || earn.caves }; }
-  for (const k of ['duels', 'arcade', 'waves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
+  for (const k of ['duels', 'arcade', 'waves', 'revives', 'squadWaves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
   return { have: 0, need: 1 };
 }
 export const partEarned = (p, earn) => { const e = earnProgress(p, earn); return e.have >= e.need; };
@@ -103,7 +105,9 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (!earn) return 'ON THE BENCH FROM THE START';
   if (earn.chapter) return 'CLEAR ' + chapterName(earn.chapter);
   if (earn.won) return 'BEAT THE CAMPAIGN';
-  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';
+  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';
+  if (earn.revives) return 'GET ' + n + ' SQUADMATE' + s + ' BACK UP';
+  if (earn.squadWaves) return 'CLEAR ' + n + ' SURVIVAL WAVE' + s + ' WITH THE SQUAD STANDING';
   if (earn.sides) return 'WIN ' + n + ' SIDE MISSION' + s + ' FROM THE TEMPLE';
   if (earn.holocrons) return 'FIND ' + n + ' HIDDEN HOLOCRON' + s;
   if (earn.caves) return 'HARVEST ' + n + ' CRYSTAL CAVE' + s;

@@ -33,6 +33,9 @@ import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING } fro
 import { BUBBLE } from '../data/duel-bubble.js';
 import { anyDuelFoe } from '../enemies/bubble.js';
 import { TROOPER } from '../data/trooper.js';
+import { squadSpecialist } from '../game/saber-bench.js';
+import { noteSquadRevive } from '../game/profile.js';
+import { SPECIALISTS } from '../data/trooper-locker.js';
 import { orderCost, canPay, spendCP, commandPoints } from '../player/trooper/command.js';
 const ORDERS_BY_ID = Object.fromEntries([...ORDERS, SUPPRESS_ORDER].map(o => [o.id, o]));
 import { throwGrenade } from '../enemies/grenades.js';
@@ -67,6 +70,10 @@ export const isFodder = e => !!FODDER[e.type] && !e.champion && !e.warbringer;
 export const squadSize = () => allies.length;
 export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
+// the mark by a squadmate's name in the squad panel: its specialist's (the ARMORY LOCKER), else the roster's
+const allyTag = (a) => (a.spec && a.spec.tag) || a.def.tag || '';
+// every squadmate on its feet (and at least one of them): a survival wave cleared so counts for the armory locker
+export const squadAllStanding = () => allies.length > 0 && allies.every(standing);
 export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && !(a.turnT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
 
 /* ============================================================
@@ -83,7 +90,10 @@ export function addSquadmate(at, opts){
   const roster = askRole && full.some(d => d.role === askRole) ? full.filter(d => d.role === askRole)
     : full.filter(d => !d.need || G.unlocked[d.need]);   // (a specialist the run hasn't earned yet waits)
   const def = (opts && opts.def) || roster.find(d => !allies.some(a => a.def === d)) || roster[allies.length % roster.length];
-  const role = SQUAD.roles[def.role];
+  // the ARMORY LOCKER's SQUAD SPECIALIST (data/trooper-locker.js): the trooper's first squadmate (SGT. VANT) fights in
+  // the specialist's role. Only the hero's own roster, never a battle setup's asked-for role or a story's guest
+  const spec = isTrooper() && !askRole && !(opts && opts.def) && def === full[0] ? squadSpecialist() : null;
+  const role = SQUAD.roles[spec ? spec.role : def.role];
   const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
   const g = buildEnemyMesh(t);
   const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
@@ -94,7 +104,7 @@ export function addSquadmate(at, opts){
   // a small diamond over the head marks a friend at a glance (and turns red while it's down)
   const tag = makeFriendTag(1); scene.add(tag);
   addFriendRing(g);
-  const a = { def, name: def.name, role, t, group: g, tag, hp: role.hp, maxHp: role.hp, state: 'move', slot: allies.length, ord: FOLLOW, mark: null, markT: 0,
+  const a = { def, spec, name: def.name, role, t, group: g, tag, hp: role.hp, maxHp: role.hp, state: 'move', slot: allies.length, ord: FOLLOW, mark: null, markT: 0,
               mv: { x: 0, z: 0 }, fireT: rand(0.5, 1.5), burstLeft: 0, burstT: 0, target: null, seekT: 0, hitAt: -99,
               flash: 0, body: null, stuckT: 0, sideT: 0, side: 1, lastX: s.x, lastZ: s.z };
   allies.push(a);
@@ -402,7 +412,7 @@ function downAlly(a){
   a.body = goDown({
     kind: 'ally', pos: () => a.group.position, need: REVIVE.ally.time * (player.up.reviveMul || 1) * (G.unlocked.medic ? TROOPER.medic.revive : 1),   // (the trooper's FIELD MEDIC and BAND OF BROTHERS)
     bleed: Infinity, selfUp: SQUAD.downTime[diffKey()],
-    onUp(how){ a.body = null; standUp(a, how === 'self' ? SQUAD.getUpHp : Math.max(SQUAD.getUpHp, 0.65)); },
+    onUp(how){ a.body = null; standUp(a, how === 'self' ? SQUAD.getUpHp : Math.max(SQUAD.getUpHp, 0.65)); if (how === 'hero' && isTrooper()) noteSquadRevive(); },   // (the armory locker counts the trooper's revives)
   });
 }
 function standUp(a, share){
@@ -1157,7 +1167,7 @@ export function squadSnap(nidOf){
       const g = a.group;
       return [heroKey(SQUAD.roster).indexOf(a.def), r2(g.position.x), r2(g.position.y), r2(g.position.z), r2(g.rotation.y),
         r2(standing(a) ? a.hp / a.maxHp : a.body ? Math.min(1, a.body.prog / a.body.need) : 0), orderCode(a), a.ord.partner ? 1 : 0,
-        a.target ? nidOf(a.target) : null, a.kick ? 1 : 0];
+        a.target ? nidOf(a.target) : null, a.kick ? 1 : 0, a.spec ? SPECIALISTS.indexOf(a.spec) : 0];
     }) };
 }
 const netBeacons = [];
@@ -1177,6 +1187,7 @@ export function syncNetSquad(m, foeOf){
     a.state = r[6] === 'down' ? 'down' : 'move';
     a.target = r[8] != null ? foeOf(r[8]) : null;
     if (r[9]) a.kick = 1;
+    a.spec = r[10] > 0 && SPECIALISTS[r[10]] || null;   // (the host's squad specialist: its tag in the squad panel)
   });
   SQ.formation = m.f || 'wide'; SQ.netGren = m.g || 0;
   SQ.netMark = m.mk != null ? foeOf(m.mk) : null;
@@ -1260,7 +1271,7 @@ export function updateSquadHud(){
     lastKey = key;
     hud.innerHTML = '<div class="sq-head"><span>SQUAD · ' + (SQ.formation === 'wide' ? 'SPREAD' : 'STACKED') + '</span><span class="sq-ord">ORDERS <kbd>MMB</kbd></span></div>' +
       (cp >= 0 ? '<div class="sq-cp"><span>CP ' + cp + '</span><span class="sq-cpbar"><i style="width:' + cp + '%"></i></span><span class="sq-ord">CALL <kbd>T</kbd></span></div>' : '') +
-      allies.map(a => '<div class="sq-row"><span class="sq-n">' + (a.def.tag ? '<b class="sq-tag">' + a.def.tag + '</b>' : '') + a.name + '</span><span class="sq-o">' + orderLabel(a) + '</span><span class="sq-bar"><i></i></span></div>').join('') +
+      allies.map(a => '<div class="sq-row"><span class="sq-n">' + (allyTag(a) ? '<b class="sq-tag">' + allyTag(a) + '</b>' : '') + a.name + '</span><span class="sq-o">' + orderLabel(a) + '</span><span class="sq-bar"><i></i></span></div>').join('') +
       '<div class="sq-gr' + (gl > 0 ? '' : ' ready') + '">GRENADE ' + (gl > 0 ? Math.ceil(gl) + 'S' : 'READY') + '</div>' +
       '<div class="sq-rev">' + (G.reviveLeft > 0 ? 'THEY CAN GET YOU UP ×' + G.reviveLeft : 'NO SECOND CHANCE LEFT THIS WAVE') + '</div>';
   }

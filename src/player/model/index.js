@@ -28,7 +28,7 @@ export function buildHeroModel(target, lookIn = {}){
   // the clone trooper has its own palette, so it gets its own style: its suit and cloth never take the Mando's colours
   const trooper = dress(R, makeStyle(look.style, look.trooper.palette), look.trooper, TROOPER_PARTS, target);
   for (const p of trooper.parts) p.visible = false;
-  mountLoadout(R, S, target, look.jedi.hilt);   // (the saber the workbench built: model/hilt.js)
+  mountLoadout(R, S, target, look.jedi.hilt, { ...look.trooper.rifle, mark: look.trooper.palette.mark });   // (the saber the workbench built: model/hilt.js; the DC-15 the locker built)
   // dust, scuffs and the fight's soot (model/wear.js): each hero worn as much as its look says
   target.wearU = [heroWear(jedi.parts, look.jedi.wear ?? 0.4), heroWear(mando.parts, look.mando.wear ?? 0.4), heroWear(trooper.parts, look.trooper.wear ?? 0.4)];
 

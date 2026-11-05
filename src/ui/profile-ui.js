@@ -100,7 +100,7 @@ function cardsCol(h){
     <p class="pf-note">Each rank adds one card to the run's upgrade page at its tier, for the same one skill point as the rest: more to choose from, never a bigger number.</p>
     <div class="pf-cards">${list.map(s => {
       const ri = T.ranks.findIndex(r => r.id === s.rank), have = profileOf(h).rank >= ri;
-      return '<div class="pf-node ' + (have ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b><span class="pf-tier-k">' + (h === 'mando' ? ['', 'FOUNDLING', 'VERD', 'MANDALORE'] : ['', 'CADET', 'ARC', 'COMMAND'])[s.tier] + '</span></div><p>' + s.ds + '</p>' +
+      return '<div class="pf-node ' + (have ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[s.tier] + '</span></div><p>' + s.ds + '</p>' +
         (have ? '<em class="pf-got">IN YOUR RUNS</em>' : '<em class="pf-lock">AT ' + esc(T.ranks[ri].nm) + '</em>') + '</div>';
     }).join('')}</div>
   </div>`;

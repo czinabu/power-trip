@@ -20,7 +20,7 @@ import { chapterClosed } from './flow.js';
 import { profileOpens } from './profile.js';
 
 export function skillSet(){ return isTrooper() ? TROOPER_SKILLS : isGunner() ? MANDO_SKILLS : SKILLS; }
-const TIER_NAME_TROOPER = { 1: 'CADET', 2: 'ARC', 3: 'COMMAND' };
+const TIER_NAME_TROOPER = TIER_NAME;   // (one set of tier names for every hero, clear of the ranks)
 export function tierName(t){ return (isTrooper() ? TIER_NAME_TROOPER : isGunner() ? TIER_NAME_MANDO : TIER_NAME)[t]; }
 export function skillRank(id){ return (player.skills && player.skills[id]) || 0; }
 function skillReq(s){ return s.req != null ? s.req : TIER_REQ[s.tier]; }

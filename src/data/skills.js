@@ -19,7 +19,8 @@ export const TIER_REQ = { 1: 0, 2: 3, 3: 7 };   // total skill points spent to u
 // ...and in the story campaign, the chapter that must close first (game/flow.js chapterClosed): KNIGHT once Act I
 // is done, MASTER (the capstones) once Act II is, so no capstone lands in the middle of the story
 export const TIER_CHAPTER = { 2: 'trial-first', 3: 'mustafar' };
-export const TIER_NAME = { 1: 'PADAWAN', 2: 'KNIGHT', 3: 'MASTER' };
+// (the tiers' names stay clear of the hero's ranks, Padawan / Knight / Master: data/profile.js, which every hero shares)
+export const TIER_NAME = { 1: 'FOUNDATION', 2: 'DISCIPLINE', 3: 'CAPSTONE' };
 export const SKILLS = [
   // ---- TIER I — PADAWAN foundations, stackable ----
   { id:'vit',   ico:'✚', nm:'IRON LIFE',     tier:1, max:3, ds:'+20 max vitality &amp; heal',
@@ -59,7 +60,7 @@ export const SKILLS = [
   ...JEDI_TREE,
 ];
 /* ---- MANDALORIAN creed — its own authentic upgrade path (clan, armor, jetpack, arsenal) ---- */
-export const TIER_NAME_MANDO = { 1: 'FOUNDLING', 2: 'VERD', 3: 'MANDALORE' };
+export const TIER_NAME_MANDO = TIER_NAME;   // (Foundling and Verd are the clan's ranks now: data/profile.js)
 export const MANDO_SKILLS = [
   // ---- TIER I — FOUNDLING: the basics of the Way ----
   { id:'plating', ico:'⛊', nm:'BESKAR PLATING',  tier:1, max:3, ds:'+20 max vitality &amp; repair',

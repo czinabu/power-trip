@@ -157,7 +157,7 @@ export function noteFork(fork, id){
 }
 
 /* ---------- the Force Tree (the Jedi) ---------- */
-// a tree tier's nodes wait for the rank of its name (the run's PADAWAN / KNIGHT / MASTER tiers)
+// a tree tier's nodes wait for a rank: FOUNDATION for Padawan, DISCIPLINE for Knight, CAPSTONE for Master
 const RANK_OF_TIER = { 1: 'padawan', 2: 'knight', 3: 'master' };
 const TIER_OF_RANK = { jedi: { knight: 2, master: 3 } };
 export const tierRank = (tier) => RANK_OF_TIER[tier];

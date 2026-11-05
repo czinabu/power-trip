@@ -69,11 +69,11 @@ function setPicking(on){
   else { closeMissionPage(); overlay.scrollTop = 0; }
   refreshNextRun();
 }
-const DIFF_NAME = { padawan: 'PADAWAN', knight: 'KNIGHT', master: 'MASTER' };
+export const DIFF_NAME = { padawan: 'GENTLE', knight: 'STANDARD', master: 'BRUTAL' };
 function refreshNextRun(){
   const el = document.getElementById('nrWhat'); if (!el) return;
   const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'ARCADE · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
-  el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'KNIGHT'].join(' · ');
+  el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
 const beginLabel = () => G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';

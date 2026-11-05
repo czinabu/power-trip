@@ -17,7 +17,7 @@ import { MISSIONS } from '../data/missions.js';
 import { missionShelves, missionRank, missionShelf, missionForHero, STORIES } from '../data/mission-groups.js';
 import { audioInit } from '../audio/sfx.js';
 import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName, TWISTS, arcadeWins } from '../data/arcade.js';
-import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen } from './menus.js';
+import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
 
 const listEl = document.getElementById('mplist'), infoEl = document.getElementById('mpinfo');
 const HEROES = () => ['jedi', 'mando', 'trooper'];
@@ -141,7 +141,7 @@ function refreshInfo(){
   infoEl.innerHTML = `<div class="mpi-t">${missionTitle(m.id)}${m.squad ? '<span class="msn-tag">SQUAD</span>' : ''}${m.trial ? '<span class="msn-tag">TRIAL</span>' : ''}</div>
     <div class="mpi-w">${where}</div>
     <div class="mpi-b">${m.blurb.charAt(0).toUpperCase() + m.blurb.slice(1)}.</div>
-    <div class="mpi-meta"><span>THREAT ${pips(missionRank(m, G.hero))}</span><span>${n} OBJECTIVE${n === 1 ? '' : 'S'}</span><span>ON ${String(G.diff || 'knight').toUpperCase()}</span><span class="mpi-won">${marks}</span></div>`;
+    <div class="mpi-meta"><span>THREAT ${pips(missionRank(m, G.hero))}</span><span>${n} OBJECTIVE${n === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">${marks}</span></div>`;
 }
 function arcadeInfo(c){
   if (!c || !infoEl) return;
@@ -149,7 +149,7 @@ function arcadeInfo(c){
   infoEl.innerHTML = `<div class="mpi-t">${c.title}<span class="msn-tag">ARCADE</span>${twistTag(c)}</div>
     <div class="mpi-w">${c.place}</div>
     <div class="mpi-b">${steps.join(' &nbsp;›&nbsp; ')}.${c.twist ? ' <b>' + TWISTS[c.twist].name + ':</b> ' + TWISTS[c.twist].line : ''}</div>
-    <div class="mpi-meta"><span>THREAT ${pips(c.threat)}</span><span>${c.objectives.length} OBJECTIVE${c.objectives.length === 1 ? '' : 'S'}</span><span>ON ${String(G.diff || 'knight').toUpperCase()}</span><span class="mpi-won">No story · any hero</span></div>`;
+    <div class="mpi-meta"><span>THREAT ${pips(c.threat)}</span><span>${c.objectives.length} OBJECTIVE${c.objectives.length === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">No story · any hero</span></div>`;
 }
 // the menu's MISSIONS tile: how many this hero has won, or the one picked
 export function refreshTile(){

@@ -42,7 +42,7 @@ function rollFreeCards(){
   const sustainId = isGunner() ? 'creed' : 'vamp';
   const sustainIdx = pool.findIndex(s => s.id === sustainId);
   if (sustainIdx >= 0){ pick.push(pool[sustainIdx]); pool.splice(sustainIdx, 1); }
-  // NEWEST TIER GUARANTEED — one card always comes from the highest tier you've opened, so a fresh KNIGHT or
+  // NEWEST TIER GUARANTEED — one card always comes from the highest tier you've opened, so a fresh DISCIPLINE or
   // MASTER tier shows up the visit it unlocks instead of hiding behind random Padawan draws.
   pool.sort(() => Math.random() - 0.5);
   const top = Math.max(0, ...pool.map(s => s.tier));
@@ -222,7 +222,7 @@ export function renderProgress(){
   const wrap = document.getElementById('skillcards');
   wrap.innerHTML = '';
   document.getElementById('freehdr').textContent = isTrooper() ? 'GAR TRAINING' : mando ? 'WEAPON UPGRADES' : 'TRAINING';
-  // what training opens next — "KNIGHT opens after 1 more" — so the tier gate reads as a goal, not a mystery
+  // what training opens next — "DISCIPLINE opens after 1 more" — so the tier gate reads as a goal, not a mystery
   const spent = G.skillSpent || 0, nextT = [2, 3].find(t => spent < TIER_REQ[t] || !tierStoryOpen(t));
   const gate = !nextT ? '' : !tierStoryOpen(nextT) ? ' · ' + tierName(nextT) + ' opens in Act ' + (TIER_CHAPTER[nextT] === 'mustafar' ? 'III' : 'II')
     : ' · ' + tierName(nextT) + ' opens after ' + (TIER_REQ[nextT] - spent) + ' more';
@@ -237,7 +237,7 @@ export function renderProgress(){
     const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
     const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO SKILL POINTS';
     wrap.appendChild(card({
-      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : s.tier === 3 ? ' · CAPSTONE' : ''),
+      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : ''),
       ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
       extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
       cost: '1 SKILL POINT', costCls: 'c-pick',

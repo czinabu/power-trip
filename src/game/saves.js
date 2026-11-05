@@ -32,7 +32,7 @@ const clone = (v) => v == null ? v : JSON.parse(JSON.stringify(v));
 
 /* THE CAMPAIGN RUN — the build carried from chapter to chapter. A loaded run restarts the saved chapter from its
    checkpoint (the same way a retry after a death does), with every upgrade, boon and unlock it had. */
-export function inCampaignRun(){ return G.mode === 'play' && (G.chapter >= 0 || (!G.endless && !G.training && !G.mission && !G.sandbox)); }
+export function inCampaignRun(){ return G.mode === 'play' && (G.chapter >= 0 || (!G.endless && !G.training && !G.mission && !G.sandbox && !G.hub)); }
 function snapshotRun(){
   return {
     idx: G.levelIdx, chapter: G.chapter, chapterId: G.chapter >= 0 ? (chapterOrder(G.actTwo)[G.chapter] || {}).id : null, actTwo: G.actTwo, story: clone(G.story) || {}, checkpoint: clone(G.checkpoint), stance: G.stance, loadout: [...G.loadout], mandoKit: { ...(G.mandoKit || RUN_KIT) }, weapon: player.weapon, rifleMod: player.rifleMod || 'burst',
@@ -210,6 +210,7 @@ function whereNow(){
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';
   if (G.mode === 'play' && G.training) return 'TRAINING';
   if (G.mode === 'play' && G.sandbox) return 'SANDBOX';
+  if (G.mode === 'play' && G.hub) return 'THE HIDDEN TEMPLE';
   return 'MAIN MENU';
 }
 // what the slot holds: wins across the campaign, missions and training

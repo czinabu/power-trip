@@ -20,7 +20,7 @@ export const SURVIVAL_EVERY = 3;     // survival: the upgrade page opens every 3
 const RANK_NUM = ['', 'I', 'II', 'III'];
 
 // the training grounds and the sandbox hand powers out; every real fight (campaign, survival, missions, co-op) teaches
-const learning = () => G.mode === 'play' && !G.training && !G.sandbox;
+const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub;
 // a cast only teaches when there is something to use it on
 function inFight(){
   if (bossUp()) return true;

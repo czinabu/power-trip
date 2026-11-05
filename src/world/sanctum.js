@@ -161,7 +161,9 @@ export function buildSanctum(o = {}){
     if (w >= 2) bays.push({ k, c, w, mid: Math.abs(c) < 0.1, ww: Math.min(o.windowW ?? 2.4, w * 0.5) });
   }
   const tall = side => (o.arcade || []).includes(side) && (o.arcadeTop ?? 0) > wy0;   // an arcade up past the windows: the whole wall is arches
-  const windowed = (side, b) => !(b.mid && (side === 'n' || side === 's')) && wy1 - wy0 > 3 && !tall(side);
+  // the great DOORS (o.doors: the walls they stand in, the south by default) and the Order's SIGIL (o.sigilSide, the north)
+  const doorSides = o.doors || ['s'], sigilSide = o.sigilSide === undefined ? 'n' : o.sigilSide;
+  const windowed = (side, b) => !(b.mid && (side === sigilSide || doorSides.includes(side) || side === 'n' || side === 's')) && wy1 - wy0 > 3 && !tall(side);
   // the ARCADE (o.arcade: the walls it opens): the lower storey of a side wall open between its piers, a tall arch in
   // every bay from the plinth up to under the gallery, the holy city right outside
   const ay0 = 1.1, ay1 = o.arcadeTop ?? galleries[0] - 1.4, arcaded = side => (o.arcade || []).includes(side) && ay1 - ay0 > 3;
@@ -218,8 +220,10 @@ export function buildSanctum(o = {}){
           shaft(beams, from, to, ww * 1.3, ww * 0.9, o.shaftColor ?? 0xd8e4ff, o.shaftOp ?? 0.16);
         }
       }
-      if (mid && side === 'n'){ sigil(c); continue; }
-      if (mid && side === 's'){ doors(c, w); continue; }
+      { const isSigil = mid && side === sigilSide, isDoor = mid && doorSides.includes(side);
+        if (isSigil) sigil(c, isDoor);
+        if (isDoor) doors(side, c, w);
+        if (isSigil || isDoor) continue; }
       if (o.style === 'archive' && arcaded(side)){
         if (k % 2 === 0) bust(side, c);   // the side walls stand open: only a bust in the arch now and then
       } else if (o.style === 'archive'){
@@ -329,32 +333,33 @@ export function buildSanctum(o = {}){
     put(side, new THREE.SphereGeometry(0.3, 10, 8), stone, a, 2.38, d);
   }
   /* the Order's SIGIL over the north bay: a ring, three wings either side, the blade standing up through it */
-  function sigil(a){
-    const y = (galleries[galleries.length - 1] + Wh) / 2 + 0.5, d = off - 0.2, s = o.sigilSize ?? 3.2;
-    put('n', new THREE.TorusGeometry(s * 0.55, s * 0.09, 8, 40), sigilM, a, y, d);
-    put('n', new THREE.CircleGeometry(s * 0.46, 32), stoneD, a, y, d + 0.05);
+  function sigil(a, overDoor){
+    const side = sigilSide, y = (galleries[galleries.length - 1] + Wh) / 2 + 0.5, d = off - 0.2, s = o.sigilSize ?? 3.2;
+    put(side, new THREE.TorusGeometry(s * 0.55, s * 0.09, 8, 40), sigilM, a, y, d);
+    put(side, new THREE.CircleGeometry(s * 0.46, 32), stoneD, a, y, d + 0.05);
     // the blade: up out of the top of the ring, a short guard where it meets it
-    put('n', new THREE.BoxGeometry(s * 0.16, s * 1.5, 0.22), sigilM, a, y + s * 0.55 + s * 0.75, d);
-    put('n', new THREE.BoxGeometry(s * 0.5, s * 0.12, 0.22), sigilM, a, y + s * 0.62, d);
-    put('n', new THREE.ConeGeometry(s * 0.08, s * 0.3, 4), sigilM, a, y + s * 2.2, d, 0, PI / 4, 0);
+    put(side, new THREE.BoxGeometry(s * 0.16, s * 1.5, 0.22), sigilM, a, y + s * 0.55 + s * 0.75, d);
+    put(side, new THREE.BoxGeometry(s * 0.5, s * 0.12, 0.22), sigilM, a, y + s * 0.62, d);
+    put(side, new THREE.ConeGeometry(s * 0.08, s * 0.3, 4), sigilM, a, y + s * 2.2, d, 0, PI / 4, 0);
     // the wings: three feathers a side, sweeping up and out from the ring
     for (const sx of [-1, 1]) for (let k = 0; k < 3; k++){
       const l = s * (1.6 - k * 0.35), ang = 0.35 + k * 0.32;
-      put('n', new THREE.BoxGeometry(l, s * 0.13, 0.22), sigilM, a + sx * (s * 0.62 + Math.cos(ang) * l / 2), y - s * 0.1 + Math.sin(ang) * l / 2 - k * s * 0.05, d, 0, 0, sx * ang);
+      put(side, new THREE.BoxGeometry(l, s * 0.13, 0.22), sigilM, a + sx * (s * 0.62 + Math.cos(ang) * l / 2), y - s * 0.1 + Math.sin(ang) * l / 2 - k * s * 0.05, d, 0, 0, sx * ang);
     }
     // and two tall banners hanging either side of it, down to the gallery
-    for (const sx of [-1, 1]) banner('n', a + sx * s * 2.5, Wh - 6.4, 2.0, 9);
+    for (const sx of [-1, 1]) if (!overDoor) banner(side, a + sx * s * 2.5, Wh - 6.4, 2.0, 9);
   }
   /* the great DOORS in the south, behind the spawn: standing open, the night (or the smoke) outside */
-  function doors(a, w){
-    const dh = Math.min(galleries[0] - 1, 11), dw = Math.min(w - 0.6, 7);
+  function doors(side, a, w){
+    const dh = Math.min(galleries[0] - 1, o.doorH ?? 11), dw = Math.min(w - 0.6, o.doorW ?? 7);
     const out = new THREE.MeshBasicMaterial({ color: o.door ?? 0x1a1a2e, fog: false });
-    put('s', new THREE.PlaneGeometry(dw, dh - dw / 2), out, a, (dh - dw / 2) / 2, off - 0.03);
-    put('s', new THREE.CircleGeometry(dw / 2, 14, 0, PI), out, a, dh - dw / 2, off - 0.03);
+    put(side, new THREE.PlaneGeometry(dw, dh - dw / 2), out, a, (dh - dw / 2) / 2, off - 0.03);
+    put(side, new THREE.CircleGeometry(dw / 2, 14, 0, PI), out, a, dh - dw / 2, off - 0.03);
     for (const sx of [-1, 1]){
-      put('s', new THREE.BoxGeometry(0.8, dh, 0.9), trim, a + sx * (dw / 2 + 0.4), dh / 2, off - 0.3);
-      put('s', new THREE.BoxGeometry(dw * 0.5, dh - dw / 2 - 0.4, 0.3), stoneD, a + sx * (dw / 2 + 1.6), (dh - dw / 2) / 2, off - 1.0, 0, sx * 0.9, 0);   // a door leaf, swung open
+      put(side, new THREE.BoxGeometry(0.8, dh, 0.9), trim, a + sx * (dw / 2 + 0.4), dh / 2, off - 0.3);
+      put(side, new THREE.BoxGeometry(dw * 0.5, dh - dw / 2 - 0.4, 0.3), stoneD, a + sx * (dw / 2 + 1.6), (dh - dw / 2) / 2, off - 1.0, 0, sx * 0.9, 0);   // a door leaf, swung open
     }
+    if (o.doorArch) put(side, new THREE.TorusGeometry(dw / 2 + 0.5, 0.35, 6, 18, PI), trim, a, dh - dw / 2, off - 0.3);
   }
 
   if (shelves) shelves.done(o.cardTint ?? 0xffffff);

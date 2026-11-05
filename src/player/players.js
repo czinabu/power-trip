@@ -37,7 +37,7 @@ export const huntable = (p) => targetable(p) && !p.away;
 
 /* which arena and mode this browser is in, so a partner only counts as being in the same fight when theirs matches */
 export function worldKey(){
-  const mode = G.sandbox ? 'sandbox' : G.training ? 'training' : G.mission ? 'mission:' + G.missionId
+  const mode = G.hub ? 'hub:' + G.hubWing : G.sandbox ? 'sandbox' : G.training ? 'training' : G.mission ? 'mission:' + G.missionId
     : G.endless ? 'survival:' + G.arenaRot : 'campaign:' + G.levelIdx;
   return mode;
 }

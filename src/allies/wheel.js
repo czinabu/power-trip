@@ -14,10 +14,13 @@ import { sfx } from '../audio/sfx.js';
 const W = { down: false, downAt: 0, open: false, x: 0, y: 0, sel: -1, who: null };
 let el = null;
 export const wheelOpen = () => W.open;
+let hubTap = () => false;
+export function setHubTap(fn){ hubTap = fn; }   // the temple's stations (game/hub.js)
 
 /* ---------- INPUT (engine/input.js and engine/gamepad.js hand these in) ---------- */
 export function wheelKeyDown(){
   if (G.mode !== 'play' || player.downed || W.down) return;
+  if (G.hub){ hubTap(); return; }   // the temple has no squad: H opens the station you're at (game/hub.js)
   W.down = true; W.downAt = performance.now(); W.who = null; W.x = W.y = 0; W.sel = -1;
 }
 export function wheelKeyUp(){

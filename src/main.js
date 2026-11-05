@@ -120,6 +120,9 @@ import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/sto
 import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
+import { updateHub, startHub, goWing } from './game/hub.js';
+import './ui/hub-ui.js';
+import { HUB_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
 import { updateDoorway, doorState } from './world/doorway.js';
@@ -195,6 +198,7 @@ function tick(){
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
   updateHudStage(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt, G.mode === 'play');   // the words on the lower middle keep one column and take turns (ui/hud-stage.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
+  updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
@@ -293,6 +297,7 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
   kamino: MISSIONS.drowned.level, chipworks: MISSIONS.chipworks.level, warcamp: MISSIONS.warcamp.level, canyon: MISSIONS.hunt.level, relay: MISSIONS.broadcast.level,
   barge: MISSIONS.gallows.level, holdfast: MISSIONS.holdfast.level, citadel: { ...LEVELS[2], layout: 'citadel', arena: 64 },
   meltworks: MISSIONS.meltworks.level, ironroad: MISSIONS['iron-road'].level,
+  ...Object.fromEntries(Object.values(HUB_WINGS).map(W => [W.level.layout, W.level])),   // the hidden temple's wings (data/hub.js)
   grassland: BATTLE_MAPS.grassland.level, icefront: BATTLE_MAPS.icefront.level, graveyard: BATTLE_MAPS.graveyard.level,
 }) });
 import { arcadeContract, arcadeBoard, missionById } from './data/arcade.js';
@@ -311,3 +316,4 @@ import { TROOPER_STORE, TROOPER_SKILLS } from './data/trooper-progression.js';
 import { clearSquad } from './allies/squad.js';
 Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
 window.GAME.squad.clearSquad = clearSquad;
+Object.assign(window.GAME, { hub: { startHub, goWing, wings: HUB_WINGS } });   // the hidden temple (game/hub.js), for tests and shots

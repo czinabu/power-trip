@@ -985,7 +985,46 @@ export const BATTLE_WORLDS = {
 };
 
 /* the theme for a level (by its layout), or null for unthemed/procedural arenas */
+/* THE HIDDEN TEMPLE ON TYTHON (the hub: data/hub.js, world/arenas/tython.js) — one look per wing, all of a piece: pale
+   limestone and gold under a clear Deep Core morning, Tython's green mountains and waterfalls outside the open arches,
+   blue kyber light inside. Every wing is its own build (a wing loads when you walk through its door) */
+const TY_SKY = { top: 0x2f6fb4, horizon: 0xd8ecf0, below: 0x8aa89a, bands: 7, stars: 0,
+  sun: { el: 0.34, color: 0xfff6dc, halo: 0xffe8b0, size: 22 },
+  clouds: { color: 0xf8f4ec, under: 0xb8c4c8, count: 16, lo: 0.25, hi: 0.75 },
+  ridges: [{ color: 0x5e8a74, h: 0.2, rough: 0.14, spiky: 0.5, seed: 7 }, { color: 0x48705e, h: 0.11, rough: 0.1, spiky: 0.3, seed: 13 }] };
+const TY_VIEW = [   // what the open arches look out on: forested ridges, the snow-capped peaks, a far waterfall cliff
+  { kind: 'cliffs', count: 18, r: [1.6, 2.4], h: [14, 30], w: 0.32, color: 0x4e7a5e, color2: 0x5e8a68 },
+  { kind: 'spires', count: 10, r: [1.9, 2.6], h: [26, 50], color: 0x6a8a78, color2: 0x587866 },
+  { kind: 'bluffs', count: 8, r: [1.4, 1.75], h: [95, 150], w: 0.34, color: 0x6c8a86, color2: 0x5a7874, cap: 0xf2f4f8 },
+];
+const TY_LIGHT = { sun: 0xfff0d6, sunI: 1.75, dir: [-22, 44, 26], hemiSky: 0xcfe2f4, hemiGround: 0x5a564c, fill: 0.92, rim: 0x8ad8ff, rimI: 0.45 };
+const TY_PAL = { stone: 0xd6cfbe, stoneD: 0xa89f8c, trim: 0xd8b860, kyber: 0x5ad2ff, leaf: 0x4a8a4e, leafD: 0x36703c, water: 0x6ac8e8,
+  wood: 0x7a5230, woodD: 0x52361e, cloth: 0x2e6a8a, mat: 0xa8946f, bronze: 0x9a7440, rock: 0x3a3a46, rockD: 0x2a2a34 };
+export const HUB_WORLDS = {
+  tyHall: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: TY_LIGHT,
+    floor: { kind: 'flagstone', base: 0x9a9284, seed: 17 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
+    ambient: { kind: 'dust', color: 0xfff4dc, count: 120, size: 0.24 },
+    warfront: { flyers: [{ kind: 'freighter', count: 1, alt: [140, 200], speed: [20, 30], every: [30, 50] }], epic: false },
+    beats: { fog: 0xc8d8dc, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
+  tyCouncil: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: { ...TY_LIGHT, dir: [10, 40, -30] },
+    floor: { kind: 'flagstone', base: 0x8e877a, seed: 23 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
+    ambient: { kind: 'dust', color: 0xfff4dc, count: 70, size: 0.22 }, beats: { fog: 0xc8d8dc, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
+  tyTraining: { mist: false, sky: TY_SKY, fog: 0xc8d4d0, fogStart: 1.1, fogEnd: 3.6, light: { ...TY_LIGHT, dir: [30, 42, 14] },
+    floor: { kind: 'parquet', base: 0x7a4a2a, seed: 31 }, outer: 0x5a3a22, pal: TY_PAL, backdrop: TY_VIEW, glow: 0.7,
+    ambient: { kind: 'dust', color: 0xfff0d8, count: 80, size: 0.2 }, beats: { fog: 0xc8d4d0, fill: 1.0, tint: 0xffe8c8 }, sound: 'temple' },
+  tyArchive: { mist: false, sky: { ...TY_SKY, top: 0x24508a }, fog: 0x8a98a8, fogStart: 1.1, fogEnd: 3.6,
+    light: { ...TY_LIGHT, sunI: 1.5, fill: 0.85, dir: [-14, 46, 20] },
+    floor: { kind: 'flagstone', base: 0x6e6a66, seed: 41 }, outer: 0x5a5650, pal: TY_PAL, backdrop: TY_VIEW,
+    ambient: { kind: 'dust', color: 0xd8f0ff, count: 90, size: 0.2 }, beats: { fog: 0x8a98a8, fill: 1.0, tint: 0xd8ecff }, sound: 'temple' },
+  tyForge: { mist: false, sky: { top: 0x0a0e1c, horizon: 0x1e3a5a, below: 0x0e1420, bands: 5, stars: 0 }, clear: 0x0a0e1c,
+    fog: 0x1a2a3e, fogStart: 1.2, fogEnd: 3.8,
+    light: { sun: 0xbfe6ff, sunI: 1.3, dir: [-10, 44, 18], hemiSky: 0x6ab8ff, hemiGround: 0x1e1a28, fill: 1.0, rim: 0x5ad2ff, rimI: 0.7 },
+    floor: { kind: 'basalt', base: 0x3e3e4a, seed: 47 }, outer: 0x22222c, pal: TY_PAL, backdrop: [],
+    ambient: { kind: 'embers', color: 0x8ae0ff, count: 110 }, beats: { fog: 0x1a2a3e, fill: 1.0, tint: 0xb8e8ff }, sound: 'temple' },
+};
+
 export function themeFor(L){
+  if (HUB_WORLDS[L.layout]) return HUB_WORLDS[L.layout];
   if (TRAINING_WORLDS[L.layout]) return TRAINING_WORLDS[L.layout];
   if (MISSION_WORLDS[L.layout]) return MISSION_WORLDS[L.layout];
   if (BATTLE_WORLDS[L.layout]) return BATTLE_WORLDS[L.layout];

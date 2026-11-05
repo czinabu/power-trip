@@ -234,6 +234,7 @@ export function updateHud(){
   document.body.classList.toggle('training', !!G.training);
   document.body.classList.toggle('mission-play', !!G.mission);
   document.body.classList.toggle('sandbox', !!G.sandbox);
+  document.body.classList.toggle('hub', !!G.hub);
   const calm = G.mode === 'play' && calmHud();   // the calm after a chapter's last fight (game/aftermath.js): its line, in any chapter
   if (calm){
     setHtml($('waveinfo'), '<span class="wi-l">' + chapterLabel() + ' · COMPLETE</span><span class="wi-w">' + calm.title + '</span><span class="wi-h">' + calm.status + '</span>');
@@ -246,6 +247,9 @@ export function updateHud(){
     if (o) setHtml($('waveinfo'), '<span class="wi-l">' + o.kicker + '</span><span class="wi-w">' + o.title + '</span>' +
       '<span class="wi-h' + (o.warn ? ' warn' : '') + '">' + o.status + '</span>' +
       (o.frac != null ? '<span class="wi-bar"><i style="width:' + (clamp(o.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : ''));
+  } else if (G.hub){
+    const wing = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim();
+    setHtml($('waveinfo'), '<span class="wi-l">THE HIDDEN TEMPLE · TYTHON</span><span class="wi-w">' + wing + '</span><span class="wi-h">H AT A STATION · WALK THROUGH A DOOR TO ANOTHER WING</span>');
   } else if (G.sandbox){
     const room = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || (isGunner() ? 'THE THRONE ROOM' : 'THE TRAINING ROOM')).trim();   // the room, or the battle map picked
     setHtml($('waveinfo'), '<span class="wi-l">SANDBOX · ' + room + '</span><span class="wi-w">PRESS B FOR FOES &amp; POWERS</span>' + hostiles +

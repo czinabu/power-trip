@@ -30,6 +30,8 @@ import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from 
 import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING } from '../data/allies.js';
+import { BUBBLE } from '../data/duel-bubble.js';
+import { anyDuelFoe } from '../enemies/bubble.js';
 import { TROOPER } from '../data/trooper.js';
 import { orderCost, canPay, spendCP, commandPoints } from '../player/trooper/command.js';
 const ORDERS_BY_ID = Object.fromEntries([...ORDERS, SUPPRESS_ORDER].map(o => [o.id, o]));
@@ -425,7 +427,8 @@ export const squadDown = () => allies.filter(a => !standing(a)).length;
    Only the rank and file, only when a squadmate is clearly nearer than the hero, and never more than
    SQUAD.aggroShare of the living troopers at once. With the hero down, every trooper looks for a squadmate.
    ============================================================ */
-export function foeAllyTarget(e, pp){
+// duel: the hero it would go after is in a 1v1 (enemies/bubble.js), so the squad is the fight it looks for first
+export function foeAllyTarget(e, pp, duel){
   if (!allies.length || e.converted || e.dummy || e.dead || !isFodder(e) || e.t.bomber){ e.allyTgt = null; e.onAlly = false; return null; }
   if (G.gt >= (e.allyCheck || 0)){
     e.allyCheck = G.gt + rand(0.6, 1.0);
@@ -440,11 +443,12 @@ export function foeAllyTarget(e, pp){
     // payback: a trooper a squadmate just shot turns on the shooter, even if you are closer
     const av = e.avenge && G.gt < (e.avengeT || 0) && standing(e.avenge) ? e.avenge : null;
     if (av) best = av;
-    let ok = !!best && (player.downed || !!av || (bd + SQUAD.aggroBy < dp && bd < e.t.range + SQUAD.aggroReach));
+    let ok = !!best && (player.downed || !!av || (duel ? bd < e.t.range + SQUAD.aggroReach + BUBBLE.allyReach
+                                                        : bd + SQUAD.aggroBy < dp && bd < e.t.range + SQUAD.aggroReach));
     if (ok && !player.downed && e.allyTgt !== best){
       let fodder = 0, on = 0;
       for (const o of enemies){ if (o.dead || !isFodder(o)) continue; fodder++; if (o !== e && o.allyTgt) on++; }
-      ok = on < Math.floor(fodder * SQUAD.aggroShare);
+      ok = on < Math.floor(fodder * (duel ? BUBBLE.aggroShare : SQUAD.aggroShare));
     }
     e.allyTgt = ok ? best : null;
   }
@@ -684,7 +688,7 @@ function wantSpot(a, medic, dt){
 // the boss in a fight with a hero whose squad does this: the level's boss, else the nearest champion (a story's named
 // duellist, survival's warbringer). Once on, it stays on until the boss falls or the hero walks well off from it
 function duelFoe(){
-  if (!DUEL_RING.heroes[G.hero]) return null;
+  if (!DUEL_RING.heroes[G.hero]) return anyDuelFoe();   // (the others ring a duel only while it's close: enemies/bubble.js)
   const b = bossUp();
   if (b && b.hp > 0 && b.group) return b;
   const pp = playerPos();
@@ -694,7 +698,7 @@ function duelFoe(){
     const d = Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z);
     if (d < bd){ bd = d; best = e; }
   }
-  return best;
+  return best || anyDuelFoe();   // (or the duellist taking its turn on you: enemies/bubble.js)
 }
 function updateDuel(dt){
   const foe = duelFoe();
@@ -720,10 +724,10 @@ function updateDuel(dt){
     // the duel begins: the squad lets the boss go (an old mark on it is dropped), spreads out, and says so once a fight
     for (const a of allies){ if (a.mark === foe){ a.mark = null; a.flank = 0; } a.dSlot = null; a.fire = null; }
     SQ.slotT = 0;
-    if (DUEL.said !== foe && !guest()){
+    if (DUEL.said !== foe && !guest() && (foe.champion || foe === bossUp())){   // (a named duel: not every acolyte's turn)
       DUEL.said = foe;
       const l = allies.find(o => standing(o) && !o.net);
-      if (l) say(l, "WE'LL KEEP THEM OFF YOU, GENERAL!", 'THE FIGHT IS YOURS. WE HOLD THE EDGE.');
+      if (l) say(l, G.hero === 'trooper' ? "HE'S YOURS, SIR! WE'LL HOLD THEM BACK!" : "WE'LL KEEP THEM OFF YOU, GENERAL!", 'THE FIGHT IS YOURS. WE HOLD THE EDGE.');
     }
   }
 }

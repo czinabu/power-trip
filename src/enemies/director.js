@@ -9,6 +9,8 @@ import { navDist, navClass } from './nav.js';
 import { GRENADE } from '../data/tactics.js';
 import { assignApproach } from './tactics.js';
 import { players, localPlayer } from '../player/players.js';
+import { duelOf } from './bubble.js';
+import { BUBBLE } from '../data/duel-bubble.js';
 
 // hostile melee foes that take turns (bombers rush regardless; the Warbringer runs its own leap pattern)
 // (a trooper busy with one of the hero's squadmates, allies/squad.js, is out of the queue until it turns back)
@@ -47,6 +49,8 @@ export function updateDirector(dt){
     const pp = (e.hero || localPlayer).pos, p = e.group.position;
     if (pp && Math.hypot(p.x - pp.x, p.z - pp.z) < ENGAGE.championRing) laneOf(e).champ = true;
   }
+  // a hero in a DUEL BUBBLE (enemies/bubble.js: a boss, or a duellist on its turn) is one on one the same way
+  for (const h of players) if (duelOf(h)){ let l = lanes.get(h); if (!l) lanes.set(h, l = { held: 0, gap: 0, duel: 0, duelGap: 0, champ: false }); l.champ = true; }
   for (const e of enemies){
     if (e.tokenRest > 0) e.tokenRest -= dt;
     if (!usesToken(e) || LOST[e.state]){ if (e.token) dropToken(e); continue; }
@@ -109,9 +113,10 @@ export function rangedSlotFree(t, hero = localPlayer){
   let n = 0;
   for (const e of enemies) if (!e.dead && !e.converted && !e.onAlly && e.t.ranged && e.state === 'windup' && fireClass(e.t) === c && (e.hero || localPlayer) === hero) n++;   // fire at the squad doesn't use your slots
   const late = (G.waveTotal || 0) >= ENGAGE.lateAt;
-  const cap = c === 'sniper' ? (late ? ENGAGE.sniperSlotsLate : ENGAGE.sniperSlots)
+  let cap = c === 'sniper' ? (late ? ENGAGE.sniperSlotsLate : ENGAGE.sniperSlots)
     : c === 'grenade' ? (late ? GRENADE.slotsLate : GRENADE.slots)
     : (late ? ENGAGE.rangedSlotsLate : ENGAGE.rangedSlots);
+  if (duelOf(hero)) cap = Math.min(cap, BUBBLE.rangedSlots[c]);   // a hero in a duel: fewer guns on them (data/duel-bubble.js)
   return n < cap;
 }
 

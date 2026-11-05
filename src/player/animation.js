@@ -556,7 +556,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     // with the saber out it stays in the hand, carried in the form's own run guard (Makashi: close and upright)
     const carry = !player.holstered && held;
     if (carry){
-      guardPose(dt, R, held, grip, form, false, { y: 0, z: 0, off: 0, moving: false, fight: false }, airGuard(grip, form, 'run'));
+      guardPose(dt, R, held, grip, form, false, { y: 0, z: 0, off: 0, moving: false, fight: false }, airGuard(grip, form, 'run', held));
       applySaberPose(R, held, false, dt);
     } else releaseSaberPose(R, dt);
     const ap = aimLift();   // the palm follows the crosshair up or down (player/aim.js)
@@ -587,7 +587,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     // the form's way with the free hand pumping against the stride (data/agility.js AIR_GUARDS)
     const running = !isGunner() && moving && !planted && player.grounded && inten > 0.5;
     const ag = !isGunner() ? jediAgilityArms(running) : null;
-    const over = ag && airGuard(grip, form, ag.key);
+    const over = ag && airGuard(grip, form, ag.key, held);
     if (running && over){ sway.z = -Math.sin(ph) * 0.05 * inten; sway.off = Math.sin(ph) * 0.17 * inten * ((stance().gait && stance().gait.amp) || 1); }
     // a bolt (or blow) just met the blade: the catch for where it arrived, then back into the guard
     const body = player.deflectAnim && !isGunner()

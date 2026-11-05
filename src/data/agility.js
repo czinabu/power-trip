@@ -353,7 +353,40 @@ export const AIR_GUARDS = {
       tuck:   { hand: [0.2, -0.04, 0.24], blade: [0.35, 0.65, -0.65], twist: 0, off: { hand: [-0.2, -0.04, 0.24], pole: OFF } },
       layout: { hand: [0.46, 0.08, 0.06], blade: [0.75, 0.62, -0.25], twist: 0, off: { hand: [-0.48, 0.1, 0.08], pole: OFF } },
       palm:   { hand: [0.38, -0.06, -0.06], blade: [0.5, 0.62, -0.6], twist: 0.08, off: { hand: [-0.16, -0.4, 0.44], pole: OFF } },
-      run:    { hand: [0.32, -0.12, 0.22], blade: [0.2, 0.9, -0.38], twist: 0.04, off: { hand: [-0.28, -0.1, 0.2], pole: OFF } },   // carried upright out front, clear of the shoulder
+      // the Force user's run: the saber tipped back over the weapon shoulder, out clear of it, and the free hand leading
+      // low ahead, palm open, ready to push
+      run:    { hand: [0.36, 0.0, 0.16], blade: [0.36, 0.72, -0.6], twist: 0.04, pole: [0.8, -0.55, -0.25], palm: 1,
+                off: { hand: [-0.24, -0.04, 0.42], pole: [-0.5, -0.85, 0.15], sway: 0.35 } },
+    },
+    /* THE OTHER FORMS' RUNS, each its own silhouette (Makashi, Ataru, Djem So and the staff above; Shien below):
+       SHII-CHO (Cal Kestis, Kit Fisto): one-handed, the arm down and out at the side, the blade trailing wide and
+       near level out behind the hip, well outside the legs */
+    shiicho: {
+      run:    { hand: [0.44, -0.22, -0.04], blade: [0.66, -0.2, -0.72], twist: -0.06, pole: [0.85, -0.45, -0.25],
+                off: { hand: [-0.28, -0.1, 0.22], pole: OFF } },
+    },
+    // SORESU (Obi-Wan): never out of guard: the blade carried upright before the face in one hand, a shield on the run,
+    // the free arm pumping
+    soresu: {
+      run:    { hand: [0.12, 0.06, 0.38], blade: [-0.08, 0.95, 0.3], twist: 0.1, pole: [0.6, -0.75, -0.25],
+                off: { hand: [-0.3, -0.12, 0.18], pole: OFF, sway: 0.8 } },
+    },
+    // JUYO (Vader's charge, Maul): pitched in and driving, the point carried low and forward out at the weapon side,
+    // aimed at the foe's legs: already on its way in
+    juyo: {
+      run:    { hand: [0.4, -0.22, 0.22], blade: [0.42, -0.42, 0.8], twist: 0.08, pole: [0.8, -0.55, -0.2],
+                off: { hand: [-0.32, -0.08, 0.24], pole: OFF } },
+    },
+    // VAAPAD (Mace Windu): upright and controlled, the blade held straight up beside the weapon shoulder, close and still
+    vaapad: {
+      run:    { hand: [0.4, -0.04, 0.14], blade: [0.1, 0.98, 0.12], twist: 0.02, pole: [0.9, -0.4, -0.15],
+                off: { hand: [-0.28, -0.1, 0.2], pole: OFF, sway: 0.7 } },
+    },
+    // JAR'KAI, BOTH REGULAR (Starkiller, Anakin): both arms swept down and out behind, the blades raked down and back
+    // past either hip like folded wings, clear of the legs
+    jarkai: {
+      run:    { hand: [0.42, -0.22, -0.06], blade: [0.5, -0.5, -0.71], twist: 0, pole: [0.85, -0.4, -0.3],
+                off: { hand: [-0.42, -0.22, -0.06], pole: [-0.85, -0.4, -0.3], sway: 0.35 }, offBlade: [-0.5, -0.5, -0.71] },
     },
     djemso: {
       hang:   { hand: [0.16, 0.78, 0.3], blade: [0.35, 0.25, -0.9], twist: 0, off: { hand: [-0.18, 0.78, 0.3], pole: [-0.6, -0.3, -0.5] } },   // hands up on the ledge lip
@@ -375,7 +408,10 @@ export const AIR_GUARDS = {
     niman:  { cock: { hand: [0.4, 0.1, 0.08], blade: [0.3, 0.05, -0.95], twist: -0.1, pole: [0.8, -0.3, -0.5], off: { hand: [-0.3, 0.2, 0.42], pole: OFF } },
               windup: { hand: [0.08, 0.9, 0.1], blade: [0.15, -0.35, -0.92], twist: 0, pole: [0.8, -0.3, -0.5], off: { hand: [-0.2, 0.7, 0.2], pole: OFF } },   // fist high, the blade laid down the back
               hang:   { hand: [0.16, 0.78, 0.3], blade: [0.2, -0.4, -0.9], twist: 0, pole: [0.8, -0.3, -0.5], off: { hand: [-0.18, 0.78, 0.3], pole: [-0.6, -0.3, -0.5] } },
-              run:    { hand: [0.3, -0.22, -0.1], blade: [0.12, 0.3, -0.95], twist: 0, pole: [0.8, -0.3, -0.5], off: { hand: [-0.28, -0.1, 0.22], pole: OFF } },
+              // Starkiller's run (The Force Unleashed): the saber fist carried up before the weapon side of the chest,
+              // the blade laid back along the forearm past the elbow, and the free hand leading low ahead, palm open
+              run:    { hand: [0.32, 0.04, 0.34], blade: [0.3, 0.06, -0.95], twist: -0.04, pole: [0.8, -0.4, -0.45], palm: 1,
+                        off: { hand: [-0.24, -0.04, 0.42], pole: [-0.5, -0.85, 0.15], sway: 0.35 } },
               palm:   { hand: [0.36, -0.12, -0.08], blade: [0.2, 0.3, -0.93], twist: 0.08, pole: [0.8, -0.3, -0.5], off: { hand: [-0.16, -0.4, 0.44], pole: OFF } } },
     djemso: { cock: { hand: [0.4, 0.1, 0.08], blade: [0.3, 0.05, -0.95], twist: -0.1, pole: [0.8, -0.3, -0.5], off: { hand: [-0.3, 0.2, 0.42], pole: OFF } },
               windup: { hand: [0.08, 0.9, 0.1], blade: [0.15, -0.35, -0.92], twist: 0, pole: [0.8, -0.3, -0.5], off: { hand: [-0.2, 0.7, 0.2], pole: OFF } },   // fist high, the blade laid down the back
@@ -383,6 +419,16 @@ export const AIR_GUARDS = {
               hang:   { hand: [0.16, 0.78, 0.3], blade: [0.2, -0.4, -0.9], twist: 0, pole: [0.8, -0.3, -0.5], off: { hand: [-0.18, 0.78, 0.3], pole: [-0.6, -0.3, -0.5] } },
               // the high Shien guard hangs the blade down his back: running, the fist drops to the hip and the blade sweeps back outside the leg
               run:    { hand: [0.36, -0.12, 0.06], blade: [0.36, -0.2, -0.91], twist: -0.1, pole: [0.8, -0.3, -0.5], off: { hand: [-0.28, -0.1, 0.22], pole: OFF } } },
+    // JAR'KAI, BOTH REVERSE (Ahsoka, The Clone Wars and Rebels): the ninja run: both arms swept back behind the hips,
+    // the blades along the forearms trailing up and out behind
+    jarkai: { run: { hand: [0.38, -0.18, -0.18], blade: [0.34, 0.5, -0.8], twist: 0, pole: [0.8, -0.3, -0.5],
+                     off: { hand: [-0.38, -0.18, -0.18], pole: [-0.8, -0.3, -0.5], sway: 0.25 }, offBlade: [-0.34, 0.5, -0.8] } },
+  },
+  // JAR'KAI, MIXED (the right forward, the left reversed: anim/saber.js airGuard): the forward blade raised ahead, point
+  // up at the foe; the reversed one swept low and back past the off hip
+  'regular/reverse': {
+    jarkai: { run: { hand: [0.36, -0.02, 0.26], blade: [0.25, 0.62, 0.74], twist: 0.06, pole: [0.8, -0.55, -0.25],
+                     off: { hand: [-0.38, -0.2, -0.08], pole: [-0.8, -0.3, -0.5], sway: 0.3 }, offBlade: [-0.5, -0.3, -0.81] } },
   },
 };
 

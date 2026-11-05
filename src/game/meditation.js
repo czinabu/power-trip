@@ -17,6 +17,7 @@ import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { setLoadout, setStanceHud } from '../player/jedi/stance.js';
 import { previewStance } from '../ui/showcase.js';
 import { coopLive } from '../net/foes.js';
+import { coopRun } from '../net/run.js';
 import { chapterOrder, storyVoice, storyHero } from '../data/campaign.js';
 import { JEDI_FORK_LINE } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
@@ -44,7 +45,7 @@ export function queueMeditation(ids){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickMeditation(){
-  if (!pending.length || meditationUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || meditationUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open();
 }
 // a new run, a load or the main menu: forget anything still waiting

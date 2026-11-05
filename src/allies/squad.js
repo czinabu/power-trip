@@ -1244,7 +1244,8 @@ export function updateSquadHud(){
   const d = heroDownState();
   downEl.style.display = d && G.mode === 'play' ? '' : 'none';
   if (d){
-    downEl.querySelector('.dn-s').textContent = d.by ? 'GETTING YOU UP…' : (G.coopRevive ? 'YOUR PARTNER CAN GET YOU UP · ' : squadStanding() ? 'YOUR SQUAD IS COMING · ' : 'NO ONE IS COMING · ') + d.left.toFixed(1) + 'S';
+    downEl.querySelector('.dn-s').textContent = d.by ? 'GETTING YOU UP…' : d.out ? 'A TEAMMATE CAN GET YOU UP · OR YOU RISE WHEN THIS FIGHT IS OVER' : (G.coopRevive ? 'A TEAMMATE CAN GET YOU UP · ' : squadStanding() ? 'YOUR SQUAD IS COMING · ' : 'NO ONE IS COMING · ') + d.left.toFixed(1) + 'S';
+    downEl.querySelector('.dn-t').textContent = d.out ? 'YOU ARE OUT' : 'YOU ARE DOWN';
     downEl.querySelector('i').style.width = (d.prog * 100).toFixed(1) + '%';
   }
   if (!show) return;

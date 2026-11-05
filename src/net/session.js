@@ -12,7 +12,7 @@ export const MAX_GUESTS = 3;
 // what the host passes on from one guest to the rest, stamped with the sender's slot: poses, their shots and powers
 const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1 };   // (mark: a player's ping marker, net/ping.js)
 // a guest whose link to the host drops tries the same room again this many times, this far apart (ms), before giving up
-const REJOIN = { tries: 5, wait: 2500 };
+const REJOIN = { tries: 10, wait: 2500 };   // (25 s: room for a host handoff, below, when the server is slow to free the code)
 const LAST = 'sw_coop_last';   // the last room joined, offered again in the co-op panel (a reload, a crash)
 
 /* the session, shared by everything that reads it: status is idle | hosting | joining | connected | reconnecting | failed */
@@ -23,6 +23,12 @@ export const net = {
 };
 
 let peer = null, conn = null, sendAt = 0;
+/* HOST HANDOFF — the guests know each other's seats (the host passes on each one's hello, and says bye as one goes). When
+   the link to the host drops, the guest in the lowest seat is the HEIR: it takes the room over under the same code, and
+   the others' rejoin (below) finds it there. A heir whose own link was the one that dropped finds the code still held,
+   and simply rejoins the host instead. */
+const seats = new Set();   // guest: the other guests' seats in this room
+let heir = false;          // guest: this browser is taking the room over (or trying to)
 const conns = new Map();   // host: slot -> that guest's connection
 const hellos = new Map();  // host: slot -> that guest's last hello, handed to guests who join later
 const pings = new Map(), pingTimers = new Map();
@@ -57,12 +63,17 @@ async function makePeer(id){
   return new Peer(id, { ...where, config: { iceServers: await iceServers() }, debug: 0 });
 }
 
-export async function host(attempt = 0){
+// keep: the room code to take over (a host handoff, above) instead of drawing a new one
+export async function host(attempt = 0, keep = ''){
   leave(true);
-  net.role = 'host'; net.slot = 0; net.code = newCode(); setStatus('hosting');
-  try { peer = await makePeer(ID_PREFIX + net.code); } catch(e){ return fail('Could not start the connection.'); }
+  if (!keep) heir = false;
+  net.role = 'host'; net.slot = 0; net.code = keep || newCode(); setStatus(keep ? 'reconnecting' : 'hosting');
+  try { peer = await makePeer(ID_PREFIX + net.code); } catch(e){ return keep ? claimLater(keep) : fail('Could not start the connection.'); }
   const mine = peer;
-  peer.on('open', () => emit('status', net));
+  peer.on('open', () => {
+    if (keep){ heir = false; tries = 0; setStatus('hosting'); }   // the room is this browser's now: the others rejoin it
+    else emit('status', net);
+  });
   peer.on('connection', (c) => {
     let slot = 1; while (conns.has(slot)) slot++;
     if (slot > MAX_GUESTS){   // the room is full: tell them, then turn them away
@@ -74,6 +85,7 @@ export async function host(attempt = 0){
   });
   peer.on('error', (err) => {
     if (mine !== peer) return;
+    if (err.type === 'unavailable-id' && keep) return void claimLater(keep);   // the old host (or the server's memory of it) still holds the code
     if (err.type === 'unavailable-id' && attempt < 4) return void host(attempt + 1);   // the code was taken: draw another
     if (SERVER_ERR[err.type] && net.status === 'connected') return void keepServer(mine);   // the game goes on without it (below)
     fail(describe(err));
@@ -94,7 +106,8 @@ export async function join(code, retry = false){
   peer.on('error', (err) => {
     if (mine !== peer) return;
     if (SERVER_ERR[err.type] && net.status === 'connected') return void keepServer(mine);   // the game goes on without it (below)
-    if (retry) return err.type === 'peer-unavailable' ? fail('The host left the game.') : rejoin();   // no room any more: the host is gone
+    // no room under that code (yet): the heir takes it, the others keep trying, as a handoff takes a moment (above)
+    if (retry) return err.type === 'peer-unavailable' && heir ? void host(0, code) : rejoin(true);
     fail(err.type === 'peer-unavailable' ? 'No room with that code.' : describe(err));
   });
   let dialled = false;
@@ -117,12 +130,19 @@ export const lastRoom = () => { try { return localStorage.getItem(LAST) || ''; }
 /* REJOIN — the link to the host dropped without anyone leaving (a Wi-Fi blip, a laptop lid): try the same room again a
    few times. The game carries on meanwhile (net/foes.js), and puts you back in the host's fight once you're through. */
 let tries = 0, rejoinTimer = 0;
-function rejoin(){
+function rejoin(noRoom){
   const code = net.code;
   clearTimeout(rejoinTimer);
-  if (!code || ++tries > REJOIN.tries) return fail('Lost the connection to the host.');
+  if (!code || ++tries > REJOIN.tries){ heir = false; return fail(noRoom ? 'The host left the game.' : 'Lost the connection to the host.'); }
   setStatus('reconnecting');
   rejoinTimer = setTimeout(() => { if (net.status === 'reconnecting' && net.code === code) join(code, true); }, REJOIN.wait);
+}
+
+// the heir found the code still held: try the room as a guest (the host may be there after all), then claim it again
+function claimLater(code){
+  leave(true);
+  net.role = 'guest'; net.code = code;
+  rejoin();
 }
 
 /* THE MATCHMAKING SERVER only brings players together: once you are connected, the game runs over the links between
@@ -143,7 +163,8 @@ function fail(message){ leave(true); setStatus('failed', message); }
 function attach(c, slot){
   if (net.role === 'guest') conn = c;
   c.on('open', () => {
-    pingTimers.set(slot, setInterval(() => { if (c.open) c.send({ t: 'ping', at: performance.now() }); }, 2000));
+    // (the host's pings carry the guest's seat: a welcome lost on a busy link, sent the instant it opened, heals itself)
+    pingTimers.set(slot, setInterval(() => { if (c.open) c.send(net.role === 'host' ? { t: 'ping', at: performance.now(), s: slot } : { t: 'ping', at: performance.now() }); }, 2000));
     if (net.role === 'host'){
       net.guests = conns.size;
       c.send({ t: 'welcome', slot });
@@ -154,9 +175,10 @@ function attach(c, slot){
   });
   c.on('data', (m) => {
     if (!m || typeof m !== 'object') return;
-    if (m.t === 'ping') return void c.send({ t: 'pong', at: m.at });
+    if (m.t === 'ping'){ if (net.role === 'guest' && m.s > 0 && net.slot !== m.s){ net.slot = m.s; emit('welcome', m.s); } return void c.send({ t: 'pong', at: m.at }); }
     if (m.t === 'pong'){ pings.set(slot, Math.round(performance.now() - m.at)); net.ping = Math.max(0, ...pings.values()); emit('ping', net.ping); return; }
-    if (m.t === 'welcome'){ net.slot = m.slot; tries = 0; emit('welcome', m.slot); return; }
+    if (m.t === 'welcome'){ net.slot = m.slot; tries = 0; heir = false; seats.clear(); emit('welcome', m.slot); return; }
+    if (net.role === 'guest'){ if (m.t === 'hello' && m.from) seats.add(m.from); if (m.t === 'bye') seats.delete(m.slot); }
     if (m.t === 'full') return void leave(false, 'That room is full (4 players).');
     if (net.role === 'host'){
       m.from = slot;   // never trust a guest to say who they are
@@ -176,9 +198,16 @@ function attach(c, slot){
       if (peer) setStatus(conns.size ? 'connected' : 'hosting');
     } else if (conn === c){
       conn = null; emit('closed', 0);
-      // dropped (this player didn't leave, or leave() would have let go of it first): try the room again
+      // dropped (this player didn't leave, or leave() would have let go of it first): the lowest seat takes the room over
+      // (HOST HANDOFF, above), everyone else tries the room again and finds them there
       if (peer){ try { peer.destroy(); } catch(e){} peer = null; }
-      tries = 0; rejoin();
+      tries = 0;
+      const others = [...seats].filter(k => k !== net.slot);
+      if (net.slot > 0 && others.length && others.every(k => k > net.slot)){   // (alone with the host, there is no room to keep)
+        heir = true;
+        emit('takeover');   // the fight goes on here: this browser runs it now (net/foes.js)
+        host(0, net.code);
+      } else rejoin();
     }
   });
   c.on('error', () => {});
@@ -212,5 +241,6 @@ export function leave(quiet, message = ''){
   if (conn){ try { conn.close(); } catch(e){} conn = null; }
   if (peer){ try { peer.destroy(); } catch(e){} peer = null; }
   net.role = null; net.ping = 0; net.peerPlays = false; net.slot = 0; net.guests = 0;
+  if (!quiet){ heir = false; seats.clear(); }
   if (!quiet){ net.code = ''; setStatus(message ? 'failed' : 'idle', message); emit('closed', -1); }
 }

@@ -14,7 +14,7 @@ import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
 import { S } from '../audio/sfx.js';
-import { G, player, keys } from '../state.js';
+import { G, player, keys, enemies, shared } from '../state.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { REVIVE } from '../data/allies.js';
 import { showBanner } from '../ui/banners.js';
@@ -67,6 +67,37 @@ export function clearDowned(){
 export function heroCanGoDown(){
   return !G.training && !(G.reviveLeft <= 0) && G.reviveLeft != null && heroHelp.some(f => f());
 }
+/* OUT — co-op: a hero who falls for good (no second chance left, or bled out) while a teammate is still standing isn't
+   finished. They stay OUT where they fell: a teammate (or the squad) can still get them up, and if nobody does they
+   rise on their own once the fight around them is over (the wave, the objective, the boss). The run is lost only when
+   nobody is left standing (updateRevive below; net/foes.js tells the guests). Solo, nothing here changes. */
+const teamHelp = [];
+export function addTeamStanding(fn){ teamHelp.push(fn); }   // net/partner.js: is any co-op teammate up and in this fight
+const OUT = { lull: 1.5, alone: 1.5 };   // s of no foes before an out hero rises · s of nobody standing before the run is lost
+export const heroCanSitOut = () => !G.training && teamHelp.some(f => f());
+const fightOn = () => enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!(shared.boss && !shared.boss.dead);
+export function sitOut(){
+  player.hp = 0;
+  for (const k in keys) keys[k] = false;
+  player.blockHeld = false; player.firing = false; player.trigHeld = false; player.zoom = false;
+  const R = REVIVE.hero;
+  player.downed = goDown({
+    kind: 'hero', out: true, lull: 0, alone: 0, pos: () => playerPos(), need: R.time, bleed: Infinity, selfUp: Infinity,
+    onUp: heroUp,
+    onLost(){ player.downed = null; if (player.vis){ player.vis.rotation.x = 0; } killHero(); },
+  });
+  G.slowmo = 0.35; G.slowmoT = 0.5; G.shake = Math.max(G.shake, 0.6);
+  showBanner('YOU ARE OUT', 'A teammate can get you up. If not, you rise when this fight is over.', 2.6);
+}
+function heroUp(){
+  const R = REVIVE.hero;
+  player.downed = null;
+  player.hp = Math.round(maxHp() * R.hp);
+  player.reviveGuardT = G.gt + R.guard;
+  if (player.vis){ player.vis.rotation.x = 0; player.vis.position.y = 0; }
+  const p = playerPos();
+  burst(V3(p.x, 1.2, p.z), 0x7bffae, 18, 6, 5); floater(V3(p.x, 1.4, p.z), 'BACK ON YOUR FEET', '#7bffae'); S.reward(1);
+}
 export function downHero(){
   G.reviveLeft--;
   player.hp = 0;
@@ -75,18 +106,11 @@ export function downHero(){
   const R = REVIVE.hero;
   player.downed = goDown({
     kind: 'hero', pos: () => playerPos(), need: R.time, bleed: R.bleed, selfUp: Infinity,
-    onUp(){
-      player.downed = null;
-      player.hp = Math.round(maxHp() * R.hp);
-      player.reviveGuardT = G.gt + R.guard;
-      if (player.vis){ player.vis.rotation.x = 0; player.vis.position.y = 0; }
-      const p = playerPos();
-      burst(V3(p.x, 1.2, p.z), 0x7bffae, 18, 6, 5); floater(V3(p.x, 1.4, p.z), 'BACK ON YOUR FEET', '#7bffae'); S.reward(1);
-    },
-    onLost(){ player.downed = null; if (player.vis){ player.vis.rotation.x = 0; } killHero(); },
+    onUp: heroUp,
+    onLost(){ player.downed = null; if (player.vis){ player.vis.rotation.x = 0; } if (heroCanSitOut()) sitOut(); else killHero(); },
   });
   G.slowmo = 0.35; G.slowmoT = 0.5; G.shake = Math.max(G.shake, 0.6);
-  const help = G.coopRevive ? 'Hold on. Your partner can get you up.' : 'Hold on. Your squad is coming.';
+  const help = G.coopRevive ? 'Hold on. A teammate can get you up.' : 'Hold on. Your squad is coming.';
   showBanner('YOU ARE DOWN', G.reviveLeft > 0 ? help : help + ' This is your last chance.', 2.2);
 }
 // a blow on a downed hero doesn't hurt, it drains the time left
@@ -118,6 +142,13 @@ export function updateRevive(dt, revivers){
     b.mark.userData.fill.scale.setScalar(Math.max(0.001, k));
     b.mark.children[0].material.opacity = 0.55 + Math.sin(G.gt * 6) * 0.3;
     if (b.prog >= b.need){ getUp(b, near ? near.kind : 'self'); continue; }
+    if (b.out){   // OUT (above): up on their own once the fight is over; lost once nobody is left to fight on
+      b.lull = fightOn() ? 0 : b.lull + dt;
+      if (b.lull >= OUT.lull){ getUp(b, 'self'); continue; }
+      b.alone = heroHelp.some(f => f()) ? 0 : b.alone + dt;
+      if (b.alone >= OUT.alone){ downed.splice(i, 1); dropMarker(b); b.onLost(); }
+      continue;
+    }
     if (b.t >= b.selfUp){ getUp(b, 'self'); continue; }
     if (b.bleed <= 0){ downed.splice(i, 1); dropMarker(b); b.onLost(); }
   }
@@ -131,5 +162,5 @@ export function updateRevive(dt, revivers){
 // for the HUD: how the hero's own revive is going, or null
 export function heroDownState(){
   const b = player.downed;
-  return b ? { left: Math.max(0, b.bleed), prog: Math.min(1, b.prog / b.need), by: b.by } : null;
+  return b ? { left: b.out ? 0 : Math.max(0, b.bleed), out: !!b.out, prog: Math.min(1, b.prog / b.need), by: b.by } : null;
 }

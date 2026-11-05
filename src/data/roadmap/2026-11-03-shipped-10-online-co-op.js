@@ -5,7 +5,8 @@ export default {
   date: '2026-11-03',
   seq: 6,   // summary of what has shipped so far; seq keeps these in this order
   items: [
-    'Up to four heroes together online with a join code, in every mode',
+    'Up to four heroes together online with a join code; training and the sandbox stay solo',
     'Pings, reviving a downed partner and rejoining a game',
+    'A fallen hero stays in the fight until the team is out, and a guest takes over if the host leaves',
   ],
 };

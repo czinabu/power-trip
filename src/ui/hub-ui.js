@@ -3,7 +3,7 @@
 // and freeing the cursor the way the sandbox panel does. Each station lists what it does: the Temple Map and the waystones
 // travel to any wing (and show who is where in co-op), the Council Table launches the modes, the Training Wing's stations
 // the training grounds, the sandbox and survival, the Archives the codex, your profile and the mission records, the Saber
-// Forge the customizer (until the saber workbench lands).
+// Forge the saber workbench and the customizer.
 
 import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
@@ -16,6 +16,7 @@ import { canResume } from '../game/saves.js';
 import { randomArcadeId } from '../data/arcade.js';
 import { openMissionPage } from './missions-ui.js';
 import { openCustomizer } from './customizer.js';
+import { openWorkbench, workbenchOpen } from './workbench.js';
 import { setCodex, codexOpen } from './codex-ui.js';
 import { setProfile, profileOpen } from './profile-ui.js';
 import { openCodex as openForms, formsOpen } from './forms-ui.js';
@@ -27,8 +28,14 @@ import { savedName } from '../net/names.js';
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
 let station = null, forging = false;
-// the forge's customizer: DONE goes straight back to the forge
-document.addEventListener('customizer-closed', () => { if (!forging) return; forging = false; if (G.fromHub && G.mode === 'menu') goTemple(); });
+// the forge's workbench and customizer: DONE goes straight back to the forge
+// (looked at a moment later: the customizer's own SABER WORKBENCH link closes it to open the bench, still at the forge)
+const backToForge = () => setTimeout(() => {
+  if (!forging || workbenchOpen()) return;
+  forging = false; if (G.fromHub && G.mode === 'menu') goTemple();
+}, 0);
+document.addEventListener('customizer-closed', backToForge);
+document.addEventListener('workbench-closed', backToForge);
 
 const guest = () => net.role === 'guest' && net.status === 'connected';
 const party = () => net.status === 'connected';
@@ -66,7 +73,9 @@ function options(s){
     case 'profile': return [B('YOUR HOLOCRON', 'Your rank, the Force Tree and your deck', () => hubOpenPanel(() => setProfile(true), profileOpen))];
     case 'records': return [B('MISSION RECORDS', 'Every story mission, and what you have cleared', () => { hubToMenu('mode'); hubToMissions(); })];
     case 'forge': {
-      const list = [B('CUSTOMIZE YOUR HERO', 'Your look, your blade\'s colour and hilt. The saber workbench comes here next', () => { hubToMenu('hero'); forging = true; openCustomizer(); })];
+      const list = [];
+      if (!isGunner()) list.push(B('SABER WORKBENCH', 'Build your lightsaber: its kyber crystal, emitter, grip and pommel', () => { hubToMenu('hero'); forging = true; openWorkbench(); }));
+      list.push(B('CUSTOMIZE YOUR HERO', 'Your look: face, robes and armour', () => { hubToMenu('hero'); forging = true; openCustomizer(); }));
       if (!isGunner()) list.push(B('FORMS & MASTERY', 'What every lightsaber form does, and how far you have mastered each', () => hubOpenPanel(openForms, formsOpen)));
       return list;
     }

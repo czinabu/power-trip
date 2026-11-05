@@ -227,9 +227,8 @@ function training(L, K, pal, R){
     K.column(x, z, 0.45, 2.4, wood, { seg: 8, taper: 1 });
     K.deco(new THREE.CylinderGeometry(0.55, 0.55, 0.9, 8), std(0x6a5a40, 0.95), x, 1.6, z);
   }
-  // the CLIMBING TOWER: a gantry of stone tiers in the far corner, the parkour climb
+  // the CLIMBING TOWER: one gantry of stone tiers in the far corner, the parkour climb
   K.gantry(24, -22, { a: stoneD, b: stone, strut: woodD, beacon: pal.kyber ?? 0x5ad2ff }, [1, -1]);
-  K.gantry(24, 22, { a: stoneD, b: stone, strut: woodD, beacon: pal.kyber ?? 0x5ad2ff }, [1, 1]);
   // weapon racks of training sabers along the east wall
   for (const z of [-12, 12]){
     K.box(32, z, 0.5, 3, 1.6, woodD);

@@ -81,6 +81,7 @@ export function closeWorkbench(){
   document.body.classList.remove('wb-open');
   openBench(false);
   if (!runLive()){ savePicks(picks); refreshWorn(); }   // the hero carries the new saber from the next run (ui/customizer.js)
+  document.dispatchEvent(new CustomEvent('workbench-closed'));   // (the temple's forge goes back to the forge: ui/hub-ui.js)
 }
 export const workbenchOpen = () => panel.classList.contains('open');
 

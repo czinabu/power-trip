@@ -2,6 +2,7 @@
 // TEMPLE SMOKE TEST — boots the BUILT game (dist/index.html) and walks the hidden temple on Tython (game/hub.js) for each hero:
 //   · in from the title screen's tile, the station prompt at the temple map, H opens its panel, fast travel to a wing;
 //   · walking through a great door loads the wing beyond, arriving at its door back;
+//   · the forge's saber workbench and forms page open on their own, no pause screen behind them;
 //   · every station's mode launches from its panel (the council's arcade, the sandbox, survival, the training grounds)
 //     and RETURN TO THE TEMPLE brings the run back to it; the codex and the forge's customizer open over it and close
 //     back into it.
@@ -125,6 +126,7 @@ for (const hero of HEROES){
     check(await station(3, 0, -Math.PI / 2, 'THE CODEX'), `${hero}: the archive terminal offers the codex`);
     await page.waitForTimeout(400);
     check(await page.evaluate(() => GAME.G.hub && GAME.G.paused && GAME.G.mode === 'play'), `${hero}: the codex opens over the temple`);
+    check(await page.evaluate(() => !document.getElementById('goText').checkVisibility({ visibilityProperty: true })), `${hero}: no pause screen behind the codex`);
 
     // the FORGE: the customizer, DONE comes back to the forge
     await page.click('#cxclose');
@@ -136,6 +138,18 @@ for (const hero of HEROES){
     check(await page.evaluate(() => document.getElementById('overlay').classList.contains('customizing')), `${hero}: the customizer opens`);
     await page.click('#czdone');
     check(await inHub('forge'), `${hero}: DONE goes back to the forge`);
+    if (hero === 'jedi'){
+      // the SABER WORKBENCH, its own screen, and back
+      check(await station(0, 3, 0, 'SABER WORKBENCH'), `${hero}: the forge bench offers the saber workbench`);
+      check(await page.waitForFunction(() => document.getElementById('workbench').classList.contains('open'), null, { timeout: 10000 }).then(() => true, () => false), `${hero}: the workbench opens`);
+      check(await page.evaluate(() => !document.getElementById('overlay').classList.contains('customizing')), `${hero}: the workbench is not the customizer`);
+      await page.click('#wbdone');
+      check(await inHub('forge'), `${hero}: the workbench's DONE goes back to the forge`);
+      // FORMS & MASTERY over the temple, with no pause screen behind it
+      check(await station(0, 3, 0, 'FORMS & MASTERY'), `${hero}: the forge bench offers forms & mastery`);
+      await page.waitForTimeout(500);
+      check(await page.evaluate(() => document.getElementById('forms').classList.contains('open') && !document.getElementById('goText').checkVisibility({ visibilityProperty: true })), `${hero}: forms & mastery opens with no pause screen behind it`);
+    }
   } catch(e){ check(false, `${hero}: ${e.message}`); }
   const errs = [...new Set(errors)];
   check(!errs.length, `${hero}: no page or console errors` + (errs.length ? '\n  ' + errs.slice(0, 8).join('\n  ') : ''));

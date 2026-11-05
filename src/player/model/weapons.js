@@ -27,8 +27,8 @@ export const WEAPON_MODELS = {
     // hilt: the workbench's parts (look.jedi.hilt: model/hilt.js), so every saber the hero carries is the one they built
     build(S, hilt){
       const g = new THREE.Group(), root = new THREE.Group(); g.add(root);   // root flips for the regular grip (see applySaberGrip)
-      const pommel = buildHilt(S, root, hilt);
-      root.userData.pommel = pommel;
+      const pieces = buildHilt(S, root, hilt);
+      root.userData.pommel = pieces.pommel; root.userData.pieces = pieces;
       const blade = new THREE.Mesh(bladeCoreGeo(0.034, 0.022, 1.55), new THREE.MeshBasicMaterial({ color: BLADE_CORE }));   // (the blade's look: fx/blade-glow.js)
       blade.position.y = 0.95;
       const glow = new THREE.Mesh(bladeGlowGeo(0.085, 0.06, 1.6), bladeGlowMat(0x33bbff, 0.45));

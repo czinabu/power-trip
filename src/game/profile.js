@@ -129,7 +129,7 @@ function settleParts(p, atClose){
     const R = BENCH.find(r => r.id === row), what = row === 'saber' ? 'KYBER CRYSTAL' : R.label;
     const line = row === 'saber' ? part.att + ': ' + part.ds : part.line;
     if (atClose) heldCards.push({ key: 'part-' + k, hud: '', card: { kicker: 'FOR YOUR SABER', name: part.name.toUpperCase() + ' ' + what,
-      lines: [line, 'Fit it at the SABER WORKBENCH between runs: CUSTOMIZE, then SABER. It stays yours in every mode, run and co-op game.'],
+      lines: [line, 'Fit it at the SABER WORKBENCH between runs: SABER on the main menu. It stays yours in every mode, run and co-op game.'],
       rows: [['NEW ' + what, part.name.toUpperCase()]] } });
     else if (partHook) partHook(what, part, line);
   }

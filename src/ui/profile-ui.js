@@ -80,7 +80,7 @@ function saberSec(){
     <div class="pf-sb"><i style="--c:${col}"></i><div><b>${esc(at('hilt').name.toUpperCase())} HILT</b><span>${esc(at('emitter').name)} emitter · ${esc(at('pommel').name)} pommel</span></div></div>
     <div class="pf-sb-att"><b>${esc(c.name.toUpperCase())} · ${esc(c.att)}</b><span>${esc(c.ds)}</span></div>
     ${next ? `<p class="pf-note">Next part: <b>${esc(next.part.name)}</b> · ${esc(earnText(next.part.earn, (id) => chapterName(id, 'jedi')))}${next.e.need > 1 ? ' (' + next.e.have + ' / ' + next.e.need + ')' : ''}</p>` : '<p class="pf-note">Every part is yours.</p>'}
-    <p class="pf-note">Build it at the workbench: CUSTOMIZE, then SABER.</p>
+    <p class="pf-note">Build it at the SABER WORKBENCH: SABER on the main menu.</p>
   </div>`;
 }
 

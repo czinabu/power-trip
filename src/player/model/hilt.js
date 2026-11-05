@@ -130,19 +130,23 @@ const POMMELS = {
   },
 };
 
-/* build the hilt into the saber root; returns the pommel's group (hidden while the saber staff is out) */
+/* build the hilt into the saber root, each piece its own group so the workbench can lay them out apart (ui/bench-stage.js);
+   returns { body, emitter, pommel } (the pommel hides while the saber staff is out) */
 export function buildHilt(S, root, parts = {}){
   const body = BODIES[parts.body] ? parts.body : 'apprentice', F = FINISH[body];
   const K = {
     metal: S.mat('hilt', { c: F.metal, ...(F.m != null ? { m: F.m } : {}), ...(F.r != null ? { r: F.r } : {}) }),
     dark: S.mat('hilt', { c: F.dark, m: 0.6 }),
     cloth: S.mat('leather', { c: 0x6b5a44 }),
-    to: root,
+    to: null,
     add(geo, mat, p = [0, 0, 0], r = [0, 0, 0], outline = true){ return S.add(geo, mat, K.to, p, r, outline ? {} : { outline: false }); },
   };
+  const piece = () => { const g = new THREE.Group(); root.add(g); K.to = g; return g; };
+  const out = { body: piece() };
   BODIES[body](K);
+  out.emitter = piece();
   (EMITTERS[parts.emitter] || EMITTERS.plain)(K);
-  const pommel = new THREE.Group(); root.add(pommel); K.to = pommel;
+  out.pommel = piece();
   (POMMELS[parts.pommel] || POMMELS.cap)(K);
-  return pommel;
+  return out;
 }

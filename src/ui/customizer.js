@@ -19,6 +19,8 @@ import { applySaberGrip } from '../player/model/weapons.js';
 import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
 import { overlay, setOverlayState, heroPicked } from './menus.js';
 import { audioInit } from '../audio/sfx.js';
+import { earnText } from '../data/saber-parts.js';
+import { openWorkbench } from './workbench.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
@@ -27,6 +29,11 @@ let saved = wornKey(picks);   // what the player model is built from (the picks 
 
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 const ROMAN = ['I', 'II', 'III'];
+// the saber's rows (`bench`: data/saber-parts.js) live on the SABER WORKBENCH's own screen (ui/workbench.js), not here
+const rowsShown = (hero) => CUSTOMIZE[hero].filter(r => !r.bench);
+// where an option is earned or unlocks, in words
+function optWhere(hero, o){ return o.earn ? earnText(o.earn, (id) => chapterTitle(hero, id)) : 'unlocks in ' + unlockWhere(hero, o.unlock); }
+function chapterTitle(hero, id){ const c = chapterOrder(null, hero).find(ch => ch.id === id); return c ? forHero(c.title, hero) : id.toUpperCase(); }
 // where an option unlocks, in words: 'ACT I · THE KILL HOUSE', or 'BEAT THE CAMPAIGN'
 function unlockWhere(hero, id){
   if (id === 'won') return 'BEAT THE CAMPAIGN';
@@ -38,7 +45,7 @@ const hintEl = document.getElementById('czlock');
 // end last (the data's own order still decides what a hero wears by default: data/customize.js)
 function shownOrder(hero, row){
   const list = chapterOrder(null, hero).map(c => c.id);
-  const at = (o) => !o.unlock ? -1 : o.unlock === 'won' ? 1e3 : (list.indexOf(o.unlock) + 1 || 999);
+  const at = (o) => o.earn ? 0 : !o.unlock ? -1 : o.unlock === 'won' ? 1e3 : (list.indexOf(o.unlock) + 1 || 999);   // (the bench keeps its own order)
   return row.options.map((o, i) => [o, i]).sort((a, b) => at(a[0]) - at(b[0]) || a[1] - b[1]).map(([o]) => o);
 }
 
@@ -47,13 +54,15 @@ function render(){
   syncHeroNames();
   const tabs = document.getElementById('czhero');
   for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
+  const wb = document.getElementById('czbench');
+  if (wb) wb.style.display = hero === 'jedi' ? '' : 'none';
   let open = 0, all = 0;
-  rowsEl.innerHTML = CUSTOMIZE[hero].map(row => {
+  rowsEl.innerHTML = rowsShown(hero).map(row => {
     const cur = wornOption(hero, row, mine);
     const opts = shownOrder(hero, row).map(o => {
       const shut = !optionOpen(hero, row, o); all++; if (!shut) open++;
       const cls = (o === cur ? ' sel' : '') + (shut ? ' locked' : '');
-      const tip = shut ? o.name + ' · unlocks in ' + unlockWhere(hero, o.unlock) : o.name;
+      const tip = shut ? o.name + ' · ' + optWhere(hero, o) : o.name;
       return row.kind === 'color'
         ? `<span class="cz-sw${cls}" data-row="${row.id}" data-opt="${o.id}" title="${tip}" style="--c:${hex(swatchOf(o))}">${shut ? svgIcon('lock', 'lk') : ''}</span>`
         : `<span class="cz-chip${cls}" data-row="${row.id}" data-opt="${o.id}" title="${tip}">${shut ? svgIcon('lock', 'lk') : ''}${o.name}</span>`;
@@ -68,7 +77,7 @@ function render(){
 // a locked option: say where it opens, instead of wearing it
 function denied(row, o){
   S.uiDeny();
-  if (hintEl) hintEl.innerHTML = svgIcon('lock', 'lk') + ' <b>' + o.name.toUpperCase() + '</b> unlocks in ' + unlockWhere(G.hero, o.unlock);
+  if (hintEl) hintEl.innerHTML = svgIcon('lock', 'lk') + ' <b>' + o.name.toUpperCase() + '</b> · ' + optWhere(G.hero, o);
 }
 
 function pick(rowId, optId){
@@ -81,8 +90,8 @@ function pick(rowId, optId){
 }
 
 function randomize(){
-  const hero = G.hero, mine = {};
-  for (const row of CUSTOMIZE[hero]){
+  const hero = G.hero, mine = { ...(picks[hero] || {}) };
+  for (const row of rowsShown(hero)){   // (the looks only: randomizing leaves the saber you built)
     const open = row.options.filter(o => optionOpen(hero, row, o));   // (only what is unlocked)
     mine[row.id] = open[Math.floor(Math.random() * open.length)].id;
   }
@@ -91,9 +100,10 @@ function randomize(){
   render();
 }
 
-function reset(){
-  const { [G.hero]: _, ...rest } = picks;
-  picks = rest;
+function reset(){   // (the looks only: resetting leaves the saber you built)
+  const keep = {};
+  for (const row of CUSTOMIZE[G.hero]) if (row.bench && picks[G.hero] && picks[G.hero][row.id] != null) keep[row.id] = picks[G.hero][row.id];
+  picks = { ...picks, [G.hero]: keep };
   restyleShowcase(picks);
   render();
 }
@@ -159,8 +169,9 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   e.stopPropagation();   // picking an option must never launch the game
   const opt = e.target.closest('[data-opt]');
   if (opt) return pick(opt.dataset.row, opt.dataset.opt);
-  const tab = e.target.closest('[data-h]');
-  if (tab && tab.dataset.h !== G.hero){ setHero(tab.dataset.h); heroPicked(); render(); return; }   // (the title screen's pick follows: its saved run too)
+  if (e.target.closest('#czbench')){ closeCustomizer(); openWorkbench(); return; }   // (the saber has its own screen: ui/workbench.js)
+  const ht = e.target.closest('[data-h]');
+  if (ht && ht.dataset.h !== G.hero){ setHero(ht.dataset.h); heroPicked(); render(); return; }   // (the title screen's pick follows: its saved run too)
   if (e.target.closest('#czrandom')) randomize();
   else if (e.target.closest('#czreset')) reset();
   else if (e.target.closest('#czdone')) closeCustomizer();

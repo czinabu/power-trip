@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/styles/boot.css">
 <link rel="stylesheet" href="/styles/hud.css">
@@ -273,6 +273,7 @@
     </section>
     <section id="customizer">
       <div class="cz-tabs" id="czhero"><span data-h="jedi">JEDI</span><span data-h="mando">MANDALORIAN</span><span data-h="trooper">ARC TROOPER</span></div>
+      <div class="cz-benchlink" id="czbench"><b>SABER WORKBENCH</b><span>Build your lightsaber from the parts you've earned</span><i>›</i></div>
       <div class="cz-rows" id="czrows"></div>
       <div class="cz-actions">
         <div class="btn" id="czrandom">RANDOMIZE</div>
@@ -301,6 +302,7 @@
       <div class="btn" id="ctltoggle">CONTROLS</div>
       <div class="btn" id="cxtoggle">CODEX<span class="cx-badge"></span></div>
       <div class="btn" id="pfBtn">PROFILE<span class="pf-badge">NEW</span></div>
+      <div class="btn" id="wbBtn" title="Build your lightsaber">SABER</div>
       <div class="btn" id="coopBtn">CO-OP</div>
       <div class="btn" id="rmtoggle">ROADMAP</div>
     </div>
@@ -415,6 +417,7 @@
     </div>
   </div>
   <div id="codex"></div>   <!-- the codex: everyone met, foe or friend (ui/codex-ui.js) -->
+  <div id="workbench"></div>   <!-- the saber workbench: its own screen, the saber on the bench (ui/workbench.js, ui/bench-stage.js) -->
   <div id="profile"></div>   <!-- your hero's rank and the Force Tree (ui/profile-ui.js) -->
   <div id="forms"></div>   <!-- the lightsaber forms: before the fight and on pause (ui/forms-ui.js) -->
 </div>

@@ -13,7 +13,7 @@ import { TROOPER_PARTS } from './trooper.js';
 import { chainGeo, chainWeights, rounded } from './skin.js';
 import { makeCloth } from './cloth.js';
 import { KEEL } from './shapes.js';
-import { mountLoadout } from './weapons.js';
+import { mountLoadout, WEAPON_MODELS } from './weapons.js';
 import { heroWear } from './wear.js';
 
 export function buildHeroModel(target, lookIn = {}){
@@ -28,7 +28,7 @@ export function buildHeroModel(target, lookIn = {}){
   // the clone trooper has its own palette, so it gets its own style: its suit and cloth never take the Mando's colours
   const trooper = dress(R, makeStyle(look.style, look.trooper.palette), look.trooper, TROOPER_PARTS, target);
   for (const p of trooper.parts) p.visible = false;
-  mountLoadout(R, S, target);
+  mountLoadout(R, S, target, look.jedi.hilt);   // (the saber the workbench built: model/hilt.js)
   // dust, scuffs and the fight's soot (model/wear.js): each hero worn as much as its look says
   target.wearU = [heroWear(jedi.parts, look.jedi.wear ?? 0.4), heroWear(mando.parts, look.mando.wear ?? 0.4), heroWear(trooper.parts, look.trooper.wear ?? 0.4)];
 
@@ -110,4 +110,12 @@ function dress(R, S, hero, PARTS, player){
     fn(HR, k, player);
   }
   return { parts };
+}
+
+// THE SABER ALONE, as the workbench built it (ui/showcase.js puts it on the bench, lit and turning): the same model the hero
+// carries, in the look's style and palette. Returns { group, bladeRoot, blade, glow, light, staff }
+export function buildSaberModel(lookIn = {}){
+  const look = resolveLook(lookIn);
+  const S = makeStyle(look.style, { ...look.jedi.palette, ...look.mando.palette });
+  return WEAPON_MODELS.saber.build(S, look.jedi.hilt);
 }

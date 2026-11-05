@@ -8,6 +8,7 @@ import { inkRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
+import { benchOpen, renderBench } from './bench-stage.js';
 import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
@@ -543,6 +544,7 @@ function idlePose(dt, t, shift){
 const DBG = new Set((new URLSearchParams(location.search).get('dbg') || '').split(','));
 let dbgDone = false;
 export function renderShowcase(dt){
+  if (benchOpen()) return renderBench(dt, STAND_BLOOM);   // the saber workbench has its own set (ui/bench-stage.js)
   if (!dbgDone && shown){
     dbgDone = true;
     fig.group.traverse(o => {

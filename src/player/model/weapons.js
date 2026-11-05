@@ -15,6 +15,7 @@ import { glow } from '../../engine/renderer.js';
 import { carriedLight } from '../../fx/lights.js';
 import { bladeCoreGeo, bladeGlowGeo, bladeGlowMat, BLADE_CORE } from '../../fx/blade-glow.js';
 import { startHandoff } from '../anim/handoff.js';
+import { buildHilt } from './hilt.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
 const GRIP_Y = -0.04;   // where the fist closes, below the wrist joint
@@ -23,14 +24,11 @@ export const SABER_LIGHT = 8, DARK_LIGHT = 6;   // the blade PointLights at full
 export const WEAPON_MODELS = {
   saber: {
     hold: 'saber-1h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [0.25, 0, -0.4] },
-    build(S){
+    // hilt: the workbench's parts (look.jedi.hilt: model/hilt.js), so every saber the hero carries is the one they built
+    build(S, hilt){
       const g = new THREE.Group(), root = new THREE.Group(); g.add(root);   // root flips for the regular grip (see applySaberGrip)
-      S.add(loft([
-        { y:-0.13, w:0.06, d:0.06 }, { y:-0.11, w:0.078, d:0.078 }, { y:-0.08, w:0.066, d:0.066 },
-        { y:0.06, w:0.066, d:0.066 }, { y:0.08, w:0.086, d:0.086 }, { y:0.12, w:0.08, d:0.08 }, { y:0.13, w:0.06, d:0.06 },
-      ], ngon(8, Math.PI/8)), 'hilt', root);
-      for (let i = 0; i < 4; i++) S.add(block(0.072, 0.012, 0.072, 0.4), 'leather', root, [0, -0.05 + i*0.03, 0], [0,0,0], { outline: false });
-      S.add(block(0.022, 0.035, 0.03, 0.3), 'gunDark', root, [0, 0.02, 0.038], [0,0,0], { outline: false });   // activator
+      const pieces = buildHilt(S, root, hilt);
+      root.userData.pommel = pieces.pommel; root.userData.pieces = pieces;
       const blade = new THREE.Mesh(bladeCoreGeo(0.034, 0.022, 1.55), new THREE.MeshBasicMaterial({ color: BLADE_CORE }));   // (the blade's look: fx/blade-glow.js)
       blade.position.y = 0.95;
       const glow = new THREE.Mesh(bladeGlowGeo(0.085, 0.06, 1.6), bladeGlowMat(0x33bbff, 0.45));
@@ -45,8 +43,8 @@ export const WEAPON_MODELS = {
       const staff = new THREE.Group(); staff.visible = false; root.add(staff);
       S.add(loft([
         { y:-STAFF.end - 0.01, w:0.062, d:0.062 }, { y:-STAFF.end + 0.02, w:0.082, d:0.082 }, { y:-STAFF.end + 0.05, w:0.068, d:0.068 },
-        { y:-0.2, w:0.064, d:0.064 }, { y:-0.16, w:0.078, d:0.078 }, { y:-0.12, w:0.07, d:0.07 },
-      ], ngon(8, Math.PI/8)), 'hilt', staff);
+        { y:-0.2, w:0.064, d:0.064 }, { y:-0.18, w:0.078, d:0.078 }, { y:-0.16, w:0.07, d:0.07 },
+      ], ngon(8, Math.PI/8)), 'hilt', staff);   // (from the grip's end down: the pommel goes while the staff is out)
       for (let i = 0; i < 4; i++) S.add(block(0.072, 0.012, 0.072, 0.4), 'leather', staff, [0, -STAFF.off - 0.05 + i*0.03, 0], [0,0,0], { outline: false });   // the off hand's wrap
       S.add(block(0.022, 0.035, 0.03, 0.3), 'gunDark', staff, [0, -STAFF.end + 0.1, -0.038], [0,0,0], { outline: false });   // its own activator
       S.add(block(0.09, 0.02, 0.09, 0.4), 'accent', staff, [0, -0.17, 0], [0,0,0], { outline: false });   // the coupling at the middle
@@ -254,6 +252,7 @@ export function setSaberStaff(hero, on, remember = true){
   const root = hero && hero.saberBladeRoot, sp = root && root.userData.staffParts;
   if (!sp) return;
   sp.hilt.visible = sp.blade2.visible = sp.glow2.visible = on;
+  if (root.userData.pommel) root.userData.pommel.visible = !on;   // (the staff's long hilt runs on where the pommel was)
   root.userData.staff = on;
 }
 export const saberIsStaff = (hero) => !!(hero && hero.saberBladeRoot && hero.saberBladeRoot.userData.staff);
@@ -264,8 +263,8 @@ export const saberIsStaff = (hero) => !!(hero && hero.saberBladeRoot && hero.sab
    syncOffSaber copies the main blade's length (ignite, retract, the smear) and its grip, and hides it whenever the main
    one is away (holstered, thrown). anim/saber.js aims it (saberPose.offBlade); jedi/bladehit.js cuts with it. */
 let dualOn = false;
-function mountOffSaber(R, S, player){
-  const w = WEAPON_MODELS.saber.build(S);
+function mountOffSaber(R, S, player, hilt){
+  const w = WEAPON_MODELS.saber.build(S, hilt);
   w.light.parent.remove(w.light);
   w.blade.material = player.blade.blade.material;
   w.glow.material = player.blade.glow.material;
@@ -326,9 +325,9 @@ export function applySaberGrip(player, grip, instant = false){
   if (O){ O.root.userData.gripTo = offGrip('jarkai') === 'reverse' ? 0 : Math.PI; if (instant) O.root.rotation.x = O.root.userData.gripTo; }
 }
 
-export function mountWeapon(R, S, id, socket){
+export function mountWeapon(R, S, id, socket, opts){
   const def = WEAPON_MODELS[id];
-  const w = def.build(S);
+  const w = def.build(S, opts);
   w.group.position.set(...def.grip.pos);
   w.group.rotation.set(...def.grip.rot);
   w.group.userData.weapon = { id, hold: def.hold };
@@ -338,8 +337,8 @@ export function mountWeapon(R, S, id, socket){
 }
 
 // the current loadout for both heroes, wired to the hooks the game already uses (player.saberHand, player.pistols, …)
-export function mountLoadout(R, S, player){
-  const saber = mountWeapon(R, S, 'saber');
+export function mountLoadout(R, S, player, hilt){
+  const saber = mountWeapon(R, S, 'saber', null, hilt);
   player.saberHand = saber.group;
   player.saberPivot = R.armR.sh;
   player.blade = { blade: saber.blade, glow: saber.glow, light: saber.light };
@@ -347,7 +346,7 @@ export function mountLoadout(R, S, player){
   player.blade.staff = saber.staff;
   applySaberGrip(player, saberGrip, true);
   setSaberStaff(player, staffOn, false);
-  mountOffSaber(R, S, player);
+  mountOffSaber(R, S, player, hilt);
   setSaberDual(player, dualOn, false);
   player.offSaber.node.visible = false;   // (shown by syncOffSaber on the hero you play, by the gear on a partner, by the stance preview: never on a cutscene's actor)
 

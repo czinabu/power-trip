@@ -10,6 +10,7 @@
 
 import { G } from '../state.js';
 import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
+import { EARNABLE, BENCH, partEarned } from '../data/saber-parts.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
@@ -24,7 +25,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0,
-                       picks: [], path: null, forks: {}, deck: null, fresh: false });
+                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -47,7 +48,9 @@ export function profileOf(hero = G.hero){
   const s = load();
   if (!HEROES.includes(hero)) hero = 'jedi';
   if (!s.heroes[hero]){ s.heroes[hero] = seed(hero); save(); }
-  return s.heroes[hero];
+  const p = s.heroes[hero];
+  if (hero === 'jedi' && !Array.isArray(p.parts)){ p.parts = earnedParts(p); save(); }   // (what a profile from before the workbench has earned comes with no fanfare)
+  return p;
 }
 
 /* ---------- ranks ---------- */
@@ -84,6 +87,7 @@ const heldCards = [];
 // atClose: a chapter's close, where a rank-up is a card among what the chapter hands over; anywhere else, a corner note
 function settle(hero, atClose){
   const p = profileOf(hero), was = p.rank, now = rankFor(hero, p);
+  if (hero === 'jedi') settleParts(p, atClose);
   if (now <= was){ save(); return; }
   p.rank = now; p.fresh = true;
   save();
@@ -107,6 +111,30 @@ function rankCard(hero, r){
   return { key: 'rank-' + R.id, hud: '', card: { kicker: book.kicker, name: R.nm, lines: [...lines, 'Your rank stays with you in every mode, run and co-op game. Open PROFILE to see it.'], rows } };
 }
 export const takeRankCards = () => heldCards.splice(0);
+
+/* ---------- SABER PARTS (the workbench, data/saber-parts.js): earned once, kept, announced once ---------- */
+const partKey = (row, part) => row + ':' + part.id;
+const earnedParts = (p) => EARNABLE.filter(([row, part]) => partEarned(p, part.earn)).map(([row, part]) => partKey(row, part));
+export const partsOwned = (hero = 'jedi') => hero === 'jedi' ? BENCH.reduce((n, r) => n + r.parts.filter(x => !x.earn || partEarned(profileOf('jedi'), x.earn)).length, 0) : 0;
+export const partsTotal = () => BENCH.reduce((n, r) => n + r.parts.length, 0);
+let partHook = null;
+export const onPart = (fn) => { partHook = fn; };
+// a part just earned: a card at a chapter's close (with what the chapter hands over), a corner note anywhere else
+function settleParts(p, atClose){
+  const have = new Set(p.parts || []);
+  for (const [row, part] of EARNABLE){
+    const k = partKey(row, part);
+    if (have.has(k) || !partEarned(p, part.earn)) continue;
+    have.add(k); p.fresh = true;
+    const R = BENCH.find(r => r.id === row), what = row === 'saber' ? 'KYBER CRYSTAL' : R.label;
+    const line = row === 'saber' ? part.att + ': ' + part.ds : part.line;
+    if (atClose) heldCards.push({ key: 'part-' + k, hud: '', card: { kicker: 'FOR YOUR SABER', name: part.name.toUpperCase() + ' ' + what,
+      lines: [line, 'Fit it at the SABER WORKBENCH between runs: SABER on the main menu. It stays yours in every mode, run and co-op game.'],
+      rows: [['NEW ' + what, part.name.toUpperCase()]] } });
+    else if (partHook) partHook(what, part, line);
+  }
+  p.parts = [...have];
+}
 
 /* ---------- rank XP: the hooks ---------- */
 function gain(n, hero = G.hero){

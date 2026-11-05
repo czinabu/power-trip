@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // SAVE SLOTS: three local slots, each a snapshot of the player's progress, plus the campaign run when saved mid-campaign.
 
+import { attune } from './saber-bench.js';
 import { clearKept } from './wardrobe.js';
 import { G, player } from '../state.js';
 import { LEVELS } from '../data/levels.js';
@@ -77,6 +78,7 @@ export function restoreRun(run){
   G.xpPoints = run.xpPoints;   // (undefined on an older save: game/upgrades.js starts counting from its XP)
   G.boonOffer = null; G.boonPicked = false;
   Object.assign(player.up, clone(run.up));
+  attune();   // (a save from another crystal takes that one off and puts the fitted one on: game/saber-bench.js)
   player.boon = clone(run.boon) || {}; player.boons = clone(run.boons) || {}; player.skills = clone(run.skills) || {};
   player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = !!run.phoenixReady;
   player.focus = 0; player.focusHitT = 0; player._focusTier = 0;

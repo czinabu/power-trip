@@ -1241,3 +1241,16 @@ body.wb-open #overlay{background:none}
 .wb-btn.main:hover{background:#eab066}
 .wb-hint{color:var(--wb-faint);font-size:10.5px}
 @media (max-width:720px){.wb-panel{top:auto;left:12px;right:12px;width:auto;height:58%;bottom:12px}}
+/* ---------- THE ARMORY LOCKER and THE BESKAR FORGE (ui/kitbench.js): the workbench's spec sheet, the hero on the
+   showcase stand beside it ---------- */
+#kitbench{position:fixed;inset:0;z-index:22;display:none;cursor:grab;
+  --wb-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;--wb-ink:#e6e2d8;--wb-soft:#a8a397;--wb-faint:#6c685f;--wb-line:#2b2a27;--wb-amber:#e0a050}
+#overlay.kitbench #kitbench{display:block}
+#kitbench:active{cursor:grabbing}
+#overlay.kitbench > *:not(#kitbench){visibility:hidden}
+body.trooper #kitbench{--wb-amber:#5aa8ff}
+.kb-panel{width:min(430px,calc(100% - 48px))}
+.kb-panel .wb-att{padding:10px 0 2px;border-top:none;border-bottom:1px solid var(--wb-line)}
+.kb-gap{height:10px}
+.kb-panel .kb-side .wb-part.on{background:rgba(255,255,255,.025)}
+@media (max-width:720px){.kb-panel{width:auto}}

@@ -120,7 +120,7 @@ export function updateReload(dt){
   if (W && W.fire === 'twin'){ coolTwin(W, dt); return; }
   if (!W || W.melee){ player.heat = Math.max(0, player.heat - (W && W.cool || 0.6) * dt); player.overheat = false; return; }
   if (player.heatDelay <= 0 || player.overheat){           // overheated coils always bleed; otherwise wait out the delay
-    const rate = (player.overheat ? (W.overCool || 0.42) : (W.cool || 0.6)) * (player.up.heatCool || 1);
+    const rate = (player.overheat ? (W.overCool || 0.42) : (W.cool || 0.6)) * (player.up.heatCool || 1) * (player.up.coolMul || 1);   // (coolMul: the locker's power pack, the forged beskar: game/saber-bench.js)
     if (player.jamT > 0) player.jamT -= dt;   // (a missed active vent holds the coils hot a moment longer)
     else player.heat = Math.max(0, player.heat - rate * dt);
   }
@@ -145,7 +145,7 @@ export function pistolHot(side){ return side > 0 ? !!player.oR : !!player.oL; }
 function coolTwin(W, dt){
   syncTwin();
   if (player.jamT > 0){ player.jamT -= dt; pushTwin(); return; }   // a missed active vent holds both hot a moment longer
-  const mul = player.up.heatCool || 1;
+  const mul = (player.up.heatCool || 1) * (player.up.coolMul || 1);
   for (const k of ['R', 'L']){
     const over = player['o' + k];
     if (player.heatDelay > 0 && !over) continue;

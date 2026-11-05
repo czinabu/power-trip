@@ -117,11 +117,10 @@ export const WEAPON_MODELS = {
   // pack slotted in its left side, a scope riding the top, a skeletal stock and a white grip panel. Muzzle at z 0.95.
   dc15: {
     hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.97],
-    build(S){
+    // rifle: the ARMORY LOCKER's build (data/trooper-locker.js): { stock, finish, mark } (mark: the legion colour)
+    build(S, rifle = {}){
       const g = new THREE.Group();
-      // the stock: a skeletal frame, its butt plate and the struts back to the receiver
-      S.add(block(0.04, 0.13, 0.04, 0.3), 'gunDark', g, [0, 0.05, -0.32]);
-      for (const y of [0.1, 0.0]) S.add(block(0.022, 0.022, 0.24, 0.3), 'gunDark', g, [0, y, -0.2], [y ? 0.06 : -0.1, 0, 0]);
+      dc15Stock(S, g, rifle.stock);
       // the receiver and the grip
       S.add(loft([{ y:-0.17, w:0.07, d:0.1 }, { y:0.17, w:0.066, d:0.095 }], chamfer(0.35)), 'gunMetal', g, [0, 0.1, 0.08], [Math.PI/2, 0, 0]);
       S.add(block(0.072, 0.03, 0.3, 0.3), 'gunDark', g, [0, 0.145, 0.08]);                     // its top rail
@@ -173,6 +172,7 @@ export const WEAPON_MODELS = {
         S.add(block(0.045, 0.05, 0.14, 0.3), 'gunMetal', m, [0, 0.12, -0.22]);   // the cheek rest
         for (const sx of [-1, 1]) S.add(block(0.012, 0.012, 0.3, 0.2), 'gunMetal', m, [0.022 * sx, 0.078, 0.6], [0, 0, 0], { outline: false });   // the folded bipod, under the shroud
       }
+      dc15Finish(S, g, rifle.finish, rifle.mark);
       return { group: g, mods };
     },
   },
@@ -338,7 +338,7 @@ export function mountWeapon(R, S, id, socket, opts){
 }
 
 // the current loadout for both heroes, wired to the hooks the game already uses (player.saberHand, player.pistols, …)
-export function mountLoadout(R, S, player, hilt){
+export function mountLoadout(R, S, player, hilt, rifle){
   const saber = mountWeapon(R, S, 'saber', null, hilt);
   player.saberHand = saber.group;
   player.saberPivot = R.armR.sh;
@@ -353,11 +353,42 @@ export function mountLoadout(R, S, player, hilt){
 
   player.pistols = { L: mountWeapon(R, S, 'pistol', 'handL').group, R: mountWeapon(R, S, 'pistol', 'handR').group };
 
-  mountLongGuns(R, S, player);
+  mountLongGuns(R, S, player, rifle);
 
   const dark = mountWeapon(R, S, 'darksaber');
   dark.group.visible = false;
   player.darksaberMesh = dark.group; player.darkLight = dark.light; player.darkBlades = dark.blades;
+}
+
+/* THE DC-15's STOCK and FINISH, as the ARMORY LOCKER built them (data/trooper-locker.js). Looks only. */
+function dc15Stock(S, g, stock){
+  if (stock === 'full'){
+    // a solid stock from the receiver back, a rubber butt pad on its end
+    S.add(loft([{ y:-0.15, w:0.045, d:0.1 }, { y:0.13, w:0.05, d:0.075 }], chamfer(0.35)), 'gunDark', g, [0, 0.07, -0.2], [Math.PI/2 + 0.08, 0, 0]);
+    S.add(block(0.05, 0.135, 0.03, 0.3), 'gunMetal', g, [0, 0.05, -0.355]);
+  } else if (stock === 'folded'){
+    // the skeletal frame folded forward down the right side of the receiver, its butt plate by the power pack's front
+    for (const y of [0.11, 0.05]) S.add(block(0.018, 0.018, 0.26, 0.3), 'gunDark', g, [0.052, y, 0.04]);
+    S.add(block(0.03, 0.1, 0.03, 0.3), 'gunDark', g, [0.056, 0.08, 0.18]);
+    S.add(block(0.03, 0.03, 0.03, 0.3), 'gunMetal', g, [0.045, 0.08, -0.09]);   // the hinge
+  } else {
+    // skeletal: the open frame, its butt plate and the struts back to the receiver
+    S.add(block(0.04, 0.13, 0.04, 0.3), 'gunDark', g, [0, 0.05, -0.32]);
+    for (const y of [0.1, 0.0]) S.add(block(0.022, 0.022, 0.24, 0.3), 'gunDark', g, [0, y, -0.2], [y ? 0.06 : -0.1, 0, 0]);
+  }
+}
+const FINISH = { desert: 0xb89d6e, snow: 0xe4e7ea };
+function dc15Finish(S, g, finish, mark){
+  if (finish === 'legion'){
+    const m = S.mat('gunMetal', { c: mark ?? 0x2f7fd6 });
+    for (const z of [0.34, 0.6]) S.add(loft([{ y:-0.018, w:0.068, d:0.068 }, { y:0.018, w:0.066, d:0.066 }], ngon(10)), m, g, [0, 0.11, z], [Math.PI/2, 0, 0], { outline: false });
+    S.add(block(0.076, 0.022, 0.06, 0.2), m, g, [0, 0.12, -0.03], [0, 0, 0], { outline: false });   // a band round the back of the receiver
+  } else if (FINISH[finish]){
+    const m = S.mat('gunMetal', { c: FINISH[finish], m: 0.1, r: 0.85 });
+    // a wrap over the shroud's rear half and panels down the receiver's flanks
+    S.add(loft([{ y:-0.1, w:0.068, d:0.068 }, { y:0.1, w:0.064, d:0.064 }], ngon(10)), m, g, [0, 0.11, 0.37], [Math.PI/2, 0, 0], { outline: false });
+    for (const sx of [-1, 1]) S.add(block(0.006, 0.05, 0.2, 0.2), m, g, [0.038 * sx, 0.1, 0.12], [0, 0, 0], { outline: false });
+  }
 }
 
 /* THE LONG GUNS — the disruptor, the pulse carbine, the heavy repeater and the trooper's DC-15 share ONE mount in the right hand
@@ -367,7 +398,7 @@ export const LONG_GUNS = ['disruptor', 'carbine', 'repeater', 'dc15'];   // (app
 /* a gun with a model of its own where it otherwise borrows another's look (data/trooper.js GUN_LOOK): the trooper's
    DC-15 is held like the carbine but is its own rifle */
 export const OWN_MODEL = { rifle: 'dc15' };
-function mountLongGuns(R, S, player){
+function mountLongGuns(R, S, player, rifle){
   const def = WEAPON_MODELS.disruptor, mount = new THREE.Group();
   mount.position.set(...def.grip.pos); mount.rotation.set(...def.grip.rot);
   mount.userData.weapon = { id: 'long', hold: 'rifle-2h' };
@@ -375,7 +406,7 @@ function mountLongGuns(R, S, player){
   R.sockets[def.socket].add(mount);
   player.longGuns = {};
   for (const id of LONG_GUNS){
-    const w = WEAPON_MODELS[id].build(S);
+    const w = WEAPON_MODELS[id].build(S, id === 'dc15' ? rifle : undefined);
     w.group.userData.muzzle = WEAPON_MODELS[id].muzzle;
     w.group.visible = id === 'disruptor';
     mount.add(w.group);

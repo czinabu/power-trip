@@ -25,6 +25,8 @@ import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { rollBoons, pickBoon } from '../game/boons.js';
+import { noteFork, treePath } from '../game/profile.js';
+import { BRANCH } from '../data/profile.js';
 
 let progFreeCards = [];   // the 3 free-upgrade cards chosen for this visit (stable across re-renders)
 function rollFreeCards(){
@@ -46,6 +48,12 @@ function rollFreeCards(){
   const top = Math.max(0, ...pool.map(s => s.tier));
   if (pick.length < 3 && !pick.some(s => s.tier === top)){
     const i = pool.findIndex(s => s.tier === top);
+    if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
+  }
+  // YOUR PATH (the Force Tree, ui/profile-ui.js): the Jedi's chosen branch always has a card in the hand, when it has one to deal
+  const path = !isGunner() && treePath(), onPath = (s) => (s.branch || BRANCH[s.id]) === path;
+  if (path && pick.length < 3 && !pick.some(onPath)){
+    const i = pool.findIndex(onPath);
     if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
   }
   while (pick.length < 3 && pool.length) pick.push(pool.shift());
@@ -229,7 +237,7 @@ export function renderProgress(){
     const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
     const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO SKILL POINTS';
     wrap.appendChild(card({
-      cls: ' skill t' + s.tier, tag: tierName(s.tier) + (s.tier === 3 ? ' · CAPSTONE' : ''),
+      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : s.tier === 3 ? ' · CAPSTONE' : ''),
       ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
       extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
       cost: '1 SKILL POINT', costCls: 'c-pick',
@@ -246,6 +254,7 @@ function buyStore(n){
   if (!G.skillSelect || !storeAvail(n) || (G.xp||0) < cost) return;
   G.xp -= cost;
   n.buy();
+  if (n.fork) noteFork(n.fork, n.id);   // (the side taken, shown on the Force Tree: game/profile.js)
   storeAbilityCard(n);
   if (isGunner()) syncMandoChips(); else syncJediChips();
   document.getElementById('xpval').textContent = G.xp;

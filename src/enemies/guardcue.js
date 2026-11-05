@@ -7,6 +7,7 @@ import { G } from '../state.js';
 import { clamp } from '../utils.js';
 import { GUARD_RINGS, BLADE_CUE } from '../data/guard-rings.js';
 import { BLADE } from '../fx/blade-glow.js';
+import { noteDuelWon } from '../game/profile.js';
 
 const KEY = 'sw_duelwins';
 let wins = 0;
@@ -20,6 +21,7 @@ export function duelWon(e){
   if (!guards) return;
   e._duelWon = true; wins++;
   try { localStorage.setItem(KEY, String(wins)); } catch(err){}
+  noteDuelWon();   // rank XP for your profile (game/profile.js: real fights only)
 }
 
 // the ring's share of its full brightness right now: 0 hidden, 1 full

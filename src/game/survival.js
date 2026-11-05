@@ -31,6 +31,7 @@ import { squadSize, regroupSquad } from '../allies/squad.js';
 import { beginWave } from './readout.js';
 import { coopRun } from '../net/run.js';
 import { meetWarbringer } from './codex.js';
+import { noteSurvivalWave } from './profile.js';
 
 /* ============================================================
    SURVIVAL / ENDLESS MODE — escalating waves, mutators, milestone spikes, arena rotation, repeatable power-ups.
@@ -178,6 +179,7 @@ export function endlessWaveCleared(){
   G.mut = null; G.eliteSurge = false;   // the mutator / surge ends with the wave
   shared.levelPhase = 'between'; shared.phaseT = 2.2;
   earnWavePoint();
+  noteSurvivalWave();   // rank XP for your profile (game/profile.js)
   if (G.endlessWave % SURVIVAL_EVERY === 0) openSkillTree();   // the upgrade page every few waves; between them, a note in the corner
   else noteWavePoint();
 }

@@ -26,6 +26,7 @@ import { readPose, makePoseTrack, pushPose, stepPose } from './pose.js';
 import { on, send, sendEvery, connected, net } from './session.js';
 import { savedName, hasName, setName, forgetName, forgetAll, nameOf } from './names.js';
 import { fxOut, makePartnerFx, updatePartnerFx } from './partner-fx.js';
+import { profileCard, cleanCard } from '../game/profile.js';
 
 const partners = new Map();   // slot -> that player's puppet, pose track and entry in the players list
 const keyOf = (picks) => JSON.stringify(picks || {});
@@ -71,7 +72,8 @@ function dress(P, heroName){
 }
 
 // their picked name, else "PARTNER" with one other player, "PLAYER 3" and so on with more (net/names.js)
-const label = (P) => hasName(P.slot) || partners.size > 1 ? nameOf(P.slot) : 'PARTNER';
+const who = (P) => hasName(P.slot) || partners.size > 1 ? nameOf(P.slot) : 'PARTNER';
+const label = (P) => who(P) + (P.mate.card ? ' · ' + P.mate.card.n : '');   // and their rank (game/profile.js)
 function nameTag(P){
   if (P.tag) return P.tag;
   P.tag = document.createElement('div');
@@ -93,10 +95,15 @@ function coopRevives(){
   if (G.reviveLeft == null || key !== reviveWave){ reviveWave = key; refill(); }
 }
 
-on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from || 0); P.mate.name = nameOf(P.slot); build(P, m.picks, m.hero); addPlayer(P.mate); });
+on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from || 0); P.mate.name = nameOf(P.slot); hearCard(P, m.rk); build(P, m.picks, m.hero); addPlayer(P.mate); });
+// each player's PROFILE CARD (game/profile.js profileCard: hero, rank, Force Tree), with their hello and now and then after:
+// shown on their name tag, and kept on their entry for whatever reads the room (the hub, partnerCards)
+function hearCard(P, c){ if (c !== undefined) P.mate.card = cleanCard(c); }
+export const partnerCards = () => [...partners.values()].map(P => ({ slot: P.slot, name: nameOf(P.slot), card: P.mate.card || null }));
 on('s', (m) => {
   const P = partnerOf(m.from || 0), { want, mate, puppet, track } = P;
   if (m.name !== undefined){ setName(P.slot, m.name); mate.name = nameOf(P.slot); }
+  hearCard(P, m.rk);
   if (!P.built) build(P, m.picks, m.hero);
   if (m.picks && keyOf(m.picks) !== P.picksKey) build(P, m.picks, m.hero);
   if (m.hero !== P.hero) dress(P, m.hero);
@@ -116,7 +123,7 @@ on('s', (m) => {
   P.fx.cur = m.fx || null; P.fx.curAt = performance.now();
 });
 // a player came in: say hello to them (the host's hello reaches every guest, and each guest's reaches the host and, through it, the rest)
-on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: wornPicks(loadPicks()), name: savedName() }); });
+on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: wornPicks(loadPicks()), name: savedName(), rk: profileCard() }); });
 function leaves(slot){
   const P = partners.get(slot);
   if (!P) return;
@@ -140,7 +147,7 @@ export function updateCoop(dt){
         pose: player.rig ? readPose(player) : null, fx: fxOut() };
       const dn = heroDownState();   // down: how far along getting this hero up is, and how long they have (game/revive.js)
       if (dn) m.dn = [Math.round(dn.prog * 100), dn.out ? -1 : +dn.left.toFixed(1), dn.by ? 1 : 0];   // (-1: OUT, no clock)
-      if (sent++ % NET.picksEvery === 0){ m.picks = wornPicks(loadPicks()); m.name = savedName(); }   // (the picks as worn: the partner builds them as they come)
+      if (sent++ % NET.picksEvery === 0){ m.picks = wornPicks(loadPicks()); m.name = savedName(); m.rk = profileCard(); }   // (the picks as worn: the partner builds them as they come)
       return m;
     });
   }
@@ -186,7 +193,7 @@ function stepPartner(P, dt){
   // the name tag follows the head on screen
   const t = nameTag(P);
   if (P.chip && P.chip.style.display !== 'none'){ t.style.display = 'none'; return; }   // down: the chip says it instead
-  t.textContent = mate.down ? label(P) + ' IS OUT' : mate.away ? label(P) + ' · PAUSED' : label(P);
+  t.textContent = mate.down ? who(P) + ' IS OUT' : mate.away ? who(P) + ' · PAUSED' : label(P);
   const v = new THREE.Vector3(g.position.x, g.position.y + 2.6, g.position.z).project(camera);
   if (v.z > 1){ t.style.display = 'none'; return; }
   t.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px';
@@ -200,7 +207,7 @@ function downMarks(P, show){
   const { mate, puppet } = P, g = puppet.group;
   const waiting = show && mate.here && mate.down && !!P.dn;
   if (waiting && !P.wasDown && G.mode === 'play'){
-    showBanner('', label(P) + ' IS DOWN · GET THEM UP', 2.4);
+    showBanner('', who(P) + ' IS DOWN · GET THEM UP', 2.4);
     S.reward(0);
   }
   P.wasDown = waiting;
@@ -219,7 +226,7 @@ function downMarks(P, show){
   const pp = playerPos(), d = Math.hypot(g.position.x - pp.x, g.position.z - pp.z);
   _head.set(g.position.x, g.position.y + 2.2, g.position.z);
   const out = !(left >= 0);   // OUT (game/revive.js): no clock, they rise once the fight is over
-  placeChip(P.chip, _head, by ? label(P) + ' · GETTING UP ' + prog + '%' : out ? label(P) + ' IS OUT · GET THEM UP' : label(P) + ' DOWN · ' + left.toFixed(0) + 'S', d);
+  placeChip(P.chip, _head, by ? who(P) + ' · GETTING UP ' + prog + '%' : out ? who(P) + ' IS OUT · GET THEM UP' : who(P) + ' DOWN · ' + left.toFixed(0) + 'S', d);
   P.chip.classList.toggle('urgent', !by && !out && left < 5);
 }
 const _head = new THREE.Vector3();

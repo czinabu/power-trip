@@ -14,6 +14,7 @@ import { playerPos } from '../player/helpers.js';
 import { masterySet, masteryRank } from '../data/mastery.js';
 import { FORM_MASTERY, FORM_RANKS, formRank, noteBestRank, forceShare } from '../data/force-level.js';
 import { STANCES } from '../data/stances.js';
+import { noteFormRank, notePowerRank } from './profile.js';
 
 export const SURVIVAL_EVERY = 3;     // survival: the upgrade page opens every 3rd wave cleared
 const RANK_NUM = ['', 'I', 'II', 'III'];
@@ -78,6 +79,7 @@ function rankUp(m){
   burst(pp.clone().setY(1.6), 0xffd24a, 12, 5, 4);
   S.reward(r + 1 >= m.ranks.length ? 2 : 1);
   upToast(m.nm + ' MASTERED ' + RANK_NUM[r + 1], m.ranks[r].ds, 'mast');
+  notePowerRank();   // (rank XP for your profile: game/profile.js)
 }
 function settle(m){
   const n = masteryNext(m);
@@ -146,6 +148,7 @@ function settleForm(id){
   S.reward(r + 1 >= 3 ? 2 : 1);
   upToast(nm + ' · ' + FORM_RANKS.names[r + 1], m.lines.slice(0, 2).join(' · ') + ' · Force share ' + Math.round(forceShare(id) * 100) + '%', 'mast');
   formRankHook && formRankHook();
+  noteFormRank();   // (rank XP for your profile: game/profile.js)
 }
 let formRankHook = null;   // the stance strip redraws its stars (player/jedi/stance.js)
 export const onFormRank = (fn) => { formRankHook = fn; };
@@ -183,4 +186,4 @@ export function noteWavePoint(){
     : 'Spend ' + (sp > 1 ? 'them' : 'it') + ' after wave ' + (Math.ceil(((G.endlessWave || 0) + 1) / SURVIVAL_EVERY) * SURVIVAL_EVERY), 'sp');
 }
 // a fresh run
-export function resetUpgrades(){ G.masteryUse = {}; G.xpPoints = 0; G.boonsOwed = 0; heldT = {}; }
+export function resetUpgrades(){ G.masteryUse = {}; G.xpPoints = 0; G.boonsOwed = 0; G.profClosed = {}; heldT = {}; }

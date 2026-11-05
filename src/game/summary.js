@@ -14,6 +14,7 @@ import { campaignWon } from './campaign.js';
 import { storyHero } from '../data/campaign.js';
 import { TROOPER_VICTORY } from '../data/campaign-trooper.js';
 import { isArcadeId } from '../data/arcade.js';
+import { noteCampaignWon } from './profile.js';
 
 /* ---------- END-OF-RUN SUMMARY + SCORE ---------- */
 export function endRun(won){
@@ -71,6 +72,7 @@ export function victory(afterEpilogue){
   // record this hero's CAMPAIGN clear — SURVIVAL unlocks once BOTH heroes have finished the campaign
   const hadBoth = survivalUnlocked();
   try { localStorage.setItem('sw_camp_' + G.hero, '1'); } catch(e){}
+  noteCampaignWon();   // your profile: the post-game rank asks for this (game/profile.js)
   autosave('campaign won', { finished: true });
   const newlyUnlocked = !hadBoth && survivalUnlocked();
   refreshSurvivalLock();

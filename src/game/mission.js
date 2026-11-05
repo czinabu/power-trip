@@ -63,6 +63,7 @@ import { puppetOf } from '../net/foes.js';
 import { CIV, CIV_TUNE } from './civilians.js';
 import { LANE, pickLanes, setLanes, clearLanes, warnLane, updateLanes, laneSpawn, safeSpot, firstWarning, lanesSnap, lanesSync } from './lanes.js';
 import { meetNamed } from './codex.js';
+import { noteMissionWon } from './profile.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -1338,6 +1339,7 @@ function missionComplete(){
   const def = M.def;
   if (def.arcade) noteArcadeWin(G.hero);   // an arcade contract counts toward the hero's tally (and saves nothing: it's a one-off)
   else try { localStorage.setItem('sw_mission_' + def.id + '_' + G.hero, '1'); } catch(e){}
+  if (!M.chapter) noteMissionWon(def.id, !!def.arcade);   // rank XP for your profile (game/profile.js; a chapter's counts at its close)
   if (!M.chapter && !def.arcade) autosave('mission');   // (a chapter's win is saved as the next chapter starts)
   // a campaign chapter's card carries the chapter's clear lines (what the mission taught, who joins), not a second voice line on the comms strip
   // (the voice's own lines; when it has none, the last cast member who speaks ({ who, say }), under their own name)

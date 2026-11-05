@@ -10,6 +10,8 @@ import { onRunChange } from '../net/foes.js';
 import { launchCoopRun } from './menus.js';
 import { G } from '../state.js';
 import { missionTitle } from '../game/mission.js';
+import { profileCard } from '../game/profile.js';
+import { partnerCards } from '../net/partner.js';
 
 const panel = document.getElementById('coop');
 const statusEl = document.getElementById('coopstatus');
@@ -61,6 +63,9 @@ function renderRoster(){
     const el = document.createElement('span');
     el.style.borderColor = '#' + SEAT_COLORS[k].toString(16).padStart(6, '0');
     el.textContent = k === net.slot ? (savedName() || nameOf(k)).toUpperCase() : nameOf(k);
+    // their rank, from the profile card each player sends (game/profile.js)
+    const card = k === net.slot ? profileCard() : ((partnerCards().find(c => c.slot === k) || {}).card);
+    if (card){ const r = document.createElement('em'); r.textContent = card.n; el.appendChild(r); }
     if (k === 0){ const h = document.createElement('i'); h.textContent = 'HOST'; el.appendChild(h); }
     if (k === net.slot){ const h = document.createElement('i'); h.textContent = 'YOU'; el.appendChild(h); }
     rosterEl.appendChild(el);

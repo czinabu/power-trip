@@ -2,6 +2,7 @@
 // Level and wave flow: startLevel, startWave, updateFlow, ability unlock gates.
 
 import { chapterLooks } from './look-unlocks.js';
+import { noteChapterCleared, takeRankCards, noteFork } from './profile.js';
 import { autosave } from './autosave.js';
 import { endLock } from '../enemies/duel.js';
 import { removeEnemy } from '../enemies/cleanup.js';
@@ -322,6 +323,14 @@ export function checkUnlocks(bannerDelay, closing){
     else queueForceToast(rise);
   }
   if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
+  // your profile (game/profile.js): the chapter counts toward your rank, once a run; a rank it raises you to is its own card
+  if (closing && G.chapter >= 0){
+    const id = (chapterOrder(G.actTwo)[G.chapter] || {}).id;
+    G.profClosed = G.profClosed || {};
+    if (id && !G.profClosed[id]){ G.profClosed[id] = true; noteChapterCleared(id); }
+    if (G.formFork) noteFork('f7', G.formFork);   // (Form VII's pick, for the Force Tree)
+    announce.push(...takeRankCards());
+  }
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
   announceUnlocks(announce, bannerDelay, closing);

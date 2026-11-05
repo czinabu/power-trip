@@ -17,6 +17,7 @@ import { MANDO } from '../data/mando.js';
 import { endWave } from './readout.js';
 import { xpPointCheck } from './upgrades.js';
 import { chapterClosed } from './flow.js';
+import { profileOpens } from './profile.js';
 
 export function skillSet(){ return isTrooper() ? TROOPER_SKILLS : isGunner() ? MANDO_SKILLS : SKILLS; }
 const TIER_NAME_TROOPER = { 1: 'CADET', 2: 'ARC', 3: 'COMMAND' };
@@ -26,7 +27,8 @@ function skillReq(s){ return s.req != null ? s.req : TIER_REQ[s.tier]; }
 function tierUnlocked(tier){ return G.skillSpent >= TIER_REQ[tier]; }
 // the campaign also holds a tier back until its chapter has closed (data/skills.js TIER_CHAPTER)
 export function tierStoryOpen(tier){ return G.chapter < 0 || !TIER_CHAPTER[tier] || chapterClosed(TIER_CHAPTER[tier]); }
-export function skillEligible(s){ return G.skillSpent >= skillReq(s) && tierStoryOpen(s.tier) && skillRank(s.id) < s.max && (!s.avail || s.avail()); }
+// (a Force Tree card or a rank's card also waits for your profile to have it: game/profile.js)
+export function skillEligible(s){ return G.skillSpent >= skillReq(s) && tierStoryOpen(s.tier) && skillRank(s.id) < s.max && (!s.avail || s.avail()) && profileOpens(s); }
 
 /* ============================================================
    XP & PROGRESSION STORE — earn XP in combat, spend it between waves

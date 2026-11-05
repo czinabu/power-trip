@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="/styles/menus.css">
 <link rel="stylesheet" href="/styles/store.css">
 <link rel="stylesheet" href="/styles/codex.css">
+<link rel="stylesheet" href="/styles/profile.css">
 </head>
 <body class="in-menu">
 <!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
@@ -299,6 +300,7 @@
       <div class="btn" id="settoggle">SETTINGS</div>
       <div class="btn" id="ctltoggle">CONTROLS</div>
       <div class="btn" id="cxtoggle">CODEX<span class="cx-badge"></span></div>
+      <div class="btn" id="pfBtn">PROFILE<span class="pf-badge">NEW</span></div>
       <div class="btn" id="coopBtn">CO-OP</div>
       <div class="btn" id="rmtoggle">ROADMAP</div>
     </div>
@@ -310,7 +312,7 @@
       </div>
     </div>
     <div id="newconfirm">
-      <div class="hc-q">Start a new game? Wins, unlocks and bests start over. Your save slots are kept.</div>
+      <div class="hc-q">Start a new game? Wins, unlocks and bests start over. Your save slots and your rank are kept.</div>
       <div class="hc-row">
         <div class="btn" id="newYes">START OVER</div>
         <div class="btn" id="newNo">CANCEL</div>
@@ -413,6 +415,7 @@
     </div>
   </div>
   <div id="codex"></div>   <!-- the codex: everyone met, foe or friend (ui/codex-ui.js) -->
+  <div id="profile"></div>   <!-- your hero's rank and the Force Tree (ui/profile-ui.js) -->
   <div id="forms"></div>   <!-- the lightsaber forms: before the fight and on pause (ui/forms-ui.js) -->
 </div>
 <div id="boonstrip"></div>

@@ -89,7 +89,7 @@ export function flourishReset(){
   const o = FL.F && FL.off;
   if (o && o.parent && o.userData.restQ) o.quaternion.copy(o.userData.restQ);
 }
-export function flourishApply(dt){
+export function flourishApply(dt, R){
   if (!FL.F) return;
   const m = FL.node, F = FL.F;
   FL.t += dt;
@@ -97,10 +97,27 @@ export function flourishApply(dt){
   if (!inHand(m) || m !== flNode()){ FL.F = null; return; }   // (thrown, holstered, swapped)
   if (k >= 1){ FL.F = null; return; }   // (the pose has it square in the hand already)
   const e = k * k * k * (k * (6 * k - 15) + 10);   // smootherstep: from still, round, and still again
-  _fq.setFromAxisAngle(_ax, Math.PI * 2 * F.turns * e);
-  m.quaternion.multiply(_fq);
+  const ang = Math.PI * 2 * F.turns * e;
+  spinBeside(m, R, ang);
   const o = FL.off;
-  if (o && o === flOff() && o.parent) o.quaternion.multiply(_fq);   // Jar'Kai: both hilts turn together
+  if (o && o === flOff() && o.parent) spinBeside(o, R, ang);   // Jar'Kai: both hilts turn together, each beside its own side
+}
+/* the wheel the blade turns through stands BESIDE the body, never across it: its axis runs straight out from the body's
+   middle through the hand (level, in chest space), so the blade circles in a plane off the hero's side (or in front of
+   them, for a hand held in front) and never sweeps through the chest, the head or the legs. Recomputed each frame as
+   the arm rises, so the wheel follows the hand. */
+const _hp = new THREE.Vector3(), _ow = new THREE.Vector3(), _im = new THREE.Matrix4();
+function spinBeside(m, R, ang){
+  const chest = R && R.chest;
+  if (!chest){ m.quaternion.multiply(_fq.setFromAxisAngle(_ax, ang)); return; }
+  chest.updateWorldMatrix(true, false); m.parent.updateWorldMatrix(true, false);
+  m.getWorldPosition(_hp); chest.worldToLocal(_hp);
+  _ow.set(_hp.x, 0, _hp.z);
+  if (_ow.lengthSq() < 1e-4) _ow.set(m === player.saberHand || m === player.darksaberMesh ? -1 : 1, 0, 0);   // (dead centre: out to its own side)
+  // out from the body, in world space, then in the hand's frame (by matrices: the rig is mirrored, and a mirrored
+  // frame's quaternion doesn't carry a direction across)
+  _ow.normalize().transformDirection(chest.matrixWorld).transformDirection(_im.copy(m.parent.matrixWorld).invert());
+  m.quaternion.premultiply(_fq.setFromAxisAngle(_ow, ang));
 }
 const _e = new THREE.Euler(), _q = new THREE.Quaternion();
 const qe = (x, y, z) => _q.setFromEuler(_e.set(x, y, z));

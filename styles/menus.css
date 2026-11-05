@@ -1137,6 +1137,14 @@ body.pad .kbonly{display:none}
 #abilitycard .ac-clip{background:#05080f;line-height:0;border-bottom:1px solid var(--edge-mid)}
 #abilitycard .ac-clip img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 #abilitycard .ac-body{padding:16px 20px 20px}
+#abilitycard .ac-force{margin:-2px 0 12px;padding:8px 12px 9px;border:1px solid rgba(130,200,255,.4);border-left:3px solid #7fd0ff;border-radius:var(--r-chip);
+  background:linear-gradient(100deg,rgba(20,60,110,.55),rgba(10,24,44,.3));animation:acfglow 1.8s ease-out both}
+#abilitycard .acf-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:700 11px/1 var(--font-ui);letter-spacing:2.6px;color:#8fd4ff}
+#abilitycard .acf-h b{font:700 18px/1 var(--font-display);letter-spacing:2.4px;color:#f2f8ff;text-shadow:0 0 12px rgba(120,200,255,.7)}
+#abilitycard .acf-l{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-top:5px;font:500 13.5px/1.35 var(--font-body);color:var(--ink)}
+#abilitycard .acf-l .ft-form{margin-top:0}
+#abilitycard .acf-x{margin-top:4px;font:500 12.5px/1.35 var(--font-body);color:var(--ink-soft)}
+@keyframes acfglow{0%{box-shadow:0 0 0 1px rgba(160,220,255,.9),0 0 28px rgba(90,190,255,.7)}100%{box-shadow:none}}
 #abilitycard .cc-act{font-size:12px;letter-spacing:3px;color:var(--cc)}
 #abilitycard .ac-title{margin:4px 0 0;font:700 34px/1 var(--font-display);letter-spacing:3px;color:#f2f8ff}
 #abilitycard .ac-key{display:inline-block;margin-top:8px;padding:2px 8px;font:700 12px/1.4 var(--font-ui);letter-spacing:1.6px;color:var(--ink);border:1px solid var(--edge-mid);border-radius:var(--r-chip)}

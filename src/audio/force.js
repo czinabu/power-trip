@@ -370,6 +370,18 @@ export function mendDone(){
   F.innerUntil = now() + 0.3;
 }
 
+// the Force Level rises (ui/force-toast.js): a breath drawn in, a deep swell under it, then it opens into a bright
+// stacked fifth and a struck bowl, with a shimmer of air on top. Big enough to feel, soft enough to sit under a lull
+export function forceRise(){
+  if (!ensureBus()) return;
+  VN({ g: 0.05, a: 0.42, d: 0.1, filt: { type: 'bandpass', f: 360, f2: 4200, q: 1, t: 0.46 }, verb: 0.5 });                  // the breath in
+  V({ type: 'sine', f: 49, f2: 73.4, g: 0.16, a: 0.34, hold: 0.18, d: 1.0, verb: 0.3, jit: 0 });                             // the swell
+  for (const [f, at] of [[220, 0.42], [329.6, 0.48], [440, 0.54], [659.3, 0.62]])                                          // it opens out
+    V({ at, type: 'triangle', f, g: 0.032, a: 0.02, hold: 0.1, d: 1.5, filt: { type: 'lowpass', f: 2600 }, vib: { r: 5, d: 6 }, verb: 0.6, jit: 0.004 });
+  bowl(880, { at: 0.42, g: 0.05, d: 2.4, verb: 0.7 });
+  VN({ at: 0.42, g: 0.028, a: 0.02, d: 0.8, filt: { type: 'highpass', f: 6500 }, verb: 0.6 });
+}
+
 /* the world's low-pass while an internal power runs (the Jedi's Mend channel and a beat after it), for director.js */
 export function innerHz(){
   if (!AE.ready) return 20000;

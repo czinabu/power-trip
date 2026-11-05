@@ -559,4 +559,14 @@ function armory(K, pal, M, R){
   K.box(-8, 0, 0.8, 2.4, 1.0, M.metalD);
   for (let k = 0; k < 4; k++) K.deco(new THREE.BoxGeometry(0.16, 0.12, 1.1), M.metalD, -8 + (k - 1.5) * 0.35, 1.08, -1.2 + k * 0.8);
   K.banner(0, 10, H + 0.6, PI, 5, 8, pal.blue, 0xe8ecef, 0xe8ecef);
+  // the HELMET WALL behind the stand: shelf on shelf of spare buckets, visors out
+  const helm = FIG.white || std(0xeef0f2, 0.45, 0.1), visor = FIG.visor || std(0x101418, 0.3, 0.4);
+  for (const sx of [-1, 1]) for (let r = 0; r < 3; r++){
+    const y = 1.4 + r * 1.3, x0 = sx * 9;
+    pic(K.deco(new THREE.BoxGeometry(9, 0.12, 0.9), M.rack, x0, y, H + 0.9));
+    for (let k = -3; k <= 3; k++){
+      pic(K.deco(new THREE.SphereGeometry(0.2, 8, 6), helm, x0 + k * 1.2, y + 0.28, H + 0.85));
+      pic(K.deco(new THREE.BoxGeometry(0.26, 0.05, 0.04), visor, x0 + k * 1.2, y + 0.32, H + 0.63));
+    }
+  }
 }

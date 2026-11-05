@@ -1,7 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // The sandbox panel (B in the sandbox): call in any foe, switch powers on and off, clear the floor, god mode.
-// Four tabs keep it to one screen: ARENA & BATTLES, FOES (with the duellists' form and rank), YOU (forms, powers or
-// gear, restore, god mode) and SQUAD & READOUT. Q / E (LB / RB on a pad) step through them; the last tab stays picked.
+// One page, so everything tweaked mid-fight is in view at once: FOES on the left (the spawn grid, elite / dummies / break
+// guards, the duellists' form and rank), YOU on the right (forms, the Force level and mastery, powers or gear, restore,
+// god mode), and the floor along the bottom (the arena, the squad, the readout). The battle simulator's setup, replay and
+// saved setups sit behind their own button. Q / E (LB / RB on a pad) jump between the sections (and the pad's ring with them).
 // Before the campaign is beaten, what the story hasn't reached yet shows dimmed and locked (game/sandbox-unlocks.js).
 // It holds the game still while it's open and frees the cursor, the same way the upgrade screen does.
 
@@ -31,6 +33,7 @@ const isOpen = () => panel.classList.contains('open');
 export function openSandboxPanel(){
   if (!G.sandbox || G.mode !== 'play' || G.paused || G.skillSelect) return;
   G.sbMenu = true;        // the camera cuts away like the pause screen
+  sec = -1;               // Q / E start from the top again
   G.skillSelect = true;   // freezes the sim and keeps the pause screen away while the cursor is free (see ui/menus.js)
   render();
   panel.classList.add('open');
@@ -38,27 +41,37 @@ export function openSandboxPanel(){
 }
 export function closeSandboxPanel(relock = true){
   if (!isOpen()) return;
+  showBsim(false);
   panel.classList.remove('open');
   G.sbMenu = false;
   G.skillSelect = false;
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
 }
 
-const TABS = ['arena', 'foes', 'you', 'squad'];
-let tab = 'foes';   // calling in foes is what the panel is opened for most
-function showTab(t){
-  tab = t;
-  for (const el of panel.querySelectorAll('[data-sbtab]')) el.classList.toggle('on', el.dataset.sbtab === t);
-  for (const el of panel.querySelectorAll('[data-sbpage]')) el.classList.toggle('on', el.dataset.sbpage === t);
+// Q / E jump between the sections, in reading order (a section that's hidden for this hero is skipped)
+const box = panel.querySelector('.sb-panel');
+const bsimUp = () => box.classList.contains('bsim');
+function showBsim(on){ box.classList.toggle('bsim', on); }
+let sec = -1;
+function jump(d){
+  if (bsimUp()) return;
+  const list = [...panel.querySelectorAll('[data-sbsec]')].filter(el => el.offsetParent !== null);
+  if (!list.length) return;
+  sec = sec < 0 ? (d > 0 ? 0 : list.length - 1) : (Math.min(sec, list.length - 1) + d + list.length) % list.length;
+  const el = list[sec];
+  el.scrollIntoView({ block: 'start' });
+  for (const o of list) o.classList.remove('flash');
+  void el.offsetWidth; el.classList.add('flash');
+  // the pad's ring goes to the section's first pick (engine/gamepad.js)
+  const first = el.querySelector('.sb-chip:not(.locked), .sb-seg span:not(.locked), .btn, .setpill');
+  if (first) document.dispatchEvent(new CustomEvent('pad-focus', { detail: first }));
 }
-function stepTab(d){ showTab(TABS[(TABS.indexOf(tab) + d + TABS.length) % TABS.length]); }
 
 const SB_FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo', 'jarkai'];   // (a magnaguard always fights with its staff)
 function pill(id, on){ const el = $(id); el.classList.toggle('on', on); el.querySelector('.setval').textContent = on ? 'ON' : 'OFF'; }
 const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
 function render(){
-  showTab(tab);
   const full = sandboxIsFull(), prog = sandboxProgress();
   $('sbstory').style.display = full ? 'none' : '';
   $('sbstory').textContent = 'THE STORY SO FAR · ' + prog.n + ' OF ' + prog.of + ' CHAPTERS · beat the campaign to open everything';
@@ -83,8 +96,8 @@ function render(){
     return `<div class="sb-chip${f.special ? ' special' : ''}${ok ? '' : ' locked'}" data-foe="${f.id}"${ok ? '' : ` title="${LATER}"`}>${nm}<span class="k">${!ok ? 'LATER' : f.id === 'boss' ? 'BOSS' : f.special ? 'MID-BOSS' : ''}</span></div>`;
   }).join('');
   const jedi = !isGunner();
-  $('sbformslbl').style.display = $('sbforms').style.display = jedi ? '' : 'none';
-  $('sbtabyou').textContent = jedi ? '· FORMS & POWERS' : '· GEAR';
+  $('sbformssec').style.display = jedi ? '' : 'none';
+  $('sbyouhd').textContent = jedi ? '· FORMS & POWERS' : '· GEAR';
   // THE FORCE (data/force-level.js): STORY is where the campaign has reached; a number overrides it
   $('sbforce').style.display = jedi ? '' : 'none';
   if (jedi){
@@ -107,16 +120,16 @@ function render(){
 panel.addEventListener('click', (e) => {
   e.stopPropagation();   // nothing in here may reach the overlay's launch/resume handler
   const t = e.target;
-  const tb = t.closest('[data-sbtab]');
-  if (tb){ showTab(tb.dataset.sbtab); return; }
+  if (t.closest('#sbbsim')){ showBsim(true); return; }
+  if (t.closest('#sbbsimx') || t.id === 'sbbsimpop'){ showBsim(false); return; }
   const slot = t.closest('[data-slot]');
   if (slot){ cycleSandboxSlot(+slot.dataset.slot); render(); return; }
   const n = t.closest('[data-n]'), foe = t.closest('[data-foe]'), kit = t.closest('[data-kit]'), map = t.closest('[data-map]');
   if (t.closest('.locked, .off')) return;   // not reached in the story yet (or nothing to do)
   const sv = t.closest('[data-save]'), ld = t.closest('[data-load]');
   if (sv){ if (saveSetup(+sv.dataset.save)) showBanner('', 'SETUP SAVED TO SLOT ' + (+sv.dataset.save + 1), 1.2); render(); return; }
-  if (ld){ if (loadSetup(+ld.dataset.load)) openBattleSetup(); return; }
-  if (t.closest('#sbbattle')){ openBattleSetup(); return; }
+  if (ld){ if (loadSetup(+ld.dataset.load)){ showBsim(false); openBattleSetup(); } return; }
+  if (t.closest('#sbbattle')){ showBsim(false); openBattleSetup(); return; }
   if (t.closest('#sbreplay')){ closeSandboxPanel(); replayBattle(); return; }
   if (map){ if (map.dataset.map !== SB.map){ setSandboxMap(map.dataset.map); render(); } return; }
   if (n){ SB.count = +n.dataset.n; render(); return; }
@@ -142,16 +155,16 @@ panel.addEventListener('click', (e) => {
   if (t.closest('#sbnone')){ sandboxKitAll(false); render(); return; }
   if (t.closest('#sbdone, #sbclose') || t === panel) closeSandboxPanel();
 });
-// B opens and closes it; Esc closes it too
+// B opens and closes it; Esc (B on a pad) closes the battle simulator's box first, then the panel
 document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (k === 'b'){ if (isOpen()) closeSandboxPanel(); else openSandboxPanel(); }
-  else if ((k === 'q' || k === 'e') && isOpen()) stepTab(k === 'e' ? 1 : -1);
-  else if (k === 'escape' && isOpen()){ e.preventDefault(); closeSandboxPanel(); }
+  else if ((k === 'q' || k === 'e') && isOpen()) jump(k === 'e' ? 1 : -1);
+  else if (k === 'escape' && isOpen()){ e.preventDefault(); if (bsimUp()) showBsim(false); else closeSandboxPanel(); }
 });
 // LB / RB on a pad (engine/gamepad.js)
-document.addEventListener('sb-tab', (e) => { if (isOpen()) stepTab(e.detail); });
+document.addEventListener('sb-tab', (e) => { if (isOpen()) jump(e.detail); });
 
 // the sandbox's FORCE picks are kept between visits (read back as the sandbox opens: game/sandbox.js)
 function saveForcePicks(){ try { localStorage.setItem('sw_sandbox_force', JSON.stringify({ lv: G.sbForceLevel || null, rank: G.sbFormRank ?? null })); } catch(e){} }

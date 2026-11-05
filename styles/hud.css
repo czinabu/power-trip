@@ -346,19 +346,29 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
   transform:rotate(45deg);box-shadow:0 0 6px rgba(255,210,90,.6)}
 
 /* ---------- centre: SABER LOCK — the bind's balance, yours on the right ---------- */
-#lockbar{position:fixed;left:50%;top:62%;transform:translate(-50%,6px);width:300px;text-align:center;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}
+#lockbar{position:fixed;left:50%;top:70%;transform:translate(-50%,6px);width:min(360px,80vw);text-align:center;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}
 #lockbar.on{opacity:1;transform:translate(-50%,0)}
 #lockbar .lb-k{font:700 13px/1 var(--font-ui);letter-spacing:3px;color:#ffe6b0;text-shadow:0 0 10px rgba(255,170,60,.6);margin-bottom:7px}
-#lockbar .lb-track{position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,rgba(255,60,50,.55),rgba(30,20,20,.6) 50%,rgba(90,200,255,.55));
+#lockbar .lb-track{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,rgba(255,60,50,.28),rgba(30,20,20,.65) 50%,rgba(90,200,255,.28));
   box-shadow:0 0 0 1px rgba(255,255,255,.18),0 2px 10px rgba(0,0,0,.5)}
+/* the winning side fills out from the middle in its own colour (enemies/duel.js drawLockBar) */
+#lockbar .lb-you,#lockbar .lb-foe{position:absolute;top:0;bottom:0;width:0}
+#lockbar .lb-you{left:50%;border-radius:0 5px 5px 0;background:linear-gradient(90deg,rgba(120,210,255,.55),rgba(150,225,255,.95));box-shadow:0 0 10px rgba(110,200,255,.6)}
+#lockbar .lb-foe{right:50%;border-radius:5px 0 0 5px;background:linear-gradient(270deg,rgba(255,90,70,.55),rgba(255,80,60,.95));box-shadow:0 0 10px rgba(255,80,60,.6)}
 #lockbar .lb-mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.5)}
-#lockbar .lb-fill{position:absolute;left:50%;top:-5px;width:6px;height:18px;margin-left:-3px;border-radius:3px;background:#fff;box-shadow:0 0 12px #ffe6b0,0 0 4px #fff}
-#lockbar .lb-hint{margin-top:8px;font-size:11px;letter-spacing:1.5px;color:var(--ink-soft)}
+#lockbar .lb-fill{position:absolute;left:50%;top:-5px;width:6px;height:20px;margin-left:-3px;border-radius:3px;background:#fff;box-shadow:0 0 12px #ffe6b0,0 0 4px #fff}
+/* the time left in the bind: when it runs out, whoever is ahead takes it */
+#lockbar .lb-time{position:relative;height:2px;margin:6px auto 0;width:60%;background:rgba(255,255,255,.12);border-radius:1px;overflow:hidden}
+#lockbar .lb-time i{position:absolute;inset:0;background:rgba(255,230,176,.75);transform-origin:50% 50%}
+#lockbar .lb-hint{margin-top:7px;font-size:11px;letter-spacing:1.5px;color:var(--ink-soft)}
 #lockbar .lb-hint b{color:var(--ink)}
 /* the foe's surge (enemies/duel.js): the track's edge glows as it gathers itself, then flares red while it bears down */
 #lockbar.tell .lb-track{box-shadow:0 0 0 1px rgba(255,200,150,.7),0 0 14px rgba(255,150,80,.55)}
 #lockbar.surge .lb-track{box-shadow:0 0 0 2px rgba(255,80,50,.9),0 0 22px rgba(255,60,40,.75)}
 #lockbar.surge .lb-k{color:#ffb090}
+/* nearly through (either way): the label says so */
+#lockbar.win .lb-k{color:#bfe9ff;text-shadow:0 0 12px rgba(110,200,255,.8)}
+#lockbar.lose .lb-k{color:#ff9a86;text-shadow:0 0 12px rgba(255,70,50,.8)}
 
 /* ---------- THE VOICE PANEL (game/objectives.js): training, drills and story missions — the task is the headline
    (keys, what to do, the count), and the speaker's line sits under it as a quieter, attributed aside ---------- */

@@ -6,7 +6,7 @@
 import { G, enemies } from '../state.js';
 import { rand } from '../utils.js';
 import { TARGET } from '../data/coop.js';
-import { players, localPlayer, targetable } from '../player/players.js';
+import { players, localPlayer, huntable as targetable } from '../player/players.js';   // (a paused co-op hero is left alone)
 
 // a foe in the middle of an attack keeps its target until the blow is done
 const COMMITTED = { windup: 1, strike: 1, lungewind: 1, lunge: 1, leapwind: 1, leap: 1, fuse: 1, lock: 1, order: 1, sig: 1 };

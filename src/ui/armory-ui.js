@@ -15,6 +15,7 @@ import { MANDO_WEAPONS, ARMORY_CODEX, KIT_SLOTS, KIT_LABEL, cleanKit, kitOf, bes
 import { setKit, setArmoryPickHook } from '../game/armory.js';
 import { autosave } from '../game/autosave.js';
 import { refreshSandboxScope, storyReached } from '../game/sandbox-unlocks.js';
+import { coopRun } from '../net/run.js';
 
 const menuPanel = document.getElementById('forms');
 const runPanel = document.getElementById('armory');
@@ -121,7 +122,7 @@ const pending = [];
 setArmoryPickHook((id) => { if (!pending.includes(id)) pending.push(id); });
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickArmory(){
-  if (!pending.length || armoryPickUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || armoryPickUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   const id = pending.shift();
   const known = ARMORY_ORDER.filter(w => weaponOwned(w));
   ctx = { mode: 'pick', panel: runPanel, edit: true, known, kit: { ...kitOf() }, fresh: id, focus: id,

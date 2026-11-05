@@ -34,7 +34,7 @@ import { victory } from '../game/summary.js';
 import { showBanner } from '../ui/banners.js';
 import { diffHpMul } from '../data/difficulty.js';
 import { hideIndicators } from '../enemies/cleanup.js';
-import { players, localPlayer, targetable } from '../player/players.js';
+import { players, localPlayer, huntable } from '../player/players.js';
 import { queueHit, hooks } from '../net/run.js';
 import { meetBoss } from '../game/codex.js';
 import { spawnFinale } from './finale.js';
@@ -206,10 +206,10 @@ function bossStride(wx, wz, dt){
 // which hero the boss fights right now: this one, or in co-op the nearer of the two (re-picked between attacks)
 function bossHero(b){
   if (players.length === 1) return localPlayer;
-  if (b.hero && players.includes(b.hero) && targetable(b.hero) && b.state !== 'think') return b.hero;
+  if (b.hero && players.includes(b.hero) && huntable(b.hero) && b.state !== 'think') return b.hero;
   let best = null, bd = Infinity;
   for (const p of players){
-    if (!targetable(p)) continue;
+    if (!huntable(p)) continue;   // (a co-op hero in a menu is left alone)
     const d = Math.hypot(p.pos.x - b.group.position.x, p.pos.z - b.group.position.z);
     if (d < bd){ bd = d; best = p; }
   }

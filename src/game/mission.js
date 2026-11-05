@@ -146,6 +146,14 @@ function clearMission(){
   setObjectiveHud(null);
 }
 export function endMission(){ if (M.on || M.markers.length) clearMission(); }
+// co-op HOST HANDOFF (net/foes.js takeOver): this guest now runs the mission, from the objective the old host was on
+export function takeOverMission(){
+  if (!M.on || !M.guest || !M.def) return false;
+  const id = M.def.id, i = Math.max(0, M.i), chapter = M.chapter;
+  clearMission();
+  startMission(id, i, false, { chapter, retry: true });
+  return true;
+}
 
 // who speaks a mission's lines: in the campaign, the story's voice for the chapter (Master Vael, then General Kast, in
 // the Jedi's); in the Missions list, the hero's own

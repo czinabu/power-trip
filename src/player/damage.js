@@ -36,9 +36,11 @@ import { mandoShielding } from './mando/weapons.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { refundCharge, airGuardLost, airParryOk, airDamageMul, airborneInCombat, knockOutOfAir } from './mobility.js';
 import { noteDamage, noteDefense } from '../game/readout.js';
-import { heroCanGoDown, downHero, hitDownedHero } from '../game/revive.js';
+import { heroCanGoDown, downHero, hitDownedHero, heroCanSitOut, sitOut } from '../game/revive.js';
+import { coopRun } from '../net/run.js';
 
 const MELEE_REACH_UP = 1.7;   // a melee foe can't strike you if you're perched higher than this above their feet
+const AWAY_GRACE = 800;   // ms (wall clock) after a co-op menu closes before a blow can land (the fight ran on while it was open)
 /* PERFECT DODGE — a blow that arrives in the first instant of a dash: time slows, the dash is refunded and (Jedi)
    the next cut is a riposte. Called by anything that would have hit you while the dash's i-frames were up. */
 export function perfectDodge(fromPos){
@@ -155,6 +157,9 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (G.mode !== 'play') return 'none';
   if (player.downed){ hitDownedHero(); return 'none'; }   // down: a blow drains the time left instead (game/revive.js)
   if (G.gt < (player.reviveGuardT || 0)) return 'none';   // just got up: a moment's grace
+  // co-op: the fight runs on while you're in a menu (paused, picking upgrades). Nothing lands while it's open, nor for a
+  // moment after (net/foes.js stamps awayAt); foes leave you be meanwhile (player/players.js huntable)
+  if (coopRun.live && (G.paused || G.skillSelect || performance.now() - (player.awayAt ?? -1e9) < AWAY_GRACE)) return 'none';
   if (!silent) wakeBlade();   // the blade was put out (5): a blow lights it on reflex, too late to guard this one (player/holster.js)
   if (player.dashT > 0){ if (!silent) perfectDodge(fromPos); return 'none'; }
   if (melee && opts && opts.by && opts.by.ff) dmg *= matchup(opts.by).hurt;   // the form counter: a blade whose form beats yours cuts deeper (enemies/foeform.js)
@@ -365,6 +370,8 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     }
     // DOWNED — with a squadmate standing (and a second chance left this wave), you drop instead (game/revive.js)
     if (heroCanGoDown()){ downHero(); return 'downed'; }
+    // OUT — co-op, no second chance left but a teammate still standing: out of this fight, not the run (game/revive.js)
+    if (heroCanSitOut()){ sitOut(); return 'downed'; }
     killHero();
   }
   return 'hit';

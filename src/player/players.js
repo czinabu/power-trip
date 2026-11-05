@@ -7,6 +7,7 @@
 //             here (in this same arena and fighting: something enemies can go after) }
 
 import { G, player } from '../state.js';
+import { coopRun } from '../net/run.js';
 
 const me = {
   id: 'local', local: true, name: 'YOU',
@@ -14,6 +15,7 @@ const me = {
   get vel(){ return player.vel; },
   get down(){ return !!player.downed; },
   get here(){ return true; },   // the AI always has this hero to fall back on
+  get away(){ return coopRun.live && (G.paused || G.skillSelect); },   // co-op: in a menu (paused, picking upgrades): foes leave them be
 };
 export const players = [me];
 export const localPlayer = me;
@@ -27,6 +29,8 @@ export const heroesHere = () => Math.max(1, players.filter(p => p.here).length);
 
 // heroes an enemy may pick right now: in this arena and on their feet
 export const targetable = (p) => !!p && p.here && !p.down;
+// heroes a foe (or a boss) may go after: targetable, and not in a menu in a shared fight (paused: safe, but out of the fight)
+export const huntable = (p) => targetable(p) && !p.away;
 
 /* which arena and mode this browser is in, so a partner only counts as being in the same fight when theirs matches */
 export function worldKey(){

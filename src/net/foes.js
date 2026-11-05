@@ -6,7 +6,10 @@
 
 import * as THREE from 'three';
 import { scene, camera } from '../engine/renderer.js';
-import { shared, G, enemies } from '../state.js';
+import { shared, G, enemies, player } from '../state.js';
+import { clearDowned } from '../game/revive.js';
+import { killHero } from '../player/damage.js';
+import { nameOf } from './names.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { NET } from '../data/coop.js';
 import { V3, clamp } from '../utils.js';
@@ -14,7 +17,7 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { foeType } from '../enemies/look.js';
 import { dressElite } from '../enemies/elites.js';
 import { damageEnemy } from '../enemies/damage.js';
-import { finaleLook, finaleDress, adoptFinalePuppet } from '../boss/finale.js';
+import { finaleLook, finaleDress, adoptFinalePuppet, spawnFinale } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { severLimbs, applyCuts } from '../enemies/scars.js';
 import { makeBossBar } from '../enemies/spawn.js';
@@ -27,7 +30,7 @@ import { beginWave } from '../game/readout.js';
 import { showBanner } from '../ui/banners.js';
 import { MUSIC } from '../audio/music.js';
 import { playerPos } from '../player/helpers.js';
-import { missionSnap, coopMissionSync, endMission } from '../game/mission.js';
+import { missionSnap, coopMissionSync, endMission, takeOverMission, startCoopMission } from '../game/mission.js';
 import { followChapter } from '../game/campaign.js';
 import { damageBoss, bossStagger, bossStun, makeBossPuppet, dropBossPuppet } from '../boss/boss.js';
 import { net, on, send, connected } from './session.js';
@@ -79,7 +82,7 @@ function snapshot(){
 function hostTick(){
   const running = net.role === 'host' && connected() && !!runKind() && G.mode === 'play' && !G.coopGuest;
   if (!running){
-    if (hostSent && connected()){ send({ t: 'e', run: 0 }); }
+    if (hostSent && connected()){ send({ t: 'e', run: 0, lost: G.mode === 'dead' ? 1 : 0 }); }   // (lost: the host fell with nobody left standing)
     hostSent = false;
     return;
   }
@@ -180,16 +183,53 @@ function dropPuppets(){
   byNid.clear();
 }
 
+/* HOST HANDOFF (net/session.js takeOver): the host left and this guest has the room now. The old host's foes were only
+   puppets here, so the fight it was in starts over on this browser: the same Survival or campaign wave, the boss, or the
+   mission's objective. The others rejoin the room and, back in, fight this browser's foes (the 'e' handler above). */
+export function takeOver(){
+  if (!G.coopGuest) return;
+  const boss = shared.levelPhase === 'bossfight' || !!(shared.finale && shared.finale.net);
+  G.coopGuest = false; G.coopWasGuest = false;
+  dropPuppets(); dropBossPuppet();
+  if (shared.finale && shared.finale.net) shared.finale = null;
+  if (G.mode !== 'play') return;
+  showBanner('', 'THE HOST LEFT · YOU HAVE THE ROOM NOW', 2.6);
+  if (G.mission){ if (!takeOverMission()) endMission(); return; }
+  if (G.endless){
+    if (shared.levelPhase !== 'fighting') return;
+    // the wave again: startEndlessWave counts it up and turns the arena on its first wave, so step both back
+    const n = G.endlessWave;
+    if (n > 1 && (n - 1) % 5 === 0) G.arenaRot = (G.arenaRot - 1 + ENDLESS_ARENAS.length) % ENDLESS_ARENAS.length;
+    G.endlessWave--; G.waveTotal--;
+    shared.levelPhase = 'between'; shared.phaseT = 1.5;
+    return;
+  }
+  if (boss){
+    shared.levelPhase = 'bossfight';
+    const half = shared.arenaHalfZ || 30, sh = G.storyHero || G.hero;
+    if (!shared.finale) spawnFinale(sh === 'trooper' ? 'marshal' : sh === 'mando' ? 'magistrate' : 'vexis', { x: 0, z: -half + 6 });
+  } else if (shared.levelPhase === 'fighting'){ shared.levelPhase = 'between'; shared.phaseT = 1.5; }   // the same wave again (game/flow.js startWave)
+}
+
 function endGuest(dropped){
   if (!G.coopGuest) return;
   G.coopGuest = false;   // the run carries on here by itself: this browser's own waves take over
   dropPuppets(); dropBossPuppet();
   if (G.mode === 'play'){ if (G.mission) endMission(); showBanner('', dropped ? 'CONNECTION LOST · RECONNECTING…' : 'THE HOST LEFT THE FIGHT', 2.4); }
+  // reconnecting (or the room changing hands, net/session.js): the host's foes went with the link, which isn't a wave
+  // won. Hold in a lull while the rejoin runs (it puts this browser back in the fight); only if it never does, this
+  // browser's own waves take the same wave on again
+  if (dropped && !G.mission && shared.levelPhase === 'fighting'){
+    shared.levelPhase = 'between'; shared.phaseT = 30;
+    if (G.endless){ G.endlessWave--; G.waveTotal--; if (G.endlessWave > 0 && G.endlessWave % 5 === 0) G.arenaRot = (G.arenaRot - 1 + ENDLESS_ARENAS.length) % ENDLESS_ARENAS.length; }
+  }
 }
 
 on('e', (m) => {
   if (net.role !== 'guest') return;
   if (!m.run){
+    // the host fell with nobody left standing (game/revive.js OUT): a guest lying out (or down) here falls with the run
+    if (m.lost && G.coopGuest && G.mode === 'play' && player.downed){ clearDowned(); killHero(); }
     const was = coopRun.on; coopRun.on = false;
     if (was) runChanged();
     G.coopWasGuest = false;   // the host's run is over: nothing to go back to
@@ -205,6 +245,17 @@ on('e', (m) => {
   if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && (m.k === 'e' ? G.endless : m.k === 'c' ? !G.endless && !G.mission && !G.training && !G.sandbox : false)){
     for (const e of enemies) removeEnemy(e);
     enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
+    G.coopGuest = true;
+    if (m.ph) shared.levelPhase = m.ph;   // (held in a lull while it was away, endGuest: the host's phase again)
+    showBanner('', 'BACK IN THE HOST\'S FIGHT', 2.0);
+  }
+  // ...or out of a shared mission (a dropped link ends this browser's copy of it, endGuest): the host's mission (or mission
+  // chapter) again, shown its objectives as on joining. A host handoff (takeOver above) brings everyone back in this way too
+  else if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && G.mission && !G.endless && !G.training && !G.sandbox
+    && ((m.k === 'm' && m.ms && G.missionId === m.ms.id) || (m.k === 'c' && ch >= 0 && G.chapter === ch))){
+    for (const e of enemies) removeEnemy(e);
+    enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
+    if (m.k === 'm') startCoopMission(m.ms.id); else { G.storyHero = m.sh || null; followChapter(ch, m.a2); }
     G.coopGuest = true;
     showBanner('', 'BACK IN THE HOST\'S FIGHT', 2.0);
   }
@@ -335,6 +386,9 @@ let pickSent = false, waitShown = false;
 export function updateFoes(){
   hostTick();
   coopRun.live = coopLive();
+  if (coopRun.live && (G.paused || G.skillSelect)) player.awayAt = performance.now();   // in a menu in a shared fight: safe till a moment after (player/damage.js)
+  // co-op: the screens that pop up by themselves (a learned form, a new ability's card, a found gun) wait for a lull
+  coopRun.holdPopups = coopRun.live && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!(shared.boss && !shared.boss.dead));
   if (net.role === 'guest' && connected()){   // tell the host while the upgrade screen is open (the next wave waits for it)
     const open = !!(G.coopGuest && G.skillSelect);
     if (open !== pickSent){ pickSent = open; send({ t: 'pick', o: open ? 1 : 0 }); }
@@ -346,7 +400,7 @@ export function updateFoes(){
       if (e.heldAt != null && !e.dead && performance.now() - e.heldAt > 1500){ e.state = e.state === 'lock' ? 'recover' : 'knockdown'; e.st = 0.5; e.heldAt = null; }
     }
     const waiting = coopRun.live && coopRun.guestPicking && shared.levelPhase === 'between' && !G.skillSelect;
-    if (waiting && !waitShown) showBanner('', 'WAITING FOR YOUR PARTNER\'S UPGRADES', 2.4);
+    if (waiting && !waitShown) showBanner('', picking.size === 1 ? 'WAITING FOR ' + nameOf([...picking][0]) + ' TO PICK UPGRADES' : 'WAITING FOR ' + picking.size + ' PLAYERS TO PICK UPGRADES', 2.4);
     waitShown = waiting;
   }
   if (net.role === 'guest' && connected() && hitQueue.length){
@@ -360,6 +414,8 @@ const picking = new Set();
 on('pick', (m) => { if (net.role !== 'host') return; if (m.o) picking.add(m.from); else picking.delete(m.from); coopRun.guestPicking = picking.size > 0; });
 on('closed', (slot) => { if (slot < 0) picking.clear(); else picking.delete(slot); coopRun.guestPicking = picking.size > 0; });
 
+on('open', () => { pickSent = false; });   // a (re)joined guest tells its new host again if its upgrade screen is open
+on('takeover', () => takeOver());   // the host left and this guest has the room now (net/session.js)
 on('status', (n) => {
   if (n.status === 'connected') return;
   // reconnecting: still in the host's run as far as this browser knows, so its next snapshot puts this one back in the fight

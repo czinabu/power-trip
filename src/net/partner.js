@@ -17,7 +17,7 @@ import { wornPicks } from '../data/customize.js';
 import { playerPos } from '../player/helpers.js';
 import { heroAim } from '../player/aim.js';
 import { addPlayer, removePlayer, worldKey } from '../player/players.js';
-import { addHeroReviver, addReviverSource, heroDownState, marker } from '../game/revive.js';
+import { addHeroReviver, addReviverSource, addTeamStanding, heroDownState, marker } from '../game/revive.js';
 import { showBanner } from '../ui/banners.js';
 import { makeChip, placeChip, hideChip } from '../ui/coop-marks.js';
 import { S } from '../audio/sfx.js';
@@ -39,7 +39,7 @@ function partnerOf(slot){
         want: { pos: new THREE.Vector3(), yaw: 0, ap: 0 } };
   /* this partner in the players list: `pos` is where the puppet stands on this screen, so what enemies chase is what
      you see them chase */
-  P.mate = { id: 'partner' + slot, slot, local: false, name: nameOf(slot), pos: puppet.group.position, vel: new THREE.Vector3(), down: false, here: false };
+  P.mate = { id: 'partner' + slot, slot, local: false, name: nameOf(slot), pos: puppet.group.position, vel: new THREE.Vector3(), down: false, here: false, away: false };
   addHeroReviver(() => standing(P));
   addReviverSource(() => standing(P) ? { kind: 'partner', pos: puppet.group.position, hitAt: null } : null);
   partners.set(slot, P);
@@ -82,6 +82,7 @@ function nameTag(P){
 // a standing partner can get you up when you go down, and earns you a second chance each wave (game/revive.js)
 const standing = (P) => P.mate.here && !P.mate.down;
 const anyStanding = () => { for (const P of partners.values()) if (standing(P)) return true; return false; };
+addTeamStanding(() => G.mode === 'play' && anyStanding());   // a fallen hero stays OUT, not finished, while a teammate is up (game/revive.js)
 let reviveWave = -1;
 function coopRevives(){
   const up = anyStanding();
@@ -107,6 +108,7 @@ on('s', (m) => {
   want.ap = +m.ap || 0;
   mate.vel.set(m.vx || 0, 0, m.vz || 0);
   mate.down = !!m.down;
+  mate.away = !!m.pz;
   P.dn = m.dn || null;   // down and waiting to be got up: [progress %, seconds left, someone is at it]
   P.playing = !!m.play; P.world = m.w || '';
   if (m.pose) pushPose(track, puppet, m.pose, performance.now());
@@ -132,10 +134,11 @@ export function updateCoop(dt){
       const m = { t: 's', x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), yaw: +player.group.rotation.y.toFixed(3),
         vx: +(player.moveVel.x + player.vel.x).toFixed(2), vz: +(player.moveVel.z + player.vel.z).toFixed(2),
         hero: G.hero, play: G.mode === 'play', down: !!player.downed || G.mode === 'dead', w: worldKey(),
+        pz: G.paused || G.skillSelect ? 1 : 0,   // in a menu: foes leave them be (player/players.js huntable), and their tag says so
         ap: +heroAim().dir.y.toFixed(3),   // the aim's pitch (sine, + up): where their powers point up or down (player/aim.js)
         pose: player.rig ? readPose(player) : null, fx: fxOut() };
       const dn = heroDownState();   // down: how far along getting this hero up is, and how long they have (game/revive.js)
-      if (dn) m.dn = [Math.round(dn.prog * 100), +dn.left.toFixed(1), dn.by ? 1 : 0];
+      if (dn) m.dn = [Math.round(dn.prog * 100), dn.out ? -1 : +dn.left.toFixed(1), dn.by ? 1 : 0];   // (-1: OUT, no clock)
       if (sent++ % NET.picksEvery === 0){ m.picks = wornPicks(loadPicks()); m.name = savedName(); }   // (the picks as worn: the partner builds them as they come)
       return m;
     });
@@ -182,7 +185,7 @@ function stepPartner(P, dt){
   // the name tag follows the head on screen
   const t = nameTag(P);
   if (P.chip && P.chip.style.display !== 'none'){ t.style.display = 'none'; return; }   // down: the chip says it instead
-  t.textContent = mate.down ? label(P) + ' IS OUT' : label(P);
+  t.textContent = mate.down ? label(P) + ' IS OUT' : mate.away ? label(P) + ' · PAUSED' : label(P);
   const v = new THREE.Vector3(g.position.x, g.position.y + 2.6, g.position.z).project(camera);
   if (v.z > 1){ t.style.display = 'none'; return; }
   t.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px';
@@ -214,15 +217,16 @@ function downMarks(P, show){
   if (!P.chip) P.chip = makeChip('down');
   const pp = playerPos(), d = Math.hypot(g.position.x - pp.x, g.position.z - pp.z);
   _head.set(g.position.x, g.position.y + 2.2, g.position.z);
-  placeChip(P.chip, _head, by ? label(P) + ' · GETTING UP ' + prog + '%' : label(P) + ' DOWN · ' + left.toFixed(0) + 'S', d);
-  P.chip.classList.toggle('urgent', !by && left < 5);
+  const out = !(left >= 0);   // OUT (game/revive.js): no clock, they rise once the fight is over
+  placeChip(P.chip, _head, by ? label(P) + ' · GETTING UP ' + prog + '%' : out ? label(P) + ' IS OUT · GET THEM UP' : label(P) + ' DOWN · ' + left.toFixed(0) + 'S', d);
+  P.chip.classList.toggle('urgent', !by && !out && left < 5);
 }
 const _head = new THREE.Vector3();
 
 // for the co-op smoke test: is a partner on screen, posed from the network, and something enemies can go after?
 const first = () => partners.values().next().value;
 export const partnerShown = () => [...partners.values()].some(P => P.puppet.group.visible);
-const infoOf = (P) => ({ slot: P.slot, shown: P.puppet.group.visible, here: P.mate.here, posed: !!P.track.to, hero: P.hero, down: P.mate.down,
+const infoOf = (P) => ({ slot: P.slot, shown: P.puppet.group.visible, here: P.mate.here, posed: !!P.track.to, hero: P.hero, down: P.mate.down, away: P.mate.away,
   dn: P.dn, ring: !!(P.ring && P.ring.visible), chip: !!(P.chip && P.chip.style.display !== 'none'),
   armR: P.puppet.rig ? P.puppet.rig.armR.sh.quaternion.toArray().map(n => +n.toFixed(3)) : null,
   hunters: enemies.filter(e => !e.dead && e.hero === P.mate).length,

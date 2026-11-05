@@ -26,6 +26,7 @@
     "smoke:twists": "node tools/smoke/twists.mjs",
     "perf": "node tools/smoke/perf.mjs",
     "smoke:coop-four": "node tools/smoke/coop-four.mjs",
+    "smoke:coop-three": "node tools/smoke/coop-three.mjs",
     "perf:hitch": "node tools/smoke/hitch.mjs",
     "shots:maps": "node tools/shots/maps.mjs"
   },

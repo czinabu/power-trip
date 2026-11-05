@@ -5,6 +5,7 @@
 // way those do, and closes on CONTINUE, Enter or Space.
 
 import { G, shared, isGunner } from '../state.js';
+import { coopRun } from '../net/run.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
@@ -26,7 +27,7 @@ export function queueAbilityCards(list){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickAbilityCards(){
-  if (!pending.length || abilityCardUp() || G.mode !== 'play' || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || abilityCardUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   open(pending.shift());
 }
 // a new run, a load or the main menu: forget anything still waiting

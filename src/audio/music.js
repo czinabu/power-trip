@@ -28,6 +28,13 @@ import { AE } from './engine.js';
 
    Story missions steer the score with a CUE per objective (MUSIC.setCue, called by game/mission.js): see CUES.
    One-shot STINGS mark a boss rising, a wave starting, an area or objective cleared, an unlock, victory and death.
+
+   THE EPIC LAYER rides on top of any boss fight (a final boss, the Herald, the Magistrate, a Warbringer; every mode,
+   both sides of co-op): a low men's choir holding the root, a chanting choir and a taiko ensemble driving the bar,
+   trombones swelling into each new phrase, and from phase II a full choir over the strings (from phase III sopranos
+   doubling the melody too). It grows with the boss's phase and SWELLS at the big moments: MUSIC.bossBeat (driven to a
+   knee: the fight drops out under a rising choir), MUSIC.bossPhase (he rises: a tutti hit on a fresh downbeat) and
+   MUSIC.bossFinish (the fall: the score stops dead under a held major chord, the choir ringing out).
    Tuned to sit UNDER the SFX; the whole score rides the MUSIC volume slider and toggles with M (persisted). */
 
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
@@ -268,12 +275,15 @@ export const MUSIC = (function(){
     osc('sawtooth', f, t, dur, -6).connect(F); osc('sawtooth', f, t, dur, 6).connect(F);
     F.connect(g); out(g, low ? 0.2 : 0.35, t + Math.max(0.12, dur));
   }
-  // a choir: saws with vibrato, mixed, through three "ah" formants
-  function choir(t, f, dur, gain){
-    const g = AC().createGain(), mix = AC().createGain(); hold(g, t, gain * 1.7, Math.min(0.6, dur * 0.35), dur, 0.6);
-    const vg = vibrato(t, dur, 14, 0);
-    for (const det of [-9, 0, 9]){ const o = osc('sawtooth', f, t, dur, det); vg.connect(o.detune); o.connect(mix); }
-    for (const [ff, q, k] of [[730, 6, 1], [1090, 7, 0.55], [2440, 8, 0.2]]){
+  // a choir: saws with vibrato, mixed, through three vowel formants ("ah" unless told otherwise). atk: the swell's
+  // length (a long one is a crescendo); lite: two voices and no vibrato, for the short chanted syllables
+  const VOWEL = { ah: [[730, 6, 1], [1090, 7, 0.55], [2440, 8, 0.2]], oh: [[500, 6, 1], [820, 7, 0.5], [2400, 8, 0.12]],
+                  oo: [[320, 6, 1], [800, 7, 0.3], [2250, 8, 0.08]], eh: [[560, 6, 1], [1700, 7, 0.45], [2500, 8, 0.18]] };
+  function choir(t, f, dur, gain, vowel, atk, lite){
+    const g = AC().createGain(), mix = AC().createGain(); hold(g, t, gain * 1.7, atk || Math.min(0.6, dur * 0.35), dur, lite ? Math.min(0.15, dur * 0.4) : 0.6);
+    const vg = lite ? null : vibrato(t, dur, 14, 0);
+    for (const det of lite ? [-7, 7] : [-9, 0, 9]){ const o = osc('sawtooth', f, t, dur, det); if (vg) vg.connect(o.detune); o.connect(mix); }
+    for (const [ff, q, k] of VOWEL[vowel || 'ah']){
       const B = AC().createBiquadFilter(); B.type = 'bandpass'; B.frequency.value = ff; B.Q.value = q;
       const kg = AC().createGain(); kg.gain.value = k; mix.connect(B); B.connect(kg); kg.connect(g); }
     out(g, 0.6, t + dur);
@@ -309,6 +319,15 @@ export const MUSIC = (function(){
     osc('sawtooth', f, t, dur, -6).connect(F); osc('sawtooth', f, t, dur, 6).connect(F); osc('square', f / 2, t, dur).connect(F);
     F.connect(pre); pre.connect(w); w.connect(g); out(g, 0.35, t + dur);
   }
+  // trombones swelling from nothing into the next downbeat: the filter and the level climb together, then cut off
+  function brassSwell(t, f, dur, gain){
+    const F = lp(200, 1.2), pre = AC().createGain(), w = AC().createWaveShaper(), g = AC().createGain();
+    pre.gain.value = 0.4; w.curve = GRIT;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur * 0.96); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    F.frequency.setValueAtTime(200, t); F.frequency.exponentialRampToValueAtTime(2400, t + dur);
+    osc('sawtooth', f, t, dur, -7).connect(F); osc('sawtooth', f, t, dur, 7).connect(F); osc('square', f / 2, t, dur).connect(F);
+    F.connect(pre); pre.connect(w); w.connect(g); out(g, 0.4, t + dur);
+  }
   function bassNote(t, f, dur, gain, grit){
     const F = lp(260 + intensity * 600, 3), g = AC().createGain(); env(g, t, gain, 0.005, dur);
     osc('sawtooth', f, t, dur).connect(F); osc('sine', f, t, dur).connect(g);
@@ -338,6 +357,8 @@ export const MUSIC = (function(){
     g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.2));
     o.connect(g); out(g, 0, t + (dur || 0.2)); o.start(t); o.stop(t + (dur || 0.2) + 0.02); }
   function taiko(t, amp){ kick(t, amp, 110, 48, 0.45); noiseHit(t, amp * 0.35, 'lowpass', 420, 0, 0.22); }
+  // the war drum: one enormous low hit, felt more than heard
+  function boom(t, amp){ kick(t, amp, 74, 30, 1.1); noiseHit(t, amp * 0.3, 'lowpass', 260, 0, 0.35); }
   function frame(t, amp){ kick(t, amp * 0.6, 200, 95, 0.16); noiseHit(t, amp * 0.25, 'bandpass', 900, 1.2, 0.08); }
   // a tuned timpani: the pitch settles onto the note, an inharmonic overtone on top, a felt-mallet thud
   function timpani(t, f, amp){
@@ -412,6 +433,65 @@ export const MUSIC = (function(){
       if (inBar % (drive.focus ? 2 : 4) === 0) pluck(t, nf(P.chord[2] + 24), sd, inBar % 4 === 0 ? 0.028 : 0.016);
       if (I > 0.5 && inBar % 4 === 2) spic(t, low, sd, 0.02, true);
     }
+  }
+
+  /* ---------- the epic layer (boss fights) ----------
+     EP.lv eases toward the boss's tier (TIER, by phase; a Warbringer fights at phase I) plus EP.surge, which a phase
+     turn or a fall kicks to 1 and which dies away over a couple of bars. Each part comes in at its own level. */
+  const TIER = [0, 0.5, 0.75, 1];
+  const EP = { lv: 0, surge: 0, phase: 0, who: null, warb: null, done: null };
+  // the chant: a choir stamping out the bar in syllables (accented steps get the root and fifth, the rest the root),
+  // and the taiko ensemble under it. Original rhythms, one per four-bar phrase position
+  const CHANT = [ [[0, 'ah', 1], [3, 'oh', 0], [6, 'ah', 1], [8, 'eh', 0], [10, 'oh', 0], [12, 'ah', 1]],
+                  [[0, 'oh', 1], [2, 'oh', 0], [4, 'ah', 1], [8, 'oh', 1], [11, 'eh', 0], [14, 'ah', 0]] ];
+  const TAIKO = [0, 3, 6, 8, 11, 14], TAIKO_SOFT = [2, 7, 10, 13, 15];
+  function epicStep(t, P, bar, inBar, ls, sd, M){
+    const E = Math.min(1, EP.lv), I = intensity;
+    if (E < 0.05 || I < 0.45) return;
+    const root = P.chord[0];
+    if (inBar === 0){
+      const bd = barDur() * 1.04;
+      // the low men's choir: the bar's root and its fifth, an octave and a half under the strings, on "oh"
+      soon(() => { choir(t, nf(P.bass + 12), bd, 0.01 + E * 0.012, 'oh'); choir(t, nf(P.bass + 19), bd, 0.007 + E * 0.009, 'oh'); });
+      // phase II on: the full choir on the chord, an octave up, "ah" (it builds over the bar)
+      if (EP.phase >= 2) for (const c of P.chord) soon(() => choir(t, nf(c + 12), bd, 0.006 + E * 0.008, 'ah', bd * 0.5));
+      if (bar === 0 || bar === 2) boom(t, 0.25 + E * 0.25);
+    }
+    // the chant, the taiko ensemble under it (from phase II the soft strokes between)
+    if (E > 0.45){
+      for (const [s, v, acc] of CHANT[bar & 1]){ if (s !== inBar) continue;
+        soon(() => { choir(t, nf(root), sd * (acc ? 1.8 : 1.3), (acc ? 0.014 : 0.009) + E * 0.006, v, 0.02, true);
+                     if (acc) choir(t, nf(root + 7), sd * 1.8, 0.009 + E * 0.005, v, 0.02, true); }); }
+      if (TAIKO.includes(inBar)) taiko(t, (inBar === 0 || inBar === 8 ? 0.3 : 0.18) + E * 0.16);
+      else if (EP.phase >= 2 && TAIKO_SOFT.includes(inBar)) taiko(t, 0.08 + E * 0.05);
+    }
+    // the last bar of each phrase: the trombones swell into the downbeat, a cymbal swell with them
+    if (bar === 3 && inBar === 8 && E > 0.55){ const d = sd * 8;
+      soon(() => { brassSwell(t, nf(M.prog[0].bass + 12), d, 0.026 + E * 0.016); brassSwell(t, nf(M.prog[0].bass + 19), d, 0.016 + E * 0.012); });
+      swell(t, 0.04 + E * 0.03, d); }
+  }
+  // a tutti hit on a downbeat: the whole orchestra and choir at once (a phase turning; `minor` for the villain)
+  function tutti(t, k, minor){
+    boom(t, 0.5 * k); taiko(t, 0.5 * k); crash(t, 0.14 * k); timpani(t, nf(12), 0.4 * k);
+    for (const c of [0, 7, 12]) lowBrass(t, nf(c + 12), 1.8, 0.04 * k);
+    for (const c of minor ? [12, 15, 19, 24] : [12, 16, 19, 24]) soon(() => choir(t, nf(c + 12), 2.6, 0.02 * k, 'ah', 0.06));
+    voice(t, nf(-12), 2.2, { type: 'sine', gain: 0.12 * k, attack: 0.02, filter: 300 });
+  }
+  // the phase the boss up now is in (a final boss's own count, the Herald's; a co-op guest's puppet: the phase it was
+  // adopted in, and from then on the host's word, MUSIC.bossPhase from boss/finale.js finaleNet)
+  const phaseOf = (b) => b.fin ? b.fin.phase : b.finPhase || (b.warbringer ? 1 : b.phase || 1);
+  // once a frame (updateState): a new boss, his phase turning, his fall (any boss, either side of co-op)
+  function watchBoss(){
+    const b = bossUp() || (shared.boss && shared.boss.state === 'dying' ? shared.boss : null);
+    let warb = null; if (!b) for (const e of enemies){ if (e.warbringer && !e.dead && !e.converted){ warb = e; break; } }
+    const who = b || warb;
+    if (who && who !== EP.who){ EP.who = who; EP.phase = phaseOf(who); EP.done = null; }
+    if (EP.who && EP.done !== EP.who){
+      const w = EP.who, fell = w.state === 'dying' || (w.warbringer && w.dead && !w.converted);
+      if (fell) M.bossFinish(w.warbringer ? 0.75 : 1);
+      else if (w === who && phaseOf(w) > EP.phase) M.bossPhase(phaseOf(w));
+    }
+    if (!who) EP.who = null;   // fallen, or gone without a fall (a reset, a dropped boss)
   }
 
   /* ---------- the sequencer ---------- */
@@ -489,9 +569,12 @@ export const MUSIC = (function(){
       if (inBar === 0 || inBar === 8){ horn(t, nf(P.chord[0]), sd * 3, 0.026, 1.5); horn(t, nf(P.chord[0] + 1), sd * 3, 0.02, 1.5); }
       spic(t, nf(P.chord[2] + 12), sd * 0.9, 0.006 + I * 0.01);
     }
+    // the epic layer over a boss fight (not under a cutscene, the lament or the victory statement)
+    if (state === 'boss' && !film) epicStep(t, P, bar, inBar, ls, sd, M);
     // melody: soft in the lull, horns as the fight builds, trumpets over horns at its peak (the hero's theme sooner)
     for (const L of M.lead){ if (ls !== L[0]) continue;
       const f = nf(L[1]), d = sd * L[2];
+      if (state === 'boss' && !film && EP.phase >= 3 && I > 0.55) soon(() => choir(t, f, d * 0.95, 0.01 + EP.lv * 0.005, 'ah', 0.05));   // phase III: sopranos on the tune
       if (I < 0.32) INSTR[M.calm || pal.calm](t, f, d, 0.05);
       else if (V && I > 0.55) BIG[V.big](t, f, d);
       else if (I > 0.82 || (heroic && I > 0.5)){ horn(t, f / 2, d * 0.94, 0.03); trumpet(t, f, d * 0.88, 0.02); }
@@ -508,10 +591,13 @@ export const MUSIC = (function(){
       nextTime += stepDur(); step++;
       intensity += (target - intensity) * 0.03;   // smooth swell between states
       dangerLv += ((liveCue() && drive.danger ? 1 : 0) - dangerLv) * 0.1;
+      EP.surge *= 0.975;   // a swell dies away over a couple of bars
+      const et = state === 'boss' && !film ? Math.min(1, TIER[Math.min(3, EP.phase || 1)] + EP.surge * 0.35) : 0;
+      EP.lv += (et - EP.lv) * (et > EP.lv ? 0.06 : 0.02);
     }
   }
 
-  return {
+  const M = {
     init(){ if (started || !AC() || !AE.ready) return;
       bus = AC().createGain(); bus.gain.value = 0.0001;
       comp = AC().createDynamicsCompressor(); comp.threshold.value = -15; comp.ratio.value = 4;
@@ -620,7 +706,7 @@ export const MUSIC = (function(){
       strings(t + 0.6, nf(13), 2.0, 0.05, 1000);
       choir(t, nf(24), 2.6, 0.03); timpani(t, nf(12), 0.25); },
 
-    debug(){ return { state, target, intensity: +intensity.toFixed(3), palette: palName, section, cue: cueName, villain, film: film && { ...film }, dip, resting: !!restUntil, drive: { ...drive },
+    debug(){ return { state, target, epic: { lv: +EP.lv.toFixed(2), phase: EP.phase, surge: +EP.surge.toFixed(2) }, intensity: +intensity.toFixed(3), palette: palName, section, cue: cueName, villain, film: film && { ...film }, dip, resting: !!restUntil, drive: { ...drive },
       danger: +dangerLv.toFixed(2), bpm: Math.round(pal.bpm * bpmMul), hero: heroKey, started, enabled, step,
       ctxState: AC() ? AC().state : 'none', ctxTime: AC() ? +AC().currentTime.toFixed(2) : 0 }; },
     updateState(){ if (!started) return;
@@ -640,6 +726,39 @@ export const MUSIC = (function(){
         if (C.ceil) t = Math.min(t, C.ceil);
       }
       target = Math.min(1, t);
+      watchBoss();
     },
+
+    /* ---------- the epic layer's swells (see the top) ----------
+       bossBeat(dur): the boss is driven to a knee for `dur` seconds: the fight's loop stops, a choir and the brass climb
+       under a riser and a timpani roll into his rise. bossPhase(p): he rises in phase p (or the Herald turns): a tutti
+       hit lands a fresh downbeat and the layer surges. bossFinish(k): he falls: the score stops under a held major
+       chord, the choir and the brass ringing out (k scales it; a Warbringer's is smaller). */
+    bossBeat(dur){ if (!this.ok()) return; const t = AC().currentTime; dur = Math.max(1, dur || 1.8);
+      restUntil = t + dur + 0.8; EP.surge = Math.max(EP.surge, 0.5);
+      for (const c of [12, 19, 24]) soon(() => choir(t, nf(c), dur + 0.15, 0.02, 'oo', dur * 0.9));
+      choir(t, nf(25), dur + 0.15, 0.008, 'oo', dur);   // a semitone rubbing on the top: the dread of it
+      brassSwell(t, nf(12), dur, 0.032); brassSwell(t, nf(19), dur, 0.022);
+      riser(t, dur, 0.05); swell(t, 0.06, dur); timpRoll(t + dur * 0.35, nf(12), dur * 0.65, 0.12);
+      voice(t, nf(-12), dur + 0.3, { type: 'sine', gain: 0.08, attack: dur * 0.6, filter: 260 }); },
+    bossPhase(p){ if (p && p <= EP.phase) return; if (p) EP.phase = p;
+      EP.surge = 1;
+      if (!this.ok()) return;
+      // land it on a fresh downbeat: the phrase starts again from the top under the hit
+      restUntil = 0; step = Math.ceil(step / 16) * 16;
+      if (nextTime < AC().currentTime + 0.02) nextTime = AC().currentTime + 0.02;
+      intensity = Math.max(intensity, 0.9); entered = true;
+      tutti(nextTime, p >= 3 ? 1.15 : 1, true);
+      if (p >= 3) for (const c of [31, 36]) choir(nextTime, nf(c), 2.6, 0.012, 'ah', 0.06); },
+    bossFinish(k){ const w = EP.who; EP.done = w; EP.surge = 0;
+      if (!this.ok()) return; k = k || 1; const t = AC().currentTime + 0.03;
+      if (!REST[state]) restUntil = t + 2.6 * k + 0.6;   // the loop stops under the chord (a victory's own rest takes over)
+      boom(t, 0.6 * k); taiko(t, 0.55 * k); crash(t, 0.16 * k); timpRoll(t, nf(12), 0.5, 0.14 * k); timpani(t + 0.5, nf(12), 0.45 * k);
+      for (const c of [0, 7, 12]) lowBrass(t, nf(c + 12), 2.4 * k, 0.04 * k);
+      for (const c of [12, 16, 19, 24, 28]) soon(() => choir(t, nf(c + 12), 3.6 * k, 0.018 * k, 'ah', 0.08));
+      for (const c of [12, 19]) strings(t + 0.5, nf(c + 12), 3.4 * k, 0.05 * k, 2600);
+      trumpet(t + 0.5, nf(36), 2.2 * k, 0.022 * k); horn(t + 0.5, nf(24), 2.4 * k, 0.03 * k);
+      voice(t, nf(0), 3 * k, { type: 'sine', gain: 0.12 * k, attack: 0.03, filter: 320 }); },
   };
+  return M;
 })();

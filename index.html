@@ -454,74 +454,74 @@
 </div>
 <div id="sandbox">
   <div class="sb-panel">
-    <div class="howto-head"><div class="howto-title">SANDBOX</div><div class="rm-sub">Call in foes, pick your powers · <kbd>B</kbd> to close</div><div class="howto-x" id="sbclose">✕</div></div>
+    <div class="howto-head"><div class="howto-title">SANDBOX</div><div class="rm-sub">Call in foes, pick your powers · <kbd class="kbonly">Q</kbd><kbd class="kbonly">E</kbd><kbd class="pg padonly" data-b="LB"></kbd><kbd class="pg padonly" data-b="RB"></kbd> jump · <kbd class="kbonly">B</kbd><kbd class="pg padonly" data-b="B"></kbd> to close</div>
+      <div class="btn sb-bsimbtn" id="sbbsim" title="Place foes and squadmates, then fight it out; save and load setups">BATTLE SIMULATOR</div><div class="howto-x" id="sbclose">✕</div></div>
     <div class="sb-story" id="sbstory"></div>
-    <!-- four tabs (ui/sandbox-ui.js): Q / E or LB / RB step through them -->
-    <div class="sb-tabs" id="sbtabs">
-      <span class="sb-tabkey"><kbd class="kbonly">Q</kbd><kbd class="pg padonly" data-b="LB"></kbd></span>
-      <div class="sb-tab" data-sbtab="arena">ARENA<span class="sb-tabx">&amp; BATTLES</span></div>
-      <div class="sb-tab" data-sbtab="foes">FOES</div>
-      <div class="sb-tab" data-sbtab="you">YOU<span class="sb-tabx" id="sbtabyou">· FORMS &amp; POWERS</span></div>
-      <div class="sb-tab" data-sbtab="squad">SQUAD<span class="sb-tabx">&amp; READOUT</span></div>
-      <span class="sb-tabkey"><kbd class="kbonly">E</kbd><kbd class="pg padonly" data-b="RB"></kbd></span>
+    <!-- one page (ui/sandbox-ui.js): FOES on the left, YOU on the right, the floor along the bottom. Q / E or LB / RB jump between the sections -->
+    <div class="sb-body" id="sbbody">
+      <div class="sb-col" data-sbcol="foes">
+        <div class="sb-colhd">FOES</div>
+        <section class="sb-sec" data-sbsec="foes">
+          <div class="sec-label">CALL IN FOES <span class="sb-hint">Click a foe to bring it in</span></div>
+          <div class="sb-row">
+            <div class="sb-seg" id="sbcount"></div>
+            <div class="setpill sb-tog" id="sbelite" title="Every foe comes with an elite trait">ELITE<span class="setval">OFF</span></div>
+            <div class="setpill sb-tog" id="sbdummy" title="Foes stand still and take it">DUMMIES<span class="setval">OFF</span></div>
+            <div class="setpill sb-tog" id="sbbreak" title="Any cut that reaches a blade foe breaks its guard at once, so you can try every form's finisher">BREAK GUARDS<span class="setval">OFF</span></div>
+          </div>
+          <div class="sb-grid foes" id="sbfoes"></div>
+          <div class="sb-row"><div class="btn" id="sbclear">CLEAR THE FLOOR</div></div>
+        </section>
+        <section class="sb-sec" data-sbsec="duel">
+          <div class="sec-label">DUELLISTS <span class="sb-hint">The form and rank saber and staff foes fight with</span></div>
+          <div class="sb-pick"><span class="sb-pl">FORM</span><div class="sb-seg wide" id="sbfform"></div></div>
+          <div class="sb-pick"><span class="sb-pl">RANK</span><div class="sb-seg wide" id="sbfrank"></div></div>
+        </section>
+      </div>
+      <div class="sb-col" data-sbcol="you">
+        <div class="sb-colhd">YOU<span class="sb-colx" id="sbyouhd">· FORMS &amp; POWERS</span></div>
+        <section class="sb-sec" data-sbsec="forms" id="sbformssec">
+          <div class="sec-label" id="sbformslbl">FORMS <span class="sb-hint">Click a slot to change it · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> in the fight</span></div>
+          <div class="sb-grid kit three" id="sbforms"></div>
+        </section>
+        <section class="sb-sec" data-sbsec="force" id="sbforce">
+          <div class="sec-label">THE FORCE <span class="sb-hint">How hard your powers hit, how practised each form is</span></div>
+          <div class="sb-pick"><span class="sb-pl">LEVEL</span><div class="sb-seg wide" id="sbflv"></div></div>
+          <div class="sb-pick"><span class="sb-pl">MASTERY</span><div class="sb-seg wide" id="sbfmr"></div></div>
+        </section>
+        <section class="sb-sec" data-sbsec="kit">
+          <div class="sec-label" id="sbkitlbl">POWERS <span class="sb-hint">Powers on the same key are a pair: one at a time</span></div>
+          <div class="sb-grid kit" id="sbkit"></div>
+          <div class="sb-row">
+            <div class="btn" id="sball">ALL</div>
+            <div class="btn" id="sbnone">STARTING KIT ONLY</div>
+            <div class="btn sb-push" id="sbheal">RESTORE ME</div>
+            <div class="setpill sb-tog" id="sbgod" title="Take the hits but never fall">GOD MODE<span class="setval">OFF</span></div>
+          </div>
+        </section>
+      </div>
     </div>
-    <div class="sb-body">
-      <section class="sb-page" data-sbpage="arena">
-        <div class="sec-label">ARENA <span class="sb-hint">The battle maps are big open fields</span></div>
-        <div class="sb-seg wide" id="sbmap"></div>
-        <div class="sec-label">BATTLE SIMULATOR <span class="sb-hint">Place foes and squadmates, then fight it out</span></div>
+    <!-- the floor: the arena, the squad and the readout, always in view -->
+    <div class="sb-strip" data-sbsec="floor">
+      <div class="sb-grp"><span class="sb-gl">ARENA</span><div class="sb-seg" id="sbmap"></div></div>
+      <div class="sb-grp" title="Up to 4 fight beside you · H: hold there / on me"><span class="sb-gl">SQUAD</span>
+        <div class="btn" id="sbsquadadd">CALL IN</div><div class="btn" id="sbsquaddrop">SEND BACK</div><span class="sb-count" id="sbsquadn"></span></div>
+      <div class="sb-grp" title="Damage by foe, low stamina time, parries and blocks"><span class="sb-gl">READOUT</span>
+        <div class="setpill sb-tog" id="sbreadout" title="Show the live readout on screen">SHOW<span class="setval">ON</span></div><div class="btn" id="sbroreset">RESET</div></div>
+      <div class="btn primary sb-done" id="sbdone">BACK TO THE FLOOR</div>
+    </div>
+    <!-- the battle simulator: set up, replay, and the saved setups, over the panel -->
+    <div class="sb-bsim" id="sbbsimpop">
+      <div class="sb-bsimbox">
+        <div class="howto-head"><div class="howto-title sm">BATTLE SIMULATOR</div><div class="rm-sub">Place foes and squadmates, then fight it out</div><div class="howto-x" id="sbbsimx">✕</div></div>
         <div class="sb-row">
           <div class="btn" id="sbbattle">SET UP A BATTLE</div>
           <div class="btn" id="sbreplay">REPLAY THE BATTLE</div>
         </div>
+        <div class="sec-label">SAVED SETUPS</div>
         <div class="sb-saves" id="sbsaves"></div>
-      </section>
-      <section class="sb-page" data-sbpage="foes">
-        <div class="sec-label">CALL IN FOES <span class="sb-hint">Click a foe to bring it in</span></div>
-        <div class="sb-row">
-          <div class="sb-seg" id="sbcount"></div>
-          <div class="setpill sb-tog" id="sbelite" title="Every foe comes with an elite trait">ELITE<span class="setval">OFF</span></div>
-          <div class="setpill sb-tog" id="sbdummy" title="Foes stand still and take it">DUMMIES<span class="setval">OFF</span></div>
-          <div class="setpill sb-tog" id="sbbreak" title="Any cut that reaches a blade foe breaks its guard at once, so you can try every form's finisher">BREAK GUARDS<span class="setval">OFF</span></div>
-          <div class="btn sb-push" id="sbclear">CLEAR THE FLOOR</div>
-        </div>
-        <div class="sb-grid foes" id="sbfoes"></div>
-        <div class="sec-label">DUELLISTS <span class="sb-hint">The form and rank saber and staff foes fight with</span></div>
-        <div class="sb-pick"><span class="sb-pl">FORM</span><div class="sb-seg wide" id="sbfform"></div></div>
-        <div class="sb-pick"><span class="sb-pl">RANK</span><div class="sb-seg wide" id="sbfrank"></div></div>
-      </section>
-      <section class="sb-page" data-sbpage="you">
-        <div class="sec-label" id="sbformslbl">FORMS <span class="sb-hint">Click a slot to change its form · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> in the fight</span></div>
-        <div class="sb-grid kit three" id="sbforms"></div>
-        <div id="sbforce">
-          <div class="sec-label">THE FORCE <span class="sb-hint">How strongly your powers hit, and how practised each form is</span></div>
-          <div class="sb-pick"><span class="sb-pl">FORCE LEVEL</span><div class="sb-seg wide" id="sbflv"></div></div>
-          <div class="sb-pick"><span class="sb-pl">FORM MASTERY</span><div class="sb-seg wide" id="sbfmr"></div></div>
-        </div>
-        <div class="sec-label" id="sbkitlbl">POWERS <span class="sb-hint">Powers on the same key are a pair: one at a time</span></div>
-        <div class="sb-grid kit" id="sbkit"></div>
-        <div class="sb-row">
-          <div class="btn" id="sball">ALL</div>
-          <div class="btn" id="sbnone">STARTING KIT ONLY</div>
-          <div class="btn sb-push" id="sbheal">RESTORE ME</div>
-          <div class="setpill sb-tog" id="sbgod" title="Take the hits but never fall">GOD MODE<span class="setval">OFF</span></div>
-        </div>
-      </section>
-      <section class="sb-page" data-sbpage="squad">
-        <div class="sec-label">SQUAD <span class="sb-hint">Up to 4 fight beside you · <kbd>H</kbd> hold there / on me</span></div>
-        <div class="sb-row">
-          <div class="btn" id="sbsquadadd">CALL IN A SQUADMATE</div>
-          <div class="btn" id="sbsquaddrop">SEND ONE BACK</div>
-          <span class="sb-count" id="sbsquadn"></span>
-        </div>
-        <div class="sec-label">COMBAT READOUT <span class="sb-hint">Damage by foe, low stamina time, parries and blocks</span></div>
-        <div class="sb-row">
-          <div class="setpill sb-tog" id="sbreadout" title="Show the live readout on screen">READOUT<span class="setval">ON</span></div>
-          <div class="btn" id="sbroreset">RESET NUMBERS</div>
-        </div>
-      </section>
+      </div>
     </div>
-    <div class="sb-foot"><div class="btn primary" id="sbdone">BACK TO THE FLOOR</div></div>
   </div>
 </div>
 <div id="bsplan">   <!-- the sandbox's battle setup: an overhead view to place the battle in (ui/battlesim-ui.js) -->

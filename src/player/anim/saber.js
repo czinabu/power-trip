@@ -199,6 +199,7 @@ export function guardPose(dt, R, held, grip, form, blocking, sway, over = null, 
   saberPose.sink += ((g.sink || 0) - saberPose.sink) * Math.min(1, dt * 8 * rate);
   saberPose.twist += ((g.twist || 0) - saberPose.twist) * Math.min(1, dt * 9 * rate);
   saberPose.lean += ((g.lean || 0) - saberPose.lean) * Math.min(1, dt * 10 * rate);
+  if (SPLIT.t > 0 && !blocking) splitPose(dt, held);   // the staff pulled apart into two sabers, or the two locked into one
   return { torso: g.torso || 0 };
 }
 
@@ -211,6 +212,26 @@ let switchT = 0, wheelA = 0;
 // a form with a second block (block2, Makashi) alternates between the two each time the guard goes up
 let blockAlt = true, wasBlocking = false;
 export function startSwitch(){ switchT = SWITCH_TIME; }
+/* THE SPLIT AND THE JOIN (the saber staff and Jar'Kai, Maul's and Ventress's way): switching between them, the hilt is
+   brought level across the chest in both hands and pulled apart into two sabers, or the two are swung together and
+   locked end to end into the staff (player/jedi/stance.js swaps the weapon on the beat). Chest space: x out to the right. */
+export const SPLIT = { t: 0, dur: 0, mode: null };
+const SPLIT_POSE = {
+  together: { hand: [0.07, 0.02, 0.4], blade: [1, 0.04, 0.05], off: [-0.07, 0.02, 0.4], offBlade: [-1, 0.04, 0.05] },
+  apart:    { hand: [0.46, 0.12, 0.3], blade: [0.55, 0.75, 0.2], off: [-0.46, 0.12, 0.3], offBlade: [-0.55, 0.75, 0.2] },
+};
+export function startSplit(mode, dur){ SPLIT.t = SPLIT.dur = dur; SPLIT.mode = mode; }
+export const splitBeat = (mode) => mode === 'join' ? 0.5 : 0.42;   // the share of the move where the hilt parts (or locks)
+function splitPose(dt, held){
+  SPLIT.t = Math.max(0, SPLIT.t - dt);
+  const p = 1 - SPLIT.t / SPLIT.dur, b = splitBeat(SPLIT.mode);
+  const P = (SPLIT.mode === 'join' ? p >= b : p < b) ? SPLIT_POSE.together : SPLIT_POSE.apart;
+  const kk = Math.min(1, dt * 22);
+  saberPose.hand.lerp(_t.set(P.hand[0], P.hand[1], P.hand[2]), kk);
+  slerpDir(saberPose.blade, _ax.set(P.blade[0], P.blade[1], P.blade[2]).normalize(), kk, saberPose.blade);
+  saberPose.off.lerp(_p.set(P.off[0], P.off[1], P.off[2]), kk);
+  if (dualIn(held)){ slerpDir(saberPose.offBlade, _mo.set(P.offBlade[0], P.offBlade[1], P.offBlade[2]).normalize(), kk, saberPose.offBlade); saberPose.offLive = false; }
+}
 
 /* KEEP CLEAR — the blade never passes through the hero. The body is an upright elliptic column in chest space (a
    narrower one for the head); a hand inside it is pushed out, and a blade crossing it is turned out around the hand

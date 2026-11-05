@@ -87,18 +87,22 @@ export const STANCES = {
             powerCostMul: 0.85,   // LORE: saber and Force as one — powers cost 15% less…
             castMul: 0.85,        // …snap off a little quicker…
             castFlow: true,       // …and a power cast mid-string keeps the string going: no late-cancel stamina cost (combat.js)
+            flowCast: 0.6,        // THE FLOW CAST: a power thrown mid-roll or mid-dash costs 40% less, casts quicker and gives the dash charge back (jedi/flowcast.js)
             blockStamMul: 0.55,   // SYNERGY: economical guard — blocking/parrying drains far less stamina
             deflectScatter: 0.05, // LORE: Niman, the jack of all forms — deflects go back roughly down the line (rad)
             gait: { amp: 1.08, lift: 1.0, bob: 0.4, lean: 1.0 },   // MOVEMENT: smooth, balanced, even strides
-            syn: 'VERSATILE · cheap swings and powers · cast mid-string · −50% defence cooldowns · cheap guard · parries refund +Force' },
+            syn: 'VERSATILE · cheap swings and powers · cast mid-string · cast mid-dash: Flow Cast · −50% defence cooldowns · cheap guard · parries refund +Force' },
   djemso: { name: 'DJEM SO — STRONG', form: 'djemso', formNo: 'V', blade: 0xb24bff,
             // HEAVY & momentum-driven, not slow-motion: still the slowest swing but it now flows; the big LUNGE
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
             // clearly the SLOWEST swing (well under medium's 1.0) — heavy, deliberate, weighty — but the big LUNGE
             // and high damage make each committed stroke land hard, so it reads as power, not sluggishness.
-            dmg: 2.4, heavyDmg: 2.38, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,
+            dmg: 2.25, heavyDmg: 2.23, speed: 0.48, knock: 1.6, stamina: 18, lunge: 1.4, move: 0.85, accel: 0.6, twist: 1.0, bladeLen: 1.14,   // (BALANCE: dmg trimmed from 2.4 / 2.38, the strongest form against champions)
             radiusMult: 0.8, postureMul: 1.5, forceRegen: 0.7, comboGap: 0.7, fovKick: -4,
             atkDR: 0.15,          // PASSIVE: armored commitment — soak 15% damage WHILE mid-swing
+            heavyArmor: 0.45,     // HYPER-ARMOUR: a heavy cut (held) soaks 45% and no blow knocks it loose (player/damage.js)
+            sunder: 0.6,          // THE SUNDERING OVERHEAD: a heavy overhead (W, held) caught on a guard still strains 60% of its posture (jedi/combat.js)
+            stompRiposte: 2.6,    // THE FORWARD STOMP: a riposte with W held stamps in, can't be re-parried and breaks the guard; the shock rocks foes within this many m
             finisherLunge: 1.6,   // the 3rd hit lunges harder, carrying the heavy blade through
             finisherRecover: 0.12,   // COST of the ×1.5 guard break: the finisher hangs ~0.12s longer before you can act again
             finisherKnock: true,  // the finisher ALWAYS floors what it hits (brutes included), a short shove away (config saberShove)
@@ -106,7 +110,7 @@ export const STANCES = {
             deflectScatter: 0.06, // Djem So answers blades; sending bolts home is its sister variant Shien's craft (rad)
             powerScale: 1.35, powerCostMul: 1.3,   // SYNERGY: Force powers hit with BRUTE scale (+35% radius/knock) but cost +30% Force
             gait: { amp: 1.2, lift: 0.78, bob: 0.85, lean: 0.8 },   // MOVEMENT: long, heavy, planted strides — a juggernaut's weighty stomp
-            syn: 'BRUTES & BOSS · breaks guards fast · block, then Fluid Riposte · finisher floors · BIG but costly Force powers · G: Shien' },
+            syn: 'BRUTES & BOSS · breaks guards fast · heavies hyper-armoured · block, then Fluid Riposte · W + riposte: Forward Stomp · finisher floors · BIG but costly Force powers · G: Shien' },
   /* FORM V SHIEN — Djem So's sister variant (Ahsoka, Starkiller): the reverse grip, built to send blaster fire home.
      Every bolt it deflects flies straight back at the shooter and hits half again as hard; its cuts are strong but it
      gives up Djem So's raw power against armour. G swaps between the two Form V variants. */
@@ -115,8 +119,9 @@ export const STANCES = {
             radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.04,
             deflectScatter: 0,    // ROLE: every deflect goes home, dead on the shooter…
             deflectDmg: 1.5,      // …and lands half again as hard (enemies/bolts.js)
+            spinAdvance: 1.0,     // THE SPIN ADVANCE: a forward roll is an upright spin that sends home every bolt that meets it, from any side, for this share of the roll (player/mobility.js)
             gait: { amp: 1.1, lift: 0.9, bob: 0.6, lean: 1.0 },   // MOVEMENT: low and prowling, weight forward
-            syn: 'BLASTERS · every deflect goes home and hits +50% · reverse grip · strong cuts · G: Djem So' },
+            syn: 'BLASTERS · every deflect goes home and hits +50% · roll forward: Spin Advance sends bolts home · reverse grip · strong cuts · G: Djem So' },
   /* FORM VII JUYO — the most ferocious form (Mace Windu's root, Vader's rage): bursts of savage, unpredictable cuts
      driven by the Force itself. Each swing burns Force as well as breath, every cut that lands feeds FURY (up to +35%
      damage), and it gives its defence away for it. Juyo and Vaapad fork: learning one closes the other for the run. */
@@ -126,23 +131,26 @@ export const STANCES = {
             forceSwing: 5,        // ROLE: each swing burns this much Force on top of its stamina (no Force: double the stamina)
             furyHit: 0.12,        // every cut that lands feeds fury (player/jedi/fury.js)…
             furyDmg: 1.35,        // …up to +35% saber damage at full
-            dmgTaken: 1.25,       // LORE: it opens the user up: blows land 25% harder
+            furySpeed: 0.2,       // …and quickens the blade: at full fury each cut takes 20% less time
+            dmgTaken: 1.1,        // LORE: it opens the user up: blows land 10% harder…
+            furyTaken: 1.3,       // …and the fuller the fury, the more open (×1.3 more at full: 43% in all) (player/damage.js)
+            zigzag: { reach: 1.1, fwd: 1.2, furyReach: 0.8, fast: 0.15 },   // THE ONSLAUGHT: W in rhythm breaks the cut in on a slant, zig then zag; further and quicker with fury (jedi/combat.js)
             deflectScatter: 0.12,
             gait: { amp: 1.15, lift: 1.15, bob: 0.6, lean: 1.3 },   // MOVEMENT: driving forward, never still
-            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg) · fast, savage strings · TAKES +25% damage' },
+            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg, quicker cuts) · W in rhythm: the Onslaught zig-zags in · TAKES more damage the fuller the fury' },
   /* FORM VII VAAPAD — Mace Windu's own Form VII: Juyo's ferocity let in and turned outward. It feeds on the opponent's
      aggression: every blow turned on its guard builds fury, a parry finds the attacker's SHATTERPOINT (the next cut on
      that foe lands double and floors it). Juyo and Vaapad fork. */
   vaapad: { name: 'VAAPAD — CONTROL', form: 'vaapad', formNo: 'VII', blade: 0xb04dff,
-            dmg: 1.6, heavyDmg: 1.4, speed: 0.72, knock: 1.0, stamina: 9, lunge: 1.25, move: 1.02, accel: 1.1, twist: 0.8, bladeLen: 1.0,
+            dmg: 1.4, heavyDmg: 1.25, speed: 0.72, knock: 1.0, stamina: 9, lunge: 1.25, move: 1.02, accel: 1.1, twist: 0.8, bladeLen: 1.0,
             radiusMult: 1.0, postureMul: 1.2, comboGap: 1.1, fovKick: 1, parryBonus: 0.08, blockStamMul: 0.7,
-            furyBlock: 0.18, furyParry: 0.35, furyHit: 0.04,   // ROLE: its fury comes from what it turns aside…
-            furyDmg: 1.4,         // …up to +40% saber damage at full
+            furyBlock: 0.25, furyParry: 0.45, furyHit: 0.04,   // ROLE: its fury comes from what it turns aside…
+            furyDmg: 1.5,         // …up to +50% saber damage at full
             shatter: 2.0,         // SHATTERPOINT: a parried attacker is marked; your next cut on it lands ×2 and floors it
-            dmgTaken: 1.1,        // walking the edge of the dark side: blows land 10% harder
+            furyTaken: 1.3,       // walking the edge of the dark side: the fuller the fury, the harder blows land (+30% at full)
             deflectScatter: 0.06,
             gait: { amp: 1.05, lift: 1.0, bob: 0.45, lean: 1.1 },   // MOVEMENT: poised, then explosive
-            syn: 'CONTROL · blocks and parries build fury (+40% dmg) · a parry finds the Shatterpoint: next cut ×2 · TAKES +10% damage' },
+            syn: 'CONTROL · blocks and parries build fury (+50% dmg) · a parry finds the Shatterpoint: next cut ×2, a strike through it · the fuller the fury, the harder you are hit' },
   /* THE SABER STAFF — not one of the seven forms but a weapon of its own (the Jedi Temple Guard, Maul): a long hilt
      held in both hands with a blade at each end (data/forms.js staff). A SPEED weapon: quick, flowing strings that wheel
      from one end to the other, so every cut sweeps the front with one blade and the back with the other (jedi/bladehit.js
@@ -169,12 +177,13 @@ export const STANCES = {
             dmg: 0.85, heavyDmg: 0.8, speed: 0.95, knock: 0.35, stamina: 6, lunge: 1.3, move: 1.12, accel: 1.25, twist: 0.5, bladeLen: 0.92,
             radiusMult: 0.9, comboGap: 1.3, fovKick: 3, postureMul: 0.85, parryBonus: -0.02,
             offDmg: 0.7,          // ROLE: the off hand's follow-up lands 70% of the lead cut (one cut's budget across both)
+            scissor: 1.3,         // THE SCISSOR SLIDE: a cut out of a slide crosses both blades low, as wide as a finisher, 25% further and 30% harder (jedi/combat.js)
             blockStamMul: 0.85,   // the crossed-blade block: a blow on the guard costs 15% less…
             deflectStamMul: 1.4,  // …but a bolt caught on two blades costs more (×0.85 ×1.4: ~20% more than a plain saber)
             deflectScatter: 0.14, // two blades, less exact: deflects scatter (rad)
             powerCostMul: 1.2,    // COST: a hand comes off a hilt to cast: Force powers cost 20% more
             gait: { amp: 1.06, lift: 1.05, bob: 0.4, lean: 1.05 },   // MOVEMENT: light and quick on the feet, both blades low and ready
-            syn: 'FLURRY · two blades: every cut is two beats · gets inside heavy wind-ups · crossed-blade block · finisher throws the off saber · WEAK vs tight guards, crowds and armour' },
+            syn: 'FLURRY · two blades: every cut is two beats · gets inside heavy wind-ups · crossed-blade block · finisher throws the off saber · cut out of a slide: Scissor Slide · WEAK vs tight guards, crowds and armour' },
   // THE DARKSABER — the Mando's signature melee (selected automatically when the darksaber is equipped, not a
   // switchable Jedi form). Heavy-like, but the highest damage in the game, a touch faster & more mobile than Djem So.
   darksaber: { name: 'DARKSABER', form: 'darksaber', blade: 0xc9a6ff,

@@ -7,10 +7,11 @@ import { sfx, S } from '../../audio/sfx.js';
 import { V3 } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater } from '../../fx/floaters.js';
+import { tutEvent } from '../../game/tutor-bus.js';
 import { G, player, isGunner } from '../../state.js';
 import { reigniteBlade } from '../../fx/trail.js';
 import { wakeBlade } from '../holster.js';
-import { startSwitch } from '../anim/saber.js';
+import { startSwitch, startSplit, splitBeat } from '../anim/saber.js';
 import { playerPos, stance, bladeColor, heldGrip } from '../helpers.js';
 import { applySaberGrip, setSaberStaff, setSaberDual } from '../model/weapons.js';
 import { FORCE_MAX, FORM_MASTERY, forceLevel, forceShare, formRank } from '../../data/force-level.js';
@@ -101,6 +102,22 @@ export function swapVariant(){
 }
 
 /* ---------- stance switching ---------- */
+const SPLIT_TIME = 0.6;
+// the beat of the split or the join (player/update.js, every frame): the hilt parts, or locks, with a crack of sparks
+export function tickSplit(){
+  const B = player.splitBeat;
+  if (!B || G.gt < B.at) return;
+  player.splitBeat = null;
+  if (B.mode === 'join'){
+    if (G.stance !== 'staff') return;   // (switched on again before it locked)
+    setSaberDual(player, false); setSaberStaff(player, true);
+  } else if (G.stance !== 'jarkai') return;
+  const pp = playerPos(), f = V3(Math.sin(G.yaw), 0, Math.cos(G.yaw));
+  burst(V3(pp.x + f.x * 0.45, pp.y + 1.25, pp.z + f.z * 0.45), 0xffe6a0, 12, 4, 2, 0.7);
+  floater(pp, B.mode === 'join' ? 'JOINED' : 'SPLIT', hex(stance().blade));
+  sfx(B.mode === 'join' ? 520 : 760, 0.08, 'square', 0.05, B.mode === 'join' ? 260 : 1400);
+  tutEvent(B.mode === 'join' ? 'staffJoin' : 'staffSplit');
+}
 export function switchStance(id, silent){
   if (!STANCES[id] || (G.stanceCd > 0 && !silent) || G.stance === id) return;
   if (!silent && !stanceUnlocked(id)){ floater(playerPos(), 'FORM LOCKED', '#ff9a66'); sfx(120, 0.1, 'square', 0.05, 70); return; }
@@ -112,8 +129,16 @@ export function switchStance(id, silent){
   player.blade.glow.material.color.setHex(bladeColor(st));
   player.blade.light.color.setHex(bladeColor(st));
   applySaberGrip(player, heldGrip(), !!silent);   // Shien turns the hilt over into its reverse grip, and back out of it
-  setSaberStaff(player, isStaff(id));   // the saber staff: the long hilt and its second blade (snapped in as the blade re-ignites)
-  setSaberDual(player, isDual(id));     // Jar'Kai: a second saber in the off hand (it ignites with the first)
+  // THE SPLIT / THE JOIN: between the staff and Jar'Kai the hilt comes apart in the hands, or the two lock end to end
+  const pair = !silent && ((from === 'staff' && id === 'jarkai') || (from === 'jarkai' && id === 'staff'));
+  const join = pair && id === 'staff';
+  setSaberStaff(player, isStaff(id) && !join);   // the saber staff: the long hilt and its second blade (snapped in as the blade re-ignites)
+  setSaberDual(player, isDual(id) || join);     // Jar'Kai: a second saber in the off hand (it ignites with the first)
+  if (pair){
+    const mode = join ? 'join' : 'split', dur = SPLIT_TIME;
+    startSplit(mode, dur);
+    player.splitBeat = { at: G.gt + dur * splitBeat(mode), mode };
+  } else player.splitBeat = null;
   const lit = !silent && wakeBlade();   // the blade was out (5): the new form lights it, the full snap-hiss (S.reignite below then holds off)
   if (!silent){ if (!lit) reigniteBlade(); startSwitch(); }   // snap-hiss: the blade re-ignites in the new form's colour and turns into its guard
   setStanceHud();

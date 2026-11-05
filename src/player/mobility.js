@@ -105,6 +105,13 @@ export function groundRoll(){
   player.swingLock = Math.max(player.swingLock || 0, R.time * 0.6 + R.swingLock);
   if (!isGunner() && stance().swoop) player.momentum = { kind: 'swoop', until: G.gt + R.time + 0.5 };   // ATARU: SHIFT in a fight rolls, and a cut out of the roll is the Hawk-Bat Swoop too (jedi/combat.js)
   else if (!isGunner() && stance().vaultStrike) player.momentum = { kind: 'polevault', until: G.gt + R.time + 0.5 };   // THE SABER STAFF: cut out of it for the Pole Vault (jedi/combat.js)
+  // SHIEN — THE SPIN ADVANCE: a roll in toward the fire is an upright spin, the blade wheeling round, and every bolt
+  // that meets it goes home to its shooter, from any side (enemies/bolts.js)
+  if (!isGunner() && stance().spinAdvance && dd === 'fwd'){
+    player.spinGuardUntil = G.gt + R.time * stance().spinAdvance;
+    floater(playerPos(), 'SPIN ADVANCE', '#2ee6c8');
+    tutEvent('spinAdvance');
+  }
   tutEvent('dash');   // the dodge lessons count a roll as a dash
   launchFlip({ ...flipStyle('roll', dd), t: 0, dur: R.time, side: side ? (drr >= 0 ? 1 : -1) : 1 }, dd);
   burst(playerPos().clone().setY(0.25), 0xb9c2cc, 6, 3, 1.5, 0.8);

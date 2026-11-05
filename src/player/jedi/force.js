@@ -31,14 +31,20 @@ import { pushGrenades } from '../../enemies/grenades.js';
 import { flowReady, queuePullStrike } from './palm.js';
 import { trainAbility } from '../../game/upgrades.js';
 import { floorCost, baseCost } from '../../data/force-level.js';
+import { flowCastMul, noteFlowCast } from './flowcast.js';
 
 /* trigger the off-hand reaching gesture used by every Force power */
 // a Jedi power's Force cost after the survival cost cuts (ATTUNEMENT, DEEP RESERVES, FORCE NEXUS) — the same
 // player.up.abilityCostMul the Mando's gadgets already read; before this the Jedi paid full price regardless
 // ...and never below the cost floor: every cut together leaves at least half the base cost (data/force-level.js)
-const fcost = (raw, id) => floorCost(raw * (player.up.abilityCostMul || 1), baseCost(id));
+// (NIMAN's FLOW CAST: a power thrown mid-roll or mid-dash costs less: jedi/flowcast.js)
+const fcost = (raw, id) => floorCost(raw * (player.up.abilityCostMul || 1) * flowCastMul(), baseCost(id));
 
-export function castGesture(kind, dur){ dur *= (stance().castMul || 1); player.castT = dur; player.castMax = dur; player.castKind = kind; }   // ATARU casts snap off faster
+export function castGesture(kind, dur){
+  dur *= (stance().castMul || 1);   // ATARU casts snap off faster
+  if (noteFlowCast()) dur *= 0.6;   // NIMAN: thrown on the move, the gesture is quicker still (jedi/flowcast.js)
+  player.castT = dur; player.castMax = dur; player.castKind = kind;
+}
 // turn the Jedi to FACE the direction an ability is aimed — soft-snaps the yaw onto the nearest foe in
 // the frontal cone so powers commit toward the threat (the Force equivalent of the Mando squaring up)
 function faceAbilityAim(range){

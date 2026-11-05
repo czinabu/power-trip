@@ -100,7 +100,9 @@ export function tryAttack(flow = false){
   if (player.slideT > 0){ player.slideT = 0; if (!isGunner()) player.flip = null; }
   const mom = momentumStrike();
   // slightly longer arcs read as deliberate sword strokes rather than a twitchy flurry
-  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1)) * (PF && PF.dur || 1);
+  // JUYO's fury quickens the blade as well as sharpening it (STANCES.juyo furySpeed: at full fury, cuts take that much less time)
+  const quick = !isGunner() && st.furySpeed ? 1 - st.furySpeed * (player.fury || 0) : 1;
+  const dur = (step === 2 ? 0.52 : 0.4) / (st.speed * (player.up.atkSpeed || 1)) * (PF && PF.dur || 1) * quick;
   player.atkT = dur;
   // Jedi Academy style: the movement key picks the cut's direction, where you aim picks its height (cutaim.js)
   const cut = pickCut(step);
@@ -118,6 +120,8 @@ export function tryAttack(flow = false){
   // the riposte is spent on THIS cut (it lands on whatever the blade meets first; see applySwingDamage)
   const cancelRip = ripNow && !!player.cancelRiposte;
   const fluid = ripNow && !!player.fluidRip;   // Djem So's Fluid Riposte (off a block): lands 1.5×, not a parry's 2×
+  // DJEM SO — THE FORWARD STOMP: a riposte with W held stamps in behind the blow; no re-parry turns it, it breaks the guard
+  const stomp = ripNow && !isGunner() && !!st.stompRiposte && !!keys['w'];
   if (ripNow){ player.riposteT = 0; player.cancelRiposte = false; player.ripLine = null; player.fluidRip = false; }
   // FLOW (data/stances.js CUT_ANGLE.flow): an angle cut that starts where the last one finished flows straight on, quicker
   const FL = CUT_ANGLE.flow, last = player.lastCut, ang = !ripNow && pat.ang != null ? pat.ang : null;
@@ -125,9 +129,11 @@ export function tryAttack(flow = false){
   player.lastCut = ang != null ? { ang, at: G.gt } : null;
   const cutDur = flowCut ? dur * FL.speed : dur;
   player.atkT = cutDur;
-  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
+  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
-  const spin = pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
+  // (Juyo's forward rhythm link is the Onslaught's zig-zag, not a spin)
+  const zigNow = !isGunner() && !!st.zigzag && dirKey === 'forward' && flow && !ripNow && !mom && player.grounded;
+  const spin = zigNow ? null : pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
     ripNow, backStrike, mom, flow, st, held: holding() });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur;
@@ -146,6 +152,17 @@ export function tryAttack(flow = false){
     floater(playerPos(), 'POLE VAULT', '#ffd23a');
     tutEvent('polevault');
   }
+  if (stomp){
+    lunge *= 1.3;
+    stompShock(st.stompRiposte);
+    floater(playerPos(), 'FORWARD STOMP', '#c9a0ff');
+    tutEvent('stomp');
+  }
+  if (mom === 'slide' && !isGunner() && st.scissor){   // JAR'KAI — THE SCISSOR SLIDE: both blades cross low out of the skid
+    player.swing.scissor = true;
+    floater(playerPos(), 'SCISSOR SLIDE', '#ffb84a');
+    tutEvent('scissor');
+  }
   if (mom === 'overflip'){   // ATARU: the cut straight out of the FLIP OVER, into the back it landed behind (jedi/overflip.js)
     floater(playerPos(), 'STRIKE TO THE BACK', '#7fe0ff');
   }
@@ -161,6 +178,16 @@ export function tryAttack(flow = false){
   if (aimed) player.swing.assist = aimed;
   const tgt = backStrike ? nearestEnemyInCone(CFG.player.comboRange, -0.35, true)
                          : aimed || nearestEnemyInCone(comboRange(st), 0.6);
+  // VAAPAD — THE SHATTERPOINT STRIKE: a cut at the foe whose attack it turned is one decisive lunge into the flaw it found,
+  // the world slowing round it (the hit itself lands ×2 and floors it: applySwingDamage)
+  if (tgt && !backStrike && !isGunner() && st.shatter && tgt.shatterUntil > G.gt && !ripNow){
+    lunge *= 1.6; player.swing.shatterCut = true;
+    G.slowmo = Math.min(G.slowmo, 0.45); G.slowmoT = Math.max(G.slowmoT, 0.22);
+    screenFlash('radial-gradient(ellipse at center, rgba(208,139,255,.18), rgba(120,40,200,.06) 35%, transparent 55%)', 0.45, 0.2);
+    const tp = tgt.group.position;
+    burst(V3(tp.x, 1.5, tp.z), 0xd08bff, 10, 4, 2, 0.8);
+    sfx(1900, 0.12, 'sine', 0.03, 600);
+  }
   if (tgt && !backStrike){
     TMP.subVectors(tgt.group.position, playerPos()); TMP.y = 0;
     const d = TMP.length();
@@ -179,6 +206,7 @@ export function tryAttack(flow = false){
     stepIntoCut(fwd(), 7 * (mom === 'polevault' ? lunge / 2.2 : lunge));   // step into the strike (a vault with no foe ahead to land on is a plain step)
   }
   if (spin) spinTravel(spin, dirKey);
+  else if (onslaught(st, dirKey, flow, ripNow, mom)){}   // JUYO: a forward link in rhythm breaks off the line, zig then zag
   else if (ang != null && !backStrike) cutFootwork(ang);
   // the blade's whoosh, voiced by form (a held cut keeps it back: it sounds when the charge resolves, jedi/weight.js)
   if (!player.swing.charging) S.swing(isGunner() ? 'dark' : G.stance);
@@ -215,6 +243,35 @@ function spinTravel(spin, dirKey){
 // drag in locomotion.js), but laid along the swing so the body drives through the strike with the lead foot
 // (locomotion.js moves it, anim/footing.js steps the feet). In the air it stays a shove.
 const GROUND_DRAG = 9;
+/* JUYO — THE ONSLAUGHT: W struck in rhythm, on the ground, drives the cut in on a slant, zig then zag, so the next one
+   comes from somewhere new. The fuller the fury, the further each break and the quicker the cut. (STANCES.juyo zigzag) */
+function onslaught(st, dirKey, flow, ripNow, mom){
+  const Z = !isGunner() && st.zigzag, sw = player.swing;
+  if (!Z || dirKey !== 'forward' || !flow || ripNow || mom || !player.grounded || !sw) return false;
+  const fury = player.fury || 0, side = player.zig = -(player.zig || 1), f = fwd(), r = rightV();
+  const reach = Z.reach * (1 + Z.furyReach * fury);
+  sw.travel = { x: (f.x * Z.fwd + r.x * side) * reach, z: (f.z * Z.fwd + r.z * side) * reach, done: 0 };
+  sw.dur *= 1 - Z.fast * fury; player.atkT = sw.dur;
+  sw.zig = side;
+  const pp = playerPos();
+  burst(V3(pp.x, 0.2, pp.z), 0xff3a3a, 5, 3, 1.2, 0.7);
+  if (fury > 0.5) floater(pp, 'ONSLAUGHT', '#ff5a3a');
+  tutEvent('onslaught', { fury });
+  return true;
+}
+// the Forward Stomp's foot comes down: a shock round it that shoves back and rocks the foes close by (not the one it answers)
+function stompShock(r){
+  const pp = playerPos();
+  spawnGroundShock(V3(pp.x + fwd().x * 0.6, 0.05, pp.z + fwd().z * 0.6), 0xc9a0ff, r, 0.4, 0.7);
+  G.shake = Math.max(G.shake, 0.55);
+  S.slam();
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn') continue;
+    const dx = e.group.position.x - pp.x, dz = e.group.position.z - pp.z, d = Math.hypot(dx, dz);
+    if (d > r || d < 0.01 || e.t.heavy) continue;
+    flinchEnemy(e, V3(dx / d, 0, dz / d), 0.8);
+  }
+}
 const MOM_LABEL = { slide: 'SLIDE CUT', wallrun: 'WALL STRIKE', vault: 'VAULT STRIKE', climb: 'LEDGE STRIKE', roll: 'ROLL STRIKE' };
 /* FOOTWORK (CUT_ANGLE.foot) — on top of the step into the cut, the feet go the cut's own way: a flat cut steps the way
    the blade sweeps, an overhead drives in under it, a rising cut comes up off the back foot */
@@ -318,7 +375,8 @@ export function applySwingDamage(step, only){
   if (st.airCutDmg && !player.grounded) dmg *= st.airCutDmg;   // ATARU: a cut struck off the ground lands harder
   // FAST cleaves wide through crowds; STRONG is a narrow, focused blow. FAST's finisher fans ~10% wider still.
   const radius = (finisher ? CFG.player.hitRadius + 1 : CFG.player.hitRadius) * (st.radiusMult || 1)
-                 * (finisher && st.finisherArc ? st.finisherArc : 1);
+                 * (finisher && st.finisherArc ? st.finisherArc : 1) * (sw0 && sw0.scissor ? 1.25 : 1);
+  if (sw0 && sw0.scissor) dmg *= st.scissor;
   const back = !!(player.swing && player.swing.back);
   const f = fwd(); if (back) f.negate();   // back strike cleaves & knocks toward your rear
   const pp = playerPos();
@@ -326,7 +384,8 @@ export function applySwingDamage(step, only){
   const line = cutLine(player.swing);   // the line this cut comes in on — a duellist's guard covers one (enemies/duel.js)
   // the ARC: a cut covers what's in front of you, a strafe sweep a little wider, the finisher wider still (data/config.js)
   const A = CFG.player.swingArc, sdir = player.swing && player.swing.dir;
-  const arcCos = finisher ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
+  const scissor = !!(sw0 && sw0.scissor);   // JAR'KAI's Scissor Slide: the two blades cross at the knees, as wide as a finisher
+  const arcCos = finisher || scissor ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
   const reachUp = radius * 0.85;   // VERTICAL reach — a swing from the air can't hit foes far below you
   const reachDown = player.grounded ? reachUp : radius * 1.4;   // ...but a cut struck mid-leap still reaches the ground at your feet (Ataru's lesson)
   const tryHit = (pos, fn, obj) => {
@@ -352,7 +411,7 @@ export function applySwingDamage(step, only){
       }
       // a duellist's guard may turn it (a riposte, the answer to a parry, always lands)
       // (a guard the blade already met on the way in has had its say: player/jedi/clash.js)
-      if (riposte && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
+      if (riposte && !sw0.stomp && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
         turned++; if (!blocker){ blocker = e; blockAt = sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at; } return false;
       }
       if (!riposte && !back && mom !== 'overflip'){
@@ -361,12 +420,22 @@ export function applySwingDamage(step, only){
         const dres = pre !== undefined ? pre : duelDefend(e, line, finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
         if (dres === 'block' || dres === 'dodge'){
           if (dres === 'block' && perfect) addPosture(e, DUEL.posture.finisher * (PERFECT.posture - 1), f.x, f.z);   // a perfect finisher strains the guard that turns it
+          // DJEM SO — THE SUNDERING OVERHEAD: a heavy overhead (W, held) caught on a guard still caves in most of it
+          if (dres === 'block' && st.sunder && sw0 && sw0.heavy && sw0.dir === 'forward' && e.dp && !e.dp.brace) addPosture(e, e.dp.posture * st.sunder, f.x, f.z);
           turned++; if (dres === 'block' && !blocker){ blocker = e; blockAt = at; } return false;
         }
       }
       // VAAPAD — SHATTERPOINT: the foe whose attack you parried takes the next cut ×2, and it floors it
       const shat = !!(st.shatter && e.shatterUntil > G.gt);
-      if (shat){ e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.1); tutEvent('shatter'); }
+      if (shat){
+        e.shatterUntil = 0; floater(e.group.position, 'SHATTERPOINT', '#d08bff'); G.hitstop = Math.max(G.hitstop, 0.16); tutEvent('shatter');
+        // the flaw gives: a violet crack of light out of the foe, a ring along the floor
+        const sp = e.group.position;
+        clashFlash(V3(sp.x, 1.4, sp.z), 0xd08bff, true);
+        clashSparks(V3(sp.x, 1.4, sp.z), 0xe6c2ff, 8, { dir: f, cone: 0.9 });
+        spawnGroundShock(V3(sp.x, 0.05, sp.z), 0xb04dff, 2.2, 0.35, 0.6);
+        G.shake = Math.max(G.shake, 0.7);
+      }
       damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
       foesHit++;
       trainForm(e.dead ? 'kill' : 'hit', { finisher, air: !player.grounded, backLine: backLineMul(st, e) > 1, heavy: !!e.t.heavy, blade: swordMul(st, e) > 1 });   // FORM MASTERY (game/upgrades.js)
@@ -377,7 +446,8 @@ export function applySwingDamage(step, only){
       if (e.dead) severLimbs(e, f, finisher ? 0.8 : G.stance === 'djemso' || isDark ? 0.55 : 0.35, sw0 && sw0.hitAt && sw0.hitAt.get(e));
       if (!riposte && !e.dead) interruptEnemy(e, f, finisher || st.form === 'djemso' || isDark);   // striking first beats a wind-up
       if (mom === 'slide' && !riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a SLIDE CUT sweeps the legs out
-      if (riposte && !e.dead) staggerEnemy(e, f.x, f.z);   // a RIPOSTE floors what it answers — a true counter, wide open after
+      if (riposte && !e.dead) staggerEnemy(e, f.x, f.z, sw0.stomp && e.dp ? 'GUARD BROKEN' : undefined);   // a RIPOSTE floors what it answers — a true counter, wide open after
+      if (riposte && sw0.stomp && e.dp && !e.dead){ e.posture = 0; e.st += 0.3; }   // (the Forward Stomp breaks the guard: it stays open a touch longer)
       // MAKASHI — BIND AND DISARM: the riposte off a bound blade takes it out of the duellist's hand (enemies/disarm.js)
       if (riposte && st.bind && !e.dead && disarmBlade(e, f.x, f.z, st.bind)) tutEvent('disarm');
       if (mom === 'overflip' && !e.dead && !sw0.overHit){ sw0.overHit = true; tutEvent('flipStrike'); }

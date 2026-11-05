@@ -274,7 +274,7 @@ export const AGILITY = {
     },
     roll: {
       side: { bank: 0.28, drop: 0.24, legs: 'slide', arms: null },
-      fwd:  { somer: 1, lift: -0.4, legs: 'tuck', arms: 'tuck' },
+      fwd:  { spin: 2, tilt: 0.12, lift: 0.08, legs: 'stride', arms: 'layout', ease: 'twirl' },   // THE SPIN ADVANCE (Ahsoka): two turns upright, the reverse-grip blade wheeling round, bolts sent home (player/mobility.js)
       back: { somer: -1, lift: -0.4, legs: 'tuck', arms: 'tuck' },
     },
     jump:   { tuck: 0.75, arms: null },                               // knees snapped up, no spin (a half spin landed him backwards)

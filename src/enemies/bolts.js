@@ -165,7 +165,9 @@ export function updateBolts(dt){
       const gd = !isGunner() ? stance().guardDeflect : 0;
       const guardSend = !!gd && near && player.blockHeld && !airGuardLost() && player.stam > 0
         && TMP.subVectors(b.mesh.position, pp).setY(0).lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > -gd;
-      const deflecting = near && ((facing && (player.atkT > 0 || player.parryT > 0) && airOk) || guardSend);
+      // SHIEN's SPIN ADVANCE: the wheeling blade catches a bolt from any side and sends it home (player/mobility.js)
+      const spinSend = near && !isGunner() && player.spinGuardUntil > G.gt;
+      const deflecting = near && ((facing && (player.atkT > 0 || player.parryT > 0) && airOk) || guardSend || spinSend);
       const parried = near && facing && player.parryT > 0 && airOk;
       // SINGLE-BLASTER GAUNTLET SHIELD — a held energy shield that REFLECTS frontal bolts back (not just absorbs).
       // Each deflect spends stamina; run dry and the shield can't hold a bolt (it bleeds through, soaked by the beskar).
@@ -198,7 +200,8 @@ export function updateBolts(dt){
         if (parried) player.parryT = 0;
         // the guard pays for the catch: Soresu's held guard a little, Makashi (no answer to blasters) dearly
         const dsm = stance().deflectStamMul || 0;
-        if (!parried && (guardSend || dsm)){ player.stam = Math.max(0, player.stam - (guardSend ? 7 * (stance().blockStamMul || 1) : 0) - 3 * dsm); player.stamDelay = stamDelay(); }
+        if (spinSend && !parried) tutEvent('spinSend');
+        if (!parried && !spinSend && (guardSend || dsm)){ player.stam = Math.max(0, player.stam - (guardSend ? 7 * (stance().blockStamMul || 1) : 0) - 3 * dsm); player.stamDelay = stamDelay(); }
         b.friendly = true; b.speed *= 1.4; b.dmg = parried ? 42 : 22 * (stance().deflectDmg || 1);   // (Shien sends its deflects home harder)
         // it leaves from the blade itself (it was caught a touch early, so the catch reads at the saber, not in the air)
         if (bladePointNear(b.mesh.position, HIT)) b.mesh.position.copy(HIT);

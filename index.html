@@ -25,7 +25,8 @@
 <link rel="stylesheet" href="/styles/codex.css">
 </head>
 <body class="in-menu">
-<!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js) -->
+<!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
+     and again whenever a mode builds its level (src/ui/loading.js) -->
 <div id="boot" role="status" aria-live="polite">
   <h1 class="bt-title">POWER TRIP</h1>
   <div class="bt-saber"><div class="bt-hilt"></div><div class="bt-blade"></div></div>
@@ -52,7 +53,7 @@
     blade.style.setProperty('--p', 1); txt.textContent = 'Ready';
     setTimeout(function(){
       document.body.classList.add('booted'); el.classList.add('out');
-      setTimeout(function(){ el.remove(); }, 650);
+      setTimeout(function(){ el.hidden = true; }, 650);   // (kept, hidden: it comes back as the loading screen into every mode, ui/loading.js)
     }, 260);
   }
   window.__boot = {

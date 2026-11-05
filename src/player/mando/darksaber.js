@@ -65,7 +65,7 @@ export function updateDark(dt){
       TMP.normalize();
       damageEnemy(e, A.dmg * player.up.dmg, TMP.clone(), A.knock, false, false, { blade: true }); flinchEnemy(e, f, 0.9);
       scarBody(e.group, f, 'left', true);   // a darksaber sweep burns its line across the plates (enemies/scars.js)
-      if (e.dead) severLimbs(e, f, 0.55);
+      if (e.dead) severLimbs(e, f, 0.55, { travel: V3(f.z, 0, -f.x) });   // (a level sweep: what it went through comes off)
     }
     if (shared.boss && shared.boss.hp > 0){
       TMP.subVectors(shared.boss.group.position, pp); TMP.y = 0;

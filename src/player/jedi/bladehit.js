@@ -66,7 +66,7 @@ export function sweepOffBlade(sw, live){
       const part = pointHit(e, P.set(pts[k], pts[k + 1], pts[k + 2]), BODY.edge);
       if (part){
         cut.add(e); out.push(e);
-        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: new THREE.Vector3().subVectors(OT, OPT) });
+        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: new THREE.Vector3().subVectors(OT, OPT), blade: new THREE.Vector3().subVectors(OT, OB) });
         break;
       }
     }
@@ -151,7 +151,8 @@ export function sweepBlade(sw, live){
       if (part){
         const back = k >= nearN;   // the staff's far blade found it
         cut.add(e); out.push(e);
-        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: back ? new THREE.Vector3().subVectors(FT, FPT) : new THREE.Vector3().subVectors(T, PT), far: back });
+        at.set(e, { at: P.clone(), zone: part.head ? 2 : partsOf(e).indexOf(part) === 0 ? 0 : 1, cut: back ? new THREE.Vector3().subVectors(FT, FPT) : new THREE.Vector3().subVectors(T, PT),
+                    blade: back ? new THREE.Vector3().subVectors(FT, FB) : new THREE.Vector3().subVectors(T, B), far: back });   // (blade: its line, base → tip: with the cut, the plane it sliced along, enemies/scars.js)
         if (back) tutEvent('farBlade', e);   // (the training's saber staff lesson)
         break;
       }

@@ -102,6 +102,7 @@ import './data/difficulty.js';
 import './engine/input.js';
 import './engine/gamepad.js';
 import { updateCamera } from './engine/camera.js';
+import { KC, killCam } from './engine/killcam.js';
 import { updateCharFade, charFadeState, CHAR_SEE } from './world/charfade.js';
 import { updateCutscene } from './game/cutscene.js';
 import { updateBarks } from './fx/barks.js';
@@ -246,7 +247,7 @@ import { arenaInfo } from './world/arena.js';
 import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
-Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
+Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene }, killcam: { KC, killCam } });
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';
@@ -297,3 +298,7 @@ Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById 
 import * as forceLevelData from './data/force-level.js';
 import { trainForm } from './game/upgrades.js';
 Object.assign(window.GAME, { force: { ...forceLevelData, trainForm } });   // the Jedi's Force Level, form shares and form mastery (data/force-level.js), for tests
+import { duelOf as bubbleDuelOf } from './enemies/bubble.js';
+import { BUBBLE as BUBBLE_CFG } from './data/duel-bubble.js';
+import { localPlayer as bubbleHero } from './player/players.js';
+Object.assign(window.GAME, { bubble: { cfg: BUBBLE_CFG, duelOf: bubbleDuelOf, get on(){ return !!bubbleDuelOf(bubbleHero); } } });   // the duel bubble (enemies/bubble.js), for tests

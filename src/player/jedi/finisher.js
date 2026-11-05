@@ -29,6 +29,7 @@ import { addFocus, FOCUS } from './focus.js';
 import { addFury } from './fury.js';
 import { throwOffSaber } from './offthrow.js';
 import { addPosture } from '../../enemies/duel.js';
+import { killCam } from '../../engine/killcam.js';
 
 const FIN = FINISHER;
 const isDark = () => isGunner() && player.weapon === 'darksaber';
@@ -196,6 +197,8 @@ export function finisherStrike(sw){
     tutEvent('saberFinisher', e);
     if (G.stats) G.stats.finishers = (G.stats.finishers || 0) + 1;
     addFocus(FOCUS.gainFin * 2);
+    // a duellist, a champion or the Warbringer cut down: THE KILL CAM, if nobody else is close (engine/killcam.js)
+    if (e !== shared.boss && e.dead && (e.dp || F.tough)) killCam('duel', e);
   }
 }
 
@@ -241,7 +244,7 @@ function edge(b, sw, target, st){
       const dir = d > 0.2 ? V3(dx / d, 0, dz / d) : f.clone();
       damageEnemy(o, dmg, dir, 15, true, false, { shove: CFG.player.saberShove.max, blade: true });
       scarBody(o.group, dir, 'right', true);
-      if (o.dead) severLimbs(o, dir, 0.6);
+      if (o.dead) severLimbs(o, dir, 0.6, { travel: V3(dir.z, 0, -dir.x) });
     }
     spawnGroundShock(V3(pp.x, 0.1, pp.z), st.blade || 0x9fd8ff, E.r + 0.6, 0.3, 0.4);
   } else if (k === 'shock'){

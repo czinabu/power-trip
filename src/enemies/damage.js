@@ -12,6 +12,7 @@ import { bomberExplode, flyerBlowUp } from './specials.js';
 import { FOCUS, addFocus } from '../player/jedi/focus.js';
 import { spawnHitSpark, spawnGroundShock } from '../fx/vfx.js';
 import { sparks } from '../fx/ink.js';
+import { DEFEAT } from '../data/defeats.js';
 import { addStreak } from '../player/damage.js';
 import { gainXp, killBonus } from '../game/progression.js';
 import { ENGAGE } from '../data/enemies.js';
@@ -26,6 +27,7 @@ import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
 import { queueHit, hooks } from '../net/run.js';
+import { killCam, killCamOn } from '../engine/killcam.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -147,6 +149,17 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       e.vel.copy(d.multiplyScalar(Math.min(knockPow || 0, 8) * 0.35));
       e.vel.y = 1.5;
     } else {
+      // a blade's killing cut throws the body along the blade's way as well as off the hero, and a sideways sweep
+      // spins it as it goes (data/defeats.js thrown; a cut that takes a part off plays its own fall: enemies/defeat.js)
+      const sw = opts && opts.blade && opts.cut;
+      if (sw && d.lengthSq() > 1e-6){
+        const T = DEFEAT.thrown, l = Math.hypot(sw.x, sw.z), dl = d.length();
+        if (l > 1e-4){
+          const side = (sw.x * -d.z + sw.z * d.x) / (l * dl);   // the sweep across the blow: + to the blow's left
+          d.multiplyScalar(1 / dl).addScaledVector(V3(sw.x / l, 0, sw.z / l), T.sweep).normalize();
+          e.fallYaw = side * T.spin;
+        }
+      }
       e.vel.copy(d.multiplyScalar(shoveCap((knockPow||14) * (e.t.heavy ? 0.5 : 1), opts)));
       e.vel.y = (opts && opts.shove ? rand(...CFG.player.saberShove.lift) : rand(5, 9)) * (e.t.heavy ? 0.6 : 1);
     }
@@ -180,7 +193,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     if (!e.converted && !shared.boss){
       let hostiles = 0;
       for (const o of enemies) if (!o.dead && !o.converted) hostiles++;
-      if (hostiles === 0 && G.spawnQueue.length === 0){ G.slowmo = 0.3; G.slowmoT = 0.5; }  // wave-clear kill cam
+      // the last of the fight down: THE KILL CAM (engine/killcam.js), or with it off (or no room for it) the old slow-mo dip
+      if (hostiles === 0 && G.spawnQueue.length === 0 && !killCam('last', e) && !killCamOn()){ G.slowmo = 0.3; G.slowmoT = 0.5; }
     }
   } else if (opts && opts.launch === false){
     // no launch: the caller decides how it reels (a flinch, a shove, a stagger)

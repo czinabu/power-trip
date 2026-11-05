@@ -10,6 +10,7 @@ import { cameraClearance, updatePropFade } from '../world/camblock.js';
 import { CFG } from '../data/config.js';
 import { DUEL } from '../data/duel.js';
 import { LOCK_CAM } from '../enemies/duel.js';
+import { KC, updateKillCam } from './killcam.js';
 import * as THREE from 'three';
 /* the Jedi rig's aim point fixed to the hero (no lag): Jedi Academy draws its crosshair along the view from here, so it
    sits mid-screen at rest and rides out with the hero when a roll or a flip outruns the lens (player/aim.js) */
@@ -182,6 +183,7 @@ function updatePlanCam(){
 }
 
 export function updateCamera(dt){
+  updateKillCam();   // a big kill's cinematic beat: its weight, lens and slow motion (engine/killcam.js)
   if (G.sbPlan && shared.planCam && G.mode === 'play'){ updatePlanCam(); return; }
   // the FOV slider wants the real gameplay camera, so the cut slideshow stands down while it's dragged
   if ((G.paused || G.sbMenu) && G.mode === 'play' && !G.fovPreview){ updatePauseCam(); return; }
@@ -304,10 +306,12 @@ export function updateCamera(dt){
     TMP.set(tx - f.x*d*cosP + rv.x*ots, ty + camHi + camLift + dk*3 + d*sinP, tz - f.z*d*cosP + rv.z*ots);
   }
   if (lw > 0){ TMP.lerp(LOCK_LENS, lw); ox = pp.x; oy = pp.y + 1.3; oz = pp.z; }   // the saber lock's side shot (clipped back toward the hero's chest)
+  const kw = lw > 0 ? 0 : KC.w;
+  if (kw > 0){ TMP.lerp(KC.lens, kw); ox = KC.look.x; oy = KC.look.y; oz = KC.look.z; }   // THE KILL CAM's side shot (clipped back toward the pair)
   // aiming up swings the lens down behind the hero; never let it sink below `minLensY` over their feet, so the
   // view never comes up from the floor. Past that point the swing it would have made raises the aim point instead,
   // so you can keep looking up at the same rate
-  const lensFloor = floorY + C.minLensY, aimRise = Math.max(0, lensFloor - TMP.y);
+  const lensFloor = floorY + C.minLensY + (0.5 - C.minLensY) * kw, aimRise = Math.max(0, lensFloor - TMP.y);
   if (TMP.y < lensFloor) TMP.y = lensFloor;
   if (TMP.y < 0.4) TMP.y = 0.4;
   // never park the lens INSIDE a prop (inside one, its ink hull fills the screen black): pull in along the line from
@@ -329,7 +333,7 @@ export function updateCamera(dt){
   const lagBase = (adsFly) ? 0.000004 : (isGunner() && (player.boosting || speed > 14)) ? 0.02 : 0.000008;
   // (frozen sim: dt = 0 would leave the lens stuck on the last pause cut, so the FOV preview snaps straight to the gameplay spot)
   // (the Jedi rig has already done its own easing)
-  if (jedi || lw > 0) camera.position.copy(TMP);
+  if (jedi || lw > 0 || kw > 0) camera.position.copy(TMP);
   else camera.position.lerp(TMP, G.fovPreview ? 1 : 1 - Math.pow(lagBase, dt));
   // SHAKE — trauma model: strength is shake², so chip damage barely registers and a boss slam rattles the screen.
   // Smooth noise (real time, so a hitstop freeze-frame still trembles) with a touch of roll; damped while scoped.
@@ -374,14 +378,14 @@ export function updateCamera(dt){
   const ahead = C.lookAhead * (1 - td * C.topDownAhead);
   const look = jedi ? punchLook(LOOK, pw)   // JA: the view runs from the lens through its aim point, over the hero's head
     : punchLook(LOOK.set(tx + f.x*ahead + rv.x*ots, ty + C.lookUp + 0.3 + diveLook + aimRise - td * C.topDownDrop, tz + f.z*ahead + rv.z*ots), adsFly ? pw * 0.3 : pw);   // (and the aim leans less still)
-  camera.lookAt(lw > 0 ? look.lerp(LOCK_LOOK, lw) : look);
+  camera.lookAt(lw > 0 ? look.lerp(LOCK_LOOK, lw) : kw > 0 ? look.lerp(KC.look, kw) : look);
   // camera ROLL into a strafe — subtle for the Jedi; a pronounced Max-Payne bank for the boosting Mando, but
   // damped right down while AIMING so the shot stays readable.
   const strafe = vx * (-f.z) + vz * f.x;
   let rollGain = (isGunner()) ? (player.boosting ? 0.013 : !player.grounded ? 0.009 : 0.006) : 0.0035;
   let rollMax  = (isGunner()) ? (player.boosting ? 0.13 : 0.08) : 0.045;
   if (adsFly){ rollGain *= 0.35; rollMax *= 0.45; }
-  camera.rotateZ(clamp(-strafe * rollGain, -rollMax, rollMax) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
+  camera.rotateZ(clamp(-strafe * rollGain, -rollMax, rollMax) * (1 - kw) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
   // FOV kick on dashes and at speed; disruptor ZOOM (ADS) pulls the view in tight for precision
   // blasters get a SLIGHT aim zoom only while BRACING (hold RMB) for precision — single pulls in more than dual
   const BRACE_ZOOM = { single: 14, dual: 9, carbine: 12, repeater: 7, rifle: 12 };   // (the carbine shoulders in nearly as tight as the pistol; the repeater is a hip gun; the trooper's DC-15 like the carbine)
@@ -394,6 +398,6 @@ export function updateCamera(dt){
   const wantFov = player.zoom ? 30 : (baseFov(C) + (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6) + (stance().fovKick || 0) - blasterAim);
   // previewing the FOV setting (often while paused, dt = 0): snap so the view follows the slider at once
   camFov = G.fovPreview ? wantFov : camFov + (wantFov - camFov) * Math.min(1, dt * (player.zoom ? 12 : 7));
-  const fov = camFov - fovPunch - PUNCH_FOV * pw - lw * DUEL.lock.cam.fov * (0.5 + 0.5 * Math.abs(LOCK_CAM.bal));
+  const fov = camFov - fovPunch - PUNCH_FOV * pw - lw * DUEL.lock.cam.fov * (0.5 + 0.5 * Math.abs(LOCK_CAM.bal)) - (kw > 0 ? KC.fov : 0);
   if (Math.abs(camera.fov - fov) > 0.02){ camera.fov = fov; camera.updateProjectionMatrix(); }
 }

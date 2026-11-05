@@ -127,7 +127,10 @@ export function pauldrons(k, w, key = 'armor', size = 1){
    Returns the grip group (centre of the fist) for a held weapon.
    o.hand: undefined → a closed fist; 'grip' → fingers closed round a grip running down the forearm's line through the
    grip group (radius o.gr: a hilt, a haft); 'open' → the cuff only, the hand placed by holdArm on what it holds.
-   o.elbow: name the elbow as a bone (a hold the game re-aims each frame: enemies/holds.js) */
+   o.elbow: the elbow bone's name (a hold the game re-aims each frame: enemies/holds.js). Every elbow is a bone, named
+   for its arm when nothing else names it ('fore:weaponArm', 'fore:arm:L'...), so a saber cut can take the forearm off
+   at it (enemies/scars.js) */
+const foreName = parent => 'fore:' + (parent.userData.slot || parent.userData.bone || 'arm');
 export function arm(k, parent, w, o = {}){
   /* a robed saber wielder's arms are sleeves (k.sleeve, enemies/saberist.js): one soft tube from the shoulder that runs
      on past the elbow, a round elbow that fills the joint at any bend, and a forearm sleeve that bells at the wrist
@@ -135,14 +138,14 @@ export function arm(k, parent, w, o = {}){
   let el;
   if (k.sleeve){
     k.add(loft([{ y:-UPPER - 0.02, w:0.14*w, d:0.14 }, { y:-0.3, w:0.15*w, d:0.15 }, { y:-0.08, w:0.165*w, d:0.165 }, { y:0.06, w:0.17*w, d:0.17 }], ngon(12)), k.sleeve, parent);
-    el = o.elbow ? k.bone(o.elbow, parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]) : k.group(parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
+    el = k.bone(o.elbow || foreName(parent), parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
     k.add(loft([{ y:-0.075, w:0.1*w, d:0.1 }, { y:-0.05, w:0.135*w, d:0.135 }, { y:0, w:0.148*w, d:0.148 }, { y:0.05, w:0.135*w, d:0.135 }, { y:0.075, w:0.1*w, d:0.1 }], ngon(12)), k.sleeve, el);
     const bell = k.bell ? 1 : 0;
     k.add(loft([{ y:-0.35, w:(0.15 + 0.06*bell)*w, d:0.15 + 0.055*bell }, { y:-0.28, w:(0.145 + 0.035*bell)*w, d:0.145 + 0.035*bell },
                 { y:-0.14, w:(0.14 + 0.01*bell)*w, d:0.14 + 0.01*bell }, { y:0.02, w:0.14*w, d:0.14 }], ngon(12)), o.fore || 'armor', el);
   } else {
     k.add(limb(0.4, [[-0.06,0.15*w,0.15],[0.1,0.15*w,0.15],[1,0.115*w,0.115]], SOFT_LIMB), 'suit', parent);
-    el = o.elbow ? k.bone(o.elbow, parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]) : k.group(parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
+    el = k.bone(o.elbow || foreName(parent), parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
     k.add(loft([{ y:-0.05, w:0.125*w, d:0.13 }, { y:0.0, w:0.135*w, d:0.145 }, { y:0.05, w:0.12*w, d:0.13 }], SOFT_LIMB), 'armor2', el, [0, 0, 0.01]);   // elbow cop
     k.add(limb(0.3, [[0,0.13*w,0.13],[0.6,0.135*w,0.13],[1,0.105*w,0.1]], KEEL), o.fore || 'armor', el, [0, -0.02, 0.005]);
   }
@@ -167,7 +170,8 @@ export function sideArm(k, w, s, rot = [0, 0, 0], o){
 const UPPER = 0.41, FORE = 0.38;
 function reachArm(k, w, s, target, o = {}){
   const sp = new THREE.Vector3(0.42*w*s, 1.74, 0);
-  const sh = o.slot ? k.slot(o.slot, k.root, sp.toArray()) : k.group(k.root, sp.toArray());
+  // (an arm with no slot of its own, a rifleman's, hangs from a shoulder bone: a cut can still take it off)
+  const sh = o.slot ? k.slot(o.slot, k.root, sp.toArray()) : k.bone('arm:' + (s < 0 ? 'L' : 'R'), k.root, sp.toArray());
   sh.quaternion.copy(reachPose(sp, new THREE.Vector3(...target), (o.twist || 0) * s, _rb));
   return arm(k, sh, w, { ...o, bend: -_rb.b });
 }
@@ -674,7 +678,7 @@ function shockBaton(k, t, g, at, rot){
 // hands on it
 function rifle(k, t, w, long){
   const at = long ? [0.2, 1.5, 0.32] : [0.22, 1.32, 0.36], yaw = long ? -0.05 : -0.18;
-  const g = k.group(k.root, at, [0, yaw, 0]);
+  const g = k.slot('rifle', k.root, at, [0, yaw, 0]);   // (a slot of its own: a felled trooper drops it, enemies/defeat.js)
   // the trigger hand round the pistol grip, the other under the barrel
   holdArm(k, w, 1, g, [0, -0.13, 0.02], [0, Math.cos(0.3), Math.sin(0.3)], { rx: 0.026, rz: 0.04, twist: 0.3 });
   holdArm(k, w, -1, g, [0, 0.0, long ? 0.42 : 0.33], [0, 0, 1], { rx: 0.032, rz: 0.034, twist: -0.3 });

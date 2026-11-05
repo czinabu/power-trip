@@ -34,6 +34,15 @@ for (const [k, n] of [['menu', 'Menu'], ['temple', 'Jedha'], ['foundry', 'Mustaf
   btn(world, n, () => { if (k === 'menu') G.mode = 'menu'; else { G.mode = 'play'; shared.arenaLayout = k; } }, true);
 const mus = section('Score intensity');
 for (const s of ['menu', 'lull', 'combat', 'heavy', 'boss']) btn(mus, s, () => MUSIC.setState(s), true);
+// the boss fight's epic layer: a stand-in boss so the villain's theme plays, then its phase turns and its fall
+const ep = section('Boss fight epic layer (pick a world first)');
+const fakeBoss = (id) => { shared.finale = { hp: 100, maxHp: 100, fin: { def: { id }, phase: 1 } }; };
+for (const [n, id] of [['Vexis', 'vexis'], ['Magistrate', 'magistrate'], ['Marshal', 'marshal']])
+  btn(ep, 'fight ' + n, () => { fakeBoss(id); MUSIC.setState('boss'); }, true);
+btn(ep, 'driven to a knee', () => MUSIC.bossBeat(2));
+btn(ep, 'phase II', () => { if (shared.finale) shared.finale.fin.phase = 2; MUSIC.bossPhase(2); });
+btn(ep, 'phase III', () => { if (shared.finale) shared.finale.fin.phase = 3; MUSIC.bossPhase(3); });
+btn(ep, 'his fall', () => { MUSIC.bossFinish(); shared.finale = null; });
 const st = section('Stings');
 for (const [n, f] of [['wave start', 'waveSting'], ['area cleared', 'clearSting'], ['unlock', 'unlockSting'], ['boss rises', 'bossSting'], ['victory', 'victorySting'], ['death', 'deathSting']])
   btn(st, n, () => MUSIC[f]());
@@ -111,5 +120,6 @@ const stateEl = document.getElementById('state');
   }
   G.gt += dt;
   updateAudio(dt);
-  if (AE.ready){ const m = MUSIC.debug(); stateEl.textContent = `score ${m.palette} · ${m.state} · intensity ${m.intensity}\nvoices ${AE.live}`; }
+  if (shared.finale) MUSIC.updateState();   // a stand-in boss is up (the epic layer's buttons): the score follows it as in a fight
+  if (AE.ready){ const m = MUSIC.debug(); stateEl.textContent = `score ${m.palette} · ${m.state} · intensity ${m.intensity} · epic ${m.epic.lv} (phase ${m.epic.phase})\nvoices ${AE.live}`; }
 })(last);

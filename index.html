@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="/styles/store.css">
 <link rel="stylesheet" href="/styles/codex.css">
 <link rel="stylesheet" href="/styles/profile.css">
+<link rel="stylesheet" href="/styles/hub.css">
 </head>
 <body class="in-menu">
 <!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
@@ -159,7 +160,8 @@
   <div id="bosswrap"><div id="bossname"></div><div id="bossbarbg"><div id="bossbar"></div></div></div>
   <div id="banner"><div id="bannerk"></div><h1 id="bannerh"></h1><p id="bannerp"></p></div>
   <div id="comms"><div class="cm-who"></div><div class="cm-say"></div></div>   <!-- the voice in your ear during a chapter (game/story.js) -->
-  <div id="talkp"></div>   <!-- walk-up lines: the TALK prompt by someone on your side (game/talk.js) -->
+  <div id="talkp"></div>
+  <div id="hubp"></div>   <!-- the temple: the station you are at, and the key that opens it (game/hub.js) -->   <!-- walk-up lines: the TALK prompt by someone on your side (game/talk.js) -->
   <div id="tutor"><div class="tt-step"></div><div class="tt-do"><span class="tt-keys"></span><span class="tt-task"></span><span class="tt-count"></span></div><div class="tt-voice"><span class="tt-say"></span><span class="tt-who"></span></div></div>
   <div id="xh"></div>
   <div id="cutdial"><i></i></div>
@@ -192,6 +194,7 @@
       <div id="modestep">
         <div class="sec-label">MODE</div>
         <div id="modeselect">
+          <div class="modeopt brk major wide temple" id="mode-temple"><span class="mt">THE HIDDEN TEMPLE</span><span class="md">Walk the temple on Tython, gather your party and pick a mission together</span></div>
           <div class="modeopt brk major sel" id="mode-campaign"><span class="mt">CAMPAIGN</span><span class="md">13 chapters, three acts</span></div>
           <div class="modeopt brk major" id="mode-mission"><span class="mt">MISSIONS</span><span class="md">Story missions and a random arcade</span></div>
           <div class="modeopt brk" id="mode-training"><span class="mt">TRAINING</span><span class="md">Learn the controls and powers</span></div>
@@ -201,7 +204,7 @@
         </div>
       </div>
       <div id="herostep">
-        <div class="step-head"><div class="btn step-back" id="stepBack">‹ MODES</div><div class="step-mode"><span class="step-k">MODE</span><span id="stepMode">CAMPAIGN</span></div></div>
+        <div class="step-head"><div class="btn step-back" id="stepBack">‹ MODES</div><div class="btn step-back" id="stepTemple" style="display:none">‹ TEMPLE</div><div class="step-mode"><span class="step-k">MODE</span><span id="stepMode">CAMPAIGN</span></div></div>
         <div class="sec-label">HERO<span class="cz-open" id="cztoggle" title="Change how your hero looks">CUSTOMIZE</span></div>
         <div id="heroselect">
           <div class="herocard brk sel" id="hero-jedi">
@@ -292,6 +295,7 @@
       <div class="btn" id="lessonsBtn">LESSON BOARD</div>
       <div class="btn" id="formsBtn">LIGHTSABER FORMS</div>
       <div class="btn" id="restartBtn">↻ RESTART RUN</div>
+      <div class="btn" id="templeBtn" style="display:none">RETURN TO THE TEMPLE</div>
       <div class="btn" id="homeBtn">MAIN MENU</div>
       <div class="btn" id="newBtn">NEW GAME</div>
       <div class="btn" id="saveBtn">SAVE GAME</div>
@@ -404,6 +408,7 @@
       <div id="coopstatus"></div>
       <div id="cooproster"></div>
       <div class="btn primary" id="coopjoinrun">JOIN THE HOST'S RUN</div>
+      <div class="btn primary" id="coopjointemple">JOIN THEM IN THE TEMPLE</div>
       <div class="btn" id="coopleave">LEAVE</div>
       <p class="coop-note">Fight together, 2 to 4 players: the host starts a Survival run, the campaign or a story mission, and the others join it from here. You each see the others as extra heroes, and the host's enemies are the ones you both fight. Training and the sandbox you each play on your own.</p>
     </div>
@@ -464,6 +469,7 @@
     <div class="btn primary" id="continueBtn">CONTINUE</div>
   </footer>
 </div>
+<div id="hubpanel"></div>   <!-- the temple's station panel (ui/hub-ui.js) -->
 <div id="sandbox">
   <div class="sb-panel">
     <div class="howto-head"><div class="howto-title">SANDBOX</div><div class="rm-sub">Call in foes, pick your powers · <kbd class="kbonly">Q</kbd><kbd class="kbonly">E</kbd><kbd class="pg padonly" data-b="LB"></kbd><kbd class="pg padonly" data-b="RB"></kbd> jump · <kbd class="kbonly">B</kbd><kbd class="pg padonly" data-b="B"></kbd> to close</div>

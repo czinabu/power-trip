@@ -14,7 +14,7 @@ import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, B
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
 let store = null;
-const learning = () => G.mode === 'play' && !G.training && !G.sandbox;
+const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub;
 
 function load(){
   if (store) return store;

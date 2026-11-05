@@ -52,6 +52,7 @@ import { buildChipworksArena } from './arenas/chipworks.js';
 import { buildWarcampArena } from './arenas/warcamp.js';
 import { buildCanyonArena } from './arenas/canyon.js';
 import { buildRelayArena } from './arenas/relay.js';
+import { buildTythonArena } from './arenas/tython.js';
 import { resetDoors } from './doors.js';
 import { buildNav } from '../enemies/nav.js';
 import { clearScorch } from '../fx/scorch.js';
@@ -115,6 +116,7 @@ export function buildArena(L){
   shared.arenaWallFace = null;   // …and how far from the centre its walls' inner faces stand (the wall-run runs on them)
   shared.dojoRemotes = null;      // the sandbox room's hovering remotes (world/arenas/dojo.js)
   shared.templeBrazier = null;
+  shared.hubAnim = null;   // the hub's turning holograms (world/arenas/tython.js)
   resetDoorway();   // (the temple layout builds its doors again; a screen that went dark through them comes back up)
   shared.grassClear = null; shared.grassMounds = null; clearGrass();   // (an arena builder may set these: world/grass.js)   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
   pillars.length = 0;
@@ -204,6 +206,7 @@ export function buildArena(L){
   else if (L.layout === 'warcamp'){ buildWarcampArena(LP); }
   else if (L.layout === 'canyon'){ buildCanyonArena(LP); }
   else if (L.layout === 'relay'){ buildRelayArena(LP); }
+  else if (/^ty[A-Z]/.test(L.layout)){ buildTythonArena(LP); }   // the hidden temple on Tython, the hub (data/hub.js)
   else {
   // pick a spot at least `gap` clear of every other obstacle so cover stays SPREAD OUT — clustered obstacles
   // form walls that trap the enemy AI. Returns null if no open spot is found (so we just place fewer).

@@ -48,7 +48,7 @@ let sentAt = 0, hostSent = false, runListeners = [];
 const byNid = new Map();   // the guest's puppets, by the host's number for each foe
 
 // what shared run this browser is hosting: 'e' Survival, 'c' the campaign (its chapters, waves or missions), 'm' a story mission, '' none (training, the sandbox)
-export const runKind = () => G.endless ? 'e' : G.chapter >= 0 ? 'c' : G.mission ? 'm' : (!G.training && !G.sandbox) ? 'c' : '';
+export const runKind = () => G.endless ? 'e' : G.chapter >= 0 ? 'c' : G.mission ? 'm' : (!G.training && !G.sandbox && !G.hub) ? 'c' : '';
 export const coopLive = () => !!G.coopGuest || (hostSent && connected());
 export const puppetOf = (nid) => nid === 'B' ? shared.boss : byNid.get(nid) || null;
 export function onRunChange(fn){ runListeners.push(fn); }
@@ -243,7 +243,7 @@ on('e', (m) => {
   if (changed) runChanged();
   // this guest fell out of the shared fight without the host's run ending (died and retried, restarted): it was playing its
   // own foes and waves. Back in: its own foes go, and the host's take their place
-  if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && (m.k === 'e' ? G.endless : m.k === 'c' ? !G.endless && !G.mission && !G.training && !G.sandbox : false)){
+  if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && (m.k === 'e' ? G.endless : m.k === 'c' ? !G.endless && !G.mission && !G.training && !G.sandbox && !G.hub : false)){
     for (const e of enemies) removeEnemy(e);
     enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
     G.coopGuest = true;

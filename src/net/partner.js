@@ -99,6 +99,8 @@ on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from ||
 // each player's PROFILE CARD (game/profile.js profileCard: hero, rank, Force Tree), with their hello and now and then after:
 // shown on their name tag, and kept on their entry for whatever reads the room (the hub, partnerCards)
 function hearCard(P, c){ if (c !== undefined) P.mate.card = cleanCard(c); }
+// where each partner is (their worldKey: 'hub:hall', 'survival:0'...), for the temple's map (ui/hub-ui.js) and the co-op panel
+export const partnerWorlds = () => [...partners.values()].filter(P => P.built && P.playing).map(P => ({ slot: P.slot, name: who(P), world: P.world }));
 export const partnerCards = () => [...partners.values()].map(P => ({ slot: P.slot, name: nameOf(P.slot), card: P.mate.card || null }));
 on('s', (m) => {
   const P = partnerOf(m.from || 0), { want, mate, puppet, track } = P;
@@ -174,7 +176,8 @@ function partnerSteps(P, dt){
 
 function stepPartner(P, dt){
   const { puppet, mate, want, track } = P;
-  const show = P.built && connected() && P.playing && G.mode !== 'menu';
+  const here = worldKey(), hubbed = here.startsWith('hub:') || P.world.startsWith('hub:');
+  const show = P.built && connected() && P.playing && G.mode !== 'menu' && (!hubbed || P.world === here);   // (in the temple: only the ones in the same wing)
   puppet.group.visible = show;
   mate.here = show && G.mode === 'play' && P.world === worldKey();
   if (P.tag) P.tag.style.display = show ? 'block' : 'none';

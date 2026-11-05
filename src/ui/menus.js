@@ -42,6 +42,10 @@ import { loadInto } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
+import { startHub, setPartyHooks } from '../game/hub.js';
+// the temple's station panel (ui/hub-ui.js registers its closer: it imports this file, so this one can't import it)
+let closeHubPanel = () => {};
+export function setHubPanelCloser(fn){ closeHubPanel = fn; }
 
 /* ============================================================
    INPUT
@@ -76,12 +80,12 @@ function refreshNextRun(){
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
-const beginLabel = () => G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
+const beginLabel = () => G.modeSel === 'temple' ? 'ENTER THE TEMPLE' : G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
 /* THE TITLE SCREEN'S TWO STEPS — 'mode' (pick a mode: CAMPAIGN, MISSIONS, CO-OP...) and then 'hero' (the hero, the
    difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
 let _step = 'mode';
 export const menuStep = () => _step;
-const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION' };
+const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE' };
 export function showMenuStep(step){
   _step = step === 'hero' ? 'hero' : 'mode';
   overlay.classList.toggle('step-mode', _step === 'mode');
@@ -101,7 +105,9 @@ export function setOverlayState(state){
   overlay.classList.remove('asktrain');
   if (state === 'menu') refreshWorn();   // back on the menu: dressed in whatever the campaign has unlocked since (ui/customizer.js)
   if (state !== 'pause') document.getElementById('ovctx').textContent = '';
-  document.getElementById('restartBtn').style.display = state === 'menu' ? 'none' : 'inline-flex';
+  document.getElementById('restartBtn').style.display = state === 'menu' || G.hub ? 'none' : 'inline-flex';
+  document.getElementById('templeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub ? 'inline-flex' : 'none';   // a run started from the temple goes back to it
+  document.getElementById('stepTemple').style.display = state === 'menu' && G.fromHub ? '' : 'none';
   document.getElementById('restartBtn').textContent = state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
@@ -116,10 +122,10 @@ export function setOverlayState(state){
     go.textContent = 'BEGIN'; sub.textContent = 'CHOOSE YOUR LEGEND';
   } else if (state === 'menu'){
     go.textContent = beginLabel();
-    sub.textContent = G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
+    sub.textContent = G.modeSel === 'temple' ? 'TYTHON · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
-    const where = G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
+    const where = G.hub ? 'THE HIDDEN TEMPLE · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
@@ -169,6 +175,8 @@ function beginPlay(){
     G.paused = true;
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
+      if (G.modeSel === 'temple'){ startHub(G.hubWing || 'hall'); G.paused = false; return; }   // the hidden temple, the hub (game/hub.js)
+      G.hub = false;
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
       else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
@@ -229,7 +237,7 @@ export function setModeSel(m){
     return false;
   }
   G.modeSel = m;
-  for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
+  for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile();
   document.getElementById('stepMode').textContent = STEP_NAME[m] || 'CAMPAIGN';
@@ -237,7 +245,7 @@ export function setModeSel(m){
   return true;
 }
 // a mode tile picks the mode and moves on to the hero step (a locked one shakes and stays put)
-for (const m of ['campaign', 'endless', 'training', 'sandbox'])
+for (const m of ['campaign', 'endless', 'training', 'sandbox', 'temple'])
   document.getElementById('mode-' + m).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (m === 'campaign') pickUpSavedRun(); if (setModeSel(m)) showMenuStep('hero'); });
 // CAMPAIGN on the title screen opens on CONTINUE CAMPAIGN whenever the picked hero has a saved run: a run played from the
 // menu is used up as it starts (game/saves.js resumeRun), so back on the menu that hero's newest save is put back first
@@ -577,6 +585,7 @@ export function beginFromMenu(){
 // three to carry; its FIGHT launches. A Mando starting a mission sees the armory: the sidearm and primary to carry
 // (ui/armory-ui.js). RESUME, a retry and PLAY AGAIN go straight back in
 function launchFromMenu(){
+  if (G.modeSel === 'temple'){ launch(); return; }   // the temple: no fight to get ready for
   if (G.mode === 'menu' && !isGunner() && !G.coopJoin) openPrefight(launch);
   else if (G.mode === 'menu' && G.hero === 'mando' && G.modeSel === 'mission' && !G.coopJoin) openArmoryPrefight(launch);
   else { if (G.mode === 'menu') G.missionKit = null; launch(); }
@@ -707,7 +716,7 @@ setStoryReturn({
 export function goHome(){
   overlay.classList.remove('confirming');
   closeMissionPage();   // MAIN MENU is the menu itself, not the Missions page a mission was started from
-  closeSandboxPanel(false);
+  closeSandboxPanel(false); closeHubPanel(false);
   leaveSetup(false);   // the sandbox's battle setup, if it's up (game/battlesim.js)
   closeCard(true);
   document.getElementById('skilltree').style.display = 'none';
@@ -715,7 +724,7 @@ export function goHome(){
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
   document.getElementById('runsummary').style.display = 'none';
   startLevel(0);   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would
-  G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0;
+  G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.fromHub = false;
   overlay.style.display = 'flex';
   if (!G.coopJoin) followHero();   // the run just played was used up as it began: this hero's newest save waits again for CONTINUE CAMPAIGN
   showMenuStep('mode');   // the title screen opens on its first step
@@ -739,12 +748,94 @@ document.getElementById('skipBtn').addEventListener('click', () => skipStep());
 document.getElementById('lessonsBtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); document.getElementById('goText').click(); openLessonBoard(); });
 document.getElementById('homeBtn').addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
-  if (_ovState === 'pause') overlay.classList.add('confirming'); else goHome();
+  if (_ovState === 'pause' && !G.hub){ templeAsk = false; overlay.classList.add('confirming'); } else goHome();
 });
-document.getElementById('homeYes').addEventListener('click', (e) => { e.stopPropagation(); goHome(); });
+document.getElementById('homeYes').addEventListener('click', (e) => { e.stopPropagation(); if (templeAsk){ overlay.classList.remove('confirming'); goTemple(); } else goHome(); });
 document.getElementById('homeNo').addEventListener('click', (e) => { e.stopPropagation(); overlay.classList.remove('confirming'); });
+// RETURN TO THE TEMPLE: a run started from the temple goes back to it (from pause it asks first, as MAIN MENU does)
+let templeAsk = false;
+document.getElementById('templeBtn').addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit();
+  if (_ovState === 'pause'){ templeAsk = true; overlay.classList.add('confirming'); } else goTemple();
+});
+document.getElementById('stepTemple').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); goTemple(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('confirming')) overlay.classList.remove('confirming'); });
 document.querySelectorAll('.fsctl').forEach((el) => el.addEventListener('click', audioInit));   // fullscreen.js does the toggling
 document.getElementById('continueBtn').addEventListener('click', (e) => { e.stopPropagation(); closeProgress(); });
 // GRAPHICS selector on the overlay — cycle quality without resuming/launching (stop the click bubbling to the overlay)
 document.getElementById('gfxctl').addEventListener('click', (e) => { e.stopPropagation(); cycleQuality(); });
+
+/* ============================================================
+   THE HIDDEN TEMPLE (game/hub.js): its stations launch modes, open pages, and runs come back to it
+   ============================================================ */
+// start play now, whether or not this moment counts as a click: with the lock already held (or none to be had) it goes
+// straight in; otherwise it asks for the lock and, if that's refused, plays unlocked (a click on the game takes it later)
+export function launchNow(){
+  audioInit();
+  if (document.pointerLockElement === renderer.domElement || pad.active || shared.lockFallback){ beginPlay(); return; }
+  requestLock();
+  setTimeout(() => { if (document.pointerLockElement === renderer.domElement || G.mode !== 'menu') return; shared.lockFallback = true; beginPlay(); }, 350);
+}
+// leave the temple for the title screen (a station that opens a menu page, or launches a mode through it). The temple's
+// build stays where it is until the next mode replaces it; the menu draws its own stage, not the arena
+function leaveHub(){
+  closeHubPanel(false);
+  G.fromHub = true; G.hub = false; G.mode = 'menu'; G.paused = false; G.skillSelect = false; G.sbMenu = false;
+  overlay.style.display = 'flex';
+  if (!G.coopJoin) followHero();
+  refreshMenu();
+}
+export function hubToMenu(step = 'hero'){ leaveHub(); showMenuStep(step); }
+// a station's mode, straight in: the forms page (or the armory) first where the title screen would show it
+export function hubLaunch(mode, mid){
+  if (mode === 'mission' && mid) setMission(mid);
+  leaveHub();
+  if (!setModeSel(mode)){ showMenuStep('mode'); return false; }
+  showMenuStep('hero');
+  if (mode === 'campaign') pickUpSavedRun();
+  beginFromMenu();
+  return true;
+}
+// a page that lives on the pause screen (the codex, the profile, the forms): over the temple, paused under it; closing
+// it with a click goes straight back to the temple
+let hubPage = null;
+export function hubOpenPanel(open, isOpen){
+  closeHubPanel(false);
+  hubPage = isOpen;
+  G.paused = true; overlay.style.display = 'flex'; setOverlayState('pause');
+  if (document.pointerLockElement) document.exitPointerLock();
+  open();
+}
+// (capture phase, looked at just after: a page's own close button stops its click going any further. The click is still a
+// gesture a moment later, so the lock comes back with it; Esc closing the page isn't one, so that plays unlocked until
+// the next click on the game)
+const hubPageClosed = (gesture) => setTimeout(() => {
+  if (!hubPage || hubPage() || !G.hub || G.mode !== 'play') return;
+  hubPage = null; if (gesture) launch(); else launchNow();
+}, 0);
+document.addEventListener('click', () => hubPageClosed(true), true);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hubPageClosed(false); }, true);
+// back to the temple from wherever this run is (its end screens, pause, the menu): `auto` when nobody clicked (a co-op
+// guest called back by the host)
+export function goTemple(auto){
+  overlay.classList.remove('confirming');
+  closeMissionPage(); closeSandboxPanel(false); closeHubPanel(false); leaveSetup(false); closeCard(true);
+  document.getElementById('skilltree').style.display = 'none';
+  G.skillSelect = false; G.sbMenu = false;
+  if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
+  document.getElementById('runsummary').style.display = 'none';
+  G.mode = 'menu'; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.coopJoin = false;
+  setModeSel('temple'); setOverlayState('menu');
+  if (auto) launchNow(); else launch();
+}
+// a co-op guest in the temple follows the host into the run they just started
+function followHostRun(){
+  closeHubPanel(false);
+  G.fromHub = true; G.partyRun = true; G.hub = false;
+  G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : 'endless';
+  if (coopRun.k === 'm') G.missionId = coopRun.mid;
+  G.mode = 'menu'; setOverlayState('menu');
+  launchNow();
+}
+export function joinHostRun(){ followHostRun(); }   // (the council table's JOIN, ui/hub-ui.js)
+setPartyHooks(followHostRun, goTemple);

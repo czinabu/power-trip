@@ -96,6 +96,7 @@ export function startLevel(idx, opts){
   G.training = !!(opts && opts.training);
   G.mission = !!(opts && opts.mission);
   G.sandbox = !!(opts && opts.sandbox);
+  G.hub = !!(opts && opts.hub);   // the hidden temple (game/hub.js): no foes, no waves, no run
   setFoeLook(opts && opts.foeLook);   // a story mission's uniform for the foes it sends (enemies/look.js), or none
   G.squadCap = (opts && opts.squadCap) || 0;   // and the most squadmates its story has (allies/squad.js trooperSquad), or no cap
   const L = (opts && opts.level) || LEVELS[idx];
@@ -213,21 +214,21 @@ export function startLevel(idx, opts){
   /* CHECKPOINT — a retry puts the run back where the level began: the same wave count, so the army isn't tougher
      and more elite for every death (enemy HP and elite odds climb with waveTotal). Died to the boss on Padawan or
      Knight → the retry goes straight to the boss instead of replaying all four waves. */
-  const cp = G.checkpoint, retry = !!(opts && opts.retry) && !G.training && !G.mission && !G.sandbox && cp && cp.idx === idx && (cp.ch == null || cp.ch === G.chapter);
+  const cp = G.checkpoint, retry = !!(opts && opts.retry) && !G.training && !G.mission && !G.sandbox && !G.hub && cp && cp.idx === idx && (cp.ch == null || cp.ch === G.chapter);
   const bossRetry = retry && cp.boss;
   if (retry) G.waveTotal = bossRetry ? cp.bossWaveTotal : cp.waveTotal;
-  else if (!G.training && !G.mission && !G.sandbox){ G.checkpoint = { idx, ch: G.chapter, waveTotal: G.waveTotal, boss: false }; if (!G.endless) autosave('level'); }
+  else if (!G.training && !G.mission && !G.sandbox && !G.hub){ G.checkpoint = { idx, ch: G.chapter, waveTotal: G.waveTotal, boss: false }; if (!G.endless) autosave('level'); }
   applyJetTier();   // size the jetpack to the current booster tier
   document.getElementById('xpval').textContent = (G.xp || 0);
   checkUnlocks();
-  shared.levelPhase = G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'between'; shared.phaseT = 2.6;   // training, missions and the sandbox run their own steps, no waves
+  shared.levelPhase = G.hub ? 'hub' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'between'; shared.phaseT = 2.6;   // training, missions and the sandbox run their own steps, no waves
   { const [lvl, place] = L.name.split('—').map(t => t.trim());   // 'LEVEL 1 — TEMPLE STEPS' → tag + headline
     showBanner(place || lvl, L.sub, 2.6, place ? { kicker: lvl } : null); }
   if (bossRetry){
     G.wave = G.waveEnd; shared.levelPhase = 'bossfight';
     spawnBossWhenReady(() => G.mode === 'play' && G.levelIdx === idx && shared.levelPhase === 'bossfight' && !shared.boss && !shared.finale, 2600);
   }
-  trooperSquad();   // the ARC trooper's clones (allies/squad.js)
+  if (!G.hub) trooperSquad();   // the ARC trooper's clones (allies/squad.js); the temple is peaceful, no squad
   // a story's guest fighters for a wave chapter (the ARC trooper's Hoth: a Jedi on the line), beside the squad and not
   // counted in it (a mission chapter's are game/mission.js's)
   if (opts && opts.guests && !G.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
@@ -235,7 +236,7 @@ export function startLevel(idx, opts){
 }
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)
 export function retryLevel(){ if (G.chapter >= 0) retryChapter(); else startLevel(G.levelIdx, { retry: true }); }
-export function retryIsBoss(){ return !!(G.checkpoint && G.checkpoint.boss && G.checkpoint.idx === G.levelIdx && !G.endless && !G.training && !G.mission && !G.sandbox); }
+export function retryIsBoss(){ return !!(G.checkpoint && G.checkpoint.boss && G.checkpoint.idx === G.levelIdx && !G.endless && !G.training && !G.mission && !G.sandbox && !G.hub); }
 
 /* ---------- HUD chip sync + AUTOMATIC unlocks (weapons/stances/jetpack) ---------- */
 // [unlock-key, chip-id] — 'slam' uses ab-mslam to avoid colliding with the Jedi ab-slam.
@@ -292,8 +293,8 @@ export function checkUnlocks(bannerDelay, closing){
     // THE FORCE LEVEL rides the same gates (data/force-level.js): a run only climbs; the training grounds and the sandbox
     // fight at the level the story has reached (the sandbox's slider overrides it). Set first: a power waits for its level
     const was = G.forceLevel || 1;
-    G.forceLevel = (G.sandbox || G.training) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
-    if (G.forceLevel > was && !G.sandbox && !G.training){ forceUp = G.forceLevel; forceWas = was; }
+    G.forceLevel = (G.sandbox || G.training || G.hub) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
+    if (G.forceLevel > was && !G.sandbox && !G.training && !G.hub){ forceUp = G.forceLevel; forceWas = was; }
     for (const u of JEDI_AUTO){
       const reached = jediReached(u);
       if (!reached || u.has() || !forceReady(u.force)) continue;
@@ -314,7 +315,7 @@ export function checkUnlocks(bannerDelay, closing){
       setLoadout(G.missionForms);
     } else setLoadout(autoLoadout());
   }
-  if (G.training || (G.mission && G.chapter < 0) || G.sandbox) return;   // the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
+  if (G.training || (G.mission && G.chapter < 0) || G.sandbox || G.hub) return;   // (the temple: no fanfare either) the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
   // the Force Level rose (ui/force-toast.js): a level that hands over a power with its own card rides on that card, a strip
   // across its top; the rest are a corner note and a Force pulse round the hero, once the dialogue and the fight are over
   if (forceUp && (closing || G.endless)){

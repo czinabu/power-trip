@@ -15,7 +15,7 @@ import { EARNABLE, BENCH, partEarned } from '../data/saber-parts.js';
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
 let store = null;
-const learning = () => G.mode === 'play' && !G.training && !G.sandbox;
+const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub;
 
 function load(){
   if (store) return store;

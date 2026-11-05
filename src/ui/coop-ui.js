@@ -11,7 +11,8 @@ import { launchCoopRun } from './menus.js';
 import { G } from '../state.js';
 import { missionTitle } from '../game/mission.js';
 import { profileCard } from '../game/profile.js';
-import { partnerCards } from '../net/partner.js';
+import { partnerCards, partnerWorlds } from '../net/partner.js';
+import { goTemple } from './menus.js';
 
 const panel = document.getElementById('coop');
 const statusEl = document.getElementById('coopstatus');
@@ -21,6 +22,9 @@ const pingEl = document.getElementById('netping');
 const nameIn = document.getElementById('coopname');
 const rosterEl = document.getElementById('cooproster');
 const runBtn = document.getElementById('coopjoinrun');
+const templeBtn = document.getElementById('coopjointemple');
+// the host is in the hidden temple (game/hub.js): a guest on the menu can go in after them
+const hostInTemple = () => partnerWorlds().some(p => p.slot === 0 && p.world.startsWith('hub:'));
 
 const setOpen = (open) => { panel.classList.toggle('open', open); if (open){ render(); markHero(); } };
 // YOUR HERO: the title screen picks the hero on its second step, so the co-op panel (opened from the first) has its own
@@ -46,6 +50,7 @@ document.getElementById('coophost').addEventListener('click', (e) => { e.stopPro
 document.getElementById('coopjoin').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); join(codeIn.value); });
 leaveBtn.addEventListener('click', (e) => { e.stopPropagation(); leave(false); });
 runBtn.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setOpen(false); launchCoopRun(); });
+templeBtn.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setOpen(false); goTemple(); });
 codeIn.addEventListener('input', () => { codeIn.value = cleanCode(codeIn.value); });
 codeIn.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') join(codeIn.value); });
 codeIn.addEventListener('click', (e) => e.stopPropagation());
@@ -80,7 +85,7 @@ function render(){
   else if (s === 'joining') statusEl.textContent = 'Joining room ' + net.code + '…';
   else if (s === 'connected'){
     const guest = net.role === 'guest';
-    const msg = !coopRun.on ? (guest ? 'Connected. Waiting for the host to start a run, then you can join it here.' : 'Connected. Start a campaign, a story mission or a Survival run and your friends can join it. Training and the sandbox you each play on your own.')
+    const msg = !coopRun.on ? (guest ? (hostInTemple() ? 'Connected. The host is in the hidden temple: go in and meet them there.' : 'Connected. Waiting for the host to start a run, then you can join it here.') : 'Connected. Enter the hidden temple and your friends can meet you there, or start a campaign, a story mission or a Survival run and they can join it. Training and the sandbox you each play on your own.')
       : guest ? (G.coopGuest ? 'Fighting alongside the host' + waveText() + '.' : G.mode === 'menu' ? 'The host is on ' + runName() + waveText() + '.' : 'The host is in a run. Go back to the main menu to join it.')
       : 'Your friends can join your run from this panel.';
     // the host keeps the code in view while there is room: one more friend can still come in
@@ -93,6 +98,7 @@ function render(){
   else statusEl.textContent = '';
   leaveBtn.style.display = s === 'idle' ? 'none' : 'inline-flex';
   runBtn.style.display = s === 'connected' && net.role === 'guest' && coopRun.on && !G.coopGuest && G.mode === 'menu' ? 'inline-flex' : 'none';
+  templeBtn.style.display = s === 'connected' && net.role === 'guest' && !coopRun.on && G.mode === 'menu' && hostInTemple() ? 'inline-flex' : 'none';
   const live = s === 'connected';
   pingEl.classList.toggle('on', live || s === 'reconnecting');
   if (live) pingEl.textContent = 'ONLINE · ' + (net.ping ? net.ping + ' MS' : '…');

@@ -123,6 +123,7 @@ export function closeCustomizer(){
                       // after it wrote the old picks back over the new ones, so DONE kept nothing
   if (wornKey(picks) !== saved) dressPlayer();
   setOverlayState('menu');   // restores the headline
+  document.dispatchEvent(new CustomEvent('customizer-closed'));   // (opened from the temple's forge: back to it, ui/hub-ui.js)
 }
 // a loaded save brings its own look (ui/saves-ui.js): pick it up and dress the player in it
 export function reloadLook(){

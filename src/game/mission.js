@@ -44,6 +44,7 @@ import { showPanel, hidePanel, makeBeacon, makeConsole, setMarkerColor, pulseMar
          heroIn, nearHero, hostilesIn, hostilesAlive, setObjectiveHud, objectiveHud, mmss } from './objectives.js';
 import { MISSIONS, MISSION_VOICE, MISSION_COLOR } from '../data/missions.js';
 import { missionById, noteArcadeWin } from '../data/arcade.js';
+import { spreadDef } from '../world/spread.js';
 import { storyVoice } from '../data/campaign.js';
 import { chapterAt } from './campaign.js';
 import { ALLY_COLOR, addFriendRing, updateFriendRing, makeFriendTag } from '../fx/friend.js';
@@ -84,7 +85,7 @@ export function missionDone(id, hero){ try { return localStorage.getItem('sw_mis
 // start a mission from the top, or (retry) from the objective you fell on. opts.chapter: a campaign chapter (game/campaign.js)
 // plays it with the run's own build (no fixed kit, no grants, foes as tough as the run has got) and its chapter's name
 export function startMission(id = 'refuge', fromObjective = 0, guest = false, opts = {}){
-  const def = missionById(id) || MISSIONS.refuge, ch = opts.chapter || null;   // a story mission, or an arcade contract (data/arcade.js)
+  let def = missionById(id) || MISSIONS.refuge; const ch = opts.chapter || null;   // a story mission, or an arcade contract (data/arcade.js)
   clearMission();
   if (!opts.retry) rageCk = null;   // (a fresh start fights every duel from the top: retryMission)
   if (!opts.retry) resetScenes();   // a fresh start plays the mission's scenes again (a retry after a death or an escape doesn't)
@@ -97,6 +98,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
     G.waveTotal = def.kit; checkUnlocks();                 // a mid-run kit: forms, Force jump / jetpack boosters, dual blasters
     G.waveTotal = def.foeTier || 0;   // ...but foes as tough as the first wave (HP and elite odds climb with waveTotal); an arcade contract's threat sets its own
   }
+  def = spreadDef(def);   // on a map built wider than it was laid out, its points move with the map (world/spread.js)
   const title = typeof def.title === 'object' ? heroKey(def.title) : def.title;
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,

@@ -2,24 +2,28 @@
 // Model lab (dev only: `npm run dev`, then open /tools/model-lab.html).
 // Lines up both heroes in a few key poses under the game's own lights, so model and style changes can be judged
 // side by side without playing. URL params: ?style=shard|ink|forged  &look=<SAMPLE_LOOKS name>  &hero=jedi|mando
-// &grip=reverse  &view=front|back  &orbit=1 (slow turntable).
+// &grip=reverse  &view=front|back|left|right  &orbit=1 (slow turntable)  &picks=<json> (customizer picks, see below).
 
 import * as THREE from 'three';
 import { scene, camera, composer, renderer } from '../src/engine/renderer.js';
 import { buildHeroModel } from '../src/player/model/index.js';
 import { STYLE_DEFS } from '../src/player/model/styles.js';
-import { SAMPLE_LOOKS } from '../src/player/model/appearance.js';
+import { SAMPLE_LOOKS, mergeLook } from '../src/player/model/appearance.js';
+import { lookFromPicks } from '../src/data/customize.js';
 import { applySaberGrip } from '../src/player/model/weapons.js';
 import { settleCloth } from '../src/player/model/cloth.js';
 import { gripHands } from '../src/player/model/life.js';
 import { curlHand } from '../src/player/model/jedi.js';
 import { rexRest, riflePose } from '../src/player/anim/guns.js';
-import { setLongGun, setRifleMod } from '../src/player/model/weapons.js';
+import { setLongGun, setRifleMod, setPistolLook } from '../src/player/model/weapons.js';
 
 const q = new URLSearchParams(location.search);
 const STYLE = q.get('style') || 'ink';
 const LOOK_NAME = q.get('look') || '';
-const LOOK = { ...(SAMPLE_LOOKS[LOOK_NAME] || {}), style: STYLE, withTrooper: true };   // (the ARC trooper is built for the lab whatever the URL)
+// &picks=<json>: customizer picks ({ hero: { row: option } }, the shape player/mesh.js saves), bench rows included, laid
+// over the sample look: how the saber workbench, the armory locker and the beskar forge's parts sit on the model
+const PICKS = (() => { try { return JSON.parse(q.get('picks') || 'null'); } catch(e){ return null; } })();
+const LOOK = { ...mergeLook(SAMPLE_LOOKS[LOOK_NAME] || {}, PICKS ? lookFromPicks(PICKS) : {}), style: STYLE, withTrooper: true };   // (the ARC trooper is built for the lab whatever the URL)
 const GRIP = q.get('grip') || 'regular';   // &grip=reverse
 const VIEW = q.get('view') || 'front';
 
@@ -114,6 +118,7 @@ function figure(poseName){
   t.saberHand.visible = !mando;
   t.pistols.L.visible = mando && P.weapon === 'dual';
   t.pistols.R.visible = mando && (P.weapon === 'dual' || P.weapon === 'single');
+  setPistolLook(t, trooper ? 'pistols' : P.weapon);
   t.rifleMesh.visible = mando && (P.weapon === 'disruptor' || P.weapon === 'dc15');
   if (P.weapon === 'dc15'){ setLongGun(t, 'dc15'); setRifleMod(t, P.mod || 'burst'); }
   const set = (o, v) => v && o.rotation.set(v[0], v[1], v[2]);
@@ -139,7 +144,7 @@ const ORDER = Object.keys(POSES).filter(n => !HERO || POSES[n].hero === HERO);
 const figs = ORDER.map((name, i) => {
   const f = figure(name);
   f.group.position.x = (i - (ORDER.length - 1) / 2) * (HERO ? 1.6 : 1.75);
-  f.group.rotation.y = (VIEW === 'back' ? Math.PI + 0.35 : -0.35) + f.yaw;
+  f.group.rotation.y = ({ back: Math.PI + 0.35, left: -Math.PI / 2, right: Math.PI / 2 }[VIEW] ?? -0.35) + f.yaw;   // (&view=left|right: side on)
   scene.add(f.group);
   return f;
 });

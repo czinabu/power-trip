@@ -154,7 +154,8 @@ export function arm(k, parent, w, o = {}){
   k.add(loft([{ y:0.06, w:0.115*w, d:0.115 }, { y:0.035, w:0.12*w, d:0.12 }], SOFT_LIMB), 'black', el, [0, -0.38, 0.02], [0,0,0], { outline: false });
   if (!o.hand) k.add(loft([{ y:-0.075, w:0.1*w, d:0.11 }, { y:-0.02, w:0.122*w, d:0.13 }, { y:0.04, w:0.112*w, d:0.12 }], SOFT_LIMB), hand, el, [0, -0.38, 0.02]);
   const grip = k.group(el, [0, -0.38, 0.03]);
-  if (o.hand === 'grip') k.add(gripHand({ rx: o.gr || 0.025, rz: o.gr || 0.025 }), hand, grip, [0, -0.01, 0], o.gripRot || [0, 0, 0], { outline: false });   // gripRot: a haft that leaves the fist at an angle (the pike)
+  // (a saber's fist is a bone of its own, u.fist: the fingers turn with the hilt as the wrist tips it: enemies/foestance.js fistFollow)
+  if (o.hand === 'grip') k.add(gripHand({ rx: o.gr || 0.025, rz: o.gr || 0.025 }), hand, o.fist ? k.bone('fist', grip) : grip, [0, -0.01, 0], o.gripRot || [0, 0, 0], { outline: false });   // gripRot: a haft that leaves the fist at an angle (the pike)
   return grip;
 }
 // a static arm from the left (-x) or right (+x) shoulder; rot = [forward lift (negative = forward), twist, outward splay
@@ -586,7 +587,7 @@ function cheekMarks(k, h){
 export function weaponArm(k, t, w){
   const a = k.slot('weaponArm', k.root, [0.42*w, 1.74, 0.04], [-0.35, 0, 0]);
   const GR = { sword: 0.024, saber: 0.028, pistol: 0.026, pike: 0.026, spear: 0.03 };   // the handle each fist closes round (a maul's haft: 0.034)
-  const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' || t.weapon === 'spear' ? [-1.1, 0, 0] : null }) });
+  const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', fist: t.weapon === 'saber', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' || t.weapon === 'spear' ? [-1.1, 0, 0] : null }) });
   if (t.weapon === 'sword'){
     // vibro-sword: a long single-edged blade with a glowing edge line
     k.add(plate([[-0.035,0],[0.04,0],[0.05,-0.88],[0,-1.08],[-0.03,-0.94]], 0.022, 0.006), 'metal', grip, [0, -0.1, 0], [0, PI/2, 0]);

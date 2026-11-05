@@ -25,11 +25,15 @@ export const TROOPER_PARTS = {
     arc(R, k){ legs(R, k, true); },
     // standard Phase II: all white
     phase2(R, k){ legs(R, k, false); },
+    // the COMMANDO's Katarn plate: the same legs under heavier shells, broad knee guards and chunky boots
+    commando(R, k){ legs(R, k, false); commandoLegs(R, k); },
   },
   torso: {
     // the Phase II cuirass, belt and back plate, with the ARC's black collar yoke and ammo pouches on the chest
     arc(R, k){ torso(R, k, true); },
     phase2(R, k){ torso(R, k, false); },
+    // the Katarn cuirass: a deeper chest plate, an armoured belt and the big field pack on the back
+    commando(R, k){ torso(R, k, false); commandoTorso(R, k); },
   },
   arms: {
     // the ARC pauldron in the legion colour on the left shoulder, legion bands on the bracers
@@ -37,6 +41,8 @@ export const TROOPER_PARTS = {
     // a captain's single pauldron, smaller, and the bands (Rex)
     captain(R, k){ arms(R, k, 'captain'); },
     phase2(R, k){ arms(R, k, false); },
+    // broad rounded shoulder plates on both arms and heavy gauntlets, a lit readout on the left wrist
+    commando(R, k){ arms(R, k, false); commandoArms(R, k); },
   },
   helmet: {
     // Phase II bucket with the rangefinder, the legion paint round the visor and a low crest (Fives)
@@ -44,11 +50,35 @@ export const TROOPER_PARTS = {
     // rangefinder and markings, no crest (Rex)
     captain(R, k){ helmet(R, k, { rangefinder: true, brow: true }); },
     phase2(R, k){ helmet(R, k, {}); },
+    // the Katarn helmet: a round dome with a ridge down the crown, the lit T-visor sweeping up at its ends, a jutting
+    // jaw guard with its breather slots
+    commando(R, k){ commandoHelmet(R, k); },
   },
   kama: {
     // the kama: real cloth from the belt round the hips and behind, open at the front over the codpiece
     long(R, k){ kama(R, k); },
     none(){},
+  },
+  // THE ARMORY LOCKER's looks (data/trooper-locker.js): the company markings, painted in the legion colour, and the gear
+  // clipped to the bucket
+  marking: {
+    none(){},
+    stripes(R, k){ markStripes(R, k); },
+    tally(R, k){ markTally(R, k); },
+    sigil(R, k){ markSigil(R, k); },
+  },
+  hgear: {
+    none(){},
+    macro(R, k){ gearMacro(R, k); },
+    visor(R, k){ gearVisor(R, k); },
+    antenna(R, k){ gearAntenna(R, k); },
+    mohawk(R, k){ gearMohawk(R, k); },
+  },
+  // what he carries on his back, over the pack every clone wears
+  backpack: {
+    standard(){},
+    radio(R, k){ packRadio(R, k); },
+    heavy(R, k){ packHeavy(R, k); },
   },
 };
 
@@ -228,6 +258,80 @@ function helmet(R, k, { crest, rangefinder, brow }){
   }
 }
 
+/* ---------- THE COMMANDO (Katarn-class armour) ----------
+   The Commando fork's kit (data/trooper-progression.js): bulkier everywhere than the ARC's Phase II plates, laid over
+   the same bodysuit and base shells, with the lit visor ('glow') and a squad colour ('mark') only in small accents. */
+function commandoLegs(R, k){
+  for (const L of [R.legL, R.legR]){
+    // the thigh guard: a broad plate over the front and outside of the thigh
+    k.add(limb(DIM.thigh - 0.18, [[0,0.235,0.225,0.012],[0.45,0.236,0.222,0.016],[1,0.19,0.188,0.012]], SOFT_LIMB), 'plate', L.hip, [0, -0.1, 0.004]);
+    // the knee guard: a big square-ish cup standing off the joint
+    k.add(loft([{ y:-0.09, w:0.15, d:0.05, z:-0.006 }, { y:-0.03, w:0.175, d:0.075 }, { y:0.04, w:0.17, d:0.07 }, { y:0.085, w:0.12, d:0.04, z:-0.006 }], SOFT), 'plate', L.knee, [0, -0.01, 0.09]);
+    k.add(block(0.12, 0.012, 0.02, 0.2), 'grey', L.knee, [0, -0.06, 0.125], [0, 0, 0], { outline: false });
+    // the shin guard: a thick plate down the front of the greave
+    k.add(limb(DIM.shin - 0.16, [[0,0.18,0.19,0.012],[0.35,0.188,0.2,0.016],[1,0.15,0.16,0.012]], SOFT_LIMB), 'plate', L.knee, [0, -0.1, 0.006]);
+    // the boot: a deeper sole and a strap over the instep
+    const boot = k.group(L.ank, [0, 0, 0], [Math.PI/2, 0, 0]);
+    k.add(loft([{ y:-0.1, w:0.15, d:0.04 }, { y:0.23, w:0.13, d:0.04 }], chamfer(0.3)), 'grey', boot, [0, 0, 0.085], [0, 0, 0], { outline: false });
+    k.add(block(0.15, 0.03, 0.02, 0.2), 'grey', boot, [0, 0.06, -0.02], [0.3, 0, 0], { outline: false });
+  }
+}
+function commandoTorso(R, k){
+  // the chest plate over the cuirass, squared off, and the armoured abdomen plates
+  k.add(loft([
+    { y:0.02, w:0.47, d:0.31, z:0.016 }, { y:0.12, w:0.53, d:0.32, z:0.014 }, { y:0.24, w:0.55, d:0.31, z:0.01 }, { y:0.32, w:0.5, d:0.29 },
+  ], SOFT_BODY), 'plate', R.chest);
+  k.add(block(0.016, 0.24, 0.012, 0.2), 'grey', R.chest, [0, 0.16, 0.172], [-0.06, 0, 0], { outline: false });
+  for (const [y, w] of [[0.1, 0.3], [0.2, 0.32]]) k.add(loft([{ y:0, w, d:0.09 }, { y:0.075, w: w + 0.02, d:0.095 }], SOFT), 'plate', R.torso, [0, y - 0.04, 0.1]);
+  // a broad armoured belt with a squad-colour buckle
+  k.add(loft([{ y:0.0, w:0.43, d:0.3 }, { y:0.085, w:0.425, d:0.295 }], SOFT_BODY), 'plate', R.torso, [0, -0.035, 0]);
+  k.add(block(0.07, 0.05, 0.02, 0.3), 'mark', R.torso, [0, 0.01, 0.152], [0, 0, 0], { outline: false });
+  // the field pack: a big two-part box on the back, its top canted, a smaller cell on each side
+  const P = k.group(R.chest, [0, 0.17, -0.25]);
+  k.add(block(0.4, 0.42, 0.17, 0.3), 'plate', P, [0, 0, 0]);
+  k.add(block(0.34, 0.12, 0.15, 0.3, 0.85), 'plate', P, [0, 0.25, -0.01], [-0.25, 0, 0]);
+  k.add(block(0.36, 0.014, 0.172, 0.2), 'grey', P, [0, 0.06, 0], [0, 0, 0], { outline: false });
+  for (const sx of [-1, 1]) k.add(block(0.08, 0.28, 0.13, 0.3), 'plate', P, [0.23*sx, -0.04, 0.02]);
+}
+function commandoArms(R, k){
+  for (const A of [R.armL, R.armR]){
+    const s = A.side;
+    // the shoulder plate: a broad rounded shell flaring out over the bell and the top of the arm, two plates deep
+    const P = k.group(A.sh, [0.05*s, 0.05, 0], [0, 0, -0.38*s]);
+    k.add(loft([{ y:-0.2, w:0.29, d:0.3, x:0.04*s }, { y:-0.1, w:0.31, d:0.31, x:0.03*s }, { y:0.0, w:0.29, d:0.29, x:0.012*s }, { y:0.08, w:0.21, d:0.23 }, { y:0.115, w:0.1, d:0.13 }], SOFT), 'plate', P);
+    k.add(loft([{ y:-0.25, w:0.25, d:0.27, x:0.06*s }, { y:-0.17, w:0.27, d:0.28, x:0.05*s }, { y:-0.12, w:0.24, d:0.25, x:0.045*s }], SOFT), 'plate', P);
+    k.add(loft([{ y:-0.205, w:0.293, d:0.305, x:0.041*s }, { y:-0.19, w:0.294, d:0.306, x:0.04*s }], SOFT), 'grey', P, [0, 0, 0], [0, 0, 0], { outline: false });
+    // the gauntlet: a heavy shell over the bracer, flaring at the wrist
+    k.add(limb(0.2, [[0,0.13,0.13,0.006],[0.6,0.15,0.145,0.008],[1,0.142,0.138,0.006]], SOFT_LIMB), 'plate', A.el, [0, -0.06, 0]);
+    k.add(limb(0.022, [[0,0.152,0.147],[1,0.15,0.145]], SOFT_LIMB), 'grey', A.el, [0, -0.15, 0], [0, 0, 0], { outline: false });
+    if (s < 0) k.add(block(0.03, 0.09, 0.012, 0.3), 'glow', A.el, [0, -0.17, 0.075], [0, 0, 0], { outline: false });   // the lit wrist readout
+    else k.add(block(0.06, 0.12, 0.03, 0.25), 'grey', A.el, [0, -0.16, 0.074]);   // the blade housing
+  }
+}
+function commandoHelmet(R, k){
+  const helm = k.group(R.head);
+  k.add(loft([{ y:-0.1, w:0.13, d:0.13 }, { y:0.04, w:0.12, d:0.12 }], ngon(10, Math.PI/10)), 'suit', helm);
+  // the dome: rounder and taller than the bucket, flaring over the nape
+  k.add(loft([
+    { y:-0.02, w:0.29, d:0.3, z:-0.03 }, { y:0.05, w:0.27, d:0.285, z:-0.014 }, { y:0.15, w:0.272, d:0.3, z:-0.006 },
+    { y:0.24, w:0.282, d:0.31, z:-0.008 }, { y:0.32, w:0.262, d:0.29, z:-0.01 }, { y:0.38, w:0.21, d:0.24, z:-0.012 },
+    { y:0.415, w:0.13, d:0.15, z:-0.012 }, { y:0.43, w:0.04, d:0.05, z:-0.012 },
+  ], SOFT_HEAD), 'plate', helm);
+  // the ridge down the crown to the visor
+  k.add(plate([[-0.17,-0.012],[0.15,-0.012],[0.13,0.006],[-0.15,0.006]], 0.022, 0.006), 'plate', helm, [0, 0.42, 0.0], [0, -Math.PI/2, -0.04]);
+  // the face: a broad flat plate, then the jaw guard jutting forward and down to a blunt beak
+  k.add(loft([{ y:0.08, w:0.24, d:0.05, z:0.142 }, { y:0.17, w:0.26, d:0.05, z:0.14 }, { y:0.27, w:0.255, d:0.04, z:0.135 }], SOFT), 'plate', helm);
+  k.add(loft([{ y:-0.04, w:0.09, d:0.05, z:0.178 }, { y:0.0, w:0.17, d:0.07, z:0.168 }, { y:0.06, w:0.23, d:0.065, z:0.152 }, { y:0.1, w:0.25, d:0.05, z:0.146 }], SOFT), 'plate', helm);
+  k.add(block(0.06, 0.014, 0.02, 0.2), 'grey', helm, [0, 0.005, 0.2], [0.3, 0, 0], { outline: false });   // the breather slot
+  for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) k.add(block(0.04, 0.007, 0.008, 0.2), 'grey', helm, [0.112*sx, 0.15 - i*0.018, 0.13], [0, sx*0.75, 0], { outline: false });   // the cheek vents
+  // the lit T-visor: one gull-wing piece, the brow sweeping up to its tips and the drop down the middle
+  const wing = [[-0.016,-0.1],[0.016,-0.1],[0.026,-0.006],[0.065,0.0],[0.108,0.03],[0.1,0.048],[0.06,0.026],[0.0,0.02],[-0.06,0.026],[-0.1,0.048],[-0.108,0.03],[-0.065,0.0],[-0.026,-0.006]];
+  k.add(plate(wing, 0.024, 0.003), 'glow', helm, [0, 0.225, 0.153], [-0.04, 0, 0], { outline: false });
+  // the squad stripe over the brow and the ear plates
+  k.add(plate([[-0.12,0.012],[0.12,0.012],[0.11,-0.004],[-0.11,-0.004]], 0.008, 0.002), 'mark', helm, [0, 0.29, 0.138], [-0.18, 0, 0], { outline: false });
+  for (const sx of [-1, 1]) k.add(block(0.03, 0.09, 0.08, 0.3), 'plate', helm, [0.145*sx, 0.16, -0.02]);
+}
+
 /* ---------- the kama ----------
    Real cloth (cloth.js), pinned along the belt from one hip round behind to the other and open at the front: it
    swings with the stride, the legs push it aside, and it settles when he stops. Its top hides under the belt. */
@@ -239,4 +343,78 @@ function kama(R, k){
       const a = A0 + (u + 1) / 2 * (A1 - A0), flare = 1 + v * 0.38;
       return [Math.sin(a) * RX * flare, 0.1 - v * DROP, Math.cos(a) * RZ * flare];
     } });
+}
+
+/* ---------- the ARMORY LOCKER's markings and helmet gear (data/trooper-locker.js) ----------
+   Markings are thin painted plates in the legion colour ('mark') laid just proud of the white: they follow whatever
+   helmet and plates he wears, since every helmet shares the same shell and every torso the same pec plates. */
+// a frame laid on the left pec plate's face (the plate torso() builds), x running out across the chest, y up it
+function leftPec(R, k){ return k.group(R.chest, [-0.012, 0.09, 0.137], [-0.1, -0.24, 0]); }
+function markStripes(R, k){
+  // one stripe from the brow back over the crown, in five pieces laid along the dome
+  const helm = k.group(R.head);
+  // (each piece faces out of the dome: tipped `f` radians from straight up towards the front)
+  for (const [y, z, f] of [[0.335, 0.105, 0.95], [0.375, 0.055, 0.45], [0.392, -0.01, 0], [0.37, -0.075, -0.55], [0.325, -0.125, -1.0]])
+    k.add(plate([[-0.026,0.036],[0.026,0.036],[0.026,-0.036],[-0.026,-0.036]], 0.006, 0.002), 'mark', helm, [0, y + 0.004, z + 0.004 * Math.sign(z)], [f - Math.PI/2, 0, 0], { outline: false });
+  // and one down the outside of each arm, over the bicep shell
+  for (const A of [R.armL, R.armR]) k.add(block(0.012, 0.17, 0.045, 0.2), 'mark', A.sh, [0.073 * A.side, -0.1, 0], [0, 0, 0], { outline: false });
+}
+function markTally(R, k){
+  // hash marks on the left pec: four strokes and the one across them, then two more
+  const P = leftPec(R, k);
+  for (let i = 0; i < 4; i++) k.add(block(0.012, 0.075, 0.006, 0.1), 'mark', P, [-0.055 - i * 0.022, 0.115, 0.03], [0, 0, 0], { outline: false });
+  k.add(block(0.012, 0.115, 0.006, 0.1), 'mark', P, [-0.088, 0.115, 0.033], [0, 0, 1.1], { outline: false });
+  for (let i = 0; i < 2; i++) k.add(block(0.012, 0.075, 0.006, 0.1), 'mark', P, [-0.15 - i * 0.022, 0.115, 0.03], [0, 0, 0], { outline: false });
+}
+function markSigil(R, k){
+  // the company's crest on the left pec: a shield between two swept wings
+  const P = k.group(leftPec(R, k), [0, 0, 0]); P.scale.setScalar(1.35);
+  k.add(plate([[0,0.04],[0.028,0.03],[0.026,-0.012],[0,-0.045],[-0.026,-0.012],[-0.028,0.03]], 0.006, 0.002), 'mark', P, [-0.078, 0.074, 0.024], [0, 0, 0], { outline: false });
+  const wing = [[0,0.02],[0.075,0.045],[0.065,0.018],[0.05,0.004],[0.036,-0.01],[0,-0.012]];
+  for (const sx of [-1, 1]) k.add(plate(wing, 0.005, 0.0015), 'mark', P, [-0.078 + 0.03 * sx, 0.074, 0.023], [0, 0, 0], { outline: false, scale: [sx, 1, 1] });
+}
+function gearMacro(R, k){
+  // macrobinoculars on a hinge over the right ear, swung down in front of the right eye
+  const helm = k.group(R.head);
+  k.add(loft([{ y:-0.015, w:0.04, d:0.04 }, { y:0.015, w:0.034, d:0.034 }], ngon(10)), 'grey', helm, [0.145, 0.25, 0.03], [0, 0, Math.PI/2]);   // the hinge
+  k.add(block(0.012, 0.022, 0.15, 0.3), 'grey', helm, [0.15, 0.245, 0.1], [0.12, 0, 0]);   // the arm forward
+  k.add(block(0.11, 0.016, 0.014, 0.3), 'grey', helm, [0.1, 0.235, 0.175], [0, 0, 0]);    // ...and across
+  const box = k.group(helm, [0.045, 0.225, 0.185]);
+  k.add(block(0.075, 0.042, 0.05, 0.35), 'grey', box);
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.008, 10), new THREE.MeshBasicMaterial({ color: 0xff5040 }));
+  for (const lx of [-0.018, 0.018]){ const l = lens.clone(); l.rotation.x = Math.PI/2; l.position.set(lx, 0, 0.027); box.add(l); }
+}
+function gearVisor(R, k){
+  // a wide brim over the T, its front tipped down a touch
+  const helm = k.group(R.head);
+  k.add(plate([[-0.135,0],[0.135,0],[0.115,0.075],[-0.115,0.075]], 0.012, 0.004), 'plate', helm, [0, 0.268, 0.115], [Math.PI/2 + 0.18, 0, 0]);
+  k.add(block(0.27, 0.012, 0.012, 0.2), 'grey', helm, [0, 0.27, 0.118], [0, 0, 0], { outline: false });   // its hinge line
+}
+function gearAntenna(R, k){
+  // a comms pack on the back of the bucket and its whip antenna, raked back
+  const helm = k.group(R.head);
+  k.add(block(0.06, 0.07, 0.04, 0.3), 'grey', helm, [-0.07, 0.22, -0.14], [0.2, 0, 0]);
+  k.add(block(0.008, 0.42, 0.008, 0.1), 'grey', helm, [-0.08, 0.45, -0.19], [-0.32, 0, 0.08]);
+  k.add(loft([{ y:-0.01, w:0.016, d:0.016 }, { y:0.01, w:0.016, d:0.016 }], ngon(6)), 'mark', helm, [-0.094, 0.65, -0.258], [-0.32, 0, 0.08], { outline: false });
+}
+function gearMohawk(R, k){
+  // a painted fin from the brow back over the crown, tall enough to read from behind
+  const helm = k.group(R.head);
+  k.add(plate([[-0.15,0],[0.13,0],[0.12,0.04],[0.06,0.07],[-0.06,0.075],[-0.15,0.05]], 0.022, 0.006), 'mark', helm, [0, 0.375, -0.01], [0, -Math.PI/2, 0]);
+}
+// the long-range radio: a tall box over the back plate, its whip antenna up past the head
+function packRadio(R, k){
+  k.add(block(0.22, 0.32, 0.12, 0.3), 'grey', R.chest, [0.03, 0.2, -0.27]);
+  k.add(block(0.2, 0.02, 0.124, 0.2), 'mark', R.chest, [0.03, 0.3, -0.27], [0, 0, 0], { outline: false });
+  for (const y of [0.12, 0.2]) k.add(block(0.03, 0.03, 0.02, 0.2), 'plate', R.chest, [-0.04, y, -0.335], [0, 0, 0], { outline: false });   // its dials
+  k.add(block(0.01, 0.75, 0.01, 0.1), 'grey', R.chest, [0.11, 0.7, -0.29], [-0.12, 0, 0.06]);
+}
+// the heavy pack: a big supply pack with a bedroll strapped over it and a canister either side
+function packHeavy(R, k){
+  k.add(block(0.32, 0.34, 0.15, 0.3), 'plate', R.chest, [0, 0.16, -0.29]);
+  k.add(loft([{ y:-0.17, w:0.1, d:0.1 }, { y:0.17, w:0.1, d:0.1 }], ngon(10)), 'cloth', R.chest, [0, 0.38, -0.27], [0, 0, Math.PI/2]);   // the bedroll
+  for (const sx of [-1, 1]){
+    k.add(loft([{ y:-0.13, w:0.07, d:0.07 }, { y:0.13, w:0.07, d:0.07 }], ngon(8)), 'grey', R.chest, [0.2*sx, 0.14, -0.28]);
+    k.add(block(0.33, 0.02, 0.155, 0.2), 'grey', R.chest, [0, 0.05 + (sx + 1) * 0.1, -0.29], [0, 0, 0], { outline: false });   // its straps
+  }
 }

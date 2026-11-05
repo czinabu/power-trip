@@ -11,7 +11,7 @@ import { acquireParticle, burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, bolts, vfx, keys, player, isGunner, isMando, isTrooper } from '../../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, BESKAR_PARRY } from '../../data/mando.js';
-import { setLongGun, setRifleMod, longMuzzle, OWN_MODEL } from '../model/weapons.js';
+import { setLongGun, setRifleMod, setPistolLook, longMuzzle, OWN_MODEL } from '../model/weapons.js';
 import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
 import { fwd, rightV, playerPos, maxStam } from '../helpers.js';
@@ -60,7 +60,7 @@ export function mandoWeapon(){
 }
 export function syncWeaponMesh(){   // show only the equipped weapon's mesh (or none, off-hero); holstered, the one put away
   const m = isGunner(), raw = player.weapon === 'fists' ? player.drawnWeapon : player.weapon, w = gunLook(raw);   // (the trooper's guns are held like the Mando's: data/trooper.js GUN_LOOK)
-  if (player.pistols){ player.pistols.R.visible = m && (w === 'single' || w === 'dual'); player.pistols.L.visible = m && w === 'dual'; }
+  if (player.pistols){ player.pistols.R.visible = m && (w === 'single' || w === 'dual'); player.pistols.L.visible = m && w === 'dual'; setPistolLook(player, raw); }   // (the trooper's DC-17s are their own look: model/weapons.js)
   const LW = MANDO_WEAPONS[w];
   if (player.rifleMesh){ player.rifleMesh.visible = m && !!(LW && LW.twoHand); if (LW && LW.twoHand) setLongGun(player, OWN_MODEL[raw] || w); }
   setRifleMod(player, player.rifleMod || 'burst');   // the DC-15's fitted module shows on it (model/weapons.js)   // one long-gun mount, the drawn gun's model on it (the DC-15 its own)
@@ -121,7 +121,7 @@ export function updateReload(dt){
   if (W && W.fire === 'twin'){ coolTwin(W, dt); return; }
   if (!W || W.melee){ player.heat = Math.max(0, player.heat - (W && W.cool || 0.6) * dt); player.overheat = false; return; }
   if (player.heatDelay <= 0 || player.overheat){           // overheated coils always bleed; otherwise wait out the delay
-    const rate = (player.overheat ? (W.overCool || 0.42) : (W.cool || 0.6)) * (player.up.heatCool || 1);
+    const rate = (player.overheat ? (W.overCool || 0.42) : (W.cool || 0.6)) * (player.up.heatCool || 1) * (player.up.coolMul || 1);   // (coolMul: the locker's power pack, the forged beskar: game/saber-bench.js)
     if (player.jamT > 0) player.jamT -= dt;   // (a missed active vent holds the coils hot a moment longer)
     else player.heat = Math.max(0, player.heat - rate * dt);
   }
@@ -146,7 +146,7 @@ export function pistolHot(side){ return side > 0 ? !!player.oR : !!player.oL; }
 function coolTwin(W, dt){
   syncTwin();
   if (player.jamT > 0){ player.jamT -= dt; pushTwin(); return; }   // a missed active vent holds both hot a moment longer
-  const mul = player.up.heatCool || 1;
+  const mul = (player.up.heatCool || 1) * (player.up.coolMul || 1);
   for (const k of ['R', 'L']){
     const over = player['o' + k];
     if (player.heatDelay > 0 && !over) continue;

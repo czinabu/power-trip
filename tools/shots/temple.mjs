@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN TEMPLE CAPTURE — boots the BUILT game (dist/index.html) headlessly, walks into the temple from the title
-// screen's tile, and saves gameplay-camera shots of every wing (data/hub.js) from a few spots, plus a station panel.
+// THE HUB CAPTURE — boots the BUILT game (dist/index.html) headlessly, walks into the hero's hub from the title screen's
+// tile (the temple for the Jedi, the clone citadel for the trooper), and saves gameplay-camera shots of every wing
+// (data/hub.js) from a few spots. WINGS=deck,range picks some.
 //   npm run build && node tools/shots/temple.mjs [outDir] [hero]   (QUALITY=high|medium|low; PW_CHROMIUM a Chromium binary)
 
 import { chromium } from 'playwright';
@@ -27,16 +28,25 @@ await page.$eval('#hero-' + hero, el => el.click());
 await page.click('#goText');
 await page.waitForFunction(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused, null, { timeout: 90000 });
 await page.waitForTimeout(1500);
-const ONLY = process.env.WINGS ? process.env.WINGS.split(',') : null;
-const VIEWS = {
+const TEMPLE_VIEWS = {
   hall: [[0, 34, Math.PI, 0.05], [0, 12, Math.PI, -0.35], [30, -30, Math.PI * 0.75, 0], [-12, -38, 0.25, -0.2], [-20, 12, Math.PI * 0.85, 0.05]],
   council: [[0, 22, Math.PI, 0.05], [-10, 4, Math.PI * 0.7, -0.1], [0, 11, Math.PI, 0.05], [-9, -10, 0.55, 0.05]],
   training: [[-30, 0, Math.PI / 2, 0.05], [10, 22, Math.PI, 0], [-6, -9, Math.PI, 0.1], [-6, -14.5, Math.PI, 0.12]],
   archives: [[30, 0, -Math.PI / 2, 0.05], [-6, -4, -Math.PI * 0.6, -0.1], [10, 2, -Math.PI / 2, 0.05]],
   forge: [[0, -22, 0, 0.05], [10, 18, Math.PI * 0.9, -0.1]],
 };
+const KAMINO_VIEWS = {
+  deck: [[0, 34, Math.PI, 0.05], [0, 12, Math.PI, -0.3], [30, -6, Math.PI * 0.85, 0], [-40, 0, Math.PI / 2, 0.05], [10, -38, 0.5, -0.15]],
+  warroom: [[0, 22, Math.PI, 0.05], [-10, 4, Math.PI * 0.7, -0.1]],
+  range: [[-30, 0, Math.PI / 2, 0.05], [-6, -14, Math.PI, 0], [10, 22, Math.PI, 0]],
+  halls: [[30, 0, -Math.PI / 2, 0.05], [-6, -4, -Math.PI * 0.6, -0.3]],
+  armory: [[0, -22, 0, 0.05], [10, 18, Math.PI * 0.9, -0.1]],
+};
+const hubId = await page.evaluate(() => GAME.G.hubId);
+const VIEWS = hubId === 'kamino' ? KAMINO_VIEWS : TEMPLE_VIEWS;
+const only = process.env.WINGS ? process.env.WINGS.split(',') : null;
 for (const [wing, views] of Object.entries(VIEWS)){
-  if (ONLY && !ONLY.includes(wing)) continue;
+  if (only && !only.includes(wing)) continue;
   await page.evaluate(w => GAME.hub.startHub(w), wing);
   await page.waitForTimeout(900);
   let i = 0;
@@ -47,7 +57,7 @@ for (const [wing, views] of Object.entries(VIEWS)){
       G.yaw = player.faceYaw = yaw; G.pitch = pitch;
     }, [x, z, yaw, pitch]);
     await page.waitForTimeout(1600);
-    await page.screenshot({ path: path.join(out, `temple-${wing}-${++i}.png`) });
+    await page.screenshot({ path: path.join(out, `${hubId}-${wing}-${++i}.png`) });
     console.log(wing, i, JSON.stringify(await page.evaluate(() => GAME.arena())));
   }
 }

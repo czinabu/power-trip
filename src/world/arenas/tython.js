@@ -9,66 +9,31 @@
 // noBake and listed in shared.hubAnim for game/hub.js to turn.
 
 import * as THREE from 'three';
-import { shared, solids } from '../../state.js';
+import { shared } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { buildSanctum, shelfFaces } from '../sanctum.js';
-import { HUB_WINGS, SIDE_OUT } from '../../data/hub.js';
+import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
+import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { templeFolk } from './tython-folk.js';
-
-const PI = Math.PI;
-const std = (c, r = 0.9, m = 0.05, e = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m,
-  ...(e ? { emissive: new THREE.Color(c).multiplyScalar(e), emissiveIntensity: 1 } : {}) });
-const glowM = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false, ...(op < 1 ? { transparent: true, opacity: op, depthWrite: false } : {}) });
-const holoM = (c, op = 0.45) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide });
-const live = (m) => { m.userData.noBake = true; m.userData.passThrough = true; m.castShadow = false; m.receiveShadow = false; return m; };
-function anim(obj, fn){ obj.userData.noBake = true; (shared.hubAnim ||= []).push({ obj, fn, base: obj.position.clone() }); return obj; }
-// a round step you walk up (under STEP_UP), drawn as a disc
-function roundStep(K, x, z, r, h, mat, seg = 40){
-  const m = K.deco(new THREE.CylinderGeometry(r, r * 1.02, h, seg), mat, x, h / 2, z);
-  solids.push({ x, z, r, h, climbable: true });
-  return m;
-}
 
 /* the dispatcher: world/arena.js hands every ty* layout here */
 export function buildTythonArena(L){
   shared.hubAnim = [];
-  const wing = Object.keys(HUB_WINGS).find(k => HUB_WINGS[k].level.layout === L.layout) || 'hall';
-  const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 31 + 7);
+  const wings = HUBS.temple.wings, found = wingByLayout(L.layout), wing = found && found.hub === 'temple' ? found.id : 'hall';
+  const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 31 + 7), W = wings[wing];
   ({ hall, council, training, archives, forge })[wing](L, K, pal, R);
-  stations(wing, K, pal);
-  doorSigns(wing, K, pal);
+  hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z) });
+  hubDoorSigns(W, wings, K, { runner: pal.kyber ?? 0x5ad2ff });
   templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
 }
 
 /* ---------------- the pieces every wing shares ---------------- */
-function stations(wing, K, pal){
-  const W = HUB_WINGS[wing], [sx, sz] = W.spawn;
-  const ring = holoM(pal.kyber ?? 0x5ad2ff, 0.55);
-  for (const s of W.stations){
-    const r = Math.min(2.2, (s.r || 3.2) * 0.55);
-    live(K.deco(new THREE.RingGeometry(r, r + 0.22, 48), ring, s.x, 0.05, s.z, -PI / 2));
-    live(K.deco(new THREE.RingGeometry(r + 0.5, r + 0.58, 48), ring, s.x, 0.05, s.z, -PI / 2));
-    if (s.act === 'travel' && s.id === 'waystone') waystone(K, pal, s.x, s.z);
-    const face = Math.atan2(sx - s.x, sz - s.z);
-    K.sign(s.name, s.x, s.id === 'map' || s.id === 'table' ? 8.2 : 4.6, s.z, face, { w: 3.6 });
-  }
-}
 /* a WAYSTONE: a short carved pillar with a kyber shard floating over it (fast travel from any wing) */
 function waystone(K, pal, x, z){
   K.column(x, z, 0.55, 1.5, std(pal.stone ?? 0xd6cfbe), { wallKick: false, seg: 8, taper: 0.8 });
   K.deco(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 8), std(pal.trim ?? 0xd8b860, 0.5, 0.5), x, 1.55, z);
   const shard = live(K.deco(new THREE.OctahedronGeometry(0.32), glowM(pal.kyber ?? 0x5ad2ff), x, 2.25, z));
   anim(shard, (o, t, b) => { o.position.y = b.y + Math.sin(t * 1.6) * 0.12; o.rotation.y = t * 0.9; });
-}
-/* over every door, the name of the wing beyond it, and a lit runner from the middle of the floor out to it */
-function doorSigns(wing, K, pal){
-  const W = HUB_WINGS[wing], H = shared.arenaHalf;
-  for (const side in W.doors){
-    const to = HUB_WINGS[W.doors[side]], [ox, oz] = SIDE_OUT[side];
-    const ry = Math.atan2(-ox, -oz);   // facing back into the room
-    K.sign(to.short + '  ›', ox * (H - 0.4), 7.4, oz * (H - 0.4), ry, { w: 6, size: 64 });
-    K.strip(ox * (H - 14), oz * (H - 14), ox * (H - 0.6), oz * (H - 0.6), 3.2, pal.kyber ?? 0x5ad2ff, 0.16);
-  }
 }
 /* a GUARDIAN on a colossal scale: hooded, robed, both hands on a blade planted point-down. With collision on its plinth */
 function colossus(K, x, z, ry, s, stone, stoneD, trim, shade){
@@ -113,8 +78,6 @@ function terrace(side, off, len, stone, trim){
   put(new THREE.BoxGeometry(len, 0.2, 0.6), trim, off + 9.6, 1.25);
   for (let a = -len / 2 + 1; a < len / 2; a += 1.6) put(new THREE.CylinderGeometry(0.18, 0.24, 1.1, 6), stone, off + 9.6, 0.6, a);
 }
-/* a slow HOLOGRAM: lines and shells in additive blue, turning */
-function spinner(obj, rate){ return anim(obj, (o, t) => { o.rotation.y = t * rate; }); }
 
 /* ---------------- THE GRAND HALL ---------------- */
 function hall(L, K, pal, R){

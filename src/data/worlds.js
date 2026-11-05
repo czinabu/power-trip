@@ -1000,6 +1000,18 @@ const TY_VIEW = [   // what the open arches look out on: forested ridges, the sn
 const TY_LIGHT = { sun: 0xfff0d6, sunI: 1.75, dir: [-22, 44, 26], hemiSky: 0xcfe2f4, hemiGround: 0x5a564c, fill: 0.92, rim: 0x8ad8ff, rimI: 0.45 };
 const TY_PAL = { stone: 0xd6cfbe, stoneD: 0xa89f8c, trim: 0xd8b860, kyber: 0x5ad2ff, leaf: 0x4a8a4e, leafD: 0x36703c, water: 0x6ac8e8,
   wood: 0x7a5230, woodD: 0x52361e, cloth: 0x2e6a8a, mat: 0xa8946f, bronze: 0x9a7440, rock: 0x3a3a46, rockD: 0x2a2a34 };
+/* THE CLONE CITADEL ON KAMINO, the ARC trooper's hub (data/hub-kamino.js, world/arenas/clone-citadel.js): white halls on
+   stilts over a grey storm ocean. Lightning off the sea lights every window; the pods of the city stand out of the rain */
+const KM_SKY = { top: 0x16202a, horizon: 0x56687a, below: 0x1c2a34, bands: 6, stars: 0,
+  clouds: { color: 0x3a4a58, under: 0x1a2630, count: 34, lo: 0.08, hi: 0.95 } };
+const KM_VIEW = [
+  { kind: 'pods', count: 7, r: [1.5, 2.2], h: [34, 64], size: [12, 22], color: 0xd8dee4, color2: 0x8a98a6, glow: 0xd8f0ff },
+];
+const KM_LIGHT = { sun: 0xdce8f4, sunI: 1.25, dir: [24, 44, -18], hemiSky: 0xb8cce0, hemiGround: 0x3a4450, fill: 1.05, rim: 0x8ad8ff, rimI: 0.5 };
+const KM_STORM = { every: [5, 11], fill: 0.7, sky: 1.1, ramp: 1, fogFlash: 0.3, color: 0xdce8ff };
+const KM_PAL = { wall: 0xe8ecef, wallD: 0xb8c2ca, panel: 0xd2d9df, trim: 0x8ea0ae, metal: 0x9aa6b2, metalD: 0x3e4852, glass: 0x9ad8f0,
+  glow: 0xd8f0ff, holo: 0x6ad8ff, red: 0xc23a30, blue: 0x2f7fd6, sea: 0x20384a, pod: 0xffb84a, podFluid: 0x5ad0c0, rack: 0x4a545e, mat: 0x5a6672 };
+const KM_BEATS = { fog: 0x4a5a68, fill: 1.0, tint: 0xd8ecff };
 export const HUB_WORLDS = {
   tyHall: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: TY_LIGHT,
     floor: { kind: 'flagstone', base: 0x9a9284, seed: 17 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
@@ -1021,10 +1033,59 @@ export const HUB_WORLDS = {
     light: { sun: 0xbfe6ff, sunI: 1.3, dir: [-10, 44, 18], hemiSky: 0x6ab8ff, hemiGround: 0x1e1a28, fill: 1.0, rim: 0x5ad2ff, rimI: 0.7 },
     floor: { kind: 'basalt', base: 0x3e3e4a, seed: 47 }, outer: 0x22222c, pal: TY_PAL, backdrop: [],
     ambient: { kind: 'embers', color: 0x8ae0ff, count: 110 }, beats: { fog: 0x1a2a3e, fill: 1.0, tint: 0xb8e8ff }, sound: 'temple' },
+  // the clone citadel (KM_*: see above)
+  kmDeck: { mist: false, sky: KM_SKY, fog: 0x56687a, fogStart: 0.9, fogEnd: 3.0, light: KM_LIGHT, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0xa8b2bc, stripe: 0x5a8aa8, seed: 61 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 90, size: 0.18 },
+    warfront: { flyers: [{ kind: 'gunship', count: 2, alt: [60, 120], speed: [26, 40], every: [14, 26] }], epic: false },
+    beats: KM_BEATS, sound: 'plains' },
+  kmWar: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.0, fogEnd: 3.4, light: { ...KM_LIGHT, dir: [-10, 40, -30] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x6a7682, stripe: 0x4a7aa0, seed: 67 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xb8e0ff, count: 60, size: 0.18 }, beats: KM_BEATS, sound: 'plains' },
+  kmRange: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.1, fogEnd: 3.6, light: { ...KM_LIGHT, dir: [30, 42, 14] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x8a949e, stripe: 0xc89a3a, seed: 71 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW, glow: 0.8,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 60, size: 0.18 }, beats: KM_BEATS, sound: 'plains' },
+  kmHalls: { mist: false, sky: KM_SKY, fog: 0x3a4e5a, fogStart: 0.8, fogEnd: 2.8, light: { ...KM_LIGHT, sunI: 1.0, fill: 0.95, dir: [-14, 46, 20] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x7a8690, stripe: 0x5ad0c0, seed: 73 }, outer: 0x22323e, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xffd8a0, count: 110, size: 0.18 }, beats: { ...KM_BEATS, tint: 0xffe8c8 }, sound: 'plains' },
+  kmArmory: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.1, fogEnd: 3.6, light: { ...KM_LIGHT, dir: [-12, 44, 18] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x727e88, stripe: 0xc23a30, seed: 79 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 50, size: 0.16 }, beats: KM_BEATS, sound: 'plains' },
+};
+
+// THE HIDDEN COVERT, the Mando's hub (data/hub-covert.js, world/arenas/covert-hub.js): halls hewn in dark rock under a
+// ruined city, lit warm by the forge and by braziers, a little daylight falling in through the roofs. Floors stay a value
+// above the walls and below white armour, so everyone reads against them.
+const MF_SKY = { top: 0x1a1410, horizon: 0x3a2a20, below: 0x140e0c, bands: 5, stars: 0 };
+const MF_PAL = { rock: 0x564a46, rockD: 0x3c3432, rockL: 0x6a5e58, stone: 0x6a5c52, stoneD: 0x4a4038, beskar: 0xb0b8c0,
+  metal: 0x5a6068, metalD: 0x30343a, trim: 0xc89a4a, wood: 0x5a3e2a, molten: 0xff7a1e, hot: 0xffc060, fire: 0xff8a2a,
+  cloth: 0x6a2620, clothD: 0x2a2224, ring: 0xffb35a, sand: 0x8a6a4a, hull: 0x6e7a70, stripe: 0xd9a43a };
+const MF_LIGHT = { sun: 0xffd0a0, sunI: 1.55, dir: [14, 44, 20], hemiSky: 0xd8b090, hemiGround: 0x3a2c26, fill: 1.15, rim: 0xff9a50, rimI: 0.55 };
+export const COVERT_WORLDS = {
+  mfForge: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x3a2418, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, sunI: 1.6 },
+    floor: { kind: 'flagstone', base: 0x5e5852, seed: 53 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'embers', color: 0xff9a40, count: 160 }, beats: { fog: 0x3a2418, fill: 1.0, tint: 0xffc890 }, sound: 'foundry' },
+  mfClan: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x34221a, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, dir: [-10, 44, 24] },
+    floor: { kind: 'flagstone', base: 0x6a5a50, seed: 59 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'embers', color: 0xffa050, count: 70 }, beats: { fog: 0x34221a, fill: 1.0, tint: 0xffc890 }, sound: 'temple' },
+  mfPit: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x34221a, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, dir: [24, 44, 10] },
+    floor: { kind: 'flagstone', base: 0x6e6256, seed: 61 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'dust', color: 0xffe0b8, count: 80, size: 0.2 }, beats: { fog: 0x34221a, fill: 1.0, tint: 0xffd0a0 }, sound: 'temple' },
+  mfVault: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x2a2220, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, sunI: 1.4, dir: [-16, 46, 14] },
+    floor: { kind: 'flagstone', base: 0x605a56, seed: 67 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'dust', color: 0xffe0b8, count: 60, size: 0.18 }, beats: { fog: 0x2a2220, fill: 1.0, tint: 0xffd8b0 }, sound: 'temple' },
+  mfHangar: { mist: false,
+    sky: { top: 0x24345a, horizon: 0xe8a070, below: 0x3a2a24, bands: 6, stars: 30, sun: { el: 0.6, color: 0xffd8a8, halo: 0xffb070, size: 18 },
+      clouds: { color: 0xe8b090, under: 0x8a5a4a, count: 10, lo: 0.4, hi: 0.85 } },
+    fog: 0x5a3a2e, fogStart: 1.3, fogEnd: 3.8, light: { ...MF_LIGHT, sun: 0xffd8b0, sunI: 1.75, dir: [-18, 46, 22], hemiSky: 0xe0b090 },
+    floor: { kind: 'deck', base: 0x5a5650, stripe: 0xd9a43a, seed: 71 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    warfront: { flyers: [{ kind: 'freighter', count: 1, alt: [120, 180], speed: [18, 28], every: [30, 50] }], epic: false },
+    ambient: { kind: 'dust', color: 0xffe0c0, count: 90, size: 0.22 }, beats: { fog: 0x5a3a2e, fill: 1.0, tint: 0xffd0a0 }, sound: 'foundry' },
 };
 
 export function themeFor(L){
   if (HUB_WORLDS[L.layout]) return HUB_WORLDS[L.layout];
+  if (COVERT_WORLDS[L.layout]) return COVERT_WORLDS[L.layout];
   if (TRAINING_WORLDS[L.layout]) return TRAINING_WORLDS[L.layout];
   if (MISSION_WORLDS[L.layout]) return MISSION_WORLDS[L.layout];
   if (BATTLE_WORLDS[L.layout]) return BATTLE_WORLDS[L.layout];

@@ -27,11 +27,11 @@ import { payWaveClear } from './progression.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint, noteWavePoint, SURVIVAL_EVERY } from './upgrades.js';
 import { showBanner } from '../ui/banners.js';
-import { squadSize, regroupSquad } from '../allies/squad.js';
+import { squadSize, regroupSquad, squadAllStanding } from '../allies/squad.js';
 import { beginWave } from './readout.js';
 import { coopRun } from '../net/run.js';
 import { meetWarbringer } from './codex.js';
-import { noteSurvivalWave } from './profile.js';
+import { noteSurvivalWave, noteSquadWave } from './profile.js';
 
 /* ============================================================
    SURVIVAL / ENDLESS MODE — escalating waves, mutators, milestone spikes, arena rotation, repeatable power-ups.
@@ -180,6 +180,7 @@ export function endlessWaveCleared(){
   shared.levelPhase = 'between'; shared.phaseT = 2.2;
   earnWavePoint();
   noteSurvivalWave();   // rank XP for your profile (game/profile.js)
+  if (G.hero === 'trooper' && squadAllStanding()) noteSquadWave();   // (the armory locker's squad asks)
   if (G.endlessWave % SURVIVAL_EVERY === 0) openSkillTree();   // the upgrade page every few waves; between them, a note in the corner
   else noteWavePoint();
 }

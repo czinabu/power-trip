@@ -101,6 +101,8 @@ on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from ||
 // shown on their name tag, and kept on their entry for whatever reads the room (the hub, partnerCards)
 function hearCard(P, c){ if (c !== undefined) P.mate.card = cleanCard(c); }
 // where each partner is (their worldKey: 'hub:hall', 'survival:0'...), for the temple's map (ui/hub-ui.js) and the co-op panel
+// the host's hero, as a guest's browser last heard it (null before the host's hello): the hub the party meets in (game/hub.js)
+export const hostHero = () => { const P = partners.get(0); return P && P.built ? P.hero : null; };
 export const partnerWorlds = () => [...partners.values()].filter(P => P.built && P.playing).map(P => ({ slot: P.slot, name: who(P), world: P.world }));
 export const partnerCards = () => [...partners.values()].map(P => ({ slot: P.slot, name: nameOf(P.slot), card: P.mate.card || null }));
 on('s', (m) => {

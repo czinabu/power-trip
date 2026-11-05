@@ -89,6 +89,7 @@ export const G = {
   mission: false,        // true while a story mission runs (game/mission.js)
   sandbox: false,        // true while the sandbox runs (game/sandbox.js)
   hub: false,            // true while the hidden temple on Tython, the hub, is up (game/hub.js)
+  hubId: 'temple',       // ...which hub (data/hub.js HUBS: one per hero)
   hubWing: 'hall',       // ...which of its wings (data/hub.js)
   fromHub: false,        // this run was started from the temple: its end screens offer the way back (ui/menus.js)
   sandboxGod: false,     // the sandbox's god mode: the hero can't fall

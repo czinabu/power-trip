@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// TEMPLE SMOKE TEST — boots the BUILT game (dist/index.html) and walks the hidden temple on Tython (game/hub.js) for each hero:
+// HUB SMOKE TEST — boots the BUILT game (dist/index.html) and walks each hero's hub (game/hub.js, data/hub.js HERO_HUB: the
+// hidden temple on Tython, the clone citadel on Kamino…), whose wings share the temple's plan and station spots:
 //   · in from the title screen's tile, the station prompt at the temple map, H opens its panel, fast travel to a wing;
 //   · walking through a great door loads the wing beyond, arriving at its door back;
 //   · the forge's saber workbench and forms page open on their own, no pause screen behind them;
@@ -22,6 +23,15 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || 
 let failed = false;
 const check = (ok, what) => { console.log((ok ? 'ok: ' : 'FAIL: ') + what); if (!ok) failed = true; };
 const HEROES = (process.env.HEROES || 'jedi,mando,trooper').split(',');
+// each hub's wings by their part in the plan, and the names the checks look for (a hub missing here walks as the temple)
+const PLANS = {
+  temple: { hall: 'hall', council: 'council', training: 'training', archives: 'archives', forge: 'forge', map: 'TEMPLE MAP', councilName: 'THE COUNCIL CHAMBER' },
+  kamino: { hall: 'deck', council: 'warroom', training: 'range', archives: 'halls', forge: 'armory', map: 'FACILITY MAP', councilName: 'THE WAR ROOM' },
+  // (the covert's stations stand at spots of their own: where to stand, [x, z, yaw], for each one that moved)
+  covert: { hall: 'forge', council: 'clan', training: 'pit', archives: 'vault', forge: 'forge', map: 'COVERT MAP', councilName: 'THE CLAN HALL',
+    at: { map: [14, 25.5, Math.PI], proving: [-4, 24.6, Math.PI], grounds: [-4, -19.4, Math.PI], bench: [-8, 23.5, Math.PI] } },
+};
+const AT = { map: [0, 5, Math.PI], proving: [-6, 16, 0], grounds: [-6, -16, Math.PI], bench: [0, 3, 0] };
 
 for (const hero of HEROES){
   const errors = [];
@@ -68,7 +78,7 @@ for (const hero of HEROES){
     await page.waitForTimeout(300);
     const shown = await page.isVisible('#templeBtn');
     check(shown, `${hero}: ${what} offers RETURN TO THE TEMPLE`);
-    if (!shown){ await page.evaluate(() => GAME.hub.startHub('hall')); return; }
+    if (!shown){ await page.evaluate(() => GAME.hub.startHub()); return; }
     await page.click('#templeBtn'); await page.waitForTimeout(200);
     if (await page.isVisible('#homeYes')) await page.click('#homeYes');
     check(await inHub(), `${hero}: back in the temple from ${what}`);
@@ -81,48 +91,52 @@ for (const hero of HEROES){
     await page.$eval('#hero-' + hero, el => el.click());
     await page.click('#mode-temple');
     await page.click('#goText');
-    check(await inHub('hall'), `${hero}: the temple tile opens the grand hall`);
+    check(await inHub(), `${hero}: the hub tile opens the hub`);
+    const hubId = await page.evaluate(() => GAME.G.hubId), P = PLANS[hubId] || PLANS.temple;
+    console.log(`  (${hero} walks the ${hubId} hub)`);
+    check(await inHub(P.hall), `${hero}: the hub opens on its start wing`);
     check(await page.evaluate(() => !GAME.G.waveTotal && !GAME.enemies?.length), `${hero}: no foes in the temple`);
 
     // the TEMPLE MAP: prompt, panel, fast travel
-    await stand(0, 5, Math.PI); await page.waitForTimeout(400);
-    check(await page.evaluate(() => document.getElementById('hubp').classList.contains('on') && /TEMPLE MAP/.test(document.getElementById('hubp').textContent)), `${hero}: the station prompt shows at the temple map`);
-    check(await station(0, 5, Math.PI, 'THE COUNCIL CHAMBER'), `${hero}: H opens the map's panel and lists the wings`);
-    check(await inHub('council'), `${hero}: fast travel to the council chamber`);
+    const at = (k) => (P.at && P.at[k]) || AT[k];
+    await stand(...at('map')); await page.waitForTimeout(400);
+    check(await page.evaluate((m) => document.getElementById('hubp').classList.contains('on') && document.getElementById('hubp').textContent.includes(m), P.map), `${hero}: the station prompt shows at the hub map`);
+    check(await station(...at('map'), P.councilName), `${hero}: F opens the map's panel and lists the wings`);
+    check(await inHub(P.council), `${hero}: fast travel to the council chamber`);
 
     // walk out through the council's south door: the hall loads, arriving at its north door
     const H = await page.evaluate(() => GAME.shared?.arenaHalf ?? 32);
     await stand(0, H - 2, 0); await page.waitForTimeout(200);
-    check(await inHub('hall'), `${hero}: walking through a door loads the wing beyond`);
+    check(await inHub(P.hall), `${hero}: walking through a door loads the wing beyond`);
     check(await page.evaluate(() => GAME.player.group.position.z < -30), `${hero}: arriving at the door back`);
 
     // the COUNCIL TABLE: an arcade mission, and back
-    check(await travel('council'), `${hero}: travel back to the council`);
+    check(await travel(P.council), `${hero}: travel back to the council`);
     check(await station(0, 7, Math.PI, 'ARCADE'), `${hero}: the council table lists the modes`);
     await fight();
     check(await runs(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.mission), `${hero}: the council table launches an arcade mission`);
     await backToTemple('a mission');
 
     // the TRAINING WING: sandbox, survival, the training grounds
-    check(await travel('training'), `${hero}: travel to the training wing`);
+    check(await travel(P.training), `${hero}: travel to the training wing`);
     check(await station(12, 0, Math.PI / 2, 'THE SANDBOX'), `${hero}: the sparring hall offers the sandbox`);
     await fight();
     check(await runs(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.sandbox), `${hero}: the sandbox launches`);
     await page.evaluate(() => { const p = document.getElementById('sandbox'); if (p && p.classList.contains('open')) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
     await backToTemple('the sandbox');
-    await travel('training');
-    check(await station(-6, 16, 0, 'SURVIVAL'), `${hero}: the proving ground offers survival`);
+    await travel(P.training);
+    check(await station(...at('proving'), 'SURVIVAL'), `${hero}: the proving ground offers survival`);
     await fight();
     check(await runs(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.endless), `${hero}: survival launches`);
     await backToTemple('survival');
-    await travel('training');
-    check(await station(-6, -16, Math.PI, 'TRAINING GROUNDS'), `${hero}: the training grounds station`);
+    await travel(P.training);
+    check(await station(...at('grounds'), 'TRAINING GROUNDS'), `${hero}: the training grounds station`);
     check(await runs(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.training), `${hero}: training launches`);
     await page.evaluate(() => { const b = document.getElementById('lessonboard'); if (b) b.classList.remove('open'); });
     await backToTemple('training');
 
     // the ARCHIVES: the codex over the temple, and closed back into it
-    check(await travel('archives'), `${hero}: travel to the archives`);
+    check(await travel(P.archives), `${hero}: travel to the archives`);
     check(await station(3, 0, -Math.PI / 2, 'THE CODEX'), `${hero}: the archive terminal offers the codex`);
     await page.waitForTimeout(400);
     check(await page.evaluate(() => GAME.G.hub && GAME.G.paused && GAME.G.mode === 'play'), `${hero}: the codex opens over the temple`);
@@ -130,23 +144,23 @@ for (const hero of HEROES){
 
     // the FORGE: the customizer, DONE comes back to the forge
     await page.click('#cxclose');
-    check(await inHub('archives'), `${hero}: closing the codex goes back to the archives`);
-    await travel('forge');
-    check(await inHub('forge'), `${hero}: into the forge`);
-    check(await station(0, 3, 0, 'CUSTOMIZE YOUR HERO'), `${hero}: the forge bench offers the customizer`);
+    check(await inHub(P.archives), `${hero}: closing the codex goes back to the archives`);
+    await travel(P.forge);
+    check(await inHub(P.forge), `${hero}: into the forge`);
+    check(await station(...at('bench'), 'CUSTOMIZE YOUR HERO'), `${hero}: the forge bench offers the customizer`);
     await page.waitForTimeout(500);
     check(await page.evaluate(() => document.getElementById('overlay').classList.contains('customizing')), `${hero}: the customizer opens`);
     await page.click('#czdone');
-    check(await inHub('forge'), `${hero}: DONE goes back to the forge`);
+    check(await inHub(P.forge), `${hero}: DONE goes back to the forge`);
     if (hero === 'jedi'){
       // the SABER WORKBENCH, its own screen, and back
-      check(await station(0, 3, 0, 'SABER WORKBENCH'), `${hero}: the forge bench offers the saber workbench`);
+      check(await station(...at('bench'), 'SABER WORKBENCH'), `${hero}: the forge bench offers the saber workbench`);
       check(await page.waitForFunction(() => document.getElementById('workbench').classList.contains('open'), null, { timeout: 10000 }).then(() => true, () => false), `${hero}: the workbench opens`);
       check(await page.evaluate(() => !document.getElementById('overlay').classList.contains('customizing')), `${hero}: the workbench is not the customizer`);
       await page.click('#wbdone');
-      check(await inHub('forge'), `${hero}: the workbench's DONE goes back to the forge`);
+      check(await inHub(P.forge), `${hero}: the workbench's DONE goes back to the forge`);
       // FORMS & MASTERY over the temple, with no pause screen behind it
-      check(await station(0, 3, 0, 'FORMS & MASTERY'), `${hero}: the forge bench offers forms & mastery`);
+      check(await station(...at('bench'), 'FORMS & MASTERY'), `${hero}: the forge bench offers forms & mastery`);
       await page.waitForTimeout(500);
       check(await page.evaluate(() => document.getElementById('forms').classList.contains('open') && !document.getElementById('goText').checkVisibility({ visibilityProperty: true })), `${hero}: forms & mastery opens with no pause screen behind it`);
     }

@@ -15,8 +15,10 @@
 // itself (the trooper's ARC kit at his promotion, the Mando's cape and pauldrons). game/wardrobe.js keeps the ledger.
 
 import { mergeLook } from '../player/model/appearance.js';
-import { optionOpen } from '../game/wardrobe.js';
+import { optionOpen, trooperFork } from '../game/wardrobe.js';
 import { BENCH } from './saber-parts.js';
+import { LOCKER } from './trooper-locker.js';
+import { FORGE } from './beskar-forge.js';
 
 const pal = (palette) => ({ palette });
 // the workbench's parts as customizer rows: a crystal sets the blade colour, a part its piece of the hilt (look.jedi.hilt)
@@ -25,6 +27,12 @@ function benchRows(){
   return BENCH.map(r => ({ id: r.id, label: r.label, kind: r.id === 'saber' ? 'color' : 'part', bench: true,
     options: r.parts.map(p => ({ id: p.id, name: p.name, ...(p.earn ? { earn: p.earn } : {}),
       ...(r.id === 'saber' ? (p.col == null ? { sw: 0x35c8ff, set: { saber: null } } : { set: { saber: p.col } }) : { set: { hilt: { [PIECE[r.id]]: p.id } } }) })) }));
+}
+// the trooper's ARMORY LOCKER and the Mando's BESKAR FORGE (data/trooper-locker.js, data/beskar-forge.js) as customizer
+// rows: each part's `set` is what it changes on the look (a sidegrade row's parts change nothing there)
+function kitRows(bench){
+  return bench.map(r => ({ id: r.id, label: r.label, kind: r.kind, bench: true, ...(r.side ? { side: r.side } : {}),
+    options: r.parts.map(p => ({ id: p.id, name: p.name, ...(p.earn ? { earn: p.earn } : {}), ...(p.unlock ? { unlock: p.unlock } : {}), set: r.set(p) || {} })) }));
 }
 const parts = (p) => ({ parts: p });
 
@@ -167,6 +175,9 @@ export const CUSTOMIZE = {
       { id: 'grey',  name: 'Grey',     set: pal({ cloth: 0x5a5a5e }), unlock: 'hoth' },
       { id: 'blue',  name: 'Blue',     set: pal({ cloth: 0x27385a }), unlock: 'mustafar' },
     ] },
+    // THE BESKAR FORGE's rows (data/beskar-forge.js): the forged sidegrade, the signet, the vambraces and the chest kit.
+    // `bench` rows show on the forge's own screen (ui/kitbench.js), not the customizer's LOOKS; their pieces are earned
+    ...kitRows(FORGE),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
       { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.92, shoulders: 0.95 } } },
@@ -183,22 +194,27 @@ export const CUSTOMIZE = {
   // trooper in Phase II plates, earns a captain's helmet and pauldron at his first promotion and the ARC kit at his second
   // (game/wardrobe.js PROMOTIONS)
   trooper: [
-    { id: 'helmet', label: 'HELMET', kind: 'part', options: [
+    // `fork`: open once the trooper has taken that signature path (game/wardrobe.js); `forkPick`: what the row wears,
+    // when nothing is picked, after the latest path taken (the Commando's Katarn kit, no kama)
+    { id: 'helmet', label: 'HELMET', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Commando', set: parts({ helmet: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
     ] },
-    { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
+    { id: 'shoulders', label: 'SHOULDERS', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Commando plates', set: parts({ arms: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Bare',         set: parts({ arms: 'phase2' }) },
     ] },
     // the ARC's black collar yoke and pouches, and the legion paint on the legs: on, or plain Phase II plates
-    { id: 'gear', label: 'GEAR', kind: 'part', options: [
+    { id: 'gear', label: 'GEAR', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Katarn plate', set: parts({ torso: 'commando', legs: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'phase2', name: 'Phase II', set: parts({ torso: 'phase2', legs: 'phase2' }) },
     ] },
-    { id: 'kama', label: 'KAMA', kind: 'part', options: [
+    { id: 'kama', label: 'KAMA', kind: 'part', forkPick: { commando: 'none' }, options: [
       { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'mustafar' },
       { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
     ] },
@@ -215,12 +231,6 @@ export const CUSTOMIZE = {
       { id: 'violet', name: 'Violet',           set: pal({ mark: 0x6a4a9a }), unlock: 'jakku' },
       { id: 'black',  name: 'Black',            set: pal({ mark: 0x1f2126 }), unlock: 'chase' },
     ] },
-    { id: 'plate', label: 'PLATES', kind: 'color', options: [
-      { id: 'white',  name: 'White',   set: pal({ plate: 0xe8e8e3 }) },
-      { id: 'ivory',  name: 'Ivory',   set: pal({ plate: 0xd8d0b8 }), unlock: 'lothal' },
-      { id: 'grey',   name: 'Grey',    set: pal({ plate: 0xa8adb2 }), unlock: 'jakku' },
-      { id: 'shadow', name: 'Shadow',  set: pal({ plate: 0x34373c, grey: 0x16171a }), unlock: 'spearhead' },
-    ] },
     { id: 'cloth', label: 'KAMA COLOUR', kind: 'color', options: [
       { id: 'black', name: 'Black', set: pal({ cloth: 0x141518 }) },
       { id: 'blue',  name: 'Blue',  set: pal({ cloth: 0x22406a }), unlock: 'mustafar' },
@@ -228,6 +238,10 @@ export const CUSTOMIZE = {
       { id: 'khaki', name: 'Khaki', set: pal({ cloth: 0x7b6b52 }), unlock: 'chase' },
       { id: 'grey',  name: 'Grey',  set: pal({ cloth: 0x4a4c50 }), unlock: 'won' },
     ] },
+    // THE ARMORY LOCKER's rows (data/trooper-locker.js): the power pack and the squad specialist (the two sidegrades),
+    // the armour paint (the plates' colour: it was the PLATES row here, same id), the company markings, the helmet gear and
+    // the DC-15's stock and finish. `bench` rows show on the locker's own screen (ui/kitbench.js); their parts are earned
+    ...kitRows(LOCKER),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
       { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.92, shoulders: 0.95 } } },
@@ -259,6 +273,9 @@ export function lookFromPicks(picks = {}){
 
 // the option a hero WEARS for a row: the one picked if it is open (game/wardrobe.js), else the row's first open one
 export function wornOption(hero, row, picks = {}){
+  const fp = row.forkPick && picks[row.id] == null && row.forkPick[trooperFork()];
+  const pref = fp && row.options.find(x => x.id === fp);
+  if (pref && optionOpen(hero, row, pref)) return pref;
   const o = pickedOption(row, picks);
   return optionOpen(hero, row, o) ? o : (row.options.find(x => optionOpen(hero, row, x)) || row.options[0]);
 }

@@ -21,6 +21,8 @@ import { overlay, setOverlayState, heroPicked } from './menus.js';
 import { audioInit } from '../audio/sfx.js';
 import { earnText } from '../data/saber-parts.js';
 import { openWorkbench } from './workbench.js';
+import { openKitBench } from './kitbench.js';
+import { BENCH_NAME } from '../data/hero-benches.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
@@ -29,7 +31,8 @@ let saved = wornKey(picks);   // what the player model is built from (the picks 
 
 const hex = c => '#' + c.toString(16).padStart(6, '0');
 const ROMAN = ['I', 'II', 'III'];
-// the saber's rows (`bench`: data/saber-parts.js) live on the SABER WORKBENCH's own screen (ui/workbench.js), not here
+// the bench rows (`bench`: the saber's, the trooper's locker's, the Mando's forge's) live on their own screens
+// (ui/workbench.js, ui/kitbench.js), not here
 const rowsShown = (hero) => CUSTOMIZE[hero].filter(r => !r.bench);
 // where an option is earned or unlocks, in words
 function optWhere(hero, o){ return o.earn ? earnText(o.earn, (id) => chapterTitle(hero, id)) : 'unlocks in ' + unlockWhere(hero, o.unlock); }
@@ -41,6 +44,7 @@ function unlockWhere(hero, id){
   return c ? 'ACT ' + ROMAN[c.act] + ' · ' + forHero(c.title, hero) : 'THE CAMPAIGN';
 }
 const hintEl = document.getElementById('czlock');
+const BENCH_LINE = { jedi: 'Build your lightsaber from the parts you\'ve earned', trooper: 'Your gear, power pack and squad specialist', mando: 'Your forged armour, signet and the beskar\'s forging' };
 // a row's options as shown: the ones open from the start first, then by the chapter that unlocks them, the campaign's
 // end last (the data's own order still decides what a hero wears by default: data/customize.js)
 function shownOrder(hero, row){
@@ -54,8 +58,8 @@ function render(){
   syncHeroNames();
   const tabs = document.getElementById('czhero');
   for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
-  const wb = document.getElementById('czbench');
-  if (wb) wb.style.display = hero === 'jedi' ? '' : 'none';
+  const wb = document.getElementById('czbench');   // the hero's bench: the saber workbench, the armory locker, the beskar forge
+  if (wb) wb.innerHTML = '<b>' + BENCH_NAME[hero] + '</b><span>' + BENCH_LINE[hero] + '</span><i>›</i>';
   let open = 0, all = 0;
   rowsEl.innerHTML = rowsShown(hero).map(row => {
     const cur = wornOption(hero, row, mine);
@@ -170,7 +174,7 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   e.stopPropagation();   // picking an option must never launch the game
   const opt = e.target.closest('[data-opt]');
   if (opt) return pick(opt.dataset.row, opt.dataset.opt);
-  if (e.target.closest('#czbench')){ closeCustomizer(); openWorkbench(); return; }   // (the saber has its own screen: ui/workbench.js)
+  if (e.target.closest('#czbench')){ closeCustomizer(); if (!openKitBench(G.hero)) openWorkbench(); return; }   // (each bench has its own screen: ui/workbench.js, ui/kitbench.js)
   const ht = e.target.closest('[data-h]');
   if (ht && ht.dataset.h !== G.hero){ setHero(ht.dataset.h); heroPicked(); render(); return; }   // (the title screen's pick follows: its saved run too)
   if (e.target.closest('#czrandom')) randomize();

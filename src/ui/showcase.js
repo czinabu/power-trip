@@ -9,7 +9,8 @@ import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
 import { benchOpen, renderBench } from './bench-stage.js';
-import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber } from '../player/model/weapons.js';
+import { kitSet, kitSets } from './kit-stage.js';
+import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber, setPistolLook, setLongGun, setRifleMod } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
@@ -18,7 +19,7 @@ import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
 import { FORMS, formGrip, forkClosed, isStaff, isDual } from '../data/forms.js';
 import { guardPose, swingPose, applySaberPose, releaseSaberPose, saberPose } from '../player/anim/saber.js';
-import { rexRest } from '../player/anim/guns.js';
+import { rexRest, riflePose } from '../player/anim/guns.js';
 
 const HERO_X = 0.72;     // where the figure stands across the screen (0 = left edge, 1 = right)
 const TURN = 0.32;       // turntable speed while customizing, rad/s (on the title screen the camera orbits instead)
@@ -241,6 +242,7 @@ export function restyleShowcase(picks){
 }
 
 let shown = null;   // hero currently on the stand
+let rifleOn = false;   // the trooper holds the DC-15, not the DC-17s (showcaseRifle)
 let figTop = 0, fitTop = 0;   // the dressed figure's top (world y), and the eased value the close-up frames to
 function dress(hero){
   if (hero === 'trooper' && !(fig.trooperParts && fig.trooperParts.length)) hero = 'mando';
@@ -253,6 +255,7 @@ function dress(hero){
   fig.saberHand.visible = !gunner;
   fig.pistols.L.visible = trooper;
   fig.pistols.R.visible = gunner;
+  setPistolLook(fig, trooper ? 'pistols' : 'single');
   fig.rifleMesh.visible = false;
   fig.darksaberMesh.visible = false;
   applySaberGrip(fig, G.saberGrip, true);
@@ -264,7 +267,14 @@ function dress(hero){
   set(R.torso, P.torso); set(R.head, P.head);
   if (P.saber) set(fig.saberHand, P.saber);
   R.hips.position.y = hipsY + (P.drop || 0);
-  if (trooper) rexRest(R, fig.pistols);   // the DC-17s Rex's way, as he carries them in the fight: one up, one down
+  if (trooper && rifleOn){
+    // THE ARMORY LOCKER (ui/kitbench.js): the DC-15 in hand at the low ready, so its stock and finish are on show
+    fig.pistols.L.visible = fig.pistols.R.visible = false;
+    setLongGun(fig, 'dc15'); setRifleMod(fig, 'burst');
+    fig.rifleMesh.visible = true;
+    stage.updateMatrixWorld(true);
+    riflePose(1, R, { rifleMesh: fig.rifleMesh, recoil: 0 }, fig.vis.localToWorld(new THREE.Vector3(0.6, 0.2, 6)));
+  } else if (trooper) rexRest(R, fig.pistols);   // the DC-17s Rex's way, as he carries them in the fight: one up, one down
   settleCloth(fig);
   figTop = measureTop();
 }
@@ -376,7 +386,21 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(paintAll);
 let camZ = 9.4;
 let focus = 0, focusTo = 0;   // 0 = the whole stand, 1 = closer on the figure (while customizing)
 export function focusShowcase(on){ focusTo = on ? 1 : 0; }
+// the trooper holds his DC-15 on the stand instead of the DC-17s (while the armory locker is open: ui/kitbench.js)
+export function showcaseRifle(on){ if (rifleOn === !!on) return; rifleOn = !!on; if (shown) dress(shown); }
 export function spinShowcase(rad){ spin += rad; }   // drag to turn the stand
+// THE GUNNERS' BENCH SETS (ui/kit-stage.js): while the armory locker or the beskar forge is open the hero stands in that
+// room on its own pad, not on the customizer's turntable under the painted sky. null puts the stand back
+let kitOn = null;
+const STAND_BITS = [ped, step, rimRing, inRing, ticks, pool, beam, bg];
+export function showcaseKit(hero){
+  kitOn = hero || null;
+  const want = kitOn && kitSet(kitOn, PED_H);
+  if (want && !want.room.parent){ stage.add(want.room); table.add(want.pad); }
+  for (const k of kitSets()) k.room.visible = k.pad.visible = k === want;
+  for (const o of STAND_BITS) o.visible = !want;
+  stage.background = want ? want.bg : null;
+}
 function frame(){
   const w = innerWidth, h = innerHeight;
   cam.aspect = w / h;
@@ -616,8 +640,9 @@ export function renderShowcase(dt){
   inRing.material.color.copy(accent); ticks.material.color.copy(accent);
   pool.material.color.copy(accent); pool.material.opacity = 0.45 + flare * 0.4;
   beam.material.color.copy(accent); beam.material.opacity = flare * 0.4;
-  spot.intensity = 17 + flare * 16;
+  spot.intensity = (17 + flare * 16) * (kitOn ? kitSet(kitOn, PED_H).spot : 1);
   bgMat.uniforms.t.value = t; bgMat.uniforms.flare.value = flare;
+  if (kitOn) kitSet(kitOn, PED_H).step(dt, t);
   renderPass.scene = stage; renderPass.camera = cam;
   // under the stand's spotlight a pale skin or white tunic lands near full brightness and the bloom set for
   // sabers and bolts would halo it; on the stand only light sources (blade, rings, beam) should glow

@@ -714,6 +714,7 @@ setStoryReturn({
 // MAIN MENU — abandon the run and go back to the title screen. From pause it asks first (a run is easy to lose
 // by accident); from the fallen/victory screens the run is already over, so it goes straight there.
 export function goHome(){
+  overlay.classList.remove('hubpage'); hubPage = null;
   overlay.classList.remove('confirming');
   closeMissionPage();   // MAIN MENU is the menu itself, not the Missions page a mission was started from
   closeSandboxPanel(false); closeHubPanel(false);
@@ -803,6 +804,7 @@ export function hubOpenPanel(open, isOpen){
   closeHubPanel(false);
   hubPage = isOpen;
   G.paused = true; overlay.style.display = 'flex'; setOverlayState('pause');
+  overlay.classList.add('hubpage');   // (just the page over the temple: the pause screen under it stays out of sight, styles/hub.css)
   if (document.pointerLockElement) document.exitPointerLock();
   open();
 }
@@ -811,14 +813,15 @@ export function hubOpenPanel(open, isOpen){
 // the next click on the game)
 const hubPageClosed = (gesture) => setTimeout(() => {
   if (!hubPage || hubPage() || !G.hub || G.mode !== 'play') return;
-  hubPage = null; if (gesture) launch(); else launchNow();
+  hubPage = null; overlay.classList.remove('hubpage');
+  if (gesture) launch(); else launchNow();
 }, 0);
 document.addEventListener('click', () => hubPageClosed(true), true);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hubPageClosed(false); }, true);
 // back to the temple from wherever this run is (its end screens, pause, the menu): `auto` when nobody clicked (a co-op
 // guest called back by the host)
 export function goTemple(auto){
-  overlay.classList.remove('confirming');
+  overlay.classList.remove('confirming', 'hubpage'); hubPage = null;
   closeMissionPage(); closeSandboxPanel(false); closeHubPanel(false); leaveSetup(false); closeCard(true);
   document.getElementById('skilltree').style.display = 'none';
   G.skillSelect = false; G.sbMenu = false;

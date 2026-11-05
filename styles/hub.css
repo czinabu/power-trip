@@ -34,3 +34,7 @@ body.cutscene #hubp{opacity:0 !important}
 #modeselect .modeopt.temple{border-color:rgba(216,184,96,.55);background:linear-gradient(90deg,rgba(216,184,96,.14),rgba(90,200,255,.06))}
 #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{grid-column:1 / -1}
 #coopjointemple{display:none}
+
+/* a page opened from a temple station (the codex, the holocron, the forms): over the temple alone, the pause screen it
+   lives on kept out of sight under it (ui/menus.js hubOpenPanel) */
+#overlay.hubpage > :not(#codex):not(#profile):not(#forms):not(#workbench){visibility:hidden}

@@ -1,18 +1,11 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN COVERT: the Mando's hub. The same plan as the temple on Tython (data/hub.js): five wings, each its own room
-// (world/arenas/covert-hub.js builds them, data/worlds.js COVERT_WORLDS colours them), joined by great doors, so only one
+// THE HIDDEN COVERT: the Mando's hub (data/hub.js HUBS.covert). The same plan as the temple on Tython: five wings, each its own room
+// (world/arenas/covert-hub.js builds them, data/worlds.js COVERT_WORLDS, the mf* layouts, colours them), joined by great doors, so only one
 // wing is ever in memory. The clan's new home after Orvane: halls hewn into the rock under a ruined city, built round
 // a great forge. Same station acts as the temple, so every mode opens from here the way it does from there. Edit freely.
 //
-// Sides: n is −z (the way the hero faces on arrival), s is +z, e is +x, w is −x (data/hub.js SIDE_OUT).
-
-export const COVERT = {
-  id: 'covert',
-  name: 'THE HIDDEN COVERT',
-  start: 'forge',
-  doorHalf: 5.5,
-  doorReach: 1.8,
-};
+// Sides: n is −z (the way the hero faces on arrival), s is +z, e is +x, w is −x (data/hub.js SIDE_OUT). The hangar's
+// two stations have acts of their own: 'ship' (the campaign, arcade, survival) and 'bounties' (a job, the mission list).
 
 export const COVERT_WINGS = {
   forge: {

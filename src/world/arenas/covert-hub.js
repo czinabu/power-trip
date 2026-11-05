@@ -12,24 +12,12 @@
 import * as THREE from 'three';
 import { shared, solids } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
+import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { toon, inkify } from '../ink.js';
 import { COVERT_WINGS } from '../../data/hub-covert.js';
 import { SIDE_OUT } from '../../data/hub.js';
 
-const PI = Math.PI;
-const std = (c, r = 0.9, m = 0.05, e = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m,
-  ...(e ? { emissive: new THREE.Color(c).multiplyScalar(e), emissiveIntensity: 1 } : {}) });
-const glowM = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false, ...(op < 1 ? { transparent: true, opacity: op, depthWrite: false } : {}) });
-const holoM = (c, op = 0.45) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide });
-const live = (m) => { m.userData.noBake = true; m.userData.passThrough = true; m.castShadow = false; m.receiveShadow = false; return m; };
 const pic = (m) => { m.userData.passThrough = true; m.castShadow = false; return m; };   // past the edge: a picture, baked
-function anim(obj, fn){ obj.userData.noBake = true; (shared.hubAnim ||= []).push({ obj, fn, base: obj.position.clone() }); return obj; }
-const spinner = (obj, rate) => anim(obj, (o, t) => { o.rotation.y = t * rate; });
-function roundStep(K, x, z, r, h, mat, seg = 40){
-  const m = K.deco(new THREE.CylinderGeometry(r, r * 1.02, h, seg), mat, x, h / 2, z);
-  solids.push({ x, z, r, h, climbable: true });
-  return m;
-}
 const AMBER = 0xffb35a;
 
 /* the dispatcher: world/arena.js hands every mf* layout here */
@@ -39,8 +27,9 @@ export function buildCovertHubArena(L){
   const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 37 + 11);
   const M = mats(pal);
   ({ forge, clan, pit, vault, hangar })[wing](L, K, pal, R, M);
-  stations(wing, K, pal);
-  doorSigns(wing, K, pal);
+  // every station's amber rings and sign (a covert map console at each fast-travel stop), the signs over the doors
+  hubStations(COVERT_WINGS[wing], K, { ring: pal.ring ?? AMBER, tall: ['table', 'ship'], beacon: (x, z) => mapConsole(K, pal, x, z, wing === 'forge' ? 1 : 0.5) });
+  hubDoorSigns(COVERT_WINGS[wing], COVERT_WINGS, K, { signY: 8.2, runner: pal.ring ?? AMBER });
 }
 
 function mats(pal){
@@ -56,28 +45,6 @@ function mats(pal){
 }
 
 /* ---------------- the pieces every wing shares ---------------- */
-function stations(wing, K, pal){
-  const W = COVERT_WINGS[wing], [sx, sz] = W.spawn;
-  const ring = holoM(pal.ring ?? AMBER, 0.55);
-  for (const s of W.stations){
-    const r = Math.min(2.2, (s.r || 3.2) * 0.55);
-    live(K.deco(new THREE.RingGeometry(r, r + 0.22, 48), ring, s.x, 0.05, s.z, -PI / 2));
-    live(K.deco(new THREE.RingGeometry(r + 0.5, r + 0.58, 48), ring, s.x, 0.05, s.z, -PI / 2));
-    if (s.id === 'console') mapConsole(K, pal, s.x, s.z, 0.5);
-    const face = Math.atan2(sx - s.x, sz - s.z);
-    K.sign(s.name, s.x, s.id === 'table' ? 7.2 : s.id === 'ship' ? 7.6 : 4.6, s.z, face, { w: 3.6 });
-  }
-}
-/* over every door, the name of the wing beyond it, and a lit runner from the middle of the floor out to it */
-function doorSigns(wing, K, pal){
-  const W = COVERT_WINGS[wing], H = shared.arenaHalf;
-  for (const side in W.doors){
-    const to = COVERT_WINGS[W.doors[side]], [ox, oz] = SIDE_OUT[side];
-    const ry = Math.atan2(-ox, -oz);
-    K.sign(to.short + '  ›', ox * (H - 0.4), 8.2, oz * (H - 0.4), ry, { w: 6, size: 64 });
-    K.strip(ox * (H - 14), oz * (H - 14), ox * (H - 0.6), oz * (H - 0.6), 3.2, pal.ring ?? AMBER, 0.14);
-  }
-}
 /* a COVERT MAP console: a squat metal post with the covert's five wings turning over it in amber (fast travel) */
 function mapConsole(K, pal, x, z, s = 1){
   const M = mats(pal);
@@ -361,8 +328,6 @@ function forge(L, K, pal, R, M){
     K.column(ax + 2.6, az - 2.0, 0.25, 1.6, M.metalD, { wallKick: false, seg: 6 });
     K.deco(new THREE.BoxGeometry(1.2, 1.1, 0.6), M.beskar, ax + 2.6, 2.2, az - 2.0);
     K.deco(new THREE.SphereGeometry(0.34, 10, 8), M.beskar, ax + 2.6, 3.1, az - 2.0); }
-  // ---- the COVERT MAP: a holotable of the five wings ----
-  mapConsole(K, pal, 14, 22, 1);
 
   // ---- the two FOUNDERS, colossal, either side of the furnace, facing the way in ----
   for (const sx of [-1, 1]) founder(K, M, sx * 30, -16, Math.atan2(sx * 30, -16 - 30) + PI, 1.55);
@@ -443,7 +408,6 @@ function clan(L, K, pal, R, M){
     K.deco(new THREE.CylinderGeometry(0.4, 0.38, 0.4, 12), c, x, 3.4, z);
     K.deco(new THREE.BoxGeometry(0.06, 0.08, 0.5), M.dark, x - sx * 0.39, 3.5, z);
   }
-  mapConsole(K, pal, 10, 25, 0.5);
 }
 
 /* ---------------- THE SPARRING PIT ---------------- */
@@ -494,7 +458,6 @@ function pit(L, K, pal, R, M){
     K.deco(new THREE.BoxGeometry(1.0, 0.9, 0.6), std(0x6a5a40, 0.95), x, 1.9, z);
     K.deco(new THREE.SphereGeometry(0.32, 8, 6), std(0x6a5a40, 0.95), x, 2.6, z);
   }
-  mapConsole(K, pal, -31, 10, 0.5);
 }
 
 /* ---------------- THE TROPHY VAULT ---------------- */
@@ -551,7 +514,6 @@ function vault(L, K, pal, R, M){
     K.box(x, z, 1.1, 0.7, 0.7, M.metalD, { climbable: true });
     for (let k = 0; k < 4; k++) K.deco(new THREE.BoxGeometry(0.8, 0.22, 0.4), M.beskar, x + (k % 2 - 0.5) * 0.9, 0.82 + Math.floor(k / 2) * 0.22, z + (R() - 0.5) * 0.5);
   }
-  mapConsole(K, pal, 27, 10, 0.5);
 }
 
 /* ---------------- THE HANGAR ---------------- */
@@ -615,7 +577,6 @@ function hangar(L, K, pal, R, M){
     K.deco(new THREE.BoxGeometry(0.9, 0.4, 0.5), std(0xffd8a0, 0.6, 0, 0.9), x, 5.6, z);
     live(K.deco(new THREE.CircleGeometry(3.4, 20), holoM(0xffd8a0, 0.06), x, 0.03, z, -PI / 2));
   }
-  mapConsole(K, pal, 10, -28, 0.5);
 }
 
 /* THE CLAN'S SHIP: a heavy hunter's gunship of the clan's own make. A wedge of a hull with a raised cockpit, inverted

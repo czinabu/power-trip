@@ -125,6 +125,7 @@ function updatePauseCam(){
 // PUNCH-IN — a story beat mid-fight (a duel foe's rage, game/mission.js): for a moment the lens tucks in, narrows and
 // leans its aim toward the foe, then lets go. No letterbox and no lock: the hero is still yours the whole time.
 // `at` is a live position (or a fixed point); `up` how high on it to look
+const OVER_RISE = 0.35;   // share of the flip over's arc the lens rises with
 let punch = null;
 const PUNCH_IN = 0.22, PUNCH_OUT = 0.6, PUNCH_FOV = 9, PUNCH_DIST = 0.24, PUNCH_LOOK = 0.42;
 export function punchIn(at, up = 1.3, dur = 1.6){ punch = { at, up, t0: G.gt, dur }; }
@@ -227,14 +228,19 @@ export function updateCamera(dt){
   const pw = player.zoom ? 0 : punchWeight() * (adsFly ? 0.35 : 1);
   const d = (camDist + dk*3) * (1 - PUNCH_DIST * pw);
   // where the lens is clipped back toward (JA traces from the aim point; the Mando's rig from the hero's head)
-  let ox = pp.x, oy = ty, oz = pp.z;
+  let ox = pp.x, oy = ty, oz = pp.z, floorY = pp.y;
   if (jedi){
     // ----- JEDI: Jedi Academy's rig (cg_view.cpp, CG_OffsetThirdPersonView). The ideal aim point sits vertOffset over
     // the eye; the ideal lens sits `d` behind it along the line of sight (pitch included: looking down swings it up over
     // the hero, looking up swings it down behind). Each then closes a fixed share of its gap per 50 ms -----
     const J = C.ja, k = dt / 0.05;
     const fy = -sinP, fx = f.x*cosP, fz = f.z*cosP;   // JA's camerafwd (our pitch is + looking down)
-    const itx = pp.x, ity = pp.y + J.eye + J.vertOffset + camLift + dk*3, itz = pp.z;
+    // ATARU'S FLIP OVER (player/jedi/overflip.js): the lens holds tight on the hero through the somersault, with no
+    // lag, and rides only a third of the arc's rise, so the turn over the foe's head reads and he never leaves the frame
+    const ov = player.mantle && player.mantle.over ? player.mantle : null;
+    const camY = ov ? ov.y0 + (ov.y1 - ov.y0) * clamp(ov.t / ov.dur, 0, 1) + (pp.y - (ov.y0 + (ov.y1 - ov.y0) * clamp(ov.t / ov.dur, 0, 1))) * OVER_RISE : pp.y;
+    floorY = camY;
+    const itx = pp.x, ity = camY + J.eye + J.vertOffset + camLift + dk*3, itz = pp.z;
     TMP.set(itx - fx*d, ity - fy*d, itz - fz*d);
     const ilx = TMP.x, ily = TMP.y, ilz = TMP.z;   // the ideal lens, before the lag
     // turning fast stiffens the lens so it doesn't cut across the orbit (JA: yaw speed in degrees per ms, 1 → 2.5)
@@ -242,7 +248,7 @@ export function updateCamera(dt){
     let stiff = dt > 0 ? dy / (dt * 1000) : 0;
     stiff = stiff < 1 ? 0 : stiff > 2.5 ? 0.75 : (stiff - 1) * 0.5;
     jaYaw = G.yaw;
-    if (!jaLive || G.fovPreview){ jaTarget.set(itx, ity, itz); jaLoc.copy(TMP); jaLive = true; }   // (re)start: no swoop in
+    if (!jaLive || G.fovPreview || ov){ jaTarget.set(itx, ity, itz); jaLoc.copy(TMP); jaLive = true; }   // (re)start: no swoop in
     else {
       const tr = Math.pow(1 - J.targetDamp, k);
       jaTarget.set(itx - (itx - jaTarget.x)*tr, ity - (ity - jaTarget.y)*tr, itz - (itz - jaTarget.z)*tr);
@@ -273,7 +279,7 @@ export function updateCamera(dt){
   // aiming up swings the lens down behind the hero; never let it sink below `minLensY` over their feet, so the
   // view never comes up from the floor. Past that point the swing it would have made raises the aim point instead,
   // so you can keep looking up at the same rate
-  const lensFloor = pp.y + C.minLensY, aimRise = Math.max(0, lensFloor - TMP.y);
+  const lensFloor = floorY + C.minLensY, aimRise = Math.max(0, lensFloor - TMP.y);
   if (TMP.y < lensFloor) TMP.y = lensFloor;
   if (TMP.y < 0.4) TMP.y = 0.4;
   // never park the lens INSIDE a prop (inside one, its ink hull fills the screen black): pull in along the line from

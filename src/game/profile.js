@@ -25,7 +25,7 @@ function load(){
   return store;
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
-const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0,
+const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
                        picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
@@ -180,6 +180,16 @@ export const noteFormRank = () => counted('forms', RANK_XP.form);
 export const notePowerRank = () => counted('powers', RANK_XP.power);
 export const noteDuelWon = () => counted('duels', RANK_XP.duel);
 export const noteSurvivalWave = () => counted('waves', RANK_XP.wave);
+// the trooper's squad play (the ARMORY LOCKER's asks, data/trooper-locker.js): a squadmate got up by your own hand, a
+// survival wave cleared with nobody in the squad down. No XP of their own: they only count towards locker parts
+function tally(field){
+  if (!learning()) return;
+  const p = profileOf();
+  p[field] = (p[field] || 0) + 1;
+  settle(G.hero);
+}
+export const noteSquadRevive = () => tally('revives');
+export const noteSquadWave = () => tally('squadWaves');
 // the side of a fork the run took (ui/store-ui.js buyStore; Form VII's at its meditation), shown on the Force Tree
 export function noteFork(fork, id){
   if (G.hero !== 'jedi' || !fork || !id) return;

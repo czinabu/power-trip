@@ -34,6 +34,7 @@ import { BUBBLE } from '../data/duel-bubble.js';
 import { anyDuelFoe } from '../enemies/bubble.js';
 import { TROOPER } from '../data/trooper.js';
 import { squadSpecialist } from '../game/saber-bench.js';
+import { noteSquadRevive } from '../game/profile.js';
 import { SPECIALISTS } from '../data/trooper-locker.js';
 import { orderCost, canPay, spendCP, commandPoints } from '../player/trooper/command.js';
 const ORDERS_BY_ID = Object.fromEntries([...ORDERS, SUPPRESS_ORDER].map(o => [o.id, o]));
@@ -71,6 +72,8 @@ export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
 // the mark by a squadmate's name in the squad panel: its specialist's (the ARMORY LOCKER), else the roster's
 const allyTag = (a) => (a.spec && a.spec.tag) || a.def.tag || '';
+// every squadmate on its feet (and at least one of them): a survival wave cleared so counts for the armory locker
+export const squadAllStanding = () => allies.length > 0 && allies.every(standing);
 export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && !(a.turnT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
 
 /* ============================================================
@@ -409,7 +412,7 @@ function downAlly(a){
   a.body = goDown({
     kind: 'ally', pos: () => a.group.position, need: REVIVE.ally.time * (player.up.reviveMul || 1) * (G.unlocked.medic ? TROOPER.medic.revive : 1),   // (the trooper's FIELD MEDIC and BAND OF BROTHERS)
     bleed: Infinity, selfUp: SQUAD.downTime[diffKey()],
-    onUp(how){ a.body = null; standUp(a, how === 'self' ? SQUAD.getUpHp : Math.max(SQUAD.getUpHp, 0.65)); },
+    onUp(how){ a.body = null; standUp(a, how === 'self' ? SQUAD.getUpHp : Math.max(SQUAD.getUpHp, 0.65)); if (how === 'hero' && isTrooper()) noteSquadRevive(); },   // (the armory locker counts the trooper's revives)
   });
 }
 function standUp(a, share){

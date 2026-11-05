@@ -141,6 +141,13 @@ export const MANDO_PARTS = {
     owl(R, k){ signet(R, k, OWL); },
     jaig(R, k){ jaigEyes(R, k); },
   },
+  // a helmet's silhouette piece, on top of whichever HELMET the customizer picked
+  helmod: {
+    none(){},
+    fins(R, k){ helmetMod(R, k, 'fins'); },
+    plume(R, k){ helmetMod(R, k, 'plume'); },
+    horns(R, k){ helmetMod(R, k, 'horns'); },
+  },
   vambrace: {
     standard(){},   // (the gauntlet plate arms() always builds)
     whistler(R, k){ vambrace(R, k, 'whistler'); },
@@ -155,6 +162,24 @@ export const MANDO_PARTS = {
   },
 
   jetpack: {
+    // THE BESKAR FORGE's jetpacks (data/beskar-forge.js) are the standard pack with more bolted on: swept wings out past
+    // the tanks, or a pair of reserve canisters slung outboard. Both change the hero's outline from behind
+    winged(R, k, player){
+      MANDO_PARTS.jetpack.standard(R, k, player);
+      const wing = [[0,0.14],[0.12,0.1],[0.26,-0.02],[0.24,-0.08],[0.1,-0.04],[0,-0.12]];
+      for (const sx of [-1, 1]){
+        k.add(plate(wing, 0.022, 0.006), 'beskar', R.back, [0.28*sx, 0.02, -0.21], [0, 0, -0.25*sx], { scale: [sx, 1, 1] });
+        k.add(plate([[0,0.02],[0.2,-0.04],[0.2,-0.06],[0,-0.02]], 0.024, 0.004), 'accent', R.back, [0.3*sx, 0.03, -0.225], [0, 0, -0.25*sx], { outline: false, scale: [sx, 1, 1] });
+      }
+    },
+    heavy(R, k, player){
+      MANDO_PARTS.jetpack.standard(R, k, player);
+      for (const sx of [-1, 1]){
+        k.add(loft([{ y:-0.2, w:0.12, d:0.12 }, { y:0.14, w:0.12, d:0.12 }, { y:0.19, w:0.07, d:0.07 }], ngon(8, Math.PI/8)), 'beskar', R.back, [0.36*sx, -0.06, -0.22]);
+        for (const y of [-0.12, 0.06]) k.add(block(0.2, 0.02, 0.13, 0.2), 'strap', R.back, [0.3*sx, y, -0.22], [0, 0, 0], { outline: false });
+        k.add(loft([{ y:-0.04, w:0.06, d:0.06 }, { y:0.03, w:0.1, d:0.1 }], ngon(8)), 'beskar2', R.back, [0.36*sx, -0.3, -0.22]);
+      }
+    },
     // Boba-style pack: ribbed core, twin domed tanks, bell nozzles, antenna, mount for the back missile
     standard(R, k, player){
       const jet = k.group(R.back, [0, 0, -0.22]);   // its -z faces the camera
@@ -280,13 +305,13 @@ function shoulderFace(R, k){
   return k.group(pad, [at.out * s, at.y, 0], [0, s * Math.PI/2, 0]);
 }
 function signet(R, k, shape){
-  k.add(plate(shape, 0.006, 0.002), 'accent', shoulderFace(R, k), [0, 0, 0.004], [0, 0, 0], { outline: false, scale: 1.15 });
+  k.add(plate(shape, 0.006, 0.002), 'accent', shoulderFace(R, k), [0, 0, 0.004], [0, 0, 0], { outline: false, scale: 1.6 });
 }
 // JAIG EYES: the swept marks round the T-visor's brow, given for courage
 function jaigEyes(R, k){
   const helm = k.group(R.head);
   const mark = [[0,0.012],[0.075,0.0],[0.11,-0.045],[0.095,-0.05],[0.065,-0.014],[0,-0.006]];
-  for (const sx of [-1, 1]) k.add(plate(mark, 0.006, 0.002), 'accent', helm, [0.018*sx, 0.248, 0.122], [-0.12, sx*0.32, 0], { outline: false, scale: [sx, 1, 1] });
+  for (const sx of [-1, 1]) k.add(plate(mark, 0.006, 0.002), 'accent', helm, [0.018*sx, 0.25, 0.123], [-0.12, sx*0.32, 0], { outline: false, scale: [sx * 1.3, 1.3, 1] });
 }
 function vambrace(R, k, kind){
   for (const A of [R.armL, R.armR]){
@@ -297,9 +322,10 @@ function vambrace(R, k, kind){
       rivets(k, A.el, [[0.045, -0.06, 0.082], [-0.045, -0.06, 0.082]]);
     } else if (kind === 'whistler' && left){
       // the rack: a block on the outside of the forearm, the tube mouths facing the wrist
-      k.add(block(0.04, 0.12, 0.06, 0.25), 'beskar2', A.el, [0.066*s, -0.13, 0.008]);
-      const mouth = loft([{ y:-0.004, w:0.012, d:0.012 }, { y:0.004, w:0.012, d:0.012 }], ngon(6));
-      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) k.add(mouth, 'suit', A.el, [0.066*s + (j - 0.5)*0.016, -0.192, -0.012 + i*0.018], [0, 0, 0], { outline: false });
+      k.add(block(0.055, 0.15, 0.08, 0.25), 'beskar2', A.el, [0.075*s, -0.13, 0.008]);
+      k.add(block(0.058, 0.02, 0.083, 0.2), 'accent', A.el, [0.075*s, -0.07, 0.008], [0, 0, 0], { outline: false });   // its accent band
+      const mouth = loft([{ y:-0.005, w:0.016, d:0.016 }, { y:0.005, w:0.016, d:0.016 }], ngon(6));
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) k.add(mouth, 'accent', A.el, [0.075*s + (j - 0.5)*0.022, -0.207, -0.016 + i*0.024], [0, 0, 0], { outline: false });
     } else if (kind === 'flame' && !left){
       // the tank along the underside of the forearm and the nozzle under the wrist
       k.add(loft([{ y:-0.07, w:0.04, d:0.04 }, { y:0.07, w:0.04, d:0.04 }], ngon(10)), 'beskar2', A.el, [0, -0.12, -0.066]);
@@ -323,5 +349,22 @@ function chestKit(R, k, kind){
     const B = k.group(R.chest, [0, 0.12, 0.168], [0, 0, -0.58]);
     k.add(block(0.085, 0.6, 0.012, 0.15), 'cloth', B);
     k.add(block(0.09, 0.03, 0.016, 0.15), 'strap', B, [0, -0.26, 0.004]);   // its knot at the hip
+  }
+}
+
+// THE HELMET MODS: silhouette pieces on top of the bucket (the BESKAR FORGE)
+function helmetMod(R, k, kind){
+  const helm = k.group(R.head);
+  if (kind === 'fins'){
+    // two swept fins rising off the back of the dome
+    for (const sx of [-1, 1]) k.add(plate([[0,0],[0.06,0.03],[0.16,0.13],[0.13,0.14],[0.02,0.06]], 0.016, 0.005), 'beskar2', helm, [0.07*sx, 0.33, -0.06], [0, sx * (Math.PI/2 + 0.35), 0]);
+  } else if (kind === 'plume'){
+    // a crest of cloth from brow to nape, in the cape colour
+    k.add(plate([[-0.14,0],[0.12,0],[0.1,0.06],[0.02,0.1],[-0.1,0.09],[-0.17,0.05]], 0.035, 0.01), 'cloth', helm, [0, 0.37, -0.01], [0, -Math.PI/2, 0]);
+  } else if (kind === 'horns'){
+    // two horns swept up and back from the temples
+    for (const sx of [-1, 1]){
+      k.add(loft([{ y:0, w:0.04, d:0.04 }, { y:0.1, w:0.03, d:0.03, x:0.03*sx }, { y:0.18, w:0.012, d:0.012, x:0.07*sx }], ngon(6)), 'beskar2', helm, [0.1*sx, 0.3, -0.02], [-0.5, 0, -0.5*sx]);
+    }
   }
 }

@@ -23,7 +23,7 @@ export const DEFAULT_LOOK = {
   },
   mando: {
     parts: { legs: 'armored', torso: 'cuirass', arms: 'pauldrons', helmet: 'tvisor', cape: 'half', jetpack: 'standard',
-             signet: 'none', vambrace: 'standard', chest: 'none' },   // (the last three: the BESKAR FORGE, data/beskar-forge.js)
+             signet: 'none', vambrace: 'standard', chest: 'none', helmod: 'none' },   // (the last four, and the jetpack: the BESKAR FORGE, data/beskar-forge.js)
     palette: {
       beskar: 0x9aa7b5, beskar2: 0x667381, suit: 0x2e343d, accent: 0xb84327,
       visor: 0x07090c, cloth: 0x7b6b52, strap: 0x3a2e22,
@@ -33,7 +33,7 @@ export const DEFAULT_LOOK = {
   },
   // the clone ARC trooper: Phase II plastoid with ARC gear, in the 501st's blue (model/trooper.js)
   trooper: {
-    parts: { legs: 'arc', torso: 'arc', arms: 'arc', helmet: 'arc', kama: 'long', marking: 'none', hgear: 'none' },   // (the last two: the ARMORY LOCKER)
+    parts: { legs: 'arc', torso: 'arc', arms: 'arc', helmet: 'arc', kama: 'long', marking: 'none', hgear: 'none', backpack: 'standard' },   // (the last three: the ARMORY LOCKER)
     palette: { plate: 0xe8e8e3, grey: 0x26282c, mark: 0x2f7fd6, suit: 0x17191d, visor: 0x07090c, cloth: 0x141518, strap: 0x1d1f23 },
     build: { bulk: 1, shoulders: 1, head: 1 },
     rifle: { stock: 'skeletal', finish: 'black' },   // the DC-15 the locker builds (model/weapons.js dc15, data/trooper-locker.js)

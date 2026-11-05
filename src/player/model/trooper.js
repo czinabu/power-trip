@@ -63,6 +63,13 @@ export const TROOPER_PARTS = {
     macro(R, k){ gearMacro(R, k); },
     visor(R, k){ gearVisor(R, k); },
     antenna(R, k){ gearAntenna(R, k); },
+    mohawk(R, k){ gearMohawk(R, k); },
+  },
+  // what he carries on his back, over the pack every clone wears
+  backpack: {
+    standard(){},
+    radio(R, k){ packRadio(R, k); },
+    heavy(R, k){ packHeavy(R, k); },
   },
 };
 
@@ -265,16 +272,16 @@ function markStripes(R, k){
   const helm = k.group(R.head);
   // (each piece faces out of the dome: tipped `f` radians from straight up towards the front)
   for (const [y, z, f] of [[0.335, 0.105, 0.95], [0.375, 0.055, 0.45], [0.392, -0.01, 0], [0.37, -0.075, -0.55], [0.325, -0.125, -1.0]])
-    k.add(plate([[-0.016,0.035],[0.016,0.035],[0.016,-0.035],[-0.016,-0.035]], 0.006, 0.002), 'mark', helm, [0, y + 0.004, z + 0.004 * Math.sign(z)], [f - Math.PI/2, 0, 0], { outline: false });
+    k.add(plate([[-0.026,0.036],[0.026,0.036],[0.026,-0.036],[-0.026,-0.036]], 0.006, 0.002), 'mark', helm, [0, y + 0.004, z + 0.004 * Math.sign(z)], [f - Math.PI/2, 0, 0], { outline: false });
   // and one down the outside of each arm, over the bicep shell
-  for (const A of [R.armL, R.armR]) k.add(block(0.012, 0.17, 0.03, 0.2), 'mark', A.sh, [0.073 * A.side, -0.1, 0], [0, 0, 0], { outline: false });
+  for (const A of [R.armL, R.armR]) k.add(block(0.012, 0.17, 0.045, 0.2), 'mark', A.sh, [0.073 * A.side, -0.1, 0], [0, 0, 0], { outline: false });
 }
 function markTally(R, k){
   // hash marks on the left pec: four strokes and the one across them, then two more
   const P = leftPec(R, k);
-  for (let i = 0; i < 4; i++) k.add(block(0.008, 0.055, 0.006, 0.1), 'mark', P, [-0.06 - i * 0.017, 0.12, 0.03], [0, 0, 0], { outline: false });
-  k.add(block(0.008, 0.085, 0.006, 0.1), 'mark', P, [-0.085, 0.12, 0.033], [0, 0, 1.1], { outline: false });
-  for (let i = 0; i < 2; i++) k.add(block(0.008, 0.055, 0.006, 0.1), 'mark', P, [-0.14 - i * 0.017, 0.12, 0.03], [0, 0, 0], { outline: false });
+  for (let i = 0; i < 4; i++) k.add(block(0.012, 0.075, 0.006, 0.1), 'mark', P, [-0.055 - i * 0.022, 0.115, 0.03], [0, 0, 0], { outline: false });
+  k.add(block(0.012, 0.115, 0.006, 0.1), 'mark', P, [-0.088, 0.115, 0.033], [0, 0, 1.1], { outline: false });
+  for (let i = 0; i < 2; i++) k.add(block(0.012, 0.075, 0.006, 0.1), 'mark', P, [-0.15 - i * 0.022, 0.115, 0.03], [0, 0, 0], { outline: false });
 }
 function markSigil(R, k){
   // the company's crest on the left pec: a shield between two swept wings
@@ -306,4 +313,25 @@ function gearAntenna(R, k){
   k.add(block(0.06, 0.07, 0.04, 0.3), 'grey', helm, [-0.07, 0.22, -0.14], [0.2, 0, 0]);
   k.add(block(0.008, 0.42, 0.008, 0.1), 'grey', helm, [-0.08, 0.45, -0.19], [-0.32, 0, 0.08]);
   k.add(loft([{ y:-0.01, w:0.016, d:0.016 }, { y:0.01, w:0.016, d:0.016 }], ngon(6)), 'mark', helm, [-0.094, 0.65, -0.258], [-0.32, 0, 0.08], { outline: false });
+}
+function gearMohawk(R, k){
+  // a painted fin from the brow back over the crown, tall enough to read from behind
+  const helm = k.group(R.head);
+  k.add(plate([[-0.15,0],[0.13,0],[0.12,0.04],[0.06,0.07],[-0.06,0.075],[-0.15,0.05]], 0.022, 0.006), 'mark', helm, [0, 0.375, -0.01], [0, -Math.PI/2, 0]);
+}
+// the long-range radio: a tall box over the back plate, its whip antenna up past the head
+function packRadio(R, k){
+  k.add(block(0.22, 0.32, 0.12, 0.3), 'grey', R.chest, [0.03, 0.2, -0.27]);
+  k.add(block(0.2, 0.02, 0.124, 0.2), 'mark', R.chest, [0.03, 0.3, -0.27], [0, 0, 0], { outline: false });
+  for (const y of [0.12, 0.2]) k.add(block(0.03, 0.03, 0.02, 0.2), 'plate', R.chest, [-0.04, y, -0.335], [0, 0, 0], { outline: false });   // its dials
+  k.add(block(0.01, 0.75, 0.01, 0.1), 'grey', R.chest, [0.11, 0.7, -0.29], [-0.12, 0, 0.06]);
+}
+// the heavy pack: a big supply pack with a bedroll strapped over it and a canister either side
+function packHeavy(R, k){
+  k.add(block(0.32, 0.34, 0.15, 0.3), 'plate', R.chest, [0, 0.16, -0.29]);
+  k.add(loft([{ y:-0.17, w:0.1, d:0.1 }, { y:0.17, w:0.1, d:0.1 }], ngon(10)), 'cloth', R.chest, [0, 0.38, -0.27], [0, 0, Math.PI/2]);   // the bedroll
+  for (const sx of [-1, 1]){
+    k.add(loft([{ y:-0.13, w:0.07, d:0.07 }, { y:0.13, w:0.07, d:0.07 }], ngon(8)), 'grey', R.chest, [0.2*sx, 0.14, -0.28]);
+    k.add(block(0.33, 0.02, 0.155, 0.2), 'grey', R.chest, [0, 0.05 + (sx + 1) * 0.1, -0.29], [0, 0, 0], { outline: false });   // its straps
+  }
 }

@@ -58,6 +58,7 @@ import { clearScorch } from '../fx/scorch.js';
 import { clearSevered } from '../enemies/scars.js';
 import { buildAir, clearAir } from './air.js';
 import { buildWarfront, clearWarfront } from './warfront.js';
+import { buildSkywar } from './skywar.js';
 import { buildGrass, clearGrass } from './grass.js';
 
 /* ============================================================
@@ -359,5 +360,7 @@ function buildWorld(L, T){
     outer.geometry = new THREE.RingGeometry(W*0.5, far, 64, 1);
     outer.material = farHaze(outer.material);
   }
+  shared.skyR = skyR * sky.scale.x;   // (the sky war's capital ships hang just inside it: world/skywar.js)
   buildWarfront(T, L);   // the war beyond the walls (world/warfront.js)
+  buildSkywar(T, back);  // and its trailer moments: capital ships, gunships, shootdowns (world/skywar.js)
 }

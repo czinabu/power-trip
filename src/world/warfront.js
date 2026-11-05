@@ -32,9 +32,10 @@ import { scorchGround } from '../fx/scorch.js';
 
 const PI = Math.PI;
 const W = { on: false };   // the live battle (one per arena build)
+export const warState = W;   // (world/skywar.js layers the trailer moments on top of it)
 
 /* ---------- ships: each one a single merged, vertex-coloured mesh, nose along +z (so lookAt points it) ---------- */
-function part(list, geo, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1){
+export function part(list, geo, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1){
   const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
   const g = (geo.index ? geo.toNonIndexed() : geo.clone()).applyMatrix4(m);
   g.deleteAttribute('uv');
@@ -66,6 +67,22 @@ const SHIPS = {
     part(L, new THREE.BoxGeometry(1.8, 0.9, 2.2), mark, 0, 0.9, 0.6);
     for (const s of [-1, 1]) part(L, new THREE.BoxGeometry(0.9, 0.9, 3), mark, s*2.6, 0, -1.4);
     return { L, engine: [[2.6, 0, -3], [-2.6, 0, -3]], glow: 0xffa060 }; },
+  // a troop GUNSHIP (≈26 m): a blunt armoured hull with a glazed nose, open troop doors down each side, stubby wings
+  // swept back to wingtip pods, a ball turret on the spine and two big engines at the tail (world/skywar.js flies them)
+  gunship(o){ const L = [], hull = o.color ?? 0xd6d2c8, mark = o.color2 ?? 0x9a3a2a, dark = 0x3a3c42;
+    part(L, new THREE.BoxGeometry(5.2, 4.6, 15), hull, 0, 0, 0);
+    part(L, new THREE.BoxGeometry(4.4, 3.4, 6), hull, 0, -0.4, 9.6, -0.18, 0, 0);
+    part(L, new THREE.IcosahedronGeometry(2.1, 1), dark, 0, 0.2, 12.4, 0, 0, 0, 1, 0.8, 1.1);
+    for (const s of [-1, 1]){
+      part(L, new THREE.BoxGeometry(0.2, 2.6, 5), dark, s*2.62, -0.3, 1.5);
+      part(L, new THREE.BoxGeometry(9.5, 0.6, 4.4), hull, s*6.8, 1.6, -1.5, 0, s*0.38, s*-0.08);
+      part(L, new THREE.BoxGeometry(1.4, 1.4, 5.2), mark, s*11.2, 1.3, -3.6);
+      part(L, new THREE.CylinderGeometry(1.5, 1.7, 6, 8), hull, s*2.6, 2.4, -7.8, PI/2, 0, 0);
+      part(L, new THREE.BoxGeometry(0.3, 3.2, 3.4), mark, s*1.2, 3.6, -9.8);
+    }
+    part(L, new THREE.BoxGeometry(5.4, 1.2, 15.2), mark, 0, 2.2, 0, 0, 0, 0, 1, 1, 0.4);
+    part(L, new THREE.IcosahedronGeometry(1, 1), dark, 0, 2.8, 3.5);
+    return { L, engine: [[2.6, 2.4, -10.9], [-2.6, 2.4, -10.9]], glow: 0x9ad8ff }; },
   // Imperial dropship / lander (≈40 m): a slab hull, folded wings, a bank of engines
   dropship(o){ const L = [], hull = o.color ?? 0x8a8e96, dark = o.color2 ?? 0x50545c;
     part(L, new THREE.BoxGeometry(10, 6, 26), hull, 0, 0, 0);
@@ -82,19 +99,19 @@ const SHIPS = {
     return { L, engine: [[0, 0, -17.6]], glow: 0x9ad8ff, wide: 20 }; },
 };
 const shipCache = new Map();
-function shipGeo(kind, o){
+export function shipGeo(kind, o){
   const id = kind + '|' + (o.color ?? '') + '|' + (o.color2 ?? '');
   if (!shipCache.has(id)){
-    const s = SHIPS[kind](o), big = kind === 'dropship' || kind === 'freighter' ? 2.4 : 1;
+    const s = SHIPS[kind](o), big = kind === 'dropship' || kind === 'freighter' ? 2.4 : kind === 'gunship' ? 1.8 : 1;
     // the engine glows, merged into one unlit mesh per ship
     const eng = mergeGeometries(s.engine.map(e => new THREE.SphereGeometry(0.7 * big, 8, 6).translate(e[0], e[1], e[2])), false);
     shipCache.set(id, { geo: mergeGeometries(s.L, false), eng, glow: s.glow });
   }
   return shipCache.get(id);
 }
-const shipMat = farHaze(new THREE.MeshToonMaterial({ vertexColors: true }));
+export const shipMat = farHaze(new THREE.MeshToonMaterial({ vertexColors: true }));
 const glowMats = new Map();
-const glowMat = c => { if (!glowMats.has(c)) glowMats.set(c, new THREE.MeshBasicMaterial({ color: c, toneMapped: false, fog: false })); return glowMats.get(c); };
+export const glowMat = c => { if (!glowMats.has(c)) glowMats.set(c, new THREE.MeshBasicMaterial({ color: c, toneMapped: false, fog: false })); return glowMats.get(c); };
 
 /* ---------- an AT-AT (22.5 m → 34 m tall) that marches: a body and four legs that swing in the walk ---------- */
 function walker(o){
@@ -130,7 +147,7 @@ function soldierGeo(){
 }
 
 /* ---------- placement: a point on the battle ring, an ellipse round the (possibly long) play space ---------- */
-function ringPoint(r0, r1, out = new THREE.Vector3(), a = rand(0, PI*2)){
+export function ringPoint(r0, r1, out = new THREE.Vector3(), a = rand(0, PI*2)){
   const r = rand(r0, r1);
   return out.set(Math.cos(a) * r * W.half + W.cx, 0, Math.sin(a) * r * W.halfZ + W.cz);
 }
@@ -200,19 +217,20 @@ export function buildWarfront(T, L){
     grp.add(W.troopIM);
   }
   // TRACERS, FLASHES, SMOKE — instanced pools; an unused slot is scaled to nothing
-  const tr = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), F.troops ? 72 : 40);
-  const fl = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), 10);
+  const tr = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), F.troops ? 110 : 80);   // (the sky war shares these: world/skywar.js)
+  const fl = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ toneMapped: false, fog: false, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), 28);
   const smoke = typeof F.smoke === 'object' ? F.smoke : { color: F.smoke }, sOp = smoke.opacity ?? 1;
   const pf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, sOp < 1 ? 2 : 1),
     // soft smoke is unlit and see-through, so overlapping puffs blend into one cloud instead of stacking as solid balls
-    farHaze(sOp < 1 ? new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: sOp, depthWrite: false }) : new THREE.MeshToonMaterial({ color: 0xffffff })), 140);
+    farHaze(sOp < 1 ? new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: sOp, depthWrite: false }) : new THREE.MeshToonMaterial({ color: 0xffffff })), 240);
   if (sOp < 1) pf.renderOrder = 2;   // soft smoke draws over the far layers it drifts in front of
   for (const im of [tr, fl, pf]){ im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); hideAll(im); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(im.count * 3), 3); grp.add(im); }
   W.tr = tr; W.fl = fl; W.pf = pf;
   W.smokeCol = new THREE.Color(smoke.color ?? 0x3a3634);
   W.snowCol = new THREE.Color(F.stompColor ?? 0xe8eef6);
   // COLUMNS — fires already burning out there, each sending up a slow, leaning plume
-  for (let k = 0; k < (F.columns || 0); k++) W.columns.push({ p: ringPoint(W.reach[0] + 0.3, W.reach[1], new THREE.Vector3()), every: rand(0.45, 0.8), t: rand(0, 1), size: rand(0.8, 1.4) });
+  for (let k = 0; k < (F.columns || 0); k++) W.columns.push({ p: ringPoint(Math.max(W.reach[0] + 0.3, 2.8), Math.max(W.reach[1], 3.6), new THREE.Vector3()),   // (far enough out that a plume stays a column on the horizon, never a wall over the fight)
+    every: rand(0.45, 0.8), t: rand(0, 1), size: rand(0.8, 1.4) });
 }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _c = new THREE.Color(), _e = new THREE.Euler();
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -221,19 +239,22 @@ function hideAll(im){ for (let i = 0; i < im.count; i++) im.setMatrixAt(i, ZERO)
 export function clearWarfront(){ W.on = false; W.grp = null; }
 
 /* ---------- spawners ---------- */
-function tracer(from, to, color, speed = 260){
-  if (W.tracers.length >= W.tr.count) return;
-  W.tracers.push({ a: from.clone(), b: to.clone(), t: 0, dur: from.distanceTo(to) / speed, color });
+// w: a width multiplier (a capital ship's turbolasers are fat); delay: seconds before it leaves the muzzle
+export function tracer(from, to, color, speed = 260, w = 1, delay = 0){
+  if (!W.tr || W.tracers.length >= W.tr.count) return;
+  W.tracers.push({ a: from.clone(), b: to.clone(), t: -delay, dur: from.distanceTo(to) / speed, color, w });
 }
-function flash(p, size){
-  if (W.flashes.length >= W.fl.count) return;
-  W.flashes.push({ p: p.clone(), t: 0, size });
+// o (all optional): dur (s), col (hex), k (brightness), boom (false: silent; a number scales how loud), smoke (false: no
+// plume), lift (how high the plume climbs), smokeK (how big its puffs are)
+export function flash(p, size, o = {}){
+  if (!W.fl || W.flashes.length >= W.fl.count) return;
+  W.flashes.push({ p: p.clone(), t: 0, size, dur: o.dur ?? 0.55, col: o.col, k: o.k ?? 1 });
   const d = p.distanceTo(camera.position);
-  if (G.mode === 'play' && !G.paused) distantBoom(d);
-  for (let k = 0; k < 4; k++) puff(_v.set(p.x + rand(-3, 3) * size * 0.1, p.y + k * size * 0.25, p.z + rand(-3, 3) * size * 0.1), size * rand(0.35, 0.6), rand(5, 8), 3);
+  if (o.boom !== false && G.mode === 'play' && !G.paused) distantBoom(d, o.boom || 1);
+  if (o.smoke !== false) for (let k = 0; k < 4; k++) puff(_v.set(p.x + rand(-3, 3) * size * 0.1, p.y + k * size * 0.25, p.z + rand(-3, 3) * size * 0.1), size * rand(0.35, 0.6) * (o.smokeK ?? 1), rand(5, 8), o.lift ?? 3);
 }
-function puff(p, size, life, rise, col = null){
-  if (W.puffs.length >= W.pf.count) return;
+export function puff(p, size, life, rise, col = null){
+  if (!W.pf || W.puffs.length >= W.pf.count) return;
   W.puffs.push({ p: p.clone(), size, life, rise, t: 0, drift: rand(0.6, 1.4), col });
 }
 /* a shot landing: out past the edge a big blast; a walker's strike in the play space a tighter one that scorches the
@@ -316,6 +337,7 @@ export function updateWarfront(dt){
     sh.t += dt;
     const k = sh.t / sh.dur;
     sh.wing.forEach((m, j) => {
+      if (m.userData.lost) return;   // shot down this pass (world/skywar.js): its wreck is falling on its own
       // a loose formation: wingmen trail back and out to alternating sides
       _v.lerpVectors(sh.from, sh.to, k);
       _w.subVectors(sh.to, sh.from).normalize();
@@ -327,10 +349,12 @@ export function updateWarfront(dt){
     if (fl.fire && (sh.fireT -= dt) <= 0){   // fighters strafe the ground battle as they pass
       sh.fireT = rand(0.4, 1.1) / heat;
       const m = sh.wing[Math.floor(Math.random() * sh.wing.length)];
+      if (m.visible && !m.userData.lost){
       _w.subVectors(sh.to, sh.from).normalize();
       tracer(m.position, _v.copy(m.position).addScaledVector(_w, 160).setY(0), fl.fire, 340);
+      }
     }
-    if (k >= 1){ sh.dur = 0; sh.wait = rand(...(fl.every || [4, 12])) / heat; for (const m of sh.wing) m.visible = false; }
+    if (k >= 1){ sh.dur = 0; sh.wait = rand(...(fl.every || [4, 12])) / heat; for (const m of sh.wing){ m.visible = false; m.userData.lost = false; } }
   }
   // walkers: a slow, heavy stride toward the fight, firing their chin guns into the lines
   const stopAt = Math.max(W.half, W.halfZ) * (F.walkerRing ? F.walkerRing[1] : W.reach[0] + 0.6);
@@ -407,18 +431,18 @@ export function updateWarfront(dt){
     _v.lerpVectors(t.a, t.b, k); _w.subVectors(t.b, t.a).normalize();
     const d = _v.distanceTo(camera.position), th = Math.max(0.3, d * 0.004);   // thicker with distance so it still reads
     _q.setFromUnitVectors(_s.set(0, 0, 1), _w);
-    W.tr.setMatrixAt(i, _m.compose(_v, _q, _s.set(th, th, Math.max(8, d * 0.06))));
+    W.tr.setMatrixAt(i, _m.compose(_v, _q, _s.set(th * t.w, th * t.w, Math.max(8, d * 0.06) * (t.w > 1 ? 1 + t.w * 0.25 : 1))));
     W.tr.setColorAt(i, _c.setHex(t.color).multiplyScalar(2.2));
     i++;
   }
   for (; i < W.tr.count; i++) W.tr.setMatrixAt(i, ZERO);
   W.tr.instanceMatrix.needsUpdate = true; W.tr.instanceColor.needsUpdate = true;
   i = 0;
-  W.flashes = W.flashes.filter(f => (f.t += dt) < 0.55);
+  W.flashes = W.flashes.filter(f => (f.t += dt) < f.dur);
   for (const f of W.flashes){
-    const k = f.t / 0.55;
+    const k = f.t / f.dur;
     W.fl.setMatrixAt(i, _m.compose(f.p, _q.identity(), _s.setScalar(f.size * (0.15 + Math.sqrt(k) * 0.45))));
-    W.fl.setColorAt(i, _c.setHex(F.flash ?? 0xffa040).multiplyScalar(3 * (1 - k) * (1 - k)));
+    W.fl.setColorAt(i, _c.setHex(f.col ?? F.flash ?? 0xffa040).multiplyScalar(3 * f.k * (1 - k) * (1 - k)));
     i++;
   }
   for (; i < W.fl.count; i++) W.fl.setMatrixAt(i, ZERO);

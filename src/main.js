@@ -263,6 +263,8 @@ Object.assign(window.GAME, { trails: { info: trailInfo, tune: TRAIL_TUNE } });  
 /* the battle past the edge (world/warfront.js), for tests and the art capture: what it's running, and a step to run it on */
 import { warfrontInfo, updateWarfront } from './world/warfront.js';
 Object.assign(window.GAME, { warfront: { info: warfrontInfo, step: updateWarfront } });
+import { skywarInfo, skywarCue, updateSkywar, skywarState } from './world/skywar.js';
+Object.assign(window.GAME, { skywar: { info: skywarInfo, cue: skywarCue, step: updateSkywar, state: skywarState } });
 
 /* the form loadout (data/forms.js): the seven forms and what sits on 1 / 2 / 3 */
 import { FORMS } from './data/forms.js';

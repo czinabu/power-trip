@@ -388,6 +388,15 @@ for (const [key, id] of [['finSlow', 'finslowctl'], ['finCam', 'fincamctl']]){
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setFinToggle(key, !G[key]); });
 }
+// SKY BATTLE — how much of the trailer layer over the war beyond the walls plays (world/skywar.js)
+const SKYWAR = ['auto', 'full', 'light', 'off'];
+function setSkywar(v){
+  G.skywar = SKYWAR.includes(v) ? v : 'auto';
+  try { localStorage.setItem('sw_skywar', G.skywar); } catch(e){}
+  const sv = document.getElementById('skywarval'); if (sv) sv.textContent = G.skywar.toUpperCase();
+}
+{ let v; try { v = localStorage.getItem('sw_skywar'); } catch(e){} setSkywar(v); }
+document.getElementById('skywarctl')?.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSkywar(SKYWAR[(SKYWAR.indexOf(G.skywar) + 1) % SKYWAR.length]); });
 // SCREEN SHAKE — scales every camera shake, roll and hit kick (0 turns them off)
 function setShakeScale(v){
   G.shakeScale = Math.max(0, Math.min(1.5, isNaN(v) ? 1 : v));
@@ -514,7 +523,7 @@ function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
   setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
   setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
-  setFinToggle('finSlow', true); setFinToggle('finCam', true);
+  setFinToggle('finSlow', true); setFinToggle('finCam', true); setSkywar('auto');
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
   setAimHint(true); setSwingMirror(false); setSaberGrip('regular');
   resetQuality();

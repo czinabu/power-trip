@@ -15,7 +15,7 @@ import { settleCloth } from '../src/player/model/cloth.js';
 import { gripHands } from '../src/player/model/life.js';
 import { curlHand } from '../src/player/model/jedi.js';
 import { rexRest, riflePose } from '../src/player/anim/guns.js';
-import { setLongGun, setRifleMod } from '../src/player/model/weapons.js';
+import { setLongGun, setRifleMod, setPistolLook } from '../src/player/model/weapons.js';
 
 const q = new URLSearchParams(location.search);
 const STYLE = q.get('style') || 'ink';
@@ -118,6 +118,7 @@ function figure(poseName){
   t.saberHand.visible = !mando;
   t.pistols.L.visible = mando && P.weapon === 'dual';
   t.pistols.R.visible = mando && (P.weapon === 'dual' || P.weapon === 'single');
+  setPistolLook(t, trooper ? 'pistols' : P.weapon);
   t.rifleMesh.visible = mando && (P.weapon === 'disruptor' || P.weapon === 'dc15');
   if (P.weapon === 'dc15'){ setLongGun(t, 'dc15'); setRifleMod(t, P.mod || 'burst'); }
   const set = (o, v) => v && o.rotation.set(v[0], v[1], v[2]);

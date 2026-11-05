@@ -10,7 +10,7 @@ import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
 import { benchOpen, renderBench } from './bench-stage.js';
 import { kitSet, kitSets } from './kit-stage.js';
-import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber, setLongGun, setRifleMod } from '../player/model/weapons.js';
+import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber, setPistolLook, setLongGun, setRifleMod } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
@@ -255,6 +255,7 @@ function dress(hero){
   fig.saberHand.visible = !gunner;
   fig.pistols.L.visible = trooper;
   fig.pistols.R.visible = gunner;
+  setPistolLook(fig, trooper ? 'pistols' : 'single');
   fig.rifleMesh.visible = false;
   fig.darksaberMesh.visible = false;
   applySaberGrip(fig, G.saberGrip, true);

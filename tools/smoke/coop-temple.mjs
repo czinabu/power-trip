@@ -3,7 +3,9 @@
 // walks into the temple; the guest joins them there from the co-op panel and sees them only while they share a wing.
 // The host launches Survival from the council table and the guest follows them into it; the host goes back to the
 // temple and the guest is called back with them.
-//   npm run build && npm run smoke:coop-temple
+// The lobby is the HOST's hero's hub for everyone: HOST=trooper walks it as the clone citadel on Kamino, with a Jedi
+// guest who arrives there, not in their own temple.
+//   npm run build && npm run smoke:coop-temple   (HOST=jedi|trooper)
 
 import { chromium } from 'playwright';
 import { PeerServer } from 'peer';
@@ -17,6 +19,8 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || 
 const errors = [];
 const poll = { timeout: 90000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
 const step = (what) => console.log('ok   ' + what);
+const HOST = process.env.HOST || 'jedi', GUEST = HOST === 'jedi' ? 'mando' : 'jedi';
+const W = HOST === 'trooper' ? { hub: 'kamino', hall: 'deck', archives: 'halls', council: 'warroom' } : { hub: 'temple', hall: 'hall', archives: 'archives', council: 'council' };
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -24,7 +28,7 @@ async function open(name){
   page.on('console', m => { if (m.type() === 'error') errors.push(name + ': ' + m.text()); });
   await page.addInitScript(() => {
     try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1');
-          localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_camp_mando', '1'); } catch(e){}   // Survival unlocked
+          localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_camp_mando', '1'); localStorage.setItem('sw_camp_trooper', '1'); } catch(e){}   // Survival unlocked
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
   });
   await page.goto(url);
@@ -46,26 +50,27 @@ try {
   step('connected');
 
   // the host walks into the temple; the guest's co-op panel offers to join them there
-  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-temple'); await host.click('#goText');
-  await inHub(host, 'hall');
+  await host.$eval('#hero-' + HOST, el => el.click()); await host.click('#mode-temple'); await host.click('#goText');
+  await inHub(host, W.hall);
   await guest.waitForFunction(() => getComputedStyle(document.getElementById('coopjointemple')).display !== 'none', null, poll);
-  await guest.$eval('#hero-mando', el => el.click());
+  await guest.$eval('#hero-' + GUEST, el => el.click());
   await guest.click('#coopjointemple');
-  await inHub(guest, 'hall');
-  step('the guest joins the host in the temple');
+  await inHub(guest, W.hall);
+  await guest.waitForFunction((h) => GAME.G.hubId === h, W.hub, poll);
+  step(`the guest (${GUEST}) joins the host (${HOST}) in the host's hub: ${W.hub}`);
   await guest.waitForFunction(() => GAME.partnerShown(), null, poll);
   await host.waitForFunction(() => GAME.partnerShown(), null, poll);
   step('each sees the other in the grand hall');
 
   // in different wings they don't see each other
-  await guest.evaluate(() => GAME.hub.goWing('archives')); await inHub(guest, 'archives');
+  await guest.evaluate((w) => GAME.hub.goWing(w), W.archives); await inHub(guest, W.archives);
   await guest.waitForFunction(() => !GAME.partnerShown(), null, poll);
   await host.waitForFunction(() => !GAME.partnerShown(), null, poll);
   step('apart in different wings');
-  await guest.evaluate(() => GAME.hub.goWing('hall')); await inHub(guest, 'hall');
+  await guest.evaluate((w) => GAME.hub.goWing(w), W.hall); await inHub(guest, W.hall);
 
   // the host launches Survival from the council table; the guest goes with them
-  await host.evaluate(() => GAME.hub.goWing('council')); await inHub(host, 'council');
+  await host.evaluate((w) => GAME.hub.goWing(w), W.council); await inHub(host, W.council);
   await host.evaluate(() => { const { G, player } = GAME; player.group.position.set(0, 0.6, 7); player.vel.set(0, 0, 0); G.yaw = player.faceYaw = Math.PI; });
   const gt = await host.evaluate(() => GAME.G.gt);
   await host.waitForFunction((gt) => GAME.G.gt > gt + 0.15 && document.getElementById('hubp').classList.contains('on'), gt, poll);
@@ -91,7 +96,8 @@ try {
   await inHub(host);
   step('the host returns to the temple');
   await inHub(guest);
-  step('the guest is called back to the temple with them');
+  await guest.waitForFunction((h) => GAME.G.hubId === h, W.hub, poll);
+  step('the guest is called back to the host\'s hub with them');
   await guest.waitForFunction(() => !GAME.enemies.length, null, poll);
   ok = !errors.length;
 } catch(e){ console.log('FAIL ' + e.message); }

@@ -6,7 +6,7 @@
 
 import { G } from '../state.js';
 import { CUSTOMIZE } from '../data/customize.js';
-import { optionOpen, recordLooks, PROMOTIONS } from './wardrobe.js';
+import { optionOpen, recordLooks, PROMOTIONS, trooperFork } from './wardrobe.js';
 
 const cap = (t) => t.charAt(0) + t.slice(1).toLowerCase();
 const openSet = (hero) => {
@@ -25,7 +25,9 @@ export function chapterLooks(id){
   const out = [];
   let rest = fresh;
   if (hero === 'trooper' && PROMOTIONS[id]){
-    out.push({ key: 'promote-' + PROMOTIONS[id], hud: '' });   // its own card (ui/ability-card.js, data/ability-cards.js)
+    // (at the signature chapter a Commando gets the Katarn plate's card, not the ARC's)
+    const rank = PROMOTIONS[id] === 'arc' && trooperFork() === 'commando' ? 'commando' : PROMOTIONS[id];
+    out.push({ key: 'promote-' + rank, hud: '' });   // its own card (ui/ability-card.js, data/ability-cards.js)
     rest = fresh.filter(f => f.o.unlock !== id || f.row.kind === 'color');   // (the kit is on the card; its colours are news)
   }
   if (rest.length){

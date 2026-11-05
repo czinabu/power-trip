@@ -15,7 +15,7 @@ import { weaponUnlocked, MANDO_WEAPONS } from '../data/mando.js';
 import { playerPos } from './helpers.js';
 import { cancelSwing } from './jedi/combat.js';
 import { switchWeapon } from './mando/weapons.js';
-import { SABER_LIGHT } from './model/weapons.js';
+import { SABER_LIGHT, FIST } from './model/weapons.js';
 import { glow } from '../engine/renderer.js';
 import * as THREE from 'three';
 
@@ -40,7 +40,7 @@ function place(mesh, key){
     if (mesh.parent !== sock){ sock.add(mesh); mesh.position.set(...at.pos); mesh.rotation.set(...at.rot); }
   } else if (mesh.parent !== u.hand){
     u.hand.add(mesh);
-    mesh.position.set(0, -0.04, 0);   // the grip (GRIP_Y in model/weapons.js)
+    if (u.restP) mesh.position.copy(u.restP); else mesh.position.set(...FIST);   // the fist (model/weapons.js FIST)
     mesh.rotation.order = 'XYZ';   // (a stowed spot may have set its own)
     if (u.restQ) mesh.quaternion.copy(u.restQ);
   }

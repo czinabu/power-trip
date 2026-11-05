@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // SAVE SLOTS: three local slots, each a snapshot of the player's progress, plus the campaign run when saved mid-campaign.
 
+import { HUBS } from '../data/hub.js';
 import { attune } from './saber-bench.js';
 import { clearKept } from './wardrobe.js';
 import { G, player } from '../state.js';
@@ -210,7 +211,7 @@ function whereNow(){
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';
   if (G.mode === 'play' && G.training) return 'TRAINING';
   if (G.mode === 'play' && G.sandbox) return 'SANDBOX';
-  if (G.mode === 'play' && G.hub) return 'THE HIDDEN TEMPLE';
+  if (G.mode === 'play' && G.hub) return (HUBS[G.hubId] || HUBS.temple).name;
   return 'MAIN MENU';
 }
 // what the slot holds: wins across the campaign, missions and training

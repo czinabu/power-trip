@@ -90,9 +90,9 @@ export const BACKPACKS = [
 // THE DC-15's STOCK and FINISH (model/weapons.js dc15). The barrel and scope are the rifle's MODULES (data/trooper.js
 // RIFLE_MODS), swapped in the fight with 1: the locker never changes those
 export const STOCKS = [
-  { id: 'skeletal', name: 'Skeletal', line: 'The open frame stock every DC-15 ships with.' },
+  { id: 'skeletal', name: 'Butt block', line: 'The short butt block and sling the regular DC-15 ships with.' },
   { id: 'full',     name: 'Full stock', earn: { chapter: 'trial-first' }, line: 'A solid stock with a rubber butt pad.' },
-  { id: 'folded',   name: 'Folded',   earn: { arcade: 1 }, line: 'The stock folded down the side: short and quick to bring up.' },
+  { id: 'folded',   name: 'Folding frame', earn: { arcade: 1 }, line: 'A skeletal frame folded down the side: short and quick to bring up.' },
 ];
 export const FINISHES = [
   { id: 'black',  name: 'Gunmetal',  line: 'Factory black.' },
@@ -112,7 +112,7 @@ export const LOCKER = [
   { id: 'marking', label: 'COMPANY MARKINGS', kind: 'part', parts: MARKINGS, set: (p) => ({ parts: { marking: p.id } }), sub: 'Painted in your legion colour.' },
   { id: 'hgear', label: 'HELMET GEAR', kind: 'part', parts: HELMET_GEAR, set: (p) => ({ parts: { hgear: p.id } }), sub: 'Clipped to the bucket.' },
   { id: 'backpack', label: 'BACKPACK', kind: 'part', parts: BACKPACKS, set: (p) => ({ parts: { backpack: p.id } }), sub: 'Over the pack every clone wears.' },
-  { id: 'stock', label: 'DC-15 STOCK', kind: 'part', parts: STOCKS, set: (p) => ({ rifle: { stock: p.id } }), sub: 'The rifle\'s stock. Its barrel and scope are its modules, swapped in the fight.' },
+  { id: 'stock', label: 'DC-15 STOCK', kind: 'part', parts: STOCKS, set: (p) => ({ rifle: { stock: p.id } }), sub: 'The regular rifle\'s stock. The Auto Barrel and Marksman modules, swapped in the fight, bring their own.' },
   { id: 'finish', label: 'DC-15 FINISH', kind: 'part', parts: FINISHES, set: (p) => ({ rifle: { finish: p.id } }), sub: 'How the rifle is painted.' },
 ];
 // the locker's sidegrade row for the trooper's own numbers

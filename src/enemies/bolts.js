@@ -10,7 +10,12 @@ import { scene } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, clamp, TMP } from '../utils.js';
 import { floater, screenFlash } from '../fx/floaters.js';
-import { shared, G, enemies, bolts, solids, player, isGunner } from '../state.js';
+import { shared, G, enemies, bolts, solids, player, isGunner, isTrooper } from '../state.js';
+import { heroHitBand, suppressHero } from '../player/trooper/cover.js';
+import { TROOPER } from '../data/trooper.js';
+import { suppressFoes, foeShotHit, champHeadMul } from './coverfight.js';
+const SUPP = TROOPER.suppress;
+const inBand = (h) => { const B = heroHitBand(); return h > B[0] && h < B[1]; };
 import { SQUAD } from '../data/allies.js';
 import { HEADSHOT_MULT } from '../data/mando.js';
 import { fwd, playerPos, stance } from '../player/helpers.js';
@@ -249,16 +254,20 @@ export function updateBolts(dt){
         G.shake = Math.max(G.shake, 0.12);
         S.block(b.mesh.position); floater(pp, 'BLOCK', '#9cc8e8'); noteDefense('blocks', null, { src: b.src });
         kill = true;
-      } else if (d < 1.2 && dy < 1.2 && !(player.slideT > 0 && b.mesh.position.y > pp.y + 0.8)){   // a slide ducks under fire
+      } else if (d < 1.2 && inBand(b.mesh.position.y - pp.y) && !(player.slideT > 0 && b.mesh.position.y > pp.y + 0.8)){   // a slide ducks under fire · ducked behind low cover, it flies over (trooper/cover.js)
         hurtPlayer(b.dmg, b.mesh.position, false, false, false, { src: b.src }); kill = true;
         boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
+        if (isTrooper()){ suppressHero(SUPP.onHero.perHit); b.suppd = true; }
       }
+      // SUPPRESSION (the ARC trooper): fire tearing past him shakes him (trooper/cover.js)
+      if (!kill && !b.suppd && d < SUPP.onHero.near && near && isTrooper()){ b.suppd = true; suppressHero(SUPP.onHero.perBolt); }
       // a near miss tears past your ear
       if (!kill && !b.friendly && !b.whiz && d < 3.2 && near){ b.whiz = true; S.whiz(b.mesh.position); }
     } else if (!kill && b.friendly && !b.ghost){   // (a ghost is the partner's shot, only drawn here: their browser does the damage)
       // the bolt hits the FIRST body along its flight this frame, exactly where that body is (bodyshape.js): legs, arms
       // and shoulders count, the gap beside a foe doesn't, and only the head itself is a headshot
       let foe = null, hit = null;
+      if (b.playerShot && isTrooper()) suppressFoes(b);   // the ARC trooper's fire pins what it tears past (enemies/coverfight.js)
       for (const e of enemies){
         if (e.dead || e.converted) continue;
         if (b.ally && !isFodder(e) && b.mark !== e) continue;   // a squadmate's fire leaves the duellists to you, unless you ordered it on one (data/allies.js)
@@ -280,7 +289,7 @@ export function updateBolts(dt){
           let dmg = boltDamage(b);   // range falloff
           const isHead = hit.head;
           if (isHead){
-            dmg *= HEADSHOT_MULT;
+            dmg *= champHeadMul(e) ?? HEADSHOT_MULT;   // (a named gunman against the trooper keeps his head down: enemies/coverfight.js)
             const hp = headPos(e, HIT);
             spawnHitSpark(V3(hp.x, hp.y + 0.1, hp.z), 0xffd24a, 1.5);
             floater(V3(hp.x, hp.y + 0.45, hp.z), 'HEADSHOT', '#ffd24a');
@@ -288,6 +297,7 @@ export function updateBolts(dt){
             sfx(1900, 0.08, 'square', 0.05, 420); S.blastHit(b.mesh.position, 1.4); G.hitstop = Math.max(G.hitstop, 0.04); G.shake = Math.max(G.shake, 0.18);
           }
           damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
+          if (b.playerShot && isTrooper()) foeShotHit(e);
           markHit(e.group, b.mesh.position, b.dir, 'scorch', { heavy: dmg >= 30 });   // a scorch where it struck; a helmet cracks (enemies/scars.js)
           if (!isHead) boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
           if (b.playerShot){ if (G.stats) G.stats.shotsHit++; hitMarker(e.dead ? 'kill' : (isHead ? 'head' : 'hit')); }

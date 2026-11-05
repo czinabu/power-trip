@@ -15,7 +15,7 @@
 // itself (the trooper's ARC kit at his promotion, the Mando's cape and pauldrons). game/wardrobe.js keeps the ledger.
 
 import { mergeLook } from '../player/model/appearance.js';
-import { optionOpen } from '../game/wardrobe.js';
+import { optionOpen, trooperFork } from '../game/wardrobe.js';
 import { BENCH } from './saber-parts.js';
 import { LOCKER } from './trooper-locker.js';
 import { FORGE } from './beskar-forge.js';
@@ -194,22 +194,27 @@ export const CUSTOMIZE = {
   // trooper in Phase II plates, earns a captain's helmet and pauldron at his first promotion and the ARC kit at his second
   // (game/wardrobe.js PROMOTIONS)
   trooper: [
-    { id: 'helmet', label: 'HELMET', kind: 'part', options: [
+    // `fork`: open once the trooper has taken that signature path (game/wardrobe.js); `forkPick`: what the row wears,
+    // when nothing is picked, after the latest path taken (the Commando's Katarn kit, no kama)
+    { id: 'helmet', label: 'HELMET', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',     name: 'ARC',      set: parts({ helmet: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Commando', set: parts({ helmet: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'captain', name: 'Captain',  set: parts({ helmet: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Trooper',  set: parts({ helmet: 'phase2' }) },
     ] },
-    { id: 'shoulders', label: 'SHOULDERS', kind: 'part', options: [
+    { id: 'shoulders', label: 'SHOULDERS', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',     name: 'ARC pauldron', set: parts({ arms: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Commando plates', set: parts({ arms: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'captain', name: 'Captain',      set: parts({ arms: 'captain' }), unlock: 'trial-first' },
       { id: 'phase2',  name: 'Bare',         set: parts({ arms: 'phase2' }) },
     ] },
     // the ARC's black collar yoke and pouches, and the legion paint on the legs: on, or plain Phase II plates
-    { id: 'gear', label: 'GEAR', kind: 'part', options: [
+    { id: 'gear', label: 'GEAR', kind: 'part', forkPick: { commando: 'commando' }, options: [
       { id: 'arc',    name: 'ARC',     set: parts({ torso: 'arc', legs: 'arc' }), unlock: 'mustafar' },
+      { id: 'commando', name: 'Katarn plate', set: parts({ torso: 'commando', legs: 'commando' }), unlock: 'mustafar', fork: 'commando' },
       { id: 'phase2', name: 'Phase II', set: parts({ torso: 'phase2', legs: 'phase2' }) },
     ] },
-    { id: 'kama', label: 'KAMA', kind: 'part', options: [
+    { id: 'kama', label: 'KAMA', kind: 'part', forkPick: { commando: 'none' }, options: [
       { id: 'long', name: 'Kama', set: parts({ kama: 'long' }), unlock: 'mustafar' },
       { id: 'none', name: 'None', set: parts({ kama: 'none' }) },
     ] },
@@ -268,6 +273,9 @@ export function lookFromPicks(picks = {}){
 
 // the option a hero WEARS for a row: the one picked if it is open (game/wardrobe.js), else the row's first open one
 export function wornOption(hero, row, picks = {}){
+  const fp = row.forkPick && picks[row.id] == null && row.forkPick[trooperFork()];
+  const pref = fp && row.options.find(x => x.id === fp);
+  if (pref && optionOpen(hero, row, pref)) return pref;
   const o = pickedOption(row, picks);
   return optionOpen(hero, row, o) ? o : (row.options.find(x => optionOpen(hero, row, x)) || row.options[0]);
 }

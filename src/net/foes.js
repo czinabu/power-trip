@@ -17,6 +17,7 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { foeType } from '../enemies/look.js';
 import { dressElite } from '../enemies/elites.js';
 import { damageEnemy } from '../enemies/damage.js';
+import { MERC, tellGuestStruck } from '../game/alignment.js';
 import { finaleLook, finaleDress, adoptFinalePuppet, spawnFinale } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { severLimbs, applyCuts } from '../enemies/scars.js';
@@ -100,7 +101,10 @@ on('hits', (m) => {
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
-    damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield ? { shove: shove || undefined, bodyShield: !!shield } : undefined);   // (shield: a bolt the guest's held body caught)
+    MERC.guest = true; MERC.struck = false;   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
+    try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield ? { shove: shove || undefined, bodyShield: !!shield } : undefined); }   // (shield: a bolt the guest's held body caught)
+    finally { MERC.guest = false; }
+    if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);   // the guest's killing cut may take limbs; the snapshot shows them to both
   }
 });
@@ -322,7 +326,7 @@ on('e', (m) => {
 
 const CTL = { knockdown: 1, ragdoll: 1, stagger: 1, recover: 1, stasis: 1, grasped: 1, lock: 1 };   // the states a guest's powers (or a saber lock) put a foe in
 const HELD = { grasped: 1, lock: 1 };   // ...and the ones where the guest places the body itself
-const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1 };   // the states the legs don't stand in (enemies/ai.js)
+const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1, yield: 1, spared: 1 };   // the states the legs don't stand in (enemies/ai.js)
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 

@@ -73,9 +73,9 @@ function wallBetween(ax, az, b){
 }
 
 const CORPSE = 1.4;   // seconds a body lies (the last 0.6 of them sinking away) before it is cleared
-const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1 };   // states that own the whole body
+const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1, yield: 1, spared: 1 };   // states that own the whole body
 const LUNGING = { lungewind: 1, lunge: 1 };
-const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1 };   // states the legs don't stand in (enemies/gait.js)
+const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1, yield: 1, spared: 1 };   // (yield, spared: on its knees, game/alignment.js)   // states the legs don't stand in (enemies/gait.js)
 // turn toward a heading at a capped rate (the hero's turning weight, data/movement.js MOVE.turnRate)
 function turnToward(g, want, rate, dt){
   const d = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
@@ -689,6 +689,20 @@ export function updateEnemies(dt){
         if (e.st <= 0){ e.state = 'chase'; g.rotation.set(0, g.rotation.y, 0); }
         break;
       }
+      // YIELDED (game/alignment.js): on its knees, blade thrown down, until it is spared, struck down or takes it back
+      case 'yield':
+        e.vel.set(0, 0, 0); e.kneel = Math.min(1, (e.kneel || 0) + dt * 3);
+        if (e.st <= 0){ e.kneel = 0; e.yielding = false; e.state = 'getup'; e.st = 0.6; }
+        break;
+      // SPARED: it bows its head on its knees, and then it is gone from the fight in a breath of the Force
+      case 'spared':
+        e.vel.set(0, 0, 0); e.kneel = Math.min(1, (e.kneel || 0) + dt * 3);
+        g.rotation.x = dampToward(g.rotation.x, 0.32, dt, 4);
+        if (e.st <= 0){
+          burst(V3(g.position.x, g.position.y + 1.1, g.position.z), 0x9fd8ff, 14, 2.5, 2.5, 0.9);
+          removeEnemy(e); enemies.splice(i, 1);
+        }
+        break;
       case 'fade':
         // the body lies where it fell a moment, then sinks away into the ground (it no longer shrinks to a point)
         if (e.st < 0.6){ g.position.y -= dt * 1.1; g.scale.multiplyScalar(Math.max(0.01, 1 - dt * 0.5)); }

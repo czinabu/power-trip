@@ -22,6 +22,8 @@ import { storyBeat, clearComms, comms } from './story.js';
 import { playOpening, resetScenes, playScene } from './cutscene.js';
 import { recordChapters } from './sandbox-unlocks.js';
 import { choiceAfter, choose, resetStory, storyChoices, answer, storyWords } from './choices.js';
+import { alignChoice, askGuests, setOwnChoice } from './alignment.js';
+import { ALIGN_WORDS } from '../data/alignment.js';
 import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
 import { resetSet } from './onset.js';
@@ -235,17 +237,35 @@ function showPick(pos, sandboxOpened){
   MUSIC.unlockSting();
 }
 // A STORY'S CHOICE (game/choices.js): the question, who asks it and the two answers. A click picks (no Enter: it has to
-// be meant). then: what follows once it's made (the next chapter, or the epilogue)
-function showChoice(ch, then){
+// be meant). then: what follows once it's made (the next chapter, or the epilogue). Each pick moves this player's own
+// light and dark (game/alignment.js); in co-op the host's decides the story, and every guest is asked too (`own`: their
+// pick moves only their own meter)
+function showChoice(ch, then, own = false){
   const c = chapterAt(G.chapter);
+  if (!own) askGuests(ch.id);
+  askChoice({ kicker: 'ACT ' + ROMAN[c ? c.act : 2] + ' · A CHOICE', title: ch.title, lines: storyWords(ch.lines), who: ch.who || storyVoice(undefined, chapterAt(G.chapter)),
+    options: ch.options, hint: own ? 'The host\'s pick decides the story. Yours moves your own ' + alignWords() : 'This choice stays with you for the rest of the story, and moves your ' + alignWords() },
+    (k) => {
+      if (!own) choose(ch.id, k);
+      alignChoice(ch.id, k);
+      if (!own) autosave('choice');
+      if (then) then();
+    }, own);
+}
+const alignWords = () => { const W = ALIGN_WORDS[G.hero] || ALIGN_WORDS.jedi; return W.light.toLowerCase() + ' and ' + W.dark.toLowerCase(); };
+// a guest is asked the host's choice (game/alignment.js): its own card, its own meter
+setOwnChoice((id) => { const ch = storyChoices(storyHero()).find(x => x.id === id); if (ch && ch.after !== 'end' && !cardUp()) showChoice(ch, null, true); });   // (the last one each screen asks itself: campaignWon)
+// ANY CHOICE CARD: the campaign's, and a side mission's (game/mission.js). onPick(key) once one is clicked; `resume`
+// takes the pointer back after (in a fight), else the card closes quietly
+export function askChoice(q, onPick, resume = false){
   openCard('<div class="cc-inner cc-choice hero-' + G.hero + '">' +
-    '<div class="cc-act">ACT ' + ROMAN[c ? c.act : 2] + ' · A CHOICE</div><h1 class="cc-title">' + esc(ch.title) + '</h1>' +
-    lore(storyWords(ch.lines), ch.who || storyVoice(undefined, chapterAt(G.chapter))) +
-    '<div class="cc-pick">' + ch.options.map(o => '<div class="cc-opt brk" data-go="' + o.key + '"><b>' + esc(o.label) + '</b><span>' + esc(o.line) + '</span></div>').join('') + '</div>' +
-    '<div class="cc-hint">This choice stays with you for the rest of the story</div>' +
+    '<div class="cc-act">' + esc(q.kicker) + '</div><h1 class="cc-title">' + esc(q.title) + '</h1>' +
+    lore(q.lines, q.who) +
+    '<div class="cc-pick">' + q.options.map(o => '<div class="cc-opt brk' + (o.side ? ' al-' + o.side : '') + '" data-go="' + o.key + '"><b>' + esc(o.label) + '</b><span>' + esc(o.line) + '</span></div>').join('') + '</div>' +
+    '<div class="cc-hint">' + esc(q.hint || '') + '</div>' +
     '</div>', (k) => {
-      if (!ch.options.some(o => o.key === k)) return;
-      choose(ch.id, k); S.reward(1); closeCard(true); autosave('choice'); then();
+      if (!q.options.some(o => o.key === k)) return;
+      S.reward(1); closeCard(!resume); onPick(k);
     });
   MUSIC.unlockSting();
 }
@@ -264,8 +284,9 @@ export function campaignWon(then){
   // a last look at the hero (game/cutscene.js), then the card. Each screen plays its own in co-op (both get here). A story's
   // last choice (the Jedi's: what becomes of Vexis) comes first; a co-op guest takes the host's
   const scene = () => { if (G.mode !== 'play' || !playScene('epilogue', { onDone: card, share: false, lines: own && own.lines() })) card(); };
-  const last = !G.coopGuest && choiceAfter(storyHero(), 'end');
-  setTimeout(() => { if (last && G.mode === 'play') showChoice(last, scene); else scene(); }, 1200);
+  // (a co-op guest is asked it too, on its own card: its pick moves its own meter, the host's decides the story)
+  const last = G.coopGuest ? storyChoices(storyHero()).find(ch => ch.after === 'end') : choiceAfter(storyHero(), 'end');
+  setTimeout(() => { if (last && G.mode === 'play') showChoice(last, scene, !!G.coopGuest); else scene(); }, 1200);
 }
 function showEpilogue(then){
   openCard('<div class="cc-inner hero-' + G.hero + '">' +

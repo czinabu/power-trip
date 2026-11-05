@@ -124,3 +124,26 @@
 .pf-sb-att{margin:8px 0 6px;padding:0 2px}
 .pf-saber .pf-note{margin-top:4px;font-size:12px}
 .pf-saber .pf-note b{color:var(--gold);font-weight:600}
+
+/* LIGHT AND DARK (ui/profile-ui.js alignSec, pathsSec): the meter, and the two paths under the Force Tree */
+.pf-align h4{display:flex;align-items:baseline;gap:8px}
+.pf-align h4 em{margin-left:auto;font-style:normal;letter-spacing:1.4px;font-size:11px;color:var(--ink-soft)}
+.pf-align.al-light h4 em{color:#9fd8ff}
+.pf-align.al-dark h4 em{color:#ff7a66}
+.pf-al{display:flex;align-items:center;gap:8px;margin:4px 0 6px;font:700 10px/1 var(--font-ui);letter-spacing:1.6px}
+.pf-al .dk{color:#ff7a66}
+.pf-al .lt{color:#9fd8ff}
+.pf-al-bar{position:relative;flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#7a1410,#3a2a2c 38%,#2a3038 62%,#2a6c9a)}
+.pf-al-bar .lean{position:absolute;top:-2px;width:1px;height:12px;background:rgba(255,255,255,.35)}
+.pf-al-bar b{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#f4f1ea;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 0 10px rgba(255,255,255,.5)}
+.pf-al-how{font-size:11px;opacity:.8}
+.pf-paths-h{margin-top:18px}
+.pf-paths{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pf-branch.al-light{border-color:rgba(159,216,255,.35)}
+.pf-branch.al-dark{border-color:rgba(255,106,90,.35)}
+.pf-branch.al-light.path{box-shadow:inset 0 0 0 1px rgba(159,216,255,.7)}
+.pf-branch.al-dark.path{box-shadow:inset 0 0 0 1px rgba(255,106,90,.7)}
+/* a choice card's two answers, when one is the light's and one the dark's (game/campaign.js askChoice) */
+.cc-opt.al-light{border-color:rgba(159,216,255,.55)}
+.cc-opt.al-dark{border-color:rgba(255,106,90,.55)}
+@media (max-width:520px){ .pf-paths{grid-template-columns:1fr} }

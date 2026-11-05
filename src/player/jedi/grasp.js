@@ -26,7 +26,7 @@ import { trainAbility } from '../../game/upgrades.js';
 const A = () => growPower('grasp', Object.assign({}, CFG.abilities.grasp));   // grown by the Force Level (data/force-level.js)
 // the survival cost cuts on top, never below the cost floor (data/force-level.js): `n` bodies held scale the base with it
 const bodies = (n) => 1 + CFG.abilities.grasp.multiCost * (n - 1);
-const fcost = (raw, n = 1) => floorCost(raw * (player.up.abilityCostMul || 1), baseCost('grasp') * bodies(n));
+const fcost = (raw, n = 1) => floorCost(raw * (player.up.abilityCostMul || 1) * ((player.up.costOf && player.up.costOf.grasp) || 1), baseCost('grasp') * bodies(n));
 // too big or too steady to be lifted: brutes, the mid-boss and champions (they only brace when you hit them with one)
 const tough = (e) => !!(e.t.heavy || e.warbringer || e.champion);
 const graspable = (e) => !e.dead && !e.converted && !e.sparring && e.state !== 'spawn' && e.state !== 'lock' && e.state !== 'fade';

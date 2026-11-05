@@ -10,6 +10,7 @@
 
 import { G } from '../state.js';
 import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
+import { ALIGN } from '../data/alignment.js';
 import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 
@@ -26,7 +27,8 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
-                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {} });
+                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {},
+                       align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 } });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -254,6 +256,7 @@ export function setPath(id){ if (runLive()) return; const p = profileOf('jedi');
 
 // may the run's upgrade page deal this card? A tree node once learned; a Mando or trooper rank card once its rank is held
 export function owns(hero, s){
+  if (s.align) return hero === 'jedi' && alignOpen(s);
   if (s.prof) return hero === 'jedi' && nodeLearned(s.prof);
   if (s.rank) return hasRank(hero, s.rank);
   return true;
@@ -298,20 +301,59 @@ export function pruneDeck(hero, set){
   if (keep.length !== p.deck.length){ p.deck = keep; save(); }
 }
 
+/* ---------- LIGHT AND DARK: the meter (data/alignment.js; game/alignment.js feeds it) ---------- */
+// -100 (the dark) to +100 (the light). Real fights only: training and the sandbox are practice
+const aligning = () => !G.training && !G.sandbox;
+export const alignOf = (hero = G.hero) => profileOf(hero).align || 0;
+// which way the hero leans: 'light', 'dark', or null (balanced)
+export function leanOf(hero = G.hero, a = alignOf(hero)){ return a >= ALIGN.lean ? 'light' : a <= -ALIGN.lean ? 'dark' : null; }
+export function alignStage(hero = G.hero, a = alignOf(hero)){
+  return a >= ALIGN.deep ? 'deepLight' : a >= ALIGN.lean ? 'light' : a <= -ALIGN.deep ? 'deepDark' : a <= -ALIGN.lean ? 'dark' : 'mid';
+}
+// a path's card (data/alignment.js ALIGN_TREE) is open while you lean its way and hold its tier's rank
+export function alignOpen(n){ return leanOf('jedi') === n.align && hasRank('jedi', RANK_OF_TIER[n.tier]); }
+// move the meter by n (+ light, - dark); what it actually moved. `force` moves it even in practice (tests)
+let alignHook = null;
+export const onAlign = (fn) => { alignHook = fn; };
+export function shiftAlign(n, hero = G.hero, why = '', force = false){
+  if (!n || (!force && !aligning()) || !HEROES.includes(hero)) return 0;
+  const p = profileOf(hero), was = p.align || 0, before = leanOf(hero, was);
+  p.align = Math.max(-ALIGN.max, Math.min(ALIGN.max, was + n));
+  p.alignPeak ||= { light: 0, dark: 0 };
+  p.alignPeak.light = Math.max(p.alignPeak.light || 0, p.align);
+  p.alignPeak.dark = Math.max(p.alignPeak.dark || 0, -p.align);
+  settle(hero);   // (a path's crystal: game/profile.js settleParts)
+  const moved = p.align - was, now = leanOf(hero, p.align);
+  if (now !== before){ p.fresh = true; save(); }
+  if (moved && alignHook) alignHook(hero, moved, now !== before ? now || 'mid' : null, why);
+  return moved;
+}
+// a side mission's choice, once per profile: true the first time it is made
+export const sidePicked = (id, hero = G.hero) => (profileOf(hero).sidePicks || {})[id] || null;
+export function noteSidePick(id, key, hero = G.hero){
+  const p = profileOf(hero);
+  p.sidePicks ||= {};
+  if (p.sidePicks[id]) return false;
+  p.sidePicks[id] = key; save();
+  return true;
+}
+export function noteMercy(kind, hero = G.hero){ const p = profileOf(hero); p.mercy ||= { spared: 0, struck: 0 }; p.mercy[kind] = (p.mercy[kind] || 0) + 1; save(); }
+
 /* ---------- the page and co-op ---------- */
 export function seenFresh(hero = G.hero){ const p = profileOf(hero); if (p.fresh){ p.fresh = false; save(); } }
 export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes[h].fresh);
 // the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable
 export function profileCard(hero = G.hero){
   const p = profileOf(hero);
-  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: hero === 'jedi' ? [...p.picks] : [], d: p.deck ? [...p.deck] : null };
+  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: hero === 'jedi' ? [...p.picks] : [], d: p.deck ? [...p.deck] : null, a: Math.round(p.align || 0) };
 }
 // a card heard from another player: kept to what it should hold
 export function cleanCard(c){
   if (!c || typeof c !== 'object' || !HEROES.includes(c.h)) return null;
   const ranks = track(c.h).ranks, r = Math.max(0, Math.min(ranks.length - 1, c.r | 0));
   return { h: c.h, r, n: ranks[r].nm, t: Array.isArray(c.t) ? c.t.filter(id => JEDI_TREE.some(n => n.prof === id)).slice(0, 8) : [],
-           d: Array.isArray(c.d) ? c.d.filter(id => typeof id === 'string' && /^[a-z0-9_]{1,24}$/.test(id)).slice(0, 12) : null };
+           d: Array.isArray(c.d) ? c.d.filter(id => typeof id === 'string' && /^[a-z0-9_]{1,24}$/.test(id)).slice(0, 12) : null,
+           a: Math.max(-ALIGN.max, Math.min(ALIGN.max, Math.round(Number(c.a) || 0))) };
 }
 // the profile page's RESET: this hero starts over at the first rank (the save slots and their wins are untouched)
 export function resetProfile(hero){ const s = load(); s.heroes[hero] = blank(); save(); }

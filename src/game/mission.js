@@ -46,7 +46,9 @@ import { MISSIONS, MISSION_VOICE, MISSION_COLOR } from '../data/missions.js';
 import { missionById, noteArcadeWin } from '../data/arcade.js';
 import { spreadDef } from '../world/spread.js';
 import { storyVoice } from '../data/campaign.js';
-import { chapterAt } from './campaign.js';
+import { chapterAt, askChoice } from './campaign.js';
+import { sideChoice, sideChoiceDue } from './alignment.js';
+import { SIDE_BY_ID } from '../data/side-quests.js';
 import { ALLY_COLOR, addFriendRing, updateFriendRing, makeFriendTag } from '../fx/friend.js';
 import { spawnSquad, addSquadmate, squadIn, squadStanding, allies } from '../allies/squad.js';
 import { SQUAD } from '../data/allies.js';
@@ -1369,12 +1371,20 @@ function missionComplete(){
   endRun(true);
   G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;
   showBanner('MISSION COMPLETE', M.title, 999);
+  // a side mission's choice (data/side-quests.js `choice`, light and dark: game/alignment.js), the first time it is won:
+  // each screen asks its own, before the results
+  const q = def.side && SIDE_BY_ID[def.id], ask = q && sideChoiceDue(def.id, q.choice), title = M.title, who = missionVoice();
   setTimeout(() => {
     if (G.mode !== 'victory') return;
     document.exitPointerLock();
-    overlay.style.display = 'flex';
-    setOverlayState('victory');
-    document.getElementById('ovsub').textContent = (def.arcade ? 'ARCADE · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + M.title;
+    const results = () => {
+      overlay.style.display = 'flex';
+      setOverlayState('victory');
+      document.getElementById('ovsub').textContent = (def.arcade ? 'ARCADE · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + title;
+    };
+    if (!ask) return results();
+    askChoice({ kicker: 'SIDE MISSION · A CHOICE', title: q.choice.title, lines: q.choice.lines, who, options: q.choice.options, hint: 'Light or dark: it moves your own meter. It is asked once.' },
+      (k) => { sideChoice(def.id, q.choice, k); if (G.mode === 'victory') results(); });
   }, 1600);
 }
 

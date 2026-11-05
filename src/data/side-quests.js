@@ -20,6 +20,8 @@
 //             startFrom: n takes the source objective n's `start` (where a retry of it begins)
 //   legs      (a chase) how many of the source's pursuit legs its route keeps
 //   escort / quarry (optional) replace the source mission's own (who you walk, who you chase)
+//   choice    (light and dark, data/alignment.js) asked on a card once it is won, the first time only: { title, lines,
+//             options: [{ key, side: 'light' | 'dark', label, line }] }. It moves the hero's meter, and nothing else
 
 import { MISSIONS } from './missions.js';
 
@@ -41,6 +43,9 @@ export const SIDE_QUESTS = [
         task: all('Take and light both braziers') },
     ],
     done: all('The braziers are lit, and the hunters are gone from the forest. The shrine will keep.'),
+    choice: { title: 'THE HUNTERS\' CHIEF', lines: ['Their chief is on his knees in the courtyard, empty-handed, begging for his crew.', 'They will not come back to this forest. Unless you want to be sure of it.'],
+      options: [ { key: 'go', side: 'light', label: 'LET THEM GO', line: 'They leave the forest with what they carry, and the shrine keeps its peace.' },
+                 { key: 'example', side: 'dark', label: 'MAKE AN EXAMPLE', line: 'Nobody hunts near this shrine again. Everyone will know why.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
   { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, from: 'pens',
@@ -58,6 +63,9 @@ export const SIDE_QUESTS = [
         task: all('Guard Tavi out through the gate') },
     ],
     done: all('Tavi is aboard. One more name in the Ledger, crossed off and safe.'),
+    choice: { title: 'TAVI\'S JAILER', lines: ['The officer who kept Tavi locked up is cuffed at the gate. Tavi is watching you from the ramp.', 'The Inquisitors\' ship lands in an hour. They do not forgive failure.'],
+      options: [ { key: 'take', side: 'light', label: 'TAKE HIM WITH YOU', line: 'He answers for it in a cell on Tython, alive. Tavi sees how it is done.' },
+                 { key: 'leave', side: 'dark', label: 'LEAVE HIM IN TAVI\'S CELL', line: 'Locked in, for the Inquisitors to find. Let him learn what Tavi learned.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
   { slug: 'temple-droid', title: 'THE KEEPER\'S DROID', place: 'THE EAST FLANK OF LOTHAL', threat: 3, rank: 1, from: 'grassland',
@@ -73,6 +81,9 @@ export const SIDE_QUESTS = [
         task: all('Get the droid to the landing field') },
     ],
     done: all('K-1 is aboard with its map. The cache will keep until we are ready for it.'),
+    choice: { title: 'THE CACHE', lines: ['K-1\'s map shows the cache at last: Jedi relics, and among them a Sith holocron, still humming.', 'The archivists would lock it away. Or you could listen to what it knows.'],
+      options: [ { key: 'seal', side: 'light', label: 'SEAL THE HOLOCRON', line: 'It goes to the archive vault, unopened. Some things are better left unheard.' },
+                 { key: 'listen', side: 'dark', label: 'KEEP IT FOR YOURSELF', line: 'Know your enemy. It whispers to you on the flight home.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
   { slug: 'relic-thief', title: 'THE RELIC THIEF', place: 'THE SPACEPORT AT KHEL DAR', threat: 4, rank: 1, from: 'pursuit',
@@ -88,7 +99,10 @@ export const SIDE_QUESTS = [
         say: all('It has run out of street. It fights with a staff and it fights dirty. Break its guard.'),
         task: all('Win the duel') },
     ],
-    done: all('The crystal is back on the forge\'s shelf, and the Magpie is scrap.'),
+    done: all('The crystal is back on the forge\'s shelf, and the Magpie is down.'),
+    choice: { title: 'THE MAGPIE', lines: ['The Magpie is sparking on the street, one arm gone. It is only a droid, built to steal for whoever owned it last.', 'Its memory could be wiped. Or it could be finished, here.'],
+      options: [ { key: 'wipe', side: 'light', label: 'WIPE IT AND BRING IT HOME', line: 'Clean memory, a new owner. The temple could use a droid with quick hands.' },
+                 { key: 'scrap', side: 'dark', label: 'SCRAP IT', line: 'It stole from the temple. Nobody will steal with it again.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
   { slug: 'drowned-holocron', title: 'THE DROWNED HOLOCRON', place: 'TIPOCA CITY ON KAMINO', threat: 4, rank: 2, from: 'drowned',
@@ -103,6 +117,9 @@ export const SIDE_QUESTS = [
         task: all('Hold the landing pad until the ship is down') },
     ],
     done: all('The holocron is dry, and on its way to the archives on Tython.'),
+    choice: { title: 'THE GATEKEEPER', lines: ['The holocron\'s gatekeeper flickers in your hands: it will teach you nothing until the archive is ready for it.', 'You could push. Hard enough, and it will give up its last lesson now.'],
+      options: [ { key: 'wait', side: 'light', label: 'WAIT FOR THE ARCHIVE', line: 'It goes to Tython sealed. Its lessons will keep for whoever is ready.' },
+                 { key: 'force', side: 'dark', label: 'FORCE IT OPEN', line: 'It breaks, and what it knew pours into you. The archive gets an empty shell.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
   { slug: 'grave-knight', title: 'THE GRAVE KNIGHT', place: 'THE BURNED TEMPLE ON JEDHA', threat: 5, rank: 2, from: 'jedha-night',
@@ -119,6 +136,9 @@ export const SIDE_QUESTS = [
         task: all('Win the duel') },
     ],
     done: all('The Grave Knight is still at last. The seals are broken, and Jedha is quiet.'),
+    choice: { title: 'THE GRAVE KNIGHT\'S BLADE', lines: ['The Grave Knight\'s saber lies at your feet, still lit. Its crystal is bleeding red.', 'It could be buried with its knight. Or carried, with everything it remembers.'],
+      options: [ { key: 'rest', side: 'light', label: 'LAY IT TO REST', line: 'It goes into the ground with its knight, and the temple is quiet at last.' },
+                 { key: 'take', side: 'dark', label: 'TAKE THE BLADE', line: 'Its anger hums in your hand. It knows the way you fight now.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 ];
 export const SIDE_BY_ID = Object.fromEntries(SIDE_QUESTS.map(q => [SIDE_PREFIX + q.slug, q]));

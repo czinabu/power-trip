@@ -39,7 +39,8 @@ import { flowCastMul, noteFlowCast } from './flowcast.js';
 // player.up.abilityCostMul the Mando's gadgets already read; before this the Jedi paid full price regardless
 // ...and never below the cost floor: every cut together leaves at least half the base cost (data/force-level.js)
 // (NIMAN's FLOW CAST: a power thrown mid-roll or mid-dash costs less: jedi/flowcast.js)
-const fcost = (raw, id) => floorCost(raw * (player.up.abilityCostMul || 1) * flowCastMul(), baseCost(id));
+// (a path's card cuts one power's cost: player.up.costOf, data/alignment.js ALIGN_TREE)
+const fcost = (raw, id) => floorCost(raw * (player.up.abilityCostMul || 1) * ((player.up.costOf && player.up.costOf[id]) || 1) * flowCastMul(), baseCost(id));
 
 export function castGesture(kind, dur){
   dur *= (stance().castMul || 1);   // ATARU casts snap off faster

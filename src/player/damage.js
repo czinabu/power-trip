@@ -237,6 +237,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         player.cancelRiposte = (G.gt - (player.cancelT || -9)) < 0.45;   // parried straight out of a swing-cancel → a stronger answer
         player.ripLine = (opts && opts.line) || null;   // a duellist's strike: the riposte cuts back on the line it left open (jedi/guardline.js)
         player.force = clamp(player.force + 12 + player.up.parryForce + (stance().parryRefund || 0), 0, CFG.player.maxForce);   // skillful defense feeds the Force (NIMAN refunds extra)
+        if (player.up.parryHeal) player.hp = clamp(player.hp + player.up.parryHeal, 0, maxHp());   // the light path's THE LIGHT ENDURES (data/alignment.js)
         G.hitstop = Math.max(G.hitstop, 0.1);
         G.shake = Math.max(G.shake, 0.35);
         G.slowmo = Math.min(G.slowmo, 0.5); G.slowmoT = Math.max(G.slowmoT, 0.14);   // a brief beat of clarity on a perfect parry

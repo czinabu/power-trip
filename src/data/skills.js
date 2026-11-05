@@ -7,6 +7,7 @@ import { maxHp } from '../player/helpers.js';
 import { MANDO_STORE, JEDI_STORE } from './store.js';
 import { storeStageOpen } from '../game/progression.js';
 import { JEDI_TREE, RANK_SKILLS } from './profile.js';
+import { ALIGN_TREE } from './alignment.js';
 
 /* ============================================================
    SKILL TREE — a tiered path. Tier I is open from the start; the powerful
@@ -58,6 +59,8 @@ export const SKILLS = [
     fl:'The Force has no bottom. Drink deeply.', apply(){ player.up.forceRegen *= 1.7; player.up.knock *= 1.2; player.force = CFG.player.maxForce; } },
   // ---- THE FORCE TREE's own cards (data/profile.js): dealt only once your profile has learned them (game/profile.js) ----
   ...JEDI_TREE,
+  // ---- THE TWO PATHS' cards (data/alignment.js): dealt only while you lean that way (game/profile.js alignOpen) ----
+  ...ALIGN_TREE,
 ];
 /* ---- MANDALORIAN creed — its own authentic upgrade path (clan, armor, jetpack, arsenal) ---- */
 export const TIER_NAME_MANDO = TIER_NAME;   // (Foundling and Verd are the clan's ranks now: data/profile.js)

@@ -11,7 +11,7 @@ import { acquireParticle, burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, bolts, vfx, keys, player, isGunner, isMando, isTrooper } from '../../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, BESKAR_PARRY } from '../../data/mando.js';
-import { setLongGun, setRifleMod, longMuzzle, OWN_MODEL } from '../model/weapons.js';
+import { setLongGun, setRifleMod, setPistolLook, longMuzzle, OWN_MODEL } from '../model/weapons.js';
 import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
 import { fwd, rightV, playerPos, maxStam } from '../helpers.js';
@@ -60,7 +60,7 @@ export function mandoWeapon(){
 }
 export function syncWeaponMesh(){   // show only the equipped weapon's mesh (or none, off-hero); holstered, the one put away
   const m = isGunner(), raw = player.weapon === 'fists' ? player.drawnWeapon : player.weapon, w = gunLook(raw);   // (the trooper's guns are held like the Mando's: data/trooper.js GUN_LOOK)
-  if (player.pistols){ player.pistols.R.visible = m && (w === 'single' || w === 'dual'); player.pistols.L.visible = m && w === 'dual'; }
+  if (player.pistols){ player.pistols.R.visible = m && (w === 'single' || w === 'dual'); player.pistols.L.visible = m && w === 'dual'; setPistolLook(player, raw); }   // (the trooper's DC-17s are their own look: model/weapons.js)
   const LW = MANDO_WEAPONS[w];
   if (player.rifleMesh){ player.rifleMesh.visible = m && !!(LW && LW.twoHand); if (LW && LW.twoHand) setLongGun(player, OWN_MODEL[raw] || w); }
   setRifleMod(player, player.rifleMod || 'burst');   // the DC-15's fitted module shows on it (model/weapons.js)   // one long-gun mount, the drawn gun's model on it (the DC-15 its own)

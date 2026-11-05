@@ -46,6 +46,7 @@ import { chapterOrder, storyVoice } from '../data/campaign.js';
 import { meetNamed } from './codex.js';
 import { TAUNTS } from '../data/duel-taunts.js';
 import { settleHero, prepScene, blockScene, unblockScene, matesAround, sizeOf, roomFor } from './blocking.js';
+import { MUSIC } from '../audio/music.js';
 
 const hero = () => isGunner() ? 'mando' : 'jedi';
 const pick = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v[hero()] : v;
@@ -308,10 +309,11 @@ function start(opts){
   const marks = blockScene(at, (opts.actors || []).map(a => a && a.g), opts.stage || null, !!opts.share);
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
-                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, pair: 0, one: opts.one || null, at: performance.now() });
+                     mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, titled: null, pair: 0, one: opts.one || null, at: performance.now() });
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
   if (C.mark && C.mark.yaw == null) C.mark.yaw = yawTo(C.mark.x, C.mark.z, pp.x, pp.z);
   G.cutscene = true;
+  MUSIC.sceneStart();   // the score drops to its film bed under the letterbox (audio/music.js)
   // THE BLADE IN A SCENE: never lit. Every scene opens with the hero's hilt on the belt and the blade out, and play gets
   // back whatever it had when the scene ends (player/holster.js sceneStow / sceneRestore). A duel's entrance: both
   // duellists wait with their hilts on the belt; the foe draws at its last beat (the shot marked `draw`), the hero starts
@@ -338,6 +340,7 @@ function start(opts){
 function finish(skipped){
   if (!C.on) return;
   const done = C.onDone;
+  MUSIC.sceneEnd(/^(duel|boss):/.test(C.key) && G.mode === 'play');   // a duel's or a boss's entrance lands its fight on a hit
   if (C.draw){ for (const a of C.actors) endFoe(a); endSceneDraw(G.mode !== 'play'); C.draw = false; }   // (the hero's hilt stays on the belt for 5)
   dropActors();
   unblockScene();
@@ -415,12 +418,14 @@ function showShot(){
   const spk = s.speaker != null ? s.speaker : (s.line && s.on === 'actor' ? 0 : -1);
   const heroTalks = !!(s.line && (s.heroSpeaks || (s.on === 'hero' && heroLine(s.line))));
   C.talker = !s.line || s.comms ? null : spk >= 0 && C.actors[spk] && C.actors[spk].g ? C.actors[spk] : heroTalks ? 'hero' : null;
-  if (s.line !== C.shown){ setLine(s.line || null, !!s.comms, toneOf(s.line, C.talker)); C.shown = s.line; }
+  if (s.line !== C.shown){ const tone = toneOf(s.line, C.talker); setLine(s.line || null, !!s.comms, tone); C.shown = s.line;
+    MUSIC.sceneLine(s.line ? tone : null, s.line && s.line[0]); }   // the score steps back under the words; a foe's line brings its theme
+  if (s.title && s.title !== C.titled){ C.titled = s.title; MUSIC.sceneTitle(/^(duel|boss):/.test(C.key)); }
   if (s.title) setTitle(s.title); else if (C.i > 0 && C.shots[C.i - 1].title) setTitle(null);
   if (s.where !== undefined) setWhere(s.where);
   if (s.goal){ setGoal(s.goal); setLine(null); C.shown = null; C.talker = null; setWhere(null); }
   if (s.dropCast) dropCast();
-  if (s.draw && C.draw && !s.drawn){ s.drawn = true; for (const a of C.actors) drawFoe(a); }   // the foe reaches for its belt (the hero's is left for the player: 5)
+  if (s.draw && C.draw && !s.drawn){ s.drawn = true; for (const a of C.actors) drawFoe(a); MUSIC.sceneDraw(s.t); }   // the foe reaches for its belt (a riser into the first clash); the hero's is left for the player: 5
   if (s.pair != null) C.pair = s.pair;
   // the hero turns to someone else on set (the one watching from across the field, after the talk)
   if (s.faceYaw != null) G.yaw = C.heroYaw = s.faceYaw;

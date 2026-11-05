@@ -170,7 +170,7 @@ export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1){
   const U = arm.wr.userData, off = U._fistOff || (U._fistOff = new THREE.Vector3(0, -0.1, 0.06));
   for (let i = 0; i < 2; i++){
     _wt.copy(target).addScaledVector(off, -k);
-    solveArm(arm, _wt, pole);
+    solveArmClear(arm, _wt, pole);
     arm.wr.updateWorldMatrix(true, false);
     aim();
     arm.wr.updateWorldMatrix(true, false);
@@ -178,4 +178,72 @@ export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1){
     wristInChest(R.chest, arm, _fp);
     off.subVectors(_wq, _fp);
   }
+}
+
+/* THE ARM KEEPS OFF THE BODY — a cut that carries the hand across the chest, low past the hip or up past the head can ask
+   for an elbow that (by the pole alone) folds in THROUGH the torso or swings round BEHIND the back. solveArmClear runs
+   the two-bone solve as solveArm does, but first:
+     · a wrist target inside the torso is pushed out of it (forward, or out to its own side), and one round behind the
+       back is brought forward to beside it;
+     · of the ring of elbows that reach that wrist (the arm turning about its shoulder → wrist line), the one nearest
+       the pose's pole is kept unless it sinks the upper arm or the forearm into the torso or behind the back; then
+       the nearest one round the ring that clears (or clears the most) is taken, so the elbow flares out to the side
+       or drops, as a real arm does when the hand comes across.
+   TORSO is the body in chest space (an upright ellipse from the belt to the collar, the shoulders' own joint left out). */
+export const TORSO = { rx: 0.2, rz: 0.15, lo: -0.75, top: 0.28, back: -0.16, pad: 0.05 };
+const _st = new THREE.Vector3(), _sd = new THREE.Vector3(), _su = new THREE.Vector3(), _sv = new THREE.Vector3(), _se = new THREE.Vector3(), _sp = new THREE.Vector3(), _sq = new THREE.Vector3(), _sP = new THREE.Vector3();
+// how far a chest-space point sinks into the torso (padded by the limb's own thickness), and how far round behind the back
+function bodyCost(q, pad){
+  let c = 0;
+  if (q.y > TORSO.lo && q.y < TORSO.top){
+    const rx = TORSO.rx + pad, rz = TORSO.rz + pad, k = Math.hypot(q.x / rx, q.z / rz);
+    if (k < 1) c += (1 - k) * rz;
+  }
+  if (q.z < TORSO.back && Math.abs(q.x) < TORSO.rx + 0.12 && q.y < TORSO.top + 0.3) c += (TORSO.back - q.z) * 0.6;
+  return c;
+}
+function armCost(S, E, T){
+  let c = 0;
+  for (let i = 3; i <= 10; i++) c += bodyCost(_sq.copy(S).lerp(E, i / 10), TORSO.pad);   // (the upper arm, past the shoulder's own round)
+  for (let i = 1; i <= 10; i++) c += bodyCost(_sq.copy(E).lerp(T, i / 10), TORSO.pad * 0.8);
+  return c;
+}
+export function solveArmClear(arm, target, pole){
+  const a = DIM.upper, b = DIM.fore, S = arm.sh.position;
+  const T = _st.copy(target);
+  // the wrist itself out of the torso: out along its own way from the body's middle (level), past the padded edge
+  if (T.y > TORSO.lo && T.y < TORSO.top){
+    const rx = TORSO.rx + TORSO.pad, rz = TORSO.rz + TORSO.pad, k = Math.hypot(T.x / rx, T.z / rz);
+    if (k < 1){
+      if (k < 1e-3){ T.z = rz; }
+      else if (T.z < 0 && Math.abs(T.x) < rx * 0.7){ T.x = Math.sign(T.x || S.x) * rx * 0.9; T.z = Math.max(T.z, -rz * 0.2); }   // (behind the middle: round to its side)
+      else { T.x /= k; T.z /= k; }
+    }
+  }
+  if (T.z < TORSO.back && Math.abs(T.x) < TORSO.rx + 0.12) T.z = TORSO.back;   // never round behind the back
+  const d = _sd.subVectors(T, S), dist = THREE.MathUtils.clamp(d.length(), 0.08, a + b - 0.002);
+  const dn = d.normalize();
+  // the ring of elbows: centre and radius from the triangle's sides, the pole's own spot on it first
+  const ca = THREE.MathUtils.clamp((a * a + dist * dist - b * b) / (2 * a * dist), -1, 1), r = a * Math.sqrt(1 - ca * ca);
+  const C = _sv.copy(S).addScaledVector(dn, a * ca);
+  const u = _su.copy(pole).addScaledVector(dn, -pole.dot(dn));
+  if (u.lengthSq() < 1e-8) u.set(0, -1, 0).addScaledVector(dn, -dn.y);
+  u.normalize();
+  const Tw = _sP.copy(S).addScaledVector(dn, dist);
+  const elbowAt = (ang, out) => out.copy(u).applyAxisAngle(dn, ang).multiplyScalar(r).add(C);
+  let best = 0, bestC = armCost(S, elbowAt(0, _se), Tw);
+  if (bestC > 1e-4){
+    // round the ring both ways, nearest first: the first angle that clears wins; failing that, the least deep
+    // (both ways at each step: of two that clear, the lower elbow, so the arm drops and flares out before it lifts)
+    for (let i = 1; i <= 12 && bestC > 1e-4; i++){
+      let stepBest = null, stepC = Infinity, stepY = Infinity;
+      for (const sgn of [1, -1]){
+        const ang = sgn * i * 0.22, c = armCost(S, elbowAt(ang, _se), Tw), y = _se.y;
+        const clear = c <= 1e-4, better = clear ? (stepC > 1e-4 || y < stepY) : c < stepC;
+        if (better){ stepBest = ang; stepC = c; stepY = y; }
+      }
+      if (stepC < bestC - 1e-5){ bestC = stepC; best = stepBest; }
+    }
+  }
+  solveArm(arm, T, best ? _sp.copy(u).applyAxisAngle(dn, best) : pole);
 }

@@ -7,7 +7,7 @@ import { SABER_GUARDS, DUAL_GUARDS, SABER_SWINGS, SWING_STYLE, SWING_OFF, SABER_
 import { AIR_GUARDS } from '../../data/agility.js';
 import { CUT_ANGLE } from '../../data/stances.js';
 import { DIM } from '../model/rig.js';
-import { solveArm, holdAim, gripAt, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
+import { solveArm, solveArmClear, holdAim, gripAt, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
 import { STAFF, HILT_TURN, fistAt } from '../model/weapons.js';
 import { SWING_WEIGHT } from '../../data/swing-weight.js';
 
@@ -694,7 +694,7 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
      the blade too), so both hands wrap the hilt instead of the off wrist resting against it. Its turn and its reach
      onto the hilt fade in with `two`; a free off hand hangs open from a straight wrist. */
   const two = saberPose.two;
-  if (two < 0.01){ solveArm(R.armL, _t, _p); R.armL.wr.quaternion.identity(); return; }
+  if (two < 0.01){ solveArmClear(R.armL, _t, _p); R.armL.wr.quaternion.identity(); return; }
   axisInChest(R.chest, held.node, bladeAxis(held, _ax), _bd);
   if (staff) _bd.negate();   // (on the staff the off hand faces the far blade: the two fists hold the hilt as a pole)
   gripAt(R, R.armL, _t, _p, OFF_FIST, () => {

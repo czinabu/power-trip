@@ -109,6 +109,14 @@ const EMITTERS = {
       K.add(block(0.016, 0.05, 0.01, 0.3), 'gunDark', [Math.sin(a) * 0.042, 0.125, Math.cos(a) * 0.042], [0, a, 0], false);
     }
   },
+  // the side missions' head: two raised rings with a lit window between them, where the crystal shows through
+  seeker(K){
+    K.add(loft([{ y: GRIP_HI, w: 0.078, d: 0.078 }, { y: 0.1, w: 0.08, d: 0.08 }, { y: 0.155, w: 0.08, d: 0.08 }, { y: EMIT, w: 0.07, d: 0.07 }], ROUND), K.metal);
+    K.add(ring(0.098, 0.11, 0.096), K.dark);
+    K.add(ring(0.14, 0.152, 0.096), K.dark);
+    K.add(block(0.022, 0.026, 0.012, 0.2), K.band, [0, 0.125, 0.04], [0, 0, 0], false);
+    K.add(block(0.022, 0.026, 0.012, 0.2), K.band, [0, 0.125, -0.04], [0, 0, 0], false);
+  },
 };
 
 /* ---------- POMMELS: below the grip ---------- */
@@ -133,6 +141,12 @@ const POMMELS = {
   },
   spike(K){
     K.add(loft([{ y: -0.285, w: 0.006, d: 0.006 }, { y: -0.2, w: 0.082, d: 0.082 }, { y: GRIP_LO, w: 0.074, d: 0.074 }], ngon(8, Math.PI / 8)), K.metal);
+  },
+  // a little holocron set on its corner below the hand, glowing in the hilt's own band colour
+  holocron(K){
+    K.add(loft([{ y: -0.205, w: 0.058, d: 0.058 }, { y: GRIP_LO, w: 0.074, d: 0.074 }], ROUND), K.metal);
+    K.add(new THREE.OctahedronGeometry(0.036, 0), K.band, [0, -0.235, 0], [0, Math.PI / 4, 0]);
+    K.add(ring(-0.212, -0.205, 0.07), K.dark, [0, 0, 0], [0, 0, 0], false);
   },
 };
 

@@ -22,7 +22,7 @@ export function buildTythonArena(L){
   const wings = HUBS.temple.wings, found = wingByLayout(L.layout), wing = found && found.hub === 'temple' ? found.id : 'hall';
   const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 31 + 7), W = wings[wing];
   ({ hall, council, training, archives, forge })[wing](L, K, pal, R);
-  hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z) });
+  hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z), stone: { stone: pal.stoneD ?? 0xa89f8c, trim: pal.trim ?? 0xd8b860, glow: pal.kyber ?? 0x5ad2ff } });
   hubDoorSigns(W, wings, K, { runner: pal.kyber ?? 0x5ad2ff });
   templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
 }

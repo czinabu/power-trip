@@ -12,6 +12,7 @@
 // foes are (FOE_TIER_AT, the waves-deep the foes are scaled as) and the duellists' health.
 
 import { MISSIONS } from './missions.js';
+import { isSideId, sideQuest } from './side-quests.js';
 
 export const ARCADE_VOICE = 'DISPATCH';
 export const ARCADE_PREFIX = 'arcade:';
@@ -162,9 +163,10 @@ export function arcadeContract(seed){
   cache.set(seed, def);
   return def;
 }
-// a story mission or an arcade contract, by id
+// a story mission, an arcade contract or a side mission (data/side-quests.js), by id
 export function missionById(id){
   if (MISSIONS[id]) return MISSIONS[id];
+  if (isSideId(id)) return sideQuest(id);
   if (isArcadeId(id)){ const s = parseInt(id.slice(ARCADE_PREFIX.length), 10); if (s > 0) return arcadeContract(s); }
   return null;
 }

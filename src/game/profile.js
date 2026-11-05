@@ -26,7 +26,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
-                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null });
+                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {} });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -161,6 +161,30 @@ export function noteMissionWon(id, arcade){
   if (arcade){ p.arcade++; gain(RANK_XP.arcade); }
   else { const first = !p.missions[id]; p.missions[id] = (p.missions[id] || 0) + 1; gain(first ? RANK_XP.mission : RANK_XP.missionAgain); }
   settle(G.hero);
+}
+// a side mission from the temple won (data/side-quests.js): more rank XP the first time
+export function noteSideWon(id){
+  if (!learning()) return;
+  const p = profileOf();
+  p.sides ||= {};
+  const first = !p.sides[id];
+  p.sides[id] = (p.sides[id] || 0) + 1;
+  gain(first ? RANK_XP.side : RANK_XP.sideAgain);
+  settle(G.hero);
+}
+export const sidesWon = (hero = G.hero) => Object.keys(profileOf(hero).sides || {}).length;
+export const sideWon = (id, hero = G.hero) => !!(profileOf(hero).sides || {})[id];
+// a secret on a story map (data/secrets.js) found: its rank XP once, and true the first time
+export const secretFound = (id, hero = G.hero) => !!(profileOf(hero).secrets || {})[id];
+export function noteSecret(id, kind){
+  if (!learning()) return false;
+  const p = profileOf();
+  p.secrets ||= {};
+  if (p.secrets[id]) return false;
+  p.secrets[id] = 1;
+  gain(RANK_XP[kind] || 0);
+  settle(G.hero);
+  return true;
 }
 export function noteCampaignWon(){
   const p = profileOf();

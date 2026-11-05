@@ -23,7 +23,7 @@ export function buildCloneCitadel(L){
   const pal = { ...PAL, ...(L.pal || {}) }, K = arenaKit(), R = seeded(wing.length * 37 + 11), W = wings[wing];
   const M = mats(pal);
   ({ deck, warroom, range, halls, armory })[wing](K, pal, M, R);
-  hubStations(W, K, { ring: pal.holo, beacon: (x, z) => beacon(K, M, x, z), sign: { ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' } });
+  hubStations(W, K, { ring: pal.holo, stone: { stone: 0x6a7684, trim: 0xd8e4ee, glow: pal.holo }, beacon: (x, z) => beacon(K, M, x, z), sign: { ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' } });
   hubDoorSigns(W, wings, K, { runner: pal.holo, signY: 13, sign: { ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' } });
 }
 

@@ -57,7 +57,8 @@ function leftCol(h){
   const ladder = T.ranks.map((x, i) => '<li class="' + (i < p.rank ? 'done' : i === p.rank ? 'on' : '') + '"><b>' + esc(x.nm) + '</b><span>' + esc(x.line) + '</span></li>').join('');
   const cleared = Object.keys(p.cleared).length;
   const rec = [['CHAPTERS CLEARED', cleared], ['TRIALS PASSED', trialsPassed(p) + ' / 3'], ['MISSIONS WON', Object.keys(p.missions).length],
-               ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers]];
+               ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers],
+               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS FOUND', Object.keys(p.secrets || {}).length]];
   return `<div class="pf-col pf-left">
     <div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
     <div class="pf-rank">${esc(R.nm)}</div>
@@ -67,7 +68,7 @@ function leftCol(h){
     <div class="pf-sec"><h4>THE LADDER</h4><ol class="pf-ladder">${ladder}</ol></div>
     ${h === 'jedi' ? saberSec() : kitSec(h)}
     <div class="pf-sec"><h4>RECORD</h4><div class="pf-rec">${rec.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('')}</div></div>
-    <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions and arcade contracts won, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
+    <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions, side missions and arcade contracts won, secrets found on the story maps, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
   </div>`;
 }
 

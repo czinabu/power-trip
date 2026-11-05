@@ -24,6 +24,7 @@ export const KAMINO_WINGS = {
     stations: [
       { id: 'table', x: 0, z: 0, name: 'HOLOTABLE', act: 'council', r: 9 },
       { id: 'beacon', x: 9, z: 24, name: 'TRANSIT BEACON', act: 'travel' },
+      { id: 'calls', x: -9, z: 24, name: 'CALLS FOR AID', act: 'quests' },   // the side missions (data/side-quests.js)
     ],
   },
   range: {

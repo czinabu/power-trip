@@ -28,7 +28,7 @@ export function buildCovertHubArena(L){
   const M = mats(pal);
   ({ forge, clan, pit, vault, hangar })[wing](L, K, pal, R, M);
   // every station's amber rings and sign (a covert map console at each fast-travel stop), the signs over the doors
-  hubStations(COVERT_WINGS[wing], K, { ring: pal.ring ?? AMBER, tall: ['table', 'ship'], beacon: (x, z) => mapConsole(K, pal, x, z, wing === 'forge' ? 1 : 0.5) });
+  hubStations(COVERT_WINGS[wing], K, { ring: pal.ring ?? AMBER, stone: { stone: 0x4a4440, trim: 0x8a7a60, glow: pal.ring ?? AMBER }, tall: ['table', 'ship'], beacon: (x, z) => mapConsole(K, pal, x, z, wing === 'forge' ? 1 : 0.5) });
   hubDoorSigns(COVERT_WINGS[wing], COVERT_WINGS, K, { signY: 8.2, runner: pal.ring ?? AMBER });
 }
 

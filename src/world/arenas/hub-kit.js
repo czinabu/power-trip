@@ -26,7 +26,7 @@ export function roundStep(K, x, z, r, h, mat, seg = 40){
 
 /* every station: two lit rings on the floor and its name on a sign over it, facing the way you come in. o.ring the
    rings' colour, o.beacon(x, z) draws a fast-travel stone (a station with act 'travel' that isn't the wing's big map),
-   o.tall the ids whose sign hangs high over a big centrepiece */
+   o.tall the ids whose sign hangs high over a big centrepiece, o.stone { stone, trim, glow } the CALLS FOR AID stone's colours */
 export function hubStations(W, K, o = {}){
   const [sx, sz] = W.spawn, ring = holoM(o.ring ?? 0x5ad2ff, 0.55), tall = o.tall || ['map', 'table'];
   for (const s of W.stations){
@@ -34,8 +34,22 @@ export function hubStations(W, K, o = {}){
     live(K.deco(new THREE.RingGeometry(r, r + 0.22, 48), ring, s.x, 0.05, s.z, -PI / 2));
     live(K.deco(new THREE.RingGeometry(r + 0.5, r + 0.58, 48), ring, s.x, 0.05, s.z, -PI / 2));
     if (s.act === 'travel' && !tall.includes(s.id) && o.beacon) o.beacon(s.x, s.z);
+    if (s.act === 'quests') callStone(K, s.x, s.z, sz >= s.z ? 1 : -1, o.stone || {});
     const face = Math.atan2(sx - s.x, sz - s.z);
     K.sign(s.name, s.x, tall.includes(s.id) ? 8.2 : 4.6, s.z, face, { w: 3.6, ...(o.sign || {}) });
+  }
+}
+/* the CALLS FOR AID stone (act 'quests', the side missions: data/side-quests.js): a slab with the petitions glowing on its
+   face, which looks along z toward `dir` (the side you come in from) */
+export function callStone(K, x, z, dir = 1, c = {}){
+  const bz = z - 0.9 * dir, fz = bz + 0.37 * dir;
+  K.box(x, bz, 1.5, 0.35, 2.1, std(c.stone ?? 0xa89f8c));
+  K.deco(new THREE.BoxGeometry(3.3, 0.18, 0.9), std(c.trim ?? 0xd8b860, 0.45, 0.55), x, 2.18, bz);
+  for (let i = 0; i < 6; i++){
+    const lit = glowM(c.glow ?? 0x5ad2ff, 0.85);   // (one each: they pulse out of step)
+    const px = x - 1.0 + (i % 3) * 1.0, py = 0.75 + Math.floor(i / 3) * 0.7;
+    const p = live(K.deco(new THREE.PlaneGeometry(0.62, 0.42), lit, px, py, fz, 0, dir > 0 ? 0 : PI));
+    anim(p, (o, t) => { o.material.opacity = 0.55 + Math.sin(t * 1.3 + i * 1.7) * 0.25; });
   }
 }
 /* over every door, the name of the wing beyond it, and a lit runner from the middle of the floor out to it */

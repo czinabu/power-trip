@@ -18,6 +18,8 @@ import { buildBoss } from '../boss/mesh.js';
 import { castPreview } from '../game/cast.js';
 import { svgIcon } from './icons.js';
 import { G } from '../state.js';
+import { holocronCube } from '../world/secret-props.js';
+import { syncHolocronPages } from '../game/secrets.js';
 
 const panel = document.getElementById('codex');
 const btn = document.getElementById('cxtoggle');
@@ -77,6 +79,7 @@ function buildModel(E, k){
     g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: d.role !== 'jedi', weapon: d.weapon, look: d.look }, { seed: 5, wear: 0.15 });
     if (d.look && g.userData.bladeGlow) g.userData.bladeGlow.material.color.setHex(0x3aff8c);
   } else if (E.kind === 'cast') g = castPreview(E.name);
+  else if (E.kind === 'holocron'){ g = holocronCube(0x7fd8ff, 0.7); g.position.y = 1.1; }   // (the one the story maps hide: world/secret-props.js)
   if (!g) g = new THREE.Group();
   const holder = new THREE.Group();
   holder.add(g);
@@ -195,7 +198,7 @@ function renderList(){
     s.querySelector('.cx-dot').classList.toggle('on', CODEX.some(e => e.tab === s.dataset.tab && codexFresh(e.id)));
   }
   const n = CODEX.filter(e => e.tab === tab && codexMet(e.id)).length;
-  document.getElementById('cxcount').textContent = n + ' / ' + rows.length + ' met · ' + codexCount() + ' / ' + CODEX.length + ' in all';
+  document.getElementById('cxcount').textContent = n + ' / ' + rows.length + (tab === 'holocrons' ? ' found · ' : ' met · ') + codexCount() + ' / ' + CODEX.length + ' in all';
 }
 function renderEntry(){
   const E = CODEX_BY_ID[sel], met = codexMet(sel), L = looksOf(E), info = document.getElementById('cxinfo');
@@ -205,14 +208,15 @@ function renderEntry(){
   lk.style.visibility = met && L.length > 1 ? 'visible' : 'hidden';
   document.getElementById('cxlk').innerHTML = esc(L[look].name || '') + ' <i>' + (look + 1) + ' / ' + L.length + '</i>' + (L[look].note ? '<em>' + esc(L[look].note) + '</em>' : '');
   if (!met){
-    info.innerHTML = `<div class="cx-name dim">? ? ?</div><div class="cx-lore">${E.ally ? 'Not met yet.' : 'Not encountered yet.'} Keep playing to fill this page.</div>`;
+    info.innerHTML = E.holocron ? `<div class="cx-name dim">? ? ?</div><div class="cx-lore">Not found yet. Holocrons hide in the quiet corners of the story maps: walk off the path and listen for the hum.</div>`
+      : `<div class="cx-name dim">? ? ?</div><div class="cx-lore">${E.ally ? 'Not met yet.' : 'Not encountered yet.'} Keep playing to fill this page.</div>`;
     return;
   }
   info.innerHTML = `<div class="cx-kick">${esc(E.kicker || '')}</div><div class="cx-name">${esc(E.name)}</div>
     ${E.threat ? '<div class="cx-threat">THREAT ' + pips(E.threat) + '</div>' : ''}
     <div class="cx-lore">${esc(E.lore)}</div>
     ${E.weapons ? '<div class="cx-sec"><h4>' + (E.ally ? 'CARRIES' : 'WEAPONS') + '</h4><div class="cx-chips">' + E.weapons.map(w => '<span>' + esc(w) + '</span>').join('') + '</div></div>' : ''}
-    <div class="cx-cols">${list('WATCH FOR', E.watch)}${list('HOW TO BEAT IT', E.beat)}${list('IN THE FIELD', E.field)}${list('WORKING WITH THEM', E.tips)}</div>`;
+    <div class="cx-cols">${list('WATCH FOR', E.watch)}${list('HOW TO BEAT IT', E.beat)}${list('IN THE FIELD', E.field)}${list('WORKING WITH THEM', E.tips)}${list('THE RECORDING', E.lines)}</div>`;
   if (codexFresh(sel)){ codexRead(sel); renderList(); refreshButton(); }
 }
 function pick(id){
@@ -226,6 +230,7 @@ function setTab(id){
 }
 
 export function setCodex(open){
+  if (open) syncHolocronPages();   // (the holocrons your heroes found, in this save slot's codex too)
   if (open && !built) build();
   panel.classList.toggle('open', open);
   if (!open) return;

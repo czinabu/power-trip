@@ -1,0 +1,158 @@
+// POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+// SIDE MISSIONS, handed out at the temple on Tython (the CALLS FOR AID stone in the Grand Hall, data/hub.js) and listed on
+// the Missions page. Each is built from a story mission's own objectives on that mission's own map, the way an arcade
+// contract is (data/arcade.js), but written by hand: who asked, what it is for, the foe's name. Edit the words freely.
+//
+// A side mission's id is 'side:<slug>', and data/arcade.js missionById builds it from that id alone, so a co-op guest (and
+// a reload) runs exactly the mission the host picked. game/mission.js plays it like any other mission; game/profile.js
+// pays rank XP for it (more the first time), and the workbench's Seeker emitter waits for a few of them.
+//
+// One entry:
+//   slug, title, place (shown under the title), blurb, threat (1-5 pips)
+//   rank      the hero's rank index it waits for (game/profile.js: 0 from the first day, 1 Knight / Verd / Sergeant,
+//             2 Master / Alor / Lieutenant): the Council trusts you with more as you rise
+//   from      the story mission whose map and objectives it uses (data/missions.js)
+//   take      the objectives it plays, in order: { i: the source objective's index, ...anything laid over it }. A field
+//             set here replaces the source's (title / say / task, a duel's name and foe, a console's name...). `say` and
+//             `task` may be one string for every hero or { jedi, mando, trooper }
+//   ask       the voice's line as the mission is handed out (the temple panel shows it)
+//   done      the line when it is won · reward: a short line on what it pays (the panel shows it)
+//             startFrom: n takes the source objective n's `start` (where a retry of it begins)
+//   legs      (a chase) how many of the source's pursuit legs its route keeps
+//   escort / quarry (optional) replace the source mission's own (who you walk, who you chase)
+
+import { MISSIONS } from './missions.js';
+
+export const SIDE_PREFIX = 'side:';
+export const SIDE_VOICE = 'THE TEMPLE KEEPER';
+export const isSideId = (id) => typeof id === 'string' && id.startsWith(SIDE_PREFIX);
+const all = (v) => ({ jedi: v, mando: v, trooper: v });
+
+export const SIDE_QUESTS = [
+  { slug: 'forest-shrine', title: 'THE FOREST SHRINE', place: 'THE OLD HOLDFAST', threat: 2, rank: 0, from: 'holdfast',
+    blurb: 'hold the shrine gate, then light its two braziers',
+    ask: 'An old shrine in the forest, older than the holdfast built round it. Hunters are camped at its gate, and its braziers have gone out. Hold the gate and light them again.',
+    take: [
+      { i: 0, title: 'HOLD THE SHRINE GATE', doneLine: 'THE GATE HOLDS', doneSub: 'Now the braziers.',
+        say: all('The hunters are coming up the lane. Keep them out of the shrine\'s courtyard until they give up.'),
+        task: all('Hold the shrine gate') },
+      { i: 1, title: 'LIGHT THE BRAZIERS', postName: 'BRAZIER', doneLine: 'THE BRAZIERS BURN', doneSub: 'The shrine is lit again.',
+        say: all('Two braziers out in the clearing. Stand in each with nobody of theirs inside, and it catches.'),
+        task: all('Take and light both braziers') },
+    ],
+    done: all('The braziers are lit, and the hunters are gone from the forest. The shrine will keep.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+
+  { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, from: 'pens',
+    blurb: 'open one cell block and walk a child from the Ledger out',
+    ask: 'One name in the Ledger was never brought out: Tavi, eight years old, in the last cell block on Tessaril. The Inquisitors moved the child there after the breakout. Bring Tavi home.',
+    take: [
+      { i: 1, title: 'OPEN TAVI\'S CELL BLOCK', consoleName: 'CELL BLOCK', doneLine: 'THE CELL IS OPEN', doneSub: 'Tavi is coming out.',
+        consoles: [ { at: [0, -33.2], guards: { phalanx: 1, grunt: 2, officer: 1 } } ],
+        say: all('The cell block at the back of the yard. Stand at its panel until the door opens.'),
+        task: all('Stand at the cell block\'s panel to open it') },
+      { i: 2, title: 'WALK TAVI OUT', doneLine: 'TAVI IS OUT', doneSub: 'Through the gate and running for the ship.', time: 32,
+        evacuees: { kind: 'youngling', count: 1, spacing: 1.5, speed: 2.4, ramp: false, verb: 'OUT', name: all('TAVI'),
+                    path: [[0, -32], [0, -20], [0, -6], [-6, 2], [-12, 9]] },
+        say: all('Tavi is out of the cell. Stay with the child, and keep everything off them until they are through the gate.'),
+        task: all('Guard Tavi out through the gate') },
+    ],
+    done: all('Tavi is aboard. One more name in the Ledger, crossed off and safe.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+
+  { slug: 'temple-droid', title: 'THE KEEPER\'S DROID', place: 'THE EAST FLANK OF LOTHAL', threat: 3, rank: 1, from: 'grassland',
+    blurb: 'walk the temple\'s droid across a sown field',
+    ask: 'One of the temple\'s droids went looking for an old Jedi cache on Lothal and found the war instead. It has the cache\'s map in its head. Walk it out to the landing field.',
+    escort: all({ model: 'b1', name: 'K-1', kicker: 'TEMPLE DROID', color: 0xc8b88a, eye: 0x7bffae, scale: 0.9, hp: 320 }),
+    take: [
+      { i: 0, title: 'ESCORT K-1',
+        say: all('K-1 will not walk into blaster fire on its own. Stay close, keep the troops off it, and watch where it steps.'),
+        task: all('Stay near the droid and keep foes off it') },
+      { i: 1, title: 'ESCORT K-1',
+        say: all('Up the flank to the landing field. Shields ahead of it: break them, or go round.'),
+        task: all('Get the droid to the landing field') },
+    ],
+    done: all('K-1 is aboard with its map. The cache will keep until we are ready for it.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+
+  { slug: 'relic-thief', title: 'THE RELIC THIEF', place: 'THE SPACEPORT AT KHEL DAR', threat: 4, rank: 1, from: 'pursuit',
+    blurb: 'run down the droid that robbed the temple',
+    ask: 'A droid broke into the archives last night and took a crystal off the forge\'s shelf. It is in Khel Dar, running for a ship. Do not let it reach one.',
+    legs: 1,   // (the chase is the first leg only: the Magpie turns to fight where it ends)
+    quarry: all({ foe: 'duelist', name: 'THE MAGPIE', kicker: 'RELIC THIEF', tint: 0x6a5a3a, scale: 1.04 }),
+    take: [
+      { i: 0, title: 'CHASE THE MAGPIE',
+        say: all('There it goes, up the market street. Keep it in sight: over the stalls, not round them.'),
+        task: all('Keep the thief in sight') },
+      { i: 2, title: 'BRING DOWN THE MAGPIE', hp: 4, quarry: true, hero: undefined, startFrom: 1,
+        say: all('It has run out of street. It fights with a staff and it fights dirty. Break its guard.'),
+        task: all('Win the duel') },
+    ],
+    done: all('The crystal is back on the forge\'s shelf, and the Magpie is scrap.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+
+  { slug: 'drowned-holocron', title: 'THE DROWNED HOLOCRON', place: 'TIPOCA CITY ON KAMINO', threat: 4, rank: 2, from: 'drowned',
+    blurb: 'pull a Jedi holocron out of a flooded archive, then hold the pad',
+    ask: 'A Jedi holocron was left in Tipoca City\'s archive at the start of the war, and the sea is in the archive now. Its pieces are in three stacks. Get them out before the water does.',
+    take: [
+      { i: 1, title: 'RECOVER THE HOLOCRON', consoleName: 'STACK', consoleDone: 'RECOVERED', doneLine: 'THE HOLOCRON IS OURS', doneSub: 'Every piece of it.',
+        say: all('Three stacks, a piece of the holocron in each. Work them in the dry spells: the sea comes in waves down here.'),
+        task: all('Stand at each stack to recover its piece') },
+      { i: 2, title: 'HOLD THE PAD',
+        say: all('Back to the pad, and hold it until the ship is down. They followed the water in.'),
+        task: all('Hold the landing pad until the ship is down') },
+    ],
+    done: all('The holocron is dry, and on its way to the archives on Tython.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+
+  { slug: 'grave-knight', title: 'THE GRAVE KNIGHT', place: 'THE BURNED TEMPLE ON JEDHA', threat: 5, rank: 2, from: 'jedha-night',
+    blurb: 'break the seals, then face a fallen Jedi\'s blade',
+    ask: 'Something walks the burned temple on Jedha at night: a Jedi who fell there, they say, still guarding the seals with a blade. Break the seals and see what comes for you.',
+    take: [
+      { i: 0, title: 'BREAK THE SEALS',
+        say: all('Three seals round the dais, and a garrison camped on them. Stand at each until it breaks.'),
+        task: all('Stand at each seal to break it') },
+      { i: 2, title: 'FACE THE GRAVE KNIGHT', name: 'THE GRAVE KNIGHT', form: 'makashi', kicker: 'A FALLEN JEDI', tint: 0x3a6a5a, hp: 4.5,
+        enter: all('A figure in a burned robe walks down the steps, its blade already lit.'),
+        line: all('You came to the seals. So did I, once.'),
+        say: all('It fought here when the temple fell, and it never stopped. It is precise and it waits for you to overreach. Do not.'),
+        task: all('Win the duel') },
+    ],
+    done: all('The Grave Knight is still at last. The seals are broken, and Jedha is quiet.'),
+    reward: 'Rank XP · counts toward the Seeker emitter' },
+];
+export const SIDE_BY_ID = Object.fromEntries(SIDE_QUESTS.map(q => [SIDE_PREFIX + q.slug, q]));
+
+const clone = (v) => JSON.parse(JSON.stringify(v));   // missions are plain data
+const cache = new Map();
+// the side mission behind an id, as a mission definition game/mission.js can run (null if there is none)
+export function sideQuest(id){
+  if (cache.has(id)) return cache.get(id);
+  const q = SIDE_BY_ID[id], src = q && MISSIONS[q.from];
+  if (!src) return null;
+  const objectives = q.take.map((t, n) => {
+    const o = { ...clone(src.objectives[t.i]), ...clone(Object.fromEntries(Object.entries(t).filter(([k, v]) => k !== 'i' && k !== 'startFrom' && v !== undefined))) };
+    if (t.startFrom != null) o.start = clone(src.objectives[t.startFrom].start);
+    for (const [k, v] of Object.entries(t)) if (v === undefined) delete o[k];   // (a field set to undefined is taken off)
+    if (n === 0) delete o.start;   // (the first one plays from the mission's start)
+    return o;
+  });
+  const first = q.take[0].i, st = src.objectives[first].start;
+  const def = {
+    ...src,
+    id, side: true, slug: q.slug, source: src.id, threat: q.threat, rank: q.threat,
+    trial: false, campaignOnly: false, heroes: undefined, story: undefined, opening: undefined,
+    title: q.title, place: q.place, blurb: q.blurb,
+    level: { ...src.level, name: 'SIDE MISSION — ' + q.place, sub: q.blurb.charAt(0).toUpperCase() + q.blurb.slice(1) + '.' },
+    start: st || src.start,
+    // who you walk and who you chase, only when one of its objectives needs them (the pens' droid stays home)
+    escort: objectives.some(o => o.kind === 'escort') ? q.escort || src.escort : undefined,
+    quarry: objectives.some(o => o.kind === 'pursuit' || o.quarry) ? q.quarry || src.quarry : undefined,
+    route: q.legs && src.route ? src.route.slice(0, q.legs) : src.route,
+    voice: SIDE_VOICE,
+    objectives,
+    done: q.done,
+  };
+  cache.set(id, def);
+  return def;
+}

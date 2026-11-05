@@ -25,6 +25,8 @@ import { showBanner } from './banners.js';
 import { coopRun } from '../net/run.js';
 import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
+import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
+import { rankIndex, track, sideWon } from '../game/profile.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -68,6 +70,15 @@ function options(s){
         B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
       ];
     }
+    case 'quests': {
+      // the side missions (data/side-quests.js): each waits for a rank, and a won one keeps its tick
+      const r = rankIndex(), T = track();
+      return SIDE_QUESTS.map(q => {
+        const id = SIDE_PREFIX + q.slug, won = sideWon(id), lock = r < q.rank ? 'Reach ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
+        const d = q.blurb.charAt(0).toUpperCase() + q.blurb.slice(1) + '. ' + q.place + ' · ' + (won ? 'DONE · ' : '') + q.reward;
+        return B(q.title + (won ? '  ✓' : ''), lock ? q.place : d, guest() ? null : () => hubLaunch('mission', id), lock);
+      }).concat(guest() ? [B('THE HOST CHOOSES', 'In a party the host picks the side mission, and everyone in the temple goes with them.', null)] : []);
+    }
     // the covert's hangar (data/hub-covert.js): the ship takes you out on the hunt, the bounty board deals a job
     case 'ship': case 'bounties': {
       if (guest()) return options({ act: 'council' });
@@ -106,7 +117,7 @@ function render(){
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
-    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : W.blurb) + '</div>' + partyLine +
+    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb) + '</div>' + partyLine +
     '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;

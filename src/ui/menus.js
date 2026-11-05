@@ -17,6 +17,7 @@ import { startTutorial, retryTutorial, skipStep, setTrainingExit, setStoryReturn
 import { setTrainHook } from '../game/meditation.js';
 import { startMission, startCoopMission, retryMission, missionTitle } from '../game/mission.js';
 import { isArcadeId, randomArcadeId } from '../data/arcade.js';
+import { isSideId } from '../data/side-quests.js';
 import { startSandbox, sandboxUnlocked } from '../game/sandbox.js';
 import { battleArmed, leaveSetup } from '../game/battlesim.js';
 import { sandboxFull, sandboxProgress } from '../game/sandbox-unlocks.js';
@@ -77,7 +78,7 @@ function setPicking(on){
 export const DIFF_NAME = { padawan: 'GENTLE', knight: 'STANDARD', master: 'BRUTAL' };
 function refreshNextRun(){
   const el = document.getElementById('nrWhat'); if (!el) return;
-  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'ARCADE · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'ARCADE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)

@@ -65,6 +65,7 @@ export const COVERT_WINGS = {
     stations: [
       { id: 'ship', x: -5, z: -9, name: 'THE SHIP', act: 'ship', r: 4 },
       { id: 'board', x: -20, z: -12, name: 'BOUNTY BOARD', act: 'bounties' },
+      { id: 'calls', x: -10, z: -24, name: 'CALLS FOR AID', act: 'quests' },   // the side missions (data/side-quests.js)
       { id: 'console', x: 10, z: -28, name: 'COVERT MAP', act: 'travel' },
     ],
   },

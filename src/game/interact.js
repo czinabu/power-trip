@@ -11,13 +11,18 @@ export const INTERACT_KEY = 'F';   // the label the prompts show (padKeys turns 
 
 let hubTap = () => false, hubNear = () => null;
 export function setHubInteract(tap, near){ hubTap = tap; hubNear = near; }   // the temple's stations (game/hub.js)
+// anything else F answers on a map (a secret: game/secrets.js): tap() true when it took the press, ready() true while its
+// prompt is up. (A hoisted function, so a module registering inside an import cycle still finds the list.)
+function others(){ return others.list || (others.list = []); }
+export function onInteract(tap, ready){ others().push({ tap, ready }); }
 
 // is there something F would answer right now?
-export const interactReady = () => !!(G.hub && hubNear()) || talkReady();
+export const interactReady = () => !!(G.hub && hubNear()) || others().some(h => h.ready()) || talkReady();
 
 // F was tapped: open the station you're at, or talk to whoever the prompt is over. True when it did (F does nothing else)
 export function interactTap(){
   if (G.mode !== 'play' || G.paused) return false;
   if (G.hub && hubTap()) return true;
+  for (const h of others()) if (h.tap()) return true;
   return talkTap();
 }

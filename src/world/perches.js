@@ -115,7 +115,8 @@ function fit(x, z, sx, sz, pts, spawn){
   if (tallIn(cx, cz, 1.2 + 0.6, 1.2 + 0.6, 0)) return -1;               // the crate needs its own floor
   g = Math.min(g, floorGap(cx, cz) - 1.7, floorGap(cx + sx * 2.2, cz + sz * 2.2) - 1.4, floorGap(cx + sx * 4.4, cz + sz * 4.4) - 0.6);   // ...the low step, and a clear run-up
   if (g < 0.5) return -1;
-  for (const [px, pz, r] of pts) if (Math.hypot(x - px, z - pz) < (r || 0) + PERCH.keep || Math.hypot(cx - px, cz - pz) < (r || 0) + 2.5) return -1;
+  for (const [px, pz, r] of pts) if (Math.hypot(x - px, z - pz) < (r || 0) + PERCH.keep || Math.hypot(cx - px, cz - pz) < (r || 0) + 2.5
+                                   || Math.hypot(cx + sx * 2.2 - px, cz + sz * 2.2 - pz) < (r || 0) + 2.2) return -1;   // (the low step too)
   for (const [qx, qz] of spawn) if (Math.hypot(x - qx, z - qz) < 8 || Math.hypot(cx - qx, cz - qz) < 6) return -1;
   return Math.min(g, 4);
 }
@@ -126,7 +127,7 @@ export function buildPerches(L){
   if (!L.layout || PERCH.skip.includes(L.layout)) return 0;
   if (L.arena > 100 || (L.arenaZ && L.arenaZ > L.arena)) return 0;   // the battle maps and the long route
   if (highGround() >= PERCH.enough) return 0;
-  const half = shared.arenaHalf, pts = missionPoints(L.layout);
+  const half = shared.arenaHalf, at = shared.spreadAt, pts = at ? missionPoints(L.layout).map(([x, z, r]) => [...at(x, z), r]) : missionPoints(L.layout);   // (a spread map's points move with it: world/spread.js)
   const spawn = [[0, half * 0.5], [0, half * 0.42]];
   const want = PERCH.count.find(([w]) => L.arena < w)[1];
   // score a fixed grid of candidates round the outer ring (deterministic: no randomness, so co-op screens agree)

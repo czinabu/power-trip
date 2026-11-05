@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updatePlayer(): the per-frame player update, run as meters → movement → Mando weapons/flight → Force jump → gravity/landing → animation.
 
+import { clearHeldBlades } from './anim/bladeclear.js';
 import { updateFinisherCue } from './jedi/finisher.js';
 import { CFG } from '../data/config.js';
 import { stamRegen } from './stamina.js';
@@ -54,6 +55,7 @@ export function updatePlayer(dt){
   updateOffThrow(dt);    // Jar'Kai's off-hand saber in flight off the finisher (jedi/offthrow.js)
   animatePlayer(dt, pp, st, f, r, moving);
   syncOffSaber(player, !isGunner());   // Jar'Kai's second saber keeps in step with the first (model/weapons.js)
+  clearHeldBlades(player.rig);   // (and kept out of the body once it's there: anim/bladeclear.js)
 }
 
 // Cooldowns, regen, Force barrier/mend upkeep, and the low-stamina guard break + danger vignette.

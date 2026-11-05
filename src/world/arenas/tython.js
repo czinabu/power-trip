@@ -13,6 +13,7 @@ import { shared, solids } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { buildSanctum, shelfFaces } from '../sanctum.js';
 import { HUB_WINGS, SIDE_OUT } from '../../data/hub.js';
+import { templeFolk } from './tython-folk.js';
 
 const PI = Math.PI;
 const std = (c, r = 0.9, m = 0.05, e = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m,
@@ -36,6 +37,7 @@ export function buildTythonArena(L){
   ({ hall, council, training, archives, forge })[wing](L, K, pal, R);
   stations(wing, K, pal);
   doorSigns(wing, K, pal);
+  templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
 }
 
 /* ---------------- the pieces every wing shares ---------------- */

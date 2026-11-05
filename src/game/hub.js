@@ -40,7 +40,7 @@ export function startHub(wing, from){
   const side = from && doorSide(G.hubWing, from);
   if (side){
     const [ox, oz] = SIDE_OUT[side], H = shared.arenaHalf;
-    x = ox * (H - 6); z = oz * (H - 6); yaw = Math.atan2(-ox, -oz);
+    x = ox * (H - HUB.arrive); z = oz * (H - HUB.arrive); yaw = Math.atan2(-ox, -oz);
   }
   // a co-op party spreads out side by side, each in their seat
   const seat = net.status === 'connected' ? net.slot : 0;

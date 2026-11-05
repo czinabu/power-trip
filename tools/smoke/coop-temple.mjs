@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // CO-OP TEMPLE SMOKE TEST — the hidden temple as the party's lobby (game/hub.js): two browsers on the BUILT game. The host
 // walks into the temple; the guest joins them there from the co-op panel and sees them only while they share a wing.
-// The host launches Survival from the council table and the guest follows them into it; the host goes back to the
+// The host picks Survival at the council table, the guest answers its ready check, and follows them into it; the host goes back to the
 // temple and the guest is called back with them.
 //   npm run build && npm run smoke:coop-temple
 
@@ -72,6 +72,11 @@ try {
   await host.keyboard.press('f');
   await host.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, poll);
   await host.locator('#hubpanel .hb-o', { hasText: 'SURVIVAL' }).first().click();
+  // the READY CHECK: the host's card waits on the guest, the guest is asked, and READY sets it off
+  await host.waitForFunction(() => /READY CHECK/.test(document.getElementById('hubpanel').textContent) && GAME.G.hub, null, poll);
+  await guest.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open') && /SURVIVAL/.test(document.getElementById('hubpanel').textContent), null, poll);
+  step('a ready check goes round the party before the run starts');
+  await guest.locator('#hubpanel .hb-o', { hasText: 'READY' }).first().click();
   for (let i = 0; i < 10 && !(await host.evaluate(() => GAME.G.mode === 'play' && !GAME.G.hub)); i++){
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
     await host.waitForTimeout(800);

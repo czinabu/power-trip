@@ -1023,8 +1023,39 @@ export const HUB_WORLDS = {
     ambient: { kind: 'embers', color: 0x8ae0ff, count: 110 }, beats: { fog: 0x1a2a3e, fill: 1.0, tint: 0xb8e8ff }, sound: 'temple' },
 };
 
+// THE HIDDEN COVERT, the Mando's hub (data/hub-covert.js, world/arenas/covert-hub.js): halls hewn in dark rock under a
+// ruined city, lit warm by the forge and by braziers, a little daylight falling in through the roofs. Floors stay a value
+// above the walls and below white armour, so everyone reads against them.
+const MF_SKY = { top: 0x1a1410, horizon: 0x3a2a20, below: 0x140e0c, bands: 5, stars: 0 };
+const MF_PAL = { rock: 0x4a3e38, rockD: 0x342a26, rockL: 0x5e5048, stone: 0x6a5c52, stoneD: 0x4a4038, beskar: 0xb0b8c0,
+  metal: 0x5a6068, metalD: 0x30343a, trim: 0xc89a4a, wood: 0x5a3e2a, molten: 0xff7a1e, hot: 0xffc060, fire: 0xff8a2a,
+  cloth: 0x6a2620, clothD: 0x2a2224, ring: 0xffb35a, sand: 0x8a6a4a, hull: 0x6e7a70, stripe: 0xd9a43a };
+const MF_LIGHT = { sun: 0xffd0a0, sunI: 1.5, dir: [14, 44, 20], hemiSky: 0xd09a70, hemiGround: 0x2a1c16, fill: 1.0, rim: 0xff9a50, rimI: 0.55 };
+export const COVERT_WORLDS = {
+  mfForge: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x3a2418, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, sunI: 1.6 },
+    floor: { kind: 'flagstone', base: 0x6e6058, seed: 53 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'embers', color: 0xff9a40, count: 160 }, beats: { fog: 0x3a2418, fill: 1.0, tint: 0xffc890 }, sound: 'foundry' },
+  mfClan: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x34221a, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, dir: [-10, 44, 24] },
+    floor: { kind: 'flagstone', base: 0x6a5a50, seed: 59 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'embers', color: 0xffa050, count: 70 }, beats: { fog: 0x34221a, fill: 1.0, tint: 0xffc890 }, sound: 'temple' },
+  mfPit: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x34221a, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, dir: [24, 44, 10] },
+    floor: { kind: 'flagstone', base: 0x6e6256, seed: 61 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'dust', color: 0xffe0b8, count: 80, size: 0.2 }, beats: { fog: 0x34221a, fill: 1.0, tint: 0xffd0a0 }, sound: 'temple' },
+  mfVault: { mist: false, sky: MF_SKY, clear: 0x1a1410, fog: 0x2a2220, fogStart: 1.2, fogEnd: 3.6, light: { ...MF_LIGHT, sunI: 1.4, dir: [-16, 46, 14] },
+    floor: { kind: 'flagstone', base: 0x605a56, seed: 67 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    ambient: { kind: 'dust', color: 0xffe0b8, count: 60, size: 0.18 }, beats: { fog: 0x2a2220, fill: 1.0, tint: 0xffd8b0 }, sound: 'temple' },
+  mfHangar: { mist: false,
+    sky: { top: 0x24345a, horizon: 0xe8a070, below: 0x3a2a24, bands: 6, stars: 30, sun: { el: 0.6, color: 0xffd8a8, halo: 0xffb070, size: 18 },
+      clouds: { color: 0xe8b090, under: 0x8a5a4a, count: 10, lo: 0.4, hi: 0.85 } },
+    fog: 0x5a3a2e, fogStart: 1.3, fogEnd: 3.8, light: { ...MF_LIGHT, sun: 0xffd8b0, sunI: 1.75, dir: [-18, 46, 22], hemiSky: 0xe0b090 },
+    floor: { kind: 'deck', base: 0x5a5650, stripe: 0xd9a43a, seed: 71 }, outer: 0x2a2220, pal: MF_PAL, backdrop: [],
+    warfront: { flyers: [{ kind: 'freighter', count: 1, alt: [120, 180], speed: [18, 28], every: [30, 50] }], epic: false },
+    ambient: { kind: 'dust', color: 0xffe0c0, count: 90, size: 0.22 }, beats: { fog: 0x5a3a2e, fill: 1.0, tint: 0xffd0a0 }, sound: 'foundry' },
+};
+
 export function themeFor(L){
   if (HUB_WORLDS[L.layout]) return HUB_WORLDS[L.layout];
+  if (COVERT_WORLDS[L.layout]) return COVERT_WORLDS[L.layout];
   if (TRAINING_WORLDS[L.layout]) return TRAINING_WORLDS[L.layout];
   if (MISSION_WORLDS[L.layout]) return MISSION_WORLDS[L.layout];
   if (BATTLE_WORLDS[L.layout]) return BATTLE_WORLDS[L.layout];

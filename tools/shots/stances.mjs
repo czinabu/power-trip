@@ -59,7 +59,23 @@ async function frame(file){
     GAME.gfx.composer.render();
     // feet: world ankle positions, to measure slide (a foot on the floor that moves)
     const R = p.rig, a = [R.legL.ank, R.legR.ank].map(n => { n.updateWorldMatrix(true, false); const e = n.matrixWorld.elements; return [e[12], e[13], e[14]]; });
-    return { img: shoot ? GAME.gfx.renderer.domElement.toDataURL('image/jpeg', 0.85) : null, feet: a, sp: Math.hypot(p.moveVel.x, p.moveVel.z), hy: R.hips.position.y, w: p._gait ? p._gait.w : 0, step: p._gait ? p._gait.step : 0, lock: [0, 1].map(j => p._gait && p._gait.locks && p._gait.w >= 1 ? !!p._gait.locks[j] : !!(p._footing && !p._footing.feet[j].step)), dbg: [p.vis.rotation.y.toFixed(2), R.hips.rotation.y.toFixed(2), p.faceYaw.toFixed(2), p._gait && p._gait.locks ? p._gait.locks.map(l => l ? 'L' : '-').join('') : 'x'].join(' ') };
+    // CLIP: how deep the blade(s) cut into the hero's own body (capsules round the spine, head and legs; the arms that
+    // hold the hilts aren't counted), in metres
+    const n0 = R.hips.position; const W = n => { n.updateWorldMatrix(true, false); return new n.position.constructor().setFromMatrixPosition(n.matrixWorld); };
+    const caps = [[W(R.hips), W(R.chest), 0.17], [W(R.chest), W(R.head), 0.13], [W(R.head), W(R.head), 0.14],
+      ...[R.legL, R.legR].flatMap(L => [[W(L.hip), W(L.knee), 0.09], [W(L.knee), W(L.ank), 0.07]])];
+    const segD = (q, a, b) => { const ab = b.clone().sub(a), t = Math.max(0, Math.min(1, q.clone().sub(a).dot(ab) / Math.max(ab.lengthSq(), 1e-9))); return q.distanceTo(a.clone().addScaledVector(ab, t)); };
+    const len = 0.18 + 1.6 * (GAME.stance().bladeLen || 1);
+    let clip = 0;
+    for (const node of [p.saberBladeRoot, p.offSaber && !p.offAway && p.offSaber.root].filter(Boolean)){
+      if (!node.visible && node !== p.saberBladeRoot) continue;
+      node.updateWorldMatrix(true, false);
+      for (let s = 0.2; s <= len; s += 0.08){
+        const q = new n0.constructor(0, s, 0); node.localToWorld(q);
+        for (const [a, b, r] of caps) clip = Math.max(clip, r - segD(q, a, b));
+      }
+    }
+    return { clip, img: shoot ? GAME.gfx.renderer.domElement.toDataURL('image/jpeg', 0.85) : null, feet: a, sp: Math.hypot(p.moveVel.x, p.moveVel.z), hy: R.hips.position.y, w: p._gait ? p._gait.w : 0, step: p._gait ? p._gait.step : 0, lock: [0, 1].map(j => p._gait && p._gait.locks && p._gait.w >= 1 ? !!p._gait.locks[j] : !!(p._footing && !p._footing.feet[j].step)), dbg: [p.vis.rotation.y.toFixed(2), R.hips.rotation.y.toFixed(2), p.faceYaw.toFixed(2), p._gait && p._gait.locks ? p._gait.locks.map(l => l ? 'L' : '-').join('') : 'x'].join(' ') };
   }, [!!file, view]);
   if (file) writeFileSync(file, Buffer.from(r.img.split(',')[1], 'base64'));
   diag.push(r);
@@ -97,7 +113,8 @@ for (const entry of LIST){
       let slide = 0, n = 0;
       for (let i = 1; i < d.length; i++) for (const j of [0, 1]) if (d[i].lock[j] && d[i-1].lock[j]){ slide += Math.hypot(d[i].feet[j][0] - d[i-1].feet[j][0], d[i].feet[j][2] - d[i-1].feet[j][2]); n++; }
       if (process.env.DUMP === `${name}-${move}`) d.forEach((f, i) => console.log(i, f.feet.map(a => a.map(x => x.toFixed(3)).join(',')).join('  '), f.dbg || ''));
-      if (v === VIEWS[0]) console.log(name, move, 'speed', d.at(-1).sp.toFixed(2), 'step', d.at(-1).step.toFixed(2), 'w', d.at(-1).w.toFixed(2), 'hipY', d.at(-1).hy.toFixed(2), 'planted-foot slide (m/s)', (n ? slide / n * FPS : 0).toFixed(3));
+      if (v === VIEWS[0]) console.log(name, move, 'speed', d.at(-1).sp.toFixed(2), 'step', d.at(-1).step.toFixed(2), 'w', d.at(-1).w.toFixed(2), 'hipY', d.at(-1).hy.toFixed(2), 'planted-foot slide (m/s)', (n ? slide / n * FPS : 0).toFixed(3),
+        'blade in body: frames', d.filter(f => f.clip > 0.01).length + '/' + d.length, 'deepest (cm)', (Math.max(0, ...d.map(f => f.clip)) * 100).toFixed(1));
       await page.evaluate(() => { GAME.player.blockHeld = false; });
     }
   }

@@ -61,8 +61,11 @@ for (const g in AIR_GUARDS){ AIR[g] = {}; for (const f in AIR_GUARDS[g]){ AIR[g]
    without its own (the newer forms) borrows the same grip's Niman, Ataru or Djem So pose for that key, so it still
    hangs from a ledge with its hands up or hammers down with the blade raised. */
 const AIR_BORROW = ['niman', 'ataru', 'djemso'];
-export function airGuard(grip, form, key){
+export function airGuard(grip, form, key, held = null){
   if (!key || !AIR[grip]) return null;
+  // Jar'Kai with the hands in different grips has its own (data/agility.js AIR_GUARDS 'regular/reverse')
+  const og = offGripIn(held, grip), M = og !== grip && AIR[grip + '/' + og];
+  if (M && M[form] && M[form][key]) return M[form][key];
   const A = AIR[grip];
   if (A[form] && A[form][key]) return A[form][key];
   if (form === 'darksaber') return null;

@@ -2,7 +2,7 @@
 // TROOPER SIM — scripted, headless ARC trooper fights on the BUILT game (dist/index.html), in the sandbox's hangar, the
 // real combat code end to end and as fast as the CPU allows (tools/trooper-sim/bot.js drives the clock and the hero).
 // Prints JSON lines, one per fight, then a table per plan.
-//   npm run build && node tools/trooper-sim/sim.mjs <plan> [--reps 4] [--workers 2] [--out file.jsonl]
+//   npm run build && npm run sim:trooper -- <plan> [--reps 4] [--workers 2] [--out file.jsonl] [--trace]
 // plans:
 //   line     a firing line (blaster troopers and a grenadier) against the bot standing in the open, then taking cover
 //   boss     the Marshal (the trooper's end boss) the same two ways, with a late run's cards

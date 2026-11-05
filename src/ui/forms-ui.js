@@ -18,7 +18,7 @@ import { FINISHERS } from '../data/finishers.js';
 import { FORMS, FORM_CODEX, LOADOUT_SLOTS, DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, cleanLoadout, forkClosed, formTitle } from '../data/forms.js';
 import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { FAMILIES, FORM_FAMILY, MATCHUP, LORE_EDGES, LORE_EDGE } from '../data/foe-forms.js';
-import { formOffered, refreshSandboxScope } from '../game/sandbox-unlocks.js';
+import { formOffered, refreshSandboxScope, storyReached } from '../game/sandbox-unlocks.js';
 import { canResume, oldNimanRun, resumeLabel } from '../game/saves.js';
 import { trainingLoadout } from '../game/tutorial.js';
 import { audioInit } from '../audio/sfx.js';
@@ -64,14 +64,17 @@ const counterLose = () => { const L = MATCHUP.lose; return 'It counters you: −
 // a form's display name in sentence case ('Djem So', "Jar'Kai")
 const niceName = (id) => FORMS[id].name.charAt(0) + FORMS[id].name.slice(1).toLowerCase().replace(/(\s|-|')(\w)/g, (m, a, b) => a + b.toUpperCase());
 const named = (id) => ctx.known.includes(id) ? niceName(id) : 'a form still to learn';
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const loreTitle = () => 'A lore edge: ' + Math.round(LORE_EDGE * 100) + '% of a full counter';
 // the lore edges (data/foe-forms.js LORE_EDGES) this form gives or takes, as ▲ / ▼ lines
 function loreRows(id){
   const out = [];
   for (const L of LORE_EDGES){
     const gives = L.a === id || (L.a === 'family' && FORM_FAMILY[id]);
-    if (gives && L.b !== id) out.push('<li class="up" title="' + esc(loreTitle()) + '"><i>△</i>A slight edge on ' + esc(named(L.b)) + ': ' + esc(L.why) + '</li>');
-    if (L.b === id) out.push('<li class="dn" title="' + esc(loreTitle()) + '"><i>▽</i>' + (L.a === 'family' ? 'Every form in the triangle has a slight edge on it' : esc(named(L.a)) + ' has a slight edge on it') + ': ' + esc(L.why) + '</li>');
+    // (the why names the other form, so it stays back until that form is learned)
+    const why = (other) => other === 'family' || ctx.known.includes(other) ? ': ' + esc(L.why) : '';
+    if (gives && L.b !== id) out.push('<li class="up" title="' + esc(loreTitle()) + '"><i>△</i>A slight edge on ' + esc(named(L.b)) + why(L.b) + '</li>');
+    if (L.b === id) out.push('<li class="dn" title="' + esc(loreTitle()) + '"><i>▽</i>' + (L.a === 'family' ? 'Every form in the triangle has a slight edge on it' : esc(cap(named(L.a))) + ' has a slight edge on it') + why(L.a) + '</li>');
   }
   return out.join('');
 }
@@ -145,7 +148,17 @@ function powerCost(id, steps){
   for (let i = 0; i < r; i++) if (m.ranks[i].mul && m.ranks[i].mul.cost) c *= m.ranks[i].mul.cost;
   return Math.round(c * costMulFor(steps));
 }
+// a power the hero hasn't met yet (not in this run's kit, and the story hasn't handed it out anywhere) isn't named: it
+// stands as a sealed card, like the forms still to learn. The Force strikes and Push come with the saber.
+const SEEN = { pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'jslam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
+const powerKnown = (id) => !SEEN[id] || !!(ctx.view.has && ctx.view.has(OWNED[id])) || storyReached(SEEN[id]);
+function sealedRow(id){
+  const g = POWER_GROWTH[id], open = ctx.view.lv >= g.arrive;
+  return '<div class="fm-pw off sealed" title="A power still to learn' + (open ? '' : ': opens at Force Level ' + g.arrive) + '"><div class="fm-pw-h"><b>? ? ?</b><span class="fm-pw-lv">LV ' + g.arrive + '</span></div>' +
+    '<div class="fm-pw-l"><span class="fm-pw-lock">' + LOCK + ' ' + (open ? 'Not learned yet' : 'Opens at Force Level ' + g.arrive) + '</span></div></div>';
+}
 function powerRow(id, share){
+  if (!powerKnown(id)) return sealedRow(id);
   const g = POWER_GROWTH[id], v = ctx.view, lv = v.lv;
   const open = lv >= g.arrive, held = !v.has || !OWNED[id] || v.has(OWNED[id]);
   const steps = Math.max(0, lv - g.arrive) * share, cut = Math.round((1 - costMulFor(steps)) * 100);
@@ -164,6 +177,7 @@ function powerRow(id, share){
     '<span class="fm-pw-lv">LV ' + g.arrive + '</span></div><div class="fm-pw-l">' + line + '</div></div>';
 }
 function forceSection(){
+  refreshSandboxScope();   // (what the story has handed out, for the powers still sealed)
   const v = ctx.view, id = ctx.focus && ctx.known.includes(ctx.focus) ? ctx.focus : null;
   const share = id ? shareOf(id) : shareAt(STARTING_FORMS[0], v.rank(STARTING_FORMS[0]));
   const fname = esc(FORMS[id || STARTING_FORMS[0]].name);

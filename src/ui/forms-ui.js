@@ -94,7 +94,7 @@ function liveView(){
   return { lv: forceLevel(), rank: formRank, pts: practise ? (id) => (G.formUse && G.formUse[id]) || 0 : null,
     waits: (id) => G.formSince && G.formSince[id] != null && (G.waveTotal || 0) < G.formSince[id] + FORM_RANKS.gap * (formRank(id) + 1),
     has: (k) => !!(G.unlocked && G.unlocked[k]), powerRank: masteryRank,
-    why: G.sandbox ? 'Level and ranks set in the sandbox panel (B)' : G.training ? 'Level and ranks as far as the story has reached' : '' };
+    why: G.sandbox ? 'Sandbox: set the level, the ranks and your three in its panel (B)' : G.training ? 'Level and ranks as far as the story has reached' : '' };
 }
 function savedView(run){
   const fr = run.formRank || {}, fu = run.formUse || {}, un = run.unlocked || {}, pm = run.mastery || {};
@@ -233,7 +233,7 @@ function pauseContext(){
   if (G.mode === 'play' && formsWindowOpen()) return { edit: true, repick: true, known, loadout: G.loadout.slice(), cleared: [], closed: G.formFork, view: liveView(),
     note: G.endless ? 'Between waves: choose the three you carry into the next one. They lock in when it starts.' : 'Before the fight: choose the three you carry into this chapter. They lock in when the fighting starts.' };
   return { edit: false, known, loadout: G.loadout.slice(), closed: G.formFork, view: liveView(),
-    note: G.sandbox ? 'Change the three in the sandbox panel (B).' : G.training || G.mission && G.chapter < 0 ? '' : G.endless ? 'Your three change when you learn a form, and between waves.' : 'Your three change when you learn a form, and at the start of each chapter.' };
+    note: G.sandbox ? '' : G.training || G.mission && G.chapter < 0 ? '' : G.endless ? 'Your three change when you learn a form, and between waves.' : 'Your three change when you learn a form, and at the start of each chapter.' };
 }
 
 // MASTERY on the main menu: the saved campaign run (its forms, its three, its ranks), else what the story has taught
@@ -264,8 +264,20 @@ function slotRow(){
 function tile(id){
   const F = FORMS[id], C = FORM_CODEX[id] || {}, slotted = (ctx.loadout || []).indexOf(id);
   return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (slotted >= 0 ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-    '<div class="fm-no"><span class="fm-t">' + formTitle(id) + ' · ' + famTag(id) + '</span>' + (slotted >= 0 ? '<span class="fm-in">SLOT ' + (slotted + 1) + '</span>' : '') + '</div>' +
-    '<b>' + esc(F.name) + '</b>' + (C.best ? '<div class="fm-best">' + esc(C.best) + '</div>' : '') + tileMastery(id) + '</div>';
+    // the title gives way before the group does ('DOUBLE BL… · SPEED'), and the slot it's in sits beside the name, so
+    // neither crowds the other off the tile (the slot as a boxed number, like the form switcher on the HUD)
+    '<div class="fm-no"><span class="fm-t">' + formTitle(id) + ' ·</span>' + famTag(id) + '</div>' +
+    '<div class="fm-nm"><b>' + esc(F.name) + '</b>' + (slotted >= 0 ? '<span class="fm-slotb" title="Slot ' + (slotted + 1) + ' of your three: ' + (slotted + 1) + ' switches to it in the fight" aria-label="Slot ' + (slotted + 1) + '">' + (slotted + 1) + '</span>' : '') + '</div>' +
+    (C.best ? '<div class="fm-best" title="' + esc(C.best) + '">' + esc(C.best) + '</div>' : '') + tileMastery(id) + '</div>';
+}
+/* THE GROUPS — on the mastery pages, the cell a part-filled last row leaves empty holds the key to the group icons: the
+   counter triangle (data/foe-forms.js FAMILIES) and the two forms outside it */
+const FAM_REP = { power: 'djemso', guard: 'soresu', speed: 'ataru' };   // (famIcon draws by form)
+function legendTile(){
+  const tag = (k) => '<span class="fm-fam" style="--fc:' + FAMILIES[k].color + '">' + famIcon(FAM_REP[k], 10, 'fm-fam-ic') + FAMILIES[k].name + '</span>';
+  return '<div class="fm-tile fm-legend"><div class="fm-no"><span class="fm-t">THE GROUPS</span></div><ul>' +
+    Object.keys(FAMILIES).map(k => '<li>' + tag(k) + '<span>beats</span>' + tag(FAMILIES[k].beats) + '</li>').join('') +
+    '<li><span class="fm-fam" style="--fc:var(--ink-dim)">' + famIcon('niman', 10, 'fm-fam-ic') + 'NEUTRAL</span><span>outside it</span></li></ul></div>';
 }
 // its SABER FINISHER (data/finishers.js): what the next attack on a foe with its guard broken does
 // MASTERY in this form (data/force-level.js): its rank, the practice to the next one and what it brings, and its Force share
@@ -308,7 +320,8 @@ function render(){
     (ctx.edit ? '<div class="fm-sec">YOUR THREE</div>' + slotRow() + (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + EDIT_HINT + '</div>' : '') : '') +
     (!ctx.edit && !ctx.view && ctx.note ? '<div class="fm-note">' + esc(ctx.note) + '</div>' : '') +
     '<div class="fm-sec">THE FORMS' + (!ctx.edit && ctx.view && ctx.note ? '<span class="fm-hint">' + esc(ctx.note) + '</span>' : '') + '</div>' +
-    '<div class="fm-body' + (few ? ' few' : '') + '"><div class="fm-col"><div class="fm-tiles' + (ctx.view ? (n > 6 ? ' c3' : ' c2') : '') + '">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') + '</div>' + (few ? lockedRow() : '') + '</div>' + detail() + '</div>' + (few ? '' : lockedRow()) +
+    '<div class="fm-body' + (few ? ' few' : '') + '"><div class="fm-col"><div class="fm-tiles' + (ctx.view ? (n > 6 ? ' c3' : ' c2') : '') + '">' + ORDER.filter(id => ctx.known.includes(id)).map(tile).join('') +
+    (ctx.view && !few && n % (n > 6 ? 3 : 2) ? legendTile() : '') + '</div>' + (few ? lockedRow() : '') + '</div>' + detail() + '</div>' + (few ? '' : lockedRow()) +
     (ctx.prefight ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') + '</div>';
 }
 

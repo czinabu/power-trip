@@ -225,6 +225,7 @@ export const S = {
   // Force Mend: the channel turning inward, and the bloom when it lands
   mend: () => FX.mend(),
   mendDone: () => FX.mendDone(),
+  forceRise: () => FX.forceRise(),   // the Force Level rises (ui/force-toast.js)
   // ── movement ──
   dash: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.1, a: 0.02, d: 0.17, filt: { type: 'bandpass', f: 700, f2: 2300, q: 1.4 } }); },
   jump: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.06, a: 0.015, d: 0.12, filt: { type: 'bandpass', f: 500, f2: 1400, q: 1.2 } }); },

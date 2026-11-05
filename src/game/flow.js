@@ -35,10 +35,11 @@ import { applyJetTier, payWaveClear } from './progression.js';
 import { MANDO_AUTO, JEDI_AUTO } from '../data/store.js';
 import { TROOPER_AUTO } from '../data/trooper-progression.js';
 import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
-import { FORCE_LEVELS, FORCE_MAX, POWER_GROWTH, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
+import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
 import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard } from '../ui/ability-card.js';
+import { queueForceToast, tickForceToast, clearForceToast } from '../ui/force-toast.js';
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
 import { chapterOrder } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
@@ -187,7 +188,7 @@ export function startLevel(idx, opts){
     //  Brace (RMB) + Rocket (Dual auto-unlocks after wave 1, Flame after wave 2).
     G.unlocked = G.hero === 'jedi' ? { push: true, dash: true } : G.hero === 'trooper' ? {} : { rocket: true };
     G.stanceUnlocked = {};   // SHII-CHO is known from the start; the rest is learned (data/forms.js FORM_PATH). The training grounds add what the story has taught (game/tutorial.js)
-    G.formFork = null; clearMeditation(); clearAbilityCards(); clearArmory();
+    G.formFork = null; clearMeditation(); clearAbilityCards(); clearForceToast(); clearArmory();
     G.mandoKit = { ...RUN_KIT };   // the Mando's guns on 1 / 2: the blaster pistol alone, until the run hands out more (data/mando.js ARMORY_PATH)   // the run's Form VII choice; nothing left waiting from the last run
     // a run (campaign or survival) and the training grounds start on the forms the hero knows and grow (each lesson slots
     // its own: game/tutorial.js); the missions keep the old three (a mission then slots what its kit teaches)
@@ -269,7 +270,7 @@ export function checkUnlocks(bannerDelay, closing){
   // level0/wave2; Mando's FLAMETHROWER + WRIST ROCKET both land at stage0) and the old single-`announce` version
   // only ever showed the FIRST one found, leaving the other granted but silently un-announced — no banner, ever.
   const announce = [];
-  let forceUp = 0;
+  let forceUp = 0, forceWas = 1;
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
       const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;
@@ -291,7 +292,7 @@ export function checkUnlocks(bannerDelay, closing){
     // fight at the level the story has reached (the sandbox's slider overrides it). Set first: a power waits for its level
     const was = G.forceLevel || 1;
     G.forceLevel = (G.sandbox || G.training) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
-    if (G.forceLevel > was && !G.sandbox && !G.training) forceUp = G.forceLevel;
+    if (G.forceLevel > was && !G.sandbox && !G.training){ forceUp = G.forceLevel; forceWas = was; }
     for (const u of JEDI_AUTO){
       const reached = jediReached(u);
       if (!reached || u.has() || !forceReady(u.force)) continue;
@@ -313,7 +314,13 @@ export function checkUnlocks(bannerDelay, closing){
     } else setLoadout(autoLoadout());
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox) return;   // the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
-  if (forceUp && (closing || G.endless)) announce.push(forceLevelCard(forceUp));   // the Force Level rose: its card, with the other screens
+  // the Force Level rose (ui/force-toast.js): a level that hands over a power with its own card rides on that card, a strip
+  // across its top; the rest are a corner note and a Force pulse round the hero, once the dialogue and the fight are over
+  if (forceUp && (closing || G.endless)){
+    const rise = forceRise(forceUp, forceWas), at = announce.findIndex(u => !u.form && hasAbilityCard(u));
+    if (at >= 0) announce[at] = { ...announce[at], forceUp: rise };
+    else queueForceToast(rise);
+  }
   if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
@@ -329,19 +336,15 @@ function missionFormRanks(){
     G.formRank[id] = Math.max(G.formRank[id] || 0, r);
   }
 }
-// the Force Level card (ui/ability-card.js): what grew, for the powers and Force moves in hand, in the form in hand
+// what a Force Level's rise brought, for the powers and Force moves in hand, in the form in hand (ui/force-toast.js)
 const FORCE_OWNED = { push: 'push', palm: null, pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'slam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
-function forceLevelCard(lv){
-  const rows = Object.keys(FORCE_OWNED).filter(id => !FORCE_OWNED[id] || (G.unlocked && G.unlocked[FORCE_OWNED[id]]))
-    .map(id => [POWER_GROWTH[id].nm, growthLine(id, lv)]).filter(r => r[1]);
-  const move = growthLine('jump', lv);
-  if (move) rows.push(['FORCE JUMP & DASH', move]);
-  const form = STANCES[G.stance], fname = form ? form.name.split(' —')[0] : '';
-  return { key: 'forcelv', name: 'FORCE LEVEL ' + lv, card: {
-    kicker: lv >= FORCE_MAX ? 'THE FORCE AT ITS FULLEST' : 'THE FORCE ANSWERS YOU MORE STRONGLY',
-    lines: ['Every Force power you hold grows stronger and costs less Force with your Force Level, and new powers open as it climbs. How much of it you can draw on is set by your form: ' +
-            (fname ? fname + ' draws on ' + Math.round(forceShare() * 100) + '%.' : '')],
-    rows } };
+const SHORT = { push: 'Push', palm: 'Strikes', pull: 'Pull', grasp: 'Grasp', throw: 'Saber Throw', barrier: 'Barrier', jslam: 'Jump Attack', mend: 'Mend', judge: 'Judgement', repulse: 'Repulse' };
+function forceRise(lv, was){
+  const grew = Object.keys(FORCE_OWNED).filter(id => (!FORCE_OWNED[id] || (G.unlocked && G.unlocked[FORCE_OWNED[id]])) && growthLine(id, lv)).map(id => SHORT[id]);
+  if (growthLine('jump', lv)) grew.push('Jump & Dash');
+  const form = STANCES[G.stance];
+  return { lv, max: lv >= FORCE_MAX, first: was <= 1, grew,
+           form: form ? form.name.split(' —')[0] : '', blade: form ? form.blade : 0x5cc0ff, share: Math.round(forceShare() * 100) };
 }
 // a chapter of this run (by id) is behind the hero: the run is on a later chapter, or it has just closed (G.chapterClosed):
 // what it hands out is granted and shown at its close, and its closing upgrade page offers its powers (data/store.js)
@@ -469,6 +472,7 @@ export function updateFlow(dt){
   tickMeditation();   // a learned form waits for the screens in front of it to close (meditation.js)
   tickFormsWindow(inCombat, upToast);   // the three can be re-picked until the chapter's (or survival wave's) fight is on (meditation.js)
   tickAbilityCards();   // so does a new ability's card (ui/ability-card.js)
+  tickForceToast();   // and a Force Level's rise, until the dialogue and the fight are over (ui/force-toast.js)
   tickArmory();   // a new gun for a full slot: choose which to carry, after its card (ui/armory-ui.js)
   if (G.coopGuest) return;   // the host runs this run's spawns and waves: net/foes.js tells this browser what they did
   // the lull: once the first half of a long wave is down, hold the rest behind a short beat, then release it

@@ -23,25 +23,38 @@ export const FORM_OF = { shiicho: 'shiicho', makashi: 'makashi', soresu: 'soresu
    feet keep in the stride, amp/lift scale the step length and foot lift, crouch and shift = the shares of the stance's
    hip drop and off-centre hips kept on the move */
 export const FOOTWORK = {
-  shiicho:   { crouch: -0.16, splay: 0.36, lead: 0.2,  lean: 0.08, width: 1.1 },    // square and athletic, feet under the shoulders
-  makashi:   { crouch: -0.1,  splay: 0.1,  lead: 0.3,  lean: 0.0,  width: 0.9 },    // a fencer's line: feet narrow and close, upright
-  soresu:    { crouch: -0.22, splay: 0.5,  lead: 0.56, lean: 0.0,  width: 1.25 },   // Obi-Wan's wide, low, side-on stance, upright over it
-  ataru:     { crouch: -0.24, splay: 0.12, lead: 0.42, lean: 0.16, width: 0.86 },   // coiled, on the balls of the feet
-  niman:     { crouch: -0.17, splay: 0.34, lead: 0.28, lean: 0.06, width: 1.15 },   // balanced and easy, ready to move or cast
-  djemso:    { crouch: -0.17, splay: 0.52, lead: 0.08, lean: 0.12, width: 1.3 },   // wide, rooted, square to the foe
-  shien:     { crouch: -0.22, splay: 0.42, lead: 0.3,  lean: 0.14, width: 1.2 },    // low and coiled, weight forward over the lead foot
-  juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15 },   // pitched forward and low, a predator about to spring
-  vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2 },    // Mace Windu's: upright, balanced, utterly still
-  staff:     { crouch: -0.2,  splay: 0.6,  lead: 0.3,  lean: 0.06, width: 1.3 },    // the saber staff: wide and planted, the off foot a step ahead
+  shiicho:   { crouch: -0.16, splay: 0.36, lead: 0.2,  lean: 0.08, width: 1.1,
+               walk: { base: 0.8, amp: 0.74, lift: 0.75, crouch: 0.7 } },   // square and athletic, feet under the shoulders (guard walk: plain, even steps square to the foe)
+  makashi:   { crouch: -0.1,  splay: 0.1,  lead: 0.3,  lean: 0.0,  width: 0.9,
+               walk: { base: 1.0, amp: 0.56, lift: 0.45, crouch: 0.95 } },   // a fencer's line: feet narrow and close, upright (guard walk: a fencer's advance and retreat: short, gliding, the lead foot always ahead)
+  soresu:    { crouch: -0.22, splay: 0.5,  lead: 0.56, lean: 0.0,  width: 1.25,
+               walk: { base: 0.9, amp: 0.58, lift: 0.5, crouch: 0.8 } },   // Obi-Wan's wide, low, side-on stance, upright over it (guard walk: Obi-Wan's: a low side-on shuffle that never gives up the stance)
+  ataru:     { crouch: -0.24, splay: 0.12, lead: 0.42, lean: 0.16, width: 0.86,
+               walk: { base: 0.6, amp: 0.82, lift: 0.95, crouch: 0.65 } },   // coiled, on the balls of the feet (guard walk: light and springy, up on the toes, ready to leap)
+  niman:     { crouch: -0.17, splay: 0.34, lead: 0.28, lean: 0.06, width: 1.15,
+               walk: { base: 0.75, amp: 0.72, lift: 0.7, crouch: 0.7 } },   // balanced and easy, ready to move or cast (guard walk: easy and balanced, nothing wasted)
+  djemso:    { crouch: -0.17, splay: 0.52, lead: 0.08, lean: 0.12, width: 1.3,
+               walk: { base: 0.85, amp: 0.66, lift: 0.55, crouch: 0.85 } },   // wide, rooted, square to the foe (guard walk: rooted and heavy: short, flat-footed steps that keep the wide base)
+  shien:     { crouch: -0.22, splay: 0.42, lead: 0.3,  lean: 0.14, width: 1.2,
+               walk: { base: 0.8, amp: 0.68, lift: 0.6, crouch: 0.8 } },   // low and coiled, weight forward over the lead foot (guard walk: low and coiled, the weight carried over the lead foot)
+  juyo:      { crouch: -0.26, splay: 0.3,  lead: 0.44, lean: 0.2,  width: 1.15,
+               walk: { base: 0.7, amp: 0.74, lift: 0.6, crouch: 0.8 } },   // pitched forward and low, a predator about to spring (guard walk: a predator's stalk: low, quick and quiet)
+  vaapad:    { crouch: -0.18, splay: 0.38, lead: 0.3,  lean: 0.08, width: 1.2,
+               walk: { base: 0.85, amp: 0.62, lift: 0.55, crouch: 0.9 } },   // Mace Windu's: upright, balanced, utterly still (guard walk: Mace Windu's: upright, deliberate, every step placed)
+  staff:     { crouch: -0.2,  splay: 0.6,  lead: 0.3,  lean: 0.06, width: 1.3,
+               walk: { base: 0.8, amp: 0.66, lift: 0.6, crouch: 0.8 } },   // the saber staff: wide and planted, the off foot a step ahead (guard walk: wide and planted, the staff's reach kept between him and the foe)
   jarkai:    { crouch: -0.3,  splay: 0.44, lead: 0.4,  lean: 0.12, width: 1.2,    // Jar'Kai, both regular: knees well bent, the left foot a long step ahead, one blade high and one low
                walk: { base: 0.8, amp: 0.66, lift: 0.6, crouch: 0.55 } },
   jarkaiRev: { crouch: -0.28, splay: 0.5,  lead: 0.24, lean: 0.14, width: 1.25,   // Jar'Kai, both reverse (Ahsoka, Maul): wide, low and nearly square, coiled over the balls of the feet
                walk: { base: 0.8, amp: 0.66, lift: 0.65, crouch: 0.55 } },
   jarkaiMix: { crouch: -0.3,  splay: 0.62, lead: -0.14, lean: 0.16, width: 1.45, roll: -0.08, shift: -0.36, sit: 0.08,   // Jar'Kai, mixed grip (Ahsoka): a wide low lunge onto the bent right knee, the left leg stretched out after it, the left shoulder leading
                walk: { base: 0.5, amp: 0.64, lift: 0.6, crouch: 0.6, shift: 0.15 } },
-  darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25 },    // braced against a blade that pulls
-  forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35 },    // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard
-  brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1 },    // the holstered Mando: knees bent, left foot leading
+  darksaber: { crouch: -0.2,  splay: 0.46, lead: 0.2,  lean: 0.18, width: 1.25,
+               walk: { base: 0.75, amp: 0.7, lift: 0.6, crouch: 0.8 } },   // braced against a blade that pulls (guard walk: braced behind the heavy blade, short steps)
+  forceReady:{ crouch: -0.3,  splay: 0.66, lead: 0.04, lean: 0.1,  width: 1.35,
+               walk: { base: 0.7, amp: 0.7, lift: 0.6, crouch: 0.6 } },   // the holstered Jedi: feet set wide, knees bent, a low Force-ready guard (guard walk: palms up, a low wide shuffle)
+  brawler:   { crouch: -0.15, splay: 0.24, lead: 0.36, lean: 0.12, width: 1.1,
+               walk: { base: 0.8, amp: 0.72, lift: 0.6, crouch: 0.8 } },   // the holstered Mando: knees bent, left foot leading (guard walk: a boxer's step: the lead foot first, the rear one following)
   atEase:    { crouch: -0.015, splay: 0.08, lead: 0.07, lean: 0,   width: 1 },      // every hero in a cutscene: stood up straight, feet under the hips (anim/ease.js)
 };
 

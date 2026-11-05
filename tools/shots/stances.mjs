@@ -1,19 +1,20 @@
-// JAR'KAI CAPTURE — films the three Jar'Kai grips (both regular, mixed, both reverse) standing, walking and
-// block-walking (RMB held), from the front and the side, frame by frame on a held clock (testing only):
-//   npm run build && node tools/shots/jarkai.mjs <out-dir> [grips] [moves]   (DIST=<an index.html> films another build)
-//   grips: comma list of 0,1,2 (both regular, mixed, both reverse); moves: idle,walk,block,strafe,blockstrafe,back
-// Writes <out-dir>/<grip>-<move>-<view>/NNN.jpg
+// STANCE CAPTURE — films the Jedi's forms standing, running and guard walking (RMB held), from the front, the side
+// or behind, frame by frame on a held clock, and measures how far a planted foot slides (testing only):
+//   npm run build && node tools/shots/stances.mjs <out-dir> [stances] [moves]   (DIST=<an index.html> films another build)
+//   stances: comma list of stance ids (data/stances.js), each with +g per press of G after switching to it (Niman's
+//            reverse grip: niman+g; Jar'Kai's mixed and both reverse: jarkai+g, jarkai+gg). Default: every form.
+//   moves: idle,walk,block,strafe,blockstrafe,back    VIEWS=front,side,back    FRAMES=<n>
+// Writes <out-dir>/<stance>-<move>-<view>/NNN.jpg
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const out = process.argv[2] || path.join(root, 'shots-jarkai');
-const GRIPS = (process.argv[3] || '0,1,2').split(',').map(Number);
+const LIST = (process.argv[3] || 'shiicho,makashi,soresu,ataru,niman,niman+g,djemso,shien,juyo,vaapad,staff,jarkai,jarkai+g,jarkai+gg').split(',');
 const MOVES = (process.argv[4] || 'idle,walk,block,blockstrafe').split(',');
 const VIEWS = (process.env.VIEWS || 'front,side').split(',');
 const FRAMES = +(process.env.FRAMES || 48);
-const NAMES = ['regular', 'mixed', 'reverse'];
 const FPS = 30, STEP = 1000 / FPS;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -25,7 +26,7 @@ await page.addInitScript(() => {
   window.requestAnimationFrame = cb => { if (frozen == null) return rRAF(cb); queue.push(cb); return queue.length; };
   window.__freeze = () => { frozen = real(); };
   window.__step = ms => { frozen += ms; const q = queue; queue = []; for (const cb of q) cb(frozen); };
-  try { localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_trained_jedi', '1'); localStorage.setItem('sw_dualgrip', '0'); } catch(e){}
+  try { localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_trained_jedi', '1'); localStorage.setItem('sw_dualgrip', '0'); localStorage.setItem('sw_sabergrip', 'regular'); } catch(e){}
   Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('shots', 'NotSupportedError')); };
 });
 page.on('pageerror', e => console.log('page error', e.message));
@@ -38,7 +39,7 @@ for (let i = 0; i < 20 && !(await page.evaluate(() => GAME.G.mode === 'play')); 
   await run(500);
 }
 await run(6000);
-await page.evaluate(() => { GAME.setLoadout(['jarkai', null, null]); GAME.switchStance('jarkai', true); GAME.G.stanceCd = 0; });
+await page.evaluate(() => { GAME.setLoadout(['shiicho', null, null]); GAME.switchStance('shiicho', true); GAME.G.stanceCd = 0; });
 await run(1500);
 if (await page.evaluate(() => GAME.player.unlit)){ await page.evaluate(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' })); document.dispatchEvent(new KeyboardEvent('keyup', { key: 'z' })); }); await run(1500); }
 await page.evaluate(() => window.__freeze());
@@ -65,15 +66,22 @@ async function frame(file){
 }
 const key = (k, on) => page.evaluate(([k, on]) => document.dispatchEvent(new KeyboardEvent(on ? 'keydown' : 'keyup', { key: k })), [k, on]);
 
-let cur = 0;
-for (const gi of GRIPS){
-  while (cur !== gi){ await key('g', true); await frame(); await key('g', false); cur = (cur + 1) % 3; for (let i = 0; i < 10; i++) await frame(); }
+const pressed = {};
+for (const entry of LIST){
+  const [id, gs = ''] = entry.split('+'), name = entry.replace(/\+/g, '-');
+  // switch in fresh (the grip back to its default), then press G as asked
+  await page.evaluate(id => { GAME.setLoadout([id, null, null]); GAME.switchStance(id, true); GAME.G.stanceCd = 0; }, id);
+  for (let i = 0; i < 20; i++) await frame();
+  // (a grip choice outlives the switch: count the presses already made on this stance, round its cycle)
+  const cyc = id === 'jarkai' ? 3 : 2, need = ((gs.length - (pressed[id] || 0)) % cyc + cyc) % cyc;
+  for (let n = 0; n < need; n++){ await key('g', true); await frame(); await key('g', false); for (let i = 0; i < 12; i++) await frame(); }
+  pressed[id] = gs.length;
   for (const move of MOVES){
     for (const v of VIEWS){
       view = v;
       await page.evaluate(() => { const p = GAME.player; p.group.position.set(0, 0, -6); p.vel.set(0, 0, 0); p.moveVel.set(0, 0, 0); GAME.G.yaw = 0; p.blockHeld = false; });
       for (let i = 0; i < 40; i++) await frame();
-      const dir = path.join(out, `${NAMES[gi]}-${move}-${v}`); mkdirSync(dir, { recursive: true });
+      const dir = path.join(out, `${name}-${move}-${v}`); mkdirSync(dir, { recursive: true });
       const blk = move.startsWith('block');
       const k = move === 'idle' ? null : move.includes('strafe') ? 'd' : move === 'back' ? 's' : 'w';
       if (blk) await page.evaluate(() => { GAME.player.blockHeld = true; });
@@ -88,8 +96,8 @@ for (const gi of GRIPS){
       const d = diag.splice(0);
       let slide = 0, n = 0;
       for (let i = 1; i < d.length; i++) for (const j of [0, 1]) if (d[i].lock[j] && d[i-1].lock[j]){ slide += Math.hypot(d[i].feet[j][0] - d[i-1].feet[j][0], d[i].feet[j][2] - d[i-1].feet[j][2]); n++; }
-      if (process.env.DUMP === `${NAMES[gi]}-${move}`) d.forEach((f, i) => console.log(i, f.feet.map(a => a.map(x => x.toFixed(3)).join(',')).join('  '), f.dbg || ''));
-      if (v === VIEWS[0]) console.log(NAMES[gi], move, 'speed', d.at(-1).sp.toFixed(2), 'step', d.at(-1).step.toFixed(2), 'w', d.at(-1).w.toFixed(2), 'hipY', d.at(-1).hy.toFixed(2), 'planted-foot slide (m/s)', (n ? slide / n * FPS : 0).toFixed(3));
+      if (process.env.DUMP === `${name}-${move}`) d.forEach((f, i) => console.log(i, f.feet.map(a => a.map(x => x.toFixed(3)).join(',')).join('  '), f.dbg || ''));
+      if (v === VIEWS[0]) console.log(name, move, 'speed', d.at(-1).sp.toFixed(2), 'step', d.at(-1).step.toFixed(2), 'w', d.at(-1).w.toFixed(2), 'hipY', d.at(-1).hy.toFixed(2), 'planted-foot slide (m/s)', (n ? slide / n * FPS : 0).toFixed(3));
       await page.evaluate(() => { GAME.player.blockHeld = false; });
     }
   }

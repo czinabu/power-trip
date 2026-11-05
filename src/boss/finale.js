@@ -256,6 +256,7 @@ const BEAT = {
     S.stun(e.group.position);
     for (const b of bolts) if (!b.friendly && b.src === e) b.life = 0;
     e.fin.D.look.beatStart && e.fin.D.look.beatStart(e, M);
+    MUSIC.bossBeat(B.kneel + B.rise * 0.5 + 0.3);   // the score drops out under a rising choir (audio/music.js epic layer)
   },
   update(e, C, M, dt){
     const B = e.fin.def.beat, t = M.t, g = e.group;
@@ -281,7 +282,7 @@ const BEAT = {
       const words = F.def.phaseLines && F.def.phaseLines[F.phase - 1];
       showBanner('PHASE ' + ROMAN[F.phase], words || '', 3, { kicker: F.def.name });
       storyBeat('phase' + F.phase);
-      S.roar(g.position); MUSIC.waveSting();
+      S.roar(g.position); MUSIC.bossPhase(F.phase);   // a tutti hit lands his new phase on a fresh downbeat
       if (hooks.fin) hooks.fin({ k: 'phase', n: e.nid, p: F.phase });
       F.cds = {}; F.sigT = 0.8;
     }
@@ -328,7 +329,7 @@ const DEFEAT = {
     for (let i = bolts.length - 1; i >= 0; i--){ if (!bolts[i].friendly){ scene.remove(bolts[i].mesh); bolts.splice(i, 1); } }
     killCam('boss', e);   // his fall, side-on and slowed (engine/killcam.js): the field is clear by now
     showBanner(F.def.fallLine || (F.def.name + ' FALLS'), '', 3.2);
-    S.roar(e.group.position); S.boom(e.group.position, 2);
+    S.roar(e.group.position); S.boom(e.group.position, 2); MUSIC.bossFinish();
     F.D.look.defeatStart && F.D.look.defeatStart(e, M);
     if (hooks.fin) hooks.fin({ k: 'down', n: e.nid });
   },
@@ -402,12 +403,12 @@ export function finaleNet(m){
   if (m.k === 'up'){ guestNet.n = m.n; guestNet.id = m.id; guestNet.phase = 1; return; }
   const D = REG()[guestNet.id];
   if (m.k === 'phase'){
-    guestNet.phase = m.p;
+    guestNet.phase = m.p; MUSIC.bossPhase(m.p);
     if (D){ setHudPhase(m.p, D.def); showBanner('PHASE ' + ROMAN[m.p], (D.def.phaseLines && D.def.phaseLines[m.p - 1]) || '', 3, { kicker: D.def.name }); if (m.p >= 3 && D.def.mood) setMood(D.def.mood);
       const pe = puppetOfNid(guestNet.n); if (D.look.phase && pe) D.look.phase(pe, m.p, true); }
     return;
   }
-  if (m.k === 'down'){ if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
+  if (m.k === 'down'){ MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
   if (D && D.look.netFx) D.look.netFx(m, puppetOfNid(m.n));
 }
 const guestNet = { n: null, id: null, phase: 1 };

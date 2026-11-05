@@ -180,13 +180,14 @@ export const CUES = {
 
 // intensity per game state, before a cue raises or caps it
 // (victory: the hero's theme stated in full after the fanfare; dead: the lament, after the death sting)
-const BASE = { menu: 0.16, lull: 0.3, combat: 0.62, heavy: 0.84, boss: 1.0, victory: 0.5, dead: 0.2 };
+const BASE = { menu: 0.16, lull: 0.3, combat: 0.62, heavy: 0.84, boss: 1.0, victory: 0.5, dead: 0.26 };
 // a CUTSCENE holds the score down to its film bed: pads, a choir and the melody on a solo voice, no drums or ostinato.
 // FILM is the bed's intensity, FILM_DIP the level while a line of dialogue is up (the music steps back under the words)
 const FILM = 0.26, FILM_DIP = 0.72;
 // the bed is a handful of quiet voices, and with the fight held it's most of what's heard: lifted like the menu's (×4.5,
-// about +13 dB), so it sits a few dB under the fight's level instead of vanishing under the ambience
+// about +13 dB) into the compressor, so it never vanishes under the ambience (FILM_POST lifts it again after)
 const FILM_LIFT = 4.5;
+const LOUD_STATES = new Set(['victory', 'dead']);
 // after a stinger (victory, death) the loop rests this long before its theme comes in from the top
 const REST = { victory: 3.4, dead: 2.8 };
 const FIGHTING = new Set(['lull', 'combat', 'heavy', 'boss']);
@@ -197,6 +198,10 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // still guards the peaks), since pushing it all through the compressor only squashed it. Together the theme sits
 // around -19 dBFS on the title screen, where it's the only thing playing.
 const MENU_LIFT = 7, MENU_POST = 3.2;
+// in play the score was felt more than heard: GAME_POST lifts all of it after its compressor (about +6 dB), and the
+// quiet moments with the fight held (a cutscene's bed, the victory statement, the lament) get FILM_POST on top, so they
+// sit up near the menu theme's level. The master limiter still guards the peaks
+const GAME_POST = 2, FILM_POST = 2.2;
 
 export const MUSIC = (function(){
   let bus=null, comp=null, post=null, delay=null, timer=null, started=false;
@@ -414,7 +419,7 @@ export const MUSIC = (function(){
   // keyed on `want`, not the playing palette: leaving the menu drops the lift at once, so a run's first stings
   // never play at the title screen's level while the menu's last bar finishes
   const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) * (film ? FILM_LIFT : 1) * dip : 0.0001;
-  const postLevel = () => want === 'menu' ? MENU_POST : 1;
+  const postLevel = () => want === 'menu' ? MENU_POST : GAME_POST * (film || LOUD_STATES.has(state) ? FILM_POST : 1);
   function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc); }
   function barTop(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
@@ -535,6 +540,7 @@ export const MUSIC = (function(){
       else if (s === 'victory') this.victorySting();
       else if (s === 'dead') this.deathSting();
       // the fight's loop stops under the stinger; its own theme (the full statement, the lament) comes in after it
+      if (bus) setLevel(0.6);
       if (REST[s] && AC()){ restUntil = AC().currentTime + REST[s]; intensity = Math.min(intensity, 0.3); }
       else restUntil = 0;
     },

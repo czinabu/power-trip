@@ -210,7 +210,7 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   const gait0 = (isGunner() || !stance().gait) ? MANDO_GAIT : stance().gait;
   // a GUARD WALK (data/poses.js FOOTWORK walk): moving with the guard up (RMB), a stance that names one keeps its own
   // footing in the stride: shorter, lower steps on the stance's width and stagger, so the feet stay in the stance
-  const GW = planted && POSE.walk ? POSE.walk : null;
+  const GW = planted && POSE.walk && (!isGunner() || player.weapon === 'fists' || player.weapon === 'darksaber') ? POSE.walk : null;   // (a gunner aiming a blaster walks its own way)
   const gw = player._guardWalk = dr(player._guardWalk || 0, GW ? 1 : 0, 8);
   const WK = GW || player._guardWalkLast || null;
   if (GW) player._guardWalkLast = GW;

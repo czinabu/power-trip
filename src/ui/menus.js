@@ -238,7 +238,14 @@ export function setModeSel(m){
 }
 // a mode tile picks the mode and moves on to the hero step (a locked one shakes and stays put)
 for (const m of ['campaign', 'endless', 'training', 'sandbox'])
-  document.getElementById('mode-' + m).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (setModeSel(m)) showMenuStep('hero'); });
+  document.getElementById('mode-' + m).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (m === 'campaign') pickUpSavedRun(); if (setModeSel(m)) showMenuStep('hero'); });
+// CAMPAIGN on the title screen opens on CONTINUE CAMPAIGN whenever the picked hero has a saved run: a run played from the
+// menu is used up as it starts (game/saves.js resumeRun), so back on the menu that hero's newest save is put back first
+function pickUpSavedRun(){
+  if (G.mode !== 'menu' || G.coopJoin) return;
+  followHero();
+  refreshCampaignMark(); refreshMissionMark(); refreshNextRun();
+}
 document.getElementById('mode-mission').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setModeSel('mission'); openMissionPage(); });   // its own page: ui/missions-ui.js
 // back to the modes: the ‹ MODES button, Esc, or the pad's B (engine/gamepad.js). Runs in the capture phase so it sees the
 // screen before Esc closes the customizer or a panel on top of it (then that Esc is theirs, not a step back)
@@ -413,7 +420,9 @@ function setCamSway(v){
   const sv = document.getElementById('swayval'); if (sv) sv.textContent = G.camSway ? Math.round(G.camSway * 100) + '%' : 'OFF';
   const sl = document.getElementById('swaysl'); if (sl && +sl.value !== G.camSway) sl.value = G.camSway;
 }
-{ let v; try { v = parseFloat(localStorage.getItem('sw_sway')); } catch(e){} setCamSway(isNaN(v) ? 0.8 : v); }
+// (once: a sway saved before 80% was settled as the default goes back to it, so every player starts there)
+{ let v; try { if (localStorage.getItem('sw_sway_v') !== '2'){ localStorage.removeItem('sw_sway'); localStorage.setItem('sw_sway_v', '2'); }
+    v = parseFloat(localStorage.getItem('sw_sway')); } catch(e){} setCamSway(isNaN(v) ? 0.8 : v); }
 { const sl = document.getElementById('swaysl');
   if (sl){ sl.addEventListener('pointerdown', (e) => e.stopPropagation()); sl.addEventListener('click', (e) => e.stopPropagation());
     sl.addEventListener('input', (e) => setCamSway(parseFloat(e.target.value))); } }
@@ -708,6 +717,7 @@ export function goHome(){
   startLevel(0);   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would
   G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0;
   overlay.style.display = 'flex';
+  if (!G.coopJoin) followHero();   // the run just played was used up as it began: this hero's newest save waits again for CONTINUE CAMPAIGN
   showMenuStep('mode');   // the title screen opens on its first step
   refreshMenu();
   overlay.scrollTop = 0;

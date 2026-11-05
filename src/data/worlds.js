@@ -1000,6 +1000,18 @@ const TY_VIEW = [   // what the open arches look out on: forested ridges, the sn
 const TY_LIGHT = { sun: 0xfff0d6, sunI: 1.75, dir: [-22, 44, 26], hemiSky: 0xcfe2f4, hemiGround: 0x5a564c, fill: 0.92, rim: 0x8ad8ff, rimI: 0.45 };
 const TY_PAL = { stone: 0xd6cfbe, stoneD: 0xa89f8c, trim: 0xd8b860, kyber: 0x5ad2ff, leaf: 0x4a8a4e, leafD: 0x36703c, water: 0x6ac8e8,
   wood: 0x7a5230, woodD: 0x52361e, cloth: 0x2e6a8a, mat: 0xa8946f, bronze: 0x9a7440, rock: 0x3a3a46, rockD: 0x2a2a34 };
+/* THE CLONE CITADEL ON KAMINO, the ARC trooper's hub (data/hub-kamino.js, world/arenas/clone-citadel.js): white halls on
+   stilts over a grey storm ocean. Lightning off the sea lights every window; the pods of the city stand out of the rain */
+const KM_SKY = { top: 0x16202a, horizon: 0x56687a, below: 0x1c2a34, bands: 6, stars: 0,
+  clouds: { color: 0x3a4a58, under: 0x1a2630, count: 34, lo: 0.08, hi: 0.95 } };
+const KM_VIEW = [
+  { kind: 'pods', count: 7, r: [1.5, 2.2], h: [34, 64], size: [12, 22], color: 0xd8dee4, color2: 0x8a98a6, glow: 0xd8f0ff },
+];
+const KM_LIGHT = { sun: 0xdce8f4, sunI: 1.25, dir: [24, 44, -18], hemiSky: 0xb8cce0, hemiGround: 0x3a4450, fill: 1.05, rim: 0x8ad8ff, rimI: 0.5 };
+const KM_STORM = { every: [5, 11], fill: 0.7, sky: 1.1, ramp: 1, fogFlash: 0.3, color: 0xdce8ff };
+const KM_PAL = { wall: 0xe8ecef, wallD: 0xb8c2ca, panel: 0xd2d9df, trim: 0x8ea0ae, metal: 0x9aa6b2, metalD: 0x3e4852, glass: 0x9ad8f0,
+  glow: 0xd8f0ff, holo: 0x6ad8ff, red: 0xc23a30, blue: 0x2f7fd6, sea: 0x20384a, pod: 0xffb84a, podFluid: 0x5ad0c0, rack: 0x4a545e, mat: 0x5a6672 };
+const KM_BEATS = { fog: 0x4a5a68, fill: 1.0, tint: 0xd8ecff };
 export const HUB_WORLDS = {
   tyHall: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: TY_LIGHT,
     floor: { kind: 'flagstone', base: 0x9a9284, seed: 17 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
@@ -1021,6 +1033,24 @@ export const HUB_WORLDS = {
     light: { sun: 0xbfe6ff, sunI: 1.3, dir: [-10, 44, 18], hemiSky: 0x6ab8ff, hemiGround: 0x1e1a28, fill: 1.0, rim: 0x5ad2ff, rimI: 0.7 },
     floor: { kind: 'basalt', base: 0x3e3e4a, seed: 47 }, outer: 0x22222c, pal: TY_PAL, backdrop: [],
     ambient: { kind: 'embers', color: 0x8ae0ff, count: 110 }, beats: { fog: 0x1a2a3e, fill: 1.0, tint: 0xb8e8ff }, sound: 'temple' },
+  // the clone citadel (KM_*: see above)
+  kmDeck: { mist: false, sky: KM_SKY, fog: 0x56687a, fogStart: 0.9, fogEnd: 3.0, light: KM_LIGHT, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0xa8b2bc, stripe: 0x5a8aa8, seed: 61 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 90, size: 0.18 },
+    warfront: { flyers: [{ kind: 'gunship', count: 2, alt: [60, 120], speed: [26, 40], every: [14, 26] }], epic: false },
+    beats: KM_BEATS, sound: 'plains' },
+  kmWar: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.0, fogEnd: 3.4, light: { ...KM_LIGHT, dir: [-10, 40, -30] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x6a7682, stripe: 0x4a7aa0, seed: 67 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xb8e0ff, count: 60, size: 0.18 }, beats: KM_BEATS, sound: 'plains' },
+  kmRange: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.1, fogEnd: 3.6, light: { ...KM_LIGHT, dir: [30, 42, 14] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x8a949e, stripe: 0xc89a3a, seed: 71 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW, glow: 0.8,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 60, size: 0.18 }, beats: KM_BEATS, sound: 'plains' },
+  kmHalls: { mist: false, sky: KM_SKY, fog: 0x3a4e5a, fogStart: 0.8, fogEnd: 2.8, light: { ...KM_LIGHT, sunI: 1.0, fill: 0.95, dir: [-14, 46, 20] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x7a8690, stripe: 0x5ad0c0, seed: 73 }, outer: 0x22323e, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xffd8a0, count: 110, size: 0.18 }, beats: { ...KM_BEATS, tint: 0xffe8c8 }, sound: 'plains' },
+  kmArmory: { mist: false, sky: KM_SKY, fog: 0x4a5a68, fogStart: 1.1, fogEnd: 3.6, light: { ...KM_LIGHT, dir: [-12, 44, 18] }, storm: KM_STORM,
+    floor: { kind: 'deck', base: 0x727e88, stripe: 0xc23a30, seed: 79 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 50, size: 0.16 }, beats: KM_BEATS, sound: 'plains' },
 };
 
 export function themeFor(L){

@@ -1,16 +1,17 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN TEMPLE ON TYTHON, the hub: walk its wings (data/hub.js), tap F at a station to open it (ui/hub-ui.js), walk
-// through a great door and the wing beyond loads in its place. No foes, no waves, no run: it is where every run starts
-// and where it comes back to.
+// THE HUB: walk its wings (data/hub.js), tap F at a station to open it (ui/hub-ui.js), walk through a great door and the
+// wing beyond loads in its place. No foes, no waves, no run: it is where every run starts and where it comes back to.
+// Each hero has a hub of their own (data/hub.js HERO_HUB): the Jedi the hidden temple on Tython, the ARC trooper the
+// clone citadel on Kamino. G.hubId is the one you're in, G.hubWing the wing of it.
 //
-// CO-OP: the temple is the party's lobby. Everyone in the room can be in it, each in whichever wing they like (you see
+// CO-OP: the hub is the party's lobby, and it is the HOST's hero's hub for everyone (hubIdFor). Everyone in the room can be in it, each in whichever wing they like (you see
 // the others in the wing you share: player/players.js worldKey). When the HOST launches a mode, every guest standing in
 // the temple follows them into it (net/foes.js tells the guests the host's run is on); when the host comes back to the
 // temple, the guests who came along come back with them ('hubcall').
 
 import { shared, G, player } from '../state.js';
 import { CFG } from '../data/config.js';
-import { HUB, HUB_WINGS, doorSide, SIDE_OUT } from '../data/hub.js';
+import { HUB, HUBS, hubOf, doorSide, SIDE_OUT } from '../data/hub.js';
 import { startLevel } from './flow.js';
 import { playerPos, fwd } from '../player/helpers.js';
 import { findClearSpawn } from '../world/collision.js';
@@ -22,22 +23,30 @@ import { coopRun } from '../net/run.js';
 import { onRunChange } from '../net/foes.js';
 import { missionTitle } from './mission.js';
 import { S } from '../audio/sfx.js';
+import { hostHero } from '../net/partner.js';
 import { setHubInteract, INTERACT_KEY } from './interact.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
-export const hubWing = () => HUB_WINGS[G.hubWing] || HUB_WINGS.hall;
+// the hub to be in: your own hero's, or in a party the host's (a guest who hasn't heard the host's hero yet uses their own)
+export const hubIdFor = () => hubOf(net.role === 'guest' && connected() ? hostHero() || G.hero : G.hero);
+export const curHub = () => HUBS[G.hubId] || HUBS.temple;
+export const hubWing = () => { const H = curHub(); return H.wings[G.hubWing] || H.wings[H.start]; };
 
-/* into the temple: `wing` (the hall by default), arriving through the door from `from` when walking between wings */
+/* into the hub: `wing` (its start by default), arriving through the door from `from` when walking between wings */
 export function startHub(wing, from){
   const was = G.hub;
   G.partyRun = false;   // (a guest back in the temple: the next run it follows sets it again)
-  G.hubWing = HUB_WINGS[wing] ? wing : HUB.start;
+  const hubId = hubIdFor();
+  if (hubId !== G.hubId) from = null;   // (a different hub from the last: no door back to arrive through)
+  G.hubId = hubId;
+  const Hb = curHub();
+  G.hubWing = Hb.wings[wing] ? wing : Hb.start;
   const W = hubWing();
   startLevel(0, { level: W.level, hub: true });
   G.waveTotal = 0;
   let [x, z, yaw] = W.spawn;
-  const side = from && doorSide(G.hubWing, from);
+  const side = from && doorSide(Hb.wings, G.hubWing, from);
   if (side){
     const [ox, oz] = SIDE_OUT[side], H = shared.arenaHalf;
     x = ox * (H - 6); z = oz * (H - 6); yaw = Math.atan2(-ox, -oz);
@@ -55,7 +64,7 @@ export function startHub(wing, from){
 
 /* walk through a door (or take the fast travel) to another wing: it loads behind the loading screen, in place of this one */
 export async function goWing(to, viaDoor){
-  if (!G.hub || moving || !HUB_WINGS[to]) return;
+  if (!G.hub || moving || !HUBS[hubIdFor()].wings[to]) return;
   moving = true;
   const from = viaDoor ? G.hubWing : null;
   G.paused = true;
@@ -112,7 +121,10 @@ export function updateHub(dt){
     const [ox, oz] = SIDE_OUT[side], out = p.x * ox + p.z * oz, along = ox ? p.z : p.x;
     if (out > H - 1 - HUB.doorReach && Math.abs(along) < HUB.doorHalf && p.y < 3){ goWing(W.doors[side], true); return; }
   }
-  // co-op: the host has set off on a run, and this guest is in the temple: follow them in
+  // co-op: the host's hero calls a different hub home (they swapped hero, or this guest arrived before hearing who they
+  // play): over to the host's hub, at its start
+  if (net.role === 'guest' && connected() && hubIdFor() !== G.hubId){ goWing(HUBS[hubIdFor()].start); return; }
+  // co-op: the host has set off on a run, and this guest is in the hub: follow them in
   if (followT > 0 && (followT -= dt) <= 0){ followT = 0; if (followHost && coopRun.on && net.role === 'guest') followHost(); }
 }
 
@@ -127,6 +139,6 @@ onRunChange((c) => {
 });
 on('hubcall', () => {
   if (net.role !== 'guest' || G.hub || !G.partyRun || !backToTemple) return;   // (only the guests who went along with the host)
-  if (G.mode === 'play') showBanner('', 'THE HOST IS HEADING BACK TO THE TEMPLE', 1.8);
+  if (G.mode === 'play') showBanner('', 'THE HOST IS HEADING BACK TO ' + HUBS[hubIdFor()].home, 1.8);
   setTimeout(() => { if (!G.hub && G.partyRun && net.status === 'connected') backToTemple(true); }, G.mode === 'play' ? 1800 : 300);
 });

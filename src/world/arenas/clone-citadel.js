@@ -14,6 +14,7 @@ import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
 import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { buildEnemyMesh } from '../../enemies/mesh.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { toon } from '../ink.js';
 
 /* the dispatcher: world/arena.js hands every km* layout here */
 export function buildCloneCitadel(L){
@@ -94,7 +95,7 @@ function shell(K, M, pal, o){
       // the mouth's lintel: a heavy beam with a strip of light under it, and the deck running on out into the rain
       put(side, new THREE.BoxGeometry(len, 1.4, 3.2), M.metalD, 0, mouthTop + 0.7, off - 0.6);
       put(side, new THREE.BoxGeometry(len, 0.18, 0.5), M.glow, 0, mouthTop - 0.1, off - 1.6);
-      for (const s of [-1, 1]) for (let a = tw / 2 + 9; a < off; a += 14) put(side, new THREE.BoxGeometry(1.6, mouthTop, 1.6), M.metal, s * a, mouthTop / 2, off + 0.4);   // the mouth's piers
+      for (const s of [-1, 1]) for (let a = tw / 2 + 4; a < off; a += 20) put(side, new THREE.BoxGeometry(1.6, mouthTop, 1.6), M.metal, s * a, mouthTop / 2, off + 0.4);   // the mouth's piers
       apron(K, M, pal, side, off, len);
     } else {
       run(side, -len / 2, len / 2, 0, door ? dH : 0, doorCut);
@@ -234,6 +235,82 @@ function trooper(x, z, yaw, o = {}){
   if (!o.y) solids.push({ x, z, r: 0.45, h: 1.9 });
   return g;
 }
+/* A SQUAD ON THE MARCH: `n` clones in a column of twos, walking a closed loop round and round, in step. The whole squad
+   is two draw calls: every clone's body is one instance of a single merged, vertex-coloured figure, every leg one
+   instance of a single merged leg, swung from the hip. path(d) gives the point d metres round the loop ({ x, z }), `len`
+   its length */
+function marchingSquad(n, path, len, o = {}){
+  const W = 0xeef0f2, D = 0x24282e, G = 0x2e3238, V = 0x101418, C = o.cloth ?? PAL.blue;
+  const parts = (list) => { const geos = list.map(([w, h, d, col, x, y, z, rx = 0, ry = 0, rz = 0]) => {
+    const q = new THREE.BoxGeometry(w, h, d); q.rotateX(rx); q.rotateY(ry); q.rotateZ(rz); q.translate(x, y, z);
+    const c = new THREE.Color(col), arr = new Float32Array(q.attributes.position.count * 3);
+    for (let i = 0; i < arr.length; i += 3){ arr[i] = c.r; arr[i + 1] = c.g; arr[i + 2] = c.b; }
+    q.setAttribute('color', new THREE.BufferAttribute(arr, 3)); return q; });
+    const m = mergeGeometries(geos, false); geos.forEach(q => q.dispose()); return m; };
+  const body = parts([
+    [0.4, 0.12, 0.24, D, 0, 1.02, 0], [0.34, 0.18, 0.21, W, 0, 1.16, 0], [0.46, 0.34, 0.27, W, 0, 1.4, 0], [0.3, 0.32, 0.13, W, 0, 1.4, -0.2],
+    [0.18, 0.06, 0.18, D, 0, 1.6, 0], [0.15, 0.12, 0.22, C, -0.31, 1.53, 0, 0, 0, 0.25], [0.15, 0.12, 0.22, C, 0.31, 1.53, 0, 0, 0, -0.25],
+    [0.12, 0.3, 0.14, W, -0.3, 1.33, 0], [0.12, 0.3, 0.14, W, 0.3, 1.33, 0],
+    [0.11, 0.28, 0.12, W, -0.22, 1.18, 0.13, -1.1, 0, -0.3], [0.11, 0.28, 0.12, W, 0.22, 1.18, 0.13, -1.1, 0, 0.3],
+    [0.08, 0.1, 0.78, G, 0.02, 1.24, 0.22, 0, 0.5, 0.75],
+    [0.27, 0.3, 0.3, W, 0, 1.76, 0], [0.24, 0.08, 0.28, W, 0, 1.92, -0.01], [0.27, 0.08, 0.24, W, 0, 1.64, -0.01],
+    [0.21, 0.045, 0.03, V, 0, 1.8, 0.155], [0.05, 0.12, 0.03, V, 0, 1.73, 0.16],
+  ]);
+  const leg = parts([[0.2, 0.12, 0.3, D, 0, -0.93, 0.03], [0.17, 0.42, 0.19, W, 0, -0.66, 0], [0.18, 0.07, 0.2, D, 0, -0.42, 0], [0.19, 0.38, 0.21, W, 0, -0.19, 0]]);
+  const mat = toon(0xffffff).clone(); mat.vertexColors = true;
+  const bodies = new THREE.InstancedMesh(body, mat, n), legs = new THREE.InstancedMesh(leg, mat, n * 2);
+  for (const m of [bodies, legs]){ live(m); m.castShadow = true; m.frustumCulled = false; shared.arenaGroup.add(m); }
+  const speed = o.speed ?? 1.5, gap = 1.5, M4 = new THREE.Matrix4(), L4 = new THREE.Matrix4(), R4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  const one = new THREE.Vector3(1, 1, 1), at = new THREE.Vector3();
+  anim(bodies, (obj, t) => {
+    const head = t * speed;
+    for (let i = 0; i < n; i++){
+      const row = Math.floor(i / 2), side = i % 2 ? 1 : -1;
+      const d = ((head - row * gap) % len + len) % len, a = path(d), b = path((d + 0.5) % len);
+      const yaw = Math.atan2(b.x - a.x, b.z - a.z), rx = Math.cos(yaw), rz = -Math.sin(yaw);   // (the squad's right, for the two files)
+      const step = t * speed * 2.1, bob = Math.abs(Math.sin(step)) * 0.04;
+      at.set(a.x + rx * side * 0.55, bob, a.z + rz * side * 0.55); q.setFromAxisAngle(up, yaw);
+      M4.compose(at, q, one); bodies.setMatrixAt(i, M4);
+      for (const [k, s] of [[0, -1], [1, 1]]){
+        L4.makeTranslation(s * 0.11, 0.99, 0); R4.makeRotationX(Math.sin(step + (k ? PI : 0)) * 0.45);
+        legs.setMatrixAt(i * 2 + k, M4.clone().multiply(L4).multiply(R4));
+      }
+    }
+    bodies.instanceMatrix.needsUpdate = true; legs.instanceMatrix.needsUpdate = true;
+  });
+  return bodies;
+}
+/* a stadium loop: two straights and two half circles, round (cx, cz), `hl` the straights' half length, `r` the ends' radius */
+function stadium(cx, cz, hl, r){
+  const len = hl * 4 + PI * r * 2;
+  const path = (d) => {
+    if (d < hl * 2) return { x: cx - hl + d, z: cz - r };
+    d -= hl * 2; if (d < PI * r){ const a = -PI / 2 + d / r; return { x: cx + hl + Math.cos(a) * r, z: cz + Math.sin(a) * r }; }
+    d -= PI * r; if (d < hl * 2) return { x: cx + hl - d, z: cz + r };
+    d -= hl * 2; const a = PI / 2 + d / r; return { x: cx - hl + Math.cos(a) * r, z: cz + Math.sin(a) * r };
+  };
+  return { path, len };
+}
+/* a whole group's meshes merged into one per material (toon-shaded as the bake would), so a prop that moves costs a few
+   draw calls, not dozens */
+function mergeGroup(g){
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), by = new Map(), out = new THREE.Group();
+  g.traverse(o => {
+    if (!o.isMesh) return;
+    const q = o.geometry.clone(); q.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    for (const k of Object.keys(q.attributes)) if (k !== 'position' && k !== 'normal') q.deleteAttribute(k);
+    if (!q.index) q.setIndex([...Array(q.attributes.position.count).keys()]);
+    const key = o.material.uuid; if (!by.has(key)) by.set(key, { mat: o.material, geos: [] }); by.get(key).geos.push(q);
+  });
+  for (const { mat, geos } of by.values()){
+    const m = new THREE.Mesh(mergeGeometries(geos, false), mat.isMeshStandardMaterial ? toon(mat.color.getHex()) : mat);
+    geos.forEach(q => q.dispose()); m.castShadow = !mat.isMeshBasicMaterial; m.userData.passThrough = true; out.add(m);
+  }
+  for (const c of [...g.children]){ g.remove(c); c.geometry && c.geometry.dispose(); }
+  for (const c of [...out.children]) g.add(c);
+  return g;
+}
 /* the army's full trooper model (enemies/mesh.js): one, on show, where you stand right by it */
 function showTrooper(x, z, yaw, o = {}){
   const g = buildEnemyMesh({ model: 'clone', color: 0xe4e7ea, eye: 0x5ab8ff, cloth: o.cloth ?? PAL.blue, scale: 1, ranged: true }, { variant: o.variant ?? 0, wear: 0.05, seed: 7 });
@@ -256,41 +333,54 @@ function gunship(K, M, pal, x, z, yaw, o = {}){
   const ring = new THREE.Mesh(new THREE.RingGeometry(7.6, 8.2, 48), std(0xd8b040, 0.6)); ring.rotation.x = -PI / 2; ring.position.set(x, 0.13, z); pic(ring); shared.arenaGroup.add(ring);
   for (let i = 0; i < 4; i++){ const a = i / 4 * PI * 2 + PI / 4; live(K.deco(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10), M.glow, x + Math.cos(a) * 8.6, 0.15, z + Math.sin(a) * 8.6)); }
   }
-  // the troop bay: a long body with a rounded roof, the doors open in each flank
-  add(new THREE.BoxGeometry(3.4, 2.4, 7.4), hull, 0, 1.9, 0.6);
-  add(new THREE.CylinderGeometry(1.7, 1.7, 7.4, 16, 1, false, -PI / 2, PI), hull, 0, 3.1, 0.6, -PI / 2);   // the rounded roof
+  // the FUSELAGE: one long rounded body (a capsule, squashed a touch), its belly flattened for the skids
+  const body = add(new THREE.CapsuleGeometry(1.75, 6.2, 6, 16), hull, 0, 2.75, 0.4, PI / 2);
+  body.scale.set(1, 1, 0.9);
+  add(new THREE.BoxGeometry(2.8, 0.5, 7.6), hull, 0, 1.15, 0.6);
   for (const s of [-1, 1]){
-    add(new THREE.BoxGeometry(0.1, 1.7, 2.8), dark, s * 1.71, 1.9, 0.2);                                   // a door, open
-    add(new THREE.BoxGeometry(0.12, 0.3, 7.5), mark, s * 1.72, 2.95, 0.6);                                 // the red band down the flank
+    // the troop doors, open: a dark rounded bay in each flank, a lit edge round it
+    const door = add(new THREE.CapsuleGeometry(0.75, 1.5, 4, 10), dark, s * 1.42, 2.55, 0.2, PI / 2, 0, 0); door.scale.set(0.5, 1, 1);
+    add(new THREE.BoxGeometry(0.06, 0.08, 3.2), M.glow, s * 1.66, 3.42, 0.2);
+    add(new THREE.BoxGeometry(0.1, 0.34, 8.2), mark, s * 1.62, 3.85, 0.4, 0, 0, s * 0.35);   // the red band along the shoulder
   }
-  // the nose: tapering forward, glazed, a chin turret under it
-  add(new THREE.CylinderGeometry(0.9, 1.7, 3.2, 12), hull, 0, 2.6, -4.6, -PI / 2);
-  add(new THREE.SphereGeometry(1.0, 14, 10, 0, PI * 2, 0, PI / 2), glass, 0, 3.0, -5.2, -PI / 2 - 0.35);
-  add(new THREE.BoxGeometry(0.6, 0.3, 2.6), mark, 0, 3.55, -4.0);
-  add(new THREE.SphereGeometry(0.5, 10, 8), dark, 0, 1.55, -5.4);
-  add(new THREE.CylinderGeometry(0.07, 0.07, 1.2, 6), dark, 0, 1.5, -6.1, PI / 2);
-  // the wings: swept back from the roof, an engine at each tip, a ball turret at each root
+  // the NOSE: a blunt rounded snout, a bubble canopy on top, a chin turret with a gun under it
+  const snout = add(new THREE.SphereGeometry(1.55, 18, 12), hull, 0, 2.6, -3.9); snout.scale.set(1, 0.95, 1.5);
+  const canopy = add(new THREE.SphereGeometry(0.95, 16, 10, 0, PI * 2, 0, PI / 2), glass, 0, 3.55, -4.3); canopy.scale.set(1, 0.7, 1.4);
+  add(new THREE.TorusGeometry(0.95, 0.07, 6, 24), dark, 0, 3.55, -4.3, PI / 2).scale.set(1, 1.4, 1);
+  add(new THREE.BoxGeometry(0.5, 0.06, 2.6), mark, 0, 4.02, -2.2);
+  add(new THREE.SphereGeometry(0.48, 12, 10), dark, 0, 1.45, -5.0);
+  add(new THREE.CylinderGeometry(0.07, 0.07, 1.3, 6), dark, 0, 1.4, -5.7, PI / 2);
+  // the WINGS: swept, tapering, rounded at the edges, from the shoulders back; an engine pod at each tip, a ball turret at each root
+  const wingGeo = (s) => {   // (built for its own side, not mirrored with a negative scale: that turns its faces inside out)
+    const pts = [[0, -1.4], [5.2, 0.4], [5.2, 1.6], [0, 1.6]].map(([x, y]) => new THREE.Vector2(x * s, y));
+    const q = new THREE.ExtrudeGeometry(new THREE.Shape(s > 0 ? pts : pts.reverse()), { depth: 0.26, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.14, bevelSegments: 2 });
+    q.rotateX(PI / 2); return q;
+  };
   for (const s of [-1, 1]){
-    add(new THREE.BoxGeometry(5.4, 0.32, 2.6), hull, s * 4.3, 4.3, 1.4, 0, s * 0.18, s * -0.05);
-    add(new THREE.BoxGeometry(1.4, 0.34, 2.62), mark, s * 6.4, 4.38, 1.8, 0, s * 0.18, 0);
-    add(new THREE.CylinderGeometry(0.55, 0.62, 3.2, 12), hull, s * 7.0, 4.2, 2.0, PI / 2);
-    const nz = live(new THREE.Mesh(new THREE.CircleGeometry(0.46, 12), glowM(0x8ad8ff))); nz.position.set(s * 7.0, 4.2, 3.62); g.add(nz);
-    add(new THREE.SphereGeometry(0.62, 12, 10), glass, s * 2.0, 4.2, -0.4);
-    add(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), dark, s * 2.2, 4.2, -1.1, PI / 2);
-    add(new THREE.BoxGeometry(0.22, 0.9, 0.22), dark, s * 1.2, 0.45, 3.2);                                 // the skids
-    add(new THREE.BoxGeometry(0.22, 0.9, 0.22), dark, s * 1.2, 0.45, -2.4);
-    add(new THREE.BoxGeometry(0.3, 0.16, 6.4), dark, s * 1.2, 0.08, 0.4);
-    add(new THREE.BoxGeometry(0.2, 1.8, 1.6), hull, s * 0.9, 4.9, 4.0, -0.3, 0, s * 0.25);                 // the tail fins
+    add(wingGeo(s), hull, s * 1.4, 4.45, 0.6, 0, 0, s * -0.2);
+    add(new THREE.BoxGeometry(1.1, 0.3, 1.4), mark, s * 5.2, 3.5, 1.6, 0, 0, s * -0.2);
+    add(new THREE.CapsuleGeometry(0.52, 2.2, 4, 12), hull, s * 6.5, 3.2, 1.4, PI / 2);
+    add(new THREE.CylinderGeometry(0.42, 0.52, 0.3, 12), dark, s * 6.5, 3.2, 2.95, PI / 2);
+    const nz = live(new THREE.Mesh(new THREE.CircleGeometry(0.38, 12), glowM(0x8ad8ff))); nz.position.set(s * 6.5, 3.2, 3.12); g.add(nz);
+    add(new THREE.SphereGeometry(0.6, 14, 10), glass, s * 1.75, 4.25, -1.0);
+    add(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), dark, s * 1.9, 4.2, -1.75, PI / 2);
+    // the skids
+    add(new THREE.CylinderGeometry(0.1, 0.12, 0.9, 6), dark, s * 1.15, 0.5, 3.0);
+    add(new THREE.CylinderGeometry(0.1, 0.12, 0.9, 6), dark, s * 1.15, 0.5, -2.2);
+    add(new THREE.CapsuleGeometry(0.13, 6.0, 2, 6), dark, s * 1.15, 0.12, 0.4, PI / 2);
   }
-  add(new THREE.BoxGeometry(2.6, 1.6, 1.0), dark, 0, 2.2, 4.5);                                            // the tail, its hatch shut
-  if (o.y) return g;
+  // the TAIL: a boom climbing aft of the bay, two fins canted out from it
+  add(new THREE.CapsuleGeometry(0.7, 1.8, 4, 10), hull, 0, 3.6, 4.6, PI / 2 - 0.35);
+  for (const s of [-1, 1]) add(new THREE.BoxGeometry(0.16, 1.7, 1.4), hull, s * 0.6, 4.9, 5.3, -0.35, 0, s * 0.35);
+  add(new THREE.BoxGeometry(0.06, 0.5, 1.2), mark, 0.68, 5.05, 5.3, -0.35, 0, 0.35);
+  if (o.y || o.live) return g;
   // collision: the bay and nose to the roof, the wings overhead (the boxes turned with the ship, a quarter turn at a time)
   const turn = (lx, lz) => { const c = Math.cos(yaw), s = Math.sin(yaw); return [x + lx * c + lz * s, z - lx * s + lz * c]; };
   const flip = Math.abs(Math.sin(yaw)) > 0.5;
   const box = (lx, lz, hx, hz, h, y0) => { const [bx, bz] = turn(lx, lz); solids.push({ x: bx, z: bz, hx: flip ? hz : hx, hz: flip ? hx : hz, h, ...(y0 != null ? { y0 } : {}), box: true }); };
   box(0, 0.4, 1.75, 4.5, 4.8);
   box(0, -4.8, 1.2, 1.4, 3.6);
-  for (const s of [-1, 1]) box(s * 4.6, 1.6, 2.9, 1.5, 4.6, 4.0);
+  for (const s of [-1, 1]) box(s * 4.3, 1.4, 2.8, 1.6, 4.4, 3.0);
   return g;
 }
 
@@ -318,7 +408,26 @@ function deck(K, pal, M, R){
     const ring = live(new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.03, 4, 64), hm)); ring.rotation.x = PI / 2; map.add(ring); }
   spinner(map, 0.18);
   // the GUNSHIPS on their pads, noses to the mouths
-  for (const [x, z, yaw] of [[-30, -24, PI / 2], [30, -24, -PI / 2], [-30, 24, PI / 2], [30, 24, -PI / 2]]) gunship(K, M, pal, x, z, yaw);
+  for (const [x, z, yaw] of [[-30, -24, PI / 2], [-30, 24, PI / 2], [30, 24, -PI / 2]]) gunship(K, M, pal, x, z, yaw);
+  // ...and one that comes and goes: it lifts off its pad, flies out of the east mouth into the storm, and comes back in
+  { const ship = gunship(K, M, pal, 30, -24, -PI / 2, { live: true });
+    mergeGroup(ship); ship.userData.noBake = true; ship.traverse(m => { m.userData.noBake = true; });
+    const ease = (k) => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, P = 46;
+    anim(ship, (o, t) => {
+      const c = t % P; let x = 30, y = 0, yaw = -PI / 2, roll = 0;
+      if (c < 12){ /* on its pad */ }
+      else if (c < 16){ y = ease((c - 12) / 4) * 4.5; }                                           // up off the pad
+      else if (c < 25){ const k = (c - 16) / 9; x = lerp(30, 95, k * k); y = lerp(4.5, 16, k); roll = Math.sin(k * PI) * 0.06; }   // out of the mouth
+      else if (c < 31){ o.visible = false; return; }                                             // away in the storm
+      else if (c < 40){ const k = ease((c - 31) / 9); x = lerp(95, 30, k); y = lerp(18, 4.5, k); yaw = PI / 2; }   // back in, nose first
+      else if (c < 43){ yaw = lerp(PI / 2, PI * 1.5, ease((c - 40) / 3)); y = 4.5; }             // turning over its pad
+      else { y = (1 - ease((c - 43) / 3)) * 4.5; }                                                 // and down
+      o.visible = true; o.position.set(x, y + (y > 0.1 ? Math.sin(t * 1.3) * 0.12 : 0), -24); o.rotation.set(0, yaw, roll);
+    }); }
+  // SQUADS ON THE MARCH: two columns walking a loop round the map, opposite ways round
+  { const loop = stadium(0, 0, 20, 17);
+    marchingSquad(10, loop.path, loop.len, { speed: 1.5 });
+    marchingSquad(8, (d) => loop.path(loop.len - d), loop.len, { speed: 1.3, cloth: 0x7a6a3a }); }
   // the ARMY: two companies drawn up between the map and the north door, a sergeant out in front of each, facing them
   for (const s of [-1, 1]){
     for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) trooper(s * (9 + c * 2.1), -30 + r * 2.4, 0, { variant: (r + c) % 3 });
@@ -332,7 +441,7 @@ function deck(K, pal, M, R){
     for (let k = 0; k < n; k++){ const hx = 1.3 - k * 0.15; K.box(x + (k % 2) * 0.4, z, hx, hx, 1.3, k % 2 ? crateD : crate, { y: k * 1.3, climbable: k === 0 }); }
     K.deco(new THREE.BoxGeometry(0.06, 0.4, 2.0), M.red, x + 1.32, 0.7, z).userData.passThrough = true;
   }
-  for (const [x, z] of [[-18, -14], [18, -14], [-18, 14], [18, 14]]){
+  for (const [x, z] of [[-40, -14], [40, -12], [-40, 14], [40, 14]]){
     K.box(x, z, 1.0, 1.6, 1.0, M.metalD, { climbable: true });
     K.column(x, z - 0.6, 0.6, 1.9, M.red, { wallKick: false, seg: 10, taper: 1 });
   }
@@ -451,6 +560,30 @@ function range(K, pal, M, R){
   K.box(-8.5, 28, 0.3, 3, 3.4, kh); K.box(-2, 30, 3, 0.3, 3.4, kh);
   live(K.deco(new THREE.BoxGeometry(1.4, 0.3, 0.3), glowM(0xff3a2a), -6, 3.9, 21.7));
   K.sign('LIVE FIRE', -6, 4.6, 21.6, PI, { w: 3, ink: '#ff9a8a', edge: 'rgba(255,90,70,.85)' });
+  // the lanes come alive: bolts flying downrange from the booths, a number over every lane, lamps hung over the line
+  for (let k = 0; k < 5; k++){
+    const x = -14.8 + k * 4.4;
+    K.sign(String(k + 1), x, 3.4, -22.4, PI, { w: 0.9, size: 90, ink: '#ffd27a', edge: 'rgba(255,200,120,.85)' });
+    pic(K.deco(new THREE.BoxGeometry(2.4, 0.12, 0.4), M.glow, x, 4.6, -23));
+    pic(K.deco(new THREE.CylinderGeometry(0.03, 0.03, 11.4, 4), M.metal, x - 1.1, 10.3, -23));
+  }
+  for (let k = 0; k < 3; k++){
+    const bolt = live(K.deco(new THREE.BoxGeometry(0.07, 0.07, 1.1), glowM(0x6ad8ff), -12.6 + k * 8.8, 1.5, -22));
+    const ph = k * 1.3;
+    anim(bolt, (o, t, b) => { const c = ((t * 0.9 + ph) % 1.6) / 1.6; o.visible = c < 0.55; o.position.z = b.z - c * 30; });
+  }
+  // the instructor's tower over the killhouse: a deck on legs, a rail round it, a lamp over it, someone up there watching
+  for (const [lx, lz] of [[3, 24], [7, 24], [3, 28], [7, 28]]) K.column(lx, lz, 0.18, 5.2, M.metalD, { wallKick: false, seg: 6, taper: 1 });
+  K.box(5, 26, 2.4, 2.4, 0.3, M.panel, { y: 5.2 });
+  pic(K.deco(new THREE.BoxGeometry(4.8, 0.1, 0.1), M.trim, 5, 6.5, 23.6)); pic(K.deco(new THREE.BoxGeometry(0.1, 0.1, 4.8), M.trim, 2.6, 6.5, 26));
+  trooper(5, 25, PI + 0.6, { y: 5.5, cloth: 0x7a6a3a, variant: 4, rest: true });
+  // the scoreboard over the sim: a holo-screen of the last runs, ranked
+  live(K.deco(new THREE.PlaneGeometry(7, 3.2), holoM(pal.holo, 0.18), 14, 8.5, -11.6));
+  for (let k = 0; k < 5; k++) live(K.deco(new THREE.PlaneGeometry(5.6 - k * 0.7, 0.22), holoM(k ? pal.holo : 0xffd27a, 0.55), 14 - k * 0.35, 9.6 - k * 0.5, -11.55));
+  K.sign('SIM RECORDS', 14, 10.6, -11.5, 0, { w: 3.2, ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' });
+  // a cleaning bench by the west wall: rifles stripped down on it
+  K.box(-30, -14, 0.8, 2.6, 1.0, M.metalD);
+  for (let k = 0; k < 4; k++) pic(K.deco(new THREE.BoxGeometry(0.16, 0.1, 1.0), k % 2 ? M.white : FIG.gun || M.metalD, -30 + (k % 2 ? 0.2 : -0.2), 1.06, -15.4 + k * 0.9));
   // racks of rifles along the east wall, ammunition by them
   for (const z of [-14, 14]) rack(K, M, 34, z, -PI / 2, 6);
   for (const [x, z] of [[30, -26], [30, 26], [-30, -26], [-30, 26]]) K.box(x, z, 1.2, 0.8, 1.0, std(0x4a545e, 0.8, 0.2), { climbable: true });
@@ -559,6 +692,25 @@ function armory(K, pal, M, R){
   K.box(-8, 0, 0.8, 2.4, 1.0, M.metalD);
   for (let k = 0; k < 4; k++) K.deco(new THREE.BoxGeometry(0.16, 0.12, 1.1), M.metalD, -8 + (k - 1.5) * 0.35, 1.08, -1.2 + k * 0.8);
   K.banner(0, 10, H + 0.6, PI, 5, 8, pal.blue, 0xe8ecef, 0xe8ecef);
+  // the LOCKERS by the door, a pair of tall white ones to every bay, a lit name strip on each
+  for (const sx of [-1, 1]) for (let k = 0; k < 4; k++){
+    const x = sx * (8 + k * 1.6);
+    K.box(x, -H + 0.7, 0.7, 0.5, 2.6, M.white);
+    pic(K.deco(new THREE.BoxGeometry(0.04, 2.2, 0.02), M.metalD, x, 1.3, -H + 1.21));
+    pic(K.deco(new THREE.BoxGeometry(0.5, 0.06, 0.02), M.screen, x, 2.3, -H + 1.22));
+  }
+  // the SERVICE ARM over the armour stand, working on it: a jointed arm from the ceiling, a spark at its tip
+  { const arm = new THREE.Group(); arm.position.set(1.6, 7.5, 10); shared.arenaGroup.add(arm); live(arm);
+    const seg = (len, mat) => { const m = live(new THREE.Mesh(new THREE.BoxGeometry(0.22, len, 0.22), mat)); m.position.y = -len / 2; const j = new THREE.Group(); j.add(m); return j; };
+    const a1 = seg(3.2, M.metalD), a2 = seg(2.6, M.white); a2.position.y = -3.2; a1.add(a2); arm.add(a1);
+    const tip = live(new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), glowM(0xbfe8ff))); tip.position.y = -2.6; a2.add(tip);
+    pic(K.deco(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 12), M.metalD, 1.6, 7.6, 10));
+    anim(arm, (o, t) => { a1.rotation.z = 0.5 + Math.sin(t * 0.5) * 0.12; a2.rotation.z = -1.3 + Math.sin(t * 0.7 + 1) * 0.15; a1.rotation.y = Math.sin(t * 0.3) * 0.3; tip.visible = Math.sin(t * 23) > -0.2; tip.scale.setScalar(0.7 + Math.random() * 0.8); }); }
+  // the PAINT BAY in the south-east corner: an armour plate on a frame, the unit colours stencilled on the wall
+  K.box(19, 20, 0.2, 2.2, 2.6, M.metalD);
+  for (const [z, c] of [[19, PAL.blue], [21, PAL.red]]) pic(K.deco(new THREE.BoxGeometry(0.1, 0.9, 1.4), std(c, 0.6), 19.25, 1.8, z));
+  for (const [z, c] of [[17, PAL.blue], [19.5, 0x7a6a3a], [22, PAL.red]]) pic(K.deco(new THREE.BoxGeometry(0.04, 1.2, 1.8), std(c, 0.7), H + 1.85, 2.4, z));
+  K.box(23, 21, 0.6, 0.6, 0.9, std(0x4a545e, 0.8, 0.2), { climbable: true });
   // the HELMET WALL behind the stand: shelf on shelf of spare buckets, visors out
   const helm = FIG.white || std(0xeef0f2, 0.45, 0.1), visor = FIG.visor || std(0x101418, 0.3, 0.4);
   for (const sx of [-1, 1]) for (let r = 0; r < 3; r++){

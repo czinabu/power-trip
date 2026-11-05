@@ -2,6 +2,7 @@
 // Entry point: imports every module in the original load order, then runs the main loop (tick) and exposes window.GAME.
 
 import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
+import { BLADE_U } from './fx/blade-glow.js';
 import * as THREE from 'three';
 import { switchWeapon, beskarPress } from './player/mando/weapons.js';
 import { setKit, grantGun } from './game/armory.js';
@@ -246,6 +247,7 @@ import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene } });
+Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';
 import { openBattleSetup } from './ui/battlesim-ui.js';

@@ -19,6 +19,7 @@ import { VEXIS } from '../data/bosses.js';
 import { registerFinale, turnTo, hurtHero, repulseRing } from './finale.js';
 import { staggerEnemy, damageEnemy } from '../enemies/damage.js';
 import { tellFx } from '../fx/tells.js';
+import { BLADE } from '../fx/blade-glow.js';
 import { burst } from '../fx/particles.js';
 import { floater, screenFlash } from '../fx/floaters.js';
 import { spawnGroundShock, spawnHitSpark } from '../fx/vfx.js';
@@ -547,7 +548,7 @@ const lastStand = {
 const look = {
   // a phase beat: the breath catches, the blade flickers
   beatStart(e){ burst(saberTip(e, _b), 0xff2a36, 14, 6, 3, 0.7); },
-  beatPose(e, M, t){ const u = e.group.userData; if (u.bladeGlow) u.bladeGlow.material.opacity = 0.35 + 0.3 * Math.abs(Math.sin(t * 23)); },
+  beatPose(e, M, t){ const u = e.group.userData; if (u.bladeGlow) u.bladeGlow.material.opacity = (0.35 + 0.3 * Math.abs(Math.sin(t * 23))) * BLADE.opacity; },   // (fx/blade-glow.js)
   // the defeat: the blade gutters out in his hand
   defeatStart(e){ S.retract('dark', e.group.position, true); dropThrown(e); if (bolt) bolt.visible = false; },
   defeatPose(e, M, t){

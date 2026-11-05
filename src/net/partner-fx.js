@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
 import { G, player, shared } from '../state.js';
 import { V3, rand } from '../utils.js';
+import { bladeCoreGeo, bladeGlowGeo, bladeGlowMat, BLADE_CORE } from '../fx/blade-glow.js';
 import { heroAim } from '../player/aim.js';
 import { puff, inkSprite, sparks } from '../fx/ink.js';
 import { FLAME } from '../player/mando/weapons.js';
@@ -32,9 +33,8 @@ export function fxOut(){
 // one player's powers as drawn here: what they last said they were doing (cur), the thrown blade, the lightning lines
 export function makePartnerFx(){
   const blade = new THREE.Group();
-  blade.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 1.7, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })),
-            new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 1.75, 8),
-              new THREE.MeshBasicMaterial({ color: 0x7fd0ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })));
+  blade.add(new THREE.Mesh(bladeCoreGeo(0.045, 0.03, 1.7), new THREE.MeshBasicMaterial({ color: BLADE_CORE })),
+            new THREE.Mesh(bladeGlowGeo(0.12, 0.09, 1.75), bladeGlowMat(0x7fd0ff, 0.5)));   // (the blade's look: fx/blade-glow.js)
   blade.rotation.z = Math.PI / 2; blade.visible = false;
   scene.add(blade);
   const blade2 = blade.clone(); blade2.visible = false; scene.add(blade2);   // Jar'Kai's left saber, thrown on its own

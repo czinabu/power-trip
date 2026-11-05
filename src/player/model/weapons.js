@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { loft, plate, block, ngon, chamfer } from './shapes.js';
 import { glow } from '../../engine/renderer.js';
 import { carriedLight } from '../../fx/lights.js';
+import { bladeCoreGeo, bladeGlowGeo, bladeGlowMat, BLADE_CORE } from '../../fx/blade-glow.js';
 import { startHandoff } from '../anim/handoff.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -30,9 +31,9 @@ export const WEAPON_MODELS = {
       ], ngon(8, Math.PI/8)), 'hilt', root);
       for (let i = 0; i < 4; i++) S.add(block(0.072, 0.012, 0.072, 0.4), 'leather', root, [0, -0.05 + i*0.03, 0], [0,0,0], { outline: false });
       S.add(block(0.022, 0.035, 0.03, 0.3), 'gunDark', root, [0, 0.02, 0.038], [0,0,0], { outline: false });   // activator
-      const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.022, 1.55, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      const blade = new THREE.Mesh(bladeCoreGeo(0.034, 0.022, 1.55), new THREE.MeshBasicMaterial({ color: BLADE_CORE }));   // (the blade's look: fx/blade-glow.js)
       blade.position.y = 0.95;
-      const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.06, 1.6, 8), glowMat(0x33bbff, 0.45));
+      const glow = new THREE.Mesh(bladeGlowGeo(0.085, 0.06, 1.6), bladeGlowMat(0x33bbff, 0.45));
       glow.position.y = 0.95;
       glow.userData.saberTrail = { hilt: -1 };   // its streak (fx/trail.js) follows this glow, emitter end down
       const light = carriedLight(new THREE.PointLight(0x44bbff, SABER_LIGHT * glow.light, 9)); light.position.y = 0.9;
@@ -215,7 +216,7 @@ export const WEAPON_MODELS = {
       const edge = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.24, 0.012), glowMat(0xe7dcff, 0.9)); edge.position.y = 0.72;
       edge.userData.saberTrail = { hilt: -1, dark: 1 };   // the ink streak (fx/trail.js)
       g.userData.trailAlways = true;   // thrown (attached to the scene on its own), it streaks the whole flight
-      const glow = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.3, 0.02), glowMat(0x9a5cff, 0.4)); glow.position.y = 0.72;
+      const glow = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.3, 0.02), glowMat(0x9a5cff, 0.5)); glow.position.y = 0.72;   // (a stronger aura round the dark blade, in step with fx/blade-glow.js)
       const light = carriedLight(new THREE.PointLight(0x9a6cff, DARK_LIGHT * glow.light, 7)); light.position.y = 0.7;
       g.add(glow, edge, blade, light);
       return { group: g, light, blades: [glow, edge, blade] };

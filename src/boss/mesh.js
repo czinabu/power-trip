@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { glow } from '../engine/renderer.js';
 import { carriedLight } from '../fx/lights.js';
+import { bladeCoreGeo, bladeGlowGeo, BLADE_CORE } from '../fx/blade-glow.js';
 import { loft, limb, plate, block, shard, chamfer, ngon, HEAD, gripHand } from '../player/model/shapes.js';
 import { bakeDesign, instantiate } from '../enemies/kit.js';
 import { legs, hips, torso, pauldrons, sideArm, upper, cape, NECK, SOFT, SOFT_COLLAR, SOFT_LIMB, dome, cap } from '../enemies/mesh.js';
@@ -126,10 +127,10 @@ function weaponArm(k, L, kind){
     k.add(plate([[-0.12,0],[0.12,0],[0.04,0.36],[0,0.44],[-0.04,0.36]], 0.03, 0.01), 'armor', hand, [0, 2.28, 0], [0, PI/2, 0]);
     for (const y of [0.16, -0.5]) k.add(block(0.11, 0.06, 0.11, 0.35), 'cloth', hand, [0, y, 0], [0,0,0], { outline: false });
   }
-  // the blade itself stays exactly as before: white core, coloured glow, and its light
-  const blade = k.glow(new THREE.CylinderGeometry(0.05, 0.035, 2.1, 8), 0xffffff, hand, [0, 1.25, 0]);
+  // the blade itself: white core, coloured glow (fx/blade-glow.js), and its light
+  const blade = k.glow(bladeCoreGeo(0.05, 0.035, 2.1), BLADE_CORE, hand, [0, 1.25, 0]);
   blade.material.toneMapped = true;
-  k.glow(new THREE.CylinderGeometry(0.13, 0.1, 2.15, 8), L.weapon, hand, [0, 1.25, 0], [0,0,0], { opacity: 0.5, trail: { hilt: -1 } });
+  k.glow(bladeGlowGeo(0.13, 0.1, 2.15), L.weapon, hand, [0, 1.25, 0], [0,0,0], { opacity: 0.5, blade: true, trail: { hilt: -1 } });
   const sl = carriedLight(new THREE.PointLight(L.weapon, 5 * glow.light, 10)); sl.position.y = 1.2; k.live(sl, hand);   // softer than before: cel bands blow out under a strong close light
 }
 

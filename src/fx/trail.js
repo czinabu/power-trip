@@ -349,7 +349,7 @@ function updateBladeFX(dt){
     const e = Math.max(0.02, ext < 1 ? 1 - Math.pow(1 - ext, 3) : 1);
     setBladeLen(B, len * e);
   } else if (B.blade.scale.y !== len && !isGunner()) setBladeLen(B, len);
-  const smear = 1 + Math.min(0.9, tipSpeed * 0.025);
+  const smear = 1 + Math.min(0.45, tipSpeed * 0.0125);   // (the glow sleeve is wide already: fx/blade-glow.js)
   const sx = B.glow.scale.x + (smear - B.glow.scale.x) * Math.min(1, dt * 18);
   B.glow.scale.x = B.glow.scale.z = sx;
 }

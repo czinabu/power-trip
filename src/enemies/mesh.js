@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { loft, limb, plate, block, shard, chamfer, ngon, gripHand, KEEL, SHIELD, HEAD } from '../player/model/shapes.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bakeDesign, instantiate } from './kit.js';
+import { bladeCoreGeo, bladeGlowGeo, BLADE_CORE } from '../fx/blade-glow.js';
 import { rounded } from '../player/model/skin.js';
 import { lookPool, lookKey, FOE_LOOKS } from '../data/foe-looks.js';
 import { buildSaberist, lookPalette } from './saberist.js';
@@ -596,8 +597,8 @@ export function weaponArm(k, t, w){
     k.add(loft([{ y:-0.12, w:0.05, d:0.05 }, { y:0.16, w:0.055, d:0.055 }], ngon(8, PI/8)), 'metal', sb, [0, 0.02, 0]);
     k.add(loft([{ y:0, w:0.065, d:0.065 }, { y:0.05, w:0.06, d:0.06 }], ngon(8, PI/8)), 'black', sb, [0, -0.14, 0]);
     k.add(block(0.03, 0.08, 0.03, 0.3), 'gun', sb, [0, 0.04, 0.045], [0,0,0], { outline: false });
-    k.glow(new THREE.CylinderGeometry(0.022, 0.016, 1.12, 8), 0xffffff, sb, [0, -0.72, 0]);
-    k.glow(new THREE.CylinderGeometry(0.06, 0.045, 1.16, 8), t.eye, sb, [0, -0.72, 0], [0,0,0], { opacity: 0.55, tag: 'bladeGlow', unique: true, trail: { hilt: 1 } });   // (a form master burns its form's colour: game/mission.js)
+    k.glow(bladeCoreGeo(0.022, 0.016, 1.12), BLADE_CORE, sb, [0, -0.72, 0]);   // (the blade's look: fx/blade-glow.js)
+    k.glow(bladeGlowGeo(0.06, 0.045, 1.16), t.eye, sb, [0, -0.72, 0], [0,0,0], { opacity: 0.55, blade: true, tag: 'bladeGlow', unique: true, trail: { hilt: 1 } });   // (a form master burns its form's colour: game/mission.js)
   } else if (t.weapon === 'pistol'){
     // a sidearm, its barrel down the line of the forearm (the arm levels it to fire)
     k.add(block(0.055, 0.3, 0.09, 0.3), 'gun', grip, [0, -0.17, 0.02]);

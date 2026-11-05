@@ -9,11 +9,11 @@ import { scene } from '../../engine/renderer.js';
 import { player } from '../../state.js';
 import { stance } from '../helpers.js';
 import { S } from '../../audio/sfx.js';
+import { bladeCoreGeo, bladeGlowGeo, bladeGlowMat, BLADE_CORE } from '../../fx/blade-glow.js';
 
 const flyer = new THREE.Group();
-const core = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.028, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-const halo = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 1.55, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+const core = new THREE.Mesh(bladeCoreGeo(0.04, 0.028, 1.5), new THREE.MeshBasicMaterial({ color: BLADE_CORE }));
+const halo = new THREE.Mesh(bladeGlowGeo(0.1, 0.08, 1.55), bladeGlowMat(0xffffff, 0.5));
 halo.userData.saberTrail = { hilt: -1 }; flyer.userData.trailAlways = true;   // a streak the whole flight (fx/trail.js)
 flyer.add(core, halo);
 flyer.visible = false;

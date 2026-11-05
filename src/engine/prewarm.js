@@ -17,6 +17,7 @@ import { ensureJudgeLines } from '../player/jedi/judgement-fx.js';
 import { shared, G } from '../state.js';
 import { holdLightCount } from '../fx/lights.js';
 import { seeThroughSpecimen } from '../world/charfade.js';
+import { BladeGlowMaterial } from '../fx/blade-glow.js';
 
 /* ---------- 1. SHADERS ----------
    three.js builds a shader program the first time a material variant is drawn, and again for every material when the
@@ -37,6 +38,7 @@ function buildSpecimens(){
     basic({ transparent: true, depthWrite: false, side: THREE.BackSide, toneMapped: false }),       // bolt ink outlines
     basic({ transparent: true, depthTest: false, toneMapped: false }),                              // squad tags
     new THREE.MeshStandardMaterial({ color: 0xb8c2cc, metalness: 0.6, roughness: 0.4 }),            // rockets, birds, thermal detonators
+    new BladeGlowMaterial({ opacity: 0.5 }),                                                         // every lightsaber's glow (fx/blade-glow.js)
   ];
   for (const m of mats) specimen(new THREE.Mesh(GEO, m));
   specimen(new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)),

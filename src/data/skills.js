@@ -6,6 +6,7 @@ import { G, player } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { MANDO_STORE, JEDI_STORE } from './store.js';
 import { storeStageOpen } from '../game/progression.js';
+import { JEDI_TREE, RANK_SKILLS } from './profile.js';
 
 /* ============================================================
    SKILL TREE — a tiered path. Tier I is open from the start; the powerful
@@ -18,7 +19,8 @@ export const TIER_REQ = { 1: 0, 2: 3, 3: 7 };   // total skill points spent to u
 // ...and in the story campaign, the chapter that must close first (game/flow.js chapterClosed): KNIGHT once Act I
 // is done, MASTER (the capstones) once Act II is, so no capstone lands in the middle of the story
 export const TIER_CHAPTER = { 2: 'trial-first', 3: 'mustafar' };
-export const TIER_NAME = { 1: 'PADAWAN', 2: 'KNIGHT', 3: 'MASTER' };
+// (the tiers' names stay clear of the hero's ranks, Padawan / Knight / Master: data/profile.js, which every hero shares)
+export const TIER_NAME = { 1: 'FOUNDATION', 2: 'DISCIPLINE', 3: 'CAPSTONE' };
 export const SKILLS = [
   // ---- TIER I — PADAWAN foundations, stackable ----
   { id:'vit',   ico:'✚', nm:'IRON LIFE',     tier:1, max:3, ds:'+20 max vitality &amp; heal',
@@ -54,9 +56,11 @@ export const SKILLS = [
     fl:'Become the tempest with a thousand edges.', apply(){ player.up.dmg *= 1.35; player.up.atkSpeed *= 1.2; } },
   { id:'ascend',ico:'✺', nm:'ASCENDANT',     tier:3, max:1, ds:'+70% Force regen · +20% knockback · restore Force',
     fl:'The Force has no bottom. Drink deeply.', apply(){ player.up.forceRegen *= 1.7; player.up.knock *= 1.2; player.force = CFG.player.maxForce; } },
+  // ---- THE FORCE TREE's own cards (data/profile.js): dealt only once your profile has learned them (game/profile.js) ----
+  ...JEDI_TREE,
 ];
 /* ---- MANDALORIAN creed — its own authentic upgrade path (clan, armor, jetpack, arsenal) ---- */
-export const TIER_NAME_MANDO = { 1: 'FOUNDLING', 2: 'VERD', 3: 'MANDALORE' };
+export const TIER_NAME_MANDO = TIER_NAME;   // (Foundling and Verd are the clan's ranks now: data/profile.js)
 export const MANDO_SKILLS = [
   // ---- TIER I — FOUNDLING: the basics of the Way ----
   { id:'plating', ico:'⛊', nm:'BESKAR PLATING',  tier:1, max:3, ds:'+20 max vitality &amp; repair',
@@ -93,6 +97,8 @@ export const MANDO_SKILLS = [
     fl:'Bring everything. Leave nothing.', apply(){ player.up.dmg *= 1.3; player.up.fireRate = (player.up.fireRate||1)*1.2; player.up.flameDmg = (player.up.flameDmg||1)*1.3; } },   // ordnance reads dmg × rocketDmg, so dmg alone covers it (it used to get ×1.69)
   { id:'marshal', ico:'✺', nm:'SKY MARSHAL',      tier:3, max:1, ds:'Jetpack barely sips fuel · +10% move speed · refuel now',
     fl:'They will look up, and they will fear.', apply(){ player.up.fuelEff = (player.up.fuelEff||1)*0.55; player.up.move *= 1.1; player.jet = player.jetMax; } },   // refuels the JETPACK (it used to refill gadget power instead)
+  // ---- the clan ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
+  ...RANK_SKILLS.mando,
   // NOTE: the Darksaber is NOT a skill-tree pick — it's one half of the wave-10 weapon FORK
   // (DISRUPTOR *or* DARKSABER, never both). See openMandoChoice().
 ];

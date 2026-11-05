@@ -49,13 +49,16 @@ check(await page.evaluate(() => !document.querySelector('[data-act="save"][data-
 await page.click('#savesclose');
 await page.click('#homeBtn'); await page.click('#homeYes');
 
-// NEW GAME wipes progress but keeps the slot
+// NEW GAME wipes progress but keeps the slot, and the hero's PROFILE (game/profile.js: rank, rank XP, Force Tree)
 await page.evaluate(() => localStorage.setItem('sw_camp_jedi', '1'));
+await page.evaluate(() => { GAME.PROFILE.profileOf('jedi').xp = 1234; GAME.PROFILE.setPath('sense'); });
+const profXp = () => page.evaluate(() => { GAME.PROFILE.reloadProfile(); const p = GAME.PROFILE.profileOf('jedi'); return p.xp === 1234 && p.path === 'sense'; });
 await page.$eval('#campNewBtn', el => el.click()); await shot('04-new-confirm');
 await page.click('#newYes');
 await page.click('#trainNo');   // a fresh start offers the training grounds first, as on a first run
 await playing();
 check(await page.evaluate(() => GAME.G.levelIdx === 0 && GAME.G.xp === 0 && localStorage.getItem('sw_camp_jedi') === null && !!localStorage.getItem('sw_save_0')), 'new game starts fresh and keeps the save');
+check(await profXp(), 'new game keeps the profile');
 
 // LOAD from the pause screen → menu shows CONTINUE CAMPAIGN → back on level 2 with the build
 await pause();
@@ -70,6 +73,7 @@ await page.click('#goText');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
 await playing();
 check(await page.evaluate(() => GAME.G.levelIdx === 1 && GAME.G.xp === 777 && GAME.player.up.dmg === 1.5 && GAME.G.unlocked.flame), 'continued on level 2 with the saved build');
+check(await profXp(), 'loading a slot keeps the profile (it is not part of a save)');
 
 // a STORY MISSION save loads back onto that mission
 await pause(); await page.click('#homeBtn'); await page.click('#homeYes');

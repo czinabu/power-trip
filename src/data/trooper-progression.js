@@ -14,6 +14,7 @@ import { addSquadmate, squadSize } from '../allies/squad.js';
 import { SQUAD } from './allies.js';
 import { TROOPER } from './trooper.js';
 import { switchWeapon } from '../player/mando/weapons.js';
+import { RANK_SKILLS } from './profile.js';
 
 export const TROOPER_AUTO = [
   { key:'scan', stage:1, chapter:'siege', hud:'Q', name:'RECON SCAN',
@@ -84,4 +85,6 @@ export const TROOPER_SKILLS = [
     fl:'Suppress. Advance. Repeat.', apply(){ player.up.dmg *= 1.3; player.up.fireRate = (player.up.fireRate||1)*1.2; } },
   { id:'brothers',ico:'✺', nm:'BAND OF BROTHERS',  tier:3, max:1, ds:'Squadmates revive in a third of the time · each standing one adds 4% to your damage',
     fl:'No one gets left behind. Not again.', apply(){ player.up.reviveMul = (player.up.reviveMul || 1) * 0.33; player.up.brothers = 1; } },
+  // ---- the service ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
+  ...RANK_SKILLS.trooper,
 ];

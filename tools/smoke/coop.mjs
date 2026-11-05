@@ -76,7 +76,7 @@ try {
   const arm0 = await guest.evaluate(() => GAME.partnerInfo().armR);
   await host.evaluate(() => { try { GAME.tryAttack(); } catch(e){} });   // the host (Jedi) swings
   await guest.waitForFunction((a) => JSON.stringify(GAME.partnerInfo().armR) !== JSON.stringify(a), arm0, { timeout: 15000, polling: 250 });
-  if (await guest.evaluate(() => document.querySelector('.partnertag').textContent) !== 'KIT FISTO') throw new Error('the partner tag should carry their name');
+  if (await guest.evaluate(() => document.querySelector('.partnertag').textContent) !== 'KIT FISTO · PADAWAN') throw new Error('the partner tag should carry their name and rank');
   const hunted = await Promise.race([
     host.waitForFunction(() => GAME.partnerInfo().hunters > 0, null, { timeout: 25000, polling: 250 }).then(() => 'host'),
     guest.waitForFunction(() => GAME.partnerInfo().hunters > 0, null, { timeout: 25000, polling: 250 }).then(() => 'guest'),

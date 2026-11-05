@@ -25,11 +25,14 @@ import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { rollBoons, pickBoon } from '../game/boons.js';
+import { noteFork, treePath, inDeck } from '../game/profile.js';
+import { BRANCH } from '../data/profile.js';
 
 let progFreeCards = [];   // the 3 free-upgrade cards chosen for this visit (stable across re-renders)
 function rollFreeCards(){
   const SET = skillSet();
-  const pool = SET.filter(skillEligible);
+  // YOUR DECK (the profile page, set between runs): the hand deals from it, and only when it runs dry from the rest
+  const all = SET.filter(skillEligible), pool = all.filter(s => inDeck(s)), spare = all.filter(s => !inDeck(s));
   const pick = [];
   // SUSTAIN CHOICE must be VISIBLE the same wave as its store counterpart (Bacta Stim / Force Mend), not just
   // eligible. Pass 58 synced the two `avail()` gates to the same wave stage, but the skill-tree offer is a random
@@ -40,7 +43,7 @@ function rollFreeCards(){
   const sustainId = isGunner() ? 'creed' : 'vamp';
   const sustainIdx = pool.findIndex(s => s.id === sustainId);
   if (sustainIdx >= 0){ pick.push(pool[sustainIdx]); pool.splice(sustainIdx, 1); }
-  // NEWEST TIER GUARANTEED — one card always comes from the highest tier you've opened, so a fresh KNIGHT or
+  // NEWEST TIER GUARANTEED — one card always comes from the highest tier you've opened, so a fresh DISCIPLINE or
   // MASTER tier shows up the visit it unlocks instead of hiding behind random Padawan draws.
   pool.sort(() => Math.random() - 0.5);
   const top = Math.max(0, ...pool.map(s => s.tier));
@@ -48,7 +51,15 @@ function rollFreeCards(){
     const i = pool.findIndex(s => s.tier === top);
     if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
   }
+  // YOUR PATH (the Force Tree, ui/profile-ui.js): the Jedi's chosen branch always has a card in the hand, when it has one to deal
+  const path = !isGunner() && treePath(), onPath = (s) => (s.branch || BRANCH[s.id]) === path;
+  if (path && pick.length < 3 && !pick.some(onPath)){
+    const i = pool.findIndex(onPath);
+    if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
+  }
   while (pick.length < 3 && pool.length) pick.push(pool.shift());
+  spare.sort(() => Math.random() - 0.5);
+  while (pick.length < 3 && spare.length) pick.push(spare.shift());
   pick.sort((a, b) => a.tier - b.tier);
   progFreeCards = pick;
 }
@@ -214,7 +225,7 @@ export function renderProgress(){
   const wrap = document.getElementById('skillcards');
   wrap.innerHTML = '';
   document.getElementById('freehdr').textContent = isTrooper() ? 'GAR TRAINING' : mando ? 'WEAPON UPGRADES' : 'TRAINING';
-  // what training opens next — "KNIGHT opens after 1 more" — so the tier gate reads as a goal, not a mystery
+  // what training opens next — "DISCIPLINE opens after 1 more" — so the tier gate reads as a goal, not a mystery
   const spent = G.skillSpent || 0, nextT = [2, 3].find(t => spent < TIER_REQ[t] || !tierStoryOpen(t));
   const gate = !nextT ? '' : !tierStoryOpen(nextT) ? ' · ' + tierName(nextT) + ' opens in Act ' + (TIER_CHAPTER[nextT] === 'mustafar' ? 'III' : 'II')
     : ' · ' + tierName(nextT) + ' opens after ' + (TIER_REQ[nextT] - spent) + ' more';
@@ -229,7 +240,7 @@ export function renderProgress(){
     const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
     const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO SKILL POINTS';
     wrap.appendChild(card({
-      cls: ' skill t' + s.tier, tag: tierName(s.tier) + (s.tier === 3 ? ' · CAPSTONE' : ''),
+      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : '') + (inDeck(s) ? '' : ' · NOT IN YOUR DECK'),
       ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
       extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
       cost: '1 SKILL POINT', costCls: 'c-pick',
@@ -246,6 +257,7 @@ function buyStore(n){
   if (!G.skillSelect || !storeAvail(n) || (G.xp||0) < cost) return;
   G.xp -= cost;
   n.buy();
+  if (n.fork) noteFork(n.fork, n.id);   // (the side taken, shown on the Force Tree: game/profile.js)
   storeAbilityCard(n);
   if (isGunner()) syncMandoChips(); else syncJediChips();
   document.getElementById('xpval').textContent = G.xp;

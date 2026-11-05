@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="/styles/menus.css">
 <link rel="stylesheet" href="/styles/store.css">
 <link rel="stylesheet" href="/styles/codex.css">
+<link rel="stylesheet" href="/styles/profile.css">
 </head>
 <body class="in-menu">
 <!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
@@ -250,9 +251,9 @@
         <ul id="herobio" class="hd"></ul>
         <div class="sec-label">DIFFICULTY</div>
         <div id="diffselect">
-          <div class="modeopt brk" id="diff-padawan"><span class="mt">PADAWAN</span><span class="md">Forgiving</span></div>
-          <div class="modeopt brk sel" id="diff-knight"><span class="mt">KNIGHT</span><span class="md">As intended</span></div>
-          <div class="modeopt brk" id="diff-master"><span class="mt">MASTER</span><span class="md">Brutal</span></div>
+          <div class="modeopt brk" id="diff-padawan"><span class="mt">GENTLE</span><span class="md">Forgiving</span></div>
+          <div class="modeopt brk sel" id="diff-knight"><span class="mt">STANDARD</span><span class="md">As intended</span></div>
+          <div class="modeopt brk" id="diff-master"><span class="mt">BRUTAL</span><span class="md">No mercy</span></div>
         </div>
         <div id="campsaves">
           <div class="btn" id="campNewBtn">NEW GAME</div>
@@ -299,6 +300,7 @@
       <div class="btn" id="settoggle">SETTINGS</div>
       <div class="btn" id="ctltoggle">CONTROLS</div>
       <div class="btn" id="cxtoggle">CODEX<span class="cx-badge"></span></div>
+      <div class="btn" id="pfBtn">PROFILE<span class="pf-badge">NEW</span></div>
       <div class="btn" id="coopBtn">CO-OP</div>
       <div class="btn" id="rmtoggle">ROADMAP</div>
     </div>
@@ -310,7 +312,7 @@
       </div>
     </div>
     <div id="newconfirm">
-      <div class="hc-q">Start a new game? Wins, unlocks and bests start over. Your save slots are kept.</div>
+      <div class="hc-q">Start a new game? Wins, unlocks and bests start over. Your save slots and your rank are kept.</div>
       <div class="hc-row">
         <div class="btn" id="newYes">START OVER</div>
         <div class="btn" id="newNo">CANCEL</div>
@@ -359,7 +361,7 @@
           <div class="setpill" id="strafectl" title="TOGGLE: press ALT (tap LB) to start strafing, again to stop. HOLD: strafe only while ALT (LB) is held">STRAFE<span class="setval" id="strafeval">TOGGLE</span><span class="gfxhint">ALT</span></div>
           <div class="setpill" id="cutaimctl" title="MOUSE: flick the mouse the way you want the blade to travel just before you cut. KEYS: the movement keys pick the cut">CUT AIM<span class="setval" id="cutaimval">KEYS</span></div>
           <div class="setpill" id="assistctl" title="A light aim assist for the saber, cut by cut: put the crosshair on a foe and your cut turns a little toward it and lunges at it. It never holds a lock or moves the view. LOW (default), NORMAL (a wider pull), or OFF: every cut goes exactly where you face">SABER ASSIST<span class="setval" id="assistval">LOW</span></div>
-          <div class="setpill" id="guardringctl" title="The ring beside a duellist on the side its guard covers. The blade shows it too: FADING (default) shows the ring while you learn and fades it as you win duels (always on Padawan, never on Master). ALWAYS keeps it. OFF: read the blade">GUARD RINGS<span class="setval" id="guardringval">FADING</span></div>
+          <div class="setpill" id="guardringctl" title="The ring beside a duellist on the side its guard covers. The blade shows it too: FADING (default) shows the ring while you learn and fades it as you win duels (always on Gentle, never on Brutal). ALWAYS keeps it. OFF: read the blade">GUARD RINGS<span class="setval" id="guardringval">FADING</span></div>
           <div class="setpill" id="aimhintctl" title="ON: the Jedi's crosshair turns red when it is on a foe. OFF: it stays white, read the fight yourself">AIM HINT<span class="setval" id="aimhintval">ON</span></div>
           <div class="setpill" id="swingctl" title="Mirror which way your directional saber cuts sweep">SWING<span class="setval" id="swingval">NORMAL</span></div>
           <div class="setpill" id="gripctl" title="The saber grip, for a form that lets you choose: regular or reverse">GRIP<span class="setval" id="gripval">REGULAR</span><span class="gfxhint">G</span></div>
@@ -413,6 +415,7 @@
     </div>
   </div>
   <div id="codex"></div>   <!-- the codex: everyone met, foe or friend (ui/codex-ui.js) -->
+  <div id="profile"></div>   <!-- your hero's rank and the Force Tree (ui/profile-ui.js) -->
   <div id="forms"></div>   <!-- the lightsaber forms: before the fight and on pause (ui/forms-ui.js) -->
 </div>
 <div id="boonstrip"></div>

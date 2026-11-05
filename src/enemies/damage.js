@@ -64,7 +64,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.state === 'stasis') dmg *= 1.5;   // frozen targets shatter harder
   if (e.state === 'stagger') dmg *= 1.5;  // a parried, stumbling foe is wide open
   // an OPENING: caught recovering from its own swing, a well placed blow lands harder (data/duel.js DUEL.open)
-  else if (!tick && !byAlly && knockDir && dmg > 0 && !e.converted && G.gt < (e.openUntil || 0)){
+  // (not a bolt burning a body held up as a shield: held in the grasp, it is recovering from nothing)
+  else if (!tick && !byAlly && knockDir && dmg > 0 && !e.converted && !(opts && opts.bodyShield) && G.gt < (e.openUntil || 0)){
     dmg *= DUEL.open.dmg;
     if (e.openShown !== e.openUntil){ e.openShown = e.openUntil; floater(V3(e.group.position.x, e.group.position.y + 1.9, e.group.position.z), 'OPENING', '#ffe27a'); }
   }

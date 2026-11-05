@@ -7,8 +7,8 @@ import { SABER_GUARDS, DUAL_GUARDS, SABER_SWINGS, SWING_STYLE, SWING_OFF, SABER_
 import { AIR_GUARDS } from '../../data/agility.js';
 import { CUT_ANGLE } from '../../data/stances.js';
 import { DIM } from '../model/rig.js';
-import { solveArm, aimHeld, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
-import { STAFF } from '../model/weapons.js';
+import { solveArm, holdAim, gripAt, pointInChest, wristInChest, axisInChest, slerpDir, arcLerp } from './ik.js';
+import { STAFF, HILT_TURN, fistAt } from '../model/weapons.js';
 import { SWING_WEIGHT } from '../../data/swing-weight.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -650,15 +650,18 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   R.chest.rotation.y = saberPose.twist;
   const staff = !!(r && r.userData.staff);
   keepClear(_ch.copy(saberPose.hand), _cd.copy(saberPose.blade), staff);
-  solveArm(R.armR, _ch, saberPose.pole);
-  R.armR.wr.updateWorldMatrix(true, false);
-  // REVERSE-GRIP WRIST: the blade leaves the pinky side of the fist, so it can lie back along the forearm or stand
-  // square off it, but never run on out past the knuckles (that reads as a punch-dagger). Whatever the pose asked for,
-  // the part of the blade pointing on along the forearm is taken off, so every reverse cut, catch, flip and blend
-  // between them hooks the blade out from the fist with the fist leading. Scaled by how far the hilt has turned over.
-  const rev = r ? 1 - Math.abs(r.rotation.x) / Math.PI : 0;
-  if (rev > 0.01 && reverseWrist(R, _cd, rev)) keepClear(_ch, _cd, staff);
-  aimHeld(R.chest, R.armR.wr, held.node, bladeAxis(held, _ax), _cd, 0.4);
+  // the weapon arm: the fist (the hilt's hold) on the pose's hand point, the wrist turned to aim the blade
+  const rest = held.node.userData.restQ || IDQ;
+  gripAt(R, R.armR, _ch, saberPose.pole, held.node.position, () => {
+    // REVERSE-GRIP WRIST: the blade leaves the pinky side of the fist, so it can lie back along the forearm or stand
+    // square off it, but never run on out past the knuckles (that reads as a punch-dagger). Whatever the pose asked for,
+    // the part of the blade pointing on along the forearm is taken off, so every reverse cut, catch, flip and blend
+    // between them hooks the blade out from the fist with the fist leading. Scaled by how far the hilt has turned over.
+    const rev = r ? 1 - Math.abs(r.rotation.x) / Math.PI : 0;
+    _aim.copy(_cd);
+    if (rev > 0.01 && reverseWrist(R, _aim, rev)) keepClear(_t.copy(_ch), _aim, staff);
+    holdAim(R.chest, R.armR.wr, held.node, bladeAxis(held, _ax), _aim, rest);
+  });
   if (!offFree) return;
   // off hand: blend between its own target and the pommel end of the hilt (on the saber staff, its own grip further
   // down the long hilt: model/weapons.js STAFF.off)
@@ -678,16 +681,31 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
     }
     _mb.copy(saberPose.offBlade);
     keepClear(_t, _mb);   // (the body column is symmetric: the same test keeps the off blade out of it)
-    solveArm(R.armL, _t, _p);
-    R.armL.wr.updateWorldMatrix(true, false);
-    const orev = orr ? 1 - Math.abs(orr.rotation.x) / Math.PI : 0;   // a reversed off saber hooks out from the fist like the main one
-    if (orev > 0.01 && reverseWrist(R, _mb, orev, R.armL, -1)) keepClear(_t, _mb);
-    aimHeld(R.chest, R.armL.wr, held.off.node, bladeAxis({ root: held.off.root }, _ax), _mb, 0.4);
+    const on = held.off.node;
+    gripAt(R, R.armL, _t, _p, on.position, () => {
+      const orev = orr ? 1 - Math.abs(orr.rotation.x) / Math.PI : 0;   // a reversed off saber hooks out from the fist like the main one
+      _aim.copy(_mb);
+      if (orev > 0.01 && reverseWrist(R, _aim, orev, R.armL, -1)) keepClear(_s.copy(_t), _aim);
+      holdAim(R.chest, R.armL.wr, on, bladeAxis({ root: orr }, _ax), _aim, on.userData.restQ || IDQ);
+    });
     return;
   }
-  solveArm(R.armL, _t, _p);
-  R.armL.wr.quaternion.identity();
+  /* TWO HANDS ON ONE HILT: the off fist closes on the grip below the main one, the same way round (its thumb toward
+     the blade too), so both hands wrap the hilt instead of the off wrist resting against it. Its turn and its reach
+     onto the hilt fade in with `two`; a free off hand hangs open from a straight wrist. */
+  const two = saberPose.two;
+  if (two < 0.01){ solveArm(R.armL, _t, _p); R.armL.wr.quaternion.identity(); return; }
+  axisInChest(R.chest, held.node, bladeAxis(held, _ax), _bd);
+  if (staff) _bd.negate();   // (on the staff the off hand faces the far blade: the two fists hold the hilt as a pole)
+  gripAt(R, R.armL, _t, _p, OFF_FIST, () => {
+    holdAim(R.chest, R.armL.wr, null, _ax.copy(Y).applyQuaternion(OFF_FLIP), _bd, OFF_REST_Q);
+    if (two < 0.99) R.armL.wr.quaternion.slerp(IDQ, 1 - two);
+  }, two);
 }
+const _aim = new THREE.Vector3(), _bd = new THREE.Vector3();
+// the off hand's fist on the main hilt: FIST mirrored, and the hilt laid through it as in the main hand (model/weapons.js)
+const OFF_FIST = new THREE.Vector3(...fistAt(-1));
+const OFF_REST_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(...HILT_TURN)), OFF_FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
 
 /* JAR'KAI'S FOLLOW-UP — the off hand swings the SAME cut as the main hand, the same way across the body (a cut to the
    left takes both blades left), on a parallel arc shifted across to the off side, a beat behind: wind-up from wherever

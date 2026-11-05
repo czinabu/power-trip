@@ -18,12 +18,21 @@ import { startHandoff } from '../anim/handoff.js';
 import { buildHilt } from './hilt.js';
 
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
-const GRIP_Y = -0.04;   // where the fist closes, below the wrist joint
+/* THE FIST — where a closed hand holds what it grips, in the wrist joint's frame (the right hand; the left mirrors x): the
+   hollow the curled fingers close round, below the palm and to its inner side (model/jedi.js hand). Every hand-held
+   weapon mounts its grip HERE, not on the wrist joint, so a hilt or a blaster's grip passes through the fingers, and
+   anything that turns it (the pose's aim, a flourish, a blade kept out of the body) turns it about the fist. */
+export const FIST = [-0.035, -0.1, 0];
+export const fistAt = (side = 1) => [FIST[0] * side, FIST[1], FIST[2]];
+/* A HILT IN THE FIST runs across the hand, through the curled fingers: the regular blade leaves the thumb side (the hand's
+   +z) leaning a little on toward the knuckles, as a hammer grip holds a sword, and the reverse blade leaves the little
+   finger's side. (The saber's built blade runs down its root's −y, flipped for the regular grip: see applySaberGrip.) */
+export const HILT_TURN = [-1.31, 0, 0];
 export const SABER_LIGHT = 8, DARK_LIGHT = 6;   // the blade PointLights at full, in a dark arena (scaled by glow.light)
 
 export const WEAPON_MODELS = {
   saber: {
-    hold: 'saber-1h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [0.25, 0, -0.4] },
+    hold: 'saber-1h', socket: 'handR', grip: { pos: FIST, rot: HILT_TURN },
     // hilt: the workbench's parts (look.jedi.hilt: model/hilt.js), so every saber the hero carries is the one they built
     build(S, hilt){
       const g = new THREE.Group(), root = new THREE.Group(); g.add(root);   // root flips for the regular grip (see applySaberGrip)
@@ -61,7 +70,7 @@ export const WEAPON_MODELS = {
   },
 
   pistol: {
-    hold: 'pistol', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] },   // pre-tilted so the raised aim pose points at the reticle
+    hold: 'pistol', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] },   // pre-tilted so the raised aim pose points at the reticle
     build(S){
       const g = new THREE.Group();
       S.add(block(0.05, 0.15, 0.068, 0.3), 'gunDark', g, [0, -0.02, 0], [0.34, 0, 0]);
@@ -77,7 +86,7 @@ export const WEAPON_MODELS = {
   },
 
   disruptor: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.96],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.96],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.06, 0.1, 0.18, 0.3), 'gunDark', g, [0, 0.06, -0.14]);
@@ -96,7 +105,7 @@ export const WEAPON_MODELS = {
   // PULSE CARBINE — a compact shouldered carbine: boxy receiver, short shrouded barrel, a power cell under the grip,
   // folding stock and a reflex sight. Muzzle at z 0.74 (muzzle below).
   carbine: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.76],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.76],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.05, 0.08, 0.26, 0.3), 'gunDark', g, [0, 0.07, -0.2]);                     // stock
@@ -116,7 +125,7 @@ export const WEAPON_MODELS = {
   // DC-15A BLASTER RIFLE — the clone trooper's: a long slim barrel in a vented shroud, a boxy receiver with the power
   // pack slotted in its left side, a scope riding the top, a skeletal stock and a white grip panel. Muzzle at z 0.95.
   dc15: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.97],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.11, 0.97],
     build(S){
       const g = new THREE.Group();
       // the stock: a skeletal frame, its butt plate and the struts back to the receiver
@@ -180,7 +189,7 @@ export const WEAPON_MODELS = {
   // HEAVY REPEATER — a squat, heavy gun: a fat receiver with heat-sink fins, a drum cell slung underneath, a carry
   // handle, and a three-barrel cluster that SPINS with the spin-up (the `spinner` hook, turned in anim). Muzzle at z 0.86.
   repeater: {
-    hold: 'rifle-2h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [1.15, 0, 0] }, muzzle: [0, 0.1, 0.88],
+    hold: 'rifle-2h', socket: 'handR', grip: { pos: FIST, rot: [1.15, 0, 0] }, muzzle: [0, 0.1, 0.88],
     build(S){
       const g = new THREE.Group();
       S.add(block(0.09, 0.14, 0.42, 0.3), 'gunMetal', g, [0, 0.1, 0.1]);                     // receiver
@@ -204,7 +213,7 @@ export const WEAPON_MODELS = {
   },
 
   darksaber: {
-    hold: 'saber-1h', socket: 'handR', grip: { pos: [0, GRIP_Y, 0], rot: [0.25, 0, -0.4] },
+    hold: 'saber-1h', socket: 'handR', grip: { pos: FIST, rot: [Math.PI + HILT_TURN[0], 0, 0] },   // (its blade runs up +y: the hilt turned end for end)
     build(S){
       const g = new THREE.Group();
       S.add(loft([{ y:-0.14, w:0.07, d:0.07 }, { y:0.12, w:0.082, d:0.082 }, { y:0.14, w:0.07, d:0.07 }], ngon(8, Math.PI/8)), S.mat('gunDark', { c: 0x0c0d11 }), g);
@@ -269,10 +278,11 @@ function mountOffSaber(R, S, player, hilt){
   w.light.parent.remove(w.light);
   w.blade.material = player.blade.blade.material;
   w.glow.material = player.blade.glow.material;
-  w.group.position.set(0, GRIP_Y, 0);
-  w.group.rotation.set(0.25, 0, 0.4);
+  w.group.position.set(...fistAt(-1));
+  w.group.rotation.set(...HILT_TURN);
   w.group.userData.weapon = { id: 'saberOff', hold: 'saber-1h' };
   w.group.userData.restQ = w.group.quaternion.clone();
+  w.group.userData.restP = w.group.position.clone();
   w.group.visible = false;
   R.sockets.handL.add(w.group);
   player.offSaber = { node: w.group, root: w.bladeRoot, blade: w.blade, glow: w.glow };
@@ -304,7 +314,7 @@ export function syncOffSaber(hero, allowed = true){
   }
   if (O.node.parent !== hero.rig?.sockets?.handL && hero.rig?.sockets?.handL){   // (back from the belt: into the off hand)
     const from = O.node.parent, p = O.node.position.clone(), q = O.node.quaternion.clone();
-    hero.rig.sockets.handL.add(O.node); O.node.position.set(0, GRIP_Y, 0); O.node.quaternion.copy(O.node.userData.restQ);
+    hero.rig.sockets.handL.add(O.node); O.node.position.set(...fistAt(-1)); O.node.quaternion.copy(O.node.userData.restQ);
     if (from && (hero.reach || hero._reachHold)) startHandoff(O.node, from, p, q);   // (the off hand took it off the belt with the reach: anim/handoff.js)
   }
   if (!O.node.visible) return;
@@ -330,9 +340,11 @@ export function mountWeapon(R, S, id, socket, opts){
   const def = WEAPON_MODELS[id];
   const w = def.build(S, opts);
   w.group.position.set(...def.grip.pos);
+  if ((socket || def.socket) === 'handL') w.group.position.x *= -1;   // (the left fist: FIST mirrored)
   w.group.rotation.set(...def.grip.rot);
   w.group.userData.weapon = { id, hold: def.hold };
   w.group.userData.restQ = w.group.quaternion.clone();   // the mount grip, for poses that hand the weapon back
+  w.group.userData.restP = w.group.position.clone();   // (and where the fist holds it: FIST, mirrored in the left hand)
   R.sockets[socket || def.socket].add(w.group);
   return w;
 }
@@ -372,6 +384,7 @@ function mountLongGuns(R, S, player){
   mount.position.set(...def.grip.pos); mount.rotation.set(...def.grip.rot);
   mount.userData.weapon = { id: 'long', hold: 'rifle-2h' };
   mount.userData.restQ = mount.quaternion.clone();
+  mount.userData.restP = mount.position.clone();
   R.sockets[def.socket].add(mount);
   player.longGuns = {};
   for (const id of LONG_GUNS){

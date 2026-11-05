@@ -70,7 +70,7 @@ export const COVERT_WINGS = {
     doors: { n: 'forge' },
     spawn: [0, -27, 0],
     stations: [
-      { id: 'ship', x: 0, z: -11, name: 'THE SHIP', act: 'ship', r: 4 },
+      { id: 'ship', x: -5, z: -9, name: 'THE SHIP', act: 'ship', r: 4 },
       { id: 'board', x: -20, z: -12, name: 'BOUNTY BOARD', act: 'bounties' },
       { id: 'console', x: 10, z: -28, name: 'COVERT MAP', act: 'travel' },
     ],

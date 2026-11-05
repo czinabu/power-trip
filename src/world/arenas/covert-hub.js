@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import { shared, solids } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
-import { buildGunship } from './outpost.js';
+import { toon, inkify } from '../ink.js';
 import { COVERT_WINGS } from '../../data/hub-covert.js';
 import { SIDE_OUT } from '../../data/hub.js';
 
@@ -567,24 +567,21 @@ function hangar(L, K, pal, R, M){
   for (const sx of [-1, 1]) pic(K.deco(new THREE.BoxGeometry(26, 1.2, 64), M.metal, sx * 44, Wh + 2.6, 4, 0, 0, sx * 0.08));
   for (const sx of [-1, 1]) for (let z = -24; z <= 32; z += 8) pic(K.deco(new THREE.BoxGeometry(26.4, 1.4, 0.6), M.beskar, sx * 44, Wh + 2.6, z, 0, 0, sx * 0.08));
   pic(K.deco(new THREE.BoxGeometry(1.4, 1.4, 34), M.metalD, -30, Wh + 1, -4));
-  pic(K.deco(new THREE.BoxGeometry(30, 1.2, 1.2), std(0xd9a43a, 0.6, 0.4), -15, Wh + 2, -4));
-  pic(K.deco(new THREE.CylinderGeometry(0.06, 0.06, Wh - 6, 4), M.metalD, -2, Wh / 2 + 4, -4));
-  pic(K.deco(new THREE.BoxGeometry(1.6, 0.8, 1.6), M.metalD, -2, 7.6, -4));
-  // the LIFT PAD and the clan's SHIP on it, ramp down toward the door
-  const PZ = 1;
-  K.box(0, PZ, 9.5, 8.5, 0.2, M.metalD, { climbable: true });
-  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.35, 0.04, 16.6), std(0xd9a43a, 0.6, 0.4), sx * 9.1, 0.21, PZ);
-  for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(18.6, 0.04, 0.35), std(0xd9a43a, 0.6, 0.4), 0, 0.21, PZ + sz * 8.1);
+  pic(K.deco(new THREE.BoxGeometry(16, 1.2, 1.2), std(0xd9a43a, 0.6, 0.4), -22, Wh + 2, -4));
+  pic(K.deco(new THREE.CylinderGeometry(0.06, 0.06, Wh - 6, 4), M.metalD, -16, Wh / 2 + 4, -4));
+  pic(K.deco(new THREE.BoxGeometry(1.6, 0.8, 1.6), M.metalD, -16, 7.6, -4));
+  // the LIFT PAD and the clan's SHIP on it, set at an angle, ramp down toward the way in
+  const PX = 2, PZ = 4;
+  K.box(PX, PZ, 12, 13, 0.2, M.metalD, { climbable: true });
+  for (const sx of [-1, 1]) K.deco(new THREE.BoxGeometry(0.35, 0.04, 25.6), std(0xd9a43a, 0.6, 0.4), PX + sx * 11.6, 0.21, PZ);
+  for (const sz of [-1, 1]) K.deco(new THREE.BoxGeometry(23.6, 0.04, 0.35), std(0xd9a43a, 0.6, 0.4), PX, 0.21, PZ + sz * 12.6);
+  live(K.deco(new THREE.RingGeometry(9.2, 9.6, 48), glowM(AMBER, 0.35), PX, 0.22, PZ, -PI / 2));
   for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]){
-    const l = live(K.deco(new THREE.SphereGeometry(0.22, 8, 6), glowM(AMBER), sx * 9.3, 0.4, PZ + sz * 8.3));
+    const l = live(K.deco(new THREE.SphereGeometry(0.22, 8, 6), glowM(AMBER), PX + sx * 11.8, 0.4, PZ + sz * 12.8));
     anim(l, (o, t) => { o.scale.setScalar(0.7 + (Math.sin(t * 3 + sx + sz * 2) > 0 ? 0.5 : 0)); });
   }
   shared.refugeShip = null;
-  // (built at its story size, then scaled up to fill the pad: its collision scaled the same way round its middle)
-  { const SZ = PZ + 2, k = 1.45, ship = buildGunship(0, SZ, { hull: pal.hull ?? 0x6e7a70, dark: pal.metalD ?? 0x30343a, stripe: pal.stripe ?? 0xd9a43a });
-    ship.group.scale.setScalar(k);
-    // (the ramp's three steps keep their heights, so it's still a walk up: only spread out under the bigger ramp)
-    for (const b of ship.solids){ b.x *= k; b.z = SZ + (b.z - SZ) * k; b.hx *= k; b.hz *= k; if (!b.climbable){ b.h *= k; if (b.y0) b.y0 *= k; } } }
+  huntersShip(PX, PZ + 1, 0.6, pal);
   // fuel and cargo: tanks, crates stacked to climb, a cart of tools
   for (const [x, z] of [[-24, 20], [-18, 26]]){
     K.column(x, z, 1.6, 4.4, M.metal, { seg: 12, taper: 1 });
@@ -597,7 +594,7 @@ function hangar(L, K, pal, R, M){
   }
   K.gantry(24, 20, { a: M.metalD, b: M.metal, strut: std(0xd9a43a, 0.6, 0.4), beacon: AMBER }, [1, 1]);
   // a fuel line and a power cable snaking to the pad
-  for (const [x0, z0, x1, z1] of [[-22, 18, -9.5, 4], [24, -12, 9.5, -2]]){
+  for (const [x0, z0, x1, z1] of [[-22, 18, -10, 10], [24, -12, 14, -6]]){
     const len = Math.hypot(x1 - x0, z1 - z0);
     K.deco(new THREE.BoxGeometry(0.28, 0.18, len), M.metalD, (x0 + x1) / 2, 0.09, (z0 + z1) / 2, 0, Math.atan2(x1 - x0, z1 - z0)).userData.passThrough = true;
   }
@@ -619,4 +616,93 @@ function hangar(L, K, pal, R, M){
     live(K.deco(new THREE.CircleGeometry(3.4, 20), holoM(0xffd8a0, 0.06), x, 0.03, z, -PI / 2));
   }
   mapConsole(K, pal, 10, -28, 0.5);
+}
+
+/* THE CLAN'S SHIP: a heavy hunter's gunship of the clan's own make. A wedge of a hull with a raised cockpit, inverted
+   gull wings with an engine at each tip, a main thruster in the tail, a swept fin, twin cannons under the chin, and
+   the belly ramp lowered at the back with the hold lit. Nose toward local +z; `ry` turns it. Toon-shaded and inked
+   like the heroes, with collision as a chain of columns down the hull (the ramp is three climbable steps). */
+function huntersShip(x, z, ry, pal){
+  const g = new THREE.Group(); g.userData.noBake = true; g.position.set(x, 0, z); g.rotation.y = ry; shared.arenaGroup.add(g);
+  const hull = toon(pal.hull ?? 0x8a8e84), hullD = toon(0x6a6e68), dark = toon(pal.metalD ?? 0x30343a), bes = toon(0xc0c6cc);
+  const paint = toon(0xb0542a), glass = toon(0x1e2a36, { emissive: 0x2a4a60, ei: 0.35 });
+  const jet = new THREE.MeshBasicMaterial({ color: 0x8ad8ff, toneMapped: false }), hot = new THREE.MeshBasicMaterial({ color: 0xffd8a0 });
+  const part = (geo, m, px, py, pz, rx = 0, ryy = 0, rz = 0, ink = 0.05) => {
+    const mesh = new THREE.Mesh(geo, m); mesh.position.set(px, py, pz); mesh.rotation.set(rx, ryy, rz);
+    mesh.castShadow = true; mesh.receiveShadow = true; g.add(mesh); if (ink) inkify(mesh, ink); return mesh;
+  };
+  // a side profile (y up, along z), extruded across x with a rounded bevel
+  const side = (pts, w, bevel) => {
+    const sh = new THREE.Shape(); sh.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) sh.lineTo(pts[i][0], pts[i][1]);
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, steps: 1 });
+    geo.translate(0, 0, -w / 2); geo.rotateY(-PI / 2);   // (the profile's x runs along +z, the extrusion across x)
+    return geo;
+  };
+  // the HULL: flat belly, a long nose sweeping down to a point, the spine rising to the cockpit and running back level
+  part(side([[-8.6, 1.7], [5.5, 1.7], [10.8, 2.5], [11.4, 2.9], [10.2, 3.5], [6.2, 4.3], [3.4, 5.0], [-6.5, 5.0], [-10.2, 4.3], [-10.2, 2.7]], 4.2, 0.7), hull, 0, 0, 0);
+  // the spine plates and the clan's paint: a band down each flank, swept up at the nose
+  part(side([[-9.6, 4.2], [3.2, 4.2], [6.0, 3.6], [9.8, 2.9], [10.6, 2.75], [9.4, 3.3], [5.8, 4.05], [3.0, 4.6], [-9.6, 4.6]], 4.3, 0.72), paint, 0, 0, 0, 0);
+  part(new THREE.BoxGeometry(3.2, 0.5, 9.0), hullD, 0, 5.9, -2.2);
+  for (const pz of [-6, -3.5, -1, 1.5]) part(new THREE.BoxGeometry(3.4, 0.14, 0.18), dark, 0, 6.16, pz, 0, 0, 0, 0);   // panel seams
+  // the COCKPIT: a raised canopy on the hump, framed in beskar
+  part(side([[3.0, 5.4], [6.4, 4.5], [7.0, 4.25], [6.2, 4.95], [4.6, 5.9], [3.0, 6.0]], 2.4, 0.35), glass, 0, 0, 0);
+  part(new THREE.BoxGeometry(0.16, 1.4, 3.8), bes, 0, 5.45, 4.9, -0.36);
+  // the WINGS: inverted gulls, up from the flanks then down to an engine at each tip
+  for (const sx of [-1, 1]){
+    // (the left wing is drawn mirrored, its points the other way round, so its faces still point out)
+    const wing = (len, w0, w1, sweep) => { const P = [[0, -w0 / 2], [len, -w1 / 2 - sweep], [len, w1 / 2 - sweep], [0, w0 / 2]].map(([a, b]) => [a * sx, b]);
+      if (sx < 0) P.reverse(); const sh = new THREE.Shape(); sh.moveTo(...P[0]); for (const q of P.slice(1)) sh.lineTo(...q);
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.44, bevelEnabled: true, bevelThickness: 0.14, bevelSize: 0.14, bevelSegments: 2 }); geo.rotateX(PI / 2); geo.translate(0, 0.22, 0); return geo; };
+    part(wing(3.4, 7.2, 5.4, 1.2), hull, sx * 2.6, 3.4, -2.4, 0, 0, sx * 0.42);
+    const ox = sx * (2.6 + 3.4 * Math.cos(0.42)), oy = 3.4 + 3.4 * Math.sin(0.42);
+    part(wing(3.2, 5.4, 3.8, 1.0), hullD, ox, oy, -3.4, 0, 0, sx * -0.62);
+    part(new THREE.BoxGeometry(0.2, 0.06, 3.0), paint, ox + sx * 0.4, oy + 0.4, -3.4, 0, 0, sx * -0.62, 0);
+    // the wingtip ENGINE: a long nacelle, a beskar intake ring, the nozzle glowing
+    const ex = ox + sx * 3.2 * Math.cos(0.62), ey = oy - 3.2 * Math.sin(0.62), ez = -4.6;
+    part(new THREE.CylinderGeometry(1.0, 1.15, 6.4, 14), dark, ex, ey, ez, PI / 2);
+    part(new THREE.CylinderGeometry(1.12, 1.12, 1.4, 14), hull, ex, ey, ez + 1.2, PI / 2);   // a painted collar
+    part(new THREE.TorusGeometry(0.95, 0.14, 8, 18), toon(0x6a7078), ex, ey, ez + 3.2);
+    part(new THREE.CylinderGeometry(1.2, 1.05, 0.7, 14), hullD, ex, ey, ez - 2.7, PI / 2);
+    part(new THREE.CylinderGeometry(0.75, 0.75, 0.2, 14), dark, ex, ey, ez - 3.05, PI / 2, 0, 0, 0);
+    const noz = new THREE.Mesh(new THREE.CircleGeometry(0.6, 16), jet); noz.position.set(ex, ey, ez - 3.16); noz.rotation.y = PI; g.add(noz);
+    part(new THREE.ConeGeometry(0.45, 1.0, 10), dark, ex, ey, ez + 3.6, PI / 2);
+    // a landing leg under each wing root
+    part(new THREE.CylinderGeometry(0.18, 0.22, 1.9, 6), dark, sx * 2.4, 0.95, -6.0);
+    part(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 8), dark, sx * 2.4, 0.1, -6.0);
+  }
+  part(new THREE.CylinderGeometry(0.2, 0.24, 1.9, 6), dark, 0, 0.95, 7.5);   // the nose leg
+  part(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 8), dark, 0, 0.1, 7.5);
+  // the FIN: swept back off the tail, the clan's mark in paint on it
+  { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(-3.2, 3.6); sh.lineTo(-4.6, 3.6); sh.lineTo(-3.6, 0);
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.36, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 1 });
+    geo.translate(0, 0, -0.18); geo.rotateY(-PI / 2); part(geo, hull, 0, 5.5, -5.2);
+    part(new THREE.RingGeometry(0.42, 0.62, 16), paint, 0.3, 7.3, -8.6, 0, PI / 2, 0, 0);
+    part(new THREE.RingGeometry(0.42, 0.62, 16), paint, -0.3, 7.3, -8.6, 0, -PI / 2, 0, 0); }
+  // the MAIN THRUSTER in the tail, a pair of nozzles glowing
+  part(side([[-11.6, 2.7], [-10.4, 2.4], [-10.4, 4.5], [-11.6, 4.1]], 3.6, 0.4), dark, 0, 0, 0);   // the tail cowl, narrowing aft
+  for (const sx of [-1, 0, 1]){
+    part(new THREE.CylinderGeometry(0.58, 0.68, 0.7, 14), toon(0x6a7078), sx * 1.3, 3.4, -12.2, PI / 2);
+    const n = new THREE.Mesh(new THREE.CircleGeometry(0.42, 16), jet); n.position.set(sx * 1.3, 3.4, -12.56); n.rotation.y = PI; g.add(n);
+  }
+  for (const sx of [-1, 1]) part(new THREE.BoxGeometry(0.3, 2.6, 2.2), hullD, sx * 2.2, 3.3, -11.0);   // the cowl's cheeks
+  // twin CANNONS under the chin
+  for (const sx of [-1, 1]){
+    part(new THREE.CylinderGeometry(0.16, 0.16, 3.0, 8), dark, sx * 0.8, 1.55, 9.4, PI / 2);
+    part(new THREE.BoxGeometry(0.6, 0.6, 1.2), hullD, sx * 0.8, 1.6, 7.6);
+  }
+  // the RAMP: hinged at the back of the belly, lowered to the ground, the hold lit warm beyond it
+  const B = 1.1, RL = 4.6, ang = Math.asin((B - 0.25) / RL);
+  const ramp = new THREE.Group(); ramp.position.set(0, B, -8.2); ramp.rotation.x = -ang; g.add(ramp);
+  { const rm = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.18, RL), dark); rm.position.z = -RL / 2; rm.castShadow = true; inkify(rm, 0.05); ramp.add(rm);
+    for (let k = 0; k < 6; k++){ const r = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 0.12), bes); r.position.set(0, 0.11, -0.5 - k * 0.7); ramp.add(r); } }
+  const hold = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), hot); hold.position.set(0, 0.98, -9.5); hold.rotation.x = PI / 2; g.add(hold);   // the open hatch in the belly, lit
+  // collision: columns down the hull, the engines, the ramp's steps (all turned with the ship)
+  const c = Math.cos(ry), s = Math.sin(ry), at = (lx, lz) => [x + lx * c + lz * s, z - lx * s + lz * c];
+  for (const [lz, r, h] of [[-8.6, 2.4, 5.2], [-4.6, 2.6, 5.6], [-0.4, 2.6, 5.6], [3.6, 2.5, 5.6], [7.4, 1.9, 4.0], [10.0, 1.1, 3.0]]){ const [px, pz] = at(0, lz); solids.push({ x: px, z: pz, r, h }); }
+  for (const sx of [-1, 1]){
+    const ex = sx * (2.6 + 3.4 * Math.cos(0.42) + 3.2 * Math.cos(0.62));
+    for (const lz of [-6.8, -4.6, -2.4]){ const [px, pz] = at(ex, lz); solids.push({ x: px, z: pz, r: 1.15, y0: 1.6, h: 4.1 }); }
+  }
+  for (let k = 0; k < 3; k++){ const lz = -8.2 - RL * Math.cos(ang) * (k + 0.5) / 3, [px, pz] = at(0, lz); solids.push({ x: px, z: pz, r: 1.3, h: 0.2 + (B - 0.2) * (1 - (k + 0.5) / 3), climbable: true }); }
+  return g;
 }

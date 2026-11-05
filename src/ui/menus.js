@@ -38,6 +38,7 @@ import { autosave } from '../game/autosave.js';
 import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
+import { loadInto } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
@@ -161,18 +162,29 @@ function beginPlay(){
   if (G.modeSel === 'mission' && !G.coopJoin && !missionOpen(G.missionId)) G.modeSel = 'campaign';   // a locked mission never launches
   if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked())) G.modeSel = 'campaign';   // safety — never launch a locked mode
   if (G.mode === 'victory' && !repick && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
+  // a new run (or a retry) builds its level behind the loading screen (ui/loading.js): the screen paints first, then the
+  // build, which holds the page for a moment. The sim stays held until it's in; backing out to the menu meanwhile skips it
+  const from = G.mode, stillWanted = () => G.mode === from && overlay.style.display !== 'flex';
   if (G.mode === 'menu' || G.mode === 'victory'){
-    G.mode = 'play'; G.slowmo = 1;
-    if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
-    else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
-    else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
+    G.paused = true;
+    loadInto(() => {
+      G.mode = 'play'; G.slowmo = 1;
+      if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
+      else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
+      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
+      G.paused = false;   // unfreeze the sim on entering play
+    }, stillWanted);
   } else if (G.mode === 'dead'){
-    G.mode = 'play'; G.slowmo = 1;
-    if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
-  } else if (G.mode === 'play'){
-    overlay.style.display = 'none';  // resume from pause
+    G.paused = true;
+    loadInto(() => {
+      G.mode = 'play'; G.slowmo = 1;
+      if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
+      G.paused = false;
+    }, stillWanted);
+  } else {
+    if (G.mode === 'play') overlay.style.display = 'none';  // resume from pause
+    G.paused = false;   // unfreeze the sim on (re)entering play
   }
-  G.paused = false;   // unfreeze the sim on (re)entering play
 }
 // hero picker — select only (don't ignite); the player clicks elsewhere / GO to launch
 document.getElementById('hero-jedi').addEventListener('click', (e) => { e.stopPropagation(); setHero('jedi'); heroPicked(); });
@@ -622,7 +634,7 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 // RESTART RUN — wipe progress and drop back into level 1 from scratch
-function restartRun(toTraining){
+function restartRun(toTraining, after){
   overlay.style.display = 'none';
   _endPick = null; overlay.classList.remove('vpicking');
   document.getElementById('restartBtn').style.display = 'none';
@@ -632,7 +644,13 @@ function restartRun(toTraining){
   G.mode = 'play'; G.slowmo = 1; G.paused = false;
   document.body.classList.remove('in-menu'); setHowTo(false); setSettings(false);
   closeCard(true);
-  if (toTraining) startTutorial(); else if (G.chapter >= 0) startCampaign(); else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+  // the fresh level builds behind the loading screen (ui/loading.js), the old one held still under it
+  G.paused = true;
+  loadInto(() => {
+    G.paused = false;
+    if (toTraining) startTutorial(); else if (G.chapter >= 0) startCampaign(); else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+    if (after) after();
+  });
   if (!shared.lockFallback) requestLock();
 }
 document.getElementById('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); restartRun(); });
@@ -642,8 +660,7 @@ setTrainHook((formId) => {
   G.resumeRun = captureRun();   // (saved at the chapter's close: the trial stays won, game/saves.js resumeRun)
   trainOnForm(formId);
   setModeSel('training');
-  restartRun(true);
-  autosave('training from the story');   // the autosave keeps the run as it left, so a reload doesn't replay the trial
+  restartRun(true, () => autosave('training from the story'));   // the autosave keeps the run as it left, so a reload doesn't replay the trial
 });
 // the lesson board's RETURN TO STORY (game/tutorial.js): straight back into the waiting run, as CONTINUE CAMPAIGN would
 setStoryReturn({

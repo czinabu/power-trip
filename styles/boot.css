@@ -7,6 +7,9 @@ body:not(.booted) #overlay,body:not(.booted) #hud{visibility:hidden}
   color:var(--ink,#e8f4ff);font-family:var(--font-display,'Barlow Condensed','Arial Narrow',sans-serif);
   transition:opacity .55s ease;cursor:default}
 #boot.out{opacity:0;pointer-events:none}
+#boot[hidden]{display:none}   /* between loads (ui/loading.js brings it back for each mode) */
+/* back for a mode's build: all there at once, no rise-in, since the build holds the page and would freeze it half-risen */
+#boot.again .bt-title,#boot.again .bt-saber,#boot.again .bt-status{animation:none}
 #boot .bt-title{margin:0;font:700 clamp(46px,9vw,104px)/1 var(--font-display,'Barlow Condensed','Arial Narrow',sans-serif);
   letter-spacing:.09em;padding-left:.09em;text-shadow:0 0 28px rgba(92,198,255,.28);
   animation:bt-rise 1s cubic-bezier(.2,.8,.2,1) both}

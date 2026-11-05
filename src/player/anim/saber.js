@@ -250,6 +250,8 @@ function depth(p){
   if (q < 1e-4) _n.set(0, 0, 1); else _n.set(p.x / (rx * rx), 0, p.z / (rz * rz)).normalize();
   return (1 - q) * Math.min(rx, rz);
 }
+// (the same test for anyone else keeping a blade out of the body: anim/bladeclear.js) — the depth, with the way out in `out`
+export function bodyDepth(p, out){ const d = depth(p); if (d > 0) out.copy(_n); return d; }
 /* `far`: the saber staff's second blade, which leaves the far end of the hilt the other way (STAFF.end below the fist,
    as long as the first): it is kept out of the body too, the staff turning about the fist to clear whichever end is in. */
 const FAR_LEN = STAFF.end + 1.3;

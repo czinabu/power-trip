@@ -1209,16 +1209,18 @@ body.wb-open #overlay{background:none}
 .wb-tray header i{font:500 11px/1 var(--wb-mono);font-style:normal;color:var(--wb-amber)}
 .wb-tray h3{margin:0;font:600 12px/1 var(--wb-mono);letter-spacing:2.5px;color:var(--wb-ink)}
 .wb-tray p{margin:6px 0 4px;color:var(--wb-faint);font-size:11px}
-.wb-parts{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
-.wb-part{display:grid;grid-template-columns:1fr auto;gap:1px 8px;padding:6px 0 6px 9px;cursor:pointer;border-left:2px solid transparent;border-bottom:1px solid #1a1a19}
+.wb-parts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wb-part{display:grid;grid-template-columns:1fr auto;gap:1px 8px;padding:7px 9px;cursor:pointer;border:1px solid #2a2927;border-radius:2px;transition:border-color .12s}
 .wb-part b{display:flex;align-items:center;gap:6px;font:500 12px/1.2 var(--wb-mono);letter-spacing:.5px;color:var(--wb-soft)}
 .wb-part em{font:500 10px/1.2 var(--wb-mono);font-style:normal;letter-spacing:1px;color:var(--wb-faint);align-self:center}
 .wb-part span{grid-column:1/-1;font-size:10.5px;line-height:1.35;color:var(--wb-faint)}
+.wb-part:hover{border-color:#4a4843}
 .wb-part:hover b{color:var(--wb-ink)}
-.wb-part.on{border-left-color:var(--wb-amber)}
+.wb-part.on{border-color:var(--wb-amber);box-shadow:inset 0 0 0 1px var(--wb-amber)}
 .wb-part.on b{color:var(--wb-ink);font-weight:600}
 .wb-part.on em{color:var(--wb-amber)}
-.wb-part.shut{cursor:default}
+.wb-part.shut{cursor:default;border-style:dashed;border-color:#232220}
+.wb-part.shut:hover{border-color:#232220}
 .wb-part.shut b{color:var(--wb-faint)}
 .wb-part.shut span{color:#57544d}
 .wb-sw{flex:none;width:8px;height:8px;background:var(--c)}

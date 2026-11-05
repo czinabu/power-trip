@@ -120,10 +120,10 @@ import { updateComms, clearComms, commsBusy, storyBeat, comms } from './game/sto
 import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
-import { updateHub, startHub, goWing } from './game/hub.js';
+import { updateHub, startHub, goWing, curHub } from './game/hub.js';
 import { updateSecrets, secretsPlaced } from './game/secrets.js';
 import './ui/hub-ui.js';
-import { HUB_WINGS } from './data/hub.js';
+import { HUBS, ALL_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
 import { updateDoorway, doorState } from './world/doorway.js';
@@ -295,11 +295,11 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
   refuge: MISSIONS.refuge.level, pursuit: MISSIONS.pursuit.level, prison: byLayout('prison'), pens: MISSIONS.pens.level, jedhaNight: MISSIONS['jedha-night'].level,
   hangar: byLayout('hangar'), approach: MISSIONS['strike-exegol'].level,
   outpost: { ...LEVELS[0], layout: 'outpost', arena: 60 }, covert: MISSIONS.covert.level,   // (the Mando's story: data/campaign-mando.js)
-  jungle: MISSIONS.order66.level, shipyard: { ...LEVELS[0], layout: 'shipyard', arena: 64 }, garrison: MISSIONS.killhouse.level, frigate: MISSIONS.chipfiles.level,   // (the ARC trooper's story: data/campaign-trooper.js)
+  jungle: MISSIONS.order66.level, shipyard: { ...LEVELS[0], layout: 'shipyard', arena: 84 }, garrison: MISSIONS.killhouse.level, frigate: MISSIONS.chipfiles.level,   // (the ARC trooper's story: data/campaign-trooper.js)
   kamino: MISSIONS.drowned.level, chipworks: MISSIONS.chipworks.level, warcamp: MISSIONS.warcamp.level, canyon: MISSIONS.hunt.level, relay: MISSIONS.broadcast.level,
   barge: MISSIONS.gallows.level, holdfast: MISSIONS.holdfast.level, citadel: { ...LEVELS[2], layout: 'citadel', arena: 64 },
   meltworks: MISSIONS.meltworks.level, ironroad: MISSIONS['iron-road'].level,
-  ...Object.fromEntries(Object.values(HUB_WINGS).map(W => [W.level.layout, W.level])),   // the hidden temple's wings (data/hub.js)
+  ...Object.fromEntries(ALL_WINGS.map(({ W }) => [W.level.layout, W.level])),   // every hub's wings: the temple's, the citadel's… (data/hub.js)
   grassland: BATTLE_MAPS.grassland.level, icefront: BATTLE_MAPS.icefront.level, graveyard: BATTLE_MAPS.graveyard.level,
 }) });
 import { arcadeContract, arcadeBoard, missionById } from './data/arcade.js';
@@ -311,4 +311,11 @@ import { duelOf as bubbleDuelOf } from './enemies/bubble.js';
 import { BUBBLE as BUBBLE_CFG } from './data/duel-bubble.js';
 import { localPlayer as bubbleHero } from './player/players.js';
 Object.assign(window.GAME, { bubble: { cfg: BUBBLE_CFG, duelOf: bubbleDuelOf, get on(){ return !!bubbleDuelOf(bubbleHero); } } });   // the duel bubble (enemies/bubble.js), for tests
-Object.assign(window.GAME, { hub: { startHub, goWing, wings: HUB_WINGS } });   // the hidden temple (game/hub.js), for tests and shots
+/* the ARC trooper's cover fight (player/trooper/cover.js, enemies/coverfight.js), for tests and tools/trooper-sim */
+import * as TROOPER_COVER from './player/trooper/cover.js';
+import * as COVER_FIGHT from './enemies/coverfight.js';
+import { TROOPER_STORE, TROOPER_SKILLS } from './data/trooper-progression.js';
+import { clearSquad } from './allies/squad.js';
+Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
+window.GAME.squad.clearSquad = clearSquad;
+Object.assign(window.GAME, { hub: { startHub, goWing, hubs: HUBS, get wings(){ return curHub().wings; }, get id(){ return GAME.G.hubId; } } });   // the hubs (game/hub.js), for tests and shots: wings are the current hub's

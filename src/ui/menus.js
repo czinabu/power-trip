@@ -43,7 +43,8 @@ import { loadInto } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
-import { startHub, setPartyHooks } from '../game/hub.js';
+import { startHub, setPartyHooks, curHub, hubIdFor } from '../game/hub.js';
+import { HUBS } from '../data/hub.js';
 // the temple's station panel (ui/hub-ui.js registers its closer: it imports this file, so this one can't import it)
 let closeHubPanel = () => {};
 export function setHubPanelCloser(fn){ closeHubPanel = fn; }
@@ -81,7 +82,19 @@ function refreshNextRun(){
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
-const beginLabel = () => G.modeSel === 'temple' ? 'ENTER THE TEMPLE' : G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
+// the hub's name wherever the menus say it: the mode tile, the way back from a run, the co-op join button
+function hubWords(){
+  const next = nextHub(), back = G.fromHub && G.hubId ? HUBS[G.hubId] || next : next;
+  const tile = document.getElementById('mode-temple');
+  tile.querySelector('.mt').textContent = next.name; tile.querySelector('.md').textContent = next.tile;
+  document.getElementById('templeBtn').textContent = 'RETURN TO ' + back.home;
+  document.getElementById('stepTemple').textContent = '‹ ' + back.home.replace(/^THE /, '');
+  document.getElementById('coopjointemple').textContent = 'JOIN THEM IN ' + next.home;
+  if (_step === 'hero' && G.modeSel === 'temple') document.getElementById('stepMode').textContent = next.name;
+}
+// the hub the temple tile goes into: the picked hero's (or, for a co-op guest, the host's: game/hub.js hubIdFor)
+const nextHub = () => HUBS[hubIdFor()];
+const beginLabel = () => G.modeSel === 'temple' ? 'ENTER ' + nextHub().home : G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
 /* THE TITLE SCREEN'S TWO STEPS — 'mode' (pick a mode: CAMPAIGN, MISSIONS, CO-OP...) and then 'hero' (the hero, the
    difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
 let _step = 'mode';
@@ -99,6 +112,7 @@ export function setOverlayState(state){
   if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
   if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
   _ovState = state;
+  hubWords();
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming');
   overlay.classList.add('st-' + state);
   document.body.classList.toggle('in-menu', state === 'menu');
@@ -123,10 +137,10 @@ export function setOverlayState(state){
     go.textContent = 'BEGIN'; sub.textContent = 'CHOOSE YOUR LEGEND';
   } else if (state === 'menu'){
     go.textContent = beginLabel();
-    sub.textContent = G.modeSel === 'temple' ? 'TYTHON · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
+    sub.textContent = G.modeSel === 'temple' ? nextHub().place + ' · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
-    const where = G.hub ? 'THE HIDDEN TEMPLE · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
+    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
@@ -176,7 +190,7 @@ function beginPlay(){
     G.paused = true;
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
-      if (G.modeSel === 'temple'){ startHub(G.hubWing || 'hall'); G.paused = false; return; }   // the hidden temple, the hub (game/hub.js)
+      if (G.modeSel === 'temple'){ startHub(G.hubWing); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
       G.hub = false;
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
@@ -241,7 +255,7 @@ export function setModeSel(m){
   for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile();
-  document.getElementById('stepMode').textContent = STEP_NAME[m] || 'CAMPAIGN';
+  document.getElementById('stepMode').textContent = m === 'temple' ? nextHub().name : STEP_NAME[m] || 'CAMPAIGN';
   refreshPicks();   // headline + button follow the mode
   return true;
 }

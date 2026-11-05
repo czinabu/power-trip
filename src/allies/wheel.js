@@ -4,7 +4,6 @@
 // whole squad; right click (B) or Esc puts the wheel away. A quick tap of H skips the wheel: the smart order
 // (allies/squad.js squadOrder). The orders and timings are data/allies.js ORDERS and COMMAND.
 
-import { talkTap } from '../game/talk.js';
 import { G, player, isTrooper } from '../state.js';
 import { ordersFor, COMMAND } from '../data/allies.js';
 import { orderCost, commandPoints } from '../player/trooper/command.js';
@@ -14,14 +13,11 @@ import { sfx } from '../audio/sfx.js';
 const W = { down: false, downAt: 0, open: false, x: 0, y: 0, sel: -1, who: null };
 let el = null;
 export const wheelOpen = () => W.open;
-import { tryInteract } from '../engine/interact.js';
 
 /* ---------- INPUT (engine/input.js and engine/gamepad.js hand these in) ---------- */
 export function wheelKeyDown(){
   if (G.mode !== 'play' || player.downed || W.down) return;
-  // something to use right here (a temple station, a holocron, a meditation spot: engine/interact.js) takes the press;
-  // the temple has no squad, so there the press is never an order
-  if (tryInteract() || G.hub) return;
+  if (G.hub) return;   // the temple has no squad (its stations open on F: game/interact.js)
   W.down = true; W.downAt = performance.now(); W.who = null; W.x = W.y = 0; W.sel = -1;
 }
 export function wheelKeyUp(){
@@ -31,7 +27,7 @@ export function wheelKeyUp(){
     const sel = W.sel, who = W.who;
     close();
     if (sel >= 0) giveOrder(list()[sel].id, who);
-  } else if (G.mode === 'play' && !talkTap()) squadOrder();   // a tap: the smart order (or, by someone on your side in a lull, talk to them: game/talk.js)
+  } else if (G.mode === 'play') squadOrder();   // a tap: the smart order (talking to someone is F: game/interact.js)
 }
 // the mouse while the wheel is open points at an order instead of turning the camera
 export function wheelLook(dx, dy){

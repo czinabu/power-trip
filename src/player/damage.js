@@ -11,6 +11,7 @@ import { V3, rand, clamp, TMP } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater, screenFlash } from '../fx/floaters.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
+import { trooperHurtMul } from './trooper/cover.js';
 import { MANDO } from '../data/mando.js';
 import { fwd, playerPos, stance, maxHp } from './helpers.js';
 import { flinchEnemy, staggerEnemy } from '../enemies/damage.js';
@@ -297,6 +298,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   }
   if (open && !silent && !chip){ player.gbT = 0; }   // the next hit lands in full: the window closes on it
   dmg *= (1 - (player.up.dr || 0));   // UNSTOPPABLE damage reduction
+  if (!chip) dmg *= trooperHurtMul(fromPos, melee);   // THE ARC TROOPER: thin plate in the open, the face soaking it in cover (trooper/cover.js)
   if (player.boon && player.boon.adrenal && player.hp < maxHp()*0.35) dmg *= 0.75;   // ADRENALINE boon — tougher when cornered
   // DJEM SO: armored commitment mid-swing, and a HEAVY cut is HYPER-ARMOURED: it soaks far more and nothing knocks it loose
   const hyper = player.atkT > 0 && !isGunner() && !!stance().heavyArmor && !!(player.swing && player.swing.heavy);

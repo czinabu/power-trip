@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// The temple's STATION PANEL (game/hub.js): tap H at a station and its panel opens over the temple, holding the game still
+// The hub's STATION PANEL (the temple's, the citadel's…) (game/hub.js): tap F at a station and its panel opens over the temple, holding the game still
 // and freeing the cursor the way the sandbox panel does. Each station lists what it does: the Temple Map and the waystones
 // travel to any wing (and show who is where in co-op), the Council Table launches the modes, the Training Wing's stations
 // the training grounds, the sandbox and survival, the Archives the codex, your profile and the mission records, the Saber
@@ -8,8 +8,7 @@
 import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
-import { HUB_WINGS, HUB_ORDER } from '../data/hub.js';
-import { setStationOpener, goWing, hubWing, runLabel } from '../game/hub.js';
+import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub.js';
 import { hubLaunch, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
@@ -47,16 +46,16 @@ const B = (t, d, go, lock) => ({ t, d, go, lock });
 function options(s){
   const G_ = G;
   switch (s.act){
-    case 'travel': return HUB_ORDER.map(id => {
-      const W = HUB_WINGS[id], here = id === G_.hubWing;
-      const who = partnerWorlds().filter(p => p.world === 'hub:' + id).map(p => p.name);
+    case 'travel': { const Hb = curHub(); return Hb.order.map(id => {
+      const W = Hb.wings[id], here = id === G_.hubWing;
+      const who = partnerWorlds().filter(p => p.world === 'hub:' + G_.hubId + ':' + id).map(p => p.name);
       return B(W.name, (here ? 'YOU ARE HERE' : W.blurb) + (who.length ? ' · ' + who.join(', ') : ''), here ? null : () => goWing(id));
-    });
+    }); }
     case 'council': {
       if (guest()){
         const list = [];
         if (coopRun.on) list.push(B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()));
-        list.push(B('THE HOST CHOOSES', 'In a party the host picks the mission at this table, and everyone in the temple goes with them.', null));
+        list.push(B('THE HOST CHOOSES', 'In a party the host picks the mission at this table, and everyone in ' + curHub().home.toLowerCase() + ' goes with them.', null));
         return list;
       }
       const sv = survivalUnlocked();
@@ -76,6 +75,19 @@ function options(s){
         const d = q.blurb.charAt(0).toUpperCase() + q.blurb.slice(1) + '. ' + q.place + ' · ' + (won ? 'DONE · ' : '') + q.reward;
         return B(q.title + (won ? '  ✓' : ''), lock ? q.place : d, guest() ? null : () => hubLaunch('mission', id), lock);
       }).concat(guest() ? [B('THE HOST CHOOSES', 'In a party the host picks the side mission, and everyone in the temple goes with them.', null)] : []);
+    }
+    // the covert's hangar (data/hub-covert.js): the ship takes you out on the hunt, the bounty board deals a job
+    case 'ship': case 'bounties': {
+      if (guest()) return options({ act: 'council' });
+      if (s.act === 'bounties') return [
+        B('TAKE A BOUNTY', 'A random job off the board, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
+        B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
+      ];
+      return [
+        B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        B('ARCADE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
+        B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
+      ];
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
@@ -99,7 +111,7 @@ function render(){
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
-    '<div class="hb-d">' + (station.act === 'travel' ? 'Travel to any wing of the temple.' : station.act === 'quests' ? 'Side missions: the galaxy\'s calls for help, answered on the story\'s own worlds. The Council trusts you with more as your rank rises.' : W.blurb) + '</div>' + partyLine +
+    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb) + '</div>' + partyLine +
     '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;

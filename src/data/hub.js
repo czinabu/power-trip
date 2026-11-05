@@ -1,24 +1,34 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN TEMPLE ON TYTHON: the hub. Five wings, each its own room (world/arenas/tython.js builds them, data/worlds.js
-// HUB_WORLDS colours them), joined by great doors: walk through one and the wing beyond loads, so only one wing is ever in
-// memory (phones and co-op hosts stay smooth). game/hub.js runs it, ui/hub-ui.js draws the station panels. Edit freely.
+// THE HUBS: where every run starts and comes back to, one per hero. The Jedi walks the hidden temple on Tython, the ARC
+// trooper the clone citadel on Kamino, the Mando the hidden covert round its great forge (more can join HUBS below). Co-op loads the HOST's hero's hub for the whole party
+// (game/hub.js hubIdFor). Each hub is a set of wings, each its own room (its world/arenas/ builder, data/worlds.js
+// HUB_WORLDS colours it), joined by great doors: walk through one and the wing beyond loads, so only one wing is ever in
+// memory (phones and co-op hosts stay smooth). game/hub.js runs them, ui/hub-ui.js draws the station panels. Edit freely.
 //
 // Sides: n is −z (the way the hero faces on arrival), s is +z, e is +x, w is −x. A door on a side stands in the middle
-// of that wall; walking into it takes you to the wing it names, arriving at that wing's door back.
+// of that wall; walking into it takes you to the wing it names (in the same hub), arriving at that wing's door back.
+//
+// A HUB: { name, place, home (what "RETURN TO …" says), tile (the title screen's line), travel (the map panel's line),
+//   room (what the HUD calls a room: 'WING', 'DECK'…), start, order (the map's list), wings }
+// A WING: its level (what buildArena reads: each hub's layouts share a prefix, world/arena.js hands them to its builder),
+//   its doors and its stations. A station's `act` is what tapping F at it does (ui/hub-ui.js options): x, z in metres
+//   from the wing's middle. The acts: travel, council (every mode), training, sparring (sandbox), proving (survival),
+//   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner).
+
+import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
+import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
 
 export const HUB = {
-  start: 'hall',
   doorHalf: 5.5,   // metres either side of a door's middle that count as walking through it
   doorReach: 1.8,  // ...within this of the edge
 };
 
-/* each wing: its level (what buildArena reads), its doors and its stations. A station's `act` is what tapping H at it
-   does (game/hub.js STATION_ACTS): its panel lists `opts`. x, z in metres from the wing's middle */
-export const HUB_WINGS = {
+/* THE HIDDEN TEMPLE ON TYTHON: the Jedi's hub (world/arenas/tython.js builds its ty* wings) */
+const TEMPLE_WINGS = {
   hall: {
     name: 'THE GRAND HALL', short: 'GRAND HALL',
     blurb: 'The heart of the temple: every wing opens off it, and every journey starts here. Calls for aid from across the galaxy reach the stone by the door.',
-    level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap H.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
+    level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap F.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
     doors: { n: 'council', e: 'training', w: 'archives', s: 'forge' },
     spawn: [0, 30, Math.PI],
     stations: [
@@ -75,11 +85,32 @@ export const HUB_WINGS = {
     ],
   },
 };
-export const HUB_ORDER = ['hall', 'council', 'training', 'archives', 'forge'];
+
+export const HUBS = {
+  temple: { name: 'THE HIDDEN TEMPLE', place: 'TYTHON', home: 'THE TEMPLE', room: 'WING',
+    tile: 'Walk the temple on Tython, gather your party and pick a mission together',
+    travel: 'Travel to any wing of the temple.',
+    start: 'hall', order: ['hall', 'council', 'training', 'archives', 'forge'], wings: TEMPLE_WINGS },
+  kamino: { name: 'THE CLONE CITADEL', place: 'KAMINO', home: 'THE CITADEL', room: 'DECK',
+    tile: 'Walk the cloning citadel on Kamino, gather your squad and pick a mission together',
+    travel: 'Travel to any deck of the citadel.',
+    start: 'deck', order: ['deck', 'warroom', 'range', 'halls', 'armory'], wings: KAMINO_WINGS },
+  covert: { name: 'THE HIDDEN COVERT', place: 'UNDER THE RUINS', home: 'THE COVERT', room: 'HALL',
+    tile: 'Walk the clan\'s covert round its great forge, gather your party and pick a job together',
+    travel: 'Travel to any hall of the covert.',
+    start: 'forge', order: COVERT_ORDER, wings: COVERT_WINGS },
+};
+// which hub each hero calls home (a hero without one of their own uses the temple)
+export const HERO_HUB = { jedi: 'temple', trooper: 'kamino', mando: 'covert' };
+export const hubOf = (hero) => HUBS[HERO_HUB[hero]] ? HERO_HUB[hero] : 'temple';
+// every wing of every hub, for registering their levels and finding a wing by its layout
+export const ALL_WINGS = Object.entries(HUBS).flatMap(([hub, H]) => Object.entries(H.wings).map(([id, W]) => ({ hub, id, W })));
+export const wingByLayout = (layout) => ALL_WINGS.find(w => w.W.level.layout === layout) || null;
+
 
 // the side a door to `to` stands on in wing `from`
-export function doorSide(from, to){
-  const d = HUB_WINGS[from] && HUB_WINGS[from].doors;
+export function doorSide(wings, from, to){
+  const d = wings[from] && wings[from].doors;
   for (const k in d || {}) if (d[k] === to) return k;
   return null;
 }

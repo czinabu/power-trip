@@ -40,6 +40,21 @@ export function segBlockedBySolids(ax, az, bx, bz){
   return null;
 }
 
+// ...the same, counting only solids whose top stands at least `minTop` high (m): what hides a body crouched behind a crate
+// (low cover) and what only hides its legs (a crate it stands up over). The ARC trooper's cover fight uses it (enemies/coverfight.js)
+export function segBlockedTall(ax, az, bx, bz, minTop){
+  const dx = bx - ax, dz = bz - az, len2 = dx*dx + dz*dz || 1;
+  for (const c of solids){
+    if (c.climbable || c.y0 || c.h < minTop) continue;
+    let t = ((c.x - ax)*dx + (c.z - az)*dz) / len2; t = clamp(t, 0, 1);
+    const px = ax + dx*t, pz = az + dz*t;
+    if (c.box){
+      if (px > c.x - c.hx - 0.3 && px < c.x + c.hx + 0.3 && pz > c.z - c.hz - 0.3 && pz < c.z + c.hz + 0.3) return c;
+    } else if (Math.hypot(px - c.x, pz - c.z) < c.r + 0.3) return c;
+  }
+  return null;
+}
+
 // lim: the player's own limit in a walled room (up to its walls' faces), instead of a metre inside the edge
 export function clampToArena(pos, vel, enemy, lim){
   const h = lim || shared.arenaHalf - 1, hz = lim || shared.arenaHalfZ - 1;
@@ -144,7 +159,7 @@ export function solidAt(x, y, z){
 // machine blocks and Plains' ruins both farSpot into that radius too), and none of those placement loops know to
 // avoid the spawn point itself — only each other. Rather than patch every builder's random ranges individually,
 // check the ACTUAL solids after the arena is built and relocate the spawn if it landed inside/against one.
-function spotBlocked(x, z, margin){
+export function spotBlocked(x, z, margin){
   for (const c of solids){
     if (c.mound || c.y0) continue;   // a body can stand on a hill, or under a slab
     if (c.box){

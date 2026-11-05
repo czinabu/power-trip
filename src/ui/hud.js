@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updateHud(): per-frame HUD refresh.
 
+import { HUBS } from '../data/hub.js';
 import { fragCharges, fragMax, rifleMods } from '../player/trooper/kit.js';
 const MOD_TAG = { burst: 'BURST', auto: 'AUTO', marksman: 'SCOPE' };
 import { TROOPER } from '../data/trooper.js';
@@ -249,7 +250,8 @@ export function updateHud(){
       (o.frac != null ? '<span class="wi-bar"><i style="width:' + (clamp(o.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : ''));
   } else if (G.hub){
     const wing = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim();
-    setHtml($('waveinfo'), '<span class="wi-l">THE HIDDEN TEMPLE · TYTHON</span><span class="wi-w">' + wing + '</span><span class="wi-h">H AT A STATION · WALK THROUGH A DOOR TO ANOTHER WING</span>');
+    const Hb = HUBS[G.hubId] || HUBS.temple;   // (data/hub.js: the temple, the citadel…)
+    setHtml($('waveinfo'), '<span class="wi-l">' + Hb.name + ' · ' + Hb.place + '</span><span class="wi-w">' + wing + '</span><span class="wi-h">F AT A STATION · WALK THROUGH A DOOR TO ANOTHER ' + Hb.room + '</span>');
   } else if (G.sandbox){
     const room = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || (isGunner() ? 'THE THRONE ROOM' : 'THE TRAINING ROOM')).trim();   // the room, or the battle map picked
     setHtml($('waveinfo'), '<span class="wi-l">SANDBOX · ' + room + '</span><span class="wi-w">PRESS B FOR FOES &amp; POWERS</span>' + hostiles +

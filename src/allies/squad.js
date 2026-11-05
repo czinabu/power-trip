@@ -448,7 +448,7 @@ export function foeAllyTarget(e, pp, duel){
     if (ok && !player.downed && e.allyTgt !== best){
       let fodder = 0, on = 0;
       for (const o of enemies){ if (o.dead || !isFodder(o)) continue; fodder++; if (o !== e && o.allyTgt) on++; }
-      ok = on < Math.floor(fodder * (duel ? BUBBLE.aggroShare : SQUAD.aggroShare));
+      ok = on < Math.floor(fodder * (duel ? BUBBLE.aggroShare : SQUAD.aggroShare) * (player.up.taunt ?? 1));   // (the trooper's COMMANDO draws the fire onto himself: data/trooper-progression.js)
     }
     e.allyTgt = ok ? best : null;
   }

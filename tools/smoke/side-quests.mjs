@@ -54,10 +54,16 @@ for (const hero of HEROES){
     await page.click('#goText');
     await page.waitForFunction(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused, null, poll);
 
-    // the CALLS FOR AID stone in the grand hall
-    await stand(8, 26.2, Math.PI); await ticks();
+    // the CALLS FOR AID stone in the hero's own hub (the temple's grand hall, the covert's hangar, the citadel's war room)
+    const calls = await page.evaluate(() => { for (const [id, W] of Object.entries(GAME.hub.wings)){ const s = W.stations.find(s => s.act === 'quests'); if (s) return { wing: id, x: s.x, z: s.z, spawnZ: W.spawn[1] }; } return null; });
+    check(!!calls, `${hero}: the ${await page.evaluate(() => GAME.G.hubId)} has a CALLS FOR AID stone (${calls && calls.wing})`);
+    if (calls.wing !== await page.evaluate(() => GAME.G.hubWing)){
+      await page.evaluate((w) => GAME.hub.goWing(w), calls.wing);
+      await page.waitForFunction((w) => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused && GAME.G.hubWing === w, calls.wing, poll);
+    }
+    { const d = calls.spawnZ >= calls.z ? 1 : -1; await stand(calls.x, calls.z + 2.2 * d, d > 0 ? Math.PI : 0); } await ticks();
     check(await page.evaluate(() => /CALLS FOR AID/.test(document.getElementById('hubp').textContent) && document.getElementById('hubp').classList.contains('on')), `${hero}: the CALLS FOR AID prompt shows at the stone`);
-    await page.keyboard.press('h');
+    await page.keyboard.press('f');
     await page.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
     const listed = await page.evaluate(() => [...document.querySelectorAll('#hubpanel .hb-o b')].map(b => b.textContent));
     check(listed.length >= 6 && listed.some(t => /FOREST SHRINE/.test(t)), `${hero}: the stone lists the side missions (${listed.length})`);
@@ -81,12 +87,12 @@ for (const hero of HEROES){
       await stand(s.x, s.z + (s.kind === "cave" ? 1.0 : 0.6), Math.PI); await ticks();
       const prompt = await page.evaluate(() => document.getElementById('secp').classList.contains('on') ? document.getElementById('secp').textContent : '');
       check(!!prompt, `${hero}: the ${s.kind} prompt shows (${prompt})`);
-      await page.keyboard.press('h');
+      await page.keyboard.press('f');
       if (s.kind === 'meditate'){   // (sit it out: foes kept off, pressed again if a foe broke it)
         for (let k = 0; k < 40 && !(await page.evaluate((id) => !!(GAME.PROFILE.profileOf().secrets || {})[id], s.id)); k++){
           await page.evaluate(() => { for (const e of GAME.enemies) e.hp = 0; GAME.player.hp = Math.max(GAME.player.hp, 50); });
           await ticks(0.5);
-          if (!(await page.evaluate(() => /MEDITATING/.test(document.getElementById('secp').textContent)))) await page.keyboard.press('h');
+          if (!(await page.evaluate(() => /MEDITATING/.test(document.getElementById('secp').textContent)))) await page.keyboard.press('f');
         }
       } else await ticks(0.3);
       const got = await page.evaluate((id) => !!(GAME.PROFILE.profileOf().secrets || {})[id], s.id);

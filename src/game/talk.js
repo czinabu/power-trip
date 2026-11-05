@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // WALK-UP LINES: optional story in the lulls. Walk up to someone on your side (a squadmate, a chapter's guest fighter, the
 // escort, the people a hold is getting out, the story's voice hanging back after a chapter's opening: game/onset.js)
-// while nothing is on top of you, and a prompt comes up over them: tap H (the squad-orders key; VIEW on a pad) and they
+// while nothing is on top of you, and a prompt comes up over them: tap F (the interact key: game/interact.js; Y on a pad) and they
 // say a line, over the comms strip, under their own name. The words are
 // data/talk.js. Nobody has to be talked to: the mission never waits on it.
 //
@@ -10,18 +10,18 @@
 
 import { G, player, heroKey } from '../state.js';
 import { playerPos, fwd } from '../player/helpers.js';
-import { allies, squadOrderName } from '../allies/squad.js';
+import { allies } from '../allies/squad.js';
 import { TALK, MISSION_TALK, CHAPTER_TALK } from '../data/talk.js';
 import { onSetFigures } from './onset.js';
 import { chapterOrder, storyHero } from '../data/campaign.js';
 import { comms, fightHot, commsShowing, storySpeaking } from './story.js';
 import { missionFigures, missionId } from './mission.js';
 import { hostilesIn } from './objectives.js';
-import { interactKey } from '../engine/interact.js';
+import { pad, padKeys } from '../engine/gamepad.js';
 import { S } from '../audio/sfx.js';
+import { INTERACT_KEY } from './interact.js';
 
-export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2,   // m · how squarely you face them (cos) · no foe this close · s between lines
-  allyReach: 2.4, allyFacing: 0.93 };   // a squadmate (whose H is also the squad's order): closer, and right in your sights
+export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2 };   // m · how squarely you face them (cos) · no foe this close · s between lines
 
 const prompt = document.getElementById('talkp');
 const said = new Map();   // name → how many of its lines it has said (this visit; the count wraps)
@@ -63,14 +63,11 @@ function pickNear(){
   if (hostilesIn(p.x, p.z, TALKCFG.calm) || fightHot()) return null;   // a lull only
   if (storySpeaking()) return null;   // the story's voice has the floor: no prompt you can't answer (it comes back once it's done)
   let best = null, bs = -Infinity;
-  const squadAway = allies.length && squadOrderName() !== 'follow';   // H calls them back first: no talking over an order
   for (const c of figures()){
-    if (c.ally && squadAway) continue;
     const dx = c.pos.x - p.x, dz = c.pos.z - p.z, d = Math.hypot(dx, dz);
     if (d > TALKCFG.reach) continue;
     const face = d < 0.8 ? 1 : (dx * f.x + dz * f.z) / d;   // (the view's heading: whoever you're looking toward)
     if (face < TALKCFG.facing) continue;
-    if (c.ally && (d > TALKCFG.allyReach || face < TALKCFG.allyFacing)) continue;   // tap H by your squad and you give an order
     const score = face * 2 - d;
     if (score > bs){ bs = score; best = c; }
   }
@@ -83,11 +80,11 @@ export function updateTalk(dt){
   const v = G.mode === 'menu' ? null : (missionId() || 'run') + ':' + G.chapter;   // a new mission or chapter: everyone has things to say again
   if (v !== visit){ visit = v; said.clear(); }
   near = pickNear();
-  const key = near ? near.key + ':' + interactKey() : '';
+  const key = near ? near.key + (pad.active ? ':pad' : '') : '';
   if (key !== shownKey){
     shownKey = key;
     if (near){
-      const k = interactKey();
+      const k = pad.active ? padKeys(INTERACT_KEY) : INTERACT_KEY;
       prompt.innerHTML = '<kbd>' + k + '</kbd><span>TALK</span><b></b>';
       prompt.querySelector('b').textContent = near.kind ? one(near.name) : near.name;
     }
@@ -97,7 +94,7 @@ export function updateTalk(dt){
 }
 export const talkReady = () => !!near;
 
-// H was tapped (allies/wheel.js): talk to whoever the prompt is over, instead of a squad order. True when it did
+// F was tapped (game/interact.js): talk to whoever the prompt is over. True when it did
 export function talkTap(){
   if (!near || gap > 0) return !!near;
   const lines = linesFor(near), id = near.kind ? 'kind:' + near.kind : near.name;

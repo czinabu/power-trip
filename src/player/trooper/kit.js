@@ -26,18 +26,23 @@ import { tutEvent } from '../../game/tutor-bus.js';
 import { trooperPowerKey, updateTrooperPowers, resetTrooperPowers } from './abilities.js';
 import { battlefieldCall, updateCalls, resetCalls } from '../../allies/calls.js';
 import { resetCommand } from './command.js';
+import { coverKey, coverTrigger, leaveCover, settleIntoCover, updateHeroSupp, resetCover, inCover } from './cover.js';
 
 /* ---------- INPUT (engine/input.js hands the trooper's presses here) ---------- */
 // LMB: the rifle's burst (or its module: held for the auto barrel), or the next pistol. RMB: aim (the steady stance): a
 // tighter cone, a steadier reticle; with the marksman scope fitted it raises the scope.
 export function trooperMouseDown(button){
-  if (button === 0){ player.trigHeld = true; if (mandoWeapon().fire === 'auto') player.firing = true; fireTrigger(); }
+  if (button === 0){
+    player.trigHeld = true; player.coverShotAt = G.gt;
+    if (mandoWeapon().fire === 'auto') player.firing = true;
+    if (!coverTrigger()) fireTrigger();   // ducked in cover: he comes up first, and the shot goes as he clears it (cover.js)
+  }
   if (button === 2 && !(player.gbT > 0)){ player.blockHeld = true; if (mandoWeapon().scope) player.zoom = true; }
 }
 export function trooperKey(k, repeat){
   if (k === 'shift' && !repeat) trooperRoll();
   if (G.mode !== 'play') return;
-  if (k === 'c' && !repeat) trySlide();   // SLIDE out of a run (parkour.js), firing as you go
+  if (k === 'c' && !repeat && !coverKey()) trySlideToCover();   // COVER beside cover (cover.js); else a SLIDE out of a run, firing as you go
   if (k === 'g' && !repeat) fragGrenade();
   if (k === 'e' && !repeat) rifleBash();
   if (k === 'r' && !repeat) startReload();   // overheated: the active vent (mando/weapons.js activeVent)
@@ -75,12 +80,33 @@ export function swapModule(){
   tutEvent('module');
 }
 
-/* ---------- COMBAT ROLL (SHIFT) — the Mando's combat dive, on the ground only: no pack to light ---------- */
+/* ---------- COMBAT ROLL (SHIFT) — the Mando's combat dive, on the ground only: no pack to light. Out of cover it's the
+   way to the next one: a roll that ends beside cover settles into it (updateTrooperKit) ---------- */
 export function trooperRoll(){
   if (G.mode !== 'play' || player.mantle || player.hang || player.flip) return;
   const onGround = player.grounded || (G.gt - (player.lastGroundT ?? -9) < 0.12 && player.vy <= 0.5);
-  if (onGround) mandoDive();
+  if (!onGround) return;
+  const wasIn = inCover();
+  leaveCover();
+  mandoDive();
+  player.toCover = { kind: 'roll', at: G.gt, from: wasIn };
 }
+// a slide out of a run that ends beside cover settles into it
+function trySlideToCover(){
+  trySlide();
+  if (player.slideT > 0) player.toCover = { kind: 'slide', at: G.gt };
+}
+// after a roll or a slide: the moment it has spent itself, cover in reach takes him in
+function updateToCover(){
+  const q = player.toCover;
+  if (!q) return;
+  const C = TROOPER.cover, age = G.gt - q.at;
+  if (age > 2 || inCover()){ player.toCover = null; return; }
+  const done = q.kind === 'slide' ? !(player.slideT > 0) || Math.hypot(player.moveVel.x, player.moveVel.z) < 2.5
+                                  : age > 0.45 && !player.flip && Math.hypot(player.vel.x, player.vel.z) < 3.5;
+  if (done && player.grounded){ settleIntoCover(q.kind === 'slide' ? C.slideReach : C.rollReach); player.toCover = null; }
+}
+
 
 /* ---------- FRAG GRENADE (G) — charges that refill one at a time, lobbed onto the crosshair ---------- */
 export function fragCharges(){
@@ -95,11 +121,13 @@ export function updateTrooperKit(dt){
     if (player.fragT >= F.recharge){ player.fragT = 0; player.fragCharges++; }
   } else player.fragT = 0;
   if (player.bashCd > 0) player.bashCd -= dt;
+  updateToCover();
+  updateHeroSupp(dt);   // suppression on him, and the cover chip (cover.js)
   updateTrooperPowers(dt);
   updateCalls(dt);
 }
 export const fragMax = () => TROOPER.frag.charges + (player.up.fragExtra || 0);   // FRAG POUCH (data/trooper-progression.js) adds one
-export function resetTrooperKit(){ if (!rifleMods().includes(player.rifleMod)){ player.rifleMod = 'burst'; syncWeaponMesh(); } player.fragCharges = fragMax(); player.fragT = 0; player.bashCd = 0; resetTrooperPowers(); resetCalls(); resetCommand(); }
+export function resetTrooperKit(){ if (!rifleMods().includes(player.rifleMod)){ player.rifleMod = 'burst'; syncWeaponMesh(); } player.fragCharges = fragMax(); player.fragT = 0; player.bashCd = 0; resetCover(); player.toCover = null; resetTrooperPowers(); resetCalls(); resetCommand(); }
 function fragTarget(F, from){
   const aim = mandoAimPoint(), ray = mandoAimRay();
   const o = ray.origin, d = ray.direction;

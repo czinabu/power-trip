@@ -78,3 +78,21 @@ export const LUNGE = {
   miss: 1.2,              // recovery after a whiffed lunge (the punish window)
   slots: 1,
 };
+
+/* THE COVER FIGHT — the line troops against the ARC TROOPER (enemies/coverfight.js): he fights from cover, so they do.
+     minTall    a solid this tall (m) hides a standing foe; `behind` how far behind it the foe tucks in
+     search     how far from itself a foe looks for one · `rangeShare` of its range it would like to fight from (never
+                nearer than `minDist`) · `spacing` apart from the next foe's spot · `reseat` m the hero moves before it looks again
+     hide       s it stays down before it peeks · `peekStep` m out to the side for the shot · `peekMax` s before it gives up
+     flankers   at most this many going round him at once (fewer early in a run) · `flankDist` m out to his side ·
+                `flankTime` s a flank lasts · `flankGap` s between sending one and the next
+     chestTop   a solid this tall over his feet stops a bolt at his chest · `duckAim` m over his feet they aim at him
+                ducked behind low cover */
+export const COVER_FIGHT = {
+  minTall: 1.6, behind: 0.85, search: 12, rangeShare: 0.75, minDist: 6, spacing: 1.8, reseat: 6,
+  hide: [1.0, 2.2], peekStep: 1.9, peekMax: 2.6,
+  flankers: 2, flankDist: 11, flankTime: 9, flankGap: [3, 5.5],
+  chestTop: 1.45, duckAim: 0.75,
+  // a mission's named gunman against the trooper (enemies/coverfight.js champRule): see there
+  champ: { hitCap: 0.05, hitCapOpen: 0.1, burstCap: 0.11, burstWin: 1.6, headMul: 1.5, sitFor: 4, nade: [7, 10], fuse: 1.2, nadeDmg: 22, nadeR: 3.4 },
+};

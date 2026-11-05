@@ -2,7 +2,7 @@
 // SECRETS ON THE STORY MAPS (data/secrets.js has the maps, the kinds and the holocrons' pages): hidden holocrons, crystal
 // caves and meditation spots. As a story map loads in any mode that plays one (a campaign chapter, a story mission, an
 // arcade contract, a side mission from the temple), the map's secrets are placed in its quiet corners; walk up and press
-// interact (engine/interact.js) to take one. What you find is your hero's for good (game/profile.js noteSecret), so a
+// interact (F: game/interact.js) to take one. What you find is your hero's for good (game/profile.js noteSecret), so a
 // found holocron or harvested cave stays gone on every later visit; a meditation spot stays, to sit at again.
 //
 // WHERE THEY GO: nobody sets a spot by hand. Once the hero is standing in the new map, the map is walked out from them on
@@ -25,7 +25,9 @@ import { moundY } from '../world/collision.js';
 import { hazardContains } from '../world/hazards.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { hostilesIn } from './objectives.js';
-import { onInteract, interactChip } from '../engine/interact.js';
+import { onInteract, INTERACT_KEY } from './interact.js';
+import { pad, padKeys } from '../engine/gamepad.js';
+const interactChip = (what) => '<kbd>' + (pad.active ? padKeys(INTERACT_KEY) : INTERACT_KEY) + '</kbd><span>' + what + '</span>';
 import { noteSecret, secretFound, profileOf } from './profile.js';
 import { codexMeet, codexQuiet } from './codex.js';
 import { showBanner } from '../ui/banners.js';
@@ -167,7 +169,7 @@ onInteract(() => {
   if (s.kind === 'meditate'){ if (!St.sit) beginSit(s); return true; }   // (pressed again while sitting: keep sitting)
   take(s);
   return true;
-});
+}, () => !!St.near && secretsHere() && !G.hub);
 // a holocron or a cave: taken at once
 function take(s){
   s.taken = true;

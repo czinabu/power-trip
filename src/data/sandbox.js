@@ -38,7 +38,7 @@ export const SANDBOX_FOES = [
   ...Object.keys(FOE_NAMES).filter(k => ENEMY_TYPES[k]),
   ...Object.keys(ENEMY_TYPES).filter(k => !FOE_NAMES[k]),
 ].map(k => ({ id: k, nm: FOE_NAMES[k] || k.toUpperCase() }))
- .concat([{ id: 'warbringer', nm: 'WARBRINGER', special: true }, { id: 'boss', nm: { jedi: 'DARTH VEXIS', mando: 'THE IRON MAGISTRATE', trooper: 'THE IRON MAGISTRATE' }, special: true }]);
+ .concat([{ id: 'warbringer', nm: 'WARBRINGER', special: true }, { id: 'boss', nm: { jedi: 'DARTH VEXIS', mando: 'THE IRON MAGISTRATE', trooper: 'THE MARSHAL' }, special: true }]);
 export const SANDBOX_COUNTS = [1, 3, 5];
 
 /* KIT — what each hero can switch on or off. The starting kit (saber, block, Push and dash; single blaster, brace)

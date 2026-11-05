@@ -5,7 +5,9 @@ import { CFG } from '../data/config.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { G, keys, player, isGunner } from '../state.js';
+import { G, keys, player, isGunner, isTrooper } from '../state.js';
+import { TROOPER } from '../data/trooper.js';
+import { coverJump } from './trooper/cover.js';
 import { DJUMP_FORCE, WALLKICK_FORCE } from '../data/mando.js';
 import { fwd, rightV, playerPos, stance } from './helpers.js';
 import { cancelSwing } from './jedi/combat.js';
@@ -103,7 +105,13 @@ export function doJump(){
   const coyote = !player.grounded && player.vy <= 0.5 && G.gt - (player.lastGroundT ?? -9) < MOVE.coyote
                  && G.gt - (player.lastJumpT ?? -9) > MOVE.coyote;
   const onGround = player.grounded || coyote;
+  if (isTrooper() && player.cover){ if (coverJump()) return; }   // in cover: SPACE vaults low cover, or steps off tall cover into a hop (trooper/cover.js)
   if (onGround && !player.blockHeld && tryVault(playerPos())) return;   // running at low cover: up and over it
+  // THE ARC TROOPER: a short, heavy hop off the ground and nothing in the air (no wall-kick, no pack): data/trooper.js jump
+  if (isTrooper()){
+    if (onGround){ player.vy = CFG.player.jumpVel * TROOPER.jump.vel; player.grounded = false; player.lastJumpT = G.gt; player.slideT = 0; S.jump(); }
+    return;
+  }
   if (isGunner()){
     // SPACE on a wall-run kicks off the face (free, no Force: the gunners don't have it): out and up, a fresh run on the opposite wall
     if (!onGround && player.wallRun){

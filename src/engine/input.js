@@ -44,6 +44,8 @@ import { diffWindow } from '../data/difficulty.js';
 import { toggleHolster, toggleBlade, wakeBlade } from '../player/holster.js';
 import { strikePress, strikeRelease, holsteredKick } from '../player/jedi/palm.js';
 import { wheelKeyDown, wheelKeyUp, wheelLook, wheelPickMate, wheelCancel, wheelOpen } from '../allies/wheel.js';
+import { interactTap } from '../game/interact.js';
+let fInteract = false;   // this F press went to a prompt (see the keydown below)
 import { pingHere } from '../net/ping.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
@@ -169,6 +171,12 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape'){ wheelCancel(); return; }
     if (k !== 'tab'){ if (k.length === 1 && 'wasd'.includes(k)) keys[k] = true; return; }
   }
+  // F is INTERACT whenever a prompt is up (a temple station, someone to talk to: game/interact.js), for every hero; held
+  // after that, nothing else fires until it's let go (no Force Push or flamethrower off the same press)
+  if (k === 'f'){
+    if (fInteract) return;
+    if (!e.repeat && interactTap()){ fInteract = true; return; }
+  }
   keys[k] = true;
   if (k === 'alt'){
     e.preventDefault();   // ALT is STRAFE (player/strafe.js): keep the browser from grabbing it for its menu bar
@@ -256,10 +264,10 @@ document.addEventListener('keydown', (e) => {
     try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){}
   }
 });
-document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
+document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'f') fInteract = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck
 // on, and no sprint or slide. Losing focus releases everything; any key event that says ALT is up releases ALT.
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; atkRelease(); });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; fInteract = false; atkRelease(); });
 // (only for real input: the pad's own key events never say ALT, and LB held + a face button must keep the strafe)
 document.addEventListener('keydown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);
 document.addEventListener('mousedown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);

@@ -42,10 +42,12 @@ import { heroFor } from './targets.js';
 import { updateBubble, heldBy, wideAim } from './bubble.js';
 import { BUBBLE } from '../data/duel-bubble.js';
 import { hooks } from '../net/run.js';
+import { coverSteer, vsTrooper, heroExposedFrom, heroAimH } from './coverfight.js';
 import { CIV, CIV_TUNE, civSteer, civSeparate, civTarget } from '../game/civilians.js';
 
 const NAV_EVERY = 0.1;      // seconds between a foe's route checks (the field itself refreshes in nav.js)
 const STUCK_AFTER = 0.5;    // window (s) over which a chasing foe must make headway, or it sidesteps to work itself free
+const CVS = { x: 0, z: 0, pace: 1 };
 const steer = { x: 0, z: 0 }, appr = { x: 0, z: 0 }, civNudge = { x: 0, z: 0 }, CIV_AIM = V3(0, 0, 0), WIDE = V3(0, 0, 0);
 
 // a ranged foe lets fly at its target's TORSO including height — so a foe on a ledge gets shot AT, and bolts arc up to
@@ -55,7 +57,8 @@ function fireAt(e, tgtPos, spread, wide){
   const g = e.group, t = e.t;
   const muzzle = V3(g.position.x, g.position.y+1.5, g.position.z);
   if (wide) tgtPos = wideAim(muzzle, tgtPos, WIDE);
-  const aimDir = V3(tgtPos.x, tgtPos.y + 1.4, tgtPos.z).sub(muzzle).normalize();
+  const aimH = e.hero && tgtPos === e.hero.pos ? heroAimH(e.hero) : 1.4;   // (the ARC trooper ducked behind low cover: what shows of him, enemies/coverfight.js)
+  const aimDir = V3(tgtPos.x, tgtPos.y + aimH, tgtPos.z).sub(muzzle).normalize();
   if (spread){ aimDir.x += rand(-spread, spread); aimDir.y += rand(-spread, spread) * 0.5; aimDir.z += rand(-spread, spread); aimDir.normalize(); }
   e.kick = 1;   // the shoulders take the recoil (enemies/upper.js)
   fireBolt(muzzle, aimDir, t.boltSpeed * (G.mut === 'marksmen' ? 1.4 : 1), (e.converted ? t.dmg * CFG.convertDmgMult : t.dmg) * enemyDmgScale(), e.converted, false, e);
@@ -238,7 +241,8 @@ export function updateEnemies(dt){
         // and path around the cover for a clear shot, so they can't camp forever behind it.
         let exposed = true;
         if (t.ranged && !t.fly && !e.converted){
-          exposed = !segBlockedBySolids(g.position.x, g.position.z, tgtPos.x, tgtPos.z);
+          exposed = vsTrooper(hero) && tgtPos === hp && !onAlly ? heroExposedFrom(g.position.x, g.position.z, hero)   // (over low cover he shows when he rises: enemies/coverfight.js)
+                                                         : !segBlockedBySolids(g.position.x, g.position.z, tgtPos.x, tgtPos.z);
           e.hideT = (exposed || t.grenade) ? 0 : (e.hideT || 0) + dt;   // a grenadier is happy to lob from cover
         }
         // out of firing range there's nothing to hide from yet: advance. Once a trooper gives up hiding it commits to
@@ -264,6 +268,9 @@ export function updateEnemies(dt){
           mx = (mx - wx) + tx*0.2 - tz*e.circle*ENGAGE.strafe; mz = (mz - wz) + tz*0.2 + tx*e.circle*ENGAGE.strafe;
           paceMul = 0.6;
         }
+        // THE COVER FIGHT (against the ARC trooper): its own cover spot, the peek for a shot, the flank round his cover
+        if (!onAlly && !tgtCiv && tgtPos === hp && !held && coverSteer(e, dt, hero, dist, CVS)){ mx = CVS.x; mz = CVS.z; paceMul = CVS.pace ?? 1; }
+        else e.cvHold = false;
         // OBSTACLE AVOIDANCE — arc around pillars & crates instead of grinding into them.
         // Steer around only the SINGLE most-threatening solid and LOCK the turn direction while we're
         // engaged with it (hysteresis). The old per-solid steering flip-flopped frame to frame, which
@@ -335,6 +342,8 @@ export function updateEnemies(dt){
           // COVER GATE: a hidden ranged ground trooper won't commit to a windup it can't land — it just keeps
           // peeking (cover-seeking movement above) until exposed or the anti-turtle valve kicks in.
           else if (t.ranged && !t.fly && !e.converted && !exposed && !t.grenade){ /* no clear shot — keep peeking, or flank for one */ }
+          // the cover fight: ducked behind its cover (or pinned there by his fire), it keeps its head down (enemies/coverfight.js)
+          else if (e.cvHold && !t.grenade){ /* down behind cover */ }
           // a melee foe on the far side of tall cover doesn't swing at the wall — it keeps routing around
           else if (!t.ranged && !e.converted && wallBetween(g.position.x, g.position.z, tgtPos)){ /* go around */ }
           // the hero is DOWN (game/revive.js): a blade doesn't finish them, it circles and waits; the squad is coming
@@ -433,7 +442,7 @@ export function updateEnemies(dt){
               throwGrenade(e, V3(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), at, e.converted);
               if (g.userData.weaponArm) g.userData.weaponArm.rotation.x = 0.5;   // the arm follows through
             } else if (tgtPos){
-              fireAt(e, tgtPos, 0, held);
+              fireAt(e, tgtPos, 0, held); e.shotAt = G.gt;
               if (e.burstPlan && !e.civShot){ e.burstLeft = e.burstPlan; e.burstT = TROOP_FIRE.burstGap; }   // a double-tap: one more behind it
             }
             e.volley = false;

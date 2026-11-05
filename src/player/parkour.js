@@ -9,7 +9,7 @@ import { S } from '../audio/sfx.js';
 import { V3, clamp } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { shared, G, solids, keys, player, enemies, isGunner } from '../state.js';
+import { shared, G, solids, keys, player, enemies, isGunner, isTrooper } from '../state.js';
 import { staggerEnemy } from '../enemies/damage.js';
 import { fwd, rightV, playerPos } from './helpers.js';
 import { launchFlip, rushFlip } from './anim/agility.js';
@@ -302,6 +302,7 @@ export function wallBeside(pp, range){
    ending or running out of time drops you. */
 const steering = () => keys['w'] || keys['a'] || keys['s'] || keys['d'];
 export function updateWallRun(dt, pp){
+  if (isTrooper()){ player.wallRun = null; return; }   // the ARC trooper keeps his feet on the floor: no wall-runs (data/trooper.js jump)
   const gunner = isGunner(), jets = gunner && (player.jetActive || player.hovering || player.boosting);   // the Mando's jets own the air: no wall-run under thrust
   if (jets && !player.wallRun) return;
   const wr = player.wallRun;

@@ -113,6 +113,8 @@ function poseBody(dt, dr, vis, planted, POSE, moving){
   let face = G.yaw;
   if ((!isGunner() && !inCombatPose && moving) || player.backRun || (isGunner() && moving && !mandoAimLock && !strafing && relaxed()))   // (the Mando with his Darksaber put out walks where he's going)
     face = Math.atan2(player.moveVel.x, player.moveVel.z);
+  // IN COVER (the ARC trooper): ducked, he faces the face, shoulder to it; leaning out he squares to the reticle (trooper/cover.js)
+  if (player.cover){ player.backRun = false; if (player.cover.peek < 0.5) face = Math.atan2(-player.cover.nx, -player.cover.nz); }
   // SABER ASSIST — a cut aimed at a foe near the crosshair turns the body a little toward it, and keeps turning with it
   // while the cut lasts (jedi/saberassist.js). The view stays where you put it.
   const asw = player.atkT > 0 && player.swing && player.swing.assist;
@@ -201,6 +203,14 @@ function mandoTurn(face, lambda, dt){
 }
 
 // Legs (stride, air tuck, stance splay, front kick), hips/robe, breathing and head look.
+// IN COVER (the ARC trooper, trooper/cover.js): ducked behind low cover he drops onto his heels, under its top; rising
+// to shoot over it he comes back up. Behind tall cover he only sinks a little, weight off the shoulder on the face
+function coverCrouch(){
+  const v = player.cover;
+  if (!v) return 0;
+  const k = 1 - Math.min(1, v.peek * 1.25);
+  return v.low ? clamp(DIM.hipY - Math.max(0.42, v.top - 0.55), 0.2, 0.55) * k : 0.12 * k;
+}
 function animateLegsAndTorso(dt, dr, R, planted, POSE){
   const vis = player.vis;
   /* ================= rig animation ================= */
@@ -248,7 +258,7 @@ function animateLegsAndTorso(dt, dr, R, planted, POSE){
   // (set before the legs, which are solved down from here)
   const sink = planted && !isGunner() && saberPose.live && !(player.atkT > 0) ? saberPose.sink : 0;   // a guard that drops the base (data/poses.js sink)
   const gwm = gw * GS.w;   // (a guard walk stands a little taller than the stance, on its walk.crouch share, and drops half the guard's sink)
-  player._crouch = dr(player._crouch || 0, planted ? POSE.crouch * lerp(1, WK && WK.crouch != null ? WK.crouch : 1, gwm) - sink * (1 - 0.5 * gwm) : 0, 8);
+  player._crouch = dr(player._crouch || 0, (planted ? POSE.crouch * lerp(1, WK && WK.crouch != null ? WK.crouch : 1, gwm) - sink * (1 - 0.5 * gwm) : 0) - coverCrouch(), 10);
   R.hips.position.y = DIM.hipY + player._crouch - (player._swingDrop || 0) - land*0.2 - (player._agiDrop || 0)
                       + (player.grounded && !player.flip ? gaitHipOffset(GS, gait) : 0.05);
   // a foot standing lower than the body (off a step, one foot down from a crate) needs the hips to come down to it

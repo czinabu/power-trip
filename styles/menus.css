@@ -288,6 +288,13 @@ html.is-fs .fsmini .fsmini-t::before{content:'exit '}
 #settings{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
 #settings.open{display:flex}
+.set-reset{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--edge)}
+.set-reset-ask,#setresetyes,#setresetno{display:none}
+.set-reset-ask{font:600 12px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-soft)}
+.set-reset.confirming #setresetbtn{display:none}
+.set-reset.confirming .set-reset-ask{display:block}
+.set-reset.confirming #setresetyes,.set-reset.confirming #setresetno{display:flex}
+#setresetyes{color:#ffcfa0;border-color:rgba(200,120,60,.6)}
 /* FOV PREVIEW — only the FOV slider stays on screen over the live game view while it's being adjusted */
 body.fovpreview #overlay{background:none!important}
 body.fovpreview #overlay > :not(#settings){visibility:hidden}

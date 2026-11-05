@@ -25,13 +25,14 @@ import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { rollBoons, pickBoon } from '../game/boons.js';
-import { noteFork, treePath } from '../game/profile.js';
+import { noteFork, treePath, inDeck } from '../game/profile.js';
 import { BRANCH } from '../data/profile.js';
 
 let progFreeCards = [];   // the 3 free-upgrade cards chosen for this visit (stable across re-renders)
 function rollFreeCards(){
   const SET = skillSet();
-  const pool = SET.filter(skillEligible);
+  // YOUR DECK (the profile page, set between runs): the hand deals from it, and only when it runs dry from the rest
+  const all = SET.filter(skillEligible), pool = all.filter(s => inDeck(s)), spare = all.filter(s => !inDeck(s));
   const pick = [];
   // SUSTAIN CHOICE must be VISIBLE the same wave as its store counterpart (Bacta Stim / Force Mend), not just
   // eligible. Pass 58 synced the two `avail()` gates to the same wave stage, but the skill-tree offer is a random
@@ -57,6 +58,8 @@ function rollFreeCards(){
     if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
   }
   while (pick.length < 3 && pool.length) pick.push(pool.shift());
+  spare.sort(() => Math.random() - 0.5);
+  while (pick.length < 3 && spare.length) pick.push(spare.shift());
   pick.sort((a, b) => a.tier - b.tier);
   progFreeCards = pick;
 }
@@ -237,7 +240,7 @@ export function renderProgress(){
     const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
     const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO SKILL POINTS';
     wrap.appendChild(card({
-      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : ''),
+      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : '') + (inDeck(s) ? '' : ' · NOT IN YOUR DECK'),
       ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
       extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
       cost: '1 SKILL POINT', costCls: 'c-pick',

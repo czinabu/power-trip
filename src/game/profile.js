@@ -5,11 +5,11 @@
 // (a chapter's close, a mission won, a mastery rank, a duel, a survival wave), from every mode that is a real fight, and in
 // co-op each browser feeds its own player's profile.
 //
-// CO-OP AND THE HUB: profileCard() is the small public face of a profile (hero, rank, tree) that net/partner.js sends with
+// CO-OP AND THE HUB: profileCard() is the small public face of a profile (hero, rank, tree, deck) that net/partner.js sends with
 // each hello, so every player sees the others' ranks; the Tython hub will read the same card for everyone standing in it.
 
 import { G } from '../state.js';
-import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES } from '../data/profile.js';
+import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
@@ -24,7 +24,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0,
-                       picks: [], path: null, forks: {}, fresh: false });
+                       picks: [], path: null, forks: {}, deck: null, fresh: false });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -176,21 +176,60 @@ export function nodeState(n){
 }
 export function learnNode(id){
   const n = JEDI_TREE.find(x => x.prof === id);
-  if (!n || nodeState(n) !== 'open') return false;
+  if (!n || runLive() || nodeState(n) !== 'open') return false;
   profileOf('jedi').picks.push(id); save();
   return true;
 }
 // the tree's picks back to Insight, free: a rank opens choices, so changing your mind costs nothing
-export function resetTree(){ const p = profileOf('jedi'); p.picks = []; save(); }
+export function resetTree(){ if (runLive()) return; const p = profileOf('jedi'); p.picks = []; if (p.deck) p.deck = p.deck.filter(id => !JEDI_TREE.some(n => n.id === id)); save(); }
 // your PATH: the branch the upgrade page always deals one card from, when it has one to deal (ui/store-ui.js rollFreeCards)
 export const treePath = () => profileOf('jedi').path || null;
-export function setPath(id){ const p = profileOf('jedi'); p.path = BRANCHES.some(b => b.id === id) && p.path !== id ? id : null; save(); }
+export function setPath(id){ if (runLive()) return; const p = profileOf('jedi'); p.path = BRANCHES.some(b => b.id === id) && p.path !== id ? id : null; save(); }
 
 // may the run's upgrade page deal this card? A tree node once learned; a Mando or trooper rank card once its rank is held
-export function profileOpens(s){
-  if (s.prof) return G.hero === 'jedi' && nodeLearned(s.prof);
-  if (s.rank) return hasRank(G.hero, s.rank);
+export function owns(hero, s){
+  if (s.prof) return hero === 'jedi' && nodeLearned(s.prof);
+  if (s.rank) return hasRank(hero, s.rank);
   return true;
+}
+export const profileOpens = (s) => owns(G.hero, s);
+
+/* ---------- YOUR DECK: chosen between runs, dealt from in the run (ui/store-ui.js rollFreeCards) ----------
+   null is no deck: the page deals from every card you own. The page passes the hero's card set in (data/skills.js,
+   data/trooper-progression.js), so this file stays clear of the run's own modules. */
+// a run is on: the deck, the tree and the path are set between runs (the menu, the results, and later the Tython hub)
+export const runLive = () => G.mode === 'play';
+export const deckOf = (hero = G.hero) => profileOf(hero).deck || null;
+export const inDeck = (s, hero = G.hero) => { const d = deckOf(hero); return !d || d.includes(s.id); };
+export const deckCount = (hero, set, tier) => { const d = deckOf(hero) || []; return set.filter(s => s.tier === tier && d.includes(s.id)).length; };
+export function toggleDeck(hero, set, id){
+  const p = profileOf(hero), s = set.find(x => x.id === id);
+  if (runLive() || !p.deck || !s || !owns(hero, s)) return false;
+  if (p.deck.includes(id)) p.deck = p.deck.filter(x => x !== id);
+  else if (deckCount(hero, set, s.tier) < DECK_QUOTA[s.tier]) p.deck.push(id);
+  else return false;
+  save(); return true;
+}
+// a first deck to start from: per tier, your path's cards, then the tree's and the ranks' own, then the rest in order
+export function suggestDeck(hero, set){
+  const path = hero === 'jedi' && treePath(), d = [];
+  const score = (s) => (path && (s.branch || BRANCH[s.id]) === path ? 0 : 2) + (s.prof || s.rank ? 0 : 1);
+  for (const t of [1, 2, 3]){
+    const mine = set.map((s, i) => ({ s, i })).filter(x => x.s.tier === t && owns(hero, x.s)).sort((a, b) => score(a.s) - score(b.s) || a.i - b.i);
+    d.push(...mine.slice(0, DECK_QUOTA[t]).map(x => x.s.id));
+  }
+  return d;
+}
+export function setDeck(hero, ids){
+  if (runLive()) return false;
+  profileOf(hero).deck = Array.isArray(ids) ? [...ids] : null; save(); return true;
+}
+// owning less than you chose (a tree reset, a profile reset): the deck keeps only what's still yours
+export function pruneDeck(hero, set){
+  const p = profileOf(hero);
+  if (!p.deck) return;
+  const keep = p.deck.filter(id => { const s = set.find(x => x.id === id); return s && owns(hero, s); });
+  if (keep.length !== p.deck.length){ p.deck = keep; save(); }
 }
 
 /* ---------- the page and co-op ---------- */
@@ -199,13 +238,14 @@ export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes
 // the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable
 export function profileCard(hero = G.hero){
   const p = profileOf(hero);
-  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: hero === 'jedi' ? [...p.picks] : [] };
+  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: hero === 'jedi' ? [...p.picks] : [], d: p.deck ? [...p.deck] : null };
 }
 // a card heard from another player: kept to what it should hold
 export function cleanCard(c){
   if (!c || typeof c !== 'object' || !HEROES.includes(c.h)) return null;
   const ranks = track(c.h).ranks, r = Math.max(0, Math.min(ranks.length - 1, c.r | 0));
-  return { h: c.h, r, n: ranks[r].nm, t: Array.isArray(c.t) ? c.t.filter(id => JEDI_TREE.some(n => n.prof === id)).slice(0, 8) : [] };
+  return { h: c.h, r, n: ranks[r].nm, t: Array.isArray(c.t) ? c.t.filter(id => JEDI_TREE.some(n => n.prof === id)).slice(0, 8) : [],
+           d: Array.isArray(c.d) ? c.d.filter(id => typeof id === 'string' && /^[a-z0-9_]{1,24}$/.test(id)).slice(0, 12) : null };
 }
 // the profile page's RESET: this hero starts over at the first rank (the save slots and their wins are untouched)
 export function resetProfile(hero){ const s = load(); s.heroes[hero] = blank(); save(); }

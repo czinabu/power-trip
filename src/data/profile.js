@@ -136,6 +136,12 @@ export const RANK_SKILLS = {
   ],
 };
 
+// YOUR DECK (the profile page, between runs): the cards the run's upgrade page deals from, chosen per hero from every card
+// you own. Ten in all, so many from each tier. A deck that runs dry mid-run (every card in it trained to the top, or
+// waiting on a tier) is topped up from the rest, so a hand is never short. No deck set: it deals from everything.
+export const DECK_QUOTA = { 1: 4, 2: 3, 3: 3 };
+export const DECK_SIZE = DECK_QUOTA[1] + DECK_QUOTA[2] + DECK_QUOTA[3];
+
 // how each rank-up reads on its card at a chapter's close (kicker, then the lines)
 export const RANK_CARD = {
   jedi: { kicker: 'RAISED IN THE ORDER', lines: {

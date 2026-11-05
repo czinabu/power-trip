@@ -73,6 +73,19 @@
 .pf-foot{margin-top:10px;display:flex;justify-content:flex-end}
 .pf-wipe{padding:6px 10px;font-size:11px;letter-spacing:1.5px;color:var(--ink-faint)}
 .pf-wipe.armed{color:var(--danger);border-color:var(--danger)}
+/* YOUR DECK: the right column's first view (the tree or the rank cards is the second) */
+.pf-vtabs{margin-bottom:10px;width:fit-content}
+.pf-vtabs span{padding:6px 12px;font-size:12px;letter-spacing:2px}
+.pf-dcard.pick{cursor:pointer}
+.pf-dcard.pick:hover{border-color:var(--gold)}
+.pf-dcard.all{border-style:solid}
+.pf-dcard.insight{opacity:.62}
+.pf-dtier .pf-ins b{font-size:13px}
+.pf-build{margin-left:auto;color:var(--gold);border-color:var(--gold)}
+/* a run is on: the deck, the tree and the path are set between runs */
+.pf-live .pf-learn,.pf-live .pf-reset{display:none}
+.pf-live .pf-path{pointer-events:none;opacity:.55}
+.pf-live-note{padding:8px 10px;border-left:2px solid var(--gold);background:rgba(255,210,74,.06)}
 /* the PROFILE button's NEW: a rank earned since you last looked */
 .pf-badge{display:none;margin-left:6px;padding:2px 5px;border-radius:3px;background:var(--gold);color:#1a1200;font:700 10px/1 var(--font-ui);letter-spacing:1px}
 #pfBtn.fresh .pf-badge{display:inline-block}

@@ -16,6 +16,8 @@ import { loft, block, ngon, shard } from './shapes.js';
 
 const ROUND = ngon(10, Math.PI / 10);
 const GRIP_LO = -0.17, GRIP_HI = 0.08, EMIT = 0.17;
+// the emitter keeps its height (the blade leaves at EMIT) and widens; the pommel widens and hangs longer below the hand
+const EMIT_SCALE = [1.3, 1, 1.3], POMMEL_SCALE = [1.3, 1.5, 1.3];
 // each body's metal: the emitter and the pommel are made in it too, so a part always matches the hilt it is fitted to
 const FINISH = {
   apprentice: { metal: 0x9aa4b0, dark: 0x16191e },
@@ -141,12 +143,18 @@ export function buildHilt(S, root, parts = {}){
     to: null,
     add(geo, mat, p = [0, 0, 0], r = [0, 0, 0], outline = true){ return S.add(geo, mat, K.to, p, r, outline ? {} : { outline: false }); },
   };
-  const piece = () => { const g = new THREE.Group(); root.add(g); K.to = g; return g; };
+  // each piece is a group the bench moves; the emitter and the pommel build into an inner group scaled up past the hand,
+  // so at the gameplay camera (a saber a few dozen pixels long) the head and the end read as shapes and not specks
+  const piece = (scale, anchor = 0) => {
+    const g = new THREE.Group(); root.add(g); K.to = g;
+    if (scale){ const s = new THREE.Group(); s.scale.set(...scale); s.position.y = anchor * (1 - scale[1]); g.add(s); K.to = s; }
+    return g;
+  };
   const out = { body: piece() };
   BODIES[body](K);
-  out.emitter = piece();
+  out.emitter = piece(EMIT_SCALE, GRIP_HI);
   (EMITTERS[parts.emitter] || EMITTERS.plain)(K);
-  out.pommel = piece();
+  out.pommel = piece(POMMEL_SCALE, GRIP_LO);
   (POMMELS[parts.pommel] || POMMELS.cap)(K);
   return out;
 }

@@ -81,7 +81,9 @@ function readout(){
   };
   return `<div class="kb-load"><h4>${W.loadout}</h4>${sides.map(one).join('')}<p>${W.side}</p></div>`;
 }
-function render(){
+// keep: hold the panel's scroll across the redraw (a pick made far down the trays), not jump back to the top
+function render(keep = false){
+  const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
   const W = WORDS[hero], live = runLive(), have = partsOwned(hero), all = partsTotal(hero);
   panel.className = 'kb-' + hero;
   panel.innerHTML = `<div class="kb-panel">
@@ -93,6 +95,7 @@ function render(){
     <div class="kb-rows${live ? ' kb-locked' : ''}">${rowsOf().map(tray).join('')}</div>
     <div class="kb-foot"><div class="kb-btn" id="kbdone">${W.done}</div><div class="kb-hint">${W.hint}</div></div>
   </div>`;
+  if (was) panel.firstElementChild.scrollTop = was;
 }
 
 // open the hero's bench (the trooper's locker or the Mando's forge). The Jedi's is the saber workbench (ui/workbench.js)
@@ -128,7 +131,7 @@ function fit(rowId, optId){
   picks = { ...picks, [hero]: { ...(picks[hero] || {}), [rowId]: optId } };
   S.uiClick();
   restyleShowcase(picks);
-  render();
+  render(true);   // (a pick keeps the panel where it was scrolled to)
 }
 
 panel.addEventListener('click', (e) => {

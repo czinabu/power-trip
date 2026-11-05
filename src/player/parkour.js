@@ -15,6 +15,7 @@ import { fwd, rightV, playerPos } from './helpers.js';
 import { launchFlip, rushFlip } from './anim/agility.js';
 import { STEP_UP } from '../world/collision.js';
 import { tutEvent } from '../game/tutor-bus.js';
+import { overflipStep } from './jedi/overflip.js';
 
 const smooth = k => k * k * (3 - 2 * k);
 const easeOut = k => 1 - (1 - k) * (1 - k);
@@ -112,11 +113,14 @@ export function updateMantle(dt, pp){
   if (!m) return false;
   m.t += dt;
   const k = clamp(m.t / m.dur, 0, 1);
-  // the hips rise first, then travel over the lip
-  const yk = easeOut(clamp(k / 0.7, 0, 1)), hk = smooth(clamp((k - 0.2) / 0.8, 0, 1));
-  pp.y = m.y0 + (m.y1 - m.y0) * yk;
-  pp.x = m.x0 + (m.x1 - m.x0) * hk;
-  pp.z = m.z0 + (m.z1 - m.z0) * hk;
+  if (m.over) overflipStep(m, k, pp);   // ATARU'S FLIP OVER a foe: a high arc, turning to land facing its back (jedi/overflip.js)
+  else {
+    // the hips rise first, then travel over the lip
+    const yk = easeOut(clamp(k / 0.7, 0, 1)), hk = smooth(clamp((k - 0.2) / 0.8, 0, 1));
+    pp.y = m.y0 + (m.y1 - m.y0) * yk;
+    pp.x = m.x0 + (m.x1 - m.x0) * hk;
+    pp.z = m.z0 + (m.z1 - m.z0) * hk;
+  }
   player.vy = 0; player.grounded = false;
   if (k >= 1){
     pp.set(m.x1, m.y1, m.z1);

@@ -6,6 +6,7 @@
 import { scene } from '../engine/renderer.js';
 import { cleanupDuel } from './duel.js';
 import { cleanupTactics, dropLungeLine } from './tactics.js';
+import { settleDisarm } from './disarm.js';
 
 // the moment a foe dies: nothing it was showing stays up while the body ragdolls and fades
 export function hideIndicators(e){
@@ -14,6 +15,7 @@ export function hideIndicators(e){
   if (e.formTag) e.formTag.visible = false;
   if (e.aimLine) e.aimLine.visible = false;
   dropLungeLine(e);
+  settleDisarm(e);   // a hilt Makashi sent flying lands and stays down (disarm.js)
 }
 // take a foe off the field: its body and every overlay it owns (the caller drops it from `enemies`)
 export function removeEnemy(e){

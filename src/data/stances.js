@@ -46,10 +46,11 @@ export const STANCES = {
             swordDmg: 1.4,        // ROLE: +40% against anything with a blade (duellists, acolytes, the Warbringer's kin excepted, the boss)
             readMul: 0.5,         // reads intent: a duellist's feints and held strikes come half as often
             breakRes: 1.5,        // stands its ground: a blow must hit 1.5x as hard to break its empty guard
+            bind: 2.6,            // BIND AND DISARM: a clean parry of a duellist binds its blade, and the riposte off the bind takes it from its hand for this many s (enemies/disarm.js)
             deflectScatter: 0.16, // LORE: Makashi has little answer to blaster fire — deflects fly wild (rad)…
             deflectStamMul: 1.5,  // …and every bolt caught on the blade costs half again the stamina
             gait: { amp: 0.92, lift: 1.1, bob: 0.3, lean: 0.9 },   // MOVEMENT: light, upright, a fencer's measured steps
-            syn: 'DUELS · +40% vs blade users · reads feints · hard to guard-break · narrow arc · WEAK vs blasters' },
+            syn: 'DUELS · +40% vs blade users · parry, riposte: disarm a duellist · reads feints · hard to guard-break · narrow arc · WEAK vs blasters' },
   /* FORM III SORESU — the wall (Obi-Wan): tight, economical blocks that send blaster fire home and wear an attacker out.
      It wins by outlasting; it has the least offence of any form. */
   soresu:  { name: 'SORESU — DEFENCE', form: 'soresu', formNo: 'III', blade: 0xcfe2ff,
@@ -71,12 +72,14 @@ export const STANCES = {
             moveAtk: 1.5,         // PASSIVE: keeps most of its footwork mid-swing (every other form plants its feet) — kite while you cleave
             airCutDmg: 1.35,      // LORE: the acrobat's form — any cut struck off the ground lands 35% harder
             swoop: 1,             // HAWK-BAT SWOOP: a cut out of a Force dash leaps in on the foe (player/jedi/combat.js)
+            strain: { per: 0.14, max: 6, gap: 1.0 },   // LORE: ATARU'S EXHAUSTION — every cut in an unbroken run (each within `gap` s of the last) costs 14% more stamina, up to +84%; a breath resets it (player/jedi/combat.js)
+            overflip: 1,          // THE FLIP OVER: guard up, W and SPACE by a foe springs over its head to land at its back; the cut out of it lands harder and no guard turns it (player/jedi/overflip.js)
             backLineDmg: 1.6,     // ROLE: hunts the back line — officers, snipers, grenadiers and jet troopers take +60% (see backLineMul)
             postureMul: 0.8,      // light cuts: each blocked cut puts 0.8× the usual strain on a guard
             deflectScatter: 0.1,  // LORE: Ataru is a duelling form with little answer to blaster fire — deflects spray (rad)
             castMul: 0.65,        // SYNERGY: snappy Force casts — the gesture fires ~35% faster
             gait: { amp: 1.0, lift: 1.3, bob: 0.45, lean: 1.25 },   // MOVEMENT: light, high-kneed, springy — a duelist on the balls of their feet
-            syn: 'BACK LINE · +60% vs officers, snipers, grenadiers, jet troopers · +35% air cuts · dash into a cut: Hawk-Bat Swoop · snappy Force casts · WEAK vs armor' },
+            syn: 'BACK LINE · +60% vs officers, snipers, grenadiers, jet troopers · +35% air cuts · dash into a cut: Hawk-Bat Swoop · guard, W, SPACE: flip over a foe · snappy Force casts · tires in long strings · WEAK vs armor' },
   niman:  { name: 'NIMAN — BALANCED', form: 'niman', formNo: 'VI', blade: 0x3aff8c,
             dmg: 1.5, heavyDmg: 1.25, speed: 0.64, knock: 0.85, stamina: 9, lunge: 1.15, move: 1.0, accel: 1.0, twist: 0.55, bladeLen: 1.0,
             radiusMult: 1.0, cdMult: 0.85, defCdMult: 0.5, postureMul: 1.0, parryBonus: 0.10, comboGap: 1.0, fovKick: 0,

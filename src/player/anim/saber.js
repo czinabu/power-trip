@@ -143,6 +143,7 @@ export const saberPose = {
   palm: 0,   // how open the free hand is held (1: the flat Force palm of Niman's reaching guard), for the fingers
   gaze: 0,   // how much of the upper body's turn the head undoes, so a side-on guard (Soresu) still looks at the foe
   sink: 0,   // how much lower the hips settle in this guard (the mixed-grip Jar'Kai block drops its base)
+  cross: 0, crossWant: 0,   // a two-handed cut carried across to the weapon side holds the hilt further out in front (SWING_STYLE.cross)
 };
 
 /* the held weapon: { node, axis } — axis is the blade direction in the node's own frame (flips with the grip) */
@@ -304,6 +305,7 @@ function variantOf(grip, id, set){
 export function swingPose(R, held, grip, form, sw){
   if (!saberPose.live) seed(R, held);
   const style = SWING_STYLE[form] || SWING_STYLE.niman;
+  saberPose.crossWant = style.cross || 0;
   if (!sw.anim){
     // a SABER FINISHER's beat (jedi/finisher.js) names its own cut, spin and hop; otherwise the 3rd hit is the form's finisher
     const fb = sw.finBeat;
@@ -650,6 +652,15 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   R.chest.rotation.y = saberPose.twist;
   const staff = !!(r && r.userData.staff);
   keepClear(_ch.copy(saberPose.hand), _cd.copy(saberPose.blade), staff);
+  // ROOM FOR THE OFF ARM: with both hands on the hilt out on the weapon side, the off arm has to reach right across the
+  // chest; a cut that brings the hilt round there (a broad Shii-Cho sweep) carries it further out in front, so the off
+  // arm passes before the chest instead of through it. Eased in and out, and only as far as the hilt is across.
+  saberPose.cross += (saberPose.crossWant - saberPose.cross) * Math.min(1, dt * 10);
+  saberPose.crossWant = 0;
+  if (saberPose.cross > 0.01 && saberPose.two > 0.01){
+    const over = THREE.MathUtils.smoothstep(_ch.x, -0.05, 0.25), need = 0.3 + 0.35 * over;
+    if (_ch.z < need) _ch.z += (need - _ch.z) * over * saberPose.cross * saberPose.two;
+  }
   // the weapon arm: the fist (the hilt's hold) on the pose's hand point, the wrist turned to aim the blade
   const rest = held.node.userData.restQ || IDQ;
   gripAt(R, R.armR, _ch, saberPose.pole, held.node.position, () => {

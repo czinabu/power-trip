@@ -106,6 +106,7 @@ export function arcLerp(a, b, t, pivot, out){
    Returns the wrist turn (wr.quaternion). With `node` null it only turns the wrist (an off hand closing on the main
    hilt). Call after the arm is posed; `chest` and the arm need up-to-date world matrices. */
 export const WRIST_LIMITS = { twist: 2.3, bend: 1.15, side: 0.62 };
+const TWIST_BAND = 1.6;   // past this roll either way (rad) the forearm keeps the way round it already turned
 const _e1 = new THREE.Vector3(), _e2 = new THREE.Vector3(), _e3 = new THREE.Vector3(), _f1 = new THREE.Vector3(), _f2 = new THREE.Vector3(), _f3 = new THREE.Vector3();
 const _mA = new THREE.Matrix4(), _mB = new THREE.Matrix4(), _qW = new THREE.Quaternion(), _qT = new THREE.Quaternion(), _qS = new THREE.Quaternion(), _qR = new THREE.Quaternion();
 const HAND = new THREE.Vector3(0, -1, 0), ALT = new THREE.Vector3(0, 0, 1);
@@ -138,7 +139,15 @@ export function holdAim(chest, wr, node, axis, dir, rest, upAxis = null, upHint 
   if (_qT.lengthSq() < 1e-9) _qT.identity(); else _qT.normalize();
   let ta = 2 * Math.atan2(_qT.y, _qT.w);
   if (ta > Math.PI) ta -= Math.PI * 2; else if (ta < -Math.PI) ta += Math.PI * 2;
+  // a roll asked for near the half turn (the blade laid back past the wrist's reach either way round) could be taken
+  // either way: it stays the way the forearm already rolled, and the forearm turns over to the other only once the
+  // roll is well in reach that way
+  const was = memo._holdTa;
+  if (was !== undefined){
+    if (Math.abs(ta) > TWIST_BAND && Math.abs(was) > TWIST_BAND && Math.sign(ta) !== Math.sign(was)) ta -= Math.sign(ta) * Math.PI * 2;
+  }
   ta = THREE.MathUtils.clamp(ta, -lim.twist, lim.twist);
+  memo._holdTa = ta;
   _qS.copy(_qW).multiply(_qR.copy(_qT).invert());   // swing = W · twist⁻¹
   if (_qS.w < 0){ _qS.x = -_qS.x; _qS.y = -_qS.y; _qS.z = -_qS.z; _qS.w = -_qS.w; }
   const sa = 2 * Math.acos(Math.min(1, _qS.w)), sn = Math.sqrt(1 - Math.min(1, _qS.w * _qS.w));
@@ -191,7 +200,7 @@ export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1){
        or drops, as a real arm does when the hand comes across.
    TORSO is the body in chest space (an upright ellipse from the belt to the collar, the shoulders' own joint left out). */
 export const TORSO = { rx: 0.2, rz: 0.15, lo: -0.75, top: 0.28, back: -0.16, pad: 0.05 };
-const _st = new THREE.Vector3(), _sd = new THREE.Vector3(), _su = new THREE.Vector3(), _sv = new THREE.Vector3(), _se = new THREE.Vector3(), _sp = new THREE.Vector3(), _sq = new THREE.Vector3(), _sP = new THREE.Vector3();
+const _sw = new THREE.Vector3(), _st = new THREE.Vector3(), _sd = new THREE.Vector3(), _su = new THREE.Vector3(), _sv = new THREE.Vector3(), _se = new THREE.Vector3(), _sp = new THREE.Vector3(), _sq = new THREE.Vector3(), _sP = new THREE.Vector3();
 // how far a chest-space point sinks into the torso (padded by the limb's own thickness), and how far round behind the back
 function bodyCost(q, pad){
   let c = 0;
@@ -208,6 +217,7 @@ function armCost(S, E, T){
   for (let i = 1; i <= 10; i++) c += bodyCost(_sq.copy(E).lerp(T, i / 10), TORSO.pad * 0.8);
   return c;
 }
+const CLEAR = 1e-4, STEP = 0.22, EDGE = 0.03, KEEP = 0.45, ELBOW_RATE = 22, POLE_FIRM = 0.5;   // clear enough; the ring search's step, the margin past the edge (rad); how much the last way is preferred; how fast the elbow settles (/s); how far off the arm's line a pole must lie to hold the elbow alone
 export function solveArmClear(arm, target, pole){
   const a = DIM.upper, b = DIM.fore, S = arm.sh.position;
   const T = _st.copy(target);
@@ -226,24 +236,70 @@ export function solveArmClear(arm, target, pole){
   // the ring of elbows: centre and radius from the triangle's sides, the pole's own spot on it first
   const ca = THREE.MathUtils.clamp((a * a + dist * dist - b * b) / (2 * a * dist), -1, 1), r = a * Math.sqrt(1 - ca * ca);
   const C = _sv.copy(S).addScaledVector(dn, a * ca);
-  const u = _su.copy(pole).addScaledVector(dn, -pole.dot(dn));
-  if (u.lengthSq() < 1e-8) u.set(0, -1, 0).addScaledVector(dn, -dn.y);
+  // (a pole laid nearly along the arm's own line names no side for the elbow, and a centimetre of wrist would swing it
+  // right round: as it lines up the elbow is let drop instead, so it hangs down where the pole stops saying)
+  const u = _su.copy(pole).normalize(), pl = Math.sqrt(Math.max(0, 1 - u.dot(dn) ** 2));
+  u.addScaledVector(dn, -u.dot(dn));
+  if (pl < POLE_FIRM) u.addScaledVector(_sw.set(0, -1, 0).addScaledVector(dn, dn.y), (POLE_FIRM - pl) / POLE_FIRM * POLE_FIRM);
+  if (u.lengthSq() < 1e-8) u.set(1, 0, 0).addScaledVector(dn, -dn.x);
   u.normalize();
   const Tw = _sP.copy(S).addScaledVector(dn, dist);
   const elbowAt = (ang, out) => out.copy(u).applyAxisAngle(dn, ang).multiplyScalar(r).add(C);
-  let best = 0, bestC = armCost(S, elbowAt(0, _se), Tw);
-  if (bestC > 1e-4){
-    // round the ring both ways, nearest first: the first angle that clears wins; failing that, the least deep
-    // (both ways at each step: of two that clear, the lower elbow, so the arm drops and flares out before it lifts)
-    for (let i = 1; i <= 12 && bestC > 1e-4; i++){
-      let stepBest = null, stepC = Infinity, stepY = Infinity;
-      for (const sgn of [1, -1]){
-        const ang = sgn * i * 0.22, c = armCost(S, elbowAt(ang, _se), Tw), y = _se.y;
-        const clear = c <= 1e-4, better = clear ? (stepC > 1e-4 || y < stepY) : c < stepC;
-        if (better){ stepBest = ang; stepC = c; stepY = y; }
+  const cost = ang => armCost(S, elbowAt(ang, _se), Tw);
+  let best = 0;
+  if (cost(0) > CLEAR){
+    // round the ring each way: the first step that clears, then bisected back to the very edge of clearing (so the elbow
+    // slides out as far as it must and no further, smoothly frame to frame, instead of jumping a whole step); failing
+    // that, the least deep spot, likewise refined between the steps
+    const way = sgn => {
+      let prev = 0, lo = Infinity, at = 0;
+      for (let i = 1; i <= 12; i++){
+        const ang = sgn * i * STEP, c = cost(ang);
+        if (c <= CLEAR){
+          let x0 = prev, x1 = ang;
+          for (let k = 0; k < 6; k++){ const m = (x0 + x1) / 2; if (cost(m) <= CLEAR) x1 = m; else x0 = m; }
+          return { ang: x1 + sgn * EDGE, clear: true, c: 0, y: elbowAt(x1, _se).y };
+        }
+        if (c < lo){ lo = c; at = ang; }
+        prev = ang;
       }
-      if (stepC < bestC - 1e-5){ bestC = stepC; best = stepBest; }
+      let x0 = at - STEP, x1 = at + STEP;
+      for (let k = 0; k < 8; k++){ const m1 = x0 + (x1 - x0) / 3, m2 = x1 - (x1 - x0) / 3; if (cost(m1) < cost(m2)) x1 = m2; else x0 = m1; }
+      return { ang: (x0 + x1) / 2, clear: false, c: cost((x0 + x1) / 2), y: 0 };
+    };
+    const P = way(1), N = way(-1), was = arm._clrWay || 0;
+    // which way: the one that clears (the nearer, or if both are about as near the lower elbow, so the arm drops and
+    // flares out before it lifts) — but the way the elbow went last time is kept unless the other is clearly better,
+    // so a guard hovering between two equal answers doesn't flick the elbow from one to the other
+    const score = w => w.clear ? Math.abs(w.ang) + (was ? 0 : w.y * 0.6) - (was === Math.sign(w.ang) ? KEEP : 0)
+                               : 10 + w.c * 40 - (was === Math.sign(w.ang) ? KEEP : 0);
+    const W = score(P) <= score(N) ? P : N;
+    best = W.ang;
+    arm._clrWay = Math.sign(best);
+  }
+  // THE ELBOW SETTLES — it eases from where it was last frame toward that spot on the ring rather than snapping there,
+  // so a guard whose answer hovers between two (the pole's own spot just clear or just not, a hand folded in close to
+  // the shoulder where a centimetre of wrist swings the ring) holds still instead of shaking. Within one frame (a grip's
+  // passes) it stays put, so only the wrist settles.
+  const now = performance.now(), M = arm._clr || (arm._clr = { e: new THREE.Vector3(), t: -1e9 }), dt = (now - M.t) / 1000;
+  if (dt < 0.25){
+    const v = _sq.subVectors(M.e, C), w = _sw.crossVectors(dn, u);
+    v.addScaledVector(dn, -v.dot(dn));
+    if (v.lengthSq() > r * r * 0.04){
+      const was = Math.atan2(v.dot(w), v.dot(u));
+      let gap = best - was; gap -= Math.round(gap / (Math.PI * 2)) * Math.PI * 2;
+      const goal = best, eased = was + gap * (1 - Math.exp(-ELBOW_RATE * dt)), cg = cost(goal), ok = Math.max(CLEAR, cg * 1.05);
+      best = eased;
+      // …but never INTO the body for it: an eased elbow that would sink where the goal clears is brought on just far
+      // enough to clear (a fast cut carries the elbow out with it)
+      if (cost(eased) > ok){
+        let x0 = eased, x1 = goal;
+        for (let k = 0; k < 7; k++){ const m = (x0 + x1) / 2; if (cost(m) <= ok) x1 = m; else x0 = m; }
+        best = x1;
+      }
     }
   }
-  solveArm(arm, T, best ? _sp.copy(u).applyAxisAngle(dn, best) : pole);
+  M.t = now;
+  elbowAt(best, M.e);
+  solveArm(arm, T, _sp.copy(u).applyAxisAngle(dn, best));
 }

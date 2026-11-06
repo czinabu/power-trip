@@ -703,3 +703,42 @@ body.objview #objlist{opacity:.25}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1 2 3.5v4C2 11 4.6 14 8 15c3.4-1 6-4 6-7.5v-4z' fill='none' stroke='%23bfe8ff' stroke-width='1.6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-size:12px 12px;background-position:7px 50%}
 #coverchip.peek{color:#ffd9a0;border-color:rgba(255,190,110,.5)}
+
+/* THE COMPASS (ui/compass.js): a slim, faint strip along the top. The tape slides under a fixed window, fading out at
+   both ends; the marks ride over it, and one past the edge pins there with a chevron */
+#compass{position:fixed;top:8px;left:50%;transform:translateX(-50%);width:min(380px,32vw);height:36px;display:none;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+#compass.on{display:block}
+#compass::before{content:'';position:absolute;left:0;right:0;top:0;height:19px;border-radius:3px;background:linear-gradient(180deg,rgba(4,10,20,.55),rgba(4,10,20,.32));border-bottom:1px solid rgba(220,235,255,.28)}
+#compass .cp-tape{position:absolute;left:0;top:0;height:16px;width:480%;will-change:transform}
+#compass .cp-t{position:absolute;top:12px;width:1px;height:6px;margin-left:-.5px;background:rgba(220,235,255,.5)}
+#compass .cp-l{position:absolute;top:2px;transform:translateX(-50%);font:700 14px/1 var(--font-ui);letter-spacing:1px;color:rgba(236,244,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.95)}
+#compass .cp-l.mid{top:4px;font-size:10.5px;color:rgba(220,235,255,.6)}
+#compass .cp-l.n{color:rgba(255,214,110,.92)}
+#compass .cp-mid{position:absolute;left:50%;top:15px;width:0;height:0;margin-left:-4px;border:4px solid transparent;border-bottom:5px solid rgba(255,255,255,.7);border-top:0}
+#compass .cp-marks{position:absolute;inset:0}
+#compass .cp-m{position:absolute;top:16px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;--mc:#ffd24a}
+#compass .cp-g{display:block;width:7px;height:7px;transform:rotate(45deg);background:var(--mc);box-shadow:0 0 6px var(--mc),0 0 1px #000}
+#compass .cp-n{margin-top:3px;font:700 9.5px/1 var(--font-ui);letter-spacing:1px;color:rgba(255,232,170,.9);white-space:nowrap;text-shadow:0 1px 3px #000}
+#compass .cp-n:empty{display:none}
+#compass .cp-m.obj .cp-g{width:9px;height:9px}
+#compass .cp-m.part{opacity:.5}
+#compass .cp-m.part .cp-g{width:6px;height:6px}
+#compass .cp-m.spot,#compass .cp-m.door{--mc:rgba(190,225,255,.75);opacity:.75}
+#compass .cp-m.spot .cp-g{width:5px;height:5px;box-shadow:none}
+#compass .cp-m.door .cp-g{width:4px;height:8px;transform:none;border-radius:2px 2px 0 0;box-shadow:none}
+#compass .cp-m.spot .cp-n,#compass .cp-m.door .cp-n{color:rgba(215,232,255,.9)}
+#compass .cp-m.named{opacity:1}
+#compass .cp-m.ally .cp-g{width:6px;height:6px;border-radius:50%;transform:none}
+#compass .cp-m.threat{--mc:#ff5a4a}
+#compass .cp-m.threat .cp-g{width:6px;height:6px}
+/* pinned at an edge: a chevron pointing the way to turn, inside the fade */
+#compass .cp-m.edge{opacity:.95}
+#compass .cp-m.edge.l{left:16% !important}
+#compass .cp-m.edge.r{left:84% !important}
+#compass .cp-m.edge .cp-g{width:0;height:0;background:none;box-shadow:none;transform:none;border:5px solid transparent;filter:drop-shadow(0 0 3px var(--mc))}
+#compass .cp-m.edge.l .cp-g{border-right:7px solid var(--mc);border-left:0}
+#compass .cp-m.edge.r .cp-g{border-left:7px solid var(--mc);border-right:0}
+/* the boss bar steps down under it */
+body.compass-on #bosswrap{top:48px}
+@media (max-width:700px){ #compass{width:min(300px,34vw);top:4px} #compass .cp-l{font-size:12px} #compass .cp-l.mid{font-size:9px} body.compass-on #bosswrap{top:40px} }

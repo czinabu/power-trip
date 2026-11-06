@@ -25,6 +25,10 @@ Survival mode rotates through the same three worlds.
 
 ## Rules
 
+- **North is −z, east is +x.** That is what the HUD compass reads (`ui/compass.js`) and how the hub names its doors
+  (`data/hub.js` SIDE_OUT); yaw π faces north. Some older arena comments call +z north: trust the compass, not them.
+  Words the player reads (a lesson, an objective, a briefing) should name a landmark they can see (the watchtower,
+  the slide gate, the roofline lane) rather than lean on a bare direction.
 - **Gameplay never changes with the look.** Layouts, `solids`, `hazardZones`, spawns and timings are identical in
   every world. A theme may recolour a hazard but keeps its telegraph: the warning state is always amber.
 - **Fighters must read.** Enemies are white, grey and red armour with ink outlines, so floors stay mid-value and

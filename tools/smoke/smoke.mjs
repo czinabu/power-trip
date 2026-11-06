@@ -59,7 +59,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     if (mode === 'campaign'){ await page.$eval('#cztoggle', el => el.click()); await page.click('#czrandom'); await page.click('#czdone'); }
     // a story mission: MISSIONS on the mode row opens the Missions page (ui/missions-ui.js), then its card there
     if (mode === 'mission'){ await page.$eval('#mode-mission', el => el.click()); await page.click('#msn-' + mission); }
-    else await page.click('#mode-' + mode);
+    else await page.$eval('#mode-' + mode, el => el.click());
     // BEGIN, then give the game a few seconds to drop into the fight; click again if it's still on the menu
     let started = false;
     for (let i = 0; i < 5 && !started; i++){

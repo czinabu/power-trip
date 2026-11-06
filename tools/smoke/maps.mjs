@@ -39,7 +39,7 @@ for (const [hero, mode, map] of RUNS){
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-' + hero, el => el.click());
-    await page.click('#mode-' + mode);
+    await page.$eval('#mode-' + mode, el => el.click());
     const tap = async sel => { if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {}); };
     let started = false;
     for (let i = 0; i < 6 && !started; i++){

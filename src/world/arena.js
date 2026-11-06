@@ -40,6 +40,7 @@ import { buildBargeArena } from './arenas/barge.js';
 import { buildHoldfastArena } from './arenas/holdfast.js';
 import { buildCitadelArena } from './arenas/citadel.js';
 import { buildJedhaNightArena } from './arenas/jedha-night.js';
+import { buildSithGateArena } from './arenas/sith-gate.js';
 import { buildPrisonArena } from './arenas/prison.js';
 import { buildHangarArena } from './arenas/hangar.js';
 import { buildSithArena } from './arenas/sith.js';
@@ -122,6 +123,7 @@ export function buildArena(L){
   shared.arenaWallFace = null;   // …and how far from the centre its walls' inner faces stand (the wall-run runs on them)
   shared.dojoRemotes = null;      // the sandbox room's hovering remotes (world/arenas/dojo.js)
   shared.templeBrazier = null;
+  shared.gateWards = null;   // (the Sith gate's arena sets its guardian's ward spots: world/arenas/sith-gate.js)
   shared.hubAnim = null;   // the hub's turning holograms (world/arenas/tython.js)
   clearZoneStream();       // an open zone's chunks went with the old arena group (world/zone-stream.js)
   resetDoorway();   // (the temple layout builds its doors again; a screen that went dark through them comes back up)
@@ -208,6 +210,7 @@ export function buildArena(L){
   else if (L.layout === 'prison'){ buildPrisonArena(LP); }
   else if (L.layout === 'pens'){ buildPensArena(LP); }
   else if (L.layout === 'jedhaNight'){ buildJedhaNightArena(LP); }
+  else if (L.layout === 'sithGate'){ buildSithGateArena(LP); }   // Act IV: the heart of the Sith gate (data/missions-gate.js)
   else if (L.layout === 'hangar'){ buildHangarArena(LP); }
   else if (L.layout === 'sith'){ buildSithArena(LP); }
   else if (L.layout === 'jungle'){ buildJungleArena(LP); }

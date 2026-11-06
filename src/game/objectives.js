@@ -68,8 +68,8 @@ export function removeMarker(m){
   m.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
 }
 // a waist-high terminal with a lit screen, under a beacon; setMarkerColor recolours screen and beam together
-export function makeConsole(x, z, yaw, color){
-  const m = makeBeacon(x, z, 0, color, 1.6);
+export function makeConsole(x, z, yaw, color, y = 0){
+  const m = makeBeacon(x, z, y, color, 1.6);   // (y: a console up on a deck, Act IV's high locks: game/locks.js)
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.55),
     new THREE.MeshStandardMaterial({ color: 0x2c3038, roughness: 0.6, metalness: 0.7 }));
   body.position.y = 0.55; body.userData.keep = true;

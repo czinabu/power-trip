@@ -35,7 +35,9 @@ import { LEVELS } from '../data/levels.js';
 import { buildArena } from '../world/arena.js';
 import { findClearSpawn } from '../world/collision.js';
 import { playerPos, heldGrip } from '../player/helpers.js';
-import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHero } from '../game/saves.js';
+import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHero, latestRun } from '../game/saves.js';
+import { startGate, gateOpen, gateBeaten } from '../game/gate.js';
+import { storyHero } from '../data/campaign.js';
 import { autosave } from '../game/autosave.js';
 import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
@@ -97,12 +99,14 @@ function hubWords(){
 }
 // the hub the temple tile goes into: the picked hero's (or, for a co-op guest, the host's: game/hub.js hubIdFor)
 const nextHub = () => HUBS[hubIdFor()];
-const beginLabel = () => G.modeSel === 'temple' ? 'ENTER ' + nextHub().home : G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : 'BEGIN CAMPAIGN';
+const beginLabel = () => G.modeSel === 'temple' ? 'ENTER ' + nextHub().home : G.modeSel === 'endless' ? 'BEGIN SURVIVAL' : G.modeSel === 'training' ? 'BEGIN TRAINING' : G.modeSel === 'mission' ? 'BEGIN MISSION' : G.modeSel === 'sandbox' ? 'ENTER THE SANDBOX' : G.modeSel === 'campaign' && canResume() ? 'CONTINUE CAMPAIGN' : G.modeSel === 'gate' ? (gateRun() ? 'CONTINUE ACT IV' : 'BEGIN ACT IV') : 'BEGIN CAMPAIGN';
+// ACT IV's own saved run for the picked hero (kept apart from the stories': game/saves.js latestRun)
+const gateRun = () => latestRun(G.hero, 'gate');
 /* THE TITLE SCREEN'S TWO STEPS — 'mode' (pick a mode: CAMPAIGN, MISSIONS, CO-OP...) and then 'hero' (the hero, the
    difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
 let _step = 'mode';
 export const menuStep = () => _step;
-const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE', zone: 'OPEN ZONE' };
+const STEP_NAME = { campaign: 'CAMPAIGN', gate: 'ACT IV · THE SITH GATE', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE', zone: 'OPEN ZONE' };
 export function showMenuStep(step, group = null){
   _step = step === 'hero' ? 'hero' : 'mode';
   openGroup(_step === 'mode' ? group : null);
@@ -118,7 +122,7 @@ export function showMenuStep(step, group = null){
    to the list its mode was picked from. */
 let _group = null;
 const GROUPS = ['story', 'arcade', 'freeplay'];
-const GROUP_OF = { campaign: 'story', mission: 'story', endless: 'arcade', sandbox: 'freeplay', training: 'freeplay' };
+const GROUP_OF = { campaign: 'story', gate: 'story', mission: 'story', endless: 'arcade', sandbox: 'freeplay', training: 'freeplay' };
 const groupOf = (m) => m === 'mission' && isArcadeId(G.missionId) ? 'arcade' : GROUP_OF[m];
 export const menuGroup = () => _group;
 function openGroup(g){
@@ -191,10 +195,10 @@ export function setOverlayState(state){
     go.textContent = 'BEGIN'; sub.textContent = 'CHOOSE YOUR LEGEND';
   } else if (state === 'menu'){
     go.textContent = beginLabel();
-    sub.textContent = G.modeSel === 'temple' ? nextHub().place + ' · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
+    sub.textContent = G.modeSel === 'temple' ? nextHub().place + ' · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : G.modeSel === 'gate' ? 'ANY HEROES, ONE GATE' : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
-    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
+    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? (storyHero() === 'gate' ? 'ACT IV · ' : 'CAMPAIGN · ') + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
@@ -235,7 +239,7 @@ function beginPlay(){
   document.body.classList.remove('in-menu');
   setHowTo(false); setSettings(false);
   if (G.modeSel === 'mission' && !G.coopJoin && !missionOpen(G.missionId)) G.modeSel = 'campaign';   // a locked mission never launches
-  if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked())) G.modeSel = 'campaign';   // safety — never launch a locked mode
+  if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked()) || (G.modeSel === 'gate' && !gateOpen() && !G.coopJoin)) G.modeSel = 'campaign';   // safety — never launch a locked mode
   if (G.mode === 'victory' && !repick && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
   // a new run (or a retry) builds its level behind the loading screen (ui/loading.js): the screen paints first, then the
   // build, which holds the page for a moment. The sim stays held until it's in; backing out to the menu meanwhile skips it
@@ -249,7 +253,7 @@ function beginPlay(){
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
-      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
+      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (G.modeSel === 'gate') beginGate(); else if (canResume()) resumeRun(); else startCampaign();
       G.paused = false;   // unfreeze the sim on entering play
     }, stillWanted);
   } else if (G.mode === 'dead'){
@@ -300,14 +304,29 @@ export function refreshSandboxLock(){
   el.title = full ? '' : un ? 'The foes, powers and forms you have met in the campaign. Beat it to open everything'
                             : 'The sandbox unlocks once you have cleared Act I of the campaign with either hero';
 }
+// ACT IV: its saved run for this hero, else a new one (the story's run waiting on the menu is put back after: followHero)
+function beginGate(){
+  const run = gateRun();
+  if (!run) return void startGate();
+  G.resumeRun = run; resumeRun();
+}
+// ACT IV · THE SITH GATE is LOCKED until any one hero's campaign is beaten (game/gate.js)
+export function refreshGateLock(){
+  const el = document.getElementById('mode-gate'); if (!el) return;
+  const un = gateOpen(), md = el.querySelector('.md'), run = un && gateRun();
+  el.classList.toggle('locked', !un);
+  if (md) md.innerHTML = !un ? lockTag() + 'Beat any hero\'s campaign' : run ? 'Continue · ' + resumeProgressOf(run) : 'Any 1 to 4 heroes, five chapters' + (gateBeaten() ? ' · <span class="ok">✓</span> beaten' : '');
+  el.title = un ? 'The shared campaign after the three stories, for any mix of heroes' : 'Act IV opens once you have beaten the campaign with any hero';
+}
+const resumeProgressOf = (run) => { const was = G.resumeRun; G.resumeRun = run; try { return resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, ''); } finally { G.resumeRun = was; } };
 export function setModeSel(m){
-  if ((m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked())){   // can't pick a locked mode
+  if ((m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked()) || (m === 'gate' && !gateOpen())){   // can't pick a locked mode
     S.uiDeny();
     const el = document.getElementById('mode-' + m); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
     return false;
   }
   G.modeSel = m;
-  for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
+  for (const k of ['campaign', 'gate', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile(); refreshGroups();
   document.getElementById('stepMode').textContent = m === 'temple' ? nextHub().name : STEP_NAME[m] || 'CAMPAIGN';
@@ -315,7 +334,7 @@ export function setModeSel(m){
   return true;
 }
 // a mode tile picks the mode and moves on to the hero step (a locked one shakes and stays put)
-for (const m of ['campaign', 'endless', 'training', 'sandbox', 'temple'])
+for (const m of ['campaign', 'gate', 'endless', 'training', 'sandbox', 'temple'])
   document.getElementById('mode-' + m).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (m === 'campaign') pickUpSavedRun(); if (setModeSel(m)) showMenuStep('hero'); });
 // CAMPAIGN on the title screen opens on CONTINUE CAMPAIGN whenever the picked hero has a saved run: a run played from the
 // menu is used up as it starts (game/saves.js resumeRun), so back on the menu that hero's newest save is put back first
@@ -347,7 +366,7 @@ window.addEventListener('keydown', (e) => {
 // CO-OP is a tile but not a mode: it opens the room panel (ui/coop-ui.js)
 // MISSIONS: the mode tile opens the Missions page (ui/missions-ui.js); the picked mission is remembered
 { let id; try { id = localStorage.getItem('sw_mission'); } catch(e){} setMission(id || G.missionId); }
-refreshSurvivalLock(); refreshSandboxLock(); refreshCampaignMark();
+refreshSurvivalLock(); refreshSandboxLock(); refreshGateLock(); refreshCampaignMark();
 // CAMPAIGN shows how far this hero's saved run is, else the shape of the story
 function refreshCampaignMark(){
   const md = document.querySelector('#mode-campaign .md'); if (!md) return;
@@ -775,7 +794,7 @@ function restartRun(toTraining, after){
   G.paused = true;
   loadInto(() => {
     G.paused = false;
-    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0) startCampaign(); else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0){ if (storyHero() === 'gate') startGate(); else startCampaign(); } else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
     if (after) after();
   });
   if (!shared.lockFallback) requestLock();
@@ -817,7 +836,7 @@ export function goHome(){
 }
 // the title screen's locks, ticks and headline, after anything that changes progress (a run ending, a loaded save, NEW GAME)
 export function refreshMenu(){
-  refreshSurvivalLock(); refreshSandboxLock(); refreshCampaignMark(); refreshTrainingMark(); refreshMissionMark();
+  refreshSurvivalLock(); refreshSandboxLock(); refreshGateLock(); refreshCampaignMark(); refreshTrainingMark(); refreshMissionMark();
   setOverlayState('menu');
 }
 // finishing the training grounds hands you back to the menu, with the campaign picked

@@ -202,6 +202,15 @@ const BOSSES = [
             'Phase II: lightning, the choke and a repulse if you crowd him. Phase III: blink chains, the storm, a last stand'],
     beat: ['PARRY the Guard Breaker (the white and red flash) and he reels', 'Catch the lightning on your guard, then PARRY a surge or PUSH it back into him',
            'Dash out of the choke\'s red ring, or PUSH to break it. Dodge his last charge and he is wide open', counterLine(BOSS_FORM.sith.form)] },
+  { id: 'kharel', kind: 'boss', boss: 'gate', name: 'DARTH KHAREL', kicker: 'THE UNBURIED', threat: 5,
+    lore: 'A Sith lord a thousand years dead, coming back through the gate under Jedha in a vessel of stolen beskar. Vexis, the Magistrate and the Marshal all served him without knowing it.',
+    weapons: ['Lightsaber', 'Force lightning', 'Force choke', 'The wards'],
+    watch: ['Phase I: a Djem So master in beskar. The armour takes a little off every blow',
+            'Phase II: he kneels behind a ward and lights THREE WARDS round the floor. Nothing lands on him while he kneels',
+            'Phase III: the lights die. Blink chains, the storm, the wards again, and a last stand'],
+    beat: ['Split up for the wards: a Jedi holds the Force seal fastest, the high lock is worked from above, the squad can hold the line alone (H)',
+           'Break all three in time and he is thrown open. Too slow and the NOVA rings out across the floor: dodge or jump it',
+           'Between the wards he fights as Vexis did: PARRY the Guard Breaker, dash the choke, catch the lightning'] },
   { id: 'magistrate', kind: 'boss', boss: 'mando', name: 'THE IRON MAGISTRATE', kicker: 'WARLORD OF THE OUTER RIM', threat: 5,
     lore: 'A beskar warlord in armour beaten out of a hundred coverts, built to beat a hunter at the hunter\'s game.',
     weapons: ['Beskar war-spear', 'Beskar shield', 'Jetpack, rocket pods and a flamethrower'],
@@ -278,7 +287,7 @@ const HOLO = HOLOCRONS.map(h => ({ ...h, tab: 'holocrons', kind: 'holocron', hol
 
 export const CODEX = [...TROOPS, ...DUELISTS, ...BOSSES, ...ALLIES, ...HOLO];
 export const CODEX_BY_ID = Object.fromEntries(CODEX.map(e => [e.id, e]));
-export const BOSS_ENTRY = { sith: 'vexis', mando: 'magistrate', trooper: 'marshal' };
+export const BOSS_ENTRY = { sith: 'vexis', mando: 'magistrate', trooper: 'marshal', gate: 'kharel' };
 
 // the elite traits (data/enemies.js ELITES) as the preview's looks name them
 export const ELITE_NOTES = { swift: 'faster', vital: 'tougher', volatile: 'explodes when it dies' };

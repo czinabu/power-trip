@@ -54,6 +54,7 @@ import { spawnSquad, addSquadmate, noteGuests, squadIn, squadStanding, allies } 
 import { SQUAD } from '../data/allies.js';
 import { collideSolids } from '../world/collision.js';
 import { players, targetable } from '../player/players.js';
+import { LOCK, lockRate } from './locks.js';
 import { diffDmgMul, diffBossCheckpoint } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
 import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
@@ -319,8 +320,8 @@ const KINDS = {
     music: (o, s) => ({ urgency: s.cons.reduce((a, c) => a + (c.done ? 1 : c.prog / o.time), 0) / s.cons.length, focus: !!s.at }),
     begin(o, s){
       s.cons = o.consoles.map(c => {
-        const spot = findClearSpawn(c.at[0], c.at[1], 1.4);
-        const m = makeConsole(spot.x, spot.z, Math.atan2(-spot.x, -spot.z), RED);
+        const spot = c.y ? { x: c.at[0], z: c.at[1] } : findClearSpawn(c.at[0], c.at[1], 1.4);   // (one up on a deck stays put: it's on top of the solid)
+        const m = makeConsole(spot.x, spot.z, Math.atan2(-spot.x, -spot.z), c.style ? LOCK.color[c.style] : RED, c.y || 0);
         M.markers.push(m);
         for (const t in c.guards) for (let n = 0; n < c.guards[t]; n++)
           fieldSpawn(t, spot.x + (Math.random() - 0.5) * 5, spot.z + (Math.random() - 0.5) * 5);
@@ -339,13 +340,17 @@ const KINDS = {
         if (c.done) continue;
         left++;
         pulseMarker(c.m, dt, G.gt);
-        if (!heroIn(c.x, c.z, o.r)) continue;
-        at = c;
+        // a STYLED LOCK (Act IV: game/locks.js) is worked by every hero on it, faster in the way it was built for; a plain
+        // console by anyone standing at it
+        const st = c.def.style, pace = st || c.def.y ? lockRate(c.x, c.z, o.r, st, c.def.y || 0) : heroIn(c.x, c.z, o.r) ? 1 : 0;
+        if (!pace) continue;
+        at = c; c.pace = pace;
+        if (st && !s.told?.[st]){ (s.told ||= {})[st] = true; showBanner(LOCK.name[st], LOCK.hint[st], 3.2, { kicker: 'EVERY HERO HAS A WAY' }); }
         // a hit sets the work back, once a second at most: a sniper and two blasters on you shouldn't pin it at zero forever
         if (hit && c.prog > 0 && G.gt - (s.lossAt ?? -9) > 1){ s.lossAt = G.gt; c.prog = Math.max(0, c.prog - o.hitLoss); floater(V3(c.x, 1.6, c.z), 'INTERRUPTED', '#ff9a8a'); }
         gate = o.twist && twistGate(c.x, c.z, twistCtx);   // its twist can hold it up (game/twists.js)
         const was = c.prog;
-        c.prog += dt * (gate ? gate.rate : 1);
+        c.prog += dt * (gate ? gate.rate : 1) * pace;
         if (Math.floor(c.prog * 4) !== Math.floor(was * 4) && c.prog > was) sfx(700 + c.prog * 160, 0.04, 'square', 0.02, 900 + c.prog * 160);
         if (c.prog >= o.time){
           c.done = true; left--; at = null;
@@ -360,7 +365,8 @@ const KINDS = {
       const n = s.cons.length; s.at = at;
       setObjectiveHud({ kicker: M.kick, title: o.title,
         frac: at ? at.prog / o.time : (n - left) / n,
-        status: at && gate && gate.status ? gate.status : at ? (o.consoleName ? 'WORKING… STAY ON IT' : 'SLICING… STAY ON THE CONSOLE')
+        status: at && gate && gate.status ? gate.status : at && at.def.style ? LOCK.name[at.def.style] + ' · WORKING' + (at.pace > 1.01 ? ' ×' + at.pace.toFixed(1) : '') + ' · STAY ON IT'
+                   : at ? (o.consoleName ? 'WORKING… STAY ON IT' : 'SLICING… STAY ON THE CONSOLE')
                    : (n - left) + ' / ' + n + (o.consoleName ? ' ' + o.consoleName + 'S DONE' : ' UPLINKS DOWN'), warn: !!(at && gate && gate.warn) });
       if (!left){ showBanner(o.doneLine || 'UPLINKS SILENCED', o.doneLine ? (o.doneSub || '') : 'The bombardment never comes.', 2.2); return true; }
     },
@@ -1529,7 +1535,7 @@ export function missionSnap(){
   return { id: M.def.id, run: M.run, hh: G.hero, i: M.i, b: M.o ? 1 : 0, f: M.failT > 0 ? 1 : 0,
     hud: hud ? [hud.status || '', hud.frac == null ? -1 : r2(hud.frac), hud.warn ? 1 : 0] : null,
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
-                            m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0)]),
+                            m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
     v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
@@ -1591,8 +1597,8 @@ export function coopMissionSync(ms){
   ms.mk.forEach((r, k) => {
     let m = M.markers[k];
     if (m && !!m.userData.con !== !!r[0]){ removeMarker(m); m = null; }
-    if (!m) m = M.markers[k] = r[0] ? makeConsole(r[1], r[2], r[7], r[4]) : makeBeacon(r[1], r[2], 0, r[4], r[3] / 0.9);
-    m.position.set(r[1], 0, r[2]);
+    if (!m) m = M.markers[k] = r[0] ? makeConsole(r[1], r[2], r[7], r[4], r[8] || 0) : makeBeacon(r[1], r[2], r[8] || 0, r[4], r[3] / 0.9);
+    m.position.set(r[1], r[8] || 0, r[2]);
     setMarkerColor(m, r[4]);
     m.userData.beam.visible = !!r[5]; m.visible = !!r[6];
   });

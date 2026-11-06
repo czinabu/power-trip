@@ -12,6 +12,7 @@ import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub
 import { hubLaunch, hubLaunchZone, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser, overlay } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
+import { gateOpen } from '../game/gate.js';
 import { randomArcadeId } from '../data/arcade.js';
 import { openMissionPage } from './missions-ui.js';
 import { openCustomizer } from './customizer.js';
@@ -52,6 +53,8 @@ const party = () => net.status === 'connected';
 const B = (t, d, go, lock) => ({ t, d, go, lock });
 
 // the open zones (data/zones.js): a button for each, from the mode tables and the maps
+// ACT IV · THE SITH GATE (game/gate.js): the shared campaign after the three, for the whole party
+const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign');
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
 
 function options(s){
@@ -75,6 +78,7 @@ function options(s){
       const sv = survivalUnlocked();
       return [
         B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+        gateButton(),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
         B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), sv ? null : 'Beat the campaign as Jedi and Mando'),
@@ -100,6 +104,7 @@ function options(s){
       ];
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        gateButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
         ...zoneButtons(),

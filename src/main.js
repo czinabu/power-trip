@@ -272,6 +272,7 @@ import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene }, killcam: { KC, killCam } });
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
+Object.assign(window.GAME, { gate: { start: startGate, open: gateOpen, veteranKit, finale: () => shared.finale } });   // ACT IV (game/gate.js), for tests
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';
 import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
@@ -300,6 +301,7 @@ import { findClearSpawn, edgeSpawn } from './world/collision.js';
 import { TRAINING_LEVELS } from './data/tutorial.js';
 import { SANDBOX_LEVELS } from './data/sandbox.js';
 import { MISSIONS } from './data/missions.js';
+import { startGate, gateOpen, veteranKit } from './game/gate.js';
 const byLayout = id => Object.values(MISSIONS).find(m => m.level && m.level.layout === id).level;
 Object.assign(window.GAME, { MISSIONS });   // dev console / tests: the story missions as data
 Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: () => ({
@@ -312,7 +314,7 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
   jungle: MISSIONS.order66.level, shipyard: { ...LEVELS[0], layout: 'shipyard', arena: 84 }, garrison: MISSIONS.killhouse.level, frigate: MISSIONS.chipfiles.level,   // (the ARC trooper's story: data/campaign-trooper.js)
   kamino: MISSIONS.drowned.level, chipworks: MISSIONS.chipworks.level, warcamp: MISSIONS.warcamp.level, canyon: MISSIONS.hunt.level, relay: MISSIONS.broadcast.level,
   barge: MISSIONS.gallows.level, holdfast: MISSIONS.holdfast.level, citadel: { ...LEVELS[2], layout: 'citadel', arena: 64 },
-  meltworks: MISSIONS.meltworks.level, ironroad: MISSIONS['iron-road'].level,
+  meltworks: MISSIONS.meltworks.level, ironroad: MISSIONS['iron-road'].level, sithGate: MISSIONS['gate-heart'].level,
   ...Object.fromEntries(ALL_WINGS.map(({ W }) => [W.level.layout, W.level])),   // every hub's wings: the temple's, the citadel's… (data/hub.js)
   grassland: BATTLE_MAPS.grassland.level, icefront: BATTLE_MAPS.icefront.level, graveyard: BATTLE_MAPS.graveyard.level,
 }) });

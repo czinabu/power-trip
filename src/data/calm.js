@@ -24,7 +24,10 @@ export const CALM_CFG = {
   max: 40,                   // s: it closes on its own, wherever you are
 };
 
+import { GATE_CALM } from './campaign-gate.js';
+
 export const CALM = {
+  gate: GATE_CALM,   // ACT IV (data/campaign-gate.js)
   jedi: {
     label: 'REGROUP',
     duel: [

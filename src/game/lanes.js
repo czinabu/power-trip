@@ -174,9 +174,7 @@ function buildMark(l){
   const g = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.8, 40), mat());
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.07;
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 12, 14, 1, true), mat());
-  beam.position.y = 6; beam.visible = false;
-  g.add(ring, beam);
+  g.add(ring);   // (no column of light over the mouth: the ring, the chevrons and the edge arrow are the telegraph)
   g.position.set(l.x, 0, l.z);
   // the chevrons: from the mouth toward the zone, stopping short of its edge
   const dx = l.tx - l.x, dz = l.tz - l.z, d = Math.hypot(dx, dz) || 1, run = Math.max(0, Math.min(14, d - (l.r || 6) - 1.5));
@@ -189,12 +187,12 @@ function buildMark(l){
     scene.add(m); chev.push(m);
   }
   scene.add(g);
-  return { g, ring, beam, chev };
+  return { g, ring, chev };
 }
 function dropMark(l){
   if (!l.mk) return;
-  const { g, ring, beam, chev } = l.mk;
-  scene.remove(g); ring.geometry.dispose(); ring.material.dispose(); beam.geometry.dispose(); beam.material.dispose();
+  const { g, ring, chev } = l.mk;
+  scene.remove(g); ring.geometry.dispose(); ring.material.dispose();
   for (const m of chev){ scene.remove(m); m.material.dispose(); }
   l.mk = null;
 }
@@ -223,7 +221,6 @@ export function updateLanes(dt, gt){
     const pulse = 0.5 + 0.5 * Math.sin(gt * 9);
     mk.ring.material.opacity = LANE.idle + h * (0.45 + 0.35 * pulse);
     mk.ring.rotation.z += dt * (0.4 + h * 2.5);
-    mk.beam.visible = h > 0.05; mk.beam.material.opacity = h * 0.22;
     for (const m of mk.chev){
       const run = h > 0 ? 0.5 + 0.5 * Math.sin(gt * 8 - m.userData.k * 0.9) : 0;   // a wave of light running toward the zone
       m.material.opacity = LANE.idle * 0.8 + h * (0.35 + 0.6 * run);

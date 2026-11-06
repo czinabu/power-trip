@@ -505,6 +505,13 @@ function setCompass(on){
 }
 { let v; try { v = localStorage.getItem('sw_compass'); } catch(e){} setCompass(v !== '0'); }
 document.getElementById('compassctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setCompass(!G.compass); });
+// MINIMAP — the corner map in an open zone (ui/zone-map.js); the full map on M is there either way
+function setMinimap(on){
+  G.minimap = on; try { localStorage.setItem('sw_minimap', on ? '1' : '0'); } catch(e){}
+  const sv = document.getElementById('minimapval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
+}
+{ let v; try { v = localStorage.getItem('sw_minimap'); } catch(e){} setMinimap(v !== '0'); }
+document.getElementById('minimapctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setMinimap(!G.minimap); });
 // SKY BATTLE — how much of the trailer layer over the war beyond the walls plays (world/skywar.js)
 const SKYWAR = ['auto', 'full', 'light', 'off'];
 function setSkywar(v){
@@ -642,7 +649,7 @@ function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
   setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
   setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
-  setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true);
+  setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true); setMinimap(true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
   setAimHint(true); setSwingMirror(false); setSaberGrip('regular');
   resetQuality();

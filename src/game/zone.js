@@ -9,6 +9,7 @@
 //   · WAYSTONES: walking up to one touches it (your profile keeps it: game/profile.js noteZone); tap F at any one to travel
 //     to another you've touched. The gate's also takes you home.
 //   · DISTRICTS: walking into one names it in a banner; the first time, it counts as seen on your profile.
+//   · MAPS: a minimap in the HUD's corner and the full map on M, with fast travel to a touched waystone (ui/zone-map.js).
 //   · ITS LIFE: patrols in every district but the gate's (game/zone-fights.js), people who need a hand and moments that
 //     test which way you lean (game/zone-quests.js), and secrets set by hand in its corners (game/secrets.js).
 //   · A FALL is never the end: the hero wakes at the nearest waystone they have touched, whole (player/damage.js onHeroFall).

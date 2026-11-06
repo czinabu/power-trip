@@ -59,7 +59,7 @@ export function padKey(tok, hero){
   if (t === 'a') return gl.LS + '←'; if (t === 'd') return gl.LS + '→';
   if (t.includes('+') && t.length > 1) return t.split('+').map(x => padKey(x, hero)).join('+');   // RMB+LMB
   const want = t in KB_ALIAS ? KB_ALIAS[t] : t;
-  const hit = (layer) => Object.keys(layer).find(n => typeof want === 'number' ? layer[n].mouse === want : layer[n].key === want);
+  const hit = (layer) => Object.keys(layer).find(n => typeof want === 'number' ? layer[n].mouse === want : layer[n].key === want || layer[n].zone === want);   // (zone: LB + VIEW is the map in an open zone)
   let n = hit(B.base); if (n) return gl[n];
   n = hit(B.lb); if (n) return gl.LB + '+' + gl[n];
   return tok;
@@ -92,7 +92,7 @@ function sendMouse(b, down){
 }
 function press(name, bind){
   if (!bind) return;
-  const v = bind.sandbox && G.sandbox && !held.has('LB') ? { key: bind.sandbox } : bind;
+  const v = bind.sandbox && G.sandbox && !held.has('LB') ? { key: bind.sandbox } : bind.zone && G.zone ? { key: bind.zone } : bind;
   held.set(name, v);
   if (v.mouse != null) sendMouse(v.mouse, true); else sendKey(v.key, true);
 }
@@ -298,7 +298,7 @@ function slide(dir){
   sl.dispatchEvent(new Event('change', { bubbles: true }));
   return true;
 }
-const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex'].some(id => document.getElementById(id).classList.contains('open')) ||
+const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex', 'zonemap', 'zonepanel'].some(id => { const el = document.getElementById(id); return !!el && el.classList.contains('open'); }) ||
   sandboxOpen() || /\b(confirming|newconfirming|exitconfirming|asktrain|customizing|kitbench)\b/.test(overlay.className) || document.body.classList.contains('wb-open');   // (the benches: B closes them, ui/workbench.js, ui/kitbench.js)
 
 function menu(btn, down, lx, ly, ry, dt){

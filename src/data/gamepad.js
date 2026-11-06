@@ -10,6 +10,7 @@
    strafe: held, the layer and the strafe go together; a lone tap toggles strafe, player/strafe.js). Anything not in 'lb' falls through to 'base'.
    SLOTS: D-pad left / up / right are the three loadout slots (keys 1 / 2 / 3: the Jedi's forms, the Mando's weapons).
    A form loadout or a fourth slot only has to change the key here.
+   A bind's `sandbox` / `zone` key stands in for its own in the sandbox / an open zone (LB + VIEW: the zone's map).
    The ARC trooper has its own layout (the Mandalorian's shape with its kit on it): padLayout picks. */
 
 // standard mapping (https://w3c.github.io/gamepad/#remapping) button index → name
@@ -59,7 +60,7 @@ export const PAD_BINDS = {
       LEFT: { key: 'z', label: 'Ignite / retract saber', note: 'Blade out, hilt to the belt: walk or run at ease · any attack, block, power or blow lights it again' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders' },
+      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
   mando: {
@@ -87,7 +88,7 @@ export const PAD_BINDS = {
       LEFT: { key: '5', label: 'Ignite / retract Darksaber', note: 'With the Darksaber in hand · any swing or guard lights it again' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders' },
+      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
   // the clone ARC trooper (player/trooper/kit.js): the Mandalorian's shape, so a gunner's hands carry over, with its own
@@ -118,7 +119,7 @@ export const PAD_BINDS = {
       L3: { key: 'y', label: 'Coordinated Fire', note: 'With BATTLE RHYTHM full: mark the foe at the reticle, and the squad puts one volley into it' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders' },
+      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
 };

@@ -6,6 +6,7 @@
 //    survival pays one per wave cleared. A point is only noted mid-fight; it is spent on the upgrade page
 //    (ui/store-ui.js), which opens once at a chapter's close (every SURVIVAL_EVERY waves in survival).
 
+import { pushPopup } from '../ui/popups.js';
 import { S } from '../audio/sfx.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
@@ -28,35 +29,28 @@ function inFight(){
   return false;
 }
 
-/* ---------------- corner notes ---------------- */
+/* ---------------- corner notes ----------------
+   One at a time, through the pop-up queue (ui/popups.js): a reward note waits for a lull and the same note twice is one;
+   a first-sighting foe tip ('foe') is about the fight in hand, so it goes first and doesn't wait for the lull. */
 let toastWrap = null;
-export function upToast(head, line, kind){
+function cornerNote(head, line, kind){
   if (!toastWrap) toastWrap = document.getElementById('uptoasts');
-  if (!toastWrap) return;
+  if (!toastWrap) return () => {};
   const t = document.createElement('div');
   t.className = 'uptoast ' + (kind || '');
   t.innerHTML = '<b></b><span></span>';
   t.firstChild.textContent = head; t.lastChild.textContent = line || '';
   toastWrap.appendChild(t);
-  while (toastWrap.children.length > 3) toastWrap.firstChild.remove();
-  setTimeout(() => t.classList.add('out'), 4200);
-  setTimeout(() => t.remove(), 4800);
+  return () => { t.classList.add('out'); setTimeout(() => t.remove(), 600); };
+}
+export function upToast(head, line, kind){
+  pushPopup({ kind: kind === 'foe' ? 'info' : 'reward', key: kind === 'sp' ? 'sp' : 'n:' + head, dur: 4.2,
+    show(){ return cornerNote(this.head, this.line, kind); }, head, line });   // (a later skill-point note replaces the waiting one: it has the count)
 }
 
-// first-sighting foe tips: one corner note at a time, queued so a mixed wave never stacks them, and kept to a sentence
-const foeQ = [];
-let foeBusy = false;
-function nextFoeTip(){
-  const n = foeQ.shift();
-  if (!n){ foeBusy = false; return; }
-  foeBusy = true;
-  upToast(n[0], n[1], 'foe');
-  setTimeout(nextFoeTip, 5000);
-}
+// first-sighting foe tips: kept to a sentence (the queue shows them one at a time, so a mixed wave never stacks them)
 export function foeTipToast(head, line){
-  const short = (line || '').split(/(?<=[.!?]) /)[0];
-  foeQ.push([head, short]);
-  if (!foeBusy) nextFoeTip();
+  upToast(head, (line || '').split(/(?<=[.!?]) /)[0], 'foe');
 }
 
 /* ---------------- mastery by use ---------------- */

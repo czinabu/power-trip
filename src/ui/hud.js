@@ -77,6 +77,8 @@ function setText(el, v){ if (el._t !== v){ el._t = v; el.textContent = v; } }
 function setHtml(el, v){ if (el._h !== v){ el._h = v; el.innerHTML = v; } }
 const $ = (id) => document.getElementById(id);
 
+const FIGHT_LINGER = 2.5;   // s of quiet before the checklist opens out again
+let fightT = -99;
 // top-right objectives checklist (training lessons, mission objectives): a window of up to 7 rows around the current one
 function renderChecklist(c){
   const el = $('objlist');
@@ -299,6 +301,10 @@ export function updateHud(){
                                                 : G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
     if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)
     renderChecklist(c); }
+  // QUIET IN A FIGHT (styles/heroes/tracker.css): while fighting, the checklist keeps only the objective in hand; it opens
+  // out again a moment after the fight goes quiet, or while HOLD O is up (it is the full view)
+  { const fight = G.mode === 'play' && inCombat();
+    if (fight) fightT = G.gt; document.body.classList.toggle('hx-fight', G.mode === 'play' && G.gt - fightT < FIGHT_LINGER); }
   // THE CUT DIAL (player/jedi/cutaim.js): the angle the next cut comes from (hidden for a keyed cut: the thrust, the
   // back strike). Its height is where the crosshair sits on the foe, so the crosshair itself shows that
   { const on = G.mode === 'play' && !player.unlit && (isGunner() ? player.weapon === 'darksaber' : !player.holstered);   // (unlit: the blade put out with 5)

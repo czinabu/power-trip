@@ -131,6 +131,7 @@ import { updateSecrets, secretsPlaced } from './game/secrets.js';
 import { updateAlignment } from './game/alignment.js';
 import './ui/hub-ui.js';
 import './ui/zone-ui.js';   // the waystone panel in an open zone
+import { updateZoneMap, openZoneMap, closeZoneMap, zoneMapInfo } from './ui/zone-map.js';   // an open zone's minimap and full map (M)
 import { HUBS, ALL_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
@@ -215,6 +216,7 @@ function tick(){
   updateSecrets(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story maps' hidden holocrons, caves and meditation spots (game/secrets.js)
   updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
   updateZone(G.paused || G.skillSelect ? (coopLive() ? rawDt : 0) : rawDt);   // an open zone: its streets streamed in and out, its waystones and districts (game/zone.js) (in a shared zone the host's patrols run on behind a card)
+  updateZoneMap(rawDt);   // ...and its minimap and full map (ui/zone-map.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
@@ -262,6 +264,7 @@ window.GAME = { PROFILE, NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerS
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn },
   aim: { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim },
+  zoneMap: { open: openZoneMap, close: closeZoneMap, info: zoneMapInfo },
   zone: { startZone, travelTo, zoneDistrict, stonesTouched, zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream, zoneQuest, zoneGivers, zonePatrols, zoneQuestMarks },
   get boss(){ return shared.boss; }, get finale(){ return shared.finale; }, get saberProj(){ return shared.saberProj; }, get darkProj(){ return shared.darkProj; } };
 
@@ -279,6 +282,7 @@ import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
+Object.assign(window.GAME, { popups: { push: pushPopup, up: popupUp, waiting: popupsWaiting, toast: upToast, banner: showBanner, cfg: POPUPS } });   // one pop-up at a time (ui/popups.js), for tests
 Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
@@ -341,6 +345,9 @@ import { CUSTOMIZE as CUSTOMIZE_ROWS } from './data/customize.js';
 import { optionOpen as lookOpen } from './game/wardrobe.js';
 import { captureRun as captureCampaignRun } from './game/saves.js';
 import { SIDE_QUESTS as SIDE_LIST } from './data/side-quests.js';
+import { pushPopup, popupUp, popupsWaiting, POPUPS } from './ui/popups.js';   // one pop-up at a time
+import { showBanner } from './ui/banners.js';
+import { upToast } from './game/upgrades.js';
 Object.assign(window.GAME, { CUSTOMIZE: CUSTOMIZE_ROWS, optionOpen: lookOpen, captureRun: captureCampaignRun, SIDE_QUESTS: SIDE_LIST });
 import * as GUN_MOVES_RT from './player/gun-moves.js';
 import { GUN_MOVES as GUN_MOVES_DATA } from './data/gun-moves.js';

@@ -1,0 +1,35 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE INK RULES: what every hero's UI shares, so it reads as part of the cel-shaded, outlined world and not a sci-fi
+   template laid over it (docs/hero-ui.md, the "Hero UI Direction" doc). Loaded after the older stylesheets; it only takes away (blur, gloss, rails)
+   and adds the ink edge. Each hero's own look is in styles/heroes/<area>.css.
+   ============================================================ */
+
+/* no frosted glass in play: panels are flat paint with an ink edge */
+#hud :is(#stances,.weaponbox,.ab.slot),#boonstrip .bn,#objlist,#objview,.uptoast{backdrop-filter:none;-webkit-backdrop-filter:none}
+
+/* bars: square, an ink edge, a flat fill with one hard highlight band (the cel ramp) instead of a glossy gradient */
+.barwrap{border:2px solid var(--hx-ink);border-radius:0;background:rgba(10,12,16,.82);box-shadow:none}
+.bar{box-shadow:inset 0 3px 0 rgba(255,255,255,.26)}
+#hpbar{background:#2fb866}
+#hpmeter.low #hpbar{background:#d2452c}
+#fpbar{background:#3d9ee6}
+body.mando #fpbar{background:#d98a2b}
+#fcbar{background:#d9b23e}
+#gfbar{background:#d17a26}
+#gfmeter.tr #gfbar{background:#3f7fd1}
+#fybar{background:#c92a22}
+#fymeter.vaapad #fybar{background:#8a3fe0}
+#smbar{background:#e8a23a}
+#fplvpips i{border-radius:0}
+#fplvpips i.on{background:#8fd0ff;box-shadow:none}
+
+/* small HUD plates: an ink edge, square corners */
+#hud :is(#stances,.weaponbox,.ab.slot),.uptoast,#boonstrip .bn{border-radius:0;box-shadow:0 0 0 2px var(--hx-ink)}
+#hud .stance{border-radius:0}
+#hud .ab.hint .key,kbd,.kc{border-radius:0}
+
+/* a controller's focus ring (engine/gamepad.js) in the hero's own colour, ringed in ink; a chamfered plate (the Mando's)
+   drops its cut corners while it has the ring, so the ring is never clipped away */
+.padfocus{outline:2px solid var(--hx-accent-hi)!important;outline-offset:3px;box-shadow:0 0 0 5px var(--hx-ink)!important}
+[data-hero="mando"] .padfocus{clip-path:none!important}

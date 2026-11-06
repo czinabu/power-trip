@@ -65,6 +65,8 @@ export function buildZoneArena(L, opts = {}){
 }
 export function clearZoneStream(){ ZS.on = false; ZS.Z = null; ZS.chunks = []; ZS.root = null; ZS.extra = []; }
 
+// the plan of the zone being played (or of `Z`): every piece as plain data (the map draws its streets from it: ui/zone-map-art.js)
+export const zonePlan = (Z = ZS.Z) => Z ? planOf(Z.level.layout, Z) : null;
 function planOf(layout, Z){
   if (!planCache.has(layout)){ const f = PLANS[layout]; planCache.set(layout, f ? f(Z) : null); }
   return planCache.get(layout);

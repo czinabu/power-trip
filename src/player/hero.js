@@ -17,6 +17,7 @@ export function setHero(hero){
   dressHeroParts(hero);
   document.body.classList.toggle('mando', gunner);
   document.body.classList.toggle('trooper', trooper);
+  document.body.dataset.hero = hero;   // the hero UI's look (styles/heroes/tokens.css), in every mode
   const xh = document.getElementById('xh'), rt = document.getElementById('reticle');
   if (xh) xh.style.display = gunner ? 'none' : '';
   if (rt) rt.style.display = gunner ? 'block' : 'none';

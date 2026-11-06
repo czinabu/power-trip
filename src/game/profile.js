@@ -8,6 +8,7 @@
 // CO-OP AND THE HUB: profileCard() is the small public face of a profile (hero, rank, tree, deck) that net/partner.js sends with
 // each hello, so every player sees the others' ranks; the Tython hub will read the same card for everyone standing in it.
 
+import { onFileSwitch } from '../engine/save-files.js';
 import { G } from '../state.js';
 import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
 import { ALIGN } from '../data/alignment.js';
@@ -360,3 +361,4 @@ export function resetProfile(hero){ const s = load(); s.heroes[hero] = blank(); 
 // tools and tests
 export const profileStore = () => load();
 export function reloadProfile(){ store = null; return load(); }
+onFileSwitch(() => { store = null; });   // another save file: its own profile (engine/save-files.js)

@@ -17,6 +17,7 @@
 // back on the campaign's own record for a chapter or a win, so a crystal earned before the workbench stays earned.
 //
 // No imports on purpose (but the leaf data/saber-parts.js): player/mesh.js dresses the hero while the modules are still loading.
+import { onFileSwitch } from '../engine/save-files.js';
 import { partEarned } from '../data/saber-parts.js';
 
 const DEV_ALL = (() => { try { return new URLSearchParams(location.search).get('looks') === 'all'; } catch(e){ return false; } })();   // ?looks=all: everything open, for testing
@@ -43,6 +44,7 @@ export function chapterEarned(hero, id, src){
 }
 // the picks a player had before the wardrobe: { hero: { rowId: optionId } }, written down once
 let kept = null;
+onFileSwitch(() => { kept = null; });   // (another save file's: engine/save-files.js)
 function keptPicks(){
   if (kept) return kept;
   try {

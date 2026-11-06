@@ -1,14 +1,18 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE SAVE FILES on the title screen (engine/save-files.js keeps them apart): one small line under the title names the file
 // being played and the hero's rank in it ("SAVE FILE 1 · JEDI KNIGHT"); clicking it opens the files panel, with a card per
-// file to switch to, start fresh in, or delete. Switching reloads the game on the picked file, so every mode (campaign,
-// missions, survival, sandbox, training, the temple, co-op) reads that file's ranks, cards, crafting, choices and wins.
+// file to switch to, start fresh in, or delete. Switching happens in place, so every mode (campaign, missions, survival,
+// sandbox, training, the temple, co-op) reads that file's ranks, cards, crafting, choices and wins from then on.
 
-import { G, shared } from '../state.js';
-import { FILES, activeFile, fileExists, fileInfo, fileGet, noteActive, useFile, deleteFile } from '../engine/save-files.js';
+import { G } from '../state.js';
+import { FILES, activeFile, fileExists, fileInfo, fileGet, noteActive, switchFile, deleteFile } from '../engine/save-files.js';
 import { profileOf } from '../game/profile.js';
 import { TRACKS } from '../data/profile.js';
 import { connected } from '../net/session.js';
+import { clearParked } from '../game/saves.js';
+import { continueOnLaunch } from './saves-ui.js';
+import { goHome, setDiff, setMission } from './menus.js';
+import { reloadLook } from './customizer.js';
 import { audioInit, S } from '../audio/sfx.js';
 
 const line = document.getElementById('fileline');
@@ -46,21 +50,41 @@ if (line){
 }
 
 /* ---------- switching ---------- */
-/* the game reloads on the new file, so the switch hands over through the loading screen: it fades in over the menu (the
-   sound fading with it), the page reloads under it, and the new page opens on that same screen already up (index.html's
-   boot script reads sw_file_switch), so there is never a black or half-drawn frame between the two */
-function switchTo(n){
+/* in place, with no reload (so fullscreen, the music and the loaded game all stay): the loading screen fades in over the
+   menu, the active file changes under it (engine/save-files.js), the menu picks up that file's hero, run, difficulty,
+   mission, look and locks, and the screen fades back out on the new file */
+const frame = () => new Promise(r => requestAnimationFrame(() => r()));
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+let switching = false;
+async function switchTo(n){
+  if (switching) return; switching = true;
   closeFiles();
   const b = document.getElementById('boot');
-  try { sessionStorage.setItem('sw_file_switch', String(n)); } catch(e){}
-  try { const A = shared.AC; if (A && shared.masterGain) shared.masterGain.gain.setTargetAtTime(0, A.currentTime, 0.08); } catch(e){}
-  if (!b){ location.reload(); return; }
-  b.querySelector('.bt-blade').style.setProperty('--p', '0');
-  b.querySelector('.bt-status').textContent = 'Opening save file ' + n;
-  b.classList.add('again', 'out'); b.hidden = false;
-  void b.offsetWidth;   // (in at opacity 0, so the fade below runs)
-  b.classList.remove('out');
-  setTimeout(() => location.reload(), 600);
+  if (b){
+    b.querySelector('.bt-blade').style.setProperty('--p', '1');
+    b.querySelector('.bt-status').textContent = 'Opening save file ' + n;
+    b.classList.add('again', 'out'); b.hidden = false;
+    void b.offsetWidth;   // (in at opacity 0, so the fade runs)
+    b.classList.remove('out');
+    await wait(380); await frame();
+  }
+  try {
+    if (switchFile(n)){
+      G.resumeRun = null; clearParked();
+      let d, m; try { d = localStorage.getItem('sw_diff'); m = localStorage.getItem('sw_mission'); } catch(e){}
+      setDiff(d || 'knight'); setMission(m || 'refuge');
+      continueOnLaunch();   // this file's newest campaign run waits on CONTINUE CAMPAIGN, its hero picked
+      goHome();             // the menu as after a run: hero and kit rebuilt from this file, locks and ticks refreshed
+      reloadLook();         // and dressed in this file's look
+      shown = ''; refreshLine();
+    } else S.uiDeny();
+  } catch(e){ console.error(e); }
+  if (b){
+    await frame(); await frame(); await frame();   // the menu drawn on the new file before the screen lifts
+    b.classList.add('out');
+    setTimeout(() => { b.hidden = true; }, 600);
+  }
+  switching = false;
 }
 
 /* ---------- the panel ---------- */
@@ -82,7 +106,7 @@ function render(){
   }
   html += '<p class="sv-note">' + (busy
     ? 'Leave the co-op room to switch save files.'
-    : 'Each save file keeps its own ranks, ability cards, crafting, story choices, wins and saves. Settings are shared. Switching reloads the game.') + '</p>';
+    : 'Each save file keeps its own ranks, ability cards, crafting, story choices, wins and saves. Settings are shared.') + '</p>';
   document.getElementById('fllist').innerHTML = html;
 }
 export function openFiles(){ armed = null; panel.classList.add('open'); render(); }
@@ -95,7 +119,7 @@ panel.addEventListener('click', (e) => {
   if (!b){ if (armed){ armed = null; render(); } return; }
   const n = +b.dataset.n;
   if (b.dataset.act === 'use'){
-    if (connected() || !useFile(n)){ S.uiDeny(); return render(); }
+    if (connected()){ S.uiDeny(); return render(); }
     switchTo(n);
   } else if (b.dataset.act === 'del'){
     if (armed !== n){ armed = n; return render(); }

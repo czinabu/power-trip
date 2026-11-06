@@ -22,6 +22,7 @@ import { S } from '../audio/sfx.js';
 import { forcePulse } from '../fx/force-rise.js';
 import { loadingNow } from './loading.js';
 import { doorState } from '../world/doorway.js';
+import { popupUp, popupHooks } from './popups.js';
 
 export const FORCE_TOAST = { calm: 0.9, calmLead: 0.35, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up (one that leads: s after the cutscene) · s it stays · s it fades over · s before the power it brought opens its card
 
@@ -49,7 +50,10 @@ export const fadeForceToast = () => { leadT = 0; hide(); };
 
 // the hero is on screen and in hand: no screen over it, no cutscene, no loading screen or fade to the next chapter
 const inPlay = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
-  !loadingNow() && doorState() < 2 && performance.now() >= (shared.unlockHold || 0);
+  !loadingNow() && doorState() < 2 && performance.now() >= (shared.unlockHold || 0) &&
+  !popupUp() && !popupHooks.bannerUp();   // one pop-up at a time (ui/popups.js): it waits for a corner note or a banner to go
+// the pop-up queue's lull (ui/popups.js): a reward note waits for the fight and the talk to be done
+popupHooks.lull = () => !inCombat() && !storySpeaking() && !commsShowing();
 // a rise that leads (a chapter's close) comes up the moment the cutscene hands the hero back, over the walk-off talk;
 // a lone one waits for the talk and the fight to be done
 const lull = () => inPlay() && (wait.lead ||

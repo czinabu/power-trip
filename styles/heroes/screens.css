@@ -1,0 +1,56 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE PAUSE SCREEN and THE RESULTS (fallen / victory / survival's end) on #overlay (ui/menus.js setOverlayState), in the
+   look of the hero being played. The title screen (#overlay.st-menu) keeps the house look for now (a later phase).
+   ============================================================ */
+#overlay.st-pause{background:radial-gradient(ellipse 80% 70% at 30% 45%,rgba(8,10,16,.78),rgba(2,3,6,.93))}
+[data-hero="jedi"] #overlay.st-pause{background:radial-gradient(ellipse 80% 70% at 30% 45%,rgba(12,16,44,.8),rgba(3,4,14,.94))}
+[data-hero="mando"] #overlay.st-pause{background:radial-gradient(ellipse 80% 70% at 30% 45%,rgba(26,23,20,.82),rgba(6,5,4,.94))}
+
+/* the screen's word (PAUSED, the context line, the section labels) */
+#overlay.st-pause .ov-head h2{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+#overlay.st-pause #ovctx{font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-live)}
+#overlay.st-pause .pz-sec{font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#overlay.st-pause .pz-sec::after{background:var(--hx-line)}
+[data-hero="jedi"] #overlay.st-pause .ov-head h2{font-size:48px;letter-spacing:.08em}
+[data-hero="mando"] #overlay.st-pause .ov-head h2{font-size:46px;letter-spacing:.16em}
+[data-hero="trooper"] #overlay.st-pause .ov-head h2{font-size:40px;letter-spacing:.02em}
+[data-hero="trooper"] #overlay.st-pause .ov-head h2::before{content:'';display:block;width:120px;height:6px;margin-bottom:14px;background:var(--hx-hazard);box-shadow:0 0 0 2px var(--hx-ink)}
+
+/* the buttons: the hero's plate, an ink edge, no pill and no arrow */
+#overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn{border-radius:0;border:0;color:var(--hx-soft);background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);
+  font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+#overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn:hover{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary:hover{background:var(--hx-accent-hi)}
+#overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary::after{content:none}
+#overlay.st-pause #homeBtn{color:var(--danger-soft)}
+#overlay.st-pause :is(#skipBtn,#lessonsBtn){color:var(--hx-accent-hi);background:var(--hx-paper-2)}
+#overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:hxcard .26s steps(4) both}
+
+[data-hero="jedi"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn{font-family:'Cinzel',Georgia,serif;font-weight:700;letter-spacing:.06em;font-size:12.5px}
+[data-hero="jedi"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary{font-size:16px;letter-spacing:.16em;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi),0 0 0 6px var(--hx-ink)}
+[data-hero="mando"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font-size:14px;letter-spacing:.2em}
+[data-hero="mando"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+[data-hero="mando"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none;font-size:17px}
+[data-hero="trooper"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn{font-size:13px;font-weight:600;letter-spacing:.08em;background:rgba(10,13,15,.82)}
+[data-hero="trooper"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary{background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -4px 0 #c5cbce;position:relative}
+[data-hero="trooper"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary::after{content:'';position:absolute;right:0;top:0;bottom:0;width:16px;height:auto;margin:0;border:0;background:var(--hx-hazard)}
+[data-hero="trooper"] #overlay:is(.st-pause,.st-dead,.st-victory) .ov-actions .btn.primary:hover{background:#fff}
+
+/* ---------- THE RESULTS: the word in the hero's face, the stats on its paper ---------- */
+#runsummary .rs-title{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-accent-hi);text-shadow:0 3px 0 var(--hx-ink)}
+#overlay.st-dead #runsummary .rs-title{color:var(--danger-soft);text-shadow:0 3px 0 var(--hx-ink)}
+#runsummary .rs-score{font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#runsummary .rs-score b{text-shadow:0 2px 0 var(--hx-ink)}
+#runsummary .rs-best{border-radius:0;font-family:var(--hx-label)}
+#runsummary .rs-best.new{color:var(--hx-accent-hi);border-color:var(--hx-accent);text-shadow:none;animation:pulse 1s steps(2) infinite}
+#runsummary .rs-stat{border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#runsummary .rs-v{color:var(--hx-text)}
+#runsummary .rs-l{font-family:var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+#runsummary .rs-boons span{border-radius:0}
+[data-hero="jedi"] #runsummary .rs-title{font-size:50px}
+[data-hero="mando"] #runsummary .rs-title{font-size:48px;letter-spacing:.16em}
+[data-hero="mando"] #runsummary .rs-stat{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line)}
+[data-hero="trooper"] #runsummary .rs-title{font-size:42px;letter-spacing:0}
+[data-hero="trooper"] #runsummary .rs-v{font-family:var(--hx-display)}

@@ -1,6 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Centre-screen banners.
 
+import { popupYield, bannerAt } from './popups.js';
+
 
 /* ============================================================
    UI
@@ -22,6 +24,7 @@ export function showBanner(main, sub, dur, opts){
   document.getElementById('bannerk').textContent = (opts && opts.kicker) || '';
   b.classList.toggle('kick', !!(opts && opts.kicker));
   b.style.opacity = '1';
+  bannerAt.t = performance.now(); popupYield();   // the banner is the one thing to read now (ui/popups.js)
   if (bannerTimeout) clearTimeout(bannerTimeout);
   if (dur < 100) bannerTimeout = setTimeout(()=>{ b.style.opacity = '0'; }, dur*1000);
 }

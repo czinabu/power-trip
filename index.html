@@ -25,8 +25,14 @@
 <link rel="stylesheet" href="/styles/codex.css">
 <link rel="stylesheet" href="/styles/profile.css">
 <link rel="stylesheet" href="/styles/hub.css">
+<!-- the hero UI (styles/heroes/tokens.css): tokens first, then the shared ink rules, then each area -->
+<link rel="stylesheet" href="/styles/heroes/tokens.css">
+<link rel="stylesheet" href="/styles/heroes/ink.css">
+<link rel="stylesheet" href="/styles/heroes/tracker.css">
+<link rel="stylesheet" href="/styles/heroes/briefing.css">
+<link rel="stylesheet" href="/styles/heroes/screens.css">
 </head>
-<body class="in-menu">
+<body class="in-menu" data-hero="jedi">
 <!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
      and again whenever a mode builds its level (src/ui/loading.js) -->
 <div id="boot" role="status" aria-live="polite">

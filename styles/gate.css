@@ -1,0 +1,139 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
+/* ACT IV · THE SITH GATE: its recap and epilogue cards (game/gate.js gateRecapHtml, gateEpilogueHtml).
+   Not the menu's panels: each story is its own hero's keepsake, and the ending is carved in the gate's stone.
+     JEDI      a holocron page: Cinzel, warm gold ink on deep blue, a double hairline frame with diamond corners
+     MANDO     a beskar plate: brushed steel, rivets, Georgia small caps, an ember edge (the kitbench's forge family)
+     TROOPER   a field file: tan dossier paper, IBM Plex Mono, a file number, redaction bars and a rubber stamp
+     THE GATE  carved violet stone, Cinzel, the ring behind it shut or split by the choice */
+
+/* ---------------- the recap: three keepsakes on a table ---------------- */
+#chapcard .gx-recap{margin:20px 0 4px}
+#chapcard .gx-rk{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+#chapcard .gx-rk span{font:700 15px/1 'Cinzel',Georgia,serif;letter-spacing:3px;color:#d9c9ff}
+#chapcard .gx-rk em{font:italic 500 14px/1.3 var(--font-body);color:#9a92b4}
+#chapcard .gx-rk::after{content:'';flex:1;height:1px;align-self:center;background:linear-gradient(90deg,rgba(180,107,255,.45),transparent)}
+#chapcard .gx-relics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+#chapcard .gx-relic{position:relative;padding:14px 15px 15px;min-height:150px;box-sizing:border-box;
+  animation:gxLay .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 90ms)}
+@keyframes gxLay{from{opacity:0;transform:translateY(10px) rotate(var(--tilt,0deg)) scale(.97)}to{opacity:1;transform:rotate(var(--tilt,0deg))}}
+#chapcard .gx-relic header{display:flex;align-items:center;gap:10px}
+#chapcard .gx-relic header b{display:block}
+#chapcard .gx-relic header small{display:block;margin-top:3px}
+#chapcard .gx-g{display:inline-flex;flex:none;width:26px;height:26px}
+#chapcard .gx-g svg{width:100%;height:100%}
+#chapcard .gx-relic p{margin:10px 0 0}
+#chapcard .gx-end span{display:block}
+#chapcard .gx-end strong{display:block}
+
+/* JEDI · a holocron page */
+#chapcard .gx-jedi{--tilt:-1.2deg;color:#e9dcb6;
+  background:radial-gradient(120% 90% at 50% 0%,rgba(90,140,220,.22),transparent 60%),linear-gradient(170deg,#121c34,#0a1022);
+  border:1px solid rgba(225,196,120,.55);outline:1px solid rgba(225,196,120,.2);outline-offset:-5px;
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.8),0 0 26px -10px rgba(120,170,255,.45)}
+#chapcard .gx-jedi::before,#chapcard .gx-jedi::after{content:'';position:absolute;width:7px;height:7px;background:#e1c478;transform:rotate(45deg);top:-4px;left:calc(50% - 4px)}
+#chapcard .gx-jedi::after{top:auto;bottom:-4px}
+#chapcard .gx-jedi .gx-g{color:#9cc8ff;filter:drop-shadow(0 0 6px rgba(120,180,255,.8))}
+#chapcard .gx-jedi header b{font:700 15px/1 'Cinzel',Georgia,serif;letter-spacing:2.4px;color:#f3e6c0}
+#chapcard .gx-jedi header small{font:600 10px/1.2 var(--font-ui);letter-spacing:2px;color:#a99a72}
+#chapcard .gx-jedi .gx-end{margin-top:12px;padding-top:9px;border-top:1px solid rgba(225,196,120,.28);text-align:center}
+#chapcard .gx-jedi .gx-end span{font:600 9px/1 var(--font-ui);letter-spacing:3px;color:#a99a72}
+#chapcard .gx-jedi .gx-end strong{margin-top:5px;font:700 14px/1.15 'Cinzel',Georgia,serif;letter-spacing:1.6px;color:#ffe9a8;text-shadow:0 0 14px rgba(255,210,120,.35)}
+#chapcard .gx-jedi p{font:italic 500 13.5px/1.45 Georgia,'Times New Roman',serif;color:#d8cba4}
+
+/* MANDO · a beskar plate */
+#chapcard .gx-mando{--tilt:.6deg;color:#d9dde2;border-radius:3px;
+  background:
+    radial-gradient(circle at 9px 9px,#c6ccd3 0 2px,#4a5058 2.5px,transparent 3.2px),radial-gradient(circle at calc(100% - 9px) 9px,#c6ccd3 0 2px,#4a5058 2.5px,transparent 3.2px),
+    radial-gradient(circle at 9px calc(100% - 9px),#c6ccd3 0 2px,#4a5058 2.5px,transparent 3.2px),radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#c6ccd3 0 2px,#4a5058 2.5px,transparent 3.2px),
+    repeating-linear-gradient(100deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px),
+    linear-gradient(160deg,#5d646d,#373c43 45%,#272b30);
+  border-bottom:2px solid #e0661e;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -12px 20px -12px rgba(255,110,30,.35),0 14px 30px -14px rgba(0,0,0,.85)}
+#chapcard .gx-mando .gx-g{color:#ffb15a;filter:drop-shadow(0 0 5px rgba(255,120,40,.6))}
+#chapcard .gx-mando header b{font:700 12.5px/1 Georgia,'Times New Roman',serif;letter-spacing:2.2px;white-space:nowrap;color:#f1f3f5;text-shadow:0 1px 0 #000}
+#chapcard .gx-mando header small{font:600 10px/1.2 Georgia,serif;letter-spacing:2.4px;color:#b3bac2;text-transform:uppercase}
+#chapcard .gx-mando .gx-end{margin-top:12px;padding:7px 9px;background:rgba(10,12,14,.45);box-shadow:inset 0 1px 3px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.08)}
+#chapcard .gx-mando .gx-end span{font:600 9px/1 Georgia,serif;letter-spacing:3px;color:#ffb15a}
+#chapcard .gx-mando .gx-end strong{margin-top:5px;font:700 14px/1.15 Georgia,serif;letter-spacing:2.6px;color:#fff;text-shadow:0 1px 0 #000}
+#chapcard .gx-mando p{font:500 13.5px/1.45 var(--font-body);color:#cfd4da}
+
+/* TROOPER · a field file */
+#chapcard .gx-trooper{--tilt:1.4deg;color:#2a2516;
+  background:linear-gradient(180deg,rgba(0,0,0,.06),transparent 30%),repeating-linear-gradient(0deg,rgba(80,60,20,.05) 0 1px,transparent 1px 22px),#cdbf96;
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.9),inset 0 0 0 1px rgba(60,45,15,.25)}
+#chapcard .gx-trooper::before{content:'';position:absolute;top:-7px;left:18px;width:34%;height:9px;background:#b8a87a;border-radius:3px 3px 0 0}
+#chapcard .gx-trooper .gx-g{color:#6b5a22}
+#chapcard .gx-trooper header b{font:600 13px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:1.8px;color:#1c180e}
+#chapcard .gx-trooper header small{font:500 10px/1.2 'IBM Plex Mono',monospace;letter-spacing:1px;color:#6b5f3e}
+#chapcard .gx-trooper .gx-end{position:relative;margin-top:12px;display:inline-block;padding:5px 9px 6px;border:2px solid #a8321e;color:#a8321e;transform:rotate(-3deg);mix-blend-mode:multiply}
+#chapcard .gx-trooper .gx-end span{font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:2px}
+#chapcard .gx-trooper .gx-end strong{margin-top:3px;font:700 14px/1.1 'IBM Plex Mono',monospace;letter-spacing:1.4px}
+#chapcard .gx-trooper p{font:500 12.5px/1.5 'IBM Plex Mono',monospace;color:#2f2918}
+#chapcard .gx-redact{display:grid;gap:5px;margin-top:8px}
+#chapcard .gx-redact i{display:block;height:9px;background:#1b1810}
+#chapcard .gx-redact i:last-child{width:62%}
+
+/* a story not yet played: face down, faded, stamped */
+#chapcard .gx-relic.unplayed{filter:saturate(.35) brightness(.72);opacity:.86}
+#chapcard .gx-stamp{display:inline-block;margin-top:12px;padding:3px 8px;border:1.5px dashed currentColor;font:600 10px/1.2 var(--font-ui);letter-spacing:2.6px;opacity:.75;transform:rotate(-2deg)}
+#chapcard .gx-trooper .gx-stamp{font-family:'IBM Plex Mono',monospace;letter-spacing:1.4px}
+
+@media (max-width:640px){
+  #chapcard .gx-relics{grid-template-columns:1fr;gap:14px}
+  #chapcard .gx-relic{min-height:0;--tilt:0deg}
+  #chapcard .gx-rk{flex-wrap:wrap;gap:4px 10px}
+}
+
+/* ---------------- the epilogue: words carved in the gate ---------------- */
+#chapcard .gx-epi{position:relative;isolation:isolate;width:min(760px,100%);text-align:center;--gx:#b46bff;--glow:rgba(180,107,255,.5);animation:rise .5s var(--ease)}
+#chapcard .gx-epi.gx-lean-light{--glow:rgba(255,225,150,.55)}
+#chapcard .gx-epi.gx-lean-dark{--glow:rgba(255,60,50,.5)}
+/* the ring behind it: shut (sealed) or split with light (kept) */
+#chapcard .gx-ring{position:absolute;left:50%;top:-30px;width:420px;height:420px;margin-left:-210px;pointer-events:none;z-index:-1;opacity:.8}
+#chapcard .gx-ring i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(180,107,255,.35)}
+#chapcard .gx-ring i:nth-child(2){inset:34px;border:1px dashed rgba(180,107,255,.25);animation:gxTurn 60s linear infinite}
+#chapcard .gx-ring i:nth-child(3){inset:80px;border:0;background:radial-gradient(circle,rgba(20,10,30,.95) 55%,transparent 72%)}
+#chapcard .gx-kept .gx-ring i:nth-child(3){background:radial-gradient(circle,rgba(200,140,255,.42),rgba(90,40,140,.25) 45%,transparent 70%);animation:gxBreath 4s ease-in-out infinite}
+#chapcard .gx-sealed .gx-ring i:first-child{border-color:rgba(200,190,220,.3);box-shadow:inset 0 0 0 10px rgba(30,24,40,.6)}
+@keyframes gxTurn{to{transform:rotate(360deg)}}
+@keyframes gxBreath{50%{opacity:.6;transform:scale(.96)}}
+#chapcard .gx-kick{font:600 12px/1 var(--font-ui);letter-spacing:5px;color:#a99ac8}
+#chapcard .gx-title{margin:14px 0 0;font:700 54px/1.02 'Cinzel',Georgia,serif;letter-spacing:5px;color:#f4ecff;
+  text-shadow:0 2px 0 #0b0712,0 0 34px var(--glow)}
+#chapcard .gx-world{margin-top:10px;font:600 13px/1 var(--font-ui);letter-spacing:3.4px;color:#9a92b4}
+#chapcard .gx-world span{margin-left:12px;padding-left:12px;border-left:1px solid #4a4060;color:var(--gx)}
+/* the tablet: dark stone, chiselled in */
+#chapcard .gx-tablet{position:relative;margin:26px auto 0;max-width:640px;padding:24px 34px 18px;text-align:left;
+  background:radial-gradient(140% 100% at 50% 0%,rgba(140,100,200,.12),transparent 55%),linear-gradient(180deg,#1c1726,#120e1a);
+  clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.05),inset 0 -2px 10px rgba(0,0,0,.6)}
+#chapcard .gx-tablet::before{content:'';position:absolute;inset:7px;pointer-events:none;border:1px solid rgba(180,107,255,.22);
+  clip-path:polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px)}
+#chapcard .gx-l{display:flex;gap:14px;align-items:flex-start;margin:0;padding:9px 0;font:500 16.5px/1.5 var(--font-body);color:#d9d2e6;
+  text-shadow:0 -1px 0 rgba(0,0,0,.7);animation:gxCarve .6s ease both}
+#chapcard .gx-l + .gx-l{border-top:1px solid rgba(180,107,255,.1)}
+#chapcard .gx-l:nth-child(2){animation-delay:.15s}#chapcard .gx-l:nth-child(3){animation-delay:.3s}#chapcard .gx-l:nth-child(4){animation-delay:.45s}#chapcard .gx-l:nth-child(5){animation-delay:.6s}#chapcard .gx-l:nth-child(6){animation-delay:.75s}
+@keyframes gxCarve{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
+#chapcard .gx-l .gx-g{width:22px;height:22px;margin-top:2px;color:#7d6aa6}
+#chapcard .gx-k-gate .gx-g{color:var(--gx)}
+#chapcard .gx-k-gate span{font:600 17.5px/1.5 Georgia,serif;color:#efe6ff}
+#chapcard .gx-k-jedi .gx-g{color:#9cc8ff}
+#chapcard .gx-k-mando .gx-g{color:#ffa040}
+#chapcard .gx-k-trooper .gx-g{color:#d6c48e}
+#chapcard .gx-l.own span{color:#fff}
+#chapcard .gx-l.own .gx-g{filter:drop-shadow(0 0 6px var(--glow))}
+#chapcard .gx-k-party span{font-style:italic;color:#bdb4d2}
+#chapcard .gx-sign{margin-top:10px;text-align:right;font:700 12px/1 'Cinzel',Georgia,serif;letter-spacing:3px;color:#8f80b0}
+#chapcard .gx-sign::before{content:'— '}
+#chapcard .gx-raid{display:flex;gap:10px;align-items:center;justify-content:center;max-width:600px;margin:20px auto 0;font:italic 500 14px/1.45 var(--font-body);color:#c06a7a}
+#chapcard .gx-raid .gx-g{width:20px;height:20px;color:#e0506a;animation:gxBreath 3s ease-in-out infinite}
+#chapcard .gx-epi .cc-btns{justify-content:center;margin-top:24px}
+#chapcard .gx-epi .cc-hint{text-align:center}
+#chapcard .gx-go{background:linear-gradient(180deg,#c99aff,#8a4ad2);color:#140a20;box-shadow:0 0 24px -6px var(--glow)}
+
+@media (max-width:640px){
+  #chapcard .gx-title{font-size:34px;letter-spacing:3px}
+  #chapcard .gx-ring{width:300px;height:300px;margin-left:-150px}
+  #chapcard .gx-tablet{padding:18px 18px 14px}
+  #chapcard .gx-l{font-size:15px;gap:10px}
+  #chapcard .gx-world span{display:block;margin:8px 0 0;padding:0;border:0}
+}

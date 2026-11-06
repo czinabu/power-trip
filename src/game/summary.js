@@ -7,11 +7,12 @@ import { G, player } from '../state.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { showBanner } from '../ui/banners.js';
 import { icon } from '../ui/icons.js';
-import { overlay, survivalUnlocked, refreshSurvivalLock, setOverlayState } from '../ui/menus.js';
+import { overlay, survivalUnlocked, refreshSurvivalLock, refreshGateLock, setOverlayState } from '../ui/menus.js';
 import { closeReadout } from './readout.js';
 import { readoutSummaryHtml } from '../ui/readout-ui.js';
 import { campaignWon } from './campaign.js';
-import { storyHero } from '../data/campaign.js';
+import { storyHero, epilogueText } from '../data/campaign.js';
+import { noteEnding, gateOpen, GATE_WIN } from './gate.js';
 import { TROOPER_VICTORY } from '../data/campaign-trooper.js';
 import { isArcadeId } from '../data/arcade.js';
 import { noteCampaignWon, ngNextTier } from './profile.js';
@@ -71,12 +72,16 @@ export function victory(afterEpilogue){
   G.mode = 'victory';
   G.slowmo = 1; G.slowmoT = 0;   // the fight is won — drop out of slow motion
   // record this hero's CAMPAIGN clear — SURVIVAL unlocks once BOTH heroes have finished the campaign
-  const hadBoth = survivalUnlocked(), ngBefore = ngNextTier(G.hero), ngRun = G.ngPlus || 0;
-  try { localStorage.setItem('sw_camp_' + G.hero, '1'); } catch(e){}
-  noteCampaignWon();   // your profile: the post-game rank asks for this (game/profile.js)
+  const hadBoth = survivalUnlocked(), ngBefore = ngNextTier(G.hero), ngRun = G.ngPlus || 0, hadGate = gateOpen(), gate = storyHero() === 'gate';
+  if (gate){ try { localStorage.setItem('sw_camp_gate_' + G.hero, '1'); } catch(e){} }   // ACT IV (game/gate.js): its own mark, not a story's
+  else {
+    try { localStorage.setItem('sw_camp_' + G.hero, '1'); } catch(e){}
+    noteEnding(storyHero(), G.story, epilogueText('title'));   // what this story ended on, for Act IV's recap and epilogue
+    noteCampaignWon();   // your profile: the post-game rank asks for this (game/profile.js)
+  }
   autosave('campaign won', { finished: true });
-  const newlyUnlocked = !hadBoth && survivalUnlocked();
-  refreshSurvivalLock();
+  const newlyUnlocked = !hadBoth && survivalUnlocked(), gateNew = !hadGate && gateOpen();
+  refreshSurvivalLock(); refreshGateLock();
   showBanner('YOU WIN', 'Balance restored. The legend grows.', 999);
   setTimeout(()=>{
     if (G.mode !== 'victory') return;
@@ -84,8 +89,8 @@ export function victory(afterEpilogue){
     // always raise the win screen (not just in the embedded fallback)
     overlay.style.display = 'flex';
     setOverlayState('victory');
-    // NEW GAME+ (data/ngplus.js): the first win opens it, each tier beaten the next
-    const ngNow = ngNextTier(G.hero), ngLine = ngRun > 0 ? '★ ' + tierName(ngRun) + ' BEATEN · ' + NG_WORDS.won(ngRun).toUpperCase() + ' ★' : ngNow && !ngBefore ? '★ ' + tierName(ngNow) + ' UNLOCKED ★' : '';
-    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : ngLine || (storyHero() === 'trooper' ? TROOPER_VICTORY : 'THE HERALD OF THE VOID IS NO MORE');
+    // NEW GAME+ (data/ngplus.js): the first win opens it, each tier beaten the next (Act IV is no tier of it)
+    const ngNow = ngNextTier(G.hero), ngLine = gate ? '' : ngRun > 0 ? '★ ' + tierName(ngRun) + ' BEATEN · ' + NG_WORDS.won(ngRun).toUpperCase() + ' ★' : ngNow && !ngBefore ? '★ ' + tierName(ngNow) + ' UNLOCKED ★' : '';
+    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : gateNew ? '★ ACT IV · THE SITH GATE UNLOCKED ★' : gate ? GATE_WIN : ngLine || (storyHero() === 'trooper' ? TROOPER_VICTORY : 'THE HERALD OF THE VOID IS NO MORE');
   }, 1400);
 }

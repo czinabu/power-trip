@@ -38,7 +38,7 @@ export function grantGun(id){
   if (!kit[W.slot]){
     kit[W.slot] = id; setKit(kit);
     if (G.hero === 'mando' && G.mode === 'play' && armoryTaught()) switchWeapon(id);   // a new gun in a run: it comes out to try
-  } else if (kit[W.slot] !== id && armoryTaught()) pickHook(id);
+  } else if (kit[W.slot] !== id && armoryTaught() && !G.kitQuiet) pickHook(id);   // (a veteran's kit handed over at once, Act IV: game/gate.js, takes the best instead)
 }
 
 // a lone mission (and a co-op guest, who skips the page before the fight): the kit picked before the fight, else the best

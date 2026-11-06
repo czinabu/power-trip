@@ -42,6 +42,7 @@ import { queueHit, hooks } from '../net/run.js';
 import { meetBoss } from '../game/codex.js';
 import { spawnFinale } from './finale.js';
 import './vexis.js';   // (registers Darth Vexis with the final boss layer)
+import './kharel.js';  // (and Darth Kharel, Act IV's gate guardian, built on Vexis's moves)
 import './magistrate.js';   // (and the Iron Magistrate)
 import './marshal.js';   // (and the Marshal)
 

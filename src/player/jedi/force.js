@@ -89,7 +89,7 @@ export function forcePush(){
     if (d < 0.05) TMP.copy(f);
     TMP.normalize();
     const close = flow && d < FL.near;
-    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), pushKnock(d, A) * (close ? FL.knockMul : 1));
+    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), pushKnock(d, A) * (close ? FL.knockMul : 1), false, false, { slide: true });   // (too light to floor it: it skids back, damage.js shoveSlide)
     pushed++;
     tutEvent('pushHit', e);
   }

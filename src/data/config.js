@@ -95,6 +95,10 @@ export const CFG = {
   abilities: {
     // BASIC powers — cheap, available from the start
     push:   { cost: 20, cd: 1.4,  range: 15, angle: 1.15, dmg: 2,  knock: 12 },   // pure UTILITY — a hard interrupting SHOVE, near-zero damage. cd 0.9→1.4: it also reflects every bolt in the cone, so it was a near-constant shield from wave 1
+    // a push too light to floor a foe (rank 0, or the far edge of the cone) still SHOVES it: it skids back `perKnock` m per
+    // point of knock (12 at point-blank: ~2 m) and reels `stun` s, without leaving its feet. Brutes skid `heavy` of that,
+    // champions and final bosses `champ` (and never reel). enemies/damage.js shoveSlide, run in enemies/ai.js
+    shove:  { perKnock: 0.14, heavy: 0.4, champ: 0.3, stun: 0.4, decay: 7 },
     dash:   { speed: 30, time: 0.34 },  // dash grants i-frames + a flip · its Force cost, charges and roll live in data/mobility.js
     pull:   { cost: 30, cd: 3.0,  range: 18, angle: 1.2, pwr: 0.4 },   // pwr: how hard the yank hauls them in (a short tug at first; mastery raises it to 1)
     // ADVANCED powers — expensive, earned as the legend grows. The mightiest eat most of the bar.

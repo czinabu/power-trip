@@ -45,6 +45,7 @@
     "smoke:desktop": "node tools/smoke/desktop.mjs",
     "smoke:zone": "node tools/smoke/zone.mjs",
     "smoke:zone-life": "node tools/smoke/zone-life.mjs",
+    "smoke:coop-zone-party": "node tools/smoke/coop-zone-party.mjs",
     "smoke:coop-zone": "node tools/smoke/coop-zone.mjs"
   },
   "dependencies": {

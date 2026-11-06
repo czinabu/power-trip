@@ -36,12 +36,14 @@ import { floater } from '../fx/floaters.js';
 import { burst } from '../fx/particles.js';
 import { S, sfx } from '../audio/sfx.js';
 import { V3 } from '../utils.js';
+import { qualityLevel } from '../engine/quality.js';
 
 export const QUEST_TUNE = {
   talk: 2.8,      // m: close enough to a giver to talk
   reach: 2.4,     // m: close enough to a thing to take it
   wake: 34,       // m: a `clear` step's foes are there once a hero comes this close
-  show: 56,       // m: a giver further than this isn't drawn
+  show: { low: 36, medium: 48, high: 56 },   // m: a giver further than this isn't drawn (by quality: phones draw fewer)
+  live: { low: 16, medium: 26, high: 30 },   // m: ...and further than this stands still (its face, cloth and breath rest)
 };
 const Q = { key: null, Z: null, life: null, level: null, people: [], things: [], act: null, near: null, shownKey: '', syncT: 0 };
 let el = null;
@@ -254,15 +256,16 @@ export function updateZoneQuests(dt){
   const me = playerPos();
   // the people: built as a hero first comes near (one a frame), drawn only near, and turned to the hero who's close
   let built = false;
+  const q = qualityLevel(), far = QUEST_TUNE.show[q] || QUEST_TUNE.show.medium, live = QUEST_TUNE.live[q] || QUEST_TUNE.live.medium;
   for (const p of Q.people){
     const d = Math.hypot(p.x - me.x, p.z - me.z);
-    if (!p.F){ if (!built && d < QUEST_TUNE.show + 8){ build(p); built = true; } else continue; }
-    const F = p.F, show = d < QUEST_TUNE.show;
+    if (!p.F){ if (!built && d < far + 8){ build(p); built = true; } else continue; }
+    const F = p.F, show = d < far;
     F.g.visible = show;
     if (!show || dt <= 0) continue;
     p.talkT = Math.max(0, p.talkT - dt); F.talk = p.talkT > 0;
     F.look = d < 9 ? { x: me.x, z: me.z } : null;
-    if (d < 30) stepFigure(F, dt);
+    if (d < live) stepFigure(F, dt);
   }
   for (const t of Q.things) if (!t.taken) t.orb.rotation.y += dt * 1.6;
   if (host() && Q.act && dt > 0) stepQuest(dt);

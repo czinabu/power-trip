@@ -9,6 +9,9 @@
     "build": "vite build",
     "roadmap:check": "node tools/roadmap-check.mjs",
     "preview": "vite preview",
+    "desktop": "node desktop/build.mjs run",
+    "desktop:exe": "node desktop/build.mjs exe",
+    "desktop:prepare": "node desktop/build.mjs prepare",
     "smoke": "node tools/smoke/smoke.mjs",
     "smoke:coop": "node tools/smoke/coop.mjs",
     "smoke:trooper": "node tools/smoke/trooper.mjs",
@@ -38,7 +41,8 @@
     "shots:maps": "node tools/shots/maps.mjs",
     "smoke:files": "node tools/smoke/files.mjs",
     "smoke:welcome": "node tools/smoke/hub-welcome.mjs",
-    "smoke:coop-welcome": "node tools/smoke/coop-welcome.mjs"
+    "smoke:coop-welcome": "node tools/smoke/coop-welcome.mjs",
+    "smoke:desktop": "node tools/smoke/desktop.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

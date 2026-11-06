@@ -22,6 +22,14 @@ Opening `index.html` directly does not work (browsers block module imports from 
 
 The old single-file versions (0.1 to 2.9) are kept in `archive/` for reference and still open with a double-click.
 
+### Windows desktop app
+
+The same game also ships as a Windows `.exe` (an [Electron](https://www.electronjs.org/) window around the built `dist/index.html`; nothing in the game changes for it, see `desktop/`). Edits, PRs and Vercel previews work exactly as before: the desktop app is packaged from whatever is on the branch.
+
+- **Get the .exe:** GitHub → Actions → **Desktop build** → **Run workflow** (pick the branch). When it finishes, download **PowerTrip-windows** from the run's page: `PowerTrip-<version>-portable.exe` runs with a double-click, `PowerTrip-<version>-setup.exe` installs it with a desktop shortcut. It isn't code-signed, so Windows SmartScreen asks once: **More info → Run anyway**.
+- **Locally:** `npm run desktop` builds the game and opens it in the desktop window; `npm run desktop:exe` builds the `.exe` files into `desktop/release/` (on Windows). `npm run desktop:prepare && npm run smoke:desktop` checks the app loads and that its co-op connects to a browser (Linux: wrap it in `xvfb-run -a`).
+- Saves live in the app's own profile (separate from the browser's). Online co-op works between the app and the website; the app asks the live site (`POWER_TRIP_WEB_URL`, default `https://sw-power-trip.vercel.app`) for co-op relay credentials and falls back to plain STUN without them.
+
 ## Project layout
 
 ```

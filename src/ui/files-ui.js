@@ -4,7 +4,7 @@
 // file to switch to, start fresh in, or delete. Switching reloads the game on the picked file, so every mode (campaign,
 // missions, survival, sandbox, training, the temple, co-op) reads that file's ranks, cards, crafting, choices and wins.
 
-import { G } from '../state.js';
+import { G, shared } from '../state.js';
 import { FILES, activeFile, fileExists, fileInfo, fileGet, noteActive, useFile, deleteFile } from '../engine/save-files.js';
 import { profileOf } from '../game/profile.js';
 import { TRACKS } from '../data/profile.js';
@@ -45,6 +45,24 @@ if (line){
   line.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openFiles(); });
 }
 
+/* ---------- switching ---------- */
+/* the game reloads on the new file, so the switch hands over through the loading screen: it fades in over the menu (the
+   sound fading with it), the page reloads under it, and the new page opens on that same screen already up (index.html's
+   boot script reads sw_file_switch), so there is never a black or half-drawn frame between the two */
+function switchTo(n){
+  closeFiles();
+  const b = document.getElementById('boot');
+  try { sessionStorage.setItem('sw_file_switch', String(n)); } catch(e){}
+  try { const A = shared.AC; if (A && shared.masterGain) shared.masterGain.gain.setTargetAtTime(0, A.currentTime, 0.08); } catch(e){}
+  if (!b){ location.reload(); return; }
+  b.querySelector('.bt-blade').style.setProperty('--p', '0');
+  b.querySelector('.bt-status').textContent = 'Opening save file ' + n;
+  b.classList.add('again', 'out'); b.hidden = false;
+  void b.offsetWidth;   // (in at opacity 0, so the fade below runs)
+  b.classList.remove('out');
+  setTimeout(() => location.reload(), 600);
+}
+
 /* ---------- the panel ---------- */
 function render(){
   const busy = connected();
@@ -78,7 +96,7 @@ panel.addEventListener('click', (e) => {
   const n = +b.dataset.n;
   if (b.dataset.act === 'use'){
     if (connected() || !useFile(n)){ S.uiDeny(); return render(); }
-    location.reload();
+    switchTo(n);
   } else if (b.dataset.act === 'del'){
     if (armed !== n){ armed = n; return render(); }
     armed = null; deleteFile(n); render();

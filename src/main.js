@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Entry point: imports every module in the original load order, then runs the main loop (tick) and exposes window.GAME.
 
+import './engine/save-files.js';   // before anything reads localStorage: the active save file's keys (engine/save-files.js)
 import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
 import { BLADE_U } from './fx/blade-glow.js';
 import * as THREE from 'three';
@@ -137,7 +138,8 @@ import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
-import { continueOnLaunch } from './ui/saves-ui.js';   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
+import { continueOnLaunch } from './ui/saves-ui.js';
+import './ui/files-ui.js';   // the title screen's save file line and the files panel   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
 
 setHero(G.hero);   // initialise control text + crosshair for the default hero
 continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINUE CAMPAIGN, as its hero

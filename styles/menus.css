@@ -699,6 +699,21 @@ body.pad .bs-aim{display:block}
 #autosave.on{opacity:1;transform:none}
 #autosave.bad{color:#ff9a8a}
 #saves .howto-panel{width:min(620px,100%)}
+/* SAVE FILES (ui/files-ui.js): the line under the title, and its panel (the save slots' cards) */
+#fileline{display:none}
+#overlay.st-menu #fileline{display:inline-flex;align-items:center;gap:10px;margin-top:12px;padding:5px 10px 5px 0;cursor:pointer;pointer-events:auto;
+  font:600 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft);border-radius:var(--r-lg);transition:color .15s}
+#fileline .fl-k{padding:3px 7px;border:1px solid var(--edge);background:rgba(6,14,26,.85);border-radius:6px;font-size:10px;letter-spacing:1.6px;color:var(--ink-dim);transition:color .15s,border-color .15s}
+#fileline:hover{color:var(--ink)}
+#fileline:hover .fl-k{color:var(--ink);border-color:var(--edge-lit)}
+#files{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
+  background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
+#files.open{display:flex}
+#files .howto-panel{width:min(560px,100%)}
+#files .sv-slot.live{border-color:var(--edge-lit);background:rgba(120,190,255,.06)}
+#files .sv-slot.live .sv-n{color:var(--accent)}
+@media (max-width:520px){#files .rm-sub{display:none}}
+.fl-tag{padding:7px 10px;white-space:nowrap;font:600 11px/1 var(--font-ui);letter-spacing:1.6px;color:var(--accent)}
 .sv-list{display:flex;flex-direction:column;gap:8px}
 .sv-slot{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(255,255,255,.025)}
 .sv-slot.empty{border-style:dashed}

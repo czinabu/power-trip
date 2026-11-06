@@ -184,6 +184,8 @@
     <header class="ov-head">
       <h1>POWER TRIP</h1>
       <h2 id="ovsub">CHOOSE YOUR LEGEND</h2>
+      <!-- the save file being played (ui/files-ui.js): opens the files panel to switch, start a new one or delete -->
+      <div id="fileline" role="button" title="Switch save file or start a new one"><span class="fl-t">SAVE FILE 1</span><span class="fl-k">SWITCH</span></div>
       <div id="ovctx"></div>
     </header>
     <div id="runsummary"></div>
@@ -406,6 +408,12 @@
     <div class="howto-panel">
       <div class="howto-head"><div class="howto-title" id="savestitle">LOAD GAME</div><div class="rm-sub" id="savessub"></div><div class="howto-x" id="savesclose">✕</div></div>
       <div class="sv-list" id="svlist"></div>
+    </div>
+  </div>
+  <div id="files">
+    <div class="howto-panel">
+      <div class="howto-head"><div class="howto-title">SAVE FILES</div><div class="rm-sub">Pick who's playing</div><div class="howto-x" id="filesclose">✕</div></div>
+      <div class="sv-list" id="fllist"></div>
     </div>
   </div>
   <div id="coop">

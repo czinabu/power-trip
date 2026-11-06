@@ -8,6 +8,7 @@
 //   · walking into a district names it on the HUD; walking up to a waystone touches it (and the profile keeps it);
 //   · F at a waystone opens its panel, and travel lands at a touched one;
 //   · a fall wakes the hero at the nearest touched waystone, whole;
+//   · the minimap is up; M opens the full map, and travel from it lands at a touched waystone (ui/zone-map.js);
 //   · the gate's waystone takes you home, back into the hub.
 // Fails on any page error or console error, or a step that doesn't land where it should.
 //   npm run build && npm run smoke:zone          (HEROES=jedi only that hero)
@@ -106,6 +107,23 @@ for (const hero of HEROES){
     if (await gateOpt.count()) await gateOpt.click();
     check(await until(() => !GAME.G.paused && Math.hypot(GAME.player.group.position.x - 10, GAME.player.group.position.z - 87) < 6, null, 30000), `${hero}: travel lands at the gate's waystone`);
 
+    // THE MAPS (ui/zone-map.js): the minimap is up, M opens the full map (never the music), a touched waystone on it
+    // travels, Esc closes it, and a controller's LB + VIEW (an untrusted M) opens it too
+    check(await page.evaluate(() => GAME.zoneMap.info().mini && getComputedStyle(document.getElementById('minimap')).display !== 'none'), `${hero}: the minimap is up in the zone`);
+    await page.keyboard.press('m');
+    check(await until(() => GAME.zoneMap.info().open && GAME.G.skillSelect, null, 5000), `${hero}: M opens the full map`);
+    check(await page.evaluate(() => !/MUSIC/.test(document.getElementById('banner').textContent)), `${hero}: M in the zone leaves the music alone`);
+    check(await page.evaluate(() => GAME.zoneMap.info().pins >= 2), `${hero}: the touched waystones are pinned on the map`);
+    const goWork = page.locator('#zonemap .zm-go', { hasText: 'KYBER WORKINGS' }).first();
+    check(await goWork.count() > 0, `${hero}: the map lists the touched waystones to travel to`);
+    if (await goWork.count()) await goWork.click(); else await page.evaluate(() => GAME.zone.travelTo('workings'));
+    check(await until(() => !GAME.G.paused && !GAME.G.skillSelect && Math.hypot(GAME.player.group.position.x + 62, GAME.player.group.position.z + 57) < 6, null, 30000), `${hero}: travel from the map lands at the waystone`);
+    await frames();
+    await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true })));
+    check(await until(() => GAME.zoneMap.info().open, null, 5000), `${hero}: the controller's map button opens it`);
+    await page.keyboard.press('Escape');
+    check(await until(() => !GAME.zoneMap.info().open && !GAME.G.skillSelect, null, 5000), `${hero}: Esc closes the map`);
+
     // A FALL: the hero wakes at the nearest touched waystone, whole
     await stand(-58, -40); await frames();
     await page.evaluate(() => { GAME.G.reviveLeft = 0; GAME.player.hp = 1; GAME.hurtPlayer(9999, null); });   // (no second chance: the trooper's squad would get them up first)
@@ -124,6 +142,7 @@ for (const hero of HEROES){
     if (await home.count()) await home.click();
     check(await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.zone && !GAME.G.paused, null, 120000), `${hero}: back in the hub from the zone`);
     check(await page.evaluate(() => !GAME.zone.zoneStreamInfo().on), `${hero}: the zone's streets are let go in the hub`);
+    check(await page.evaluate(() => !GAME.zoneMap.info().mini), `${hero}: no minimap in the hub`);
     await live();
   } catch (e){ check(false, `${hero}: ${e.message}`); }
   for (const e of errors) check(false, `${hero}: ${e}`);

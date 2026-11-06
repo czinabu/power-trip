@@ -1,0 +1,116 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE ZONE MAPS (ui/zone-map.js): the minimap in the HUD's top-right corner of an open zone, and the full map on M.
+   Both read the hero tokens (styles/heroes/tokens.css), so each hero's frame carries over: the Jedi's gold hairline,
+   the Mandalorian's chamfered plate and ember strip, the trooper's hazard stripe. The marks keep the shared meanings:
+   gold the objective, red a foe, the seat colours the party.
+   ============================================================ */
+
+/* ---------- the minimap ---------- */
+#minimap{--mm:172px;position:fixed;top:18px;right:20px;width:var(--mm);display:none;z-index:11;pointer-events:auto;cursor:pointer;transition:opacity .3s}
+#minimap.on{display:block}
+body.cutscene #minimap,body.in-menu #minimap{display:none}
+#minimap .mm-frame{position:relative;width:var(--mm);height:var(--mm);box-sizing:border-box;background:var(--hx-paper-solid);
+  border:1px solid var(--hx-line);box-shadow:0 0 0 2px var(--hx-ink)}
+#minimap canvas{display:block;width:100%;height:100%}
+#minimap .mm-n{position:absolute;transform:translate(-50%,-50%);width:17px;height:17px;display:flex;align-items:center;justify-content:center;
+  font:700 11px/1 var(--hx-label);color:var(--hx-accent-hi);background:var(--hx-ink);border-radius:50%;pointer-events:none}
+#minimap .mm-key{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px;font:700 11px/1 var(--hx-label);
+  letter-spacing:var(--hx-label-ls);color:var(--hx-soft);text-shadow:0 1px 4px #000}
+#minimap .mm-key kbd{font:700 11px/1 var(--font-ui);min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--hx-text);background:var(--hx-paper);border:1px solid var(--hx-line);box-shadow:0 0 0 1px var(--hx-ink);letter-spacing:0}
+/* a fight: the map steps back so the fight stays the thing to look at */
+body.hx-fight #minimap{opacity:.72}
+/* the hero frames */
+[data-hero="jedi"] #minimap .mm-frame{border:1px solid var(--hx-accent);outline:1px solid var(--hx-line);outline-offset:-5px}
+[data-hero="mando"] #minimap .mm-frame{border:0;border-top:3px solid var(--hx-accent);clip-path:var(--hx-chamfer);box-shadow:none}
+[data-hero="trooper"] #minimap .mm-frame::before,[data-hero="trooper"] .zm-box::before{content:'';position:absolute;left:0;right:0;top:0;height:5px;background:var(--hx-hazard);z-index:1;pointer-events:none}
+/* the co-op ping readout moves down under it */
+body.minimap-on #netping{top:calc(18px + var(--mm,172px) + 36px)}
+@media (max-width:1100px),(max-height:700px){ #minimap{--mm:146px} body.minimap-on #netping{top:calc(18px + 146px + 34px)} }
+@media (max-height:520px){ #minimap{--mm:112px;top:10px;right:12px} #minimap .mm-key{margin-top:4px;font-size:10px} body.minimap-on #netping{top:calc(10px + 112px + 30px)} }
+
+/* ---------- the full map ---------- */
+#zonemap{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(2,4,8,.62);cursor:default}
+#zonemap.open{display:flex}
+.zm-box{position:relative;max-width:100%;max-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:16px 18px;
+  background:var(--hx-paper-2);border:1px solid var(--hx-line);box-shadow:0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.6)}
+[data-hero="jedi"] .zm-box{border-color:var(--hx-accent);outline:1px solid var(--hx-line);outline-offset:-6px}
+[data-hero="mando"] .zm-box{border:0;border-top:3px solid var(--hx-accent);background:var(--hx-plate,var(--hx-paper-2));clip-path:var(--hx-chamfer)}
+[data-hero="trooper"] .zm-box{padding-top:20px}
+.zm-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.zm-k{font:700 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+.zm-t{font:var(--hx-display-w) 24px/1.05 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.zm-body{display:flex;gap:16px;min-height:0}
+.zm-map{--zm:min(calc(100vh - 130px),720px);position:relative;width:var(--zm);height:var(--zm);flex:none;box-shadow:0 0 0 2px var(--hx-ink);overflow:hidden;container-type:size}
+.zm-map canvas{display:block;width:100%;height:100%}
+.zm-map > *:not(canvas){position:absolute}
+.zm-north{right:10px;top:10px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font:700 13px/1 var(--hx-label);color:var(--hx-accent-hi);background:var(--hx-ink);border-radius:50%}
+.zm-fog{background:rgba(26,22,18,.5);background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.16) 0 2px,transparent 2px 9px);pointer-events:none}
+.zm-dist{transform:translate(-50%,-50%);font:700 clamp(8px,1.55cqw,12px)/1.15 var(--font-ui);letter-spacing:.14em;color:#2a1c10;text-align:center;
+  max-width:28%;text-shadow:0 0 3px rgba(255,244,220,.9),0 0 6px rgba(255,244,220,.7);pointer-events:none}
+.zm-dist.off{color:rgba(240,230,210,.75);text-shadow:0 1px 3px #000}
+.zm-dist.here{text-decoration:underline;text-underline-offset:3px}
+/* pins: the waystones (a button once touched), quest goals, people who need a hand, secrets found, you and your party */
+.zm-stone,.zm-pin{transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;z-index:2;padding:3px}
+.zm-stone{cursor:pointer}
+:is(.zm-stone,.zm-pin) i{width:12px;height:12px;transform:rotate(45deg) scaleY(1.25);background:#8ad8ff;box-shadow:0 0 0 2px #07060a}
+:is(.zm-stone,.zm-pin).gate i{outline:2px solid #ffd24a;outline-offset:3px}
+:is(.zm-stone,.zm-pin) span{font:700 clamp(8px,1.4cqw,11px)/1 var(--font-ui);letter-spacing:.1em;color:#eaf8ff;background:rgba(7,6,10,.82);padding:2px 4px;white-space:nowrap}
+.zm-stone:hover i,.zm-stone.padfocus i{background:#d4f2ff}
+.zm-pin i{background:rgba(200,220,235,.55)}
+.zm-pin span{color:var(--hx-dim);background:rgba(7,6,10,.55)}
+.zm-obj{width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);background:#ffd24a;box-shadow:0 0 0 2px #07060a;z-index:3;animation:zmPulse 1.2s steps(2) infinite}
+@keyframes zmPulse{50%{box-shadow:0 0 0 2px #07060a,0 0 0 6px rgba(255,210,74,.35)}}
+.zm-giver{width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#f3e7c4;box-shadow:0 0 0 2px #07060a;display:flex;align-items:center;justify-content:center;z-index:2}
+.zm-giver b{font:800 11px/1 var(--font-ui);color:#07060a}
+.zm-sec{width:9px;height:9px;transform:translate(-50%,-50%) rotate(45deg);background:#6fc8ff;box-shadow:0 0 0 2px #07060a;z-index:1}
+.zm-sec.cave{background:#b38aff}
+.zm-sec.meditate{border-radius:50%;transform:translate(-50%,-50%);background:#f3dc9c}
+.zm-live{inset:0;pointer-events:none;z-index:4}
+.zm-you{position:absolute;width:0;height:0}
+.zm-you::before{content:'';position:absolute;left:-8px;top:-10px;width:16px;height:20px;background:#07060a;clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);transform:rotate(var(--a,0rad));transform-origin:50% 50%}
+.zm-you::after{content:'';position:absolute;left:-5.5px;top:-6.5px;width:11px;height:14px;background:var(--c,#fff);clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);transform:rotate(var(--a,0rad));transform-origin:50% 46%}
+.zm-you span{position:absolute;left:12px;top:-7px;font:700 10px/1 var(--font-ui);letter-spacing:.1em;color:var(--c,#fff);background:rgba(7,6,10,.82);padding:2px 4px;white-space:nowrap}
+/* the side: where you are, the tallies, the travel list, the key */
+.zm-side{width:280px;flex:none;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+.zm-here span{display:block;font:700 10px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim);margin-bottom:5px}
+.zm-here b{font:var(--hx-display-w) 17px/1.15 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.zm-tally{display:flex;flex-wrap:wrap;gap:4px 12px;font:700 11px/1.3 var(--font-ui);letter-spacing:.12em;color:var(--hx-soft)}
+.zm-tally b{color:var(--hx-accent-hi)}
+.zm-h{display:flex;justify-content:space-between;align-items:baseline;font:700 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent);border-bottom:1px solid var(--hx-line);padding-bottom:5px}
+.zm-h em{font:700 10px/1 var(--font-ui);font-style:normal;letter-spacing:.12em;color:#ff8a70}
+.zm-list{display:flex;flex-direction:column;gap:5px}
+.zm-go{display:flex;flex-direction:column;gap:3px;padding:8px 10px;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid var(--hx-line);box-shadow:0 0 0 1px var(--hx-ink)}
+.zm-go b{font:700 14px/1 var(--font-ui);letter-spacing:.1em;color:var(--hx-text)}
+.zm-go span{font:500 11.5px/1.3 var(--font-ui);color:var(--hx-soft)}
+.zm-go:hover,.zm-go.padfocus{background:rgba(255,255,255,.1);border-color:var(--hx-accent)}
+.zm-go.off{cursor:default;opacity:.55}
+.zm-go.off:hover{background:rgba(255,255,255,.04);border-color:var(--hx-line)}
+.zm-none{font:500 12.5px/1.4 var(--font-ui);color:var(--hx-soft)}
+.zm-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;font:700 10px/1.2 var(--font-ui);letter-spacing:.1em;color:var(--hx-soft);margin-top:auto}
+.zm-legend span{display:flex;align-items:center;gap:6px}
+.lg{flex:none;width:10px;height:10px;box-shadow:0 0 0 2px #07060a}
+.lg.you{background:#fff;clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);box-shadow:none}
+.lg.stone{background:#8ad8ff;transform:rotate(45deg) scale(.85)}
+.lg.obj{background:#ffd24a;transform:rotate(45deg) scale(.85)}
+.lg.giver{background:#f3e7c4;border-radius:50%}
+.lg.sec{background:#6fc8ff;transform:rotate(45deg) scale(.7)}
+.lg.ally{background:#5ac8ff;clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);box-shadow:none}
+.zm-x{align-self:flex-end;display:inline-flex;align-items:center;gap:8px}
+.zm-x kbd{font:700 11px/1 var(--font-ui);padding:3px 5px;border:1px solid currentColor;opacity:.8}
+/* narrower screens: the side under the map, or squeezed beside it on a phone held sideways */
+@media (max-width:900px){ .zm-side{width:220px} }
+@media (max-height:520px){
+  #zonemap{padding:6px}
+  .zm-box{padding:8px 10px;gap:6px}
+  .zm-head{gap:8px} .zm-t{font-size:16px} .zm-k{font-size:10px}
+  .zm-map{--zm:calc(100vh - 62px)}
+  .zm-side{width:min(260px,calc(100vw - 100vh));gap:7px}
+  .zm-here b{font-size:14px} .zm-go{padding:6px 8px} .zm-go b{font-size:12.5px} .zm-legend{display:none}
+}
+@media (max-width:600px) and (min-height:521px){
+  .zm-body{flex-direction:column}
+  .zm-map{--zm:calc(100vw - 60px)}
+  .zm-side{width:auto}
+}

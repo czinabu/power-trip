@@ -28,7 +28,7 @@ export const STAGE = {
 
 const $ = (id) => document.getElementById(id);
 let els = null;
-const boxes = () => els || (els = { xp: $('xpmeter'), tutor: $('tutor'), comms: $('comms'), above: ['objlist', 'readout'].map($).filter(Boolean) });
+const boxes = () => els || (els = { xp: $('xpmeter'), tutor: $('tutor'), comms: $('comms'), above: ['objlist', 'readout', 'minimap'].map($).filter(Boolean) });
 
 /* ---------- the closing card's turn ---------- */
 let card = null;   // { show, hide, hold, wait, up }

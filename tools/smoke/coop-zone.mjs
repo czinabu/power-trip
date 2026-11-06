@@ -89,6 +89,13 @@ try {
   await guest.waitForFunction(() => GAME.partnerShown(), null, poll);
   await host.waitForFunction(() => GAME.partnerShown(), null, poll);
   step('each sees the other in the city');
+  // THE MAPS (ui/zone-map.js): each screen has its minimap; the host's full map shows the guest, live, and closes again
+  for (const p of [host, guest]) await p.waitForFunction(() => GAME.zoneMap.info().mini && GAME.zoneMap.info().partners > 0, null, poll);
+  await host.keyboard.press('m');
+  await host.waitForFunction(() => GAME.zoneMap.info().open && document.querySelectorAll('#zonemap .zm-you.ally').length > 0, null, poll);
+  await host.keyboard.press('m');
+  await host.waitForFunction(() => !GAME.zoneMap.info().open && !GAME.G.skillSelect, null, poll);
+  step('both minimaps are up, and the full map shows the party');
 
   // the host sends a patrol to where the guest walks, and the guest is shown it
   await stand(guest, 4, 4); await guest.evaluate(() => { GAME.player.hp = 9999; });
@@ -103,6 +110,11 @@ try {
   await host.waitForFunction(() => GAME.zone.zoneQuest()?.id === 'deserter', null, poll);
   await guest.waitForFunction(() => GAME.zone.zoneQuest()?.id === 'deserter' && /DESERTER/.test(document.getElementById('waveinfo').textContent), null, poll);
   step('a guest\'s F at a giver starts the party\'s quest, on both screens');
+  await guest.keyboard.press('m');
+  await guest.waitForFunction(() => GAME.zoneMap.info().open && document.querySelectorAll('#zonemap .zm-obj').length > 0, null, poll);
+  await guest.keyboard.press('Escape');
+  await guest.waitForFunction(() => !GAME.zoneMap.info().open && !GAME.G.skillSelect, null, poll);
+  step('the quest\'s goal is on the guest\'s map');
   // the guest's walking counts: into the garrison yard, and the quest moves on for both
   await stand(guest, 70, 0); await guest.evaluate(() => { GAME.player.hp = 9999; });
   await host.waitForFunction(() => GAME.zone.zoneQuest()?.i === 1, null, poll);

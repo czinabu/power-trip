@@ -69,8 +69,8 @@ try {
     await p.evaluate(() => document.getElementById('grp-story').click());
     if (hero === 'jedi') await shot(p, 'menu-story');
     await launch(p, hero);
-    const st = await p.evaluate(() => ({ story: GAME.G.storyHero, ch: GAME.G.chapter, ids: GAME.chapters().map(c => c.id), recap: !!document.querySelector('#chapcard .cc-recap'),
-      won: document.querySelectorAll('#chapcard .cc-r.won').length, unlocked: Object.keys(GAME.G.unlocked || {}).length, forms: Object.keys(GAME.G.stanceUnlocked || {}).length,
+    const st = await p.evaluate(() => ({ story: GAME.G.storyHero, ch: GAME.G.chapter, ids: GAME.chapters().map(c => c.id), recap: !!document.querySelector('#chapcard .gx-recap'),
+      won: document.querySelectorAll('#chapcard .gx-relic.won').length, unlocked: Object.keys(GAME.G.unlocked || {}).length, forms: Object.keys(GAME.G.stanceUnlocked || {}).length,
       sp: GAME.G.skillPoints, wt: GAME.G.waveTotal, kit: GAME.G.mandoKit, act: document.querySelector('#chapcard .cc-act').textContent }));
     console.log(hero, JSON.stringify(st));
     if (st.story !== 'gate' || st.ch !== 0) fail(hero + ': not on Act IV chapter 1');
@@ -146,8 +146,8 @@ try {
       await p.waitForFunction(() => document.querySelector('#chapcard.open .cc-choice'), null, poll);
       await shot(p, 'gate-choice');
       await p.evaluate(() => document.querySelector('#chapcard.open [data-go="sealed"]').click());
-      for (let i = 0; i < 40 && !(await p.evaluate(() => /EPILOGUE/.test((document.querySelector('#chapcard.open .cc-act') || {}).textContent || ''))); i++){ await p.evaluate(() => GAME.cutscene.skipScene()); await p.waitForTimeout(500); }
-      const ep = await p.evaluate(() => ({ act: document.querySelector('#chapcard.open .cc-act').textContent, title: document.querySelector('#chapcard.open .cc-title').textContent, lines: [...document.querySelectorAll('#chapcard.open .cc-voice p')].map(x => x.textContent) }));
+      for (let i = 0; i < 40 && !(await p.evaluate(() => !!document.querySelector('#chapcard.open .gx-epi'))); i++){ await p.evaluate(() => GAME.cutscene.skipScene()); await p.waitForTimeout(500); }
+      const ep = await p.evaluate(() => ({ act: document.querySelector('#chapcard.open .gx-kick').textContent, title: document.querySelector('#chapcard.open .gx-title').textContent, lines: [...document.querySelectorAll('#chapcard.open .gx-l, #chapcard.open .gx-raid')].map(x => x.textContent) }));
       console.log('epilogue', JSON.stringify(ep));
       if (ep.title !== 'THE GATE IS SHUT' || !ep.lines.some(l => /Vexis heard the news/.test(l)) || !ep.lines.some(l => /alone/.test(l))) fail('epilogue does not read the choice, the earlier ending, or the party');
       await shot(p, 'epilogue');
@@ -172,7 +172,7 @@ try {
       await guest.waitForTimeout(800);
     }
     await guest.waitForFunction(() => document.querySelector('#chapcard.open'), null, poll);
-    const g = await guest.evaluate(() => ({ guest: GAME.G.coopGuest, story: GAME.G.storyHero, ch: GAME.G.chapter, recap: !!document.querySelector('#chapcard .cc-recap'), sp: GAME.G.skillPoints, wt: GAME.G.waveTotal, title: document.querySelector('#chapcard .cc-title').textContent }));
+    const g = await guest.evaluate(() => ({ guest: GAME.G.coopGuest, story: GAME.G.storyHero, ch: GAME.G.chapter, recap: !!document.querySelector('#chapcard .gx-recap'), sp: GAME.G.skillPoints, wt: GAME.G.waveTotal, title: document.querySelector('#chapcard .cc-title').textContent }));
     console.log('guest', JSON.stringify(g));
     if (!g.guest || g.story !== 'gate' || g.ch !== 0 || !g.recap || g.sp < 10 || g.wt < 15) fail('the guest did not join Act IV with the kit');
     await shot(guest, 'coop-guest-card');

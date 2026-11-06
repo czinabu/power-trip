@@ -90,14 +90,29 @@ function endingTitle(s){
   if (s === 'trooper') return (e.marshal === 'ended' ? TROOPER_EPILOGUE.title.ended : TROOPER_EPILOGUE.title.home) || '';
   return MANDO_EPILOGUE.title || '';
 }
+// each story laid out as its own hero's keepsake: the Jedi's a holocron page, the Mando's a beskar plate stamped at the
+// forge, the trooper's a field file (styles/gate.css). A story this player hasn't played lies face down, its first line only
+const GLYPH = {
+  jedi: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 20 20 37 3 20Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M20 10 30 20 20 30 10 20Z" fill="currentColor" opacity=".28"/><circle cx="20" cy="20" r="3" fill="currentColor"/></svg>',
+  mando: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 6h24v12c0 9-5 15-12 17C13 33 8 27 8 18Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 16h16v3h-6v10h-4V19h-6Z" fill="currentColor"/></svg>',
+  trooper: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 12 20 4l14 8v4L20 8 6 16Z M6 22l14-8 14 8v4l-14-8-14 8Z M6 32l14-8 14 8v4l-14-8-14 8Z" fill="currentColor"/></svg>',
+  gate: '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3"/><circle cx="20" cy="20" r="2.4" fill="currentColor"/></svg>',
+  party: '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="11" cy="20" r="4" fill="currentColor"/><circle cx="20" cy="20" r="4" fill="currentColor"/><circle cx="29" cy="20" r="4" fill="currentColor"/></svg>',
+  raid: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 20c5-8 11-11 16-11s11 3 16 11c-5 8-11 11-16 11S9 28 4 20Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M20 13v14" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>',
+};
+const FILE_NO = { jedi: 'HOLOCRON · ARCHIVE OF JEDHA', mando: 'FORGED AT THE COVERT', trooper: 'FILE 7567 · ARC // VORRAN' };
 export function gateRecapHtml(){
   const R = GATE_RECAP;
-  return '<div class="cc-recap"><div class="cc-k">' + esc(R.title) + '</div><p class="cc-rl">' + esc(R.line) + '</p><div class="cc-rs">' +
-    STORIES.map(s => {
+  return '<div class="gx-recap"><div class="gx-rk"><span>' + esc(R.title) + '</span><em>' + esc(R.line) + '</em></div><div class="gx-relics">' +
+    STORIES.map((s, k) => {
       const st = R.stories[s], won = storyBeaten(s);
-      return '<div class="cc-r' + (won ? ' won' : '') + '"><b>' + esc(st.name) + '</b><i>' + esc(st.world) + '</i>' +
-        (won ? '<span class="cc-end">' + esc(R.yours) + ' · ' + esc(endingTitle(s)) + '</span>' : '<span class="cc-end un">' + esc(R.unplayed) + '</span>') +
-        '<p>' + esc(st.lines[won ? 1 : 0]) + '</p>' + '</div>';
+      return '<article class="gx-relic gx-' + s + (won ? ' won' : ' unplayed') + '" style="--i:' + k + '">' +
+        '<header><i class="gx-g">' + GLYPH[s] + '</i><div><b>' + esc(st.name) + '</b><small>' + esc(won ? FILE_NO[s] : st.world) + '</small></div></header>' +
+        (won ? '<div class="gx-end"><span>' + esc(R.yours) + '</span><strong>' + esc(endingTitle(s)) + '</strong></div>'
+             : '<div class="gx-stamp">' + esc(R.unplayed) + '</div>') +
+        '<p>' + esc(st.lines[won ? 1 : 0]) + '</p>' +
+        (s === 'trooper' && won ? '<div class="gx-redact" aria-hidden="true"><i></i><i></i></div>' : '') +
+        '</article>';
     }).join('') + '</div></div>';
 }
 
@@ -106,11 +121,28 @@ function epilogue(){
   const E = GATE_EPILOGUE, gate = answer('gate') || 'sealed', e = endings();
   const lean = leanOf(G.hero) || 'mid', hero = heroKey(E.hero, G.hero);
   const before = [];
-  if (e.jedi) before.push(E.before.jedi[(e.jedi.ilsa || 'spared') + '-' + (e.jedi.vexis || 'ended')]);
-  if (e.mando) before.push(E.before.mando);
-  if (e.trooper) before.push(E.before.trooper[e.trooper.marshal || 'home']);
+  if (e.jedi) before.push({ k: 'jedi', t: E.before.jedi[(e.jedi.ilsa || 'spared') + '-' + (e.jedi.vexis || 'ended')] });
+  if (e.mando) before.push({ k: 'mando', t: E.before.mando });
+  if (e.trooper) before.push({ k: 'trooper', t: E.before.trooper[e.trooper.marshal || 'home'] });
   const party = players.length > 1;
-  return { title: E.title[gate], world: E.world,
-    lines: [E.gate[gate], hero[lean] || hero.mid, ...before.filter(Boolean).slice(0, 2), party ? E.together : E.alone, E.raid] };
+  const parts = [{ k: 'gate', t: E.gate[gate] }, { k: G.hero, t: hero[lean] || hero.mid, own: true },
+    ...before.filter(b => b.t && b.k !== G.hero).slice(0, 2), ...before.filter(b => b.t && b.k === G.hero).slice(0, 1),
+    { k: 'party', t: party ? E.together : E.alone }];
+  return { title: E.title[gate], world: E.world, gate, lean, parts, raid: E.raid, lines: [...parts.map(p => p.t), E.raid] };
 }
 setGateEpilogue(epilogue);
+// THE EPILOGUE CARD: words carved into the gate's own stone, each line marked with whose it is (the gate, your hero, the
+// stories you finished, the party), the stone shut or split with light by the choice, and its glow by your own lean
+export function gateEpilogueHtml(choiceLabel){
+  const E = epilogue(), mine = (k) => k === G.hero;
+  return '<div class="gx-epi gx-' + E.gate + ' gx-lean-' + E.lean + ' hero-' + G.hero + '">' +
+    '<div class="gx-ring" aria-hidden="true"><i></i><i></i><i></i></div>' +
+    '<div class="gx-kick">ACT IV · EPILOGUE</div>' +
+    '<h1 class="gx-title">' + esc(E.title) + '</h1>' +
+    '<div class="gx-world">' + esc(E.world) + (choiceLabel ? '<span>' + esc(choiceLabel) + '</span>' : '') + '</div>' +
+    '<div class="gx-tablet">' + E.parts.map(p => '<p class="gx-l gx-k-' + p.k + (p.own || mine(p.k) ? ' own' : '') + '"><i class="gx-g">' + (GLYPH[p.k] || GLYPH.gate) + '</i><span>' + esc(p.t) + '</span></p>').join('') +
+      '<div class="gx-sign">GENERAL KAST</div></div>' +
+    '<p class="gx-raid"><i class="gx-g">' + GLYPH.raid + '</i><span>' + esc(E.raid) + '</span></p>' +
+    '<div class="cc-btns"><div class="btn primary go gx-go" data-go="1">CONTINUE</div></div>' +
+    '<div class="cc-hint">Enter or click to continue</div></div>';
+}

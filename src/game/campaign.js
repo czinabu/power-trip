@@ -29,7 +29,7 @@ import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js
 import { resetSet } from './onset.js';
 import { startCalm, guestCalm, endCalm } from './aftermath.js';
 import { pad } from '../engine/gamepad.js';
-import { gateRecapHtml, veteranKit } from './gate.js';
+import { gateRecapHtml, gateEpilogueHtml, veteranKit } from './gate.js';
 import { PAD_GLYPHS } from '../data/gamepad.js';
 import { chapterMutators, mutatorById, NG_WORDS } from '../data/ngplus.js';
 
@@ -308,6 +308,10 @@ export function campaignWon(then){
 }
 function showEpilogue(then){
   const gate = storyHero() === 'gate';   // Act IV: one act, no pick (its words are this screen's own: game/gate.js)
+  if (gate){   // its own card, carved in the gate's stone (game/gate.js, styles/gate.css)
+    openCard(gateEpilogueHtml(choicesRecap()), () => { closeCard(true); then(); });
+    return void MUSIC.unlockSting();
+  }
   openCard('<div class="cc-inner hero-' + G.hero + '">' +
     '<div class="cc-act">' + (gate ? 'ACT IV · EPILOGUE' : 'EPILOGUE') + '</div><div class="cc-num">' + chapters().filter(c => !c.prologue).length + ' CHAPTERS' + (gate ? '' : ' · ' + esc(actTwoLabel(G.actTwo || 'lothal'))) +
     (choicesRecap() ? ' · ' + esc(choicesRecap()) : '') + '</div>' +

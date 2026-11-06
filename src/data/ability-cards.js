@@ -30,8 +30,11 @@ const pull = at('pull'),
       missile = at('missile');
 
 export const ABILITY_CARDS = {
-  pull: { clip: pull, lines: ['Hold C to lock a foe in your Force Grasp. It hangs in the air and follows your aim: sweep it into other foes to bowl them over.',
-                              'While you hold it, F hurls it, a tap of C yanks it onto your blade and Z drops it. A quick tap of C is a plain Force Pull.'] },
+  pull: { clip: pull, lines: ['Tap C to haul the foes you aim at toward you, as hard as your Force Push shoves them away.',
+                              'Master Force Pull to rank I (use it in a fight) to unlock the Force Grasp.'] },
+  // opened by Force Pull's rank I (game/upgrades.js rankUp)
+  grasp: { clip: pull, name: 'FORCE GRASP', hud: 'HOLD C', kicker: 'FORCE PULL MASTERED', lines: ['Hold C to lock a foe in your Force Grasp. It hangs in the air and follows your aim: sweep it into other foes to bowl them over.',
+                              'While you hold it, F hurls it, a tap of C yanks it onto your blade and Z drops it. A quick tap of C is still a plain Force Pull.'] },
   fj1:  { clip: jump, lines: ['Hold SPACE in the air to leap on the Force: a high arc, then a slow glide down.',
                               'The take-off costs most of your Force up front, then a little for as long as you hold it.'] },
   fj2:  { clip: jump, lines: ['Force Jump grows: a higher take-off, a cheaper hold and a cheaper glide.',

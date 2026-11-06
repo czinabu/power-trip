@@ -48,7 +48,7 @@ const CONTROLS = {
     ]},
     { title: 'FORCE POWERS', rows: [
       ['F', 'Push', 'From the start · with a prompt up (TALK, a temple station), F interacts instead'],
-      ['C', 'Pull · hold to Grasp', 'Unlocks after wave 2 · grasped: F throws, C yanks in, Z drops'],
+      ['C', 'Pull · hold to Grasp', 'Unlocks after wave 2 · hold to Grasp once Pull is rank I · grasped: F throws, C yanks in, Z drops'],
       ['V', 'Barrier', 'Earned with XP · or Saber Throw (RMB + LMB)'],
       ['X', 'Jump attack', 'Leaps if you\'re on the ground, winds up, then drives the blade down · Earned with XP · or Mend, a self-heal'],
       ['R', 'Judgement', 'Earned with XP · or Repulse'],

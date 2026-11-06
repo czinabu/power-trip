@@ -102,7 +102,7 @@ on('hits', (m) => {
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
     MERC.guest = true; MERC.struck = false;   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
-    try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide ? { shove: shove || undefined, bodyShield: !!shield, slide: !!slide } : undefined); }   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
+    try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined } : undefined); }   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
     finally { MERC.guest = false; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);   // the guest's killing cut may take limbs; the snapshot shows them to both

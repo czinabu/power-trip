@@ -52,7 +52,7 @@ export const PAD_CONTROLS = {
     ]},
     { title: 'FORCE POWERS', rows: [
       ['{f}', 'Push', 'From the start · holding a foe in a Grasp, throws them · with a prompt up (TALK, a temple station), interacts instead'],
-      ['{c}', 'Pull · hold to Grasp', 'Unlocks after wave 2 · grasped: {f} throws, {c} yanks in, {z} drops'],
+      ['{c}', 'Pull · hold to Grasp', 'Unlocks after wave 2 · hold to Grasp once Pull is rank I · grasped: {f} throws, {c} yanks in, {z} drops'],
       ['{v}', 'Barrier', 'Earned with XP · or Saber Throw (hold {rmb} and pull {lmb})'],
       ['{x}', 'Jump attack', 'Leaps if you\'re on the ground, winds up, then drives the blade down · Earned with XP · or Mend, a self-heal'],
       ['{r}', 'Judgement', 'Earned with XP · or Repulse'],

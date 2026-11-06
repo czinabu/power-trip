@@ -80,7 +80,10 @@ function rankUp(m){
   S.reward(r + 1 >= m.ranks.length ? 2 : 1);
   upToast(m.nm + ' MASTERED ' + RANK_NUM[r + 1], m.ranks[r].ds, 'mast');
   notePowerRank();   // (rank XP for your profile: game/profile.js)
+  if (powerRankHook) powerRankHook(m.id, r + 1);   // (a rank can open something: Force Pull's rank I, the Grasp, player/jedi/grasp.js)
 }
+let powerRankHook = null;
+export const onPowerRank = (fn) => { powerRankHook = fn; };
 function settle(m){
   const n = masteryNext(m);
   if (n && n.open && masteryUses(m.id) >= n.need){ rankUp(m); settle(m); }

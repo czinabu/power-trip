@@ -11,8 +11,9 @@ import { audioInit, S } from '../audio/sfx.js';
 import {
   profileOf, track, rankNeeds, trialsPassed, insightLeft, insightTotal, nodeState, learnNode, resetTree, treePath, setPath,
   seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
-  owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck,
+  owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck, alignOf, alignStage, leanOf, alignOpen,
 } from '../game/profile.js';
+import { ALIGN, ALIGN_WORDS, ALIGN_TREE, ALIGN_PATHS } from '../data/alignment.js';
 import { TRIALS, JEDI_TREE, RANK_SKILLS, BRANCHES, BRANCH, FORK_BRANCH, DECK_QUOTA, DECK_SIZE } from '../data/profile.js';
 import { SKILLS, MANDO_SKILLS, TIER_NAME } from '../data/skills.js';
 import { TROOPER_SKILLS } from '../data/trooper-progression.js';
@@ -76,12 +77,14 @@ function leftCol(h){
     : '<p class="pf-note">Not built yet, so runs deal from every card you own.</p>' + (live ? '' : '<span class="btn pf-build" data-deckact="suggest">BUILD A DECK</span>');
   const rec = [['CHAPTERS', Object.keys(p.cleared).length], ['TRIALS', trialsPassed(p) + ' / 3'], ['MISSIONS', Object.keys(p.missions).length],
                ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers],
-               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length]];
+               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length],
+               ['SPARED', (p.mercy || {}).spared || 0], ['STRUCK DOWN', (p.mercy || {}).struck || 0]];
   return `<div class="pf-col pf-left">
     <div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
     <div class="pf-rank">${esc(R.nm)}</div>
     <div class="pf-xp"><b>${num(p.xp)}</b> ${esc(T.unit)}</div>
     <div class="pf-bar"><i style="width:${Math.round(frac * 100)}%"></i></div>
+    ${alignRow(h)}
     ${next ? `<div class="pf-next"><h4>NEXT RANK · ${esc(next.nm)}</h4><ul>${nx.map(n => needLine(n, h)).join('')}</ul>${unlock ? `<p class="pf-opens">Unlocks: <b>${unlock}</b></p>` : ''}</div>` : '<div class="pf-next"><h4>TOP RANK</h4><p class="pf-note">Every rank is yours.</p></div>'}
     <span class="pf-link" data-ladder>${ladderOpen ? '▾ HIDE RANKS' : '▸ VIEW ALL RANKS'}</span>
     ${ladderOpen ? `<ol class="pf-ladder">${ladder}</ol>` : ''}
@@ -90,6 +93,16 @@ function leftCol(h){
     ${recBox(rec)}
     <p class="pf-note pf-how">Earn ${esc(T.unit)} from story chapters, missions, challenges, duels and survival. Training and sandbox don't count.</p>
   </div>`;
+}
+
+// LIGHT AND DARK, one compact row (data/alignment.js, game/alignment.js): the meter from dark to light, where you stand
+function alignRow(h){
+  const W = ALIGN_WORDS[h] || ALIGN_WORDS.jedi, a = alignOf(h), lean = leanOf(h);
+  const mark = (v) => Math.round((v + ALIGN.max) / (2 * ALIGN.max) * 100);
+  const now = lean ? String(Math.abs(Math.round(a))) : 'BALANCED';
+  return '<div class="pf-align al-' + (lean || 'mid') + '" title="' + esc(W.line[alignStage(h)]) + '"><span class="pf-al-t">' + esc(W.title) + '</span>' +
+    '<span class="dk">' + esc(W.dark) + '</span><div class="pf-al-bar"><i class="lean" style="left:' + mark(-ALIGN.lean) + '%"></i><i class="lean" style="left:' + mark(ALIGN.lean) + '%"></i><b style="left:' + mark(a) + '%"></b></div><span class="lt">' + esc(W.light) + '</span>' +
+    '<em>' + esc(now) + '</em></div>';
 }
 
 // YOUR SABER / YOUR KIT, the short version: what's fitted, how many parts, the nearest next one (the benches have the rest)
@@ -144,7 +157,21 @@ function treeCol(){
     <div class="pf-th"><h3>FORCE TREE</h3><span class="pf-ins"><b>${left}</b> INSIGHT TO SPEND</span><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
     <p class="pf-note${runLive() ? ' pf-live-note' : ''}">${runLive() ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Spend it to learn a card for your deck. Your path\'s branch always has a card on offer in runs.'}</p>
     <div class="pf-tree">${cols}</div>
+    ${alignTreeSec()}
   </div>`;
+}
+// LIGHT AND DARK on the tree: the two sides' mirrored cards, open while you lean their way (no Insight: data/alignment.js)
+function alignTreeSec(){
+  const lean = leanOf('jedi');
+  const cols = ALIGN_PATHS.map(P => '<div class="pf-branch al-' + P.id + (lean === P.id ? ' path' : '') + '"><div class="pf-bh"><b>' + esc(P.nm) + '</b>' + (lean === P.id ? '<em class="pf-got">YOU LEAN THIS WAY</em>' : '') + '</div><p class="pf-bl">' + esc(P.line) + '</p>' +
+    ALIGN_TREE.filter(n => n.align === P.id).map(n => {
+      const open = alignOpen(n);
+      const tag = open ? '<em class="pf-got">✓ OPEN</em>' : '<em class="pf-lock">' + esc(lockWhy('jedi', n)) + '</em>';
+      return '<div class="pf-node al-' + n.align + ' ' + (open ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(n.ico) + '</span><b>' + esc(n.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[n.tier] + '</span></div><p>' + n.ds + '</p>' + tag + '</div>';
+    }).join('') + '</div>').join('');
+  return `<div class="pf-th pf-sides-h"><h3>LIGHT AND DARK</h3></div>
+    <p class="pf-note">Lean past ${ALIGN.lean} either way and that side's cards open for your deck. Same cost, same strength, a different way to fight. Swing back and they close.</p>
+    <div class="pf-tree pf-sides">${cols}</div>`;
 }
 
 /* ---------- the right column, CARDS: every card this hero has, by tier; the deck's picks lit, locked ones dimmed ---------- */
@@ -153,6 +180,10 @@ function viewTabs(h){
   return '<div class="cz-tabs pf-vtabs">' + [['deck', 'CARDS'], ['tree', 'FORCE TREE']].map(v => '<span data-view="' + v[0] + '"' + (view === v[0] ? ' class="on"' : '') + '>' + v[1] + '</span>').join('') + '</div>';
 }
 function lockWhy(h, s){
+  if (s.align){
+    const R = track('jedi').ranks.find(r => r.id === tierRank(s.tier));
+    return leanOf('jedi') === s.align ? 'UNLOCKS AT ' + (R ? R.nm : 'A HIGHER RANK') : 'NEEDS ' + s.align.toUpperCase() + ' ALIGNMENT';
+  }
   if (s.prof) return 'LEARN ON THE FORCE TREE';
   const R = track(h).ranks.find(r => r.id === s.rank);
   return 'UNLOCKS AT ' + (R ? R.nm : 'A HIGHER RANK');
@@ -185,7 +216,7 @@ function deckCol(h){
       const st = !mine ? 'rank' : !deck ? 'all' : inD ? 'learned' : full ? 'insight' : 'open';
       const tag = !mine ? '<em class="pf-lock">' + esc(lockWhy(h, s)) + '</em>' : inD ? '<em class="pf-got">✓ IN YOUR DECK</em>' : deck && full ? '<em class="pf-lock">TIER FULL</em>' : '';
       const click = mine && deck && !live && (inD || !full) ? ' data-deck="' + s.id + '"' : '';
-      return '<div class="pf-node pf-dcard ' + st + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b></div><p>' + s.ds + '</p>' + tag + '</div>';
+      return '<div class="pf-node pf-dcard ' + st + (s.align ? ' al-' + s.align : '') + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b>' + (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + s.align.toUpperCase() + '</span>' : '') + '</div><p>' + s.ds + '</p>' + tag + '</div>';
     }).join('')
       + (f === 'deck' ? Array.from({ length: Math.max(0, DECK_QUOTA[t] - k) }, () => '<div class="pf-slot" data-filter="all">+ EMPTY SLOT</div>').join('') : '')
       + (!cards.length && f !== 'deck' ? '<p class="pf-empty">' + (f === 'locked' ? 'Nothing locked here.' : 'Nothing yet.') + '</p>' : '')

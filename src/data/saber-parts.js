@@ -48,6 +48,11 @@ export const CRYSTALS = [
     ds: '+8% Force regen · −6% stamina regen', fx: [['forceRegen', '*', 1.08], ['stamRegen', '*', 0.94]] },
   { id: 'red', name: 'Bled red', col: 0xff3a30, earn: { won: 1 }, att: 'BLED',
     ds: '+7% damage · −0.02s parry window', fx: [['dmg', '*', 1.07], ['parry', '+', -0.02]] },
+  // the two paths' own crystals (data/alignment.js): earned the first time you lean that far, and kept after. A mirrored pair
+  { id: 'dawn', name: 'Dawnlight', col: 0xffe6a8, earn: { light: 50 }, att: 'MERCIFUL HAND',
+    ds: '+10% stamina regen · −7% damage', fx: [['stamRegen', '*', 1.1], ['dmg', '*', 0.93]] },
+  { id: 'crimson', name: 'Wrath crimson', col: 0xc0001c, earn: { dark: 50 }, att: 'HUNGER',
+    ds: '+7% damage · −10% stamina regen', fx: [['dmg', '*', 1.07], ['stamRegen', '*', 0.9]] },
 ];
 
 // HILTS: the grip, the part the hand closes on (player/model/hilt.js BODIES draws each)
@@ -93,6 +98,7 @@ export function earnProgress(p, earn){
   p = p || {};
   if (earn.chapter) return { have: p.cleared && p.cleared[earn.chapter] ? 1 : 0, need: 1 };
   if (earn.won) return { have: Math.min(1, p.won || 0), need: 1 };
+  if (earn.light || earn.dark){ const k = earn.light ? 'light' : 'dark'; return { have: Math.max(0, Math.round((p.alignPeak && p.alignPeak[k]) || 0)), need: earn[k] }; }
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
   if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
   if (earn.holocrons || earn.caves){ const k = earn.holocrons ? 'holocron' : 'cave'; return { have: Object.keys(p.secrets || {}).filter(id => id.endsWith(':' + k)).length, need: earn.holocrons || earn.caves }; }
@@ -105,6 +111,8 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (!earn) return 'ON THE BENCH FROM THE START';
   if (earn.chapter) return 'CLEAR ' + chapterName(earn.chapter);
   if (earn.won) return 'BEAT THE CAMPAIGN';
+  if (earn.light) return 'LEAN TO THE LIGHT: REACH ' + earn.light + ' LIGHT';
+  if (earn.dark) return 'LEAN TO THE DARK: REACH ' + earn.dark + ' DARK';
   const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';
   if (earn.revives) return 'GET ' + n + ' SQUADMATE' + s + ' BACK UP';
   if (earn.squadWaves) return 'CLEAR ' + n + ' SURVIVAL WAVE' + s + ' WITH THE SQUAD STANDING';

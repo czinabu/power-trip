@@ -123,6 +123,7 @@ import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateHub, startHub, goWing, curHub } from './game/hub.js';
 import { updateSecrets, secretsPlaced } from './game/secrets.js';
+import { updateAlignment } from './game/alignment.js';
 import './ui/hub-ui.js';
 import { HUBS, ALL_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
@@ -132,6 +133,7 @@ import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import './ui/profile-ui.js';
 import * as PROFILE from './game/profile.js';
+import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import './net/foefire.js';
 import { updateSquadNet } from './net/squad.js';
@@ -201,6 +203,7 @@ function tick(){
   updateComms(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the voice in your ear during a campaign chapter (game/story.js)
   updateHudStage(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt, G.mode === 'play');   // the words on the lower middle keep one column and take turns (ui/hud-stage.js)
   updateTalk(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);    // walk-up lines from the people on your side, in a lull (game/talk.js)
+  updateAlignment(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // light and dark: the SPARE prompt, the blades thrown down, the look (game/alignment.js)
   updateSecrets(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story maps' hidden holocrons, caves and meditation spots (game/secrets.js)
   updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
@@ -236,7 +239,7 @@ function tick(){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
+window.GAME = { PROFILE, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,

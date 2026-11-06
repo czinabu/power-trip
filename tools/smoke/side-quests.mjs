@@ -107,10 +107,20 @@ for (const hero of HEROES){
     }
     check(await page.waitForFunction(() => GAME.G.mode === 'victory', null, poll).then(() => true, () => false), `${hero}: the side mission is won`);
     check(await page.evaluate(() => !!(GAME.PROFILE.profileOf().sides || {})['side:forest-shrine']), `${hero}: the win is on the profile`);
+    // its light-or-dark choice (data/side-quests.js `choice`, game/alignment.js): asked once, before the results
+    const card = await page.waitForSelector('#chapcard.open .cc-opt.al-light', { timeout: 15000 }).then(() => true, () => false);
+    check(card, `${hero}: the side mission asks its light-or-dark choice`);
+    if (SHOTS && card) await page.screenshot({ path: path.join(SHOTS, hero + '-side-choice.png') });
+    const al0 = await page.evaluate(() => GAME.PROFILE.alignOf());
+    if (card) await page.click('#chapcard .cc-opt.al-light');
+    check(await page.evaluate(() => GAME.PROFILE.sidePicked('side:forest-shrine') === 'go'), `${hero}: the pick is kept on the profile`);
+    check(await page.evaluate((a) => GAME.PROFILE.alignOf() > a, al0), `${hero}: letting them go moves the meter to the light`);
+    check(await page.waitForFunction(() => document.getElementById('overlay').style.display === 'flex', null, { timeout: 10000 }).then(() => true, () => false), `${hero}: the results follow the choice`);
 
     // every other side mission builds and starts on its map, its objectives in order
     for (const id of ['side:ledger-child', 'side:temple-droid', 'side:relic-thief', 'side:drowned-holocron', 'side:grave-knight']){
-      await page.evaluate((id) => { document.getElementById('overlay').style.display = 'none'; GAME.G.missionId = id; GAME.startMission(id); GAME.G.mode = 'play'; GAME.G.paused = false; }, id);
+      await page.evaluate((id) => { const pick = document.querySelector('#chapcard.open .cc-opt'); if (pick) pick.click();   // (the last one's light-or-dark choice, if it is up)
+        document.getElementById('overlay').style.display = 'none'; GAME.G.missionId = id; GAME.startMission(id); GAME.G.mode = 'play'; GAME.G.paused = false; }, id);
       const ok = await page.waitForFunction((id) => GAME.missionState().on && GAME.missionState().def.id === id && GAME.missionState().o, id, poll).then(() => true, () => false);
       const objs = await page.evaluate(() => GAME.missionState().def.objectives.map(o => o.kind).join(' › '));
       check(ok, `${hero}: ${id} starts (${objs})`);

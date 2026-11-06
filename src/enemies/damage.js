@@ -27,6 +27,8 @@ import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
 import { queueHit, hooks } from '../net/run.js';
+import { foeBeaten, foeFell } from '../game/alignment.js';
+import { MERCY } from '../data/alignment.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
@@ -37,6 +39,24 @@ import { killCam, killCamOn } from '../engine/killcam.js';
    kill it makes pays SQUAD.killXp of the XP and feeds no streak, Focus, lifesteal or boon (data/allies.js). */
 // how fast a floored or killed foe leaves across the ground: a blade's shove is capped (opts.shove), anything else is not
 const shoveCap = (v, opts) => opts && opts.shove ? Math.min(v, opts.shove) : v;
+/* SPARED (game/alignment.js): a foe that yielded, let go. It leaves the fight beaten, as a kill would, and pays the
+   same bounty, so mercy never costs a run anything: it bows out instead of falling */
+export function spareEnemy(e){
+  if (e.dead || e.net) return false;
+  e.dead = true; e.spared = true; e.yielding = false; e.state = 'spared'; e.st = MERCY.bow;
+  e.vel.set(0, 0, 0);
+  hideIndicators(e);
+  tutEvent('kill', e);
+  if (e.dp) duelWon(e);
+  if (!e.converted){
+    const xp = e.t.score * 4 * killBonus() * (e.elite ? 1.6 : 1);
+    gainXp(xp); if (hooks.xp) hooks.xp(xp);
+    if (G.stats) G.stats.kills++;
+    gainCP(e.elite || e.champion ? 'elite' : 'kill');
+  }
+  addFocus(FOCUS.gainKill);
+  return true;
+}
 export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.dead) return;
   if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
@@ -135,9 +155,11 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   }
   if (e.sparring && e.hp < 1){ e.hp = 1; tutEvent('sparDown', e); }   // TRAINING: a sparring partner takes the blow but never falls (beating it down still counts)
   if (e.hpFloor && e.hp < e.hpFloor) e.hp = e.hpFloor;   // MISSIONS: a fleeing quarry breaks away at this, it doesn't fall
+  if (e.hp > 0 && dmg > 0 && !tick) foeBeaten(e);   // LIGHT AND DARK: a beaten duellist yields, its blade thrown down (game/alignment.js)
   if (e.hp <= 0){
     e.dead = true; e.state = 'ragdoll'; e.st = 0;
     hideIndicators(e);   // bars, laser sight, lunge line: gone with the life, not a frame later (cleanup.js)
+    foeFell(e, byAlly);   // struck down while it had yielded: the dark (game/alignment.js)
     tutEvent('kill', e);
     if (e.dp) duelWon(e);   // a duellist down: its guard ring fades a little more as you learn the blade (enemies/guardcue.js)
     if (blownUp) flyerBlowUp(e);
@@ -183,6 +205,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     else if (G.mut === 'volatile' && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
     S.kill(cp, !!e.t.heavy);
     if (player.up.lifesteal) player.hp = clamp(player.hp + player.up.lifesteal, 0, maxHp());   // skill: lifesteal
+    if (player.up.killHeal) player.hp = clamp(player.hp + player.up.killHeal, 0, maxHp());     // the dark path's UNLIMITED POWER (data/alignment.js)
+    if (player.up.killForce) player.force = clamp(player.force + player.up.killForce, 0, CFG.player.maxForce);   // ...and FEED ON FEAR
     if (player.boon){
       if (player.boon.blood) player.hp = clamp(player.hp + maxHp()*0.04, 0, maxHp());                          // BLOODTHIRST boon
       if (player.boon.momentum){ player.momentumStacks = Math.min(5, (player.momentumStacks||0)+1); player.momentumT = 5; }  // MOMENTUM boon

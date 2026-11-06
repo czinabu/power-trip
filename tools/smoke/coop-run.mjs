@@ -115,6 +115,22 @@ try {
   // the partner's shots are drawn on the other screen
   await host.evaluate(() => GAME.spawnBlasterBolt(new GAME.camera.position.constructor(0, 1.5, 0), new GAME.camera.position.constructor(1, 0, 0), 5, 0x66ccff, 1, {}));
   await guest.waitForFunction(() => GAME.bolts.some(b => b.ghost), null, poll);
+  // LIGHT AND DARK (game/alignment.js): a duellist the host beats yields on both screens, the guest spares it, and the
+  // mercy moves the guest's own meter, not the host's
+  {
+    const yn = await host.evaluate(() => { const p = GAME.player.group.position, V = GAME.camera.position.constructor; GAME.spawnEnemy('duelist', new V(p.x - 5, 0, p.z)); const e = GAME.enemies[GAME.enemies.length - 1];
+      e.state = 'chase'; e.st = 0; e.hp = e.maxHp * 0.25; GAME.damageEnemy(e, e.maxHp * 0.1, new V(1, 0, 0), 0); return e.state === 'yield' ? e.nid : null; });
+    if (!yn) throw new Error('the beaten duellist did not yield on the host');
+    await guest.waitForFunction((n) => { const e = GAME.enemies.find(o => o.nid === n); return e && e.state === 'yield'; }, yn, poll);
+    const hostA = await host.evaluate(() => GAME.PROFILE.alignOf()), guestA = await guest.evaluate(() => GAME.PROFILE.alignOf());
+    await guest.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n), q = e.group.position; GAME.player.group.position.set(q.x + 1.5, 0.2, q.z); GAME.player.vel.set(0, 0, 0); }, yn);
+    await guest.waitForFunction(() => document.getElementById('mercyp').classList.contains('on'), null, poll);
+    await guest.keyboard.press('f');
+    await host.waitForFunction((n) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.spared; }, yn, poll);
+    await guest.waitForFunction((a) => GAME.PROFILE.alignOf() > a, guestA, poll);
+    if (await host.evaluate(() => GAME.PROFILE.alignOf()) !== hostA) throw new Error('the guest\'s mercy moved the host\'s meter');
+    console.log('ok: a guest spares the host\'s yielded duellist, and only the guest\'s meter moves');
+  }
   // a duellist's guard reaches the guest: its puppet carries the guard, and a blow the guest's screen turns on it strains the host's posture
   const dn = await host.evaluate(() => { const p = GAME.player.group.position; GAME.spawnEnemy('duelist', new GAME.camera.position.constructor(p.x + 4, 0, p.z)); return GAME.enemies[GAME.enemies.length - 1].nid; });
   await guest.waitForFunction((n) => { const e = GAME.enemies.find(o => o.nid === n); return e && Array.isArray(e.ng); }, dn, poll);

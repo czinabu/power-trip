@@ -16,7 +16,7 @@ import { BUBBLE } from '../data/duel-bubble.js';
 // (a trooper busy with one of the hero's squadmates, allies/squad.js, is out of the queue until it turns back)
 export const usesToken = e => !e.converted && !e.onAlly && !e.dead && !e.t.ranged && !e.t.bomber && !e.warbringer;
 const ACTIVE = { windup: 1, strike: 1 };
-const LOST = { stagger: 1, knockdown: 1, getup: 1, ragdoll: 1, stasis: 1, fade: 1 };
+const LOST = { stagger: 1, knockdown: 1, getup: 1, ragdoll: 1, stasis: 1, fade: 1, yield: 1, spared: 1 };
 
 // ATTACK TURNS: one or two melee foes at a time, by difficulty, never more
 export function meleeSlots(){

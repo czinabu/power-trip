@@ -1184,14 +1184,6 @@ body.pad .kbonly{display:none}
 #abilitycard .ac-clip{background:#05080f;line-height:0;border-bottom:1px solid var(--edge-mid)}
 #abilitycard .ac-clip img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 #abilitycard .ac-body{padding:16px 20px 20px}
-#abilitycard .ac-force{margin:-2px 0 12px;padding:8px 12px 9px;border:1px solid rgba(130,200,255,.4);border-left:3px solid #7fd0ff;border-radius:var(--r-chip);
-  background:linear-gradient(100deg,rgba(20,60,110,.55),rgba(10,24,44,.3));animation:acfglow 1.8s ease-out both}
-#abilitycard .acf-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:700 11px/1 var(--font-ui);letter-spacing:2.6px;color:#8fd4ff}
-#abilitycard .acf-h b{font:700 18px/1 var(--font-display);letter-spacing:2.4px;color:#f2f8ff;text-shadow:0 0 12px rgba(120,200,255,.7)}
-#abilitycard .acf-l{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-top:5px;font:500 13.5px/1.35 var(--font-body);color:var(--ink)}
-#abilitycard .acf-l .ft-form{margin-top:0}
-#abilitycard .acf-x{margin-top:4px;font:500 12.5px/1.35 var(--font-body);color:var(--ink-soft)}
-@keyframes acfglow{0%{box-shadow:0 0 0 1px rgba(160,220,255,.9),0 0 28px rgba(90,190,255,.7)}100%{box-shadow:none}}
 #abilitycard .cc-act{font-size:12px;letter-spacing:3px;color:var(--cc)}
 #abilitycard .ac-title{margin:4px 0 0;font:700 34px/1 var(--font-display);letter-spacing:3px;color:#f2f8ff}
 #abilitycard .ac-key{display:inline-block;margin-top:8px;padding:2px 8px;font:700 12px/1.4 var(--font-ui);letter-spacing:1.6px;color:var(--ink);border:1px solid var(--edge-mid);border-radius:var(--r-chip)}
@@ -1200,6 +1192,26 @@ body.pad .kbonly{display:none}
 #abilitycard .ac-rows li{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--edge)}
 #abilitycard .ac-rows span{color:#8fffb8}
 #abilitycard .cc-btns{margin-top:16px;display:flex;gap:12px}
+/* A CHOICE: two powers' cards side by side, an OR between them (ui/ability-card.js openChoice) */
+#abilitycard .ac-pick{width:min(1080px,100%);background:transparent;border:0;overflow:visible}
+#abilitycard .acp-head{text-align:center;margin-bottom:16px}
+#abilitycard .acp-head .ac-title{font-size:38px}
+#abilitycard .acp-sub{margin-top:8px;font:500 15px/1.4 var(--font-body);color:var(--ink-soft)}
+#abilitycard .acp-pair{display:flex;align-items:stretch;gap:14px}
+#abilitycard .acp-half{flex:1 1 0;min-width:0;display:flex;flex-direction:column;border:1px solid var(--edge-mid);border-radius:var(--r);background:var(--panel);overflow:hidden;
+  transition:border-color .15s,box-shadow .15s,transform .15s}
+#abilitycard .acp-half.hot,#abilitycard .acp-half:hover{border-color:var(--cc);box-shadow:0 0 0 1px var(--cc),0 0 30px color-mix(in srgb,var(--cc) 35%,transparent);transform:translateY(-3px)}
+#abilitycard .acp-half .ac-body{flex:1;display:flex;flex-direction:column}
+#abilitycard .acp-half .ac-title{font-size:28px}
+#abilitycard .acp-half .ac-key{align-self:flex-start}
+#abilitycard .acp-half p{font-size:14px}
+#abilitycard .acp-half .cc-btns{margin-top:auto;padding-top:16px}
+#abilitycard .acp-or{align-self:center;flex:none;font:700 14px/1 var(--font-ui);letter-spacing:3px;color:var(--ink-dim)}
+@media (max-width:760px){
+  #abilitycard{align-items:flex-start}
+  #abilitycard .acp-pair{flex-direction:column}
+  #abilitycard .acp-head .ac-title{font-size:28px}
+}
 #hero-trooper{grid-column:1 / -1}   /* the clone trooper (testing only) takes a row of its own */
 
 /* Subtle fan-game disclaimer, main menu only */

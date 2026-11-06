@@ -70,24 +70,29 @@ body.in-menu #hud,body.in-menu #boonstrip,body.stance-preview #hud,body.stance-p
 #fplvpips i.new{animation:pipnew 2.2s ease-out both}
 @keyframes flvup{0%{transform:scale(1)}12%{transform:scale(1.35);background:rgba(120,200,255,.9);color:#05101e;box-shadow:0 0 22px rgba(140,210,255,.95)}100%{transform:scale(1)}}
 @keyframes pipnew{0%,20%{background:#fff;box-shadow:0 0 12px #bfe8ff,0 0 22px rgba(90,190,255,.9);transform:scaleY(2.2)}100%{transform:none}}
-#forcetoast{position:absolute;left:0;bottom:calc(100% + 14px);width:100%;box-sizing:border-box;padding:10px 14px 11px;display:none;pointer-events:none;overflow:hidden;
-  border:1px solid rgba(130,200,255,.5);border-left:3px solid #7fd0ff;border-radius:var(--r-chip);
-  background:linear-gradient(100deg,rgba(14,40,76,.92),rgba(6,16,32,.84) 70%);box-shadow:0 6px 24px rgba(0,0,0,.45),0 0 26px rgba(70,170,255,.28)}
-#forcetoast.on{display:block;animation:ftin .55s var(--ease) both}
+/* THE FORCE LEVEL'S RISE (ui/force-toast.js): across the middle of the screen, as the Force pulse runs out round the hero */
+#forcetoast{position:fixed;z-index:18;left:50%;top:9%;width:min(640px,calc(100vw - 32px));transform:translateX(-50%);box-sizing:border-box;padding:16px 24px 16px;display:none;pointer-events:none;text-align:center;
+  border-top:1px solid rgba(150,215,255,.55);border-bottom:1px solid rgba(150,215,255,.55);-webkit-mask-image:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent);mask-image:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent);
+  background:radial-gradient(ellipse 70% 120% at 50% 50%,rgba(16,48,92,.9),rgba(6,16,32,.72) 60%,rgba(6,16,32,0));box-shadow:0 0 60px rgba(70,170,255,.22)}
+#forcetoast.on{display:block;animation:ftin .7s var(--ease) both}
 #forcetoast.out{animation:ftout .6s ease-in both}
-#forcetoast .ft-glow{position:absolute;left:-40px;top:50%;width:160px;height:160px;margin-top:-80px;border-radius:50%;
-  background:radial-gradient(circle,rgba(150,215,255,.55),rgba(80,170,255,0) 65%);animation:ftglow 1.6s ease-out both;pointer-events:none}
-#forcetoast .ft-k{position:relative;font:700 11px/1 var(--font-ui);letter-spacing:3px;color:#8fd4ff}
-#forcetoast .ft-t{position:relative;margin-top:4px;font:700 26px/1 var(--font-display);letter-spacing:3px;color:#f2f8ff;text-shadow:0 0 14px rgba(120,200,255,.7)}
-#forcetoast .ft-t b{color:#bfe8ff;display:inline-block;animation:ftnum .9s var(--ease) .15s both}
-#forcetoast .ft-l{position:relative;margin-top:6px;font:500 13.5px/1.35 var(--font-body);color:var(--ink)}
-#forcetoast .ft-x{position:relative;margin-top:4px;font:500 12.5px/1.35 var(--font-body);color:var(--ink-soft)}
+#forcetoast .ft-glow{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;
+  background:radial-gradient(circle,rgba(170,225,255,.6),rgba(80,170,255,0) 62%);animation:ftglow 1.8s ease-out both;pointer-events:none}
+#forcetoast .ft-rays{position:absolute;left:50%;top:50%;width:520px;height:2px;margin:-1px 0 0 -260px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(150,215,255,0),rgba(220,242,255,.95) 50%,rgba(150,215,255,0));animation:ftrays 1.1s var(--ease) both}
+#forcetoast .ft-k{position:relative;font:700 12px/1 var(--font-ui);letter-spacing:4px;color:#8fd4ff}
+#forcetoast .ft-t{position:relative;margin-top:8px;font:700 44px/1 var(--font-display);letter-spacing:6px;color:#f2f8ff;text-shadow:0 0 18px rgba(120,200,255,.8),0 2px 0 rgba(0,0,0,.4)}
+#forcetoast .ft-t b{color:#bfe8ff;display:inline-block;animation:ftnum .9s var(--ease) .2s both}
+#forcetoast .ft-rule{position:relative;width:120px;height:1px;margin:12px auto 0;background:linear-gradient(90deg,transparent,#8fd4ff,transparent)}
+#forcetoast .ft-l{position:relative;margin-top:10px;font:600 15px/1.35 var(--font-body);color:var(--ink)}
+#forcetoast .ft-x{position:relative;margin-top:6px;font:500 13px/1.35 var(--font-body);color:var(--ink-soft)}
 .ft-form{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font:600 11.5px/1 var(--font-ui);letter-spacing:1.2px;color:var(--ink-soft);text-transform:uppercase}
 .ft-form i{width:14px;height:3px;border-radius:2px;background:var(--c);box-shadow:0 0 6px var(--c)}
 .ft-form b{color:#9fd6a8}
-#forcetoast .ft-form{position:relative;display:flex}
-@keyframes ftin{0%{opacity:0;transform:translateY(14px) scale(.96)}60%{opacity:1}100%{opacity:1;transform:none}}
-@keyframes ftout{to{opacity:0;transform:translateX(-14px)}}
+#forcetoast .ft-form{position:relative;display:flex;justify-content:center}
+@keyframes ftin{0%{opacity:0;transform:translateX(-50%) scale(.9);filter:brightness(2.2)}50%{opacity:1}100%{opacity:1;transform:translateX(-50%);filter:none}}
+@keyframes ftout{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+@keyframes ftrays{0%{transform:scaleX(0);opacity:1}100%{transform:scaleX(1.25);opacity:0}}
 @keyframes ftglow{0%{transform:scale(.2);opacity:1}100%{transform:scale(2.2);opacity:0}}
 @keyframes ftnum{0%{transform:scale(1.9);opacity:0;filter:blur(3px)}100%{transform:none;opacity:1;filter:none}}
 .stance .fmr{margin-left:6px;font-size:10px;letter-spacing:0;color:#ffd77a;text-shadow:0 0 6px rgba(255,200,90,.6);pointer-events:none}
@@ -339,6 +344,8 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
   #basics{gap:9px;max-width:420px}
   .stance{min-width:72px;padding:4px 8px 5px 6px}
   #banner h1{font-size:30px;letter-spacing:3.6px}
+  #forcetoast{top:7%;padding:12px 16px}
+  #forcetoast .ft-t{font-size:30px;letter-spacing:4px}
 }
 /* SOFT LOCK-ON marker (player/lockon.js): a small diamond over the locked foe */
 #lockmark{position:absolute;left:0;top:0;width:0;height:0;opacity:0;transition:opacity .12s;pointer-events:none}

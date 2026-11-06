@@ -40,8 +40,8 @@ import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data
 import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
 import { STANCES } from '../data/stances.js';
-import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard } from '../ui/ability-card.js';
-import { queueForceToast, tickForceToast, clearForceToast } from '../ui/force-toast.js';
+import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending } from '../ui/ability-card.js';
+import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
 import { chapterOrder } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
@@ -327,12 +327,12 @@ export function checkUnlocks(bannerDelay, closing){
     } else setLoadout(autoLoadout());
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox || G.hub) return;   // (the temple: no fanfare either) the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
-  // the Force Level rose (ui/force-toast.js): a level that hands over a power with its own card rides on that card, a strip
-  // across its top; the rest are a corner note and a Force pulse round the hero, once the dialogue and the fight are over
+  // the Force Level rose (ui/force-toast.js): FORCE LEVEL N across the screen with a Force pulse round the hero, in play.
+  // At a chapter's close, or with a power that has its own card, it leads: those screens open after the rise
   if (forceUp && (closing || G.endless)){
-    const rise = forceRise(forceUp, forceWas), at = announce.findIndex(u => !u.form && hasAbilityCard(u));
-    if (at >= 0) announce[at] = { ...announce[at], forceUp: rise };
-    else queueForceToast(rise);
+    const rise = forceRise(forceUp, forceWas);
+    rise.lead = closing || announce.some(u => !u.form && hasAbilityCard(u));   // (a chapter's close: before its forms, its upgrade page and its picks too)
+    queueForceToast(rise);
   }
   if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
   // your profile (game/profile.js): the chapter counts toward your rank, once a run; a rank it raises you to is its own card
@@ -525,11 +525,11 @@ export function updateFlow(dt){
   shared.phaseT -= dt;
   const L = LEVELS[G.levelIdx];
   // a shared run waits in the lull until both heroes have closed their upgrade screens
-  const holdForPicks = coopRun.live && (G.skillSelect || coopRun.guestPicking);
+  const holdForPicks = (coopRun.live && (G.skillSelect || coopRun.guestPicking)) || abilityChoicePending();   // (and a pick still to make: ui/ability-card.js)
   if (holdForPicks && (shared.levelPhase === 'between' || shared.levelPhase === 'travel')) shared.phaseT = Math.max(shared.phaseT, 1.4);   // a beat after the last screen closes
   if (shared.levelPhase === 'between' && shared.phaseT <= 0 && !holdForPicks){
     if (G.endless) startEndlessWave(); else startWave();
-  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !holdForPicks && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said and its card read (ui/hud-stage.js), then the upgrade screen
+  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !holdForPicks && !forceToastHolds() && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said, its card read (ui/hud-stage.js) and its Force Level's rise up (ui/force-toast.js), then the upgrade screen
     shared.levelPhase = 'travel'; shared.phaseT = 1.6;
     openSkillTree();
   } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdForPicks){

@@ -18,7 +18,7 @@ import { masterySet, masteryRank } from '../data/mastery.js';
 import { chapterLabel } from '../game/campaign.js';
 import { FORMS, FORM_PATH } from '../data/forms.js';
 import { stanceUnlocked } from '../data/stances.js';
-import { storeAbilityCard } from './ability-card.js';
+import { storeAbilityCard, queueAbilityChoice } from './ability-card.js';
 import { TIER_REQ, TIER_CHAPTER } from '../data/skills.js';
 import { ENDLESS_POWERS, formChapter } from '../data/store.js';
 import { LEVELS } from '../data/levels.js';
@@ -74,6 +74,7 @@ export function openSkillTree(){
   grantedNow = grantStoryPowers();
   for (const n of grantedNow) storeAbilityCard(n);
   if (grantedNow.length){ if (isGunner()) syncMandoChips(); else syncJediChips(); }
+  offerFreeForks();
   rollFreeCards();
   if (!somethingToTake()){
     if (grantedNow.length) upToast('NEW POWER', grantedNow.map(n => n.nm).join(' · '), 'mast');
@@ -88,12 +89,35 @@ export function openSkillTree(){
   return true;
 }
 let grantedNow = [];   // the powers this chapter's close just handed over, shown at the head of NEW POWERS
+// A FREE PAIR (a fork that costs nothing: every pair in the story, the Mando's and the trooper's signature everywhere) is
+// its own pop-up, the two powers' cards side by side (ui/ability-card.js), not a row on this page. It opens once the page
+// closes (or at once, with nothing on the page); a run left before the pick offers it again at the next page.
+const freeFork = (n) => !!n.fork && storeCost(n) <= 0 && storeAvail(n);
+function offerFreeForks(){
+  const set = storeSet(), seen = new Set();
+  for (const n of set){
+    if (!freeFork(n) || seen.has(n.fork)) continue;
+    seen.add(n.fork);
+    const pair = set.filter(m => m.fork === n.fork && freeFork(m));
+    if (pair.length === 2) queueAbilityChoice(pair, takeFork);
+  }
+}
+const popFork = (n) => freeFork(n) && storeSet().filter(m => m.fork === n.fork && freeFork(m)).length === 2;   // (on the pop-up, so off this page)
+function takeFork(n){
+  if (!storeAvail(n)) return;
+  n.buy();
+  noteFork(n.fork, n.id);   // (the side taken, shown on the Force Tree: game/profile.js)
+  if (isGunner()) syncMandoChips(); else syncJediChips();
+  floater(playerPos(), n.nm + '!', n.final ? '#ff9a6a' : '#7fe0a8');
+  burst(playerPos().clone().setY(1.6), n.final ? 0xff7a4a : 0x7fe0a8, 14, 6, 5);
+  S.reward(n.final ? 2 : 1);
+}
 function somethingToTake(){
   const xp = G.xp || 0;
   if (G.boonOffer && G.boonOffer.length) return true;
   if ((G.skillPoints || 0) > 0 && progFreeCards.length) return true;
   if (grantedNow.length) return true;   // (shown once, so the story's gift doesn't pass unseen)
-  if (storeSet().some(n => storeAvail(n) && xp >= storeCost(n))) return true;
+  if (storeSet().some(n => storeAvail(n) && !popFork(n) && xp >= storeCost(n))) return true;
   return !!G.endless && ENDLESS_POWERS.some(p => (!p.avail || p.avail()) && xp >= powerCost(p));
 }
 // a boon was claimed: the next one this visit owes, if any
@@ -169,7 +193,7 @@ export function renderProgress(){
   // what the chapter just handed over: already yours, shown first
   for (const n of grantedNow) store.appendChild(card({ cls: ' got' + (n.final ? ' final' : ''), tag: 'LEARNED', ico: n.ico, nm: n.nm, ds: n.ds, cost: 'YOURS', afford: true }));
   for (const n of storeSet()){
-    if (!storeAvail(n)) continue;
+    if (!storeAvail(n) || popFork(n)) continue;
     const price = storeCost(n), free = price <= 0, afford = free || xp >= price;
     const el = card({
       cls: (n.fork ? ' fork' : '') + (n.final ? ' final' : ''),

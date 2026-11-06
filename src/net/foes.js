@@ -4,6 +4,7 @@
 // that follow the snapshot and run no AI. What the guest does to a foe is sent back as a hit, which the host applies with
 // its own damageEnemy. Foes hurting the guest, their shots and tells are net/foefire.js. Not here yet: shared XP.
 
+import { abilityChoicePending } from '../ui/ability-card.js';
 import * as THREE from 'three';
 import { scene, camera } from '../engine/renderer.js';
 import { shared, G, enemies, player } from '../state.js';
@@ -396,7 +397,7 @@ export function updateFoes(){
   // co-op: the screens that pop up by themselves (a learned form, a new ability's card, a found gun) wait for a lull
   coopRun.holdPopups = coopRun.live && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!(shared.boss && !shared.boss.dead));
   if (net.role === 'guest' && connected()){   // tell the host while the upgrade screen is open (the next wave waits for it)
-    const open = !!(G.coopGuest && G.skillSelect);
+    const open = !!(G.coopGuest && (G.skillSelect || abilityChoicePending()));   // (a choose-one pop-up still to come counts: ui/ability-card.js)
     if (open !== pickSent){ pickSent = open; send({ t: 'pick', o: open ? 1 : 0 }); }
   } else pickSent = false;
   if (net.role === 'host'){

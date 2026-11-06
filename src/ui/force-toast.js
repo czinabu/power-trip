@@ -1,12 +1,13 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE FORCE LEVEL'S RISE (game/flow.js checkUnlocks): a reward beat that keeps out of the way. Nothing stops: a note comes
-// up over the Force meter (the level, which powers grew, how much of it the form in hand channels), the LV badge and its
-// new pip light up, a Force pulse runs out round the hero (fx/force-rise.js) and a swell plays (audio/force.js
-// forceRise). It fades by itself. A level that hands over a power with its own card rides on that card instead (a strip
-// across its top: ui/ability-card.js), and the pulse plays as that card closes.
+// THE FORCE LEVEL'S RISE (game/flow.js checkUnlocks): a reward beat in play. Nothing stops: FORCE LEVEL N comes up across
+// the middle of the screen (which powers grew, how much of it the form in hand channels) the moment a Force pulse runs out
+// round the hero (fx/force-rise.js) and a swell plays (audio/force.js forceRise); the LV badge and its new pip light up.
+// It fades by itself. A level that also hands over a power (`lead`) is followed by that power's own card
+// (ui/ability-card.js waits on forceToastHolds): the rise first, felt in the world, then the power.
 //
-// It waits for a lull: never over a line of dialogue (game/story.js), never mid-fight (no foe up or still to come, the
-// hero out of combat: player/mobility.js), never under a screen (a card, a cutscene, the upgrade page, the pause menu).
+// It waits for a lull: never over a line of dialogue (game/story.js), never under a screen (a card, a cutscene, the
+// upgrade page, the pause menu), and a lone rise never mid-fight (no foe up or still to come, the hero out of combat:
+// player/mobility.js). A rise that leads a power's card waits only as long as that card would.
 // The first rise of a run says once, in a line, what the Force Level is; later ones list only what grew.
 //
 // Every mode that climbs the level: the story (solo, and each co-op screen for its own hero: coopRun.holdPopups holds it
@@ -19,9 +20,9 @@ import { inCombat } from '../player/mobility.js';
 import { S } from '../audio/sfx.js';
 import { forcePulse } from '../fx/force-rise.js';
 
-export const FORCE_TOAST = { calm: 0.9, hold: 5.2, fade: 0.6 };   // s of quiet before it comes up · s it stays · s it fades over
+export const FORCE_TOAST = { calm: 0.9, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up · s it stays · s it fades over · s before the power it brought opens its card
 
-let el = null, wait = null, calmT = 0, hideT = 0, goneT = 0;
+let el = null, wait = null, calmT = 0, hideT = 0, goneT = 0, leadT = 0;
 const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 const hex = (c) => '#' + ('000000' + (c >>> 0).toString(16)).slice(-6);
 // 'Push, Strikes and Jump & Dash'
@@ -33,15 +34,20 @@ export const formChip = (r) => r.form ? '<span class="ft-form" style="--c:' + he
 
 // a rise is waiting: two before the first is shown fold into one (the higher level, and everything either grew)
 export function queueForceToast(r){
-  if (wait) r = { ...r, first: r.first || wait.first, grew: [...new Set([...wait.grew, ...r.grew])] };
+  if (wait) r = { ...r, first: r.first || wait.first, lead: r.lead || wait.lead, grew: [...new Set([...wait.grew, ...r.grew])] };
   wait = r;
 }
-export function clearForceToast(){ wait = null; calmT = 0; hide(true); }
+export function clearForceToast(){ wait = null; calmT = 0; leadT = 0; hide(true); }
 export const forceToastUp = () => !!(el && el.classList.contains('on'));
+// ui/ability-card.js: a power's card holds while the rise that brought it is still to come, or has only just come up
+export const forceToastHolds = () => !!(wait && wait.lead) || (forceToastUp() && performance.now() < leadT);
+// a card opened over it: it goes
+export const fadeForceToast = () => { leadT = 0; hide(); };
 
-const lull = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
-  performance.now() >= (shared.unlockHold || 0) && !storySpeaking() && !commsShowing() &&
-  !G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted) && !inCombat();
+const screenFree = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
+  performance.now() >= (shared.unlockHold || 0) && !storySpeaking() && !commsShowing();
+const lull = () => screenFree() && (wait.lead ||
+  (!G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted) && !inCombat()));
 
 // game/flow.js, every frame of play
 let lastT = 0;
@@ -60,17 +66,18 @@ export function tickForceToast(){
 function show(r){
   if (!el){
     el = document.createElement('div'); el.id = 'forcetoast';
-    (document.getElementById('status') || document.body).appendChild(el);
+    document.body.appendChild(el);   // (not in the HUD: a talk on the set hides that, and the rise still shows)
   }
-  el.innerHTML = '<div class="ft-glow"></div>' +
+  el.innerHTML = '<div class="ft-glow"></div><div class="ft-rays"></div>' +
     '<div class="ft-k">' + (r.max ? 'THE FORCE AT ITS FULLEST' : 'THE FORCE GROWS') + '</div>' +
-    '<div class="ft-t">FORCE LEVEL <b>' + r.lv + '</b></div>' +
+    '<div class="ft-t">FORCE LEVEL <b>' + r.lv + '</b></div><div class="ft-rule"></div>' +
     '<div class="ft-l">' + esc(growLine(r)) + '</div>' +
-    (r.first ? '<div class="ft-x">' + esc(FIRST_LINE) + '</div>' : '') +
-    formChip(r);
+    formChip(r) +
+    (r.first ? '<div class="ft-x">' + esc(FIRST_LINE) + '</div>' : '');
   el.classList.remove('on', 'out'); void el.offsetWidth;   // (restart its animation)
   el.classList.add('on');
   hideT = performance.now() + FORCE_TOAST.hold * 1000 + (r.first ? 1800 : 0); goneT = 0;
+  leadT = r.lead ? performance.now() + FORCE_TOAST.lead * 1000 + (r.first ? 1200 : 0) : 0;
   celebrate(r);
 }
 function hide(now){
@@ -81,8 +88,8 @@ function hide(now){
   goneT = performance.now() + FORCE_TOAST.fade * 1000;
 }
 
-// the pulse, the swell and the meter's badge: the rise felt, whether it came as this note or on a power's card
-export function celebrate(r){
+// the pulse, the swell and the meter's badge: the rise felt, as the note comes up
+function celebrate(r){
   try { forcePulse(r.blade); } catch(e){}
   S.forceRise();
   const m = document.getElementById('fpmeter');

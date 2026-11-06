@@ -13,7 +13,7 @@ import {
   profileOf, track, rankNeeds, trialsPassed, insightLeft, insightTotal, nodeState, nodeLearned, learnNode, resetTree, treePath, setPath,
   seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
   owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck, alignOf, alignStage, leanOf, alignOpen,
-  ngBest, ngNextTier, hasRank,
+  ngBest, ngNextTier, hasRank, cardsSeen, seeCards,
 } from '../game/profile.js';
 import { tierName, MAX_TIER } from '../data/ngplus.js';
 import { ALIGN, ALIGN_WORDS, ALIGN_RANK, PATH_TREE, PATH_WORDS } from '../data/alignment.js';
@@ -51,6 +51,11 @@ function chapterName(id, h){
 const num = (n) => Number(n || 0).toLocaleString('en-US');
 // a card's effects, one per line ('A · B' in the data), so each reads on its own
 const dsHtml = (ds) => { const parts = String(ds).split(' · '); return parts.length < 2 ? '<p>' + ds + '</p>' : '<ul class="pf-ds">' + parts.map(x => '<li>' + x + '</li>').join('') + '</ul>'; };
+
+// NEW: an owned card you haven't looked at since it opened; a card's RANK PIPS: how many times a run can stack it
+const isNew = (h, s) => { const seen = cardsSeen(h); return !!seen && owns(h, s) && !seen.includes(s.id); };
+const NEW_TAG = '<em class="pf-new">NEW</em>';
+const rankPips = (s) => s.max > 1 ? '<span class="pf-rp" title="Up to ' + s.max + ' ranks in a run">' + '<i></i>'.repeat(s.max) + '</span>' : '';
 
 /* ---------- the LEFT COLUMN: who you are, at a glance. The rank track, the next rank's progress, the meter ---------- */
 const pct = (f) => Math.round(Math.max(0, Math.min(1, f)) * 100) + '%';
@@ -136,8 +141,8 @@ function homeCol(h){
   const p = profileOf(h), set = SET_OF[h], deck = deckOf(h), live = runLive();
   // the deck: its ten slots by tier, filled as they're picked
   const slots = [1, 2, 3].map(t => { const k = deck ? deckCount(h, set, t) : 0; return '<div class="pf-dslots"><span>' + TIER_NAME[t] + '</span><div>' + Array.from({ length: DECK_QUOTA[t] }, (_, i) => '<i class="' + (i < k ? 'on' : '') + '"></i>').join('') + '</div></div>'; }).join('');
-  const own = set.filter(s => owns(h, s)).length;
-  const deckT = tile('pf-t-deck', 'YOUR DECK', (deck ? '<p class="pf-big"><b>' + deck.length + '</b> / ' + DECK_SIZE + ' picked</p>' : '<p class="pf-big"><b>' + own + '</b> cards unlocked</p><p class="pf-note">No deck yet: runs deal from all of them.</p>') + (deck ? slots : ''),
+  const own = set.filter(s => owns(h, s)).length, fresh = set.filter(s => isNew(h, s)).length;
+  const deckT = tile('pf-t-deck', 'YOUR DECK' + (fresh ? ' <em class="pf-new">' + fresh + ' NEW</em>' : ''), (deck ? '<p class="pf-big"><b>' + deck.length + '</b> / ' + DECK_SIZE + ' picked</p>' : '<p class="pf-big"><b>' + own + '</b> cards unlocked</p><p class="pf-note">No deck yet: runs deal from all of them.</p>') + (deck ? slots : ''),
     'deck', deck ? 'EDIT DECK' : live ? 'SEE CARDS' : 'BUILD A DECK');
   // the path: which way you lean, and how many of that side's cards are open
   const W = ALIGN_WORDS[h] || ALIGN_WORDS.jedi, lean = leanOf(h), tree = PATH_TREE[h];
@@ -260,7 +265,7 @@ function sidesCol(h){
     const nodes = tree.filter(n => n.align === side).sort((x, y) => x.tier - y.tier).map(n => {
       const open = alignOpen(n), R = track(h).ranks.find(r => r.id === ALIGN_RANK[h][n.tier]);
       return '<div class="pf-pnode ' + (open ? 'open' : 'shut') + (pick === n ? ' sel' : '') + '" data-card="' + n.id + '"><span class="pf-orb">' + icon(n.ico) + (open ? '' : '<i class="pf-lk">' + LOCK + '</i>') + '</span>' +
-        '<div><b>' + esc(n.nm) + '</b><span>' + (open ? 'UNLOCKED' : 'TIER ' + n.tier + (R ? ' · ' + esc(R.nm) : '')) + '</span></div></div>';
+        '<div><b>' + esc(n.nm) + (isNew(h, n) ? ' ' + NEW_TAG : '') + '</b><span>' + (open ? 'UNLOCKED' : 'TIER ' + n.tier + (R ? ' · ' + esc(R.nm) : '')) + '</span></div></div>';
     }).join('');
     return '<div class="pf-pside al-' + side + (lean === side ? ' path' : '') + '"><div class="pf-bh"><b>' + esc(P.nm) + '</b>' + (lean === side ? '<em class="pf-got">YOU LEAN HERE</em>' : '') + '</div>' +
       '<p class="pf-bl">' + esc(P.line) + '</p><div class="pf-chain">' + nodes + '</div></div>';
@@ -329,7 +334,7 @@ function deckCol(h){
     const tiles = cards.map(s => {
       const mine = owns(h, s), inD = deck && deck.includes(s.id);
       return '<div class="pf-dcard ' + (mine ? 'own' : 'shut') + (inD ? ' indeck' : '') + (s.align ? ' al-' + s.align : '') + (pick === s ? ' sel' : '') + '" data-card="' + s.id + '" title="' + esc(s.nm) + '">' +
-        '<span class="pf-orb">' + icon(s.ico) + (mine ? '' : '<i class="pf-lk">' + LOCK + '</i>') + (inD ? '<i class="pf-in">✓</i>' : '') + '</span><b>' + esc(s.nm) + '</b>' +
+        (isNew(h, s) ? NEW_TAG : '') + '<span class="pf-orb">' + icon(s.ico) + (mine ? '' : '<i class="pf-lk">' + LOCK + '</i>') + (inD ? '<i class="pf-in">✓</i>' : '') + '</span><b>' + esc(s.nm) + '</b>' + rankPips(s) +
         (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + esc(sideWord(h, s.align)) + '</span>' : '') + '</div>';
     }).join('') + (f === 'deck' ? Array.from({ length: Math.max(0, DECK_QUOTA[t] - k) }, () => '<div class="pf-slot" data-filter="all">+</div>').join('') : '');
     return '<div class="pf-trow"><div class="pf-trh"><b>' + TIER_NAME[t] + '</b>' + meterT + '</div><div class="pf-grid">' + (tiles || '<p class="pf-empty">' + (f === 'locked' ? 'Nothing locked here.' : 'Nothing yet.') + '</p>') + '</div></div>';
@@ -341,6 +346,8 @@ function deckCol(h){
   </div>`;
 }
 
+let pendingSeen = null;   // [hero, card ids]: what CARDS or PATHS showed, seen once you leave it
+function flushSeen(){ if (pendingSeen){ seeCards(...pendingSeen); pendingSeen = null; } }
 let entering = false;   // the panel's entrance plays on opening, not on every redraw
 function render(){
   const right = view === 'tree' && hero === 'jedi' ? treeCol() : view === 'deck' ? deckCol(hero) : view === 'sides' ? sidesCol(hero) : homeCol(hero);
@@ -352,10 +359,16 @@ function render(){
     <div class="pf-foot"><span class="btn pf-wipe${armed ? ' armed' : ''}" data-reset="profile">${armed ? 'CLICK AGAIN TO RESET ' + HERO_NAME[hero] : 'RESET THIS PROFILE'}</span></div>
   </div>`;
   seenFresh(hero);
+  // the cards on screen in CARDS or PATHS count as seen once you leave the view (their NEW stays while you look);
+  // a profile's first look sees all it owns
+  const owned = SET_OF[hero].filter(s => owns(hero, s)).map(s => s.id);
+  if (!cardsSeen(hero)) seeCards(hero, owned);
+  else if (view === 'deck' || view === 'sides') pendingSeen = [hero, view === 'sides' ? PATH_TREE[hero].filter(n => owns(hero, n)).map(n => n.id) : owned];
   refreshButton();
 }
 
 export function setProfile(open){
+  flushSeen();
   if (open){ hero = ['jedi', 'mando', 'trooper'].includes(G.hero) ? G.hero : 'jedi'; armed = false; entering = true; render(); entering = false; }
   panel.classList.toggle('open', open);
 }
@@ -366,7 +379,7 @@ panel.addEventListener('click', (e) => {
   audioInit();
   const t = e.target;
   const vt = t.closest('[data-view]'), dk = t.closest('[data-deck]'), da = t.closest('[data-deckact]');
-  if (vt){ view = vt.dataset.view; return render(); }
+  if (vt){ if (vt.dataset.view !== view) flushSeen(); view = vt.dataset.view; return render(); }
   const fl = t.closest('[data-filter]'), cd = !dk && t.closest('[data-card]');
   if (fl){ filter = fl.dataset.filter; view = 'deck'; return render(); }
   if (cd){ sel[hero] = cd.dataset.card; kept[hero] = null; return render(); }
@@ -377,7 +390,7 @@ panel.addEventListener('click', (e) => {
   if (da){ setDeck(hero, da.dataset.deckact === 'all' ? null : suggestDeck(hero, SET_OF[hero])); filter = null; view = 'deck'; return render(); }
   const tab = t.closest('[data-h]'), learn = t.closest('[data-learn]'), path = t.closest('[data-path]'), reset = t.closest('[data-reset]');
   if (t.closest('#pfclose') || t === panel) return setProfile(false);
-  if (tab){ hero = tab.dataset.h; armed = false; filter = null; if (hero !== 'jedi' && view === 'tree') view = 'home'; render(); }
+  if (tab){ flushSeen(); hero = tab.dataset.h; armed = false; filter = null; if (hero !== 'jedi' && view === 'tree') view = 'home'; render(); }
   else if (learn){ if (learnNode(learn.dataset.learn)) S.reward(1); treeSel = learn.dataset.learn; render(); }
   else if (path){ setPath(path.dataset.path); render(); }
   else if (reset && reset.dataset.reset === 'tree'){ resetTree(); render(); }

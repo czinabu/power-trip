@@ -366,3 +366,15 @@
   #profile .cz-tabs{width:auto;max-width:none;align-self:stretch}
   #profile .cz-tabs span{flex:1 1 auto;text-align:center}
 }
+
+/* NEW: a card opened since you last looked (ui/profile-ui.js isNew), and a card's RANK PIPS: how often a run can stack it */
+#profile .pf-new{display:inline-block;padding:3px 5px;font:700 10px/1 var(--font-ui);font-style:normal;letter-spacing:.1em;color:var(--hx-on-accent);background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink);vertical-align:middle}
+#profile .pf-dcard>.pf-new{position:absolute;top:-6px;left:-4px;z-index:1}
+#profile .pf-tile h4 .pf-new{margin-left:6px}
+#profile .pf-rp{display:flex;gap:3px;justify-content:center}
+#profile .pf-rp i{width:7px;height:7px;background:transparent;box-shadow:inset 0 0 0 1.5px var(--hx-dim)}
+#profile .pf-dcard.own .pf-rp i{box-shadow:inset 0 0 0 1.5px var(--hx-accent)}
+#profile[data-hero="jedi"] .pf-rp i{transform:rotate(45deg);width:6px;height:6px;margin:0 1px}
+#profile[data-hero="mando"] .pf-rp i{width:10px;height:5px;transform:skewX(-18deg)}
+#profile[data-hero="mando"] .pf-dcard>.pf-new{top:3px;left:3px}
+#profile[data-hero="trooper"] .pf-new{background:var(--hx-plate-white);color:#101315}

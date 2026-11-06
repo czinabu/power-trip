@@ -370,6 +370,15 @@ export function noteSidePick(id, key, hero = G.hero){
 export function noteMercy(kind, hero = G.hero){ const p = profileOf(hero); p.mercy ||= { spared: 0, struck: 0 }; p.mercy[kind] = (p.mercy[kind] || 0) + 1; save(); }
 
 /* ---------- the page and co-op ---------- */
+// the cards you've looked at on the profile since they opened (a card opened since shows NEW). A profile from before this
+// list starts with what it owns already seen.
+export const cardsSeen = (hero) => profileOf(hero).seenCards || null;
+export function seeCards(hero, ids){
+  const p = profileOf(hero), have = new Set(p.seenCards || []);
+  let changed = !p.seenCards;
+  for (const id of ids) if (!have.has(id)){ have.add(id); changed = true; }
+  if (changed){ p.seenCards = [...have]; save(); }
+}
 export function seenFresh(hero = G.hero){ const p = profileOf(hero); if (p.fresh){ p.fresh = false; save(); } }
 export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes[h].fresh);
 // the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable

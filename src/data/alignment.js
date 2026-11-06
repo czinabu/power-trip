@@ -31,7 +31,9 @@ export const CHOICE_WEIGHT = {
   ledger: { saved: 8, burned: -8 },       // carry out the children's only hope, or burn it so nobody can use it
   ilsa: { spared: 25, struck: -25 },
   vexis: { vael: 25, ended: -20 },
-  marshal: { home: 20, ended: -15 },      // (the trooper's)
+  marshal: { home: 20, ended: -15 },      // (the trooper's last)
+  halcyon: { warned: 12, left: -12 },     // (the trooper's: warn the rest of the batch off the Halcyon's list, or save only your own)
+  vorn: { took: 15, left: -15 },          // (the trooper's: the chipped captain at the foundry)
   gate: { sealed: 20, kept: -20 },        // (Act IV's: seal the Sith gate, or keep it open)
   ossik: { trusted: 8, marked: -8 },      // (the Mando's: what you tell the broker who sold the covert)
   smiths: { freed: 20, buried: -20 },     // (the Mando's: the meltworks' chained smiths)

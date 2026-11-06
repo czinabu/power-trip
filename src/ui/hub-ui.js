@@ -27,6 +27,7 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { rankIndex, track, sideWon } from '../game/profile.js';
+import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -53,7 +54,10 @@ function options(s){
       const W = Hb.wings[id], here = id === G_.hubWing;
       const who = partnerWorlds().filter(p => p.world === 'hub:' + G_.hubId + ':' + id).map(p => p.name);
       return B(W.name, (here ? 'YOU ARE HERE' : W.blurb) + (who.length ? ' · ' + who.join(', ') : ''), here ? null : () => goWing(id));
-    }); }
+    }).concat([
+      B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => replayTour()),
+      B('WHAT\'S WHERE', 'Every station in ' + Hb.home.toLowerCase() + ', and which door it is behind', () => replayWelcome()),
+    ]); }
     case 'council': {
       if (guest()){
         const list = [];
@@ -114,6 +118,7 @@ function hubToMissions(){ G.modeSel = 'mission'; document.getElementById('mode-m
 
 function render(){
   if (ready) return renderReady();
+  if (station.act === 'welcome') return renderWelcome();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
@@ -126,6 +131,7 @@ function render(){
 function open(s){
   if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return false;
   station = s;
+  welcomeStation(s);   // (the welcome tour's stop reached, or the hero off on their own: game/hub-welcome.js)
   G.skillSelect = true; G.sbMenu = true;   // holds the temple still and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open');
   if (document.pointerLockElement) document.exitPointerLock();
@@ -140,6 +146,26 @@ export function closeHubPanel(relock = true){
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
 }
 export const hubPanelOpen = isOpen;
+
+/* ---------------- THE WELCOME (game/hub-welcome.js) ----------------
+   WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW
+   ME AROUND (the walk to a few stations, ending at the first mission). The first visit itself puts up nothing like this:
+   the guide speaks on the side panel and the walk just starts. */
+function renderWelcome(){
+  const C = welcomeCard(); if (!C){ panel.innerHTML = ''; panel._list = []; return; }
+  const list = [
+    B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => answerWelcome(true)),
+    B('CLOSE', 'Back to ' + C.start.toLowerCase(), () => answerWelcome(false)),
+  ];
+  const esc = (t) => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +
+    '<div class="hw-say"><span>' + esc(C.hello) + '</span><b>' + esc(C.guide) + '</b></div>' +
+    '<div class="hw-rows">' + C.rows.map(r => '<div class="hw-row"><div class="hw-l">' + esc(r.label) + '</div><div class="hw-n">' + esc(r.name) + '<em>' + esc(r.where) + '</em></div><div class="hw-d">' + esc(r.d) + '</div></div>').join('') + '</div>' +
+    '<div class="hb-list hw-go">' + list.map((b, i) => '<div class="hb-o' + (i ? '' : ' hw-main') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="hw-again">' + esc(C.again) + '</div></div>';
+  panel._list = list;
+}
+setWelcomeOpener(() => open({ name: 'WELCOME', act: 'welcome' }));
 setStationOpener(open);
 setHubPanelCloser(closeHubPanel);
 

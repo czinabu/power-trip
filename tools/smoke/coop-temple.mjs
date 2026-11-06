@@ -27,7 +27,7 @@ async function open(name){
   page.on('pageerror', e => errors.push(name + ': ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(name + ': ' + m.text()); });
   await page.addInitScript(() => {
-    try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1');
+    try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1');   // (the hubs' first-visit welcome: game/hub-welcome.js has its own suite)
           localStorage.setItem('sw_camp_jedi', '1'); localStorage.setItem('sw_camp_mando', '1'); localStorage.setItem('sw_camp_trooper', '1'); } catch(e){}   // Survival unlocked
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
   });

@@ -26,6 +26,7 @@ import { S } from '../audio/sfx.js';
 import { hostHero } from '../net/partner.js';
 import { setHubInteract, INTERACT_KEY } from './interact.js';
 import { stepTempleFolk } from '../world/arenas/tython-folk.js';
+import { welcomeArrive, updateWelcome } from './hub-welcome.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -61,6 +62,7 @@ export function startHub(wing, from){
   arrivedAt = performance.now(); moving = false; near = null; shownKey = '';
   // the host coming back into the temple from a run calls the party back with them
   if (!was && net.role === 'host' && connected()) send({ t: 'hubcall' });
+  welcomeArrive();   // a first visit to this hub: its welcome card is on its way; a tour under way picks up here (game/hub-welcome.js)
 }
 
 /* walk through a door (or take the fast travel) to another wing: it loads behind the loading screen, in place of this one */
@@ -106,6 +108,7 @@ setHubInteract(hubTap, () => near);
 /* once a frame (main.js) */
 export function updateHub(dt){
   const el = prompt();
+  updateWelcome(dt);   // (game/hub-welcome.js: it tidies itself away out of the hub, so it runs first)
   if (!G.hub || G.mode !== 'play'){ if (el && shownKey){ el.classList.remove('on'); shownKey = ''; } return; }
   for (const a of shared.hubAnim || []) a.fn(a.obj, G.gt, a.base);
   stepTempleFolk(dt);   // the temple's people going about their day (world/arenas/tython-folk.js)

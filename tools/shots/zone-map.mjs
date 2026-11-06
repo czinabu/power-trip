@@ -40,7 +40,17 @@ for (const hero of HEROES){
   await page.waitForTimeout(2500);
   await page.screenshot({ timeout: 120000, path: path.join(out, hero + (phone ? '-phone' : '') + '-hud.png') });
   const opened = await page.evaluate(() => GAME.zoneMap.open());
-  if (opened){ await page.waitForTimeout(800); await page.screenshot({ timeout: 120000, path: path.join(out, hero + (phone ? '-phone' : '') + '-map.png') }); }
+  if (opened){
+    await page.waitForTimeout(800);
+    // a waypoint up the Pilgrim Way toward the temple, then the map, then the HUD carrying it
+    const mb = await page.locator('#zonemap .zm-map').boundingBox();
+    await page.mouse.click(mb.x + mb.width * 0.52, mb.y + mb.height * 0.3);
+    await page.waitForTimeout(400);
+    await page.screenshot({ timeout: 120000, path: path.join(out, hero + (phone ? '-phone' : '') + '-map.png') });
+    await page.evaluate(() => GAME.zoneMap.close(false));
+    await page.waitForTimeout(1200);
+    await page.screenshot({ timeout: 120000, path: path.join(out, hero + (phone ? '-phone' : '') + '-pin.png') });
+  }
   await page.close();
 }
 await browser.close();

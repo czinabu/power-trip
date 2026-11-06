@@ -9,7 +9,7 @@ import { S } from '../audio/sfx.js';
 import { V3, clamp } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
-import { shared, G, solids, keys, player, enemies, isGunner, isTrooper } from '../state.js';
+import { shared, G, solids, keys, player, enemies, isGunner } from '../state.js';
 import { staggerEnemy } from '../enemies/damage.js';
 import { fwd, rightV, playerPos } from './helpers.js';
 import { launchFlip, rushFlip } from './anim/agility.js';
@@ -296,21 +296,19 @@ export function wallBeside(pp, range){
   return null;
 }
 
-/* WALL-RUN (every hero; the Mando only off a plain hop or fall, never under thrust) — jump, double-jump or flip at or
+/* WALL-RUN (the Jedi only: the Mando and the ARC trooper keep to the floor and the pack) — jump, double-jump or flip at or
    alongside a wall with a direction held and the feet catch it: a short run along the face that barely loses height,
    the body drawn in so the feet are on the wall. SPACE kicks off it (movement.js); letting go of the keys, the wall
    ending or running out of time drops you. */
 const steering = () => keys['w'] || keys['a'] || keys['s'] || keys['d'];
 export function updateWallRun(dt, pp){
-  if (isTrooper()){ player.wallRun = null; return; }   // the ARC trooper keeps his feet on the floor: no wall-runs (data/trooper.js jump)
-  const gunner = isGunner(), jets = gunner && (player.jetActive || player.hovering || player.boosting);   // the Mando's jets own the air: no wall-run under thrust
-  if (jets && !player.wallRun) return;
+  if (isGunner()){ player.wallRun = null; return; }   // only the Jedi runs the wall: the Mando's air is the jetpack's, and the ARC trooper keeps his feet on the floor (data/trooper.js jump)
   const wr = player.wallRun;
   if (wr){
     wr.t += dt;
     const n = wallBeside(pp, MOVE.wallRunReach);
     // the face must stay the same one: rounding a corner or the wall ending drops you off
-    if (player.grounded || !steering() || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || player.gliding || jets){
+    if (player.grounded || !steering() || !n || n.x * wr.nx + n.z * wr.nz < 0.9 || wr.t > MOVE.wallRunTime || player.mantle || player.slamming || player.gliding){
       if (!player.grounded && !player.mantle && !player.slamming){ player.vel.x += wr.nx * MOVE.wallRunPeel; player.vel.z += wr.nz * MOVE.wallRunPeel; }   // peel off the face, carrying the run's speed
       player.wallRun = null;
       return;

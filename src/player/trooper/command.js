@@ -11,19 +11,23 @@ import { sfx } from '../../audio/sfx.js';
 import { flowCpMul } from '../gunner-flow.js';
 
 const C = TROOPER.command;
-export const cpMax = () => C.max;
+// the ranks' orders (data/trooper-progression.js rank*, game/promotion.js) raise the cap, the start, the gain and lower the costs
+export const cpMax = () => C.max + (player.up.cpMaxAdd || 0);
+const cpStart = () => Math.min(cpMax(), C.start + (player.up.cpStart || 0));
 export function commandPoints(){
-  if (player.cp == null) player.cp = C.start;
+  if (player.cp == null) player.cp = cpStart();
   return player.cp;
 }
-export function resetCommand(){ player.cp = C.start; player.cpFlash = 0; }
+export function resetCommand(){ player.cp = cpStart(); player.cpFlash = 0; }
 // a kill: `kind` is 'kill', 'elite' or 'squadKill' (enemies/damage.js)
 export function gainCP(kind){
   if (!isTrooper() || G.mode !== 'play') return;
-  player.cp = Math.min(C.max, commandPoints() + (C.gain[kind] || 0) * flowCpMul());   // (BATTLE RHYTHM: player/gunner-flow.js)
+  player.cp = Math.min(cpMax(), commandPoints() + (C.gain[kind] || 0) * flowCpMul() * (player.up.cpGainMul || 1));   // (BATTLE RHYTHM: player/gunner-flow.js)
 }
 // what an order costs the trooper (0: free, and always 0 for the other heroes)
-export const orderCost = (id) => isTrooper() ? (C.cost[id] || 0) : 0;
+export const orderCost = (id) => isTrooper() ? Math.round((C.cost[id] || 0) * (player.up.orderCostMul || 1)) : 0;
+// what a battlefield call costs (allies/calls.js): CAPTAIN'S CALL takes a quarter off
+export const callCost = (n) => Math.round(n * (player.up.callCostMul || 1));
 // can it be paid? Says so on screen when it can't
 export function canPay(cost, what){
   if (!cost || commandPoints() >= cost) return true;

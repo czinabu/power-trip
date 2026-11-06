@@ -33,7 +33,7 @@ await page.waitForTimeout(1500);   // past the panels' rise-in (it lifts the col
 check(await page.evaluate(() => { const r = document.querySelector('.ov-inner').getBoundingClientRect(); return r.bottom <= innerHeight + 1; }), 'menu fits the window');
 
 // CAMPAIGN as the Mando, skipped to level 2 with a build
-await page.$eval('#hero-mando', el => el.click()); await page.click('#mode-campaign'); await page.click('#goText');
+await page.$eval('#hero-mando', el => el.click()); await page.$eval('#mode-campaign', el => el.click()); await page.click('#goText');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
 await playing();
 await page.evaluate(() => { const { G, player, startLevel } = GAME; G.xp = 777; player.up.dmg = 1.5; G.unlocked.flame = true; startLevel(1); });
@@ -78,12 +78,12 @@ check(await profXp(), 'loading a slot keeps the profile (it is not part of a sav
 // a STORY MISSION save loads back onto that mission
 await pause(); await page.click('#homeBtn'); await page.click('#homeYes');
 await page.evaluate(() => localStorage.setItem('sw_mission_pursuit_jedi', '1'));   // missions stay locked until the campaign clears them
-await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-mission'); await page.evaluate(() => document.getElementById('msn-pursuit').click()); await page.click('#goText');   // (its act's fold can be shut: the card is picked as a click on it would)
+await page.$eval('#hero-jedi', el => el.click()); await page.$eval('#mode-mission', el => el.click()); await page.evaluate(() => document.getElementById('msn-pursuit').click()); await page.click('#goText');   // (its act's fold can be shut: the card is picked as a click on it would)
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
 await playing();
 await pause(); await page.click('#saveBtn'); await page.click('[data-act="save"][data-i="1"]');
 await page.click('#savesclose'); await page.click('#homeBtn'); await page.click('#homeYes');
-await page.$eval('#hero-mando', el => el.click()); await page.click('#mode-campaign');
+await page.$eval('#hero-mando', el => el.click()); await page.$eval('#mode-campaign', el => el.click());
 await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act="load"][data-i="1"]');
 check(await page.evaluate(() => GAME.G.modeSel === 'mission' && GAME.G.missionId === 'pursuit' && GAME.G.hero === 'jedi' && document.getElementById('goText').textContent === 'BEGIN MISSION'), 'mission save loads onto that mission');
 await page.click('#goText');
@@ -94,7 +94,7 @@ await pause(); await shot('07-pause-mission');
 
 // a NEW Jedi story opens on its prologue (a mission chapter) knowing only Shii-Cho, not a lone mission's three forms
 await page.click('#homeBtn'); await page.click('#homeYes');
-await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-campaign');
+await page.$eval('#hero-jedi', el => el.click()); await page.$eval('#mode-campaign', el => el.click());
 await page.$eval('#campNewBtn', el => el.click()); await page.click('#newYes');
 if (await page.isVisible('#trainNo')) await page.click('#trainNo');
 if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});

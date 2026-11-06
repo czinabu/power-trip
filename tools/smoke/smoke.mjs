@@ -58,7 +58,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
     // restyle the hero in the customizer first, so the fight runs on a rebuilt player model
     if (mode === 'campaign'){ await page.$eval('#cztoggle', el => el.click()); await page.click('#czrandom'); await page.click('#czdone'); }
     // a story mission: MISSIONS on the mode row opens the Missions page (ui/missions-ui.js), then its card there
-    if (mode === 'mission'){ await page.click('#mode-mission'); await page.click('#msn-' + mission); }
+    if (mode === 'mission'){ await page.$eval('#mode-mission', el => el.click()); await page.click('#msn-' + mission); }
     else await page.click('#mode-' + mode);
     // BEGIN, then give the game a few seconds to drop into the fight; click again if it's still on the menu
     let started = false;
@@ -214,7 +214,7 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
   try {
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-    await page.click('#mode-campaign');   // a real click (the title screen's first step): fullscreen needs a user gesture
+    await page.click('#grp-story');   // a real click (the title screen's first step): fullscreen needs a user gesture
     const on = await page.waitForFunction(() => !!document.fullscreenElement, null, { timeout: 3000 }).then(() => true, () => false);
     if (!on) problems.push('the first click did not go fullscreen');
     await page.click('#settoggle');

@@ -56,7 +56,7 @@ try {
   }
   await host.waitForFunction(() => /4 of 4 players/.test(document.getElementById('coopstatus').textContent), null, poll);
   await host.click('#coopclose');
-  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-endless');
+  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-endless', el => el.click());
   await play(host);
   for (const g of guests){
     await g.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);

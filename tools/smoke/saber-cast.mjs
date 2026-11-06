@@ -59,7 +59,7 @@ async function duel(page, mid, obj, want, tag){
 let ok = false;
 try {
   const page = await open('jedi');
-  await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-campaign');   // into a run first (a mission starts from inside one)
+  await page.$eval('#hero-jedi', el => el.click()); await page.$eval('#mode-campaign', el => el.click());   // into a run first (a mission starts from inside one)
   await toPlay(page);
   await page.waitForFunction(() => document.querySelector('#chapcard.open'), null, poll);
   await page.evaluate(() => { const b = document.querySelector('#chapcard.open [data-go]'); if (b) b.click(); });
@@ -77,7 +77,7 @@ try {
   for (const p of [host, guest]) await p.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
   await host.click('#coopclose'); await guest.click('#coopclose');
   await host.evaluate(() => localStorage.setItem('sw_mission_refuge_jedi', '1'));
-  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-mission'); await host.click('#msn-refuge');
+  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-mission', el => el.click()); await host.click('#msn-refuge');
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});

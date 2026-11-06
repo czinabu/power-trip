@@ -100,13 +100,52 @@ const beginLabel = () => G.modeSel === 'temple' ? 'ENTER ' + nextHub().home : G.
 let _step = 'mode';
 export const menuStep = () => _step;
 const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE' };
-export function showMenuStep(step){
+export function showMenuStep(step, group = null){
   _step = step === 'hero' ? 'hero' : 'mode';
+  openGroup(_step === 'mode' ? group : null);
   overlay.classList.toggle('step-mode', _step === 'mode');
   overlay.classList.toggle('step-hero', _step === 'hero');
   document.getElementById('stepMode').textContent = STEP_NAME[G.modeSel] || 'CAMPAIGN';
   if (_ovState === 'menu'){ setOverlayState('menu'); overlay.scrollTop = 0; }   // the headline and BEGIN follow the step
   else refreshPicks();   // (the results screen's CHANGE panel stays where it is)
+}
+/* THE MODE GROUPS — the first step is the temple on top and three groups under it: STORY (campaign, missions),
+   FREEPLAY (sandbox, training, survival) and ONLINE (the co-op tile, which opens its panel). STORY and FREEPLAY swap
+   their short list in for the three; ‹ BACK, Esc or the pad's B closes it again. The hero step's ‹ MODES comes back
+   to the list its mode was picked from. */
+let _group = null;
+const GROUP_OF = { campaign: 'story', mission: 'story', sandbox: 'freeplay', training: 'freeplay', endless: 'freeplay' };
+export const menuGroup = () => _group;
+function openGroup(g){
+  _group = g === 'story' || g === 'freeplay' ? g : null;
+  overlay.classList.toggle('mgrp', !!_group);
+  for (const k of ['story', 'freeplay']) overlay.classList.toggle('grp-' + k, _group === k);
+}
+function refreshGroups(){
+  for (const k of ['story', 'freeplay']) document.getElementById('grp-' + k).classList.toggle('sel', GROUP_OF[G.modeSel] === k);
+  // STORY carries where the campaign stands, so a saved run reads from the top level
+  const md = document.getElementById('grpStoryMd');
+  if (md) md.textContent = canResume() ? 'Continue · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') : 'Campaign and missions';
+}
+for (const k of ['story', 'freeplay']) document.getElementById('grp-' + k).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openGroup(k); });
+for (const b of document.querySelectorAll('.msub-back')) b.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openGroup(null); });
+// Esc (the pad's B) closes an open group first. Capture phase, registered ahead of the CHANGE panel's own Esc below
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !_group || _step !== 'mode' || !isPickingState() || overlay.style.display === 'none' || panelOpen()) return;
+  if (/\b(customizing|mpage|confirming|newconfirming|asktrain)\b/.test(overlay.className)) return;
+  e.stopImmediatePropagation(); openGroup(null);
+}, true);
+/* the quiet row's buttons (settings, controls, codex...) wear an icon on the title screen, their name a tip over it
+   (styles/menus.css); the pause screen keeps their words */
+const BTN_ICON = { formsBtn: 'sabers', settoggle: 'gear', ctltoggle: 'pad', cxtoggle: 'book', pfBtn: 'user', wbBtn: 'wrench', rmtoggle: 'map' };
+function setBtnLabel(el, text){ const l = el.querySelector('.bl'); if (l) l.textContent = text; else el.textContent = text; }
+for (const id in BTN_ICON){
+  const el = document.getElementById(id); if (!el) continue;
+  const l = document.createElement('span'); l.className = 'bl';
+  for (const n of [...el.childNodes]) if (n.nodeType === 3){ l.textContent += n.textContent; n.remove(); }
+  el.insertAdjacentHTML('afterbegin', svgIcon(BTN_ICON[id], 'bi'));
+  el.querySelector('.bi').after(l);
+  el.classList.add('icbtn');
 }
 export function setOverlayState(state){
   if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
@@ -128,7 +167,7 @@ export function setOverlayState(state){
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('pzTrain').style.display = state === 'pause' && G.training ? '' : 'none';   // the pause screen's TRAINING label
   document.getElementById('formsBtn').style.display = isTrooper() && state !== 'menu' ? 'none' : '';   // (the trooper has neither yet; on the menu styles/menus.css hides it for any hero but the Jedi, as the hero changes)
-  document.getElementById('formsBtn').textContent = state === 'menu' ? 'MASTERY' : G.hero === 'mando' ? 'ARMORY' : 'FORMS & MASTERY';   // the Jedi's forms page with the Force and mastery (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
+  setBtnLabel(document.getElementById('formsBtn'), state === 'menu' ? 'MASTERY' : G.hero === 'mando' ? 'ARMORY' : 'FORMS & MASTERY');   // the Jedi's forms page with the Force and mastery (ui/forms-ui.js), the Mando's guns (ui/armory-ui.js)
   const go = document.getElementById('goText'), sub = document.getElementById('ovsub');
   const firstStep = _step === 'mode' && !overlay.classList.contains('mpage');   // (the Missions page opens from the first step and names its mission)
   if (state === 'menu' && G.modeSel === 'campaign' && canResume()){   // a loaded save picks the campaign up where it was
@@ -254,7 +293,7 @@ export function setModeSel(m){
   G.modeSel = m;
   for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
-  refreshTile();
+  refreshTile(); refreshGroups();
   document.getElementById('stepMode').textContent = m === 'temple' ? nextHub().name : STEP_NAME[m] || 'CAMPAIGN';
   refreshPicks();   // headline + button follow the mode
   return true;
@@ -273,14 +312,14 @@ document.getElementById('mode-mission').addEventListener('click', (e) => { e.sto
 // back to the modes: the ‹ MODES button, Esc, or the pad's B (engine/gamepad.js). Runs in the capture phase so it sees the
 // screen before Esc closes the customizer or a panel on top of it (then that Esc is theirs, not a step back)
 document.getElementById('vchange').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setPicking(!overlay.classList.contains('vpicking')); });
-document.getElementById('stepBack').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); showMenuStep('mode'); });
+document.getElementById('stepBack').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); showMenuStep('mode', GROUP_OF[G.modeSel]); });
 window.addEventListener('keydown', (e) => {
   const picking = _ovState === 'victory' && overlay.classList.contains('vpicking');
   // the results screen's CHANGE panel on its first step: Esc (the pad's B) folds it away again, back to the results
   if (e.key === 'Escape' && picking && _step === 'mode' && overlay.style.display !== 'none' && !panelOpen() && !/\bmpage\b/.test(overlay.className)){ setPicking(false); return; }
   if (e.key !== 'Escape' || _step !== 'hero' || (_ovState !== 'menu' && !picking) || overlay.style.display === 'none' || panelOpen()) return;
   if (/\b(customizing|mpage)\b/.test(overlay.className) || (G.mode !== 'menu' && !picking)) return;
-  showMenuStep('mode');
+  showMenuStep('mode', GROUP_OF[G.modeSel]);
 }, true);
 // the hero step names what the picked hero does, under the three name plates
 { const bio = document.getElementById('herobio'), cards = document.getElementById('heroselect');
@@ -297,6 +336,7 @@ function refreshCampaignMark(){
   const done = localStorage.getItem('sw_camp_' + G.hero) === '1';
   md.innerHTML = canResume() ? resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '')
                : '13 chapters, three acts' + (done ? ' · <span class="ok">✓</span> beaten' : '');
+  refreshGroups();
 }
 // TRAINING marks which heroes have finished it
 function refreshTrainingMark(){

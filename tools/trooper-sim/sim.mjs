@@ -79,7 +79,7 @@ async function open(browser){
   await page.goto(page_url, { timeout: 120000 });
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
   await page.$eval('#hero-trooper', el => el.click());
-  await page.click('#mode-sandbox');
+  await page.$eval('#mode-sandbox', el => el.click());
   for (let i = 0; i < 10; i++){
     for (const sel of ['#goText', '#trainNo']) if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {});
     if (await page.waitForFunction(() => GAME.G.mode === 'play' && !GAME.G.paused, null, { timeout: 3000 }).then(() => true, () => false)) break;

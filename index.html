@@ -194,14 +194,26 @@
     <section id="setup" class="camp">
       <div id="modestep">
         <div class="sec-label">MODE</div>
+        <!-- the temple on top, then three groups: STORY and FREEPLAY open a short list in their place (ui/menus.js
+             openGroup), ONLINE is the co-op tile itself and opens its panel -->
         <div id="modeselect">
           <div class="modeopt brk major wide temple" id="mode-temple"><span class="mt">THE HIDDEN TEMPLE</span><span class="md">Walk the temple on Tython, gather your party and pick a mission together</span></div>
-          <div class="modeopt brk major sel" id="mode-campaign"><span class="mt">CAMPAIGN</span><span class="md">13 chapters, three acts</span></div>
-          <div class="modeopt brk major" id="mode-mission"><span class="mt">MISSIONS</span><span class="md">Story missions and a random arcade</span></div>
-          <div class="modeopt brk" id="mode-training"><span class="mt">TRAINING</span><span class="md">Learn the controls and powers</span></div>
-          <div class="modeopt brk" id="mode-sandbox"><span class="mt">SANDBOX</span><span class="md">Any foe, any power</span></div>
-          <div class="modeopt brk" id="mode-endless"><span class="mt">SURVIVAL</span><span class="md">Endless waves, one high score</span></div>
-          <div class="modeopt brk wide" id="mode-coop"><span class="mt">CO-OP</span><span class="md">Play the story online with up to 3 friends</span></div>
+          <div class="mgroups">
+            <div class="modeopt brk mgroup" id="grp-story" data-grp="story"><span class="mt">STORY</span><span class="md" id="grpStoryMd">Campaign and missions</span></div>
+            <div class="modeopt brk mgroup" id="grp-freeplay" data-grp="freeplay"><span class="mt">FREEPLAY</span><span class="md" id="grpFreeMd">Sandbox, training and survival</span></div>
+            <div class="modeopt brk mgroup" id="mode-coop"><span class="mt">ONLINE</span><span class="md">Co-op: play the story with up to 3 friends</span></div>
+          </div>
+          <div class="msub" id="sub-story" data-grp="story">
+            <div class="msub-head"><div class="btn step-back msub-back">‹ BACK</div><span class="msub-t">STORY</span></div>
+            <div class="modeopt brk sel" id="mode-campaign"><span class="mt">CAMPAIGN</span><span class="md">13 chapters, three acts</span></div>
+            <div class="modeopt brk" id="mode-mission"><span class="mt">MISSIONS</span><span class="md">Story missions and a random arcade</span></div>
+          </div>
+          <div class="msub" id="sub-freeplay" data-grp="freeplay">
+            <div class="msub-head"><div class="btn step-back msub-back">‹ BACK</div><span class="msub-t">FREEPLAY</span></div>
+            <div class="modeopt brk" id="mode-sandbox"><span class="mt">SANDBOX</span><span class="md">Any foe, any power</span></div>
+            <div class="modeopt brk" id="mode-training"><span class="mt">TRAINING</span><span class="md">Learn the controls and powers</span></div>
+            <div class="modeopt brk" id="mode-endless"><span class="mt">SURVIVAL</span><span class="md">Endless waves, one high score</span></div>
+          </div>
         </div>
       </div>
       <div id="herostep">

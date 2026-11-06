@@ -1338,3 +1338,31 @@ body.wb-open #overlay{background:none}
 .kb-mando .kb-btn{border-radius:3px;color:#1a0d05;background:linear-gradient(#ffb15a,#e0661e);box-shadow:0 0 18px -4px rgba(255,110,30,.8);font-family:Georgia,'Times New Roman',serif;letter-spacing:4px}
 .kb-mando .kb-btn:hover{background:linear-gradient(#ffc27a,#f07a2a)}
 @media (max-width:720px){.kb-panel{top:auto;left:12px;right:12px;width:auto;height:58%;bottom:12px}}
+/* ---------- THE TITLE SCREEN'S MODE GROUPS (ui/menus.js openGroup): the temple on top, STORY / FREEPLAY / ONLINE
+   under it; STORY and FREEPLAY swap their short list in for the three while open ---------- */
+#overlay:is(.st-menu,.vpicking) #modeselect{display:flex;flex-direction:column;gap:10px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{min-height:112px;padding:22px 40px 22px 22px}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple .mt{font-size:30px;letter-spacing:3px}
+.mgroups,.msub{display:flex;flex-direction:column;gap:6px}
+.msub{display:none;animation:rise .2s var(--ease)}
+#overlay.mgrp .mgroups{display:none}
+#overlay.grp-story #sub-story,#overlay.grp-freeplay #sub-freeplay{display:flex}
+#overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt{min-height:58px;padding:12px 36px 12px 18px}
+#overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .mt{font:700 19px/1 var(--font-display);letter-spacing:2.5px}
+#overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .md{margin-top:5px}
+/* a group reads as a list, not a wall of tiles: quiet plates, the picked one's gold edge on the left */
+#modeselect .mgroups .modeopt{background:rgba(8,18,33,.5)}
+#modeselect .mgroups .modeopt.sel{background:linear-gradient(90deg,rgba(54,42,10,.55),rgba(8,18,33,.4));border-color:var(--edge);border-left:3px solid var(--gold)}
+.msub-head{display:flex;align-items:center;gap:14px;margin-bottom:2px}
+.msub-head .msub-back{padding:7px 12px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.7)}
+.msub-t{font:700 20px/1 var(--font-display);letter-spacing:2.5px;color:var(--gold)}
+/* the quiet row on the title screen: icons, each one's name a tip over it (the pause screen keeps the words) */
+.btn .bi{display:none}
+#overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){position:relative;flex:0 0 auto;width:44px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+#overlay.st-menu .ov-actions .btn.icbtn .bi{display:block;font-size:20px;color:var(--ink-soft)}
+#overlay.st-menu .ov-actions .btn.icbtn:hover .bi,#overlay.st-menu .ov-actions .btn.icbtn.padfocus .bi{color:var(--ink)}
+#overlay.st-menu .ov-actions .btn.icbtn .bl{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translate(-50%,3px);padding:5px 8px;border-radius:4px;
+  background:rgba(4,9,18,.95);border:1px solid var(--edge-mid);font:600 11px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .12s,transform .12s;z-index:2}
+#overlay.st-menu .ov-actions .btn.icbtn:is(:hover,:focus-visible,.padfocus) .bl{opacity:1;transform:translate(-50%,0)}
+#overlay.st-menu .ov-actions .btn.icbtn :is(.cx-badge,.pf-badge){position:absolute;top:-6px;right:-6px;margin:0}

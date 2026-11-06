@@ -47,7 +47,7 @@ for (const run of RUNS){
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-trooper', el => el.click());
     if (await page.evaluate(() => GAME.G.hero) !== 'trooper') throw new Error('the trooper card did not pick the trooper');
-    if (mode === 'mission'){ await page.click('#mode-mission'); await page.click('#msn-' + mission); }
+    if (mode === 'mission'){ await page.$eval('#mode-mission', el => el.click()); await page.click('#msn-' + mission); }
     else await page.click('#mode-' + mode);
     const tap = async sel => { if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {}); };
     let started = false;

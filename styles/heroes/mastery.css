@@ -1,0 +1,365 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE MASTERY PAGES: the Jedi's FORMS & MASTERY (and BEFORE THE FIGHT) on #forms (ui/forms-ui.js), the gunners' ARMORY on
+   #forms and its A NEW GUN pick on #armory (ui/armory-ui.js). Laid out like the profile (styles/heroes/profile.css):
+   who you are on the left, a grid of tiles on the right with ONE thing's detail beside it, the detail cut into short
+   tabs. The panel carries data-hero for the hero the page is for, so it reads that hero's --hx-* tokens (tokens.css).
+   Shared: the ink edge, flat paint, square corners, no blur, no pills, one display face for the page's word and the
+   names, reading text in Barlow.
+   · the Jedi: a holocron page. Night blue, a gold double hairline, diamond studs and rank stops, each form's blade lit
+   · the Mandalorian: beskar plate. Chamfered plates with an ember top strip, rivets, slanted plate segments
+   · the trooper: orders. A black readout under a hazard stripe, mono labels, numbered tiles, checkbox rank stops, and
+     the open gun's detail typed on the tan field file
+   ============================================================ */
+#forms .howto-panel.mx,#armory .howto-panel.mx{width:min(1180px,100%)}
+:is(#forms,#armory){background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(8,10,16,.8),rgba(2,3,6,.94));backdrop-filter:none;-webkit-backdrop-filter:none}
+:is(#forms,#armory)[data-hero="jedi"]{background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(12,16,44,.82),rgba(3,4,14,.95))}
+:is(#forms,#armory)[data-hero="mando"]{background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(26,23,20,.84),rgba(6,5,4,.95))}
+
+/* ---------- the panel ---------- */
+.howto-panel.mx{--mx-up:#7fd88f; --mx-dn:#ff7a66;
+  width:min(1180px,100%);height:min(740px,100%);max-height:none;display:flex;flex-direction:column;overflow:hidden;padding:20px 24px;
+  border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-solid);box-shadow:0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7);animation:none}
+.howto-panel.mx.enter{animation:mxcard .26s steps(4) both}   /* on opening only: a tap inside redraws the page and must not replay it */
+/* (a snap into place with no fade, so a busy frame can never leave the page see-through) */
+@keyframes mxcard{0%{transform:translateY(10px)}100%{transform:none}}
+.mx .howto-head{margin-bottom:14px;flex-wrap:wrap}
+.mx .howto-title{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+.mx .rm-sub{font:500 13px/1.3 var(--font-body);letter-spacing:0;color:var(--hx-dim)}
+.mx .howto-x{border-radius:0;border:0;color:var(--hx-soft);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx .howto-x:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+.mx-numt + .howto-x{margin-left:0}
+.mx-body{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px}
+.mx-left{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:3px 6px 3px 3px}
+.mx-right{min-height:0;display:flex;flex-direction:column}
+.mx-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:16px}
+.mx-grid{min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-content:start;padding:5px}
+.mx-grid.pws{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.mx :is(.mx-left,.mx-grid,.mx-detail){scrollbar-width:thin;scrollbar-color:var(--hx-line) transparent}
+
+/* labels, the small print */
+.mx-k{display:flex;align-items:center;gap:8px;font:600 11px/1.2 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+.mx-k em{margin-left:auto;font:italic 500 11px/1 var(--font-body);letter-spacing:0;color:var(--hx-dim)}
+.mx-fam{display:inline-flex;align-items:center;gap:4px;color:var(--fc);white-space:nowrap;font:600 11px/1 var(--hx-label);letter-spacing:.08em}
+.mx-fam-ic{flex:none}
+.mx p{margin:0}
+.mx-note,.mx-fine{font:500 12px/1.4 var(--font-body);color:var(--hx-dim)}
+
+/* tabs: square segments on an ink bar, the open one in the accent (the profile's) */
+.mx-tabs{display:inline-flex;align-self:flex-start;gap:2px;padding:2px;margin-bottom:12px;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+.mx-tabs span{cursor:pointer;padding:8px 14px;font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);background:var(--hx-paper);white-space:nowrap}
+.mx-tabs span:hover{color:var(--hx-text);background:var(--hx-paper-2)}
+.mx-tabs span.on{color:var(--hx-on-accent);background:var(--hx-accent)}
+.mx-tabs span i{margin-left:8px;font:600 11px/1 var(--hx-label);font-style:normal;letter-spacing:.04em;opacity:.7}
+.mx-tabs.mx-dtabs{display:flex;align-self:stretch;margin:14px 0 12px}
+.mx-tabs.mx-dtabs span{flex:1;text-align:center;padding:8px 6px}
+
+/* the SHOW NUMBERS switch */
+.mx-numt{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font:600 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);
+  background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-numt i{position:relative;width:24px;height:12px;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-numt i::after{content:'';position:absolute;left:2px;top:2px;width:8px;height:8px;background:var(--hx-dim)}
+.mx-numt.on{color:var(--hx-text)}
+.mx-numt.on i::after{left:14px;background:var(--hx-accent)}
+
+/* ---------- the left column: cards ---------- */
+.mx-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-big{display:flex;align-items:baseline;gap:6px}
+.mx-big b{font:var(--hx-display-w) 44px/1 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-accent-hi);text-shadow:0 3px 0 var(--hx-ink)}
+.mx-big span{font:600 13px/1 var(--hx-label);letter-spacing:.06em;color:var(--hx-dim)}
+.mx-lv p{font:500 12px/1.4 var(--font-body);color:var(--hx-dim)}
+.mx-slots{display:flex;flex-direction:column;gap:6px}
+.mx-slotw{position:relative;display:flex}
+.mx-slot{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-slot.edit{cursor:pointer}
+.mx-slot.edit:hover{box-shadow:inset 0 0 0 1px var(--hx-accent)}
+.mx-slot.sel{box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink)}
+.mx-slot kbd{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:0;border-radius:0;font:700 12px/1 var(--hx-label);color:var(--hx-text);background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-slot b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--hx-display-w) 14px/1.1 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.mx-slot.empty b{color:var(--hx-dim)}
+.mx-slot .mx-fam-ic{margin-left:auto}
+.mx-slot .mx-blade{position:static;flex:none;width:4px;height:20px}
+.mx-slot .mx-pic{width:26px;height:26px}
+.mx-slot .mx-pic .mx-pic-ic{width:16px;height:16px}
+.mx-sn{min-width:0;display:flex;flex-direction:column;gap:3px}
+.mx-sn span{font:600 10px/1 var(--hx-label);letter-spacing:.12em;color:var(--hx-dim)}
+.mx-clear{position:absolute;right:6px;top:50%;margin-top:-11px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--hx-dim);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-clear:hover{color:var(--danger-soft,#ff8a7a);box-shadow:inset 0 0 0 1px currentColor}
+.mx-slotw:has(.mx-clear) .mx-slot{padding-right:36px}
+.mx-groups ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.mx-groups li{display:flex;align-items:center;gap:8px}
+.mx-groups li i{font:italic 500 11px/1 var(--font-body);color:var(--hx-dim)}
+
+/* pips and bars: square, inked, flat with one highlight band */
+.mx-pips{display:inline-flex;gap:3px}
+.mx-pips i{width:9px;height:9px;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-pips i.on{background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 0 0 1px var(--hx-ink)}
+.mx-pips.lv{display:flex;gap:3px}
+.mx-pips.lv i{flex:1;height:8px}
+.mx-bar{height:4px;margin-top:2px;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+.mx-bar i{display:block;height:100%;background:var(--hx-accent)}
+
+/* ---------- the tiles ---------- */
+.mx-tile{position:relative;min-width:0;display:flex;flex-direction:column;gap:5px;padding:11px 12px 11px 20px;cursor:pointer;
+  background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-tile:hover{background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+.mx-tile.sel{background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
+.mx-tile :is(.mx-tt,.mx-tf,.mx-tr){display:flex;align-items:center;gap:6px;min-width:0}
+.mx-tt{justify-content:space-between;font:600 10px/1 var(--hx-label);letter-spacing:.12em;color:var(--hx-dim);min-height:18px}
+.mx-tt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mx-tile>b{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;font:var(--hx-display-w) 16px/1.15 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.mx-tf{font:600 10px/1.2 var(--hx-label);letter-spacing:.1em;color:var(--hx-soft)}
+.mx-tr{margin-top:auto;padding-top:3px}
+.mx-tr span{font:600 10px/1 var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+.mx-tile.in .mx-tr span{color:var(--hx-soft)}
+.mx-slotb,.mx-badge{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border:0;border-radius:0;box-sizing:border-box;
+  font:700 11px/1 var(--font-ui);font-style:normal;letter-spacing:.06em;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+.mx-badge{position:absolute;top:-7px;right:8px;z-index:1}
+.mx-tile.fresh .mx-badge{background:var(--hx-accent-hi)}
+.mx-tile.sealed{cursor:default;color:var(--hx-dim);background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.03) 6px 8px),var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-tile.sealed:hover{background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.03) 6px 8px),var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-tile.sealed>b{color:var(--hx-dim);font-size:14px}
+.mx-tile.sealed .mx-tf{color:var(--hx-dim)}
+.mx-tile.pw.sealed{cursor:pointer}
+.mx-tile.pw.sealed.sel{box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
+.mx-tile.pw,.mx-tile.gun{padding-left:12px}
+.mx-tile.pw.off :is(b,.mx-pic){opacity:.55}
+.mx-tile.pw b{font-size:13px;white-space:normal;line-height:1.15}
+.mx-pm{font:700 11px/1 var(--hx-label);font-style:normal;color:var(--hx-accent-hi)}
+.mx-ok{color:var(--mx-up)}
+.mx-tile .mx-lock{vertical-align:-2px}
+
+/* a form's blade: a white core in its own colour; a power's or a gun's drawn icon on a small plate */
+.mx-blade{position:absolute;left:8px;top:11px;bottom:11px;width:4px;background:#f4fbff;box-shadow:0 0 0 1px var(--c),0 0 8px var(--c);border-radius:2px}
+.mx-blade.big{position:static;flex:none;width:6px;height:52px;border-radius:3px;box-shadow:0 0 0 1.5px var(--c),0 0 14px var(--c)}
+.mx-pic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--c,var(--hx-accent));background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-pic .mx-pic-ic{width:22px;height:22px}
+.mx-pic.big{width:54px;height:54px}
+.mx-pic.big .mx-pic-ic{width:32px;height:32px}
+.mx-tile.pw.live .mx-pic{color:var(--hx-live)}
+
+/* ---------- the detail beside them ---------- */
+.mx-detail{position:relative;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:16px 16px 18px;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-detail.empty{align-items:center;justify-content:center;text-align:center;font:500 13px/1.4 var(--font-body);color:var(--hx-dim)}
+.mx-dh{position:relative;display:flex;align-items:center;gap:14px}
+.mx-dn{min-width:0;display:flex;flex-direction:column;gap:5px}
+.mx-dn .mx-k{color:var(--hx-dim);flex-wrap:wrap;gap:4px 8px}
+.mx-dn b{font:var(--hx-display-w) 24px/1.05 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+.mx-dn em{font:italic 500 13px/1.3 var(--font-body);color:var(--hx-soft)}
+.mx-dn em.ok{font-style:normal;font-weight:600;color:var(--mx-up)}
+.mx-dbody{display:flex;flex-direction:column;gap:10px}
+.mx-dbody .mx-k{margin-top:4px}
+.mx-dh .fm-i{position:absolute;right:0;top:0;cursor:help;border-radius:0;border:0;width:20px;height:20px;color:var(--hx-soft);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-dh .fm-lorepop{top:28px;left:0;right:0;border:0;border-radius:0;color:var(--hx-soft);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink),0 8px 20px rgba(0,0,0,.5)}
+
+/* FIGHT: two plates, what it beats and what beats it */
+.mx-ctrs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mx-ctr{display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-ctr.up{box-shadow:inset 0 3px 0 var(--mx-up),inset 0 0 0 1px var(--hx-line)}
+.mx-ctr.dn{box-shadow:inset 0 3px 0 var(--mx-dn),inset 0 0 0 1px var(--hx-line)}
+.mx-ctr.eq{grid-column:1/-1}
+.mx-ctr>span{font:600 10px/1 var(--hx-label);letter-spacing:.14em;color:var(--hx-dim)}
+.mx-ctr .mx-fam{font-size:13px}
+.mx-ctr em{font:500 12px/1.35 var(--font-body);font-style:normal;color:var(--hx-soft)}
+.mx-ctr small{font:500 11px/1.35 var(--font-body);color:var(--hx-dim)}
+.mx :is(.mx-edges,.mx-pc,.mx-ranks){list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.mx-edges li{font:500 12px/1.35 var(--font-body);color:var(--hx-dim)}
+.mx-edges li i{font-style:normal;margin-right:6px}
+.mx-edges li.up i{color:var(--mx-up)} .mx-edges li.dn i{color:var(--mx-dn)}
+.mx-pc{padding-top:10px !important;border-top:1px solid var(--hx-line)}
+.mx-pc li{position:relative;padding-left:20px;font:500 13px/1.4 var(--font-body);color:var(--hx-text)}
+.mx-pc li::before{position:absolute;left:2px;top:0;font:700 14px/1.3 var(--font-ui)}
+.mx-pc li.up::before{content:'+';color:var(--mx-up)}
+.mx-pc li.dn::before{content:'−';color:var(--mx-dn)}
+.mx-pc li.dn{color:var(--hx-soft)}
+.mx-pc li.up + li.dn{margin-top:6px}
+.mx-lore{font:italic 500 13px/1.45 var(--font-body);color:var(--hx-soft)}
+
+/* MOVES: a plate per move, its keys as chips that turn into the pad's buttons (engine/gamepad.js relabelHud) */
+.mx-move{display:flex;flex-direction:column;gap:6px;padding:12px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-move>b{font:var(--hx-display-w) 16px/1.1 var(--hx-display);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.mx-move p{font:500 13px/1.4 var(--font-body);color:var(--hx-soft)}
+.mx .fm-how{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px;font:500 12px/1.3 var(--font-body);color:var(--hx-soft)}
+.mx .fm-how .fm-step{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.mx .fm-how .then{font:600 10px/1 var(--hx-label);letter-spacing:.12em;color:var(--hx-dim);margin-right:2px}
+.mx .fm-how kbd{display:inline-flex;align-items:center;justify-content:center;height:24px;min-width:24px;padding:0 6px;box-sizing:border-box;border:0;border-radius:0;
+  font:700 11px/1 var(--font-ui);color:var(--hx-accent-hi);background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-accent)}
+.mx .fm-how .fm-step>span:not(.then){font-weight:700;color:var(--hx-dim)}
+.mx .fm-how i{font:italic 500 11px/1 var(--font-body);color:var(--hx-dim)}
+.mx .fm-how em{font-style:normal;color:var(--hx-soft)}
+
+/* MASTERY: the rank track (the profile's), the practice, what each rank brings */
+.mx-track{position:relative;height:42px;margin:6px 8px 0}
+.mx-tline{position:absolute;left:0;right:0;top:7px;height:6px;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+.mx-tline i{display:block;height:100%;background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}
+.mx-stop{position:absolute;top:0;width:0}
+.mx-stop i{position:absolute;left:-10px;top:0;width:20px;height:20px;box-sizing:border-box;background:var(--hx-paper-solid);box-shadow:inset 0 0 0 2px var(--hx-dim),0 0 0 2px var(--hx-ink)}
+.mx-stop.done i{background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+.mx-stop.on i{background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent)}
+.mx-stop span{position:absolute;top:28px;left:0;transform:translateX(-50%);white-space:nowrap;font:600 10px/1 var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+.mx-stop.on span{color:var(--hx-text)}
+.mx-stop:nth-child(2) span{transform:none;left:-10px}
+.mx-stop:last-child span{transform:none;left:auto;right:-10px}
+.mx-where{font:600 13px/1.4 var(--font-body);color:var(--hx-text)}
+.mx-p{font:500 13px/1.4 var(--font-body);color:var(--hx-soft)}
+.mx-ranks li{position:relative;padding-left:16px;font:500 13px/1.35 var(--font-body);color:var(--hx-soft)}
+.mx-ranks li::before{content:'';position:absolute;left:2px;top:6px;width:6px;height:6px;background:var(--hx-dim)}
+.mx-ranks.on li,.mx-ranks li.got{color:var(--hx-text)}
+.mx-ranks.on li::before,.mx-ranks li.got::before{background:var(--hx-accent)}
+.mx-ranks li>span{margin-right:8px;font:700 11px/1 var(--hx-label);letter-spacing:.06em;color:var(--hx-dim)}
+.mx-ranks li:has(>span){padding-left:0} .mx-ranks li:has(>span)::before{content:none}
+.mx-ranks li.got>span{color:var(--hx-accent-hi)}
+
+/* THE FORCE: a power's numbers as big stats */
+.mx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.mx-stat{display:flex;flex-direction:column;gap:5px;padding:10px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx-stat b{font:var(--hx-display-w) 22px/1 var(--hx-display);color:var(--hx-accent-hi);text-shadow:0 2px 0 var(--hx-ink)}
+.mx-stat span{font:500 11px/1.3 var(--font-body);color:var(--hx-dim)}
+.mx-share{font:500 13px/1.4 var(--font-body);color:var(--hx-soft)}
+.mx-share b{color:var(--c);font-weight:700}
+.mx-share em{font-style:normal;font-weight:700;color:var(--hx-accent-hi)}
+
+/* the buttons under the page: the hero's plate, the one that goes in the accent */
+.mx-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:14px}
+.mx-actions .btn{border:0;border-radius:0;padding:11px 22px;font:600 13px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-actions .btn::after{content:none}
+.mx-actions .btn:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+.mx-actions .btn.primary{min-width:150px;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:inset 0 3px 0 rgba(255,255,255,.28),0 0 0 2px var(--hx-ink)}
+.mx-actions .btn.primary:hover{background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink)}
+
+/* ======================= THE JEDI: a holocron page ======================= */
+.mx[data-hero="jedi"]{background:linear-gradient(180deg,#141a46,#0e1230 60%);
+  box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+.mx[data-hero="jedi"] .howto-title{font-size:30px;letter-spacing:.08em}
+.mx[data-hero="jedi"] .howto-title::before,.mx[data-hero="jedi"] .howto-title::after{content:'';display:inline-block;width:8px;height:8px;margin:0 12px 5px 0;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+.mx[data-hero="jedi"] .howto-title::after{margin:0 0 5px 12px}
+.mx[data-hero="jedi"] :is(.mx-card,.mx-tile:not(.sealed),.mx-detail){background:linear-gradient(var(--hx-paper-2),var(--hx-paper))}
+.mx[data-hero="jedi"] .mx-detail{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx[data-hero="jedi"] .mx-tile.sel{box-shadow:inset 0 0 0 1px var(--hx-accent-hi),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-accent),0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi)}
+.mx[data-hero="jedi"] :is(.mx-card,.mx-tile.sel)::before{content:'';position:absolute;top:-5px;left:calc(50% - 4px);width:7px;height:7px;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+.mx[data-hero="jedi"] .mx-card{position:relative}
+.mx[data-hero="jedi"] .mx-k{font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:12px;letter-spacing:.12em}
+.mx[data-hero="jedi"] .mx-card>.mx-k::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hx-line),transparent)}
+.mx[data-hero="jedi"] .mx-card>.mx-k:has(em)::after{content:none}
+.mx[data-hero="jedi"] .mx-tile>b,.mx[data-hero="jedi"] .mx-slot b{font-size:15px}
+/* the rank stops and pips are diamonds; the bars a lit blade */
+.mx[data-hero="jedi"] .mx-stop i{transform:rotate(45deg);left:-9px;top:1px;width:18px;height:18px}
+.mx[data-hero="jedi"] .mx-stop.on i{background:var(--hx-live);box-shadow:0 0 0 2px var(--hx-ink),0 0 10px var(--hx-live)}
+.mx[data-hero="jedi"] :is(.mx-tline,.mx-bar) i{background:#eaf7ff;box-shadow:0 0 0 1px #9ad6ff,0 0 8px var(--hx-live)}
+.mx[data-hero="jedi"] .mx-pips:not(.lv) i{transform:rotate(45deg);width:7px;height:7px;margin:0 1px}
+.mx[data-hero="jedi"] .mx-pips.lv i.on{background:#eaf7ff;box-shadow:0 0 0 1px #9ad6ff,0 0 6px var(--hx-live)}
+.mx[data-hero="jedi"] .mx-pic{border-radius:50%;box-shadow:inset 0 0 0 1px currentColor,inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx[data-hero="jedi"] .mx-tile.pw.live .mx-pic{box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 10px rgba(111,200,255,.45)}
+.mx[data-hero="jedi"] .mx-big b{font-size:48px}
+.mx[data-hero="jedi"] .mx-actions .btn.primary{font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:15px;letter-spacing:.16em;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+
+/* ======================= THE MANDALORIAN: beskar plate ======================= */
+.mx[data-hero="mando"]{background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .howto-title{font-size:30px;letter-spacing:.2em;font-variant:small-caps}
+.mx[data-hero="mando"] :is(.mx-card,.mx-tile,.mx-detail,.mx-ctr,.mx-move,.mx-stat,.mx-slot){background:var(--hx-plate);clip-path:var(--hx-chamfer)}
+.mx[data-hero="mando"] :is(.mx-card,.mx-detail){box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-tile{box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-tile:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-tile.in{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-tile.sel{clip-path:none;box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
+.mx[data-hero="mando"] .mx-tile.sealed{background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.025) 6px 8px),linear-gradient(180deg,#2c2e31,#1f2123)}
+.mx[data-hero="mando"] .mx-slot{box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-ctr.up{box-shadow:inset 0 3px 0 var(--mx-up),inset 0 0 0 1px var(--hx-line)}
+.mx[data-hero="mando"] .mx-ctr.dn{box-shadow:inset 0 3px 0 var(--mx-dn),inset 0 0 0 1px var(--hx-line)}
+.mx[data-hero="mando"] .mx-k{font:400 13px/1.1 Georgia,'Times New Roman',serif;letter-spacing:.2em;font-variant:small-caps}
+.mx[data-hero="mando"] :is(.mx-tt,.mx-tf,.mx-tr span,.mx-sn span,.mx-stop span,.mx-ctr>span){font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.14em}
+.mx[data-hero="mando"] .mx-tile>b,.mx[data-hero="mando"] .mx-slot b{font:400 14px/1.15 Georgia,'Times New Roman',serif;letter-spacing:.12em}
+.mx[data-hero="mando"] .mx-dn b{font-size:24px;letter-spacing:.14em}
+/* rivets in the plates' top corners */
+.mx[data-hero="mando"] :is(.mx-card,.mx-detail){position:relative}
+.mx[data-hero="mando"] :is(.mx-card,.mx-detail)::after{content:'';position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%;background:#8d949b;box-shadow:0 0 0 1px var(--hx-ink)}
+.mx[data-hero="mando"] .mx-pic{clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%);background:linear-gradient(180deg,#3a3d41,#1d1f22);box-shadow:inset 0 0 0 2px currentColor}
+.mx[data-hero="mando"] .mx-tile.in .mx-pic{color:var(--hx-on-accent);background:var(--hx-accent)}
+/* the stops are slanted plates; the pips and bars plate segments */
+.mx[data-hero="mando"] .mx-stop i{transform:skewX(-18deg)}
+.mx[data-hero="mando"] .mx-stop.on i{background:var(--hx-accent)}
+.mx[data-hero="mando"] .mx-stop.done i{background:#8d949b}
+.mx[data-hero="mando"] .mx-pips i{width:12px;height:7px;transform:skewX(-18deg)}
+.mx[data-hero="mando"] .mx-pips.lv i{height:9px}
+.mx[data-hero="mando"] :is(.mx-tline,.mx-bar) i{background:repeating-linear-gradient(105deg,var(--hx-accent) 0 9px,transparent 9px 12px);box-shadow:none}
+.mx[data-hero="mando"] .mx-tabs span{font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.16em}
+.mx[data-hero="mando"] .mx-tabs span.on{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
+.mx[data-hero="mando"] .mx-actions .btn{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font:400 14px/1 Georgia,'Times New Roman',serif;letter-spacing:.2em}
+.mx[data-hero="mando"] .mx-actions .btn:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+.mx[data-hero="mando"] .mx-actions .btn.primary{color:var(--hx-on-accent);background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none;font-size:16px}
+.mx[data-hero="mando"] .mx-slotb,.mx[data-hero="mando"] .mx-badge{font:400 10px/1 Georgia,serif;letter-spacing:.14em}
+.mx[data-hero="mando"] .mx-badge{top:9px;right:9px}   /* (inside the chamfer, which would cut it off) */
+
+/* ======================= THE TROOPER: orders, and the field file ======================= */
+.mx[data-hero="trooper"]{background:#101315;box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+.mx[data-hero="trooper"] .howto-head{position:relative;padding-top:14px}
+.mx[data-hero="trooper"] .howto-head::before{content:'';position:absolute;left:0;top:0;width:140px;height:6px;background:var(--hx-hazard);box-shadow:0 0 0 2px var(--hx-ink)}
+.mx[data-hero="trooper"] .howto-title{font-size:26px;letter-spacing:.02em}
+.mx[data-hero="trooper"] .howto-title::before{content:'// ';color:var(--hx-accent)}
+.mx[data-hero="trooper"] :is(.mx-card,.mx-tile:not(.sealed)){background:rgba(238,241,242,.03)}
+.mx[data-hero="trooper"] .mx-tile>b,.mx[data-hero="trooper"] .mx-slot b{font:600 14px/1.15 var(--hx-display);letter-spacing:0}
+.mx[data-hero="trooper"] .mx-grid{counter-reset:mxt}
+.mx[data-hero="trooper"] .mx-tt::before{counter-increment:mxt;content:'[0' counter(mxt) ']';margin-right:auto;padding-right:6px;color:var(--hx-accent)}
+.mx[data-hero="trooper"] .mx-tt{justify-content:flex-start}
+.mx[data-hero="trooper"] .mx-tt span{margin-right:auto}
+.mx[data-hero="trooper"] .mx-tile.sel{box-shadow:inset 0 0 0 2px var(--hx-plate-white),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent)}
+.mx[data-hero="trooper"] .mx-tile.in .mx-pic{color:#101315;background:var(--hx-plate-white)}
+.mx[data-hero="trooper"] .mx-slotb,.mx[data-hero="trooper"] .mx-badge{color:#101315;background:var(--hx-plate-white)}
+.mx[data-hero="trooper"] .mx-pips i{height:12px}
+.mx[data-hero="trooper"] .mx-pips i.on{background:var(--hx-plate-white)}
+.mx[data-hero="trooper"] .mx-tabs span.on{color:#101315;background:var(--hx-plate-white);box-shadow:inset 0 -3px 0 var(--hx-accent)}
+.mx[data-hero="trooper"] .mx-big b{font-weight:600;letter-spacing:-.02em}
+/* range bars with tick marks every tenth */
+.mx[data-hero="trooper"] .mx-tline::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(16,19,21,.9) calc(10% - 1px) 10%);pointer-events:none}
+.mx[data-hero="trooper"] :is(.mx-tline,.mx-bar) i{box-shadow:none}
+/* the rank stops are checkboxes: a tick for each rank held */
+.mx[data-hero="trooper"] .mx-stop i{background:#101315;box-shadow:inset 0 0 0 2px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+.mx[data-hero="trooper"] .mx-stop.done i,.mx[data-hero="trooper"] .mx-stop.on i{background:var(--hx-plate-white)}
+.mx[data-hero="trooper"] .mx-stop.done i::before,.mx[data-hero="trooper"] .mx-stop.on i::before{content:'';position:absolute;left:7px;top:3px;width:4px;height:9px;border:solid #101315;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.mx[data-hero="trooper"] .mx-stop.on i{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent)}
+/* the buttons: armour-white plates, the one that acts with a hazard tab */
+.mx[data-hero="trooper"] .mx-actions .btn.primary{position:relative;padding-right:34px;color:#101315;background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -3px 0 #c5cbce}
+.mx[data-hero="trooper"] .mx-actions .btn.primary::after{content:'';position:absolute;right:0;top:0;bottom:0;width:14px;height:auto;margin:0;border:0;background:var(--hx-hazard)}
+/* the open gun's detail is typed on the field file, its name stamped */
+.mx[data-hero="trooper"] .mx-detail{--hx-text:#1d1810; --hx-soft:#3a3122; --hx-dim:#6a5c40; --hx-line:rgba(43,36,22,.3); --hx-paper-2:rgba(43,36,22,.07); --hx-paper-solid:#cdbb8c; --mx-up:#2f6b2a; --mx-dn:#a32a1c;
+  --hx-accent:#2b2416; --hx-accent-hi:#b8322a; --hx-on-accent:#d8c79b; --hx-ink:#2b2416;
+  color:var(--hx-file-ink);background:var(--hx-file);box-shadow:0 0 0 2px #07060a}
+.mx[data-hero="trooper"] .mx-detail .mx-dn b{display:inline-block;align-self:flex-start;padding:4px 8px;font:600 17px/1.1 var(--hx-display);letter-spacing:.06em;color:var(--hx-stamp);border:2px solid var(--hx-stamp);text-shadow:none;transform:rotate(-2deg)}
+.mx[data-hero="trooper"] .mx-detail :is(.mx-pc li,.mx-ranks li,.mx-where,.mx-p,.mx-move p,.mx-lore){font-family:var(--hx-display);font-size:12.5px}
+.mx[data-hero="trooper"] .mx-detail .mx-lore{font-style:normal}
+.mx[data-hero="trooper"] .mx-detail .mx-dn em{font-style:normal;font-family:var(--hx-display);font-size:12px}
+.mx[data-hero="trooper"] .mx-detail .mx-pc li::before{font-family:var(--hx-display)}
+.mx[data-hero="trooper"] .mx-detail .mx-pic{color:var(--hx-file-ink);background:rgba(43,36,22,.08);box-shadow:inset 0 0 0 2px var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail .mx-tabs{background:var(--hx-file-ink);box-shadow:none}
+.mx[data-hero="trooper"] .mx-detail .mx-tabs span{color:var(--hx-file-ink);background:var(--hx-file)}
+.mx[data-hero="trooper"] .mx-detail .mx-tabs span.on{color:var(--hx-file);background:var(--hx-file-ink);box-shadow:none}
+.mx[data-hero="trooper"] .mx-detail .fm-how kbd{color:var(--hx-file-ink);background:transparent;box-shadow:inset 0 0 0 2px var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail .mx-stop i{background:var(--hx-file);box-shadow:inset 0 0 0 2px var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail :is(.mx-stop.done,.mx-stop.on) i{background:var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail :is(.mx-stop.done,.mx-stop.on) i::before{border-color:var(--hx-file)}
+.mx[data-hero="trooper"] .mx-detail .mx-stop.on i{box-shadow:0 0 0 2px var(--hx-file),0 0 0 4px var(--hx-stamp)}
+.mx[data-hero="trooper"] .mx-detail .mx-tline{background:rgba(43,36,22,.18);box-shadow:inset 0 0 0 1px var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail .mx-tline i{background:var(--hx-file-ink)}
+.mx[data-hero="trooper"] .mx-detail .mx-tline::after{background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--hx-file) calc(10% - 1px) 10%)}
+
+/* ---------- a phone: one column. The left folds to the cards that matter, the detail comes under the tiles ---------- */
+@media (max-width:760px){
+  :is(#forms,#armory){padding:10px}
+  .howto-panel.mx{height:100%;padding:14px 14px 16px;overflow-y:auto}
+  .mx .howto-head{gap:10px;margin-bottom:12px}
+  .mx .howto-head .rm-sub{display:none}
+  .mx .howto-title{font-size:22px !important}
+  .mx-body{display:block}
+  .mx-left{overflow:visible;padding:3px 0;margin-bottom:16px}
+  .mx-left .mx-groups,.mx-lv p{display:none}
+  .mx-right{display:block}
+  .mx-tabs{display:flex}
+  .mx-tabs span{flex:1 1 auto;text-align:center;padding:8px 9px;font-size:11px}
+  .mx-split{display:block}
+  .mx-grid{overflow:visible;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px;padding:4px}
+  .mx-detail{overflow:visible;margin-top:16px}
+  .mx-ctrs{grid-template-columns:1fr}
+  .mx-actions{position:sticky;bottom:-16px;margin:14px -14px -16px;padding:12px 14px;background:var(--hx-paper-solid);box-shadow:0 -2px 0 var(--hx-ink)}
+  .mx-actions .btn{flex:1;text-align:center}
+}

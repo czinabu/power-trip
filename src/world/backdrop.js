@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { mound } from './collision.js';
 import { TALL } from './towering.js';
+import { OUTSKIRTS } from '../data/outskirts.js';
 
 const PI = Math.PI;
 // seeded random so a theme's backdrop is the same every rebuild
@@ -347,6 +348,75 @@ const BUILD = {
       }
     }
   },
+  /* the OUTSKIRTS (data/outskirts.js): the land between the edge and the horizon, filled with the place the map is part
+     of, so the floor is one yard of a world instead of a stage in the dark. o: { style, T } (the theme, for colours) */
+  outskirts(grp, o, half, R){
+    const S = OUTSKIRTS[o.style]; if (!S) return;
+    const T = o.T || {}, pal = T.pal || {}, list = T.backdrop || [], halfZ = LIM[1];
+    const city = list.find(b => b.kind === 'district') || list.find(b => b.kind === 'towers' || b.kind === 'stacks');
+    // hold clear of the map's own edge ring (a district stands just past the wall: start behind it)
+    const near = S.clear + (list.some(b => b.kind === 'district') ? (list.find(b => b.kind === 'district').gap ?? 10) + 16 : 0);
+    const ground = T.outer ?? (T.floor && T.floor.base) ?? 0x404040;
+    const out = (x, z, r) => Math.abs(x) - r > half + near || Math.abs(z) - r > halfZ + near;   // wholly past the clear band
+    const dOf = (x, z) => Math.max(Math.abs(x) / half, Math.abs(z) / halfZ);
+    const span = (S.to - S.from), ext = S.to * Math.max(half, halfZ);
+    const lamp = pal.lamp ?? pal.windows ?? (city && city.windows) ?? 0xffc070;
+    if (o.style === 'city' || o.style === 'town'){
+      const cols = city ? [city.color, city.color2 ?? city.color] : [pal.metal ?? pal.stone ?? pal.wall ?? ground, pal.metalD ?? pal.stoneD ?? pal.wallD ?? dim(ground, 0.8)];
+      const roof = (city && (city.roof ?? city.trim)) ?? pal.roof ?? dim(cols[0], 0.7);
+      const av = S.avenue / 2;
+      for (let x = -ext; x <= ext; x += S.cell) for (let z = -ext; z <= ext; z += S.cell){
+        const cx = x + (R() - 0.5) * S.cell * 0.15, cz = z + (R() - 0.5) * S.cell * 0.15;
+        const bw = S.cell * rand2(R, ...S.block), bd = S.cell * rand2(R, ...S.block), r = Math.max(bw, bd) / 2;
+        if (!out(cx, cz, r) || R() > S.fill) continue;
+        if (Math.abs(cx) < av + bw / 2 + 2 || Math.abs(cz) < av + bd / 2 + 2) continue;   // the avenues out stay open
+        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.65, 1.3);
+        const col = cols[R() < 0.5 ? 0 : 1];
+        put(grp, new THREE.BoxGeometry(bw, h, bd), mat(col), cx, h / 2, cz);
+        if (R() < S.setback){ const h2 = h * rand2(R, 0.2, 0.45); put(grp, new THREE.BoxGeometry(bw * 0.6, h2, bd * 0.6), mat(cols[1]), cx, h + h2 / 2, cz); }
+        else put(grp, new THREE.BoxGeometry(bw + 0.5, 0.7, bd + 0.5), mat(roof), cx, h + 0.35, cz);   // a parapet
+        if (S.domes && R() < S.domes) put(grp, new THREE.SphereGeometry(Math.min(bw, bd) * 0.32, 10, 5, 0, PI * 2, 0, PI / 2), mat(roof), cx, h, cz);
+        if (S.beacon && h > 26 && R() < S.beacon) put(grp, new THREE.BoxGeometry(0.6, 0.6, 0.6), glowMat(0xff3a2a), cx, h + 1.5, cz);   // an aviation light up top
+      }
+      // the AVENUES: a road straight out from the middle of each side, to the horizon, lamps along both kerbs
+      const road = mat(dim(ground, 0.72));
+      for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){
+        const edge = nx ? half : halfZ, len = ext - edge, mid = edge + len / 2;
+        const m = put(grp, new THREE.PlaneGeometry(nx ? len : S.avenue, nx ? S.avenue : len), road, nx * mid, -0.02, nz * mid, -PI / 2, 0, 0);
+        m.userData.noOutline = true; m.userData.noDetail = true;
+        if (!S.lamp) continue;
+        for (let u = edge + 6; u < ext; u += S.lamp) for (const side of [-1, 1]){
+          const lx = nx ? nx * u : side * (av + 0.6), lz = nx ? side * (av + 0.6) : nz * u;
+          put(grp, new THREE.BoxGeometry(0.22, 6, 0.22), mat(dim(cols[1], 0.6)), lx, 3, lz).userData.noOutline = true;
+          put(grp, new THREE.BoxGeometry(0.9, 0.22, 0.9), glowMat(lamp), lx, 6.1, lz);
+        }
+      }
+    } else if (o.style === 'forest'){
+      const bark = pal.bark ?? 0x3a2e22, leaf = [pal.leaf ?? 0x24402a, pal.leafD ?? 0x1a3020];
+      const broad = list.some(b => b.kind === 'giants');   // a jungle's round crowns; otherwise pines
+      for (let x = -ext; x <= ext; x += S.cell) for (let z = -ext; z <= ext; z += S.cell){
+        const cx = x + (R() - 0.5) * S.cell * 0.9, cz = z + (R() - 0.5) * S.cell * 0.9;
+        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.6, 1.25), w = h * rand2(R, 0.22, 0.32);
+        if (!out(cx, cz, w) || R() > S.fill) continue;
+        put(grp, new THREE.CylinderGeometry(w * 0.09, w * 0.14, h * 0.6, 6), mat(bark), cx, h * 0.3, cz);
+        const lc = leaf[R() < 0.5 ? 0 : 1];
+        if (broad){ put(grp, new THREE.DodecahedronGeometry(1, 0), mat(lc), cx, h * 0.72, cz, R(), R(), 0, [w, w * 0.55, w]); }
+        else {
+          put(grp, new THREE.ConeGeometry(w * 0.5, h * 0.55, 7), mat(lc), cx, h * 0.5, cz, 0, R() * PI, 0);
+          put(grp, new THREE.ConeGeometry(w * 0.36, h * 0.4, 7), mat(lc), cx, h * 0.8, cz, 0, R() * PI, 0);
+        }
+      }
+    } else {   // rocks
+      const rk = list.find(b => b.kind === 'cliffs' || b.kind === 'mesas' || b.kind === 'spires');
+      const cols = [pal.rock ?? pal.stone ?? (rk && rk.color) ?? dim(ground, 0.9), pal.rockD ?? pal.stoneD ?? (rk && (rk.color2 ?? rk.color)) ?? dim(ground, 0.75)];
+      for (let x = -ext; x <= ext; x += S.cell) for (let z = -ext; z <= ext; z += S.cell){
+        const cx = x + (R() - 0.5) * S.cell * 0.9, cz = z + (R() - 0.5) * S.cell * 0.9;
+        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.4, 1.2), w = h * rand2(R, 0.6, 1.3);
+        if (!out(cx, cz, w) || R() > S.fill) continue;
+        put(grp, crag(Math.floor(R() * 6)), mat(cols[R() < 0.5 ? 0 : 1]), cx, h * 0.35, cz, 0, R() * PI * 2, 0, [w, h * 0.7, w * rand2(R, 0.6, 1)]);
+      }
+    }
+  },
   /* low DUNES / snow drifts just outside the edge so the floor doesn't end in a hard line */
   dunes(grp, o, half, R){
     for (const a of angles(o.count, R, o.skip)){
@@ -437,7 +507,7 @@ function stretch(objs, k, half, halfZ, whole, size){
 
 /* build a theme's backdrop into its own group (baked by the caller with a thick outline). halfZ: a long arena's
    half-depth (the play space is half × halfZ). The hills that reach the play space come back in grp.userData.solids. */
-const PIECES = new Set(['district', 'mesas', 'spires', 'cliffs', 'towers', 'stacks', 'crystals', 'ramparts', 'wreck', 'lavaflows', 'dunes', ...Object.keys(TALL)]);   // these keep each piece out themselves
+const PIECES = new Set(['outskirts', 'district', 'mesas', 'spires', 'cliffs', 'towers', 'stacks', 'crystals', 'ramparts', 'wreck', 'lavaflows', 'dunes', ...Object.keys(TALL)]);   // these keep each piece out themselves
 // the helpers the towering pieces (world/towering.js) build with
 const KIT = { put, mat, glowMat, keepOut, since, angles, P, rand2, crag: s => crag(s), lim: () => LIM };
 export function buildBackdrop(list, half, seed = 1, halfZ = half){

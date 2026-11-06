@@ -8,7 +8,8 @@ import { renderer, scene, camera, hemi, sun, rim, glow, setSceneGlow, setGrade, 
 import { rand, clamp } from '../utils.js';
 import { shared, G, player, bossUp } from '../state.js';
 import { playerPos } from '../player/helpers.js';
-import { HAZE } from './ink.js';
+import { HAZE, SCALE_U } from './ink.js';
+import { AERIAL, DETAIL } from '../data/depth.js';
 import { SABER_LIGHT, DARK_LIGHT } from '../player/model/weapons.js';
 import { LEVELS } from '../data/levels.js';
 import { thunder } from '../audio/director.js';
@@ -90,16 +91,35 @@ function gradeFor(T){
   };
 }
 
+/* AERIAL PERSPECTIVE (data/depth.js AERIAL): a theme's fog colour, moved toward its sky's horizon glow and kept off
+   near-black, so the distance goes lighter (a big place) instead of ending in a dark wall (a small room). A theme can
+   opt out with `aerial: false` */
+const _hz = new THREE.Color(), _hsl = {};
+function aerialFog(out, hex, T){
+  out.setHex(hex);
+  if (T.aerial === false) return out;
+  if (T.sky && T.sky.horizon != null) out.lerp(_hz.setHex(T.sky.horizon), AERIAL.lift);
+  out.getHSL(_hsl);
+  if (_hsl.l < AERIAL.minL) out.setHSL(_hsl.h, _hsl.s, AERIAL.minL);
+  return out;
+}
+const _fogC = new THREE.Color();
+
 /* set lights, fog and clear colour for a theme. sky: the dome mesh (its material colour is used as a tint) */
 export function applyAtmosphere(T, L, sky){
-  const lt = T.light;
-  scene.fog = new THREE.Fog(T.fog, L.arena * (T.fogStart ?? 0.5), L.arena * (T.fogEnd ?? 1.9));
+  const lt = T.light, push = T.aerial === false ? 1 : AERIAL.push;
+  aerialFog(_fogC, T.fog, T);
+  scene.fog = new THREE.Fog(_fogC.getHex(), L.arena * (T.fogStart ?? 0.5) * push, L.arena * (T.fogEnd ?? 1.9) * push);
+  // the scale detail's lit windows (world/ink.js SCALE_GLSL): only where the night is dark enough for a lamp to show
+  { const fl = new THREE.Color(T.fog); fl.getHSL(_hsl);
+    SCALE_U.lit.value = _hsl.l < 0.2 ? DETAIL.lit : 0;
+    SCALE_U.lamp.value.setHex((T.pal && (T.pal.lamp ?? T.pal.windows)) ?? 0xffc070).multiplyScalar(1.6); }
   // ambient occlusion fades out before the fog thickens (engine/renderer.js)
   // the backdrop's aerial haze (world/ink.js farHaze): how fast it builds past the fog's near distance, and its cap
   HAZE.len.value = T.haze?.len ?? L.arena * 3; HAZE.max.value = T.haze?.max ?? 0.8;
   aoFade.near = Math.max(12, scene.fog.near * 0.5); aoFade.far = Math.max(aoFade.near + 10, scene.fog.near * 1.1);
   setGrade(gradeFor(T));
-  renderer.setClearColor(T.clear ?? T.fog);
+  renderer.setClearColor(T.clear ?? _fogC.getHex());
   sun.color.setHex(lt.sun); sun.intensity = lt.sunI;
   const d = lt.dir || [30, 50, 20];
   sun.position.set(d[0], d[1], d[2]);
@@ -114,7 +134,8 @@ export function applyAtmosphere(T, L, sky){
   A.strike = null;
   if (T.storm){ A.strike = makeStrike(T.storm.color ?? 0xeae4ff); shared.arenaGroup.add(A.strike); }
   A.nextBolt = T.storm ? rand(T.storm.every[0], T.storm.every[1]) : 0;
-  A.base = { fog: new THREE.Color(T.fog), fill: lt.fill, sunI: lt.sunI, rimI: rim.intensity, near: scene.fog.near, far: scene.fog.far, clear: new THREE.Color(T.clear ?? T.fog) };
+  A.base = { fog: _fogC.clone(), beatFog: T.beats && T.beats.fog != null ? aerialFog(new THREE.Color(), T.beats.fog, T) : null,
+             fill: lt.fill, sunI: lt.sunI, rimI: rim.intensity, near: scene.fog.near, far: scene.fog.far, clear: new THREE.Color(T.clear ?? _fogC.getHex()) };
   setMood(null); A.moodOn = false;
   applyGlow(brightness(T));
 }
@@ -123,7 +144,7 @@ export function applyAtmosphere(T, L, sky){
 /* how far the fight has climbed, 0 → 1, eased (the battle beyond the walls follows it: world/warfront.js) */
 export const fightMood = () => A.p || 0;
 
-export function clearAtmosphere(){ setMood(null); A.moodOn = false; applyGlow(0); setGrade(); aoFade.near = 18; aoFade.far = 46; A.T = null; A.sky = null; A.strike = null; A.long = false; sun.target.position.set(0, 0, 0); }
+export function clearAtmosphere(){ SCALE_U.lit.value = 0; setMood(null); A.moodOn = false; applyGlow(0); setGrade(); aoFade.near = 18; aoFade.far = 46; A.T = null; A.sky = null; A.strike = null; A.long = false; sun.target.position.set(0, 0, 0); }
 
 /* how far into this level's fight we are, 0 (first wave) → 1 (final wave / boss) */
 function progress(){
@@ -142,7 +163,7 @@ export function updateAtmosphere(dt){
   A.p += (want - A.p) * Math.min(1, dt * 0.6);
   const b = T.beats || {};
   if (scene.fog){
-    _c.copy(A.base.fog); if (b.fog != null) _c.lerp(_d.setHex(b.fog), A.p);
+    _c.copy(A.base.fog); if (A.base.beatFog) _c.lerp(A.base.beatFog, A.p);
     scene.fog.color.copy(_c);
   }
   let fill = A.base.fill * (1 + ((b.fill ?? 1) - 1) * A.p);

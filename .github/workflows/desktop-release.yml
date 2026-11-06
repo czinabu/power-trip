@@ -1,0 +1,35 @@
+# Publishes a new version of the Windows desktop app as a GitHub Release. Installed copies (PowerTrip-…-setup.exe) find it
+# the next time they start, download it in the background and install it when the game is closed; the portable .exe
+# says a new version is out and links here. Run it from the Actions tab: "Desktop release" -> Run workflow (on main).
+# Each release is numbered <major>.<minor>.<this workflow's run number>, so every one is newer than the last.
+# The website, Vercel previews and the main check don't depend on any of this.
+name: Desktop release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the release and upload the .exe files
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: node desktop/build.mjs release ${{ github.run_number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

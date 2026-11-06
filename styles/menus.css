@@ -1353,14 +1353,18 @@ body.wb-open #overlay{background:none}
 .kb-mando .kb-btn{border-radius:3px;color:#1a0d05;background:linear-gradient(#ffb15a,#e0661e);box-shadow:0 0 18px -4px rgba(255,110,30,.8);font-family:Georgia,'Times New Roman',serif;letter-spacing:4px}
 .kb-mando .kb-btn:hover{background:linear-gradient(#ffc27a,#f07a2a)}
 @media (max-width:720px){.kb-panel{top:auto;left:12px;right:12px;width:auto;height:58%;bottom:12px}}
-/* ---------- THE TITLE SCREEN'S MODE GROUPS (ui/menus.js openGroup): the temple on top, STORY / FREEPLAY / ONLINE
-   under it; STORY and FREEPLAY swap their short list in for the three while open ---------- */
+/* ---------- THE TITLE SCREEN'S MODE GROUPS (ui/menus.js openGroup): the temple on top, STORY / QUICK PLAY / FREEPLAY /
+   ONLINE under it; the first three swap their short list in for the temple and the four while open ---------- */
 #overlay:is(.st-menu,.vpicking) #modeselect{display:flex;flex-direction:column;gap:10px}
 #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{min-height:112px;padding:22px 40px 22px 22px}
 #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple .mt{font-size:30px;letter-spacing:3px}
 .mgroups,.msub{display:flex;flex-direction:column;gap:6px}
 .msub{display:none;animation:rise .2s var(--ease)}
 #overlay.mgrp .mgroups{display:none}
+/* an open group is what you came for: the hub tile steps aside so its list sits right under the title, and rises back
+   in on ‹ BACK */
+#overlay.mgrp #modeselect .modeopt.temple{display:none}
+#overlay:is(.st-menu,.vpicking):not(.mgrp) #modeselect .modeopt.temple{animation:rise .2s var(--ease)}
 #overlay.grp-story #sub-story,#overlay.grp-arcade #sub-arcade,#overlay.grp-freeplay #sub-freeplay{display:flex}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt{min-height:58px;padding:12px 36px 12px 18px}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .mt{font:700 19px/1 var(--font-display);letter-spacing:2.5px}

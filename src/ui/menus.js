@@ -109,9 +109,9 @@ export function showMenuStep(step, group = null){
   if (_ovState === 'menu'){ setOverlayState('menu'); overlay.scrollTop = 0; }   // the headline and BEGIN follow the step
   else refreshPicks();   // (the results screen's CHANGE panel stays where it is)
 }
-/* THE MODE GROUPS — the first step is the temple on top and four entries under it: STORY (campaign, missions),
+/* THE MODE GROUPS — the first step is the temple on top and four entries under it (the temple steps aside while a group is open): STORY (campaign, missions),
    QUICK PLAY (challenges, the Missions page's board of random contracts; survival), FREEPLAY (sandbox, training)
-   and ONLINE (the co-op tile, which opens its panel). The first three swap their short list in for the four; ‹ BACK, Esc or the pad's B closes it again. The hero step's ‹ MODES comes back
+   and ONLINE (the co-op tile, which opens its panel). The first three swap their short list in for the four (and the temple); ‹ BACK, Esc or the pad's B closes it again. The hero step's ‹ MODES comes back
    to the list its mode was picked from. */
 let _group = null;
 const GROUPS = ['story', 'arcade', 'freeplay'];
@@ -119,9 +119,16 @@ const GROUP_OF = { campaign: 'story', mission: 'story', endless: 'arcade', sandb
 const groupOf = (m) => m === 'mission' && isArcadeId(G.missionId) ? 'arcade' : GROUP_OF[m];
 export const menuGroup = () => _group;
 function openGroup(g){
+  const was = _group;
   _group = GROUPS.includes(g) ? g : null;
   overlay.classList.toggle('mgrp', !!_group);
   for (const k of GROUPS) overlay.classList.toggle('grp-' + k, _group === k);
+  // the hub tile steps aside while a list is open (styles/menus.css), so the pad's ring is put where the eye goes:
+  // on the list's picked (or first) entry when it opens, back on the group's tile when it closes
+  if (_step !== 'mode' || was === _group) return;
+  const to = _group ? document.querySelector('#sub-' + _group + ' .modeopt.sel') || document.querySelector('#sub-' + _group + ' .modeopt')
+    : was && document.getElementById('grp-' + was);
+  if (to) document.dispatchEvent(new CustomEvent('pad-focus', { detail: to }));
 }
 function refreshGroups(){
   const arc = G.modeSel === 'mission' && isArcadeId(G.missionId);

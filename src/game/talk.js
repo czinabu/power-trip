@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // WALK-UP LINES: optional story in the lulls. Walk up to someone on your side (a squadmate, a chapter's guest fighter, the
 // escort, the people a hold is getting out, the story's voice hanging back after a chapter's opening: game/onset.js)
-// while nothing is on top of you, and a prompt comes up over them: tap F (the interact key: game/interact.js; Y on a pad) and they
+// while no fight is on, and a prompt comes up over them: tap F (the interact key: game/interact.js; Y on a pad) and they
 // say a line, over the comms strip, under their own name. The words are
 // data/talk.js. Nobody has to be talked to: the mission never waits on it.
 //
@@ -21,8 +21,9 @@ import { pad, padKeys } from '../engine/gamepad.js';
 import { S } from '../audio/sfx.js';
 import { INTERACT_KEY } from './interact.js';
 import { alignLines } from './alignment.js';
+import { inCombat } from '../player/mobility.js';
 
-export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 9, again: 1.2 };   // m · how squarely you face them (cos) · no foe this close · s between lines
+export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 35, again: 1.2 };   // m · how squarely you face them (cos) · no foe this close · s between lines
 
 const prompt = document.getElementById('talkp');
 const said = new Map();   // name → how many of its lines it has said (this visit; the count wraps)
@@ -61,7 +62,10 @@ function figures(){
 function pickNear(){
   if (G.mode !== 'play' || G.cutscene || G.paused || player.downed || player.saberLock) return null;
   const p = playerPos(), f = fwd();
-  if (hostilesIn(p.x, p.z, TALKCFG.calm) || fightHot()) return null;   // a lull only
+  // a lull only: never in a fight, so F stays the hero's power (Force Push, the flamethrower, the grenade) the whole time.
+  // A fight is a foe anywhere near, the boss up, a blow taken or landed a moment ago (player/mobility.js inCombat), or
+  // a wave on its way in (G.spawnQueue)
+  if (inCombat() || G.spawnQueue.length || hostilesIn(p.x, p.z, TALKCFG.calm) || fightHot()) return null;
   if (storySpeaking()) return null;   // the story's voice has the floor: no prompt you can't answer (it comes back once it's done)
   let best = null, bs = -Infinity;
   for (const c of figures()){

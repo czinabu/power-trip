@@ -4,7 +4,7 @@
 // A mission is a level (an arena to build, like data/levels.js) plus a list of objectives run in order. Dying puts you
 // back at the start of the objective you fell on. `kit` is how far into a run your gear is (the stage the automatic
 // unlocks in data/store.js check against), so a mission plays with a mid-run kit instead of the bare starting one.
-// `start` is [x, z, yaw] where the hero stands when it begins (yaw 0 faces north, +z). `grant` is the abilities each
+// `start` is [x, z, yaw] where the hero stands when it begins (yaw 0 faces +z, which the HUD compass calls south; π faces north, −z). `grant` is the abilities each
 // hero gets on top (G.unlocked keys; one from a fork pair, data/store.js). Foes are as tough as a run's first wave.
 // `foeLook` dresses the foe types it sends in another uniform ({ type: { model, color, eye, cloth } }, enemies/look.js);
 // `squadCap` is the most squadmates it has (the ARC trooper otherwise tops his squad up to his own size).
@@ -328,7 +328,7 @@ export const MISSIONS = {
         trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1, flyer: 1 } } },
 
       { kind: 'hold', title: 'GET THE CHILDREN OUT', music: 'battle', start: [0, 12, Math.PI],
-        say: { jedi: 'They are running for the ships at the top of the north lane. Stay with them, between them and the troops, until every one of them is aboard.',
+        say: { jedi: 'They are running for the ships at the top of the lane we came in by. Stay with them, between them and the troops, until every one of them is aboard.',
                mando: 'Kids running for the ships. Stay with them and keep them covered until they are all aboard.' },
         task: { jedi: 'Guard the children to the ships', mando: 'Guard the children to the ships' },
         twist: { kind: 'stragglers', at: [0.25, 0.5, 0.75], spots: [[2.5, 8], [11, -1], [1, -13]], r: 2.2, back: [0, 12],
@@ -513,8 +513,8 @@ export const MISSIONS = {
     objectives: [
       { kind: 'pursuit', leg: 0,
         title: { jedi: 'CHASE THE INQUISITOR', mando: 'CHASE THE BOUNTY' },
-        say: { jedi: 'The Inquisitor carries the refuge\'s new coordinates. Keep it in sight. Over the stalls, not around them, and take the lane north of the cross if you can climb it.',
-               mando: 'The droid has the foundlings\' trail in its memory core. Run it down. Use the jetpack, use the walls. The lane north of the cross cuts its corner.' },
+        say: { jedi: 'The Inquisitor carries the refuge\'s new coordinates. Keep it in sight. Over the stalls, not around them, and take the roofline lane off the cross if you can climb it.',
+               mando: 'The droid has the foundlings\' trail in its memory core. Run it down. Use the jetpack, use the walls. The roofline lane off the cross cuts its corner.' },
         task: { jedi: 'Keep the Inquisitor in sight', mando: 'Keep the bounty in sight' },
         sight: 42, lost: 6, shove: 3.0,
         pace: [[-6, 11.5], [6, 10.2], [14, 9.0], [24, 8.2], [36, 7.4]],
@@ -1020,7 +1020,7 @@ export const MISSIONS = {
       // the charges are on a clock (it runs whether you stand in the zone or not: only a foe in it with you away stops
       // it), and the floor floods with heat from the south as it runs: the hold falls back up the north lane ahead of it
       { kind: 'hold', title: 'HOLD THE WAY OUT', music: 'battle', start: [0, -4, Math.PI],
-        say: { jedi: 'The charges are on a clock. Keep the guard off them, and fall back up the north lane as the heat comes.',
+        say: { jedi: 'The charges are on a clock. Keep the guard off them, and fall back up the lane to the ships as the heat comes.',
                mando: 'Charges are lit. Hold the lane till they go. Nobody gets near them.' },
         task: { jedi: 'Hold each stand, and fall back ahead of the heat', mando: 'Hold each stand, and fall back ahead of the heat' },
         at: [0, 14], r: 6, time: 40, awayRate: 1, holding: 'CHARGES ON THE CLOCK',
@@ -1071,7 +1071,7 @@ export const MISSIONS = {
         trickle: { every: 15, cap: 6, group: { blaster: 2 } } },
 
       { kind: 'escort', title: 'GET THE GENERAL OUT', start: [-11, 4, 0],
-        say: all('The General can walk, barely. North through the trees to the landing zone. It will not walk into fire, so clear the way.'),
+        say: all('The General can walk, barely. Through the trees to the landing zone. It will not walk into fire, so clear the way.'),
         task: all('Stay near the General and keep the company off it'),
         twist: { kind: 'marked', nests: [ { at: [-30, 8], from: 0.05 }, { at: [0, 34], from: 0.4 }, { at: [20, 28], from: 0.7 } ], aim: [5, 3], hit: 0.2, dmg: 14,
                  line: all('A sniper has her. Stand in the red line and the shot is yours, or put him down first.') },

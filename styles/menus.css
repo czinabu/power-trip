@@ -302,12 +302,30 @@ body.fovpreview #settings{background:transparent;backdrop-filter:none;-webkit-ba
 body.fovpreview #settings .howto-panel{background:transparent;border-color:transparent;box-shadow:none}
 body.fovpreview #settings .howto-panel *{visibility:hidden}
 body.fovpreview #settings #fovpill, body.fovpreview #settings #fovpill *{visibility:visible}
+body.fovpreview #settings #fovpill .set-i{visibility:hidden}
 body.fovpreview #fovpill{background:rgba(1,4,10,.82)}
 .set-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .set-grp{display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.025);border:1px solid var(--edge);border-radius:var(--r-lg);padding:12px 14px}
 .set-grp h4{margin:0 0 4px;font-size:14px;letter-spacing:2.1px;color:var(--accent);font-weight:700}
 .set-grp .setpill{border-radius:var(--r);padding:10px 12px}
 .set-grp .setpill>:first-child{margin-left:auto}   /* label on the left, control and value pushed to the right */
+.set-grp .setpill>.set-i:first-child{margin-left:0}
+.set-grp .setpill>.set-i:first-child+*{margin-left:auto}
+/* the "i" beside each setting's name (ui/settings-tips.js): hover, focus, tap or the controller ring explains the row */
+.set-i{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:-3px;box-sizing:border-box;
+  border:1px solid var(--edge-mid);border-radius:50%;font:italic 700 10px/1 Georgia,'Times New Roman',serif;letter-spacing:0;
+  color:var(--ink-faint);cursor:help;outline:none;transition:color .15s,border-color .15s,background .15s}
+.set-i:hover,.set-i:focus-visible,.setpill.padfocus .set-i{color:var(--ink);border-color:var(--edge-lit);background:rgba(92,198,255,.14)}
+@media (pointer:coarse){.set-i{width:18px;height:18px;font-size:11px}}
+/* the "i" takes room: the columns may shrink and the sliders give way first, so a phone's three columns still fit */
+.set-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.set-grp .setpill input[type=range]{flex:0 1 84px;min-width:44px;width:84px}
+.set-tip{position:fixed;z-index:40;display:none;box-sizing:border-box;padding:9px 12px;pointer-events:none;
+  font:500 13px/1.45 var(--font-body);letter-spacing:.2px;color:var(--ink-soft);text-transform:none;
+  background:linear-gradient(180deg,rgba(16,34,58,.98),rgba(8,18,32,.98));border:1px solid var(--edge-mid);border-radius:var(--r-lg);
+  box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.set-tip.on{display:block}
+body.fovpreview .set-tip{display:none}
 /* ---------- ROADMAP: same panel as CONTROLS, a card per phase (data/roadmap.js) ---------- */
 #roadmap{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}

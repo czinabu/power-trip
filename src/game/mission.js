@@ -1455,6 +1455,17 @@ const isDoneMarker = k => {
   const h = k.userData.ring.material.color.getHex();
   return Math.abs((h >> 16) - (GREEN >> 16)) < 4 && Math.abs(((h >> 8) & 255) - ((GREEN >> 8) & 255)) < 4 && Math.abs((h & 255) - (GREEN & 255)) < 4;
 };
+// every part of the live objective still to do (charges, consoles, posts), for the HUD compass (ui/compass.js): the
+// nearest is objectiveTarget(), the rest show fainter
+export function objectiveMarks(){
+  if (!M.on || !M.o || M.won || M.o.kind === 'pursuit') return [];
+  const out = [];
+  for (const k of M.markers){
+    if (!k || k.visible === false || !k.userData || !k.userData.ring || isDoneMarker(k)) continue;
+    out.push(k.position);
+  }
+  return out;
+}
 export function objectiveTarget(){
   if (!M.on || !M.o || M.won) return null;
   if (M.o.kind === 'pursuit'){

@@ -133,7 +133,7 @@ export function updateHub(dt){
 /* ---------------- the party ---------------- */
 let followHost = null, backToTemple = null;
 export function setPartyHooks(follow, back){ followHost = follow; backToTemple = back; }   // ui/menus.js
-export const runLabel = () => !coopRun.on ? '' : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'AN ARCADE MISSION' : missionTitle(coopRun.mid)) : coopRun.k === 'c' ? 'THE CAMPAIGN' : 'SURVIVAL';
+export const runLabel = () => !coopRun.on ? '' : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'A CHALLENGE' : missionTitle(coopRun.mid)) : coopRun.k === 'c' ? 'THE CAMPAIGN' : 'SURVIVAL';
 onRunChange((c) => {
   if (!(net.role === 'guest' && G.hub && G.mode === 'play' && c.on) || followT > 0) return;
   showBanner('THE PARTY IS LEAVING', 'The host is taking everyone to ' + runLabel(), 2.2);

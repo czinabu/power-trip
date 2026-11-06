@@ -74,7 +74,7 @@ function arcCard(c){
 function arcadeShelf(){
   const board = arcadeBoard(boardSeed), picked = isArcadeId(G.missionId) && !board.some(c => c.id === G.missionId) ? missionById(G.missionId) : null;
   const won = arcadeWins(G.hero);
-  return fold('arcade', true, 'mp-arcade open-always', `ARCADE<span class="mp-sub">random missions, no story</span>`, won ? won + ' won' : '',
+  return fold('arcade', true, 'mp-arcade open-always', `CHALLENGES<span class="mp-sub">random missions, no story</span>`, won ? won + ' won' : '',
     `<div class="mp-arcbtns"><div class="btn" data-arc="shuffle">⟳ SHUFFLE</div><div class="btn" data-arc="surprise">⚄ SURPRISE ME</div></div>
     <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div>`);
 }
@@ -185,7 +185,7 @@ function refreshInfo(){
 function arcadeInfo(c){
   if (!c || !infoEl) return;
   const steps = c.objectives.map(o => { const t = typeof o.title === 'object' ? (o.title[G.hero] || o.title.mando || o.title.jedi) : o.title; return kindName(o.kind) + ': ' + t.toLowerCase().replace(/(^|\s)\S/g, ch => ch.toUpperCase()); });
-  infoEl.innerHTML = `<div class="mpi-t">${c.title}<span class="msn-tag">ARCADE</span>${twistTag(c)}</div>
+  infoEl.innerHTML = `<div class="mpi-t">${c.title}<span class="msn-tag">CHALLENGE</span>${twistTag(c)}</div>
     <div class="mpi-w">${c.place}</div>
     <div class="mpi-b">${steps.join(' &nbsp;›&nbsp; ')}.${c.twist ? ' <b>' + TWISTS[c.twist].name + ':</b> ' + TWISTS[c.twist].line : ''}</div>
     <div class="mpi-meta"><span>THREAT ${pips(c.threat)}</span><span>${c.objectives.length} OBJECTIVE${c.objectives.length === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">No story · any hero</span></div>`;

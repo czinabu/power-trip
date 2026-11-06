@@ -29,13 +29,13 @@ const WORDS = {
   trooper: {
     kicker: 'KAMINO · ARMORY BAY 7', count: 'GEAR ISSUED', fitted: 'ISSUED', locked: 'REQUISITION', loadout: 'FIELD LOADOUT',
     gain: 'BOOST', cost: 'DRAW', done: 'SIGN OUT KIT', hint: 'Drag to turn on the fitting pad · Esc to sign out',
-    note: 'More gear is issued for the campaign\'s chapters, story missions, arcade contracts, survival waves, duellists beaten and squadmates brought home.',
+    note: 'More gear is issued for the campaign\'s chapters, story missions, challenges, survival waves, duellists beaten and squadmates brought home.',
     side: 'The power pack and the specialist each trade one small edge for another. Paint, markings, helmet gear, the backpack and the rifle\'s stock and finish are how you look, not how you fight.',
   },
   mando: {
     kicker: 'THE COVERT · THE ARMORER\'S ANVIL', count: 'PIECES FORGED', fitted: 'WORN', locked: 'NOT YET EARNED', loadout: 'THE ARMORER\'S WORK',
     gain: 'GIVES', cost: 'TAKES', done: 'TAKE UP THE ARMOUR', hint: 'Drag to turn in the firelight · Esc to leave the forge',
-    note: 'More pieces are earned in the campaign\'s chapters, story missions, arcade contracts, survival waves and duellists beaten.',
+    note: 'More pieces are earned in the campaign\'s chapters, story missions, challenges, survival waves and duellists beaten.',
     side: 'Forged beskar trades one small edge for another. The signet, helmet mod, jetpack, vambraces and chest kit are how you look, not how you fight.',
   },
 };

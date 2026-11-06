@@ -68,7 +68,7 @@ function leftCol(h){
     <div class="pf-sec"><h4>THE LADDER</h4><ol class="pf-ladder">${ladder}</ol></div>
     ${h === 'jedi' ? saberSec() : kitSec(h)}
     <div class="pf-sec"><h4>RECORD</h4><div class="pf-rec">${rec.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('')}</div></div>
-    <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions, side missions and arcade contracts won, secrets found on the story maps, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
+    <div class="pf-sec pf-how"><h4>EARNING ${esc(T.unit)}</h4><p>Chapters cleared (trials count double), story missions, side missions and challenges won, secrets found on the story maps, ${h === 'jedi' ? 'form and power' : 'gear'} mastery ranks, duels won and survival waves. Training and the sandbox are practice: they never count.</p></div>
   </div>`;
 }
 

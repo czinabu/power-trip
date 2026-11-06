@@ -59,7 +59,7 @@ export const overlay = document.getElementById('overlay');
 let _ovState = 'menu';
 export const isMenuState = () => _ovState === 'menu';
 /* THE RESULTS SCREEN'S CHANGE PANEL — the victory screen leads with the results and the next run's actions; the mode,
-   hero and difficulty pickers fold away behind one line (NEXT: MISSIONS · ARCADE · JEDI · KNIGHT   CHANGE) and open
+   hero and difficulty pickers fold away behind one line (NEXT: CHALLENGE · ONE ON ONE · JEDI · KNIGHT   CHANGE) and open
    as the title screen's own two steps. _endPick is what was just played, so PLAY AGAIN stays PLAY AGAIN until the
    pick really changes (then the button names what it begins). */
 let _endPick = null;
@@ -78,7 +78,7 @@ function setPicking(on){
 export const DIFF_NAME = { padawan: 'GENTLE', knight: 'STANDARD', master: 'BRUTAL' };
 function refreshNextRun(){
   const el = document.getElementById('nrWhat'); if (!el) return;
-  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'ARCADE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
@@ -110,7 +110,7 @@ export function showMenuStep(step, group = null){
   else refreshPicks();   // (the results screen's CHANGE panel stays where it is)
 }
 /* THE MODE GROUPS — the first step is the temple on top and four entries under it: STORY (campaign, missions),
-   ARCADE (arcade missions: the Missions page's board of random contracts; survival), FREEPLAY (sandbox, training)
+   QUICK PLAY (challenges, the Missions page's board of random contracts; survival), FREEPLAY (sandbox, training)
    and ONLINE (the co-op tile, which opens its panel). The first three swap their short list in for the four; ‹ BACK, Esc or the pad's B closes it again. The hero step's ‹ MODES comes back
    to the list its mode was picked from. */
 let _group = null;
@@ -184,7 +184,7 @@ export function setOverlayState(state){
     sub.textContent = G.modeSel === 'temple' ? nextHub().place + ' · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
-    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'ARCADE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
+    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? 'CAMPAIGN · ' + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';

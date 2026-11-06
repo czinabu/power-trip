@@ -269,8 +269,10 @@ on('e', (m) => {
   if (m.st) G.story = m.st;   // the host's story choices (game/choices.js): the guest's words follow them
   calmSync(m.af);   // the calm after a chapter (game/aftermath.js): the host's rally point
 
-  if (m.k === 'z'){ if (G.zone !== m.zn) endGuest(); return; }   // an open zone (game/zone.js): the same streets, each hero roaming them
-  if (m.k === 'm'){   // a story mission: the host runs its objectives, this browser is shown them
+  if (m.k === 'z'){   // an open zone (game/zone.js): the same streets, each hero roaming them, and the host's patrols
+    if (G.zone !== m.zn){ endGuest(); return; }
+    G.waveTotal = m.wt;
+  } else if (m.k === 'm'){   // a story mission: the host runs its objectives, this browser is shown them
     if (!G.mission || !m.ms || G.missionId !== m.ms.id){ endGuest(); return; }
     coopMissionSync(m.ms);
   } else if (m.k === 'c'){   // the campaign: the host's chapter (a stretch of a level's waves, or a mission), or its level and wave

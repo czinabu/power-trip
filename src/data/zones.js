@@ -6,11 +6,13 @@
 // phones and co-op hosts only ever draw the streets round them. game/zone.js runs the mode. Edit the words freely.
 //
 // A ZONE: { name, place, blurb, size (metres across, square), chunk (metres across a chunk), seed, level (what buildArena
-//   reads), spawn [x, z, yaw] where you land, districts, waystones }
+//   reads), spawn [x, z, yaw] where you land, districts, waystones, life (its patrols, people and secrets: data/zone-jedha.js) }
 // A DISTRICT: { id, name, kicker, x0, z0, x1, z1 (its rectangle; north is −z), line (the banner's line as you walk in) }.
 //   A spot belongs to the first district whose rectangle holds it.
 // A WAYSTONE: { id, name, x, z, district }: fast travel between the ones you have touched, and where you wake after a fall.
 //   `gate` is the way out (back to the hub): the shuttle on the landing pad stands beside it.
+
+import { JEDHA_LIFE } from './zone-jedha.js';
 
 export const ZONE_PREFIX = 'zone:';
 export const ZONE_TUNE = {
@@ -29,7 +31,7 @@ export const ZONES = {
   jedha: {
     name: 'THE OLD CITY OF JEDHA', place: 'JEDHA', short: 'OLD CITY',
     blurb: 'The holy city\'s oldest streets, half empty since the occupation. Pilgrims still come. So do the patrols.',
-    size: 240, chunk: 48, seed: 1607,
+    size: 240, chunk: 48, seed: 1607, life: JEDHA_LIFE,
     level: { name: 'OPEN ZONE — THE OLD CITY OF JEDHA', sub: 'Roam the old city. The shuttle on the pad takes you home.', arena: 240, layout: 'zoJedha', waves: [], hazards: {} },
     spawn: [0, 96, Math.PI],
     districts: [

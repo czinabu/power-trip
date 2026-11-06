@@ -11,6 +11,10 @@
 // walls on several sides, a little seeded luck; each kind takes the best cell well apart from the others. The same map
 // deals the same corners while its layout stays the same.
 //
+// AN OPEN ZONE (data/zones.js) is far too big to walk out like that: its map's `spots` are set by hand, any number of each
+// kind, each its own find (its id carries the spot's: zoJedha:holo-gate:holocron) and each holocron with its own page.
+// Each stands on the nearest open ground to where it is set.
+//
 // CO-OP: each browser places and runs its own (a guest's world is built the same way), and each player's finds are their
 // own profile's. The training grounds, the sandbox, the temple and survival have none.
 
@@ -20,7 +24,7 @@ import { scene } from '../engine/renderer.js';
 import { CFG } from '../data/config.js';
 import { SECRET_MAPS, SECRET_KINDS, SECRET_TUNE as T, HOLOCRONS } from '../data/secrets.js';
 import { holocronProp, caveProp, meditateProp } from '../world/secret-props.js';
-import { navClearance, buildNav } from '../enemies/nav.js';
+import { navClearance, navNearestOpen, buildNav } from '../enemies/nav.js';
 import { moundY } from '../world/collision.js';
 import { hazardContains } from '../world/hazards.js';
 import { playerPos, maxHp } from '../player/helpers.js';
@@ -96,10 +100,12 @@ function reachable(step){
   }
   return out;
 }
+const ROOM = { cave: 3.4, meditate: 2.2, holocron: 1.2 };   // m of clear ground round each kind (the cave's boulders, the ring)
 function place(){
   St.want = false;
   const L = shared.arenaLevel, map = L && SECRET_MAPS[L.layout];
   if (!map || !secretsHere()) return;
+  if (map.spots) return placeSpots(map);
   const span = Math.max(shared.arenaHalf, shared.arenaHalfZ || 0) * 2;
   const step = Math.max(2, Math.min(4, span / 36));
   const cells = reachable(step);
@@ -110,7 +116,7 @@ function place(){
   const taken = [], minApart = span * T.spread * (shared.arenaBig ? 0.5 : 1), minStart = span * T.fromStart * (shared.arenaBig ? 0.25 : 1);
   const kinds = ['holocron', 'cave', 'meditate'].filter(k => map[k]);
   for (const kind of kinds){
-    const room = kind === 'cave' ? 3.4 : kind === 'meditate' ? 2.2 : 1.2;   // clear ground round it (the cave's boulders, the ring)
+    const room = ROOM[kind];
     let best = null;
     for (const c of cells){
       if (c.clear < room * (kind === 'cave' ? 0.55 : 0.8) || c.d < minStart) continue;
@@ -126,8 +132,19 @@ function place(){
   }
   if (St.list.some(s => s.solids && s.solids.length)) buildNav();   // (the cave's boulders: foes path round them)
 }
-function build(kind, map, c){
-  const id = St.level.layout + ':' + kind, col = SECRET_KINDS[kind].col;
+// a map's hand-set spots (an open zone's), each on the nearest open ground to where it is set. A zone's map is too big to
+// re-path for a cave's boulders, so its foes walk round them the plain way (they collide)
+function placeSpots(map){
+  const out = { x: 0, z: 0 };
+  for (const sp of map.spots){
+    if (!SECRET_KINDS[sp.kind]) continue;
+    const [x, z] = sp.at;
+    if (!navNearestOpen(x, z, 1, 8, out)){ out.x = x; out.z = z; }   // (room for a big body: clear of the walls)
+    build(sp.kind, map, { x: out.x, z: out.z }, sp);
+  }
+}
+function build(kind, map, c, spot){
+  const id = St.level.layout + ':' + (spot ? spot.id + ':' : '') + kind, col = SECRET_KINDS[kind].col;
   const found = secretFound(id);
   if (found && kind !== 'meditate') return;   // a holocron taken, a cave harvested: gone from this map for good
   // the cave turns its mouth toward the open side (the way you'll walk up)
@@ -142,7 +159,7 @@ function build(kind, map, c){
   (shared.arenaGroup || scene).add(P.g);
   const sol = P.solids.map(s => ({ x: c.x + s.x, z: c.z + s.z, r: s.r, h: y + s.h }));
   for (const s of sol) solids.push(s);
-  St.list.push({ id, kind, x: c.x, z: c.z, y, face, P, solids: sol, found, page: kind === 'holocron' ? map.holocron : null, sensed: false });
+  St.list.push({ id, kind, x: c.x, z: c.z, y, face, P, solids: sol, found, page: kind === 'holocron' ? (spot ? spot.page : map.holocron) : null, sensed: false, spot: !!spot });
 }
 
 /* ---------------- using them ---------------- */
@@ -189,7 +206,7 @@ function take(s){
   St.list.splice(St.list.indexOf(s), 1);
   s.P.g.parent && s.P.g.parent.remove(s.P.g);
   for (const sol of s.solids){ const i = solids.indexOf(sol); if (i >= 0) solids.splice(i, 1); }
-  if (s.solids.length) buildNav();
+  if (s.solids.length && !s.spot) buildNav();
 }
 // a meditation: sit in the circle, still, with no foe near, for a few seconds
 function beginSit(s){
@@ -247,6 +264,11 @@ export function updateSecrets(dt){
 export function syncHolocronPages(){
   for (const h of ['jedi', 'mando', 'trooper']){
     const found = profileOf(h).secrets || {};
-    for (const id in found){ if (!id.endsWith(':holocron')) continue; const page = SECRET_MAPS[id.split(':')[0]] && SECRET_MAPS[id.split(':')[0]].holocron; if (page) codexQuiet(page); }
+    for (const id in found){
+      if (!id.endsWith(':holocron')) continue;
+      const [layout, spot] = id.split(':'), map = SECRET_MAPS[layout];
+      const page = map && (map.spots ? (map.spots.find(s => s.id === spot) || {}).page : map.holocron);
+      if (page) codexQuiet(page);
+    }
   }
 }

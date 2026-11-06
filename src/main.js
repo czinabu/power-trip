@@ -123,6 +123,8 @@ import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateHub, startHub, goWing, curHub } from './game/hub.js';
 import { updateZone, startZone, travelTo, zoneDistrict, stonesTouched } from './game/zone.js';
+import { zoneQuest, zoneGivers, zoneQuestMarks } from './game/zone-quests.js';
+import { zonePatrols } from './game/zone-fights.js';
 import { zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream } from './world/zone-stream.js';
 import { welcomeState, welcomeStops, forgetWelcome, replayWelcome, replayTour } from './game/hub-welcome.js';
 import { updateSecrets, secretsPlaced } from './game/secrets.js';
@@ -259,7 +261,7 @@ window.GAME = { PROFILE, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, pa
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn },
   aim: { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim },
-  zone: { startZone, travelTo, zoneDistrict, stonesTouched, zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream },
+  zone: { startZone, travelTo, zoneDistrict, stonesTouched, zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream, zoneQuest, zoneGivers, zonePatrols, zoneQuestMarks },
   get boss(){ return shared.boss; }, get finale(){ return shared.finale; }, get saberProj(){ return shared.saberProj; }, get darkProj(){ return shared.darkProj; } };
 
 /* the battle maps (data/battlemaps.js): what's built and what it costs, for the console and tools/smoke/maps.mjs */

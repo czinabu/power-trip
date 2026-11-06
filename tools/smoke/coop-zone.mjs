@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // CO-OP OPEN ZONE SMOKE TEST — two browsers on the BUILT game roam the old city of Jedha together (game/zone.js). The host
 // picks the zone at the council table, the guest answers the ready check and follows them in; each lands in their own
-// seat and sees the other. The guest walks off across the city: the guest's own screen builds the streets round them,
+// seat and sees the other. The host's patrols come to wherever the guest walks, and the guest sees them; a guest's F at
+// a giver starts the party's quest, which the host keeps and both screens show. The guest walks off across the city: the guest's own screen builds the streets round them,
 // and the host's builds them too (so the host's foes would stand in a built street). Each has their own waystones. The
 // host takes the shuttle home and the guest is called back with them.
 //   npm run build && npm run smoke:coop-zone   (HOST=jedi|trooper|mando)
@@ -82,6 +83,25 @@ try {
   await guest.waitForFunction(() => GAME.partnerShown(), null, poll);
   await host.waitForFunction(() => GAME.partnerShown(), null, poll);
   step('each sees the other in the city');
+
+  // the host sends a patrol to where the guest walks, and the guest is shown it
+  await stand(guest, 4, 4); await guest.evaluate(() => { GAME.player.hp = 9999; });
+  await host.waitForFunction(() => GAME.zone.zonePatrols() > 0, null, poll);
+  await guest.waitForFunction(() => GAME.enemies.some(e => !e.dead), null, poll);
+  step('the host sends a patrol through the square the guest walks, and the guest sees it');
+  // a guest's F at a giver starts the party's quest: the host keeps it, both screens show it
+  const gv = await guest.evaluate(() => GAME.zone.zoneGivers().find(g => g.id === 'deserter'));
+  await stand(guest, gv.x, gv.z + 1.6);
+  await guest.waitForFunction(() => document.getElementById('zoneqp').classList.contains('on'), null, poll);
+  await guest.keyboard.down('f'); await guest.waitForTimeout(350); await guest.keyboard.up('f');
+  await host.waitForFunction(() => GAME.zone.zoneQuest()?.id === 'deserter', null, poll);
+  await guest.waitForFunction(() => GAME.zone.zoneQuest()?.id === 'deserter' && /DESERTER/.test(document.getElementById('waveinfo').textContent), null, poll);
+  step('a guest\'s F at a giver starts the party\'s quest, on both screens');
+  // the guest's walking counts: into the garrison yard, and the quest moves on for both
+  await stand(guest, 70, 0); await guest.evaluate(() => { GAME.player.hp = 9999; });
+  await host.waitForFunction(() => GAME.zone.zoneQuest()?.i === 1, null, poll);
+  await guest.waitForFunction(() => GAME.zone.zoneQuest()?.i === 1, null, poll);
+  step('the guest reaching the garrison yard moves the quest on for the party');
 
   // the guest walks off to the far north-west: their screen builds those streets, and so does the host's
   await stand(guest, -78, -96);

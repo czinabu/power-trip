@@ -66,13 +66,13 @@ export const GATE_MISSIONS = {
     done: all('The gate is open, and it is not going to close on its own. The Cantor went through it. So do we.'),
   },
 
-  // 2 · WHAT VEXIS HEARD (the Jedi's payoff): through the gate, under the throne on Exegol where Vexis sat. The stones
+  // 2 · THE VOICE UNDER THE THRONE (the Jedi's payoff): through the gate, under the throne on Exegol where Vexis sat. The stones
   // there still whisper; silence them, hold the circle, and face the echo of the one who listened to them.
   'gate-vault': {
     id: 'gate-vault', ...GATE_SHELF, order: 1,
-    title: 'WHAT VEXIS HEARD', voice: 'MASTER VAEL',
+    title: 'THE VOICE UNDER THE THRONE', voice: 'MASTER VAEL',
     blurb: 'silence the whispering stones under the throne, and face the echo of the one who listened',
-    level: { name: 'MISSION — WHAT VEXIS HEARD', sub: all('Exegol, under the throne. The stones are whispering.'),
+    level: { name: 'MISSION — THE VOICE UNDER THE THRONE', sub: all('Under the old throne. The stones are whispering.'),
              arena: 64, floor: 0x2f2832, fog: 0x2a1430, sky: 0x0e0612, layout: 'sith', waves: [], hazards: {} },
     start: [0, 16, Math.PI],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
@@ -93,16 +93,16 @@ export const GATE_MISSIONS = {
         twist: { kind: 'pulse', at: [0, 0], r0: 4.5, every: [10, 6], spd: [7, 10], len: 30, w: 0.75, dmg: 14, foeDmg: 30, first: 6,
                  line: all('The floor breathes out. Jump the rings as they reach you.') },
         at: [0, 0], r: 8, time: 40, awayRate: 0.35, squadRate: 0.55,
-        overrun: 'CLEAR THE CIRCLE', unguarded: 'CIRCLE UNGUARDED', doneLine: 'IT HAS A FACE', doneSub: 'Vexis\'s face.',
+        overrun: 'CLEAR THE CIRCLE', unguarded: 'CIRCLE UNGUARDED', doneLine: 'IT HAS A FACE', doneSub: 'The face of the last one who listened.',
         pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, acolyte: 1 }, { grunt: 2, officer: 1, flyer: 1 }, { grunt: 2, phalanx: 1, sniper: 1 } ],
         every: [8, 12], cap: 8, from: [-Math.PI, Math.PI], aggro: 8 },
 
-      { kind: 'duel', title: 'FACE WHAT VEXIS HEARD', music: 'duel', start: [0, 6, Math.PI],
-        say: all('It wears my apprentice\'s face because his is the last one it borrowed. Do not fight the face. Fight what is behind it.'),
+      { kind: 'duel', title: 'FACE THE VOICE', music: 'duel', start: [0, 6, Math.PI],
+        say: all('It wears the face of the last one who listened to it. Do not fight the face. Fight what is behind it.'),
         task: all('Beat the echo'),
-        enter: all('A shape of violet light rises off the floor and takes Vexis\'s face.'), kicker: 'THE THRONE OF EXEGOL',
+        enter: all('A shape of violet light rises off the floor and takes a face.'), kicker: 'THE OLD THRONE',
         line: all('He sat here and thought my voice was his own ambition. They all do.'),
-        foe: 'acolyte', form: 'juyo', name: 'THE ECHO OF VEXIS', hp: 4.4, dmg: 1.2, scale: 1.12, tint: 0x6a4ad2, at: [0, -8],
+        foe: 'acolyte', form: 'juyo', name: 'THE ECHO', hp: 4.4, dmg: 1.2, scale: 1.12, tint: 0x6a4ad2, at: [0, -8],
         duel: { posture: 170, feint: 0.38, chain: 3, counter: 0.5 },
         rage: 0.5, rageDuel: { feint: 0.45, delay: 0.32, chain: 4 },
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-0.6, 0.6] },
@@ -116,13 +116,13 @@ export const GATE_MISSIONS = {
     id: 'gate-yard', ...GATE_SHELF, order: 2,
     title: 'THE BUYER', voice: 'THE ARMORER',
     blurb: 'take the yard where the stolen beskar went, break the moulds, and face the one who bought it',
-    level: { name: 'MISSION — THE BUYER', sub: all('A yard past the Rim. The Magistrate\'s beskar came here.'),
+    level: { name: 'MISSION — THE BUYER', sub: all('A yard past the Rim. The clans\' stolen beskar came here.'),
              arena: 84, floor: 0x3a3a40, fog: 0x1e1a28, sky: 0x0a0810, layout: 'shipyard', waves: [], hazards: {} },
     start: [0, -22, 0],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
     objectives: [
       { kind: 'capture', title: 'TAKE THE YARD', music: 'battle', postName: 'POST',
-        say: all('Two guard posts hold the yard. Take them, or send the squad onto them. The Choir paid the Magistrate in warships. Let us see what they bought.'),
+        say: all('Two guard posts hold the yard. Take them, or send the squad onto them. The Choir paid for the clans\' beskar in warships. Let us see what they bought.'),
         task: all('Take the yard\'s two guard posts'),
         posts: [ { at: [0, -12], guards: { grunt: 2, blaster: 2 } }, { at: [-20, -3], guards: { grunt: 2, blaster: 1, grenadier: 1 } } ],
         r: 4.5, time: 4, squadRate: 0.6, perMate: 0.3, doneLine: 'THE YARD IS OURS', doneSub: 'Now the freighter.',
@@ -142,7 +142,7 @@ export const GATE_MISSIONS = {
         say: all('There. The one who paid for our beskar is wearing some of it. It does not know how. Show it.'),
         task: all('Beat the Buyer'),
         enter: all('The Buyer walks down the freighter\'s ramp in armour that does not fit it.'), kicker: 'THE HOLLOW CHOIR · ITS QUARTERMASTER',
-        line: all('The Magistrate thought he was selling armour. He was selling a body.'),
+        line: all('Whoever sold it to me thought he was selling armour. He was selling a body.'),
         foe: 'lancer', name: 'THE BUYER', hp: 4.2, dmg: 1.2, scale: 1.25, tint: 0x8a8e98, at: [0, 0],
         dress: { model: 'magistrate', weapon: 'spear', color: 0x7e828c, eye: 0xb46bff, cloth: 0x1a1420, trim: 0x6a4a9a, rag: 0x2a1a30 },
         rage: 0.5, rageDuel: {},
@@ -190,7 +190,7 @@ export const GATE_MISSIONS = {
         rage: 0.5, rageDuel: { feint: 0.5, delay: 0.3, chain: 4 },
         trickle: { every: 14, cap: 3, group: { grunt: 2, blaster: 1 } }, from: [Math.PI / 2 - 0.8, Math.PI / 2 + 0.8] },
     ],
-    done: all('The signal under the spire was his voice. Every chip was built to hear it. Three roads, one name: Kharel. Back to the gate.'),
+    done: all('The signal in the chips was his voice. Every one was built to hear it. Three roads, one name: Kharel. Back to the gate.'),
   },
 
   // 5 · THE UNBURIED (together): the heart of the gate. Break the three chains holding the vessel to the gate, hold the

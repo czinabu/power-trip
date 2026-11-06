@@ -31,6 +31,7 @@ const TEMPLE_WINGS = {
     name: 'THE GRAND HALL', short: 'GRAND HALL',
     blurb: 'The heart of the temple: every wing opens off it, and every journey starts here. Calls for aid from across the galaxy reach the stone by the door.',
     level: { name: 'THE HIDDEN TEMPLE — THE GRAND HALL', sub: 'Tython. Walk up to a station and tap F.', arena: 96, layout: 'tyHall', waves: [], hazards: {} },
+    map: ['pillars'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'council', e: 'training', w: 'archives', s: 'forge' },
     spawn: [0, 20, Math.PI],
     stations: [
@@ -66,6 +67,7 @@ const TEMPLE_WINGS = {
     name: 'THE ARCHIVES', short: 'ARCHIVES',
     blurb: 'Everything the Order learned, and everything you have: the codex, your holocron, the mission records.',
     level: { name: 'THE HIDDEN TEMPLE — THE ARCHIVES', sub: 'The codex, your holocron and the mission records.', arena: 72, layout: 'tyArchive', waves: [], hazards: {} },
+    map: ['shelves'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { e: 'hall' },
     spawn: [26, 0, -Math.PI / 2],
     stations: [
@@ -79,6 +81,7 @@ const TEMPLE_WINGS = {
     name: 'THE SABER FORGE', short: 'FORGE',
     blurb: 'A crystal cave under the temple, where every Jedi builds a blade of their own.',
     level: { name: 'THE HIDDEN TEMPLE — THE SABER FORGE', sub: 'Make your hero your own.', arena: 56, layout: 'tyForge', waves: [], hazards: {} },
+    map: ['crystals'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'hall' },
     spawn: [0, -18, 0],
     stations: [

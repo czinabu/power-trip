@@ -59,7 +59,8 @@ for (const hero of HEROES){
     await page.keyboard.press('f');
     await page.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
     if (!(await panelUp())){ console.log('  (no panel:', await page.evaluate(() => JSON.stringify({ wing: GAME.G.hubWing, p: GAME.player.group.position, yaw: GAME.G.yaw, prompt: document.getElementById('hubp').textContent, paused: GAME.G.paused, sk: GAME.G.skillSelect, mode: GAME.G.mode, ov: document.getElementById('overlay').style.display, ovc: document.getElementById('overlay').className, card: GAME.G.cardUp, cut: GAME.G.cutscene, hub: GAME.G.hub, gt: GAME.G.gt, loading: !document.querySelector('#boot, #loading')?.hidden })) + ')'); return false; }
-    const o = page.locator('#hubpanel .hb-o', { hasText: label }).first();
+    // (`wing:<id>` is a wing's button on the hub map: ui/hub-map.js)
+    const o = label.startsWith('wing:') ? page.locator('#hubpanel .hm-wing[data-w="' + label.slice(5) + '"][data-i]') : page.locator('#hubpanel .hb-o', { hasText: label }).first();
     if (!(await o.count())) return false;
     await o.click(); return true;
   };
@@ -101,7 +102,7 @@ for (const hero of HEROES){
     const at = (k) => (P.at && P.at[k]) || AT[k];
     await stand(...at('map')); await page.waitForTimeout(400);
     check(await page.evaluate((m) => document.getElementById('hubp').classList.contains('on') && document.getElementById('hubp').textContent.includes(m), P.map), `${hero}: the station prompt shows at the hub map`);
-    check(await station(...at('map'), P.councilName), `${hero}: F opens the map's panel and lists the wings`);
+    check(await station(...at('map'), 'wing:' + P.council), `${hero}: F opens the hub map, and the council's wing on it is a button`);
     check(await inHub(P.council), `${hero}: fast travel to the council chamber`);
 
     // walk out through the council's south door: the hall loads, arriving at its north door

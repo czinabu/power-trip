@@ -1,0 +1,39 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE GUNNERS' BEATS (ui/force-toast.js `kind`): the Jedi's Force Level rise has its own look in styles/hud.css; these
+   are the Mando's and the trooper's, in their hero UI. Same place, same timing, a short stepped arrival.
+   · THE ARMORER FORGES (game/armorer.js): the piece's name stamped on a chamfered beskar plate, an ember strip on top
+   · PROMOTED (game/promotion.js): the rank on the orders readout under a hazard stripe, its bars, the order it brings
+   ============================================================ */
+#forcetoast:is(.ft-forge,.ft-promote){border:0;-webkit-mask-image:none;mask-image:none;box-shadow:none;width:min(560px,calc(100vw - 32px));padding:16px 26px 18px}
+#forcetoast:is(.ft-forge,.ft-promote).on{animation:ftsnap .32s steps(4) both}
+@keyframes ftsnap{0%{opacity:0;transform:translateX(-50%) translateY(10px)}100%{opacity:1;transform:translateX(-50%)}}
+
+/* the forge: beskar plate */
+#forcetoast.ft-forge{background:linear-gradient(180deg,#3a3d41,#222427);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  box-shadow:inset 0 4px 0 #ff7a2e,inset 0 0 0 2px #07060a}
+#forcetoast.ft-forge .ft-k{font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.26em;color:#ff7a2e}
+#forcetoast.ft-forge .ft-t{margin-top:10px;font:400 38px/1.05 Georgia,'Times New Roman',serif;letter-spacing:.14em;color:#f1ece4;text-shadow:0 2px 0 #07060a,0 0 18px rgba(255,140,60,.45);animation:ftheat 1.4s ease-out both}
+@keyframes ftheat{0%{color:#fff2d8;text-shadow:0 2px 0 #07060a,0 0 28px rgba(255,150,60,.95)}100%{}}
+#forcetoast.ft-forge .ft-w{margin-top:6px;font:400 12px/1 Georgia,serif;letter-spacing:.24em;color:#8d949b}
+#forcetoast.ft-forge .ft-l{margin-top:12px;font:italic 500 15px/1.35 var(--font-body);color:#e6ddd0}
+#forcetoast.ft-forge .ft-x{margin-top:6px;font:500 13px/1.35 var(--font-body);color:#bdb5a9}
+
+/* the promotion: the orders readout */
+#forcetoast.ft-promote{background:#101315;box-shadow:inset 0 0 0 1px rgba(238,241,242,.22),0 0 0 2px #07060a}
+#forcetoast.ft-promote::before{content:'';position:absolute;left:0;right:0;top:0;height:6px;background:repeating-linear-gradient(-45deg,#f0a52a 0 6px,#101315 6px 12px)}
+#forcetoast.ft-promote .ft-k{margin-top:6px;font:600 12px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.2em;color:#f0a52a}
+#forcetoast.ft-promote .ft-t{margin-top:8px;font:600 36px/1.05 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;color:#eef1f2;text-shadow:0 2px 0 #07060a}
+#forcetoast.ft-promote .ft-ins{display:flex;justify-content:center;gap:5px;margin-top:10px}
+#forcetoast.ft-promote .ft-ins i{width:22px;height:6px;background:#f0a52a;box-shadow:0 0 0 2px #07060a;animation:ftbar .2s steps(2) both}
+#forcetoast.ft-promote .ft-ins i:nth-child(2){animation-delay:.1s} #forcetoast.ft-promote .ft-ins i:nth-child(3){animation-delay:.2s}
+#forcetoast.ft-promote .ft-ins i:nth-child(4){animation-delay:.3s} #forcetoast.ft-promote .ft-ins i:nth-child(5){animation-delay:.4s}
+@keyframes ftbar{0%{opacity:0}100%{opacity:1}}
+#forcetoast.ft-promote .ft-perk{display:inline-flex;flex-direction:column;gap:4px;margin-top:14px;padding:8px 14px;background:#eef1f2;color:#101315;box-shadow:0 0 0 2px #07060a,inset 0 -3px 0 #c5cbce}
+#forcetoast.ft-promote .ft-perk b{font:600 14px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.08em}
+#forcetoast.ft-promote .ft-perk span{font:500 13px/1.3 var(--font-body)}
+#forcetoast.ft-promote .ft-x{margin-top:10px;font:500 13px/1.35 var(--font-body);color:#b9c0c3}
+@media (max-width:620px){
+  #forcetoast.ft-forge .ft-t{font-size:26px}
+  #forcetoast.ft-promote .ft-t{font-size:26px}
+}

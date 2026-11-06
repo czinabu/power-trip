@@ -238,15 +238,16 @@ function build(picks){
    dozen shader programs and ~180 meshes in one frame, a visible stutter as the stand spun. Instead the whole wardrobe
    is drawn off screen, into the composer's spare buffer (the same target, so the same shader variants, as the stand's
    real draw): on the title screen's first frame, behind the loader (ui/boot.js). A moment after the customizer
-   rebuilds the figure (a new look can need new programs) they're compiled again. In a fight the hero never changes:
+   rebuilds the figure (new meshes, and a new look can need new programs) it's warmed again, drawn into one pixel. In a fight the hero never changes:
    the arena's own warm-up (engine/prewarm.js) compiles the player as they are. */
 let standWarm = false, warmAt = 0, stageWarmed = false;
-function standDraw(draw){
+function standDraw(full){   // (full: false draws one pixel: the buffers go up, the fill is skipped)
   stage.updateMatrixWorld(true);
-  const prev = renderer.getRenderTarget();
-  renderer.setRenderTarget(composer.readBuffer);
-  try { renderer.compile(stage, cam); if (draw) renderer.render(stage, cam); } catch(e){}
-  finally { renderer.setRenderTarget(prev); }
+  const prev = renderer.getRenderTarget(), rt = composer.readBuffer, sc = rt.scissorTest;
+  if (!full){ rt.scissor.set(0, 0, 1, 1); rt.scissorTest = true; }   // (before it's bound: the target's scissor is read then)
+  renderer.setRenderTarget(rt);
+  try { renderer.compile(stage, cam); renderer.render(stage, cam); } catch(e){}
+  finally { if (!full){ rt.scissorTest = sc; rt.scissor.set(0, 0, rt.width, rt.height); } renderer.setRenderTarget(prev); }
 }
 const _snap = [];
 function warmStand(){
@@ -258,8 +259,8 @@ function warmStand(){
   fig.group.traverse(o => _snap.push(o, o.position.clone(), o.quaternion.clone(), o.scale.clone()));
   // the number of lights is part of every program, and the Jedi's lit blade is one: so each hero, dressed as the stand
   // shows them (the gunners with no blade light), gets its own pass. The first time, behind the loader, each is drawn
-  // too, so the programs are linked and the buffers up; after a rebuild, with the menu showing, the programs are only
-  // compiled (drawing it all then cost a long frame of its own)
+  // in full, so the programs are linked and the buffers up; after a rebuild, with the menu showing, into one pixel
+  // (drawing it all in full then cost a long frame of its own)
   for (const h of ['mando', 'trooper', 'jedi']){ dress(h, false); standDraw(first); }
   // …then, as the Jedi, everything on the rig at once (the long guns, the Darksaber, the second blades): every hidden
   // part shown, but no light that's off now comes on, so the count (and so the programs) stays the Jedi's

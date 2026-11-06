@@ -99,7 +99,7 @@ function leftCol(h){
 function alignRow(h){
   const W = ALIGN_WORDS[h] || ALIGN_WORDS.jedi, a = alignOf(h), lean = leanOf(h);
   const mark = (v) => Math.round((v + ALIGN.max) / (2 * ALIGN.max) * 100);
-  const now = lean ? (lean === 'light' ? W.light : W.dark) + ' ' + Math.abs(Math.round(a)) : 'BALANCED';
+  const now = lean ? String(Math.abs(Math.round(a))) : 'BALANCED';
   return '<div class="pf-align al-' + (lean || 'mid') + '" title="' + esc(W.line[alignStage(h)]) + '"><span class="pf-al-t">' + esc(W.title) + '</span>' +
     '<span class="dk">' + esc(W.dark) + '</span><div class="pf-al-bar"><i class="lean" style="left:' + mark(-ALIGN.lean) + '%"></i><i class="lean" style="left:' + mark(ALIGN.lean) + '%"></i><b style="left:' + mark(a) + '%"></b></div><span class="lt">' + esc(W.light) + '</span>' +
     '<em>' + esc(now) + '</em></div>';
@@ -167,7 +167,7 @@ function alignTreeSec(){
     ALIGN_TREE.filter(n => n.align === P.id).map(n => {
       const open = alignOpen(n);
       const tag = open ? '<em class="pf-got">✓ OPEN</em>' : '<em class="pf-lock">' + esc(lockWhy('jedi', n)) + '</em>';
-      return '<div class="pf-node ' + (open ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(n.ico) + '</span><b>' + esc(n.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[n.tier] + '</span></div><p>' + n.ds + '</p>' + tag + '</div>';
+      return '<div class="pf-node al-' + n.align + ' ' + (open ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(n.ico) + '</span><b>' + esc(n.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[n.tier] + '</span></div><p>' + n.ds + '</p>' + tag + '</div>';
     }).join('') + '</div>').join('');
   return `<div class="pf-th pf-sides-h"><h3>LIGHT AND DARK</h3></div>
     <p class="pf-note">Lean past ${ALIGN.lean} either way and that side's cards open for your deck. Same cost, same strength, a different way to fight. Swing back and they close.</p>
@@ -216,7 +216,7 @@ function deckCol(h){
       const st = !mine ? 'rank' : !deck ? 'all' : inD ? 'learned' : full ? 'insight' : 'open';
       const tag = !mine ? '<em class="pf-lock">' + esc(lockWhy(h, s)) + '</em>' : inD ? '<em class="pf-got">✓ IN YOUR DECK</em>' : deck && full ? '<em class="pf-lock">TIER FULL</em>' : '';
       const click = mine && deck && !live && (inD || !full) ? ' data-deck="' + s.id + '"' : '';
-      return '<div class="pf-node pf-dcard ' + st + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b>' + (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + s.align.toUpperCase() + '</span>' : '') + '</div><p>' + s.ds + '</p>' + tag + '</div>';
+      return '<div class="pf-node pf-dcard ' + st + (s.align ? ' al-' + s.align : '') + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b>' + (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + s.align.toUpperCase() + '</span>' : '') + '</div><p>' + s.ds + '</p>' + tag + '</div>';
     }).join('')
       + (f === 'deck' ? Array.from({ length: Math.max(0, DECK_QUOTA[t] - k) }, () => '<div class="pf-slot" data-filter="all">+ EMPTY SLOT</div>').join('') : '')
       + (!cards.length && f !== 'deck' ? '<p class="pf-empty">' + (f === 'locked' ? 'Nothing locked here.' : 'Nothing yet.') + '</p>' : '')

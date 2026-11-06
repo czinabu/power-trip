@@ -158,7 +158,7 @@
 .pf-saber .pf-note b{color:var(--gold);font-weight:600}
 
 /* LIGHT AND DARK (ui/profile-ui.js alignRow, alignTreeSec): the one-row meter, the cards' tags, the two sides under the Force Tree */
-.pf-align{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font:700 10px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-soft)}
+.pf-align{display:flex;align-items:center;gap:8px;margin:14px 0 4px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);font:700 10px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-soft)}
 .pf-align .pf-al-t{color:var(--ink-soft)}
 .pf-align .dk{color:#ff7a66}
 .pf-align .lt{color:#9fd8ff}
@@ -168,8 +168,12 @@
 .pf-al-bar{position:relative;flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#7a1410,#3a2a2c 38%,#2a3038 62%,#2a6c9a)}
 .pf-al-bar .lean{position:absolute;top:-2px;width:1px;height:10px;background:rgba(255,255,255,.35)}
 .pf-al-bar b{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#f4f1ea;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 0 8px rgba(255,255,255,.5)}
-.pf-tier-k.al-light{color:#9fd8ff}
-.pf-tier-k.al-dark{color:#ff7a66}
+.pf-node .pf-tier-k.al-light{color:#5fbfff}
+.pf-node .pf-tier-k.al-dark{color:#ff5a46}
+.pf-node.al-light.learned{border-color:#9fd8ff;background:rgba(159,216,255,.06)}
+.pf-node.al-light.learned .pf-ic,.pf-node.al-light.learned .pf-got{color:#9fd8ff}
+.pf-node.al-dark.learned{border-color:#ff7a66;background:rgba(255,106,90,.06)}
+.pf-node.al-dark.learned .pf-ic,.pf-node.al-dark.learned .pf-got{color:#ff7a66}
 .pf-sides-h{margin-top:18px}
 .pf-sides{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pf-branch.al-light{border-color:rgba(159,216,255,.35)}

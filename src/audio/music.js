@@ -512,7 +512,7 @@ export const MUSIC = (function(){
   // keyed on `want`, not the playing palette: leaving the menu drops the lift at once, so a run's first stings
   // never play at the title screen's level while the menu's last bar finishes
   const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) * (film ? FILM_LIFT : 1) * dip : 0.0001;
-  const postLevel = () => want === 'menu' ? MENU_POST : GAME_POST * (film || LOUD_STATES.has(state) ? FILM_POST : 1);
+  const postLevel = () => !enabled ? 0.0001 : want === 'menu' ? MENU_POST : GAME_POST * (film || LOUD_STATES.has(state) ? FILM_POST : 1);
   const shelfDb = () => want === 'menu' ? TITLE_SHELF : 0;
   function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc);
     shelf.gain.setTargetAtTime(shelfDb(), t, tc); compFor(t, tc); }
@@ -539,7 +539,10 @@ export const MUSIC = (function(){
   }
   const soon = f => setTimeout(f, 0);
   function scheduleStep(t){
-    const I = intensity; if (I < 0.04) return;   // faded out (death / muted): let the reverb ring, schedule nothing
+    // music off (M, or the setting): schedule nothing. Turning the bus down wasn't enough, because every note's reverb
+    // send goes straight to the world's room (out), so muted music still played as a wash of echo
+    if (!enabled) return;
+    const I = intensity; if (I < 0.04) return;   // faded out (death): let the reverb ring, schedule nothing
     const ls = step % 64, bar = (ls / 16) | 0, inBar = ls % 16, sd = stepDur();
     const theme = THEMES[heroKey], heroic = section === 'hero', tense = section === 'tense', C = liveCue();
     // whose music this section plays: the world's, the hero's, a villain's, the lament

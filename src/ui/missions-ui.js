@@ -36,8 +36,14 @@ export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) 
 const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
 
+/* the page has two faces: the title screen's MISSIONS (side missions and the story's acts) and its ARCADE (the board
+   of random contracts alone). _arcade is which one is up; the story face remembers its last pick for when the
+   arcade had the mission */
+let _arcade = false, _lastStory = null;
+export const arcadePageOpen = () => missionPageOpen() && _arcade;
 export function setMission(id){
   if (!shown(id)) id = Object.keys(MISSIONS).find(shown) || 'refuge';
+  if (!isArcadeId(id)){ _lastStory = id; try { localStorage.setItem('sw_mission_story', id); } catch(e){} }
   G.missionId = id; try { localStorage.setItem('sw_mission', id); } catch(e){}
   for (const el of listEl.querySelectorAll('.msn')) el.classList.toggle('sel', el.dataset.mission === id);
   refreshInfo();
@@ -68,7 +74,7 @@ function arcCard(c){
 function arcadeShelf(){
   const board = arcadeBoard(boardSeed), picked = isArcadeId(G.missionId) && !board.some(c => c.id === G.missionId) ? missionById(G.missionId) : null;
   const won = arcadeWins(G.hero);
-  return fold('arcade', isArcadeId(G.missionId), 'mp-arcade', `ARCADE<span class="mp-sub">random missions, no story</span>`, won ? won + ' won' : '',
+  return fold('arcade', true, 'mp-arcade open-always', `ARCADE<span class="mp-sub">random missions, no story</span>`, won ? won + ' won' : '',
     `<div class="mp-arcbtns"><div class="btn" data-arc="shuffle">⟳ SHUFFLE</div><div class="btn" data-arc="surprise">⚄ SURPRISE ME</div></div>
     <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div>`);
 }
@@ -109,7 +115,7 @@ try { folds = JSON.parse(localStorage.getItem('sw_mp_folds') || '{}') || {}; } c
 const foldKey = (k) => k === 'arcade' ? k : G.hero + ':' + k;
 const isOpen = (k, dflt) => { const v = folds[foldKey(k)]; return v === undefined ? !!dflt : !!v; };
 function fold(key, dflt, cls, title, count, body, extra = ''){
-  const open = isOpen(key, dflt);
+  const open = key === 'arcade' || isOpen(key, dflt);   // (the arcade is a page of its own now: its board is always out)
   return `<div class="mp-sec ${cls}${open ? ' open' : ''}${extra}" data-fold="${key}">
     <div class="mp-fold" role="button" aria-expanded="${open}"><i class="mp-arrow"></i><span class="mp-ft">${title}</span><span class="mp-n">${count}</span></div>
     <div class="mp-body">${body}</div></div>`;
@@ -136,7 +142,8 @@ function render(){
     t.classList.toggle('on', t.dataset.h === G.hero);
   }
   const shelves = missionShelves(G.hero);
-  listEl.innerHTML = arcadeShelf() + sideShelf() + shelves.map((s, si) => {
+  if (_arcade){ listEl.innerHTML = arcadeShelf(); if (!shown(G.missionId)) setMission(G.missionId); else refreshInfo(); return; }
+  listEl.innerHTML = sideShelf() + shelves.map((s, si) => {
     const acts = s.groups.map((g, ai) => {
       const ms = g.missions.filter(m => trialSeen(m.id));
       const open = ms.filter(m => missionOpen(m.id)), won = open.filter(m => missionDone(m.id, G.hero)).length;
@@ -187,15 +194,24 @@ function arcadeInfo(c){
 export function refreshTile(){
   const md = document.querySelector('#mode-mission .md'); if (!md) return;
   const ids = Object.keys(MISSIONS).filter(shown), won = ids.filter(id => missionDone(id, G.hero)).length;
-  md.innerHTML = G.modeSel === 'mission' && missionOpen(G.missionId)
-    ? 'Picked: ' + (isArcadeId(G.missionId) ? 'Arcade · ' : '') + missionTitle(G.missionId).toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) + ' · <span class="ok">change</span>'
-    : 'Story missions and a random arcade' + (won ? ' · ' + won + '/' + ids.length + ' <span class="ok">✓</span>' : '');
+  const nice = () => missionTitle(G.missionId).toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+  const picked = G.modeSel === 'mission' && missionOpen(G.missionId), arc = isArcadeId(G.missionId);
+  md.innerHTML = picked && !arc ? 'Picked: ' + nice() + ' · <span class="ok">change</span>'
+    : 'Story and side missions' + (won ? ' · ' + won + '/' + ids.length + ' <span class="ok">✓</span>' : '');
+  // the title screen's ARCADE entry: the picked contract, else how many this hero has won
+  const amd = document.querySelector('#mode-arcade .md'); if (!amd) return;
+  const aw = arcadeWins(G.hero);
+  amd.innerHTML = picked && arc ? 'Picked: ' + nice() + ' · <span class="ok">change</span>' : 'Random missions, no story, any hero' + (aw ? ' · ' + aw + ' won' : '');
 }
 // every tick and lock after progress changes, or the hero does
 export function refreshMissionMark(){ render(); refreshTile(); }
 
-export function openMissionPage(){
-  overlay.classList.add('mpage');
+// arc: the ARCADE face (left out, it follows the picked mission: a loaded arcade save, a temple station)
+export function openMissionPage(arc = isArcadeId(G.missionId)){
+  _arcade = !!arc;
+  overlay.classList.add('mpage'); overlay.classList.toggle('mp-arc', _arcade);
+  if (_arcade && !isArcadeId(G.missionId)){ const first = arcadeBoard(boardSeed)[0]; if (first) setMission(first.id); }
+  else if (!_arcade && isArcadeId(G.missionId)) setMission(_lastStory || (() => { try { return localStorage.getItem('sw_mission_story'); } catch(e){ return null; } })());
   refreshPicks();   // BEGIN MISSION and the mission's name, not the first step's headline
   render();
   overlay.scrollTop = 0;
@@ -203,7 +219,7 @@ export function openMissionPage(){
 }
 export function closeMissionPage(){
   if (!missionPageOpen()) return;
-  overlay.classList.remove('mpage');
+  overlay.classList.remove('mpage', 'mp-arc');
   refreshPicks();
   refreshTile();
 }
@@ -212,6 +228,7 @@ listEl.addEventListener('click', (e) => {
   const b = e.target.closest('[data-arc]');
   if (b){ e.stopPropagation(); audioInit(); if (b.dataset.arc === 'shuffle') shuffleBoard(); else surprise(); return; }
   const f = e.target.closest('.mp-fold');
+  if (f && f.parentElement.dataset.fold === 'arcade'){ e.stopPropagation(); return; }
   if (f){ e.stopPropagation(); audioInit(); toggleFold(f.parentElement); return; }
   const c = e.target.closest('.msn'); if (!c) return;
   e.stopPropagation(); audioInit(); setMission(c.dataset.mission);

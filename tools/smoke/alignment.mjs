@@ -76,6 +76,18 @@ try {
   await page.click('#profile .pf-vtabs [data-view="sides"]');
   check(await page.evaluate(() => document.querySelectorAll('#profile .pf-sides .pf-pnode').length === 6), 'LIGHT & DARK draws its six cards');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') });
+  // the page wears the shown hero's look; a rank stop shows that rank; the FORCE TREE is chains of cards with a detail
+  check(await page.evaluate(() => document.getElementById('profile').dataset.hero === 'jedi'), 'the profile wears the Jedi look');
+  await page.click('#profile .pf-stop[data-rank="0"]');
+  const rk = await page.evaluate(() => document.querySelector('#profile .pf-left .pf-next h4').textContent);
+  check(/PADAWAN/.test(rk), 'tapping the first rank stop shows that rank (' + rk + ')');
+  await page.click('#profile .pf-vtabs [data-view="tree"]');
+  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-tree3 .pf-pnode').length }));
+  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-tree3 .pf-pnode')].map(x => x.dataset.node));
+  await page.click('#profile .pf-pnode[data-node="' + nodeIds[nodeIds.length - 1] + '"]');
+  const td = await page.evaluate(() => ({ sel: document.querySelector('#profile .pf-pnode.sel').dataset.node, name: document.querySelector('#profile .pf-detail .pf-dh b').textContent, chains: document.querySelectorAll('#profile .pf-tree3 .pf-chain').length }));
+  check(tr.n >= 6 && td.chains === 3 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws three chains (' + tr.n + ' cards) and a tapped card fills the detail (' + td.name + ')');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-tree.png') });
   await page.click('#pfclose');
 
   // ---- THE GUNNERS' PATHS: the Mando's HONOUR / RUTHLESS and the trooper's MERCY / RUTHLESS (data/alignment.js) ----

@@ -1,0 +1,368 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE PROFILE PAGE (#profile, ui/profile-ui.js) in the look of the hero it shows: the panel carries data-hero for the
+   hero tab that's open (not always the one being played), so it reads that hero's --hx-* tokens (tokens.css).
+   styles/profile.css lays the page out; this file paints it. Shared: the ink edge, flat paint, square corners, no blur,
+   no pills, one display face for the page's word and the rank, reading text in Barlow, light and dark in their meaning
+   colours for every hero.
+   · the Jedi: a holocron page. Night blue, a gold double hairline round the page and the panels, diamond studs, the
+     progress bars drawn as a lit blade
+   · the Mandalorian: beskar plate. Chamfered plates with an ember top strip, slanted plate segments for progress
+   · the trooper: orders. A black readout under a hazard stripe, mono labels, checkbox rank stops, tick-marked bars, and
+     the open card's detail typed on the tan field file
+   ============================================================ */
+#profile{background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(8,10,16,.8),rgba(2,3,6,.94));backdrop-filter:none;-webkit-backdrop-filter:none;
+  --pf-dk:#ff7a66; --pf-lt:#9fd8ff; --pf-ok:#7fd88f}
+#profile[data-hero="jedi"]{background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(12,16,44,.82),rgba(3,4,14,.95))}
+#profile[data-hero="mando"]{background:radial-gradient(ellipse 80% 70% at 40% 45%,rgba(26,23,20,.84),rgba(6,5,4,.95))}
+
+/* ---------- shared bones ---------- */
+#profile .pf-panel{animation:none;border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-solid);box-shadow:0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+#profile .pf-panel.enter{animation:hxcard .26s steps(4) both}   /* on opening only: a tap inside redraws the page and must not replay it */
+#profile .howto-title{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+#profile .rm-sub{font:500 13px/1.3 var(--font-body);letter-spacing:0;color:var(--hx-dim)}
+#profile .howto-x{border-radius:0;border:0;color:var(--hx-soft);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .howto-x:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile :is(.pf-col,.pf-body){scrollbar-color:var(--hx-line) transparent}
+
+/* tabs: square segments on an ink bar, the open one in the accent (no pill) */
+#profile .cz-tabs{gap:2px;padding:2px;border:0;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#profile .cz-tabs span{border-radius:0;padding:8px 14px;font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);background:var(--hx-paper)}
+#profile .cz-tabs span:hover{color:var(--hx-text);background:var(--hx-paper-2)}
+#profile .cz-tabs span.on{color:var(--hx-on-accent);background:var(--hx-accent)}
+#profile .pf-vtabs span{font-size:12px;padding:8px 13px}
+
+/* buttons: the hero's plate with an ink edge; the one that does something (add, learn, build) in the accent */
+#profile .pf-panel .btn{border:0;border-radius:0;padding:8px 13px;font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);
+  background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-panel .btn::after{content:none}
+#profile .pf-panel .btn:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-panel :is(.pf-add,.pf-build,.pf-learn){color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:inset 0 3px 0 rgba(255,255,255,.28),0 0 0 2px var(--hx-ink)}
+#profile .pf-panel :is(.pf-add,.pf-build,.pf-learn):hover{color:var(--hx-on-accent);background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile .pf-wipe.armed{color:var(--danger-soft,#ff8a7a);box-shadow:inset 0 0 0 1px var(--danger-soft,#ff8a7a),0 0 0 2px var(--hx-ink)}
+
+/* the left column: who you are */
+#profile .pf-kick{font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-live)}
+#profile .pf-rank{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-accent-hi);text-shadow:0 3px 0 var(--hx-ink)}
+#profile .pf-xp{font:600 12px/1 var(--hx-label);letter-spacing:.08em;color:var(--hx-dim)}
+#profile .pf-xp b{color:var(--hx-text)}
+#profile :is(.pf-how,.pf-note,.pf-empty){font:500 12px/1.4 var(--font-body);color:var(--hx-dim)}
+#profile .pf-note b,#profile .pf-hl{color:var(--hx-accent-hi)}
+#profile .pf-live-note{border-left:0;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent);padding:8px 10px;color:var(--hx-soft)}
+
+/* the rank track: tappable stops on an inked line */
+#profile .pf-journey{height:24px;margin:18px 10px 0}
+#profile .pf-jline{height:6px;margin-top:-3px;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#profile .pf-jline i{border-radius:0;background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}
+#profile .pf-stop{width:28px;height:28px;margin:-14px 0 0 -14px;padding:0;border:0;background:none;cursor:pointer;font:inherit}   /* a finger-sized target */
+#profile .pf-stop i{left:6px;top:6px;width:16px;height:16px;border-radius:0;background:var(--hx-paper-solid);border:0;box-shadow:inset 0 0 0 2px var(--hx-dim),0 0 0 2px var(--hx-ink)}
+#profile .pf-stop.done i{background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile .pf-stop.on i{left:4px;top:4px;width:20px;height:20px;background:var(--hx-accent-hi);border:0;box-shadow:0 0 0 2px var(--hx-ink)}
+#profile .pf-stop:hover i,#profile .pf-stop:focus-visible i{box-shadow:inset 0 0 0 2px var(--hx-text),0 0 0 2px var(--hx-ink)}
+#profile .pf-stop.pick i::after{content:'';position:absolute;inset:-6px;box-shadow:0 0 0 2px var(--hx-text)}
+#profile .pf-stop:focus-visible{outline:none}
+#profile .pf-jends{align-items:center;font:600 11px/1 var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+#profile .pf-jends.many em{display:none}
+#profile .pf-jends em{font:italic 500 11px/1 var(--font-body);letter-spacing:0;color:var(--hx-dim);opacity:.8}
+
+/* panels: the rank box, tiles, the detail, a side or a branch: flat paper, an inset line, an ink edge */
+#profile :is(.pf-next,.pf-tile,.pf-detail,.pf-pside,.pf-align.big){border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile :is(.pf-next h4,.pf-tile h4){font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+#profile .pf-next.held h4{color:var(--hx-soft)}
+#profile .pf-rline{margin:0;font:500 13px/1.4 var(--font-body);color:var(--hx-text)}
+#profile .pf-op{display:block;margin-top:12px;font:600 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#profile .pf-op + .pf-chips{margin-top:6px;padding-top:0;border-top:0}
+#profile .pf-chips{border-top-color:var(--hx-line)}
+#profile .pf-chips span{border-radius:0;border:0;padding:5px 8px;font:600 12px/1 var(--font-body);color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent)}
+#profile .pf-need{color:var(--hx-text)}
+#profile .pf-need>span{font:600 11px/1 var(--hx-label);letter-spacing:.08em;color:var(--hx-dim)}
+#profile .pf-need>b{font:600 12px/1 var(--hx-label);color:var(--hx-soft)}
+#profile .pf-need.ok>span,#profile .pf-need.ok>b{color:var(--pf-ok)}
+
+/* bars and pips: square, inked, flat with one highlight band */
+#profile :is(.pf-mbar,.pf-bar){height:8px;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#profile :is(.pf-mbar,.pf-bar) i{background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}
+#profile .pf-pips i{border-radius:0;border:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-pips i.on{background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 0 0 1px var(--hx-ink)}
+
+/* the light-and-dark meter: an inked bar, the marker a square (shared meaning colours) */
+#profile .pf-align{border-top-color:var(--hx-line)}
+#profile .pf-al-h{font:600 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft)}
+#profile .pf-al-h em{color:var(--hx-text)}
+#profile .pf-al-bar{border-radius:0;background:linear-gradient(90deg,#8a1a14,#3b2b2c 38%,#2a3038 62%,#2a6c9a);box-shadow:inset 0 2px 0 rgba(255,255,255,.12),0 0 0 2px var(--hx-ink)}
+#profile .pf-al-bar .zone{border-radius:0}
+#profile .pf-al-bar .lean{background:var(--hx-ink);width:3px;margin-left:-1.5px}
+#profile .pf-al-bar b{border-radius:0;transform:rotate(45deg);background:var(--hx-text);box-shadow:0 0 0 2px var(--hx-ink);transition:left .3s steps(4)}
+#profile .pf-al-ends{font:600 11px/1 var(--hx-label);letter-spacing:.12em}
+#profile .pf-al-ends .mid{font:500 12px/1 var(--font-body);color:var(--hx-dim)}
+#profile .pf-al-line{font:italic 500 12px/1.4 var(--font-body);color:var(--hx-dim)}
+#profile .pf-align.big{padding:14px 16px}
+#profile .pf-align.big .pf-al-bar{border-radius:0}
+
+/* OVERVIEW's tiles */
+#profile .pf-big{color:var(--hx-soft)}
+#profile .pf-big b,#profile .pf-rec b,#profile .pf-sidecount b{font-family:var(--hx-display);font-weight:var(--hx-display-w);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+#profile .pf-ring{background:conic-gradient(var(--hx-accent) calc(var(--f)*360deg),var(--hx-ink) 0);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile .pf-ring span{background:var(--hx-paper-solid);font:600 12px/1 var(--hx-label);color:var(--hx-text)}
+#profile .pf-dslots>span{font:600 11px/1 var(--hx-label);letter-spacing:.08em;color:var(--hx-dim)}
+#profile .pf-dslots i{border-radius:0;border:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-dslots i.on{background:var(--hx-accent);box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 0 0 1px var(--hx-ink)}
+#profile .pf-sidecount div{border-radius:0;border:0;background:var(--hx-paper-2);color:var(--hx-soft)}
+#profile .pf-sidecount .dk{box-shadow:inset 0 3px 0 var(--pf-dk),0 0 0 2px var(--hx-ink)}
+#profile .pf-sidecount .lt{box-shadow:inset 0 3px 0 var(--pf-lt),0 0 0 2px var(--hx-ink)}
+#profile .pf-sidecount span{font:600 11px/1 var(--hx-label);letter-spacing:.12em}
+#profile .pf-sidecount .dk span{color:var(--pf-dk)} #profile .pf-sidecount .lt span{color:var(--pf-lt)}
+#profile .pf-sidecount .dk b,#profile .pf-sidecount .lt b{color:var(--hx-text)}
+#profile .pf-sb i{border-radius:0;box-shadow:0 0 0 2px var(--hx-ink),0 0 10px var(--c)}
+#profile .pf-sb b{font:600 13px/1.1 var(--hx-label);letter-spacing:.06em;color:var(--hx-text)}
+#profile .pf-sb span,#profile .pf-sub{color:var(--hx-dim);font-size:12px}
+#profile .pf-rec div{border:0;border-radius:0;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-rec span{font:600 11px/1.15 var(--hx-label);letter-spacing:.06em;color:var(--hx-dim)}
+
+/* CARDS: tiles by tier, the filter, the one card's detail */
+#profile .pf-filter{border:0;border-radius:0;gap:2px;padding:2px;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#profile .pf-filter span{border-radius:0;font:600 12px/1 var(--hx-label);letter-spacing:.08em;color:var(--hx-soft);background:var(--hx-paper)}
+#profile .pf-filter span.on{background:var(--hx-accent);color:var(--hx-on-accent)}
+#profile .pf-filter i{font:600 11px/1 var(--hx-label);color:var(--hx-dim)}
+#profile .pf-filter span.on i{color:var(--hx-on-accent);opacity:.75}
+#profile .pf-ins{font:600 12px/1 var(--hx-label);letter-spacing:.08em;color:var(--hx-soft)}
+#profile .pf-ins b{color:var(--hx-accent-hi)}
+#profile .pf-trh{border-bottom:1px solid var(--hx-line);padding-bottom:6px}
+#profile .pf-trh b{font:600 13px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+#profile .pf-dcard{border:0;border-radius:0;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard:hover{box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard b{font:600 11px/1.2 var(--font-ui);letter-spacing:.06em;color:var(--hx-text)}
+#profile .pf-dcard.shut{opacity:1;background:var(--hx-paper)}
+#profile .pf-dcard.shut :is(b,.pf-orb){opacity:.55}
+#profile .pf-dcard.indeck{background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard.al-light{border-top:0;box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard.al-dark{border-top:0;box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard.sel,#profile .pf-pnode.sel{box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
+#profile .pf-dcard .pf-tier-k,#profile .pf-tier-k{font:600 10px/1 var(--hx-label);letter-spacing:.1em}
+#profile .pf-tier-k.al-light{color:var(--pf-lt)} #profile .pf-tier-k.al-dark{color:var(--pf-dk)}
+#profile .pf-slot{border:0;border-radius:0;background:transparent;box-shadow:inset 0 0 0 1px var(--hx-line);color:var(--hx-dim);
+  background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.03) 6px 8px)}
+#profile .pf-slot:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent)}
+#profile .pf-orb{border-radius:0;border:0;color:var(--hx-accent);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-dcard.indeck .pf-orb{color:var(--hx-accent-hi);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .al-light .pf-orb{color:var(--pf-lt);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--pf-lt),0 0 0 2px var(--hx-ink)}
+#profile .al-dark .pf-orb{color:var(--pf-dk);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--pf-dk),0 0 0 2px var(--hx-ink)}
+#profile :is(.pf-lk,.pf-in){border-radius:0;box-shadow:0 0 0 2px var(--hx-ink);font:700 11px/1 var(--font-ui)}
+#profile .pf-lk{background:var(--hx-paper-2);color:var(--hx-soft)}
+#profile .pf-in{background:var(--hx-accent);color:var(--hx-on-accent)}
+#profile .pf-detail{gap:10px;padding:16px}
+#profile .pf-detail.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-detail.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-dh b{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:16px;letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+#profile .pf-dh div span{font:600 11px/1 var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+#profile .pf-detail .pf-ds li,#profile .pf-detail>p{color:var(--hx-text)}
+#profile .pf-detail .pf-ds li::before{border-radius:0;transform:rotate(45deg);background:var(--hx-accent)}
+#profile .pf-detail.al-light .pf-ds li::before{background:var(--pf-lt)} #profile .pf-detail.al-dark .pf-ds li::before{background:var(--pf-dk)}
+#profile .pf-fl{color:var(--hx-dim) !important}
+#profile .pf-dact{border-top-color:var(--hx-line)}
+#profile .pf-got{font:600 12px/1.2 var(--hx-label);letter-spacing:.08em;color:var(--pf-ok)}
+#profile .pf-lock,#profile .pf-dact .pf-lock{font:600 12px/1.35 var(--font-body);color:var(--hx-soft)}
+#profile .pf-unlock span{font:600 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#profile .pf-unlock li{color:var(--hx-text)}
+#profile .pf-unlock li i{color:var(--hx-dim)}
+#profile .pf-unlock li.ok{color:var(--hx-dim)} #profile .pf-unlock li.ok i{color:var(--pf-ok)}
+#profile .pf-unlock li em{font-size:12px;color:var(--hx-dim)}
+
+/* PATHS and the FORCE TREE: chains of cards */
+#profile .pf-pside{padding:12px 12px 14px}
+#profile .pf-pside.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-pside.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-pside.path{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-pside.al-light.path{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--pf-lt),0 0 0 2px var(--hx-ink)}
+#profile .pf-pside.al-dark.path{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--pf-dk),0 0 0 2px var(--hx-ink)}
+#profile .pf-bh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#profile .pf-bh b{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:16px;letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+#profile .pf-bh .btn{padding:6px 9px;font-size:11px;white-space:nowrap}
+#profile .pf-branch.path .pf-path{color:var(--hx-on-accent);background:var(--hx-accent)}
+#profile .pf-bl{margin:0;font:500 12px/1.35 var(--font-body);color:var(--hx-dim)}
+#profile .pf-pside.al-dark .pf-got{color:var(--pf-dk)} #profile .pf-pside.al-light .pf-got{color:var(--pf-lt)}
+#profile .pf-chain::before{width:4px;left:21px;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#profile .pf-pnode{border:0;border-radius:0;padding:5px}
+#profile .pf-pnode:hover{background:var(--hx-paper-2)}
+#profile .pf-pnode.sel{background:var(--hx-paper-2)}
+#profile .pf-pnode .pf-orb{background:var(--hx-paper-solid)}
+#profile .pf-pnode.open .pf-orb{box-shadow:inset 0 0 0 2px currentColor,0 0 0 2px var(--hx-ink)}
+#profile .pf-pnode b{font:600 12px/1.15 var(--font-ui);letter-spacing:.06em;color:var(--hx-text)}
+#profile .pf-pnode div span{font:600 11px/1 var(--hx-label);letter-spacing:.06em;color:var(--hx-dim)}
+#profile .pf-pnode.open div span{color:var(--pf-ok)}
+#profile .pf-pnode.t-open div span{color:var(--hx-accent-hi)}
+#profile .pf-pnode.t-open .pf-orb{color:var(--hx-accent-hi);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-pnode.t-learned .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent)}
+#profile .pf-pnode.shut b{color:var(--hx-soft)}
+#profile .pf-fork{border-left:0;border-radius:0;margin-top:auto;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-fork span{font:600 10px/1.1 var(--hx-label);letter-spacing:.1em;color:var(--hx-dim)}
+#profile .pf-fork b{font:600 12px/1.2 var(--font-ui);color:var(--hx-soft)}
+#profile .pf-fork em{color:var(--hx-live);font-size:12px}
+/* the tree: three branches beside the detail */
+#profile .pf-tree3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#profile .pf-tree3 .pf-pside{display:flex;flex-direction:column}
+#profile .pf-tree3 .pf-bh b{font-size:14px}
+#profile .pf-tsplit{grid-template-columns:minmax(0,1fr) 250px}
+
+/* ======================= THE JEDI: a holocron page ======================= */
+#profile[data-hero="jedi"] .pf-panel{background:linear-gradient(180deg,#141a46,#0e1230 60%);
+  box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+#profile[data-hero="jedi"] .howto-title{font-size:30px;letter-spacing:.08em}
+#profile[data-hero="jedi"] .howto-title::before,#profile[data-hero="jedi"] .howto-title::after{content:'';display:inline-block;width:8px;height:8px;margin:0 12px 5px 0;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] .howto-title::after{margin:0 0 5px 12px}
+#profile[data-hero="jedi"] .pf-rank{font-size:42px;letter-spacing:.04em}
+#profile[data-hero="jedi"] .pf-rank::after{content:'';display:block;width:180px;height:1px;margin-top:10px;background:linear-gradient(90deg,var(--hx-accent),rgba(217,178,94,0))}
+#profile[data-hero="jedi"] :is(.pf-next,.pf-tile,.pf-detail,.pf-pside:not(.al-light):not(.al-dark),.pf-align.big){position:relative;background:linear-gradient(var(--hx-paper-2),var(--hx-paper));
+  box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 3px transparent,0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] :is(.pf-tile,.pf-detail)::before{content:'';position:absolute;top:-5px;left:calc(50% - 4px);width:7px;height:7px;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] .pf-detail{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] :is(.pf-next h4,.pf-tile h4,.pf-trh b){font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:13px;letter-spacing:.12em}
+#profile[data-hero="jedi"] .pf-tile h4{display:flex;align-items:center;gap:10px}
+#profile[data-hero="jedi"] .pf-tile h4::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hx-line),transparent)}
+/* the bars are a lit blade: a white core in the saber's blue */
+#profile[data-hero="jedi"] :is(.pf-mbar,.pf-jline) i{background:#eaf7ff;box-shadow:0 0 0 1px #9ad6ff,0 0 8px var(--hx-live)}
+#profile[data-hero="jedi"] .pf-ring{background:conic-gradient(var(--hx-accent) calc(var(--f)*360deg),var(--hx-ink) 0)}
+/* the stops and the orbs are diamonds */
+#profile[data-hero="jedi"] .pf-stop i{transform:rotate(45deg)}
+#profile[data-hero="jedi"] .pf-stop.on i{background:var(--hx-live);box-shadow:0 0 0 2px var(--hx-ink),0 0 10px var(--hx-live)}
+#profile[data-hero="jedi"] .pf-stop.done i{background:var(--hx-accent)}
+#profile[data-hero="jedi"] .pf-stop.pick i::after{inset:-5px;box-shadow:0 0 0 1.5px var(--hx-accent-hi)}
+#profile[data-hero="jedi"] .pf-orb{border-radius:50%;box-shadow:inset 0 0 0 1px currentColor,inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] .pf-pnode.t-learned .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+#profile[data-hero="jedi"] .pf-pnode.t-open .pf-orb{color:var(--hx-live);box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 10px rgba(111,200,255,.5)}
+#profile[data-hero="jedi"] .pf-pnode.t-open div span{color:var(--hx-live)}
+#profile[data-hero="jedi"] .pf-chain::before{width:2px;left:22px;background:var(--hx-accent);box-shadow:none;opacity:.55}
+#profile[data-hero="jedi"] .pf-dcard{box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] .pf-dcard.indeck{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-2),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="jedi"] :is(.pf-big b,.pf-rec b,.pf-sidecount b){color:var(--hx-accent-hi)}
+#profile[data-hero="jedi"] .pf-dh b{font-size:15px}
+#profile[data-hero="jedi"] .pf-panel :is(.pf-add,.pf-build,.pf-learn){font-family:var(--font-ui);font-weight:700;letter-spacing:.14em;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+
+/* ======================= THE MANDALORIAN: beskar plate ======================= */
+#profile[data-hero="mando"] .pf-panel{background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .howto-title{font-size:30px;letter-spacing:.2em;font-variant:small-caps}
+#profile[data-hero="mando"] .pf-rank{font-size:40px;letter-spacing:.14em}
+#profile[data-hero="mando"] .pf-kick{color:var(--hx-accent)}
+#profile[data-hero="mando"] :is(.pf-next,.pf-tile,.pf-detail,.pf-pside,.pf-align.big,.pf-dcard,.pf-rec div,.pf-sidecount div,.pf-fork){background:var(--hx-plate);clip-path:var(--hx-chamfer)}
+#profile[data-hero="mando"] :is(.pf-next,.pf-tile,.pf-detail,.pf-align.big){box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-pside:not(.al-light):not(.al-dark){box-shadow:inset 0 3px 0 var(--hx-dim),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-pside.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-pside.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-pside.path.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 2px var(--pf-dk)}
+#profile[data-hero="mando"] .pf-pside.path.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 2px var(--pf-lt)}
+#profile[data-hero="mando"] .pf-detail.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-detail.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] :is(.pf-next h4,.pf-tile h4,.pf-trh b){font:400 14px/1 Georgia,'Times New Roman',serif;letter-spacing:.22em;font-variant:small-caps;color:var(--hx-accent)}
+#profile[data-hero="mando"] :is(.pf-next h4,.pf-tile h4){font-size:15px}
+/* rivets in the plates' top corners */
+#profile[data-hero="mando"] :is(.pf-tile,.pf-detail){position:relative}
+#profile[data-hero="mando"] :is(.pf-tile,.pf-detail)::after{content:'';position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%;background:#8d949b;box-shadow:0 0 0 1px var(--hx-ink),-14px 0 0 -0px transparent}
+#profile[data-hero="mando"] .pf-dcard{box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-dcard.indeck{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-dcard.al-light{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-dcard.al-dark{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-dcard.sel{clip-path:none;box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
+#profile[data-hero="mando"] .pf-dcard b,#profile[data-hero="mando"] .pf-pnode b{font:400 12px/1.2 Georgia,'Times New Roman',serif;letter-spacing:.1em}
+#profile[data-hero="mando"] .pf-orb{clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%);background:linear-gradient(180deg,#3a3d41,#1d1f22);box-shadow:inset 0 0 0 2px currentColor}
+#profile[data-hero="mando"] .pf-pnode.t-learned .pf-orb,#profile[data-hero="mando"] .pf-dcard.indeck .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent)}
+/* the stops are slanted plates; the bars, plate segments */
+#profile[data-hero="mando"] .pf-stop i{transform:skewX(-18deg)}
+#profile[data-hero="mando"] .pf-stop.on i{background:var(--hx-accent)}
+#profile[data-hero="mando"] .pf-stop.done i{background:var(--hx-beskar,#8d949b)}
+#profile[data-hero="mando"] :is(.pf-mbar,.pf-jline) i{background:repeating-linear-gradient(105deg,var(--hx-accent) 0 9px,transparent 9px 12px);box-shadow:none}
+#profile[data-hero="mando"] .pf-jline i{background:repeating-linear-gradient(105deg,#8d949b 0 9px,transparent 9px 12px)}
+#profile[data-hero="mando"] :is(.pf-pips i,.pf-dslots i){transform:skewX(-18deg)}
+#profile[data-hero="mando"] .pf-ring{background:conic-gradient(var(--hx-accent) calc(var(--f)*360deg),var(--hx-ink) 0)}
+#profile[data-hero="mando"] .pf-chain::before{background:repeating-linear-gradient(180deg,#8d949b 0 6px,var(--hx-ink) 6px 9px);box-shadow:0 0 0 1px var(--hx-ink)}
+#profile[data-hero="mando"] .pf-al-bar b{transform:skewX(-18deg)}
+#profile[data-hero="mando"] .pf-panel .btn{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.18em}
+#profile[data-hero="mando"] .pf-panel .btn:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+#profile[data-hero="mando"] .pf-panel :is(.pf-add,.pf-build,.pf-learn){color:var(--hx-on-accent);background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none}
+#profile[data-hero="mando"] .cz-tabs span{font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.16em}
+#profile[data-hero="mando"] .cz-tabs span.on{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
+#profile[data-hero="mando"] .pf-sidecount .dk{box-shadow:inset 0 3px 0 var(--pf-dk),inset 0 0 0 1px var(--hx-line)}
+#profile[data-hero="mando"] .pf-sidecount .lt{box-shadow:inset 0 3px 0 var(--pf-lt),inset 0 0 0 1px var(--hx-line)}
+
+/* ======================= THE TROOPER: orders, and the field file ======================= */
+#profile[data-hero="trooper"] .pf-panel{background:#101315;box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+#profile[data-hero="trooper"] .howto-head{position:relative;padding-top:14px}
+#profile[data-hero="trooper"] .howto-head::before{content:'';position:absolute;left:0;top:0;width:140px;height:6px;background:var(--hx-hazard);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .howto-title{font-size:26px;letter-spacing:.02em}
+#profile[data-hero="trooper"] .howto-title::before{content:'// ';color:var(--hx-accent)}
+#profile[data-hero="trooper"] .pf-rank{font-size:34px;letter-spacing:0}
+#profile[data-hero="trooper"] .pf-kick{color:var(--hx-accent)}
+#profile[data-hero="trooper"] :is(.pf-next,.pf-tile,.pf-pside,.pf-align.big){background:rgba(238,241,242,.03)}
+#profile[data-hero="trooper"] :is(.pf-next h4,.pf-tile h4,.pf-trh b){font:600 12px/1 var(--hx-label);letter-spacing:.1em;color:var(--hx-accent)}
+#profile[data-hero="trooper"] .pf-tiles{counter-reset:pft}
+#profile[data-hero="trooper"] .pf-tile h4::before{counter-increment:pft;content:'[0' counter(pft) '] ';color:var(--hx-dim)}
+/* the rank stops are checkboxes: a tick for each rank held */
+#profile[data-hero="trooper"] .pf-stop i{background:#101315;box-shadow:inset 0 0 0 2px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .pf-stop.done i,#profile[data-hero="trooper"] .pf-stop.on i{background:var(--hx-plate-white)}
+#profile[data-hero="trooper"] .pf-stop.done i::before,#profile[data-hero="trooper"] .pf-stop.on i::before{content:'';position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #101315;border-width:0 2px 2px 0;transform:rotate(45deg)}
+#profile[data-hero="trooper"] .pf-stop.on i::before{left:7px;top:3px;width:5px;height:10px}
+#profile[data-hero="trooper"] .pf-stop.on i{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent)}
+/* range bars with tick marks every tenth */
+#profile[data-hero="trooper"] :is(.pf-mbar,.pf-jline){position:relative}
+#profile[data-hero="trooper"] .pf-mbar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(16,19,21,.9) calc(10% - 1px) 10%);pointer-events:none}
+#profile[data-hero="trooper"] .pf-mbar{height:10px}
+#profile[data-hero="trooper"] :is(.pf-mbar,.pf-jline) i{box-shadow:none}
+#profile[data-hero="trooper"] .pf-pips i{height:12px}
+#profile[data-hero="trooper"] .pf-pips i.on{background:var(--hx-plate-white)}
+#profile[data-hero="trooper"] .pf-dslots i.on{background:var(--hx-plate-white)}
+#profile[data-hero="trooper"] :is(.pf-big b,.pf-rec b,.pf-sidecount b){font-weight:600;letter-spacing:-.02em}
+#profile[data-hero="trooper"] .pf-dcard b,#profile[data-hero="trooper"] .pf-pnode b{font:600 11px/1.2 var(--hx-label);letter-spacing:.02em}
+#profile[data-hero="trooper"] .pf-chain::before{background:repeating-linear-gradient(180deg,var(--hx-accent) 0 4px,transparent 4px 8px);box-shadow:none;width:2px;left:22px}
+#profile[data-hero="trooper"] .pf-pnode.t-learned .pf-orb,#profile[data-hero="trooper"] .pf-dcard.indeck .pf-orb{color:#101315;background:var(--hx-plate-white)}
+#profile[data-hero="trooper"] .pf-dcard.indeck{box-shadow:inset 0 0 0 2px var(--hx-plate-white),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .pf-in{background:var(--hx-plate-white);color:#101315}
+/* the buttons: armour-white plates, the one that acts with a hazard tab */
+#profile[data-hero="trooper"] .pf-panel :is(.pf-add,.pf-build,.pf-learn){position:relative;padding-right:28px;color:#101315;background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -3px 0 #c5cbce}
+#profile[data-hero="trooper"] .pf-panel :is(.pf-add,.pf-build,.pf-learn)::after{content:'';position:absolute;right:0;top:0;bottom:0;width:12px;height:auto;margin:0;border:0;background:var(--hx-hazard)}
+#profile[data-hero="trooper"] .pf-panel :is(.pf-add,.pf-build,.pf-learn):hover{background:#fff}
+#profile[data-hero="trooper"] .cz-tabs span.on{color:#101315;background:var(--hx-plate-white);box-shadow:inset 0 -3px 0 var(--hx-accent)}
+#profile[data-hero="trooper"] .pf-filter span.on{color:#101315;background:var(--hx-plate-white)}
+/* the open card's detail is typed on the field file, its name stamped */
+#profile[data-hero="trooper"] .pf-detail{--hx-text:#1d1810; --hx-soft:#3a3122; --hx-dim:#6a5c40; --hx-line:rgba(43,36,22,.3); --pf-dk:#a32a1c; --pf-lt:#1d5f9a; --pf-ok:#2f6b2a;
+  color:var(--hx-file-ink);background:var(--hx-file);box-shadow:0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .pf-detail.al-dark{box-shadow:inset 0 4px 0 var(--pf-dk),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .pf-detail.al-light{box-shadow:inset 0 4px 0 var(--pf-lt),0 0 0 2px var(--hx-ink)}
+#profile[data-hero="trooper"] .pf-detail .pf-dh b{display:inline-block;align-self:flex-start;padding:4px 7px;font:600 13px/1.1 var(--hx-display);letter-spacing:.08em;color:var(--hx-stamp);border:2px solid var(--hx-stamp);transform:rotate(-2deg)}
+#profile[data-hero="trooper"] .pf-detail :is(.pf-ds li,.pf-unlock li),#profile[data-hero="trooper"] .pf-detail>p:not(.pf-fl){font:500 13px/1.45 var(--hx-display)}
+#profile[data-hero="trooper"] .pf-detail .pf-ds li::before{content:'[ ]';width:auto;height:auto;left:-2px;top:0;background:none;transform:none;font:500 12px/1.45 var(--hx-display);color:var(--hx-dim)}
+#profile[data-hero="trooper"] .pf-detail .pf-ds li{padding-left:28px}
+#profile[data-hero="trooper"] .pf-detail .pf-orb{color:var(--hx-file-ink);background:rgba(43,36,22,.08);box-shadow:inset 0 0 0 2px var(--hx-file-ink)}
+#profile[data-hero="trooper"] .pf-detail .pf-lk{background:var(--hx-file);color:var(--hx-file-ink)}
+#profile[data-hero="trooper"] .pf-detail .pf-fl{font:italic 500 12px/1.4 var(--font-body) !important}
+#profile[data-hero="trooper"] .pf-detail .btn:not(.pf-add){color:var(--hx-file-ink);background:transparent;box-shadow:inset 0 0 0 2px var(--hx-file-ink)}
+#profile[data-hero="trooper"] .pf-detail .pf-add{box-shadow:0 0 0 2px var(--hx-file-ink),inset 0 -3px 0 #c5cbce}
+
+/* ---------- a phone: the left column folds to a strip (rank, the track), so the tabs come first ---------- */
+#profile .pf-mob{display:none}
+@media (max-width:760px){
+  #profile .pf-panel{height:100%}
+  #profile .pf-left{display:grid;grid-template-columns:1fr;gap:0;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--hx-line)}
+  #profile .pf-who{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+  #profile .pf-who .pf-kick{flex-basis:100%}
+  #profile .pf-who .pf-rank{margin-top:4px;font-size:28px}
+  #profile .pf-who .pf-rank::after{display:none}
+  #profile .pf-who .pf-xp{margin-top:0}
+  #profile .pf-left .pf-journey{margin-top:12px}
+  #profile .pf-left :is(.pf-align,.pf-how){display:none}
+  #profile .pf-left .pf-next:not(.picked){display:none}
+  #profile .pf-right{margin-top:0}
+  #profile .pf-mob{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
+  #profile .pf-mob .pf-align{margin:0;padding:12px 14px;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);border-top:0}
+  #profile .pf-mob .pf-next{margin-top:0}
+  #profile .howto-title{font-size:22px}
+  #profile .howto-head .rm-sub{display:none}
+  #profile .pf-tabs span{padding:7px 9px;font-size:11px}
+  #profile .pf-vtabs span{padding:7px 9px;font-size:11px}
+  #profile .pf-tree3{grid-template-columns:1fr}
+  #profile .pf-tsplit{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  /* tabs that wrap fill their rows, so no empty ink shows at a row's end */
+  #profile .cz-tabs{width:auto;max-width:none;align-self:stretch}
+  #profile .cz-tabs span{flex:1 1 auto;text-align:center}
+}

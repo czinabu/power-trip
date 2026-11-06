@@ -1,9 +1,10 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE PROFILE PAGE, picture first. On the left, always: the rank, the rank track (every rank as a stop on one line), the
-// next rank's asks as bars and pips, and the light-and-dark meter. On the right, a tab at a time: OVERVIEW (a tile each
-// for the deck, the two paths, the Jedi's tree, the saber or kit, NEW GAME+ and the record), CARDS (every card as an icon
-// tile by tier, with one card's detail beside them: what it does and what to do with it), the Jedi's FORCE TREE, and the
-// PATHS (the meter big, the two sides as two chains of three). Opens from PROFILE on the main menu, the hub and the
+// THE PROFILE PAGE, picture first. On the left, always: the rank, the rank track (every rank as a stop on one line; tap
+// one to see what it asks and opens), that rank's asks as bars and pips, and the light-and-dark meter. On the right, a tab
+// at a time: OVERVIEW (a tile each for the deck, the two paths, the Jedi's tree, the saber or kit, NEW GAME+ and the
+// record), CARDS (every card as an icon tile by tier, with one card's detail beside them: what it does and what to do with
+// it), the Jedi's FORCE TREE (each branch a chain of cards), and the PATHS (the meter big, the two sides as two chains of
+// three). The panel wears the shown hero's look (styles/heroes/profile.css); on a phone the left column folds to a strip. Opens from PROFILE on the main menu, the hub and the
 // pause screen, in every mode. game/profile.js keeps it all; data/profile.js and data/alignment.js have the words.
 
 import { G } from '../state.js';
@@ -35,6 +36,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const HERO_NAME = { jedi: 'JEDI', mando: 'MANDALORIAN', trooper: 'ARC TROOPER' };
 let hero = 'jedi', armed = false, view = 'home', filter = null;   // view: the right column's OVERVIEW, CARDS, the Jedi's FORCE TREE or PATHS
 const sel = {}, kept = {};   // per hero: the card whose detail shows (CARDS and PATHS), and one just added or taken out
+const rankAt = {};   // per hero: the rank stop tapped on the rank track (none: the box shows the next rank)
+let treeSel = null;  // the Force Tree node whose detail shows
 const SET_OF = { jedi: SKILLS, mando: MANDO_SKILLS, trooper: TROOPER_SKILLS };
 // the trooper's story ranks open looks, not cards (game/wardrobe.js PROMOTIONS, data/ability-cards.js promote-*)
 const LOOK_OF_RANK = { trooper: { sergeant: 'Sergeant green marks', lieutenant: 'Lieutenant blue marks', captain: 'Captain helmet and pauldron',
@@ -80,8 +83,25 @@ function journey(h){
   const frac = !next ? 0 : nx.length ? nx.reduce((a, x) => a + (x.ok ? 1 : x.need ? Math.min(1, x.have / x.need) : 0), 0) / nx.length : 0;
   const fill = n > 1 ? (p.rank + frac) / (n - 1) : 1;
   return '<div class="pf-journey" style="--n:' + n + '"><div class="pf-jline"><i style="width:' + pct(fill) + '"></i></div>' +
-    T.ranks.map((x, i) => '<div class="pf-stop ' + (i < p.rank ? 'done' : i === p.rank ? 'on' : '') + '" style="left:' + pct(n > 1 ? i / (n - 1) : 0) + '" title="' + esc(x.nm + ': ' + x.line) + '"><i></i></div>').join('') + '</div>' +
-    '<div class="pf-jends"><span>' + esc(T.ranks[0].nm) + '</span><span>' + esc(T.ranks[n - 1].nm) + '</span></div>';
+    T.ranks.map((x, i) => '<button type="button" class="pf-stop ' + (i < p.rank ? 'done' : i === p.rank ? 'on' : '') + (i === pickedRank(h) ? ' pick' : '') + '" data-rank="' + i + '" style="left:' + pct(n > 1 ? i / (n - 1) : 0) + '" aria-label="' + esc(x.nm) + '"><i></i></button>').join('') + '</div>' +
+    '<div class="pf-jends' + (n > 4 ? ' many' : '') + '"><span>' + esc(T.ranks[0].nm) + '</span><em>tap a rank</em><span>' + esc(T.ranks[n - 1].nm) + '</span></div>';
+}
+// the rank the box under the track shows: the one tapped, else the next (or the top one, held)
+function pickedRank(h){
+  const T = track(h), p = profileOf(h), r = rankAt[h];
+  return r != null && r < T.ranks.length ? r : Math.min(p.rank + 1, T.ranks.length - 1);
+}
+// THE RANK BOX: one rank, drawn. Ahead: what it asks, as bars and pips, and what it opens. Held: its line and what it opened
+function rankBox(h){
+  const T = track(h), p = profileOf(h), i = pickedRank(h), R = T.ranks[i];
+  const tapped = rankAt[h] != null, op = opens(h, i);
+  if (i > p.rank){
+    const nx = rankNeeds(h, p, i);
+    return '<div class="pf-next' + (tapped ? ' picked' : '') + '"><h4>' + (i === p.rank + 1 ? 'NEXT' : 'LATER') + ' · ' + esc(R.nm) + '</h4>' +
+      '<ul>' + nx.map(n => needLine(n, h)).join('') + '</ul>' + (op.length ? '<span class="pf-op">IT OPENS</span>' + chips(op) : '') + '</div>';
+  }
+  return '<div class="pf-next held' + (tapped ? ' picked' : '') + '"><h4>' + (i === p.rank ? (i === T.ranks.length - 1 ? 'TOP RANK' : 'YOUR RANK') : 'EARNED') + ' · ' + esc(R.nm) + '</h4>' +
+    '<p class="pf-rline">' + esc(R.line) + '</p>' + (op.length ? '<span class="pf-op">IT OPENED</span>' + chips(op) : '') + '</div>';
 }
 // THE METER, drawn: dark on the left, light on the right, the two zones past the lean mark where a side's cards unlock
 function meter(h, big = false){
@@ -96,17 +116,13 @@ function meter(h, big = false){
     (big ? '' : '<p class="pf-al-line">' + esc(W.line[alignStage(h)]) + '</p>') + '</div>';
 }
 function leftCol(h){
-  const T = track(h), p = profileOf(h), R = T.ranks[p.rank], next = T.ranks[p.rank + 1];
-  const nx = next ? rankNeeds(h, p, p.rank + 1) : [];
-  const nextBox = next
-    ? '<div class="pf-next"><h4>NEXT · ' + esc(next.nm) + '</h4><ul>' + nx.map(n => needLine(n, h)).join('') + '</ul>' + chips(opens(h, p.rank + 1)) + '</div>'
-    : '<div class="pf-next top"><h4>TOP RANK</h4>' + chips(opens(h, p.rank)) + '</div>';
+  const T = track(h), p = profileOf(h), R = T.ranks[p.rank];
   return `<div class="pf-col pf-left">
-    <div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
+    <div class="pf-who"><div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
     <div class="pf-rank">${esc(R.nm)}</div>
-    <div class="pf-xp"><b>${num(p.xp)}</b> ${esc(T.unit)}</div>
+    <div class="pf-xp"><b>${num(p.xp)}</b> ${esc(T.unit)}</div></div>
     ${journey(h)}
-    ${nextBox}
+    ${rankBox(h)}
     ${meter(h)}
     <p class="pf-how">${esc(T.unit)} comes from story chapters, missions, challenges, duels and survival.</p>
   </div>`;
@@ -134,6 +150,7 @@ function homeCol(h){
     '<div><p class="pf-big"><b>' + insightLeft() + '</b> Insight to spend</p><p class="pf-note">' + (treePath() ? 'Path: ' + esc((BRANCHES.find(b => b.id === treePath()) || {}).nm || '') : 'No path picked yet') + '</p></div></div>', 'tree', 'OPEN TREE') : '';
   return `<div class="pf-col pf-right">
     ${viewTabs(h)}
+    <div class="pf-mob">${rankAt[h] != null ? '' : rankBox(h)}${meter(h)}</div>
     <div class="pf-tiles">${deckT}${sideT}${treeT}${gearTile(h)}${ngTile(h)}${recTile(p, h)}</div>
   </div>`;
 }
@@ -175,30 +192,44 @@ function recTile(p, h){
     : '<p class="pf-note">Clear a chapter or win a mission to start your record.</p>');
 }
 
-/* ---------- the Jedi's FORCE TREE ---------- */
-// each branch: its line, the cards Insight can learn (with their tier), and one footnote for the in-run either/or picks.
-// The branch's everyday cards are in CARDS, so the tree no longer lists them.
+/* ---------- the Jedi's FORCE TREE: each branch a chain of cards, Padawan at the top; one card's detail beside them ---------- */
+// The branch's everyday cards are in CARDS, so the tree lists only what Insight learns, and one footnote for the in-run
+// either/or picks.
+const treeNodes = (b) => JEDI_TREE.filter(n => n.branch === b).sort((x, y) => x.tier - y.tier);
+function treeDetail(n){
+  if (!n) return detail('jedi', null);
+  const st = nodeState(n), R = track('jedi').ranks.find(r => r.id === tierRank(n.tier));
+  const act = st === 'learned' ? '<p class="pf-got">✓ LEARNED: runs can deal it</p>'
+    : runLive() ? '<p class="pf-note">A run is on. Learn cards between runs.</p>'
+    : st === 'open' ? '<span class="btn pf-add pf-learn" data-learn="' + n.prof + '">LEARN · 1 INSIGHT</span>'
+    : st === 'rank' ? '<ul class="pf-unlock"><span>TO UNLOCK</span><li><i>○</i>Reach ' + esc(R ? R.nm : 'a higher rank') + ' <em>(you: ' + esc(track('jedi').ranks[profileOf('jedi').rank].nm) + ')</em></li></ul>'
+    : '<p class="pf-lock">' + LOCK + 'NO INSIGHT LEFT: the next rank gives more</p>';
+  const B = BRANCHES.find(x => x.id === n.branch);
+  return '<aside class="pf-detail' + (st === 'learned' ? '' : ' shut') + '"><div class="pf-dh"><span class="pf-orb">' + icon(n.ico) + '</span><div><b>' + esc(n.nm) + '</b><span>' + TIER_NAME[n.tier] + ' · ' + esc(B ? B.nm : '') + '</span></div></div>' +
+    dsHtml(n.ds) + (n.fl ? '<p class="pf-fl">' + esc(n.fl) + '</p>' : '') + '<div class="pf-dact">' + act + '</div></aside>';
+}
 function treeCol(){
   const path = treePath(), left = insightLeft(), forks = profileOf('jedi').forks;
   const nm = (id) => id ? ((JEDI_STORE.find(n => n.id === id) || {}).nm || (FORMS[id] ? FORMS[id].name : id)) : '';
+  const all = BRANCHES.flatMap(B => treeNodes(B.id));
+  const pick = all.find(n => n.prof === treeSel) || all.find(n => nodeState(n) === 'open') || all[0];
   const cols = BRANCHES.map(B => {
-    const own = JEDI_TREE.filter(n => n.branch === B.id).sort((x, y) => x.tier - y.tier);
     const fk = FORK_BRANCH.filter(f => f.branch === B.id).sort((x, y) => x.tier - y.tier);
-    const nodes = own.map(n => {
+    const nodes = treeNodes(B.id).map(n => {
       const st = nodeState(n);
-      const act = st === 'learned' ? '<em class="pf-got">✓ LEARNED</em>' : st === 'open' ? '<span class="btn pf-learn" data-learn="' + n.prof + '">LEARN · 1 INSIGHT</span>'
-        : st === 'rank' ? '<em class="pf-lock">UNLOCKS AT ' + esc(track('jedi').ranks.find(r => r.id === tierRank(n.tier)).nm) + '</em>' : '<em class="pf-lock">NO INSIGHT LEFT</em>';
-      return '<div class="pf-node ' + st + '"><div class="pf-nh"><span class="pf-ic">' + icon(n.ico) + '</span><b>' + esc(n.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[n.tier] + '</span></div>' + dsHtml(n.ds) + act + '</div>';
+      const tag = st === 'learned' ? 'LEARNED' : st === 'open' ? 'READY · 1 INSIGHT' : st === 'rank' ? 'AT ' + esc(track('jedi').ranks.find(r => r.id === tierRank(n.tier)).nm) : 'NEEDS INSIGHT';
+      return '<div class="pf-pnode t-' + st + (st === 'learned' ? ' open' : ' shut') + (pick === n ? ' sel' : '') + '" data-node="' + n.prof + '"><span class="pf-orb">' + icon(n.ico) + (st === 'rank' ? '<i class="pf-lk">' + LOCK + '</i>' : st === 'learned' ? '<i class="pf-in">✓</i>' : '') + '</span>' +
+        '<div><b>' + esc(n.nm) + '</b><span>' + tag + '</span></div></div>';
     }).join('');
     const forkNote = fk.length ? '<div class="pf-fork"><span>IN A RUN YOU ALSO PICK</span>' + fk.map(f => '<b>' + esc(f.nm) + (forks[f.fork] ? ' <em>(last: ' + esc(nm(forks[f.fork])) + ')</em>' : '') + '</b>').join('') + '</div>' : '';
-    return '<div class="pf-branch' + (path === B.id ? ' path' : '') + '"><div class="pf-bh"><b>' + B.nm + '</b><span class="btn pf-path" data-path="' + B.id + '">' + (path === B.id ? '★ YOUR PATH' : 'SET AS PATH') + '</span></div>' +
-      '<p class="pf-bl">' + esc(B.line) + '</p>' + nodes + forkNote + '</div>';
+    return '<div class="pf-pside pf-branch' + (path === B.id ? ' path' : '') + '"><div class="pf-bh"><b>' + B.nm + '</b><span class="btn pf-path" data-path="' + B.id + '">' + (path === B.id ? '★ PATH' : 'SET PATH') + '</span></div>' +
+      '<p class="pf-bl">' + esc(B.line) + '</p><div class="pf-chain">' + nodes + '</div>' + forkNote + '</div>';
   }).join('');
   return `<div class="pf-col pf-right">
     ${viewTabs('jedi')}
-    <div class="pf-th"><h3>FORCE TREE</h3><span class="pf-ins"><b>${left}</b> INSIGHT TO SPEND</span><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
-    <p class="pf-note${runLive() ? ' pf-live-note' : ''}">${runLive() ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Spend it to learn a card. Your path\'s branch always has a card on offer in runs.'}</p>
-    <div class="pf-tree">${cols}</div>
+    <div class="pf-th"><span class="pf-ins"><b>${left}</b> INSIGHT TO SPEND</span><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
+    <p class="pf-note${runLive() ? ' pf-live-note' : ''}">${runLive() ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Tap a card, then learn it. Your path\'s branch always has a card on offer in runs.'}</p>
+    <div class="pf-split pf-tsplit"><div class="pf-sides pf-tree3">${cols}</div>${treeDetail(pick)}</div>
   </div>`;
 }
 
@@ -310,9 +341,11 @@ function deckCol(h){
   </div>`;
 }
 
+let entering = false;   // the panel's entrance plays on opening, not on every redraw
 function render(){
   const right = view === 'tree' && hero === 'jedi' ? treeCol() : view === 'deck' ? deckCol(hero) : view === 'sides' ? sidesCol(hero) : homeCol(hero);
-  panel.innerHTML = `<div class="howto-panel pf-panel">
+  panel.dataset.hero = hero;   // the panel wears the shown hero's look (styles/heroes/tokens.css), whoever is being played
+  panel.innerHTML = `<div class="howto-panel pf-panel hero-${hero}${entering ? ' enter' : ''}">
     <div class="howto-head"><div class="howto-title">PROFILE</div><div class="rm-sub">Your rank and cards, shared by every mode</div><div class="howto-x" id="pfclose">✕</div></div>
     <div class="cz-tabs pf-tabs">${Object.keys(HERO_NAME).map(h => '<span data-h="' + h + '"' + (h === hero ? ' class="on"' : '') + '>' + HERO_NAME[h] + '</span>').join('')}</div>
     <div class="pf-body${runLive() ? ' pf-live' : ''}">${leftCol(hero)}${right}</div>
@@ -323,7 +356,7 @@ function render(){
 }
 
 export function setProfile(open){
-  if (open){ hero = ['jedi', 'mando', 'trooper'].includes(G.hero) ? G.hero : 'jedi'; armed = false; render(); }
+  if (open){ hero = ['jedi', 'mando', 'trooper'].includes(G.hero) ? G.hero : 'jedi'; armed = false; entering = true; render(); entering = false; }
   panel.classList.toggle('open', open);
 }
 export const profileOpen = () => panel.classList.contains('open');
@@ -337,12 +370,15 @@ panel.addEventListener('click', (e) => {
   const fl = t.closest('[data-filter]'), cd = !dk && t.closest('[data-card]');
   if (fl){ filter = fl.dataset.filter; view = 'deck'; return render(); }
   if (cd){ sel[hero] = cd.dataset.card; kept[hero] = null; return render(); }
+  const nd = !t.closest('[data-learn]') && t.closest('[data-node]'), rk = t.closest('[data-rank]');
+  if (nd){ treeSel = nd.dataset.node; return render(); }
+  if (rk){ const i = +rk.dataset.rank; rankAt[hero] = rankAt[hero] === i ? null : i; return render(); }
   if (dk){ if (toggleDeck(hero, SET_OF[hero], dk.dataset.deck)) S.reward(1); sel[hero] = kept[hero] = dk.dataset.deck; return render(); }
   if (da){ setDeck(hero, da.dataset.deckact === 'all' ? null : suggestDeck(hero, SET_OF[hero])); filter = null; view = 'deck'; return render(); }
   const tab = t.closest('[data-h]'), learn = t.closest('[data-learn]'), path = t.closest('[data-path]'), reset = t.closest('[data-reset]');
   if (t.closest('#pfclose') || t === panel) return setProfile(false);
   if (tab){ hero = tab.dataset.h; armed = false; filter = null; if (hero !== 'jedi' && view === 'tree') view = 'home'; render(); }
-  else if (learn){ if (learnNode(learn.dataset.learn)) S.reward(1); render(); }
+  else if (learn){ if (learnNode(learn.dataset.learn)) S.reward(1); treeSel = learn.dataset.learn; render(); }
   else if (path){ setPath(path.dataset.path); render(); }
   else if (reset && reset.dataset.reset === 'tree'){ resetTree(); render(); }
   else if (reset && reset.dataset.reset === 'profile'){ if (armed){ resetProfile(hero); armed = false; } else armed = true; render(); }

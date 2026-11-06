@@ -213,7 +213,7 @@ function tick(){
   updateAlignment(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // light and dark: the SPARE prompt, the blades thrown down, the look (game/alignment.js)
   updateSecrets(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story maps' hidden holocrons, caves and meditation spots (game/secrets.js)
   updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
-  updateZone(G.paused || G.skillSelect ? 0 : rawDt);   // an open zone: its streets streamed in and out, its waystones and districts (game/zone.js)
+  updateZone(G.paused || G.skillSelect ? (coopLive() ? rawDt : 0) : rawDt);   // an open zone: its streets streamed in and out, its waystones and districts (game/zone.js) (in a shared zone the host's patrols run on behind a card)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();

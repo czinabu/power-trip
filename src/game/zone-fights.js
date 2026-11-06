@@ -6,7 +6,8 @@
 // A quest's foes (game/zone-quests.js) come on top of these, and are never let go.
 //
 // CO-OP: the host owns every foe, as in every mode (net/foes.js), so only the host (or a solo hero) sends patrols, and it
-// sends them to wherever any hero in the party is walking, not only its own. A guest is shown them.
+// sends them to wherever any hero in the party is walking, not only its own. A guest is shown them. A party of two to four
+// draws a little more: the cap rises with each hero, and a district walked by several sends a bigger patrol.
 
 import { G, enemies } from '../state.js';
 import { districtAt } from '../data/zones.js';
@@ -26,6 +27,8 @@ export const FIGHT_TUNE = {
   first: 6,            // s in a district before its first patrol
   letGo: 72,           // m: a roaming foe this far from every hero is let go
   every: 0.5,          // s between looks
+  capPer: 2,           // co-op: foes the cap rises by for each hero past the first
+  partyMax: 2,         // ...and at most this many more in a patrol, one for each more hero walking its district
 };
 const F = { Z: null, life: null, rest: {}, inT: {}, sent: {}, t: 0 };
 
@@ -64,7 +67,8 @@ export function updateZoneFights(dt){
   const here = {};
   for (const h of H){ const d = districtAt(F.Z, h.x, h.z); if (d) (here[d.id] ||= []).push(h); }
   for (const id in F.inT) if (!here[id]) delete F.inT[id];
-  const live = roaming(), cap = F.life.cap[qualityLevel()] || F.life.cap.medium;
+  // a party draws more: each hero past the first lifts the cap, and each one walking a district swells its patrol
+  const live = roaming(), cap = (F.life.cap[qualityLevel()] || F.life.cap.medium) + FIGHT_TUNE.capPer * (H.length - 1);
   for (const id in here){
     F.inT[id] = (F.inT[id] || 0) + FIGHT_TUNE.every;
     F.rest[id] = Math.max(0, (F.rest[id] || 0) - FIGHT_TUNE.every);
@@ -73,10 +77,11 @@ export function updateZoneFights(dt){
     const mine = live.filter(e => e.zr === id);
     if (mine.length) continue;   // its patrol is still out
     if (F.sent[id]){ F.sent[id] = 0; F.rest[id] = th.rest; continue; }   // its last one was beaten (or let go): it rests
-    if (live.length + th.n > cap) continue;
+    const n = th.n + Math.min(FIGHT_TUNE.partyMax, here[id].length - 1);
+    if (live.length + n > cap) continue;
     const at = pickSpot(id, here[id], H);
     if (!at) continue;
-    sendPatrol(id, th, at);
+    sendPatrol(id, th, at, n);
     F.sent[id] = 1;
     return;   // (one a look at most)
   }
@@ -95,11 +100,11 @@ function pickSpot(id, hs, H){
   }
   return null;
 }
-function sendPatrol(id, th, at){
+function sendPatrol(id, th, at, n = th.n){
   const was = G.waveTotal;
   G.waveTotal = th.tier;
-  for (let i = 0; i < th.n; i++){
-    const a = i / th.n * Math.PI * 2, s = findClearSpawn(at.x + Math.sin(a) * 1.8, at.z + Math.cos(a) * 1.8, 1.0);
+  for (let i = 0; i < n; i++){
+    const a = i / n * Math.PI * 2, s = findClearSpawn(at.x + Math.sin(a) * 1.8, at.z + Math.cos(a) * 1.8, 1.0);
     spawnEnemy(th.foes[i % th.foes.length], V3(s.x, 0, s.z));
     enemies[enemies.length - 1].zr = id;
   }

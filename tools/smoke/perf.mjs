@@ -73,6 +73,8 @@ const RUNS = [
   ['training room', `GAME.setSandboxMap('room'); GAME.startSandbox()`],
   ...['hall', 'council', 'training', 'archives', 'forge'].map(w => ['temple ' + w, `GAME.hub.startHub('${w}')`]),   // the hidden temple's wings (game/hub.js)
   ...['gate', 'square', 'bazaar', 'temple'].map(w => ['zone jedha ' + w, `GAME.zone.startZone('jedha', { at: '${w}' })`]),   // the open zone, streamed round each waystone (game/zone.js)
+  // ...and a patrol's fight in the bazaar, by the spice trader (a quest giver: game/zone-quests.js)
+  ['zone jedha fight', `GAME.zone.startZone('jedha', { at: 'bazaar' }); for (let i = 0; i < 8; i++) GAME.spawnEnemy(['grunt', 'blaster', 'officer', 'brute'][i % 4], new GAME.camera.position.constructor(-72 + i * 1.5, 0, 0))`],
 ];
 const rows = [];
 for (const [label, code] of RUNS){

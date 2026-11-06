@@ -29,6 +29,7 @@ import { pad, padKeys } from '../engine/gamepad.js';
 import { rankIndex, noteZone, zoneMemo } from './profile.js';
 import { net, connected } from '../net/session.js';
 import { partnerStand } from '../net/partner.js';
+import { coopLive } from '../net/foes.js';
 import { onHeroFall } from '../player/damage.js';
 import { clearDowned } from './revive.js';
 import { regroupSquad, refill } from '../allies/squad.js';
@@ -140,8 +141,10 @@ export function updateZone(dt){
   zoneStreamExtra(net.role === 'host' && connected() ? partnerStand().map(P => ({ x: P.pos.x, z: P.pos.z })) : null);
   updateZoneStream(false);
   if (G.zoneFallT > 0 && (G.zoneFallT -= dt) <= 0){ G.zoneFallT = 0; wake(); }
-  updateZoneQuests(G.paused || G.skillSelect || G.cutscene ? 0 : dt);
-  if (G.paused || G.skillSelect || G.cutscene) return;
+  const held = G.paused || G.skillSelect || G.cutscene;
+  updateZoneQuests(held ? 0 : dt);
+  if (held && coopLive() && !G.cutscene) updateZoneFights(dt);   // (a shared zone runs on behind this screen's card or pause: the party is still out there)
+  if (held) return;
   const p = playerPos();
   if (!G.coopGuest) G.waveTotal = zoneTier(p.x, p.z);   // the foes' tricks follow where the fight is (a guest is sent the host's)
   updateZoneFights(dt);

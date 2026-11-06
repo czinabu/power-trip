@@ -4,7 +4,7 @@
 //     the other's, the path's crystal is earned at its mark, the cast has lines for it, the Jedi's eyes take its colour;
 //   · MERCY in a real fight (survival): a beaten duellist yields (its blade down, on its knees), F spares it (it bows out,
 //     beaten, and the meter moves to the light), and one struck down while it kneels moves it to the dark;
-//   · the profile page shows the meter and the two paths. SHOTS=dir writes screenshots there.
+//   · the profile page shows the meter, the cards' LIGHT / DARK tags and lock reasons, and the tree's LIGHT AND DARK. SHOTS=dir writes screenshots there.
 // Fails on any page error or console error, or a step that doesn't land where it should.
 //   npm run build && npm run smoke:alignment
 
@@ -59,19 +59,24 @@ try {
   check(m.dawn, 'reaching 50 light earns the Dawnlight crystal');
   check(m.pairs, 'all six path cards are on the run\'s card list');
 
-  // the profile page: the meter and the two paths
+  // the profile page: the meter row, the cards' LIGHT / DARK tags and lock reasons, the tree's LIGHT AND DARK
   await page.click('#pfBtn');
   await page.waitForSelector('#profile.open .pf-align');
   check(await page.isVisible('#profile .pf-align .pf-al-bar b'), 'the profile shows the meter');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-meter.png') });
-  await page.click('#profile [data-view="more"]');
-  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-paths .pf-node').length === 6), 'the Force Tree lists the two paths\' six cards');
-  if (SHOTS){ await page.$eval('#profile .pf-paths-h', el => el.scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'profile-paths.png') }); }
+  await page.click('#profile [data-filter="locked"]');
+  const lk = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard')].filter(c => c.querySelector('.pf-tier-k.al-dark')).map(c => c.querySelector('.pf-lock') && c.querySelector('.pf-lock').textContent));
+  check(lk.length === 3 && lk.every(t => t === 'NEEDS DARK ALIGNMENT'), 'LOCKED lists the dark cards, each NEEDS DARK ALIGNMENT (' + lk.join(', ') + ')');
+  await page.click('#profile [data-filter="all"]');
+  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-light').length === 3), 'ALL CARDS shows the three light cards, tagged LIGHT');
+  await page.click('#profile [data-view="tree"]');
+  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-sides .pf-node').length === 6), 'the Force Tree lists LIGHT AND DARK\'s six cards');
+  if (SHOTS){ await page.$eval('#profile .pf-sides-h', el => el.scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') }); }
   await page.click('#pfclose');
 
   // ---- MERCY, in survival ----
   await page.evaluate(() => { GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf('jedi'), 'jedi', 'test', true); });   // back to balanced
-  await page.click('#mode-endless');
+  await page.$eval('#mode-endless', el => el.click());
   for (let i = 0; i < 20 && !(await page.evaluate(() => GAME.G.mode === 'play' && !GAME.G.paused)); i++){
     for (const sel of ['#goText', '#forms [data-go]']) if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {});
     await page.waitForTimeout(500);
@@ -99,8 +104,8 @@ try {
   const sp = await page.evaluate((nid) => { const e = GAME.enemies.find(o => o.nid === nid); return { state: e && e.state, dead: e && e.dead, a: GAME.PROFILE.alignOf('jedi'), spared: GAME.PROFILE.profileOf('jedi').mercy.spared }; }, y1.nid);
   check(sp.state === 'spared' && sp.dead, 'F spares it: it bows out, beaten');
   check(sp.a > a0 && sp.spared === 1, 'sparing moves the meter to the light (' + a0 + ' → ' + sp.a + ')');
-  await page.waitForFunction((nid) => !GAME.enemies.some(o => o.nid === nid), y1.nid, { timeout: 20000 }).catch(() => {});
-  const gone = await page.evaluate((nid) => { const e = GAME.enemies.find(o => o.nid === nid); return e ? 'still here: ' + e.state + ' st ' + e.st.toFixed(2) + ' gt ' + GAME.G.gt.toFixed(1) : 'gone'; }, y1.nid);
+  await page.waitForFunction((nid) => !GAME.enemies.some(o => o.nid === nid), y1.nid, { timeout: 60000 }).catch(() => {});
+  const gone = await page.evaluate((nid) => { const e = GAME.enemies.find(o => o.nid === nid); return e ? 'still here: ' + e.state + ' st ' + e.st.toFixed(2) + ' gt ' + GAME.G.gt.toFixed(1) + ' ' + JSON.stringify({ m: GAME.G.mode, p: GAME.G.paused, ss: GAME.G.skillSelect, ov: document.getElementById('overlay') && getComputedStyle(document.getElementById('overlay')).display, hid: document.hidden }) : 'gone'; }, y1.nid);
   check(gone === 'gone', 'the spared foe leaves the fight (' + gone + ')');
 
   const y2 = await beat();

@@ -121,7 +121,7 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (earn.caves) return 'HARVEST ' + n + ' CRYSTAL CAVE' + s;
   if (earn.duels) return 'BEAT ' + n + ' DUELLIST' + s;
   if (earn.missions) return 'WIN ' + n + ' STORY MISSION' + s;
-  if (earn.arcade) return 'WIN ' + n + ' ARCADE CONTRACT' + s;
+  if (earn.arcade) return 'WIN ' + n + ' CHALLENGE' + (n === 1 ? '' : 'S');
   return 'CLEAR ' + n + ' SURVIVAL WAVE' + s;
 }
 // every earnable part, as [row id, part] (game/profile.js announces each once)

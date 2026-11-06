@@ -41,7 +41,7 @@ try {
   await Promise.all([connected(host), connected(guest)]);
   await host.click('#coopclose');
   // the host starts Survival
-  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-campaign');
+  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-campaign', el => el.click());
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT

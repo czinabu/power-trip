@@ -29,13 +29,13 @@ const WORDS = {
   trooper: {
     kicker: 'KAMINO · ARMORY BAY 7', count: 'GEAR ISSUED', fitted: 'ISSUED', locked: 'REQUISITION', loadout: 'FIELD LOADOUT',
     gain: 'BOOST', cost: 'DRAW', done: 'SIGN OUT KIT', hint: 'Drag to turn on the fitting pad · Esc to sign out',
-    note: 'More gear is issued for the campaign\'s chapters, story missions, arcade contracts, survival waves, duellists beaten and squadmates brought home.',
+    note: 'More gear is issued for the campaign\'s chapters, story missions, challenges, survival waves, duellists beaten and squadmates brought home.',
     side: 'The power pack and the specialist each trade one small edge for another. Paint, markings, helmet gear, the backpack and the rifle\'s stock and finish are how you look, not how you fight.',
   },
   mando: {
     kicker: 'THE COVERT · THE ARMORER\'S ANVIL', count: 'PIECES FORGED', fitted: 'WORN', locked: 'NOT YET EARNED', loadout: 'THE ARMORER\'S WORK',
     gain: 'GIVES', cost: 'TAKES', done: 'TAKE UP THE ARMOUR', hint: 'Drag to turn in the firelight · Esc to leave the forge',
-    note: 'More pieces are earned in the campaign\'s chapters, story missions, arcade contracts, survival waves and duellists beaten.',
+    note: 'More pieces are earned in the campaign\'s chapters, story missions, challenges, survival waves and duellists beaten.',
     side: 'Forged beskar trades one small edge for another. The signet, helmet mod, jetpack, vambraces and chest kit are how you look, not how you fight.',
   },
 };
@@ -81,7 +81,9 @@ function readout(){
   };
   return `<div class="kb-load"><h4>${W.loadout}</h4>${sides.map(one).join('')}<p>${W.side}</p></div>`;
 }
-function render(){
+// keep: hold the panel's scroll across the redraw (a pick made far down the trays), not jump back to the top
+function render(keep = false){
+  const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
   const W = WORDS[hero], live = runLive(), have = partsOwned(hero), all = partsTotal(hero);
   panel.className = 'kb-' + hero;
   panel.innerHTML = `<div class="kb-panel">
@@ -93,6 +95,7 @@ function render(){
     <div class="kb-rows${live ? ' kb-locked' : ''}">${rowsOf().map(tray).join('')}</div>
     <div class="kb-foot"><div class="kb-btn" id="kbdone">${W.done}</div><div class="kb-hint">${W.hint}</div></div>
   </div>`;
+  if (was) panel.firstElementChild.scrollTop = was;
 }
 
 // open the hero's bench (the trooper's locker or the Mando's forge). The Jedi's is the saber workbench (ui/workbench.js)
@@ -128,7 +131,7 @@ function fit(rowId, optId){
   picks = { ...picks, [hero]: { ...(picks[hero] || {}), [rowId]: optId } };
   S.uiClick();
   restyleShowcase(picks);
-  render();
+  render(true);   // (a pick keeps the panel where it was scrolled to)
 }
 
 panel.addEventListener('click', (e) => {

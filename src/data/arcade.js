@@ -151,7 +151,7 @@ export function arcadeContract(seed){
     title: r.pick((KIND[lead.kind] || KIND.hold).titles),
     place: where,
     blurb: kinds.map(kindName).join(' · ').toLowerCase(),
-    level: { ...src.level, name: 'ARCADE — ' + where, sub: lead.task || '' },   // (per hero, like a mission's own sub)
+    level: { ...src.level, name: 'CHALLENGE — ' + where, sub: lead.task || '' },   // (per hero, like a mission's own sub)
     start: lead.start || src.start,
     kit: KIT_AT[threat - 1] + (twist === 'glass' ? 1 : 0),
     foeTier: FOE_TIER_AT[threat - 1] + (twist === 'veterans' ? 3 : 0),

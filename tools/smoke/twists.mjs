@@ -91,7 +91,7 @@ try {
     if (h !== hero){
       if (page) await page.close();
       page = await open(h); hero = h;
-      await page.$eval('#hero-' + h, el => el.click()); await page.click('#mode-campaign');   // into a run first (a mission starts from inside one)
+      await page.$eval('#hero-' + h, el => el.click()); await page.$eval('#mode-campaign', el => el.click());   // into a run first (a mission starts from inside one)
       await toPlay(page);
     }
     const i = await twistAt(page, mid, kind);
@@ -129,7 +129,7 @@ try {
     for (const p of [host, guest]) await p.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
     await host.click('#coopclose');
     await host.evaluate(() => localStorage.setItem('sw_mission_refuge_jedi', '1'));
-    await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-mission'); await host.click('#msn-refuge');
+    await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-mission', el => el.click()); await host.click('#msn-refuge');
     await toPlay(host);
     // the guest sees the run and joins it
     await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);

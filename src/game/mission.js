@@ -104,7 +104,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   const title = typeof def.title === 'object' ? heroKey(def.title) : def.title;
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,
-                     chapter: ch, title, kick: ch ? ch.kicker : (def.arcade ? 'ARCADE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
+                     chapter: ch, title, kick: ch ? ch.kicker : (def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along
   shared.secretFrom = def.start || st || null;   // where the map's secrets are walked out from (game/secrets.js): the same for every player and every retry
   if (st){ playerPos().set(st[0], 0, st[1]); G.yaw = player.faceYaw = st[2] || 0; }
@@ -1380,7 +1380,7 @@ function missionComplete(){
     const results = () => {
       overlay.style.display = 'flex';
       setOverlayState('victory');
-      document.getElementById('ovsub').textContent = (def.arcade ? 'ARCADE · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + title;
+      document.getElementById('ovsub').textContent = (def.arcade ? 'CHALLENGE WON · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + title;
     };
     if (!ask) return results();
     askChoice({ kicker: 'SIDE MISSION · A CHOICE', title: q.choice.title, lines: q.choice.lines, who, options: q.choice.options, hint: 'Light or dark: it moves your own meter. It is asked once.' },

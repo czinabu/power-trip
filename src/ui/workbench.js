@@ -53,18 +53,21 @@ function readout(){
     + (c.fx.length ? `<div class="wb-fx"><i>GAIN</i>${esc(gain)}</div><div class="wb-fx cost"><i>COST</i>${esc(cost)}</div>` : `<div class="wb-fx"><i>—</i>${esc(c.ds)}</div>`)
     + `<p>A crystal trades one small edge for another. The grip, emitter and pommel change how the saber looks, not how it fights.</p></div>`;
 }
-function render(){
+// keep: hold the panel's scroll across the redraw (a pick made far down the trays), not jump back to the top
+function render(keep = false){
+  const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
   const live = runLive();
   panel.innerHTML = `<div class="wb-panel">
     <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
     <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
-    <p class="wb-note">More parts come from duels, the masters' trials, story missions, arcade contracts and survival waves.</p>
+    <p class="wb-note">More parts come from duels, the masters' trials, story missions, challenges and survival waves.</p>
     ${live ? '<p class="wb-live">A run is on: the saber is built between runs. Look over it here, and fit new parts from the main menu.</p>' : ''}
     <div class="wb-trays${live ? ' wb-locked' : ''}">${TRAYS.map(tray).join('')}</div>
     ${readout()}
     <div class="wb-actions"><div class="wb-btn" id="wbtest">${lit ? 'TAKE APART' : 'TEST IGNITION'}</div><div class="wb-btn main" id="wbdone">DONE</div></div>
     <div class="wb-hint">Drag the bench to turn the hilt. Esc to finish.</div>
   </div>`;
+  if (was) panel.firstElementChild.scrollTop = was;
 }
 
 export function openWorkbench(){
@@ -96,7 +99,7 @@ function fit(rowId, optId){
   S.uiClick();
   setBenchSaber(picks);
   if (lit){ lit = false; igniteBench(false); }
-  render();
+  render(true);   // (a pick keeps the panel where it was scrolled to)
 }
 
 panel.addEventListener('click', (e) => {
@@ -108,7 +111,7 @@ panel.addEventListener('click', (e) => {
     lit = igniteBench();
     const kind = G.stance === 'staff' ? 'niman' : G.stance;
     if (lit) setTimeout(() => { if (lit && workbenchOpen()) S.ignite(kind, null, true); }, 260); else S.retract(kind, null, true);
-    render();
+    render(true);   // (and so does the ignition)
   }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && workbenchOpen()) closeWorkbench(); });

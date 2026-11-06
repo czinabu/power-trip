@@ -204,8 +204,8 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // MENU_LIFT raises it into the score's compressor; MENU_POST raises it again after the compressor (the master limiter
 // still guards the peaks), since pushing it all through the compressor only squashed it. MENU_POST was 3.2 (about
 // -15 dBFS RMS out of the speakers with every slider at 100%), which still read as quiet for a title screen that has to
-// sell the mood; at 7 it sits around -9 dBFS, and the soft ceiling after `post` (init) rounds its peaks off under
-// -1 dBFS so the lift never clips.
+// sell the mood. With the fuller title arrangement below and its harder compressor, LIFT 3 / POST 3 lands near
+// -8.7 LUFS (POST 4 was a touch too much at -7). The soft ceiling after `post` (init) rounds peaks off under -1 dBFS.
 const MENU_LIFT = 3, MENU_POST = 3;
 // ...and it still wasn't something you FEEL: at the menu's old intensity (0.16) the title theme was a soft pad, a sub
 // drone and a horn, with no bass line or drums. The title screen now plays the hero's theme at TITLE_I, the full

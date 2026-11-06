@@ -9,7 +9,7 @@ import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub.js';
-import { hubLaunch, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser, overlay } from './menus.js';
+import { hubLaunch, hubLaunchZone, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser, overlay } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
 import { randomArcadeId } from '../data/arcade.js';
@@ -26,6 +26,7 @@ import { coopRun } from '../net/run.js';
 import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
+import { ZONES } from '../data/zones.js';
 import { rankIndex, track, sideWon } from '../game/profile.js';
 import { mapHTML } from './hub-map.js';
 import { pad } from '../engine/gamepad.js';
@@ -50,6 +51,9 @@ const party = () => net.status === 'connected';
 // a button: [label, line under it, what it does, locked reason]
 const B = (t, d, go, lock) => ({ t, d, go, lock });
 
+// the open zones (data/zones.js): a button for each, from the mode tables and the maps
+const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
+
 function options(s){
   const G_ = G;
   switch (s.act){
@@ -57,7 +61,7 @@ function options(s){
       const W = Hb.wings[id], here = id === G_.hubWing;
       const who = partnerWorlds().filter(p => p.world === 'hub:' + G_.hubId + ':' + id).map(p => p.name);
       return B(W.name, (here ? 'YOU ARE HERE' : W.blurb) + (who.length ? ' · ' + who.join(', ') : ''), here ? null : () => goWing(id));
-    }).concat([
+    }).concat(guest() ? [] : zoneButtons(), [
       B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => replayTour()),
       B('WHAT\'S WHERE', 'Every station in ' + Hb.home.toLowerCase() + ', and which door it is behind', () => replayWelcome()),
     ]); }
@@ -74,6 +78,7 @@ function options(s){
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
         B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), sv ? null : 'Beat the campaign as Jedi and Mando'),
+        ...zoneButtons(),
         B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
       ];
     }
@@ -97,6 +102,7 @@ function options(s){
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
+        ...zoneButtons(),
       ];
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];

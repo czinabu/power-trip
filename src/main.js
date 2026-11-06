@@ -122,10 +122,13 @@ import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateHub, startHub, goWing, curHub } from './game/hub.js';
+import { updateZone, startZone, travelTo, zoneDistrict, stonesTouched } from './game/zone.js';
+import { zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream } from './world/zone-stream.js';
 import { welcomeState, welcomeStops, forgetWelcome, replayWelcome, replayTour } from './game/hub-welcome.js';
 import { updateSecrets, secretsPlaced } from './game/secrets.js';
 import { updateAlignment } from './game/alignment.js';
 import './ui/hub-ui.js';
+import './ui/zone-ui.js';   // the waystone panel in an open zone
 import { HUBS, ALL_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
@@ -208,6 +211,7 @@ function tick(){
   updateAlignment(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // light and dark: the SPARE prompt, the blades thrown down, the look (game/alignment.js)
   updateSecrets(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story maps' hidden holocrons, caves and meditation spots (game/secrets.js)
   updateHub(G.paused || G.skillSelect ? 0 : rawDt);   // the hidden temple: its stations, its doors, its turning holograms (game/hub.js)
+  updateZone(G.paused || G.skillSelect ? 0 : rawDt);   // an open zone: its streets streamed in and out, its waystones and districts (game/zone.js)
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
@@ -255,6 +259,7 @@ window.GAME = { PROFILE, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, pa
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn },
   aim: { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim },
+  zone: { startZone, travelTo, zoneDistrict, stonesTouched, zoneStreamInfo, buildAllChunks, updateZoneStream, zoneStream },
   get boss(){ return shared.boss; }, get finale(){ return shared.finale; }, get saberProj(){ return shared.saberProj; }, get darkProj(){ return shared.darkProj; } };
 
 /* the battle maps (data/battlemaps.js): what's built and what it costs, for the console and tools/smoke/maps.mjs */

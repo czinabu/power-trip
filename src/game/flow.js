@@ -103,6 +103,7 @@ export function startLevel(idx, opts){
   G.mission = !!(opts && opts.mission);
   G.sandbox = !!(opts && opts.sandbox);
   G.hub = !!(opts && opts.hub);   // the hidden temple (game/hub.js): no foes, no waves, no run
+  G.zone = (opts && opts.zone) || null; G.zoneFallT = 0;   // an open zone (game/zone.js): a mission's kit, no objectives of its own, roaming fights
   if (!G.hub) for (const fn of runHooks()) fn();   // a run setting off (the hub's welcome tour ends: game/hub-welcome.js), before this mode puts up a panel of its own
   setFoeLook(opts && opts.foeLook);   // a story mission's uniform for the foes it sends (enemies/look.js), or none
   G.squadCap = (opts && opts.squadCap) || 0;   // and the most squadmates its story has (allies/squad.js trooperSquad), or no cap
@@ -230,7 +231,7 @@ export function startLevel(idx, opts){
   applyJetTier();   // size the jetpack to the current booster tier
   document.getElementById('xpval').textContent = (G.xp || 0);
   checkUnlocks();
-  shared.levelPhase = G.hub ? 'hub' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'between'; shared.phaseT = 2.6;   // training, missions and the sandbox run their own steps, no waves
+  shared.levelPhase = G.hub ? 'hub' : G.zone ? 'zone' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'between'; shared.phaseT = 2.6;   // training, missions and the sandbox run their own steps, no waves
   { const [lvl, place] = L.name.split('—').map(t => t.trim());   // 'LEVEL 1 — TEMPLE STEPS' → tag + headline
     showBanner(place || lvl, L.sub, 2.6, place ? { kicker: lvl } : null); }
   if (bossRetry){

@@ -189,6 +189,15 @@ export function noteSecret(id, kind){
   settle(G.hero);
   return true;
 }
+// AN OPEN ZONE (data/zones.js, game/zone.js): what this hero has found there that stays found (the waystones touched, the
+// districts walked into): { stones: { id: 1 }, seen: { id: 1 } }. noteZone(zid, 'stones', id): true the first time
+export function zoneMemo(zid, hero = G.hero){ const p = profileOf(hero); p.zones ||= {}; return p.zones[zid] ||= { stones: {}, seen: {} }; }
+export function noteZone(zid, field, id, hero = G.hero){
+  const z = zoneMemo(zid, hero); z[field] ||= {};
+  if (z[field][id]) return false;
+  z[field][id] = 1; save();
+  return true;
+}
 export function noteCampaignWon(){
   const p = profileOf();
   gain(p.won ? RANK_XP.wonAgain : RANK_XP.won);

@@ -1,20 +1,20 @@
 /* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
 /* THE HIDDEN TEMPLE (game/hub.js, ui/hub-ui.js): the station prompt under the crosshair, and the station panel */
-#hubp,#secp,#mercyp{position:fixed;left:50%;top:calc(50% + 46px);transform:translate(-50%,4px);display:flex;align-items:center;gap:9px;
+#hubp,#zonep,#secp,#mercyp{position:fixed;left:50%;top:calc(50% + 46px);transform:translate(-50%,4px);display:flex;align-items:center;gap:9px;
   padding:6px 14px 6px 7px;border-radius:var(--r-lg);background:rgba(4,14,26,.66);box-shadow:0 4px 16px rgba(0,0,0,.3);
   font:700 13px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;white-space:nowrap}
-#hubp.on,#secp.on,#mercyp.on{opacity:1;transform:translate(-50%,0)}
-#hubp kbd,#secp kbd,#mercyp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+#hubp.on,#zonep.on,#secp.on,#mercyp.on{opacity:1;transform:translate(-50%,0)}
+#hubp kbd,#zonep kbd,#secp kbd,#mercyp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
   border:1px solid rgba(120,214,255,.75);border-radius:5px;color:#9ae4ff;background:rgba(90,210,255,.1)}
-body.cutscene :is(#hubp,#secp,#mercyp){opacity:0 !important}
+body.cutscene :is(#hubp,#zonep,#secp,#mercyp){opacity:0 !important}
 
 /* a meditation's progress, under its prompt */
 #secp{position:fixed;overflow:hidden}
 #secp b{position:absolute;left:0;bottom:0;height:3px;width:0;background:#ffe2a0;transition:width .1s linear}
 
-#hubpanel{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
+#hubpanel,#zonepanel{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,6,14,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
-#hubpanel.open{display:flex}
+#hubpanel.open,#zonepanel.open{display:flex}
 .hb-box{width:min(560px,100%);max-height:100%;overflow:auto;box-sizing:border-box;text-align:left;padding:20px 22px 18px;border-radius:14px;
   background:linear-gradient(180deg,rgba(18,34,52,.96),rgba(8,16,28,.98));border:1px solid rgba(216,184,96,.4);box-shadow:0 30px 80px rgba(0,0,0,.7);
   animation:rise .25s var(--ease);display:flex;flex-direction:column;gap:8px}

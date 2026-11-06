@@ -42,7 +42,9 @@
     "smoke:files": "node tools/smoke/files.mjs",
     "smoke:welcome": "node tools/smoke/hub-welcome.mjs",
     "smoke:coop-welcome": "node tools/smoke/coop-welcome.mjs",
-    "smoke:desktop": "node tools/smoke/desktop.mjs"
+    "smoke:desktop": "node tools/smoke/desktop.mjs",
+    "smoke:zone": "node tools/smoke/zone.mjs",
+    "smoke:coop-zone": "node tools/smoke/coop-zone.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

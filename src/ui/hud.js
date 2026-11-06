@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // updateHud(): per-frame HUD refresh.
 
+import { zoneDef, zoneDistrict, stonesTouched } from '../game/zone.js';
 import { HUBS } from '../data/hub.js';
 import { fragCharges, fragMax, rifleMods } from '../player/trooper/kit.js';
 const MOD_TAG = { burst: 'BURST', auto: 'AUTO', marksman: 'SCOPE' };
@@ -244,6 +245,10 @@ export function updateHud(){
     const tp = trainingProgress();
     setHtml($('waveinfo'), '<span class="wi-l">TRAINING · ' + tp.place + '</span><span class="wi-w">' + tp.name + '</span>' +
       (tp.total ? '<span class="wi-h">STEP ' + tp.lesson + ' / ' + tp.total + '</span><span class="wi-bar"><i style="width:' + ((tp.lesson - 1) / tp.total * 100).toFixed(1) + '%"></i></span>' : ''));
+  } else if (G.zone && zoneDef()){   // an open zone (game/zone.js): where in it you are, and the waystones you've touched
+    const Z = zoneDef(), d = zoneDistrict();
+    setHtml($('waveinfo'), '<span class="wi-l">OPEN ZONE · ' + Z.place + '</span><span class="wi-w">' + (d ? d.name : Z.name) + '</span>' +
+      '<span class="wi-h">WAYSTONES ' + stonesTouched().length + ' / ' + Z.waystones.length + ' · F AT A WAYSTONE TO TRAVEL</span>');
   } else if (G.mission){
     const o = objectiveHud();
     if (o) setHtml($('waveinfo'), '<span class="wi-l">' + o.kicker + '</span><span class="wi-w">' + o.title + '</span>' +

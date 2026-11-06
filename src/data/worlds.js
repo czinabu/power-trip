@@ -1083,7 +1083,43 @@ export const COVERT_WORLDS = {
     ambient: { kind: 'dust', color: 0xffe0c0, count: 90, size: 0.22 }, beats: { fog: 0x5a3a2e, fill: 1.0, tint: 0xffd0a0 }, sound: 'foundry' },
 };
 
+// THE OPEN ZONES (data/zones.js, world/zone-stream.js): the old city of Jedha in the late afternoon, its sandstone streets
+// in long warm light, the dust haze closing over the far end of each street (the fog is near enough that the streets
+// you can't see aren't built), the skyline's dome and minarets and the colossi past the walls standing out of it
+export const ZONE_WORLDS = {
+  zoJedha: {
+    sky: { top: 0x3e6496, horizon: 0xe0ac70, below: 0xb08458, bands: 7, stars: 0,
+      sun: { el: 0.24, color: 0xffe6b0, halo: 0xe8b070, size: 20 },
+      clouds: { color: 0xecc896, under: 0xb88a62, count: 12, lo: 0.5, hi: 0.88 },
+      ridges: [{ color: 0xb88a5e, h: 0.08, rough: 0.04, seed: 3 }, { color: 0x9c7250, h: 0.05, rough: 0.06, seed: 8 }] },
+    fog: 0xd6b48a, fogStart: 0.2, fogEnd: 0.52,
+    haze: { len: 520, max: 0.72 },
+    light: { sun: 0xffdcae, sunI: 1.75, dir: [22, 36, 30], hemiSky: 0xb8c8e4, hemiGround: 0x6a5240, fill: 0.74, rim: 0x9ab4e8, rimI: 0.5 },
+    floor: { kind: 'flagstone', base: 0x9a846a, seed: 5 },
+    outer: 0xb08a5e,
+    pal: { stone: 0xc8a272, stone2: 0xb8925f, stone3: 0xd2b080, stoneD: 0x8e7250, trim: 0x86643f, roof: 0x9c5e3a, dome: 0x4e8a96,
+      wall: 0xae8c64, wallD: 0x987a56, cloth1: 0xa8402a, cloth2: 0xd8a44a, cloth3: 0x3a6a8a, cloth4: 0xe4d6bc, wood: 0x6a4a2e,
+      recess: 0x3a2818, rock: 0xa07850, rockD: 0x7a5a3e, imp: 0xc8ccd2, impD: 0x565c66, red: 0xa83228, metal: 0x6a6e74,
+      hull: 0xdcd6c6, gold: 0xd8b46a, statue: 0xb09070, statueD: 0x806248, lamp: 0xffc870, kyber: 0x8ad8ff, beacon: 0xff5a40,
+      water: 0x3a8a96 },
+    backdrop: [
+      // the holy city goes on past the old walls: taller blocks packed round every side, domes and spires on top
+      { kind: 'district', h: [16, 30], w: [8, 14], color: 0xc29c6e, color2: 0xa8845a, trim: 0x86643f, roof: 0x9c5e3a, domes: 0.3, spires: 0.14, setback: 0.3, gap: 6 },
+      { kind: 'towers', count: 30, r: [1.6, 2.6], h: [14, 28], color: 0xa8865e, color2: 0x96764f },
+      { kind: 'mesas', count: 9, r: [2.2, 2.7], h: [24, 40], w: [20, 36], color: 0xae7a52, color2: 0x986a48 },
+      { kind: 'destroyer', az: -1.2, r: 2.4, y: 26, scale: 1.1, color: 0x8a8c96, color2: 0x767884, glow: 0x9ad8ff },
+      // the city's guardians, standing over its rooftops: the one in the square is the one that fell
+      { kind: 'colossi', az: [0.9, 2.3, -0.4, -2.6], r: 1.8, h: [84, 98], color: 0xae8c64, color2: 0x987a56, dark: 0x4a3828, metal: 0x7a7266 },
+    ],
+    ambient: { kind: 'dust', color: 0xffe2b0, count: 140, size: 0.28 },
+    warfront: { flyers: [{ kind: 'tie', count: 1, wing: 2, alt: [60, 110], speed: [60, 90], every: [16, 30], fire: 0x5aff6a }], epic: false },
+    beats: { fog: 0xd0a878, fill: 1.02, tint: 0xffd0a0 },
+    sound: 'temple',
+  },
+};
+
 export function themeFor(L){
+  if (ZONE_WORLDS[L.layout]) return ZONE_WORLDS[L.layout];
   if (HUB_WORLDS[L.layout]) return HUB_WORLDS[L.layout];
   if (COVERT_WORLDS[L.layout]) return COVERT_WORLDS[L.layout];
   if (TRAINING_WORLDS[L.layout]) return TRAINING_WORLDS[L.layout];

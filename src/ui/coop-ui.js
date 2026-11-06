@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // The ONLINE CO-OP panel (main menu and pause): host a room or join one by its code, and the connection readout on the HUD.
 
+import { ZONES, ZONE_PREFIX } from '../data/zones.js';
 import { audioInit } from '../audio/sfx.js';
 import { net, on, host, join, leave, cleanCode, lastRoom } from '../net/session.js';
 import { savedName, saveName, typingName, nameOf, seatsHeard } from '../net/names.js';
@@ -55,8 +56,9 @@ codeIn.addEventListener('input', () => { codeIn.value = cleanCode(codeIn.value);
 codeIn.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') join(codeIn.value); });
 codeIn.addEventListener('click', (e) => e.stopPropagation());
 
-const runName = () => coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'the challenge ' : 'the mission ') + missionTitle(coopRun.mid) : coopRun.k === 'c' ? (coopRun.ch >= 0 ? 'chapter ' + (coopRun.ch + 1) : 'level ' + (coopRun.lv + 1)) + ' of the campaign' : 'a Survival run';
-const waveText = () => coopRun.k === 'm' || coopRun.mid ? '' : ', wave ' + (coopRun.k === 'c' ? coopRun.w - (coopRun.wf || 0) + 1 : coopRun.w);
+const zoneLabel = (k) => (ZONES[k] || ZONES.jedha).name.toLowerCase();   // (an open zone: data/zones.js)
+const runName = () => coopRun.k === 'z' ? zoneLabel(coopRun.mid.slice(ZONE_PREFIX.length)) : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'the challenge ' : 'the mission ') + missionTitle(coopRun.mid) : coopRun.k === 'c' ? (coopRun.ch >= 0 ? 'chapter ' + (coopRun.ch + 1) : 'level ' + (coopRun.lv + 1)) + ' of the campaign' : 'a Survival run';
+const waveText = () => coopRun.k === 'm' || coopRun.k === 'z' || coopRun.mid ? '' : ', wave ' + (coopRun.k === 'c' ? coopRun.w - (coopRun.wf || 0) + 1 : coopRun.w);
 // who is in the room: everyone's picked name (or PLAYER n) in their seat colour
 function renderRoster(){
   const live = net.status === 'connected';

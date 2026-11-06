@@ -55,6 +55,7 @@ import { buildRelayArena } from './arenas/relay.js';
 import { buildTythonArena } from './arenas/tython.js';
 import { buildCloneCitadel } from './arenas/clone-citadel.js';
 import { buildCovertHubArena } from './arenas/covert-hub.js';
+import { buildZoneArena, clearZoneStream } from './zone-stream.js';
 import { resetDoors } from './doors.js';
 import { buildNav } from '../enemies/nav.js';
 import { clearScorch } from '../fx/scorch.js';
@@ -122,6 +123,7 @@ export function buildArena(L){
   shared.dojoRemotes = null;      // the sandbox room's hovering remotes (world/arenas/dojo.js)
   shared.templeBrazier = null;
   shared.hubAnim = null;   // the hub's turning holograms (world/arenas/tython.js)
+  clearZoneStream();       // an open zone's chunks went with the old arena group (world/zone-stream.js)
   resetDoorway();   // (the temple layout builds its doors again; a screen that went dark through them comes back up)
   shared.grassClear = null; shared.grassMounds = null; clearGrass();   // (an arena builder may set these: world/grass.js)   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
   pillars.length = 0;
@@ -220,6 +222,7 @@ export function buildArena(L){
   else if (/^ty[A-Z]/.test(L.layout)){ buildTythonArena(LP); }   // the hidden temple on Tython, the Jedi's hub (data/hub.js)
   else if (/^km[A-Z]/.test(L.layout)){ buildCloneCitadel(LP); }   // the clone citadel on Kamino, the trooper's hub
   else if (/^mf[A-Z]/.test(L.layout)){ buildCovertHubArena(LP); }   // the hidden covert, the Mando's hub (data/hub-covert.js)
+  else if (/^zo[A-Z]/.test(L.layout)){ buildZoneArena({ ...LP, ink: T && T.ink }); }   // an open zone, streamed in chunks (world/zone-stream.js, data/zones.js)
   else {
   // pick a spot at least `gap` clear of every other obstacle so cover stays SPREAD OUT — clustered obstacles
   // form walls that trap the enemy AI. Returns null if no open spot is found (so we just place fewer).

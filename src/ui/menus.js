@@ -40,6 +40,8 @@ import { autosave } from '../game/autosave.js';
 import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
+import { startZone } from '../game/zone.js';
+import { ZONE_PREFIX } from '../data/zones.js';
 import { loadInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
@@ -100,7 +102,7 @@ const beginLabel = () => G.modeSel === 'temple' ? 'ENTER ' + nextHub().home : G.
    difficulty and BEGIN for that mode). MISSIONS opens its own page and CO-OP its panel straight from the first step. */
 let _step = 'mode';
 export const menuStep = () => _step;
-const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE' };
+const STEP_NAME = { campaign: 'CAMPAIGN', endless: 'SURVIVAL', training: 'TRAINING', sandbox: 'SANDBOX', mission: 'MISSION', temple: 'THE HIDDEN TEMPLE', zone: 'OPEN ZONE' };
 export function showMenuStep(step, group = null){
   _step = step === 'hero' ? 'hero' : 'mode';
   openGroup(_step === 'mode' ? group : null);
@@ -244,6 +246,7 @@ function beginPlay(){
       G.mode = 'play'; G.slowmo = 1;
       if (G.modeSel === 'temple'){ startHub(G.hubWing); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
       G.hub = false;
+      if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
       else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
@@ -253,7 +256,7 @@ function beginPlay(){
     G.paused = true;
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
-      if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
+      if (G.zone) startZone(G.zone); else if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
       G.paused = false;
     }, stillWanted);
   } else {
@@ -671,8 +674,9 @@ document.getElementById('trainYes').addEventListener('click', (e) => { e.stopPro
 document.getElementById('trainNo').addEventListener('click', (e) => { e.stopPropagation(); overlay.classList.remove('asktrain'); launchFromMenu(); });
 // co-op guest: start a run that follows the host's (net/foes.js): Survival (startEndless sees G.coopJoin) or the campaign's level
 export function launchCoopRun(){
-  G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : 'endless';
+  G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : coopRun.k === 'z' ? 'zone' : 'endless';
   if (coopRun.k === 'm') G.missionId = coopRun.mid;
+  if (coopRun.k === 'z') G.zoneSel = coopRun.mid.slice(ZONE_PREFIX.length);
   setOverlayState('menu');
   launch();
 }
@@ -771,7 +775,7 @@ function restartRun(toTraining, after){
   G.paused = true;
   loadInto(() => {
     G.paused = false;
-    if (toTraining) startTutorial(); else if (G.chapter >= 0) startCampaign(); else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0) startCampaign(); else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
     if (after) after();
   });
   if (!shared.lockFallback) requestLock();
@@ -876,6 +880,15 @@ export function hubLaunch(mode, mid){
   beginFromMenu();
   return true;
 }
+// an open zone (game/zone.js): straight in from a hub's station, no forms page or armory first (it hands out the kit your
+// rank carries, and you leave by its shuttle)
+export function hubLaunchZone(key = 'jedha'){
+  G.zoneSel = key;
+  leaveHub();
+  G.modeSel = 'zone';
+  showMenuStep('hero');
+  launchNow();
+}
 // a page that lives on the pause screen (the codex, the profile, the forms): over the temple, paused under it; closing
 // it with a click goes straight back to the temple
 let hubPage = null;
@@ -914,8 +927,9 @@ export function goTemple(auto){
 function followHostRun(){
   closeHubPanel(false);
   G.fromHub = true; G.partyRun = true; G.hub = false;
-  G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : 'endless';
+  G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : coopRun.k === 'z' ? 'zone' : 'endless';
   if (coopRun.k === 'm') G.missionId = coopRun.mid;
+  if (coopRun.k === 'z') G.zoneSel = coopRun.mid.slice(ZONE_PREFIX.length);
   G.mode = 'menu'; setOverlayState('menu');
   launchNow();
 }

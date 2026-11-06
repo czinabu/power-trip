@@ -158,6 +158,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (G.mode !== 'play') return 'none';
   if (player.downed){ hitDownedHero(); return 'none'; }   // down: a blow drains the time left instead (game/revive.js)
   if (G.gt < (player.reviveGuardT || 0)) return 'none';   // just got up: a moment's grace
+  if (G.zoneFallT > 0) return 'none';   // fallen in an open zone: on the way back to a waystone (game/zone.js)
   // co-op: the fight runs on while you're in a menu (paused, picking upgrades). Nothing lands while it's open, nor for a
   // moment after (net/foes.js stamps awayAt); foes leave you be meanwhile (player/players.js huntable)
   if (coopRun.live && (G.paused || G.skillSelect || performance.now() - (player.awayAt ?? -1e9) < AWAY_GRACE)) return 'none';
@@ -384,7 +385,11 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   return 'hit';
 }
 // the end of the run: the hero falls for good
+// an open zone has no end screen: a fall wakes the hero at a waystone instead (game/zone.js sets it)
+let fallHook = null;
+export function onHeroFall(fn){ fallHook = fn; }
 export function killHero(){
+  if (fallHook && fallHook()) return;
   player.hp = 0;
   G.mode = 'dead';
   G.slowmo = 0.2;

@@ -184,8 +184,8 @@ function partnerSteps(P, dt){
 
 function stepPartner(P, dt){
   const { puppet, mate, want, track } = P;
-  const here = worldKey(), hubbed = here.startsWith('hub:') || P.world.startsWith('hub:');
-  const show = P.built && connected() && P.playing && G.mode !== 'menu' && (!hubbed || P.world === here);   // (in the temple: only the ones in the same wing)
+  const here = worldKey(), hubbed = /^(hub|zone):/.test(here) || /^(hub|zone):/.test(P.world);
+  const show = P.built && connected() && P.playing && G.mode !== 'menu' && (!hubbed || P.world === here);   // (in the temple: only the ones in the same wing; in an open zone, the same zone)
   puppet.group.visible = show;
   mate.here = show && G.mode === 'play' && P.world === worldKey();
   if (P.tag) P.tag.style.display = show ? 'block' : 'none';

@@ -23,7 +23,7 @@ fadeTex.minFilter = fadeTex.magFilter = THREE.NearestFilter;
 fadeTex.needsUpdate = true;
 
 export function resetCamBlockers(){
-  props.length = 0;
+  props.length = 0; free.length = 0; owner = null;
   fade.fill(0); fadeBytes.fill(0); fadeTex.needsUpdate = true;
 }
 
@@ -31,14 +31,34 @@ export function resetCamBlockers(){
    Double-sided planes (banners, window glows) still fade but never block the lens: they're flat, outline-free and
    passing through one is harmless, while their rotated boxes would make the lens shy away from columns for nothing. */
 export function registerProp(o){
-  if (props.length >= FADE_W * FADE_H) return -1;
+  if (!free.length && props.length >= FADE_W * FADE_H) return -1;
   const geo = o.geometry;
   if (!geo.boundingBox) geo.computeBoundingBox();
   // a world bounding sphere, so the per-frame tests can skip props nowhere near the hero (a battle map has hundreds)
   const box = geo.boundingBox.clone(), c = box.getCenter(new THREE.Vector3()), r = box.getSize(_c).length() / 2 * o.matrixWorld.getMaxScaleOnAxis();
   const lowY = box.clone().applyMatrix4(o.matrixWorld).min.y;   // its underside (the battle setup's overhead view looks past what hangs above head height)
-  props.push({ inv: o.matrixWorld.clone().invert(), box, solid: o.material.side !== THREE.DoubleSide, c: c.applyMatrix4(o.matrixWorld), r, lowY });
+  const pr = { inv: o.matrixWorld.clone().invert(), box, solid: o.material.side !== THREE.DoubleSide, c: c.applyMatrix4(o.matrixWorld), r, lowY, owner };
+  if (free.length){ const id = free.pop(); props[id] = pr; return id; }
+  props.push(pr);
   return props.length - 1;
+}
+
+/* STREAMED PROPS: an open zone (world/zone-stream.js) builds a chunk's props while someone is near it and throws them away
+   after. Its props are registered under that chunk (propOwner, around its bake); dropProps lets every one of them go, and
+   their ids are handed out again to the next chunk built (a dropped prop blocks nothing and fades nothing meanwhile) */
+const free = [];
+let owner = null;
+export function propOwner(o){ owner = o ?? null; }
+export function dropProps(o){
+  let dirty = false;
+  for (let i = 0; i < props.length; i++){
+    const pr = props[i];
+    if (pr.owner !== o || pr.dead) continue;
+    pr.dead = true; pr.solid = false; pr.r = 0; pr.c.set(1e9, -1e9, 1e9); pr.box.makeEmpty(); pr.lowY = -1e9; pr.owner = null;
+    fade[i] = 0; if (fadeBytes[i]){ fadeBytes[i] = 0; dirty = true; }
+    free.push(i);
+  }
+  if (dirty) fadeTex.needsUpdate = true;
 }
 
 /* CAMERA CLEARANCE — how far along the line from the hero's head (a) to the wanted camera spot (b) the lens may sit

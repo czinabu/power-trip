@@ -72,6 +72,7 @@ const RUNS = [
   ...['grassland', 'icefront', 'graveyard'].map(id => ['sandbox ' + id, `GAME.setSandboxMap('${id}'); GAME.startSandbox()`]),
   ['training room', `GAME.setSandboxMap('room'); GAME.startSandbox()`],
   ...['hall', 'council', 'training', 'archives', 'forge'].map(w => ['temple ' + w, `GAME.hub.startHub('${w}')`]),   // the hidden temple's wings (game/hub.js)
+  ...['gate', 'square', 'bazaar', 'temple'].map(w => ['zone jedha ' + w, `GAME.zone.startZone('jedha', { at: '${w}' })`]),   // the open zone, streamed round each waystone (game/zone.js)
 ];
 const rows = [];
 for (const [label, code] of RUNS){

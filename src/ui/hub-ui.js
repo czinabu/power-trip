@@ -27,6 +27,9 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { rankIndex, track, sideWon } from '../game/profile.js';
+import { mapHTML } from './hub-map.js';
+import { pad } from '../engine/gamepad.js';
+import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 
 const panel = document.getElementById('hubpanel');
@@ -119,6 +122,7 @@ function hubToMissions(){ G.modeSel = 'mission'; document.getElementById('mode-m
 function render(){
   if (ready) return renderReady();
   if (station.act === 'welcome') return renderWelcome();
+  if (station.act === 'travel') return renderMap();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
@@ -147,6 +151,43 @@ export function closeHubPanel(relock = true){
 }
 export const hubPanelOpen = isOpen;
 
+/* ---------------- THE MAP (ui/hub-map.js) ----------------
+   The Temple Map, the waystones and every other hub's map stations: the hub drawn from above, YOU where you stand, and
+   every other wing a button that takes you there. Beside it (under it on a tall screen) a line on the wing your pointer
+   or the controller's ring is on, then SHOW ME AROUND and WHAT'S WHERE. */
+function renderMap(){
+  const Hb = curHub(), W = hubWing(), here = G.hubWing, list = options(station), p = playerPos();
+  const who = (id) => partnerWorlds().filter(q => q.world === 'hub:' + G.hubId + ':' + id).map(q => q.name);
+  const wingIdx = (id) => Hb.order.indexOf(id);
+  const extra = list.slice(Hb.order.length);
+  const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
+  panel.innerHTML = '<div class="hb-box hm-box"><div class="hm-head"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
+    '<div class="hb-d">' + Hb.travel + '</div>' + partyLine + '</div>' +
+    '<div class="hm-body">' + mapHTML(Hb, here, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, who, wingIdx) +
+    '<div class="hm-side"><div class="hm-info"></div>' +
+    '<div class="hb-list">' + extra.map((b, i) => '<div class="hb-o" data-i="' + (Hb.order.length + i) + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="btn hb-x" data-x="1">CLOSE</div></div></div></div>';
+  panel._list = list;
+  showWing(null);
+}
+// the line beside the map: the wing under the pointer or the ring, or the one you're in
+function showWing(id){
+  const el = panel.querySelector('.hm-info'); if (!el) return;
+  const Hb = curHub(), here = G.hubWing, w = Hb.wings[id] ? id : here, Wg = Hb.wings[w];
+  const who = partnerWorlds().filter(q => q.world === 'hub:' + G.hubId + ':' + w).map(q => q.name);
+  const go = w === here ? 'YOU ARE HERE' : (pad.active ? 'SELECT' : matchMedia('(hover: none)').matches ? 'TAP' : 'CLICK') + ' TO TRAVEL';
+  el.innerHTML = '<em>' + go + '</em><b>' + Wg.name + '</b><span>' + Wg.blurb + '</span>' + (who.length ? '<i>' + who.join(', ') + '</i>' : '') +
+    '<u>' + Wg.stations.filter(s => s.act !== 'travel').map(s => s.name).join(' · ') + '</u>';
+  panel.querySelectorAll('.hm-wing').forEach(t => t.classList.toggle('on', t.dataset.w === id));
+}
+panel.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('.hm-wing'); if (t) showWing(t.dataset.w); });
+panel.addEventListener('mouseleave', () => { if (station && station.act === 'travel' && !panel.querySelector('.hm-wing.padfocus')) showWing(null); });
+// the controller's ring (engine/gamepad.js sets .padfocus): the line follows it onto a wing
+new MutationObserver((ms) => {
+  if (!station || station.act !== 'travel') return;
+  for (const m of ms) if (m.target.classList && m.target.classList.contains('hm-wing') && m.target.classList.contains('padfocus')){ showWing(m.target.dataset.w); return; }
+}).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
 /* ---------------- THE WELCOME (game/hub-welcome.js) ----------------
    WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW
    ME AROUND (the walk to a few stations, ending at the first mission). The first visit itself puts up nothing like this:
@@ -172,7 +213,7 @@ setHubPanelCloser(closeHubPanel);
 panel.addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   if (e.target === panel || e.target.closest('[data-x]')){ closeHubPanel(); return; }
-  const o = e.target.closest('.hb-o'); if (!o) return;
+  const o = e.target.closest('.hb-o,.hm-wing[data-i]'); if (!o) return;
   const b = panel._list[+o.dataset.i];
   if (!b || !b.go){ return; }
   if (b.lock){ S.uiDeny(); o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); return; }

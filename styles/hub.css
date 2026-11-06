@@ -87,3 +87,101 @@ body.cutscene :is(#hubp,#secp,#mercyp){opacity:0 !important}
 #tutor.hw-tour .tt-voice{font-size:12.5px;margin-top:7px;padding-top:6px}
 #tutor.hw-tour.hw-quiet .tt-voice{display:none}
 @media (max-width:560px){ #tutor.hw-tour{left:16px;top:84px} }
+
+/* THE HUB MAP (ui/hub-map.js, ui/hub-ui.js renderMap): the hub from above, the wing you're in marked, every other wing a
+   button. Sizes inside the plan follow its width (container units), so it reads the same on a phone and a monitor */
+.hb-box.hm-box{width:min(820px,100%)}
+.hm-body{display:flex;flex-direction:column;gap:10px;min-height:0}
+.hm-map{position:relative;width:100%;max-width:calc((100vh - 330px) * var(--hm-r));max-width:calc((100dvh - 330px) * var(--hm-r));min-width:min(100%,260px);margin:2px auto 0;
+  container-type:inline-size;border-radius:10px;flex:none;
+  background:radial-gradient(ellipse at 50% 50%,rgba(60,120,170,.16),rgba(0,0,0,0) 70%),
+    repeating-linear-gradient(0deg,rgba(120,200,255,.05) 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,rgba(120,200,255,.05) 0 1px,transparent 1px 22px),rgba(2,10,20,.5);
+  border:1px solid rgba(120,200,255,.16)}
+.hm-hall{position:absolute;background:rgba(150,200,240,.16);border:1px solid rgba(150,210,255,.28);box-sizing:border-box}
+.hm-hall:not(.v){border-left:0;border-right:0}
+.hm-hall.v{border-top:0;border-bottom:0}
+.hm-wing{position:absolute;box-sizing:border-box;border-radius:6px;
+  border:2px solid rgba(150,210,255,.5);background:linear-gradient(180deg,rgba(40,80,120,.55),rgba(14,32,52,.75));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.35);transition:background .15s,border-color .15s,box-shadow .15s}
+.hm-wing:not(.here){cursor:pointer}
+.hm-wing:hover,.hm-wing.on,.hm-wing.padfocus{border-color:rgba(190,235,255,.95);background:linear-gradient(180deg,rgba(70,140,200,.6),rgba(24,58,90,.8));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 0 0 3px rgba(120,214,255,.35),0 6px 18px rgba(0,0,0,.4)}
+.hm-wing.here{border-color:rgba(216,184,96,.9);background:linear-gradient(180deg,rgba(120,98,40,.42),rgba(40,34,18,.7))}
+.hm-wing.here:hover,.hm-wing.here.on{border-color:#ffe2a0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 0 0 3px rgba(216,184,96,.3)}
+.hm-n{position:absolute;left:0;right:0;top:5%;text-align:center;font:700 clamp(9px,2.5cqw,17px)/1 var(--font-display);letter-spacing:.12em;color:var(--ink);
+  text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none;padding:0 3px}
+.hm-n.low{top:auto;bottom:5%}
+.hm-wing.here .hm-n{color:#ffe9b0}
+.hm-tag{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);white-space:nowrap;font:700 clamp(7px,1.45cqw,11px)/1 var(--font-ui);letter-spacing:.16em;
+  color:#1a1408;background:#d8b860;padding:3px 6px;border-radius:3px;pointer-events:none}
+.hm-tag.high{bottom:auto;top:5%}
+.hm-who{position:absolute;left:4%;right:4%;bottom:5%;text-align:center;font:700 clamp(7px,1.4cqw,11px)/1.2 var(--font-ui);letter-spacing:.08em;color:#9ae4ff;pointer-events:none}
+.hm-wing.here .hm-who{bottom:calc(5% + clamp(14px,2.6cqw,19px))}
+.hm-door{position:absolute;background:rgba(150,200,240,.4);pointer-events:none}
+.hm-door.n,.hm-door.s{left:calc(50% - 7%);width:14%;height:4px}
+.hm-door.e,.hm-door.w{top:calc(50% - 7%);height:14%;width:4px}
+.hm-door.n{top:-3px}.hm-door.s{bottom:-3px}.hm-door.e{right:-3px}.hm-door.w{left:-3px}
+.hm-pin{position:absolute;width:clamp(5px,1.1cqw,9px);height:clamp(5px,1.1cqw,9px);margin:calc(clamp(5px,1.1cqw,9px) / -2) 0 0 calc(clamp(5px,1.1cqw,9px) / -2);
+  border-radius:50%;background:#9ae4ff;box-shadow:0 0 0 2px rgba(4,14,26,.75),0 0 8px rgba(120,214,255,.6);pointer-events:none}
+.hm-pin.big{background:#ffd36a;box-shadow:0 0 0 2px rgba(4,14,26,.75),0 0 10px rgba(255,210,110,.7);transform:scale(1.35)}
+.hm-pin.make{background:#ff9a5a;box-shadow:0 0 0 2px rgba(4,14,26,.75),0 0 8px rgba(255,150,90,.6)}
+.hm-pin.call{background:#c8a0ff;box-shadow:0 0 0 2px rgba(4,14,26,.75),0 0 8px rgba(190,150,255,.6)}
+.hm-pin.go{border-radius:2px;transform:rotate(45deg);background:transparent;box-shadow:inset 0 0 0 2px #9ae4ff,0 0 0 1px rgba(4,14,26,.75)}
+.hm-pin em{position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);white-space:nowrap;font:600 clamp(6px,1.25cqw,10px)/1 var(--font-ui);font-style:normal;
+  letter-spacing:.06em;color:var(--ink-soft);text-shadow:0 1px 2px #000,0 0 4px #000}
+.hm-pin em.l{left:auto;right:calc(100% + 4px)}
+.hm-pin em.d,.hm-pin em.u{left:50%;transform:translateX(-50%)}
+.hm-pin em.d{top:calc(100% + 4px)}
+.hm-pin em.u{top:auto;bottom:calc(100% + 4px)}
+.hm-pin.big em{transform:translateY(-50%) scale(.74);transform-origin:left center}
+.hm-pin.big em.l{transform-origin:right center}
+.hm-pin.big em.d,.hm-pin.big em.u{transform:translateX(-50%) scale(.74);transform-origin:center}
+/* YOU: an arrow where you stand, pointing the way you face, in a pulsing ring */
+.hm-you{position:absolute;width:0;height:0;pointer-events:none;z-index:2}
+.hm-you::before{content:'';position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;border:2px solid #ffe2a0;box-sizing:border-box;animation:hmPing 1.6s ease-out infinite}
+.hm-you > i{position:absolute;left:-9px;top:-11px;width:18px;height:22px;transform-origin:50% 50%}
+.hm-you > i::before{content:'';position:absolute;inset:0;background:#ffe2a0;clip-path:polygon(50% 0,100% 100%,50% 76%,0 100%);filter:drop-shadow(0 0 4px rgba(255,220,140,.9))}
+@keyframes hmPing{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.9);opacity:0}}
+.hm-key{position:absolute;left:2%;bottom:3%;display:flex;align-items:center;gap:8px;font:600 clamp(7px,1.3cqw,10px)/1 var(--font-ui);letter-spacing:.12em;color:var(--ink-dim);pointer-events:none}
+.hm-key .hm-pin{position:relative;margin:0}
+.hm-north{position:absolute;right:2%;top:3%;font:700 clamp(9px,1.8cqw,13px)/1 var(--font-display);letter-spacing:.1em;color:#d8b860;pointer-events:none}
+.hm-north::before{content:'';display:block;margin:0 auto 3px;width:0;height:0;border:5px solid transparent;border-bottom:8px solid #d8b860;border-top:0}
+/* the wing's line, and the two options */
+.hm-side{display:flex;flex-direction:column;gap:8px;min-width:0}
+.hm-info{display:flex;flex-direction:column;gap:3px;padding:9px 12px;border-left:3px solid #d8b860;background:rgba(216,184,96,.07);border-radius:0 8px 8px 0;min-height:64px;box-sizing:border-box}
+.hm-info em{font:700 10px/1 var(--font-ui);font-style:normal;letter-spacing:2.4px;color:#d8b860}
+.hm-info b{font:700 18px/1.05 var(--font-display);letter-spacing:2px;color:var(--ink)}
+.hm-info span{font:500 13px/1.35 var(--font-ui);color:var(--ink-soft)}
+.hm-info i{font:700 11px/1.2 var(--font-ui);font-style:normal;letter-spacing:1.6px;color:#9ae4ff}
+.hm-info u{text-decoration:none;font:600 10px/1.3 var(--font-ui);letter-spacing:1.4px;color:var(--ink-dim)}
+.hm-side .hb-list{flex-direction:row;margin-top:0}
+.hm-side .hb-list .hb-o{flex:1;padding:10px 12px}
+.hm-side .hb-list .hb-o b{font-size:16px}
+.hm-side .hb-list .hb-o span{font-size:12px}
+.hm-side .hb-x{margin-top:0}
+.hm-box .hb-t{font-size:26px}
+/* a wide screen, or a short one (a laptop, a phone on its side): the map on the left, the line and options on the right */
+@media (min-width:900px), (min-width:561px) and (max-height:760px){
+  .hb-box.hm-box{width:min(1120px,100%);padding:14px 18px 12px;gap:6px}
+  .hm-body{flex-direction:row;align-items:flex-start;gap:14px}
+  .hm-map{max-width:calc((100vh - 160px) * var(--hm-r));max-width:calc((100dvh - 160px) * var(--hm-r));flex:1 1 auto;margin:0}
+  .hm-side{flex:0 0 clamp(200px,32%,320px)}
+  .hm-side .hb-list{flex-direction:column}
+  .hm-box .hb-t{font-size:24px}
+}
+@media (min-width:561px) and (max-height:440px){
+  .hb-box.hm-box{padding:10px 14px 10px}
+  .hm-box .hb-d,.hm-box .hb-k{display:none}
+  .hm-map{max-width:calc((100dvh - 80px) * var(--hm-r))}
+  .hm-info span{display:none}
+  .hm-side .hb-list .hb-o span{display:none}
+  .hm-side .hb-list .hb-o{padding:7px 10px}
+}
+/* a phone held upright: the map the width of the card, the options stacked under it */
+@media (max-width:560px){
+  #hubpanel{padding:12px}
+  .hb-box.hm-box{padding:14px 12px 12px}
+  .hm-map{max-width:none;min-width:0}
+  .hm-side .hb-list{flex-direction:column}
+  .hm-info span{font-size:12px}
+}

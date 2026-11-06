@@ -1,0 +1,65 @@
+# The Windows desktop app (desktop/, Electron): the same built game as the website, packaged as .exe files.
+# Run it from the Actions tab: "Desktop build" -> Run workflow. It also runs on PRs that touch the desktop app.
+# When it finishes, the run's page has a "PowerTrip-windows" download holding:
+#   PowerTrip-<version>-portable.exe   double-click to play, nothing to install
+#   PowerTrip-<version>-setup.exe      installs it, with a desktop shortcut and an uninstaller
+# The website, Vercel previews and the main check (check.yml) don't depend on any of this.
+name: Desktop build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'tools/smoke/desktop.mjs'
+      - '.github/workflows/desktop.yml'
+
+jobs:
+  smoke:
+    # the desktop app loads the game and hosts online co-op that a plain browser joins
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npx playwright install --with-deps chromium
+      - run: npm run desktop:prepare
+      - run: xvfb-run -a -s "-screen 0 1600x900x24" npm run smoke:desktop
+        env:
+          SHOT: desktop-smoke.png
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-smoke
+          path: desktop-smoke.png
+          if-no-files-found: ignore
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npm run desktop:exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PowerTrip-windows
+          path: desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 30

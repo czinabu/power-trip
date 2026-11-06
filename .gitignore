@@ -2,3 +2,5 @@ node_modules/
 dist/
 smoke-*.png
 shots-*/
+desktop/game/
+desktop/release/

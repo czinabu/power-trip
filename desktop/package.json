@@ -1,0 +1,41 @@
+{
+  "name": "power-trip-desktop",
+  "productName": "Power Trip",
+  "private": true,
+  "version": "1.8.0",
+  "description": "POWER TRIP desktop app: the web build in its own window",
+  "author": "Caleb Zinabu",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.czinabu.powertrip",
+    "productName": "Power Trip",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "icon.png",
+      "game/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icon.png"
+    },
+    "portable": {
+      "artifactName": "PowerTrip-${version}-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "PowerTrip-${version}-setup.exe",
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Power Trip"
+    }
+  }
+}

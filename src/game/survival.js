@@ -23,6 +23,7 @@ import { findClearSpawn, edgeSpawn } from '../world/collision.js';
 import { buildArena } from '../world/arena.js';
 import { startLevel, checkUnlocks, splitWaveWithLull } from './flow.js';
 import { MUTATORS } from '../data/mutators.js';
+import { mutOn, NG_FRENZY } from '../data/ngplus.js';
 import { payWaveClear } from './progression.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint, noteWavePoint, SURVIVAL_EVERY } from './upgrades.js';
@@ -40,8 +41,9 @@ import { noteSurvivalWave, noteSquadWave } from './profile.js';
 // via enemyHpScale). The Frenzy mutator stacks on top. Applied wherever an enemy deals damage.
 export function enemyDmgScale(){
   if (G.training) return 0.5;   // the training grounds: sparring partners pull their blows
-  if (G.mission && G.chapter < 0 && G.arcadeDmg) return G.arcadeDmg;   // an arcade contract's GLASS CANNON twist (data/arcade.js); 1 otherwise
-  if (!G.endless) return 1;
+  const fr = !G.endless && mutOn('frenzy') ? NG_FRENZY : 1;   // a NEW GAME+ chapter's (or a veteran side mission's) FRENZY: data/ngplus.js
+  if (G.mission && G.chapter < 0 && G.arcadeDmg) return G.arcadeDmg * fr;   // an arcade contract's GLASS CANNON twist (data/arcade.js); 1 otherwise
+  if (!G.endless) return fr;
   const n = G.endlessWave || 0;
   // COMPOUNDS past wave ~5 so a late-game mistake actually hurts even through stacked Vitality / damage-reduction.
   return (1 + n*0.03) * Math.pow(1.035, Math.max(0, n-5)) * (G.mut === 'frenzy' ? 1.3 : 1);

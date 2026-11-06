@@ -16,6 +16,9 @@
 //   { caves: n }         n crystal caves harvested on the story maps
 //   { revives: n }       n squadmates got up by your own hand (the trooper's squad)
 //   { squadWaves: n }    n survival waves cleared with the whole squad still standing
+//   { top: '<rank>' }    the hero's TOP RANK held (Grand Master, Mand'alor, Marshal Commander): the post-game's LEGENDARY
+//                        parts. The value is the rank's name, for the locked tip
+//   { ng: n }            NEW GAME+ tier n beaten (data/ngplus.js): legendary parts too
 // No `earn`: a starter part, on the bench from the first day. A part that is earned is announced once: a card at a
 // chapter's close, a corner note anywhere else.
 //
@@ -53,6 +56,9 @@ export const CRYSTALS = [
     ds: '+10% stamina regen · −7% damage', fx: [['stamRegen', '*', 1.1], ['dmg', '*', 0.93]] },
   { id: 'crimson', name: 'Wrath crimson', col: 0xc0001c, earn: { dark: 50 }, att: 'HUNGER',
     ds: '+7% damage · −10% stamina regen', fx: [['dmg', '*', 1.07], ['stamRegen', '*', 0.9]] },
+  // THE POST-GAME's LEGENDARY crystal (`legend: true`): a look, never a number. It burns its own colour and asks nothing
+  { id: 'heart', name: 'Grand Master\'s', col: 0xffe9a8, earn: { top: 'Grand Master' }, legend: true, att: 'LEGENDARY',
+    ds: 'The crystal of the Order\'s last Grand Master: pale gold, and steady as a held breath. No sidegrade.', fx: [] },
 ];
 
 // HILTS: the grip, the part the hand closes on (player/model/hilt.js BODIES draws each)
@@ -63,6 +69,7 @@ export const HILTS = [
   { id: 'duelist', name: 'Duellist', earn: { duels: 3 }, line: 'A waisted grip in bronze, scored for a sure hold.' },
   { id: 'temple', name: 'Temple', earn: { missions: 2 }, line: 'Ivory and gold, as the Temple\'s Guards carried them.' },
   { id: 'exile', name: 'Exile', earn: { won: 1 }, line: 'Dark bronze bound in cloth. Carried a long way from home.' },
+  { id: 'grandmaster', name: 'Grand Master', earn: { top: 'Grand Master' }, legend: true, line: 'White steel wound with gold. The hilt the Order hands its Grand Master.' },
 ];
 // EMITTERS: the head the blade leaves from
 export const EMITTERS = [
@@ -72,6 +79,7 @@ export const EMITTERS = [
   { id: 'bell', name: 'Bell', earn: { arcade: 2 }, line: 'A wide bell mouth: the blade blooms out of it.' },
   { id: 'vented', name: 'Vented', earn: { waves: 10 }, line: 'Slotted for heat, from long nights on the line.' },
   { id: 'seeker', name: 'Seeker', earn: { sides: 3 }, line: 'A ringed head with a window to the crystal. Built for the long errand.' },
+  { id: 'ascendant', name: 'Ascendant', earn: { ng: 1 }, legend: true, line: 'A halo of six fine prongs round the blade, lit from within. Forged on the second road.' },
 ];
 // POMMELS: the end below the hand
 export const POMMELS = [
@@ -81,6 +89,7 @@ export const POMMELS = [
   { id: 'weighted', name: 'Weighted', earn: { chapter: 'hoth' }, line: 'A heavy ball to balance the blade.' },
   { id: 'spike', name: 'Spike', earn: { duels: 10 }, line: 'A tapered point. A duellist\'s threat.' },
   { id: 'holocron', name: 'Holocron', earn: { holocrons: 4 }, line: 'A faceted cube that glows faintly. Cut to match the ones you found.' },
+  { id: 'starfall', name: 'Starfall', earn: { ng: 3 }, legend: true, line: 'A four-pointed star of kyber below the hand. Only the third road gives it up.' },
 ];
 // the bench's rows, in order (each a row of data/customize.js's jedi list, with `bench: true`)
 export const BENCH = [
@@ -98,6 +107,8 @@ export function earnProgress(p, earn){
   p = p || {};
   if (earn.chapter) return { have: p.cleared && p.cleared[earn.chapter] ? 1 : 0, need: 1 };
   if (earn.won) return { have: Math.min(1, p.won || 0), need: 1 };
+  if (earn.top) return { have: p.top ? 1 : 0, need: 1 };
+  if (earn.ng) return { have: Math.min(earn.ng, (p.ng && p.ng.best) || 0), need: earn.ng };
   if (earn.light || earn.dark){ const k = earn.light ? 'light' : 'dark'; return { have: Math.max(0, Math.round((p.alignPeak && p.alignPeak[k]) || 0)), need: earn[k] }; }
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
   if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
@@ -111,6 +122,8 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (!earn) return 'ON THE BENCH FROM THE START';
   if (earn.chapter) return 'CLEAR ' + chapterName(earn.chapter);
   if (earn.won) return 'BEAT THE CAMPAIGN';
+  if (earn.top) return 'REACH ' + String(earn.top).toUpperCase();
+  if (earn.ng) return 'BEAT NEW GAME+ ' + ['', 'I', 'II', 'III'][earn.ng];
   if (earn.light) return 'LEAN TO THE LIGHT: REACH ' + earn.light + ' LIGHT';
   if (earn.dark) return 'LEAN TO THE DARK: REACH ' + earn.dark + ' DARK';
   const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';

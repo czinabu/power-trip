@@ -10,6 +10,8 @@ import { sandboxUnlocked } from '../game/sandbox.js';
 import { reloadLook } from './customizer.js';
 import { overlay, goHome, refreshMenu, setModeSel, setMission, setDiff, beginFromMenu, survivalUnlocked, showMenuStep } from './menus.js';
 import { openMissionPage } from './missions-ui.js';
+import { ngNextTier } from '../game/profile.js';
+import { tierName, NG_TIERS, NG_WORDS } from '../data/ngplus.js';
 
 const panel = document.getElementById('saves');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -119,6 +121,33 @@ document.getElementById('newYes').addEventListener('click', (e) => {
   beginFromMenu();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('newconfirming')) overlay.classList.remove('newconfirming'); });
+
+// NEW GAME+ (data/ngplus.js): this hero's campaign again from chapter 1, at the next tier it hasn't beaten, with everything
+// the profile keeps. Nothing is wiped (the wins, the looks and the save slots stay), so it asks once on the button itself:
+// the first click arms it and says what it does, the second begins
+const ngBtn = document.getElementById('campNgBtn');
+let ngArmed = false;
+export function refreshNgButton(){
+  const t = G.modeSel === 'campaign' && !G.coopJoin ? ngNextTier(G.hero) : 0;
+  ngBtn.style.display = t ? '' : 'none';
+  if (!t){ ngArmed = false; return; }
+  ngBtn.classList.toggle('armed', ngArmed);
+  ngBtn.innerHTML = ngArmed ? 'BEGIN ' + tierName(t) + '<span class="ng-sub">' + NG_WORDS.confirm(t) + '</span>'
+    : tierName(t) + '<span class="ng-sub">Replay the story keeping your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter</span>';
+}
+ngBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit();
+  const t = ngNextTier(G.hero); if (!t) return;
+  if (!ngArmed){ ngArmed = true; refreshNgButton(); return; }
+  ngArmed = false;
+  G.resumeRun = null; G.ngNext = t;   // (game/campaign.js startCampaign takes it)
+  setModeSel('campaign');
+  refreshMenu();
+  beginFromMenu();
+});
+document.addEventListener('click', (e) => { if (ngArmed && e.target !== ngBtn && !ngBtn.contains(e.target)){ ngArmed = false; refreshNgButton(); } }, true);
+document.addEventListener('campaignmark', () => { ngArmed = false; refreshNgButton(); });   // (ui/menus.js: the mode or the hero changed)
+refreshNgButton();
 
 // ON LAUNCH: the newest saved campaign run waits with its hero picked, but the game still opens on the home screen's mode
 // list; clicking CAMPAIGN then lands on CONTINUE CAMPAIGN

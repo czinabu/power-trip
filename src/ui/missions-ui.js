@@ -19,7 +19,10 @@ import { missionShelves, missionRank, missionShelf, missionForHero, STORIES } fr
 import { audioInit } from '../audio/sfx.js';
 import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName, TWISTS, arcadeWins } from '../data/arcade.js';
 import { SIDE_QUESTS, SIDE_PREFIX, SIDE_BY_ID, isSideId } from '../data/side-quests.js';
-import { rankIndex, track } from '../game/profile.js';
+import { rankIndex, track, sideLock } from '../game/profile.js';
+import { mutatorById } from '../data/ngplus.js';
+// a veteran side mission's mutators, as small coloured tags on its card
+const mutTags = (ids) => (ids || []).map(id => { const m = mutatorById(id); return m ? `<span class="msn-tag mut" style="color:${m.col}">${m.name}</span>` : ''; }).join('');
 import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
 
 const listEl = document.getElementById('mplist'), infoEl = document.getElementById('mpinfo');
@@ -32,7 +35,7 @@ export const placeOf = (m) => m.level.name.replace(/^(MISSION|TRIAL)\s*—\s*/, 
 const trialSeen = (id) => !MISSIONS[id] || !MISSIONS[id].trial || HEROES().some(h => missionDone(id, h));
 // a mission stays locked and unspoiled until the campaign has cleared it (game/sandbox-unlocks.js)
 // a side mission (data/side-quests.js) opens at its rank, the same as at the temple's CALLS FOR AID stone
-const sideOpen = (id) => !!SIDE_BY_ID[id] && rankIndex() >= SIDE_BY_ID[id].rank;
+const sideOpen = (id) => !!SIDE_BY_ID[id] && !sideLock(SIDE_BY_ID[id]);   // (a veteran one waits for the campaign beaten: game/profile.js sideLock)
 export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open
 const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
@@ -84,10 +87,10 @@ function arcadeShelf(){
 /* ---------- the SIDE MISSIONS shelf: what the temple's CALLS FOR AID stone hands out ---------- */
 function sideCard(q){
   const id = SIDE_PREFIX + q.slug, open = sideOpen(id), won = missionDone(id, G.hero);
-  const need = track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm;
+  const need = sideLock(q);
   return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${id === G.missionId ? ' sel' : ''}" id="msn-${id.replace(':', '-')}" data-mission="${id}">
-    <span class="mt"><span class="mtn">${q.title}</span><span class="msn-tag">SIDE</span><span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
-    <span class="mw">${open ? q.place : 'REACH ' + need + ' TO UNLOCK'}</span>${open ? pips(q.threat) : ''}
+    <span class="mt"><span class="mtn">${q.title}</span><span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span><span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
+    <span class="mw">${open ? q.place : need + ' TO UNLOCK'}</span>${open ? pips(q.threat) + mutTags(q.muts) : ''}
   </div>`;
 }
 function sideShelf(){
@@ -98,13 +101,14 @@ function sideShelf(){
 function sideInfo(id){
   const q = SIDE_BY_ID[id]; if (!q || !infoEl) return;
   if (!sideOpen(id)){
-    infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div><div class="mpi-b">The Council hands this one out at ${track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm}. Rise in rank to unlock it.</div>`;
+    infoEl.innerHTML = q.post ? `<div class="mpi-t">${q.title}<span class="msn-tag">VETERAN</span></div><div class="mpi-b">A veteran's call: it opens once you have beaten this hero's campaign.</div>`
+      : `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div><div class="mpi-b">The Council hands this one out at ${track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm}. Rise in rank to unlock it.</div>`;
     return;
   }
   const marks = HEROES().map(h => HERO_NAME[h] + ' ' + (missionDone(id, h) ? '<span class="ok">✓</span>' : '<span class="no">–</span>')).join(' &nbsp;');
-  infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div>
+  infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span></div>
     <div class="mpi-w">${q.place}</div>
-    <div class="mpi-b">${q.ask}</div>
+    <div class="mpi-b">${q.ask}</div>${q.muts && q.muts.length ? `<div class="mpi-b">MUTATORS: ${q.muts.map(id => { const m = mutatorById(id); return m ? `<b style="color:${m.col}">${m.name}</b> (${m.tip})` : ''; }).join(' · ')}</div>` : ''}
     <div class="mpi-meta"><span>THREAT ${pips(q.threat)}</span><span>${q.take.length} OBJECTIVE${q.take.length === 1 ? '' : 'S'}</span><span>${q.reward.toUpperCase()}</span><span class="mpi-won">${marks}</span></div>`;
 }
 

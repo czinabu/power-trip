@@ -30,6 +30,7 @@ const FINISH = {
   duelist: { metal: 0xa8774a, dark: 0x2a1c12, band: 0xff9a5a },
   temple: { metal: 0xe2dac6, dark: 0xc9a24a, m: 0.25, r: 0.45, band: 0xffd860 },
   exile: { metal: 0x5b4733, dark: 0x1c1712, band: 0xc8925a },
+  grandmaster: { metal: 0xe8ecf2, dark: 0xd4a640, m: 0.75, r: 0.28, band: 0xffe9a8 },
 };
 const ring = (y0, y1, w) => loft([{ y: y0, w, d: w }, { y: y1, w, d: w }], ROUND);
 
@@ -75,6 +76,17 @@ const BODIES = {
     for (let i = 0; i < 8; i++) K.add(block(0.078, 0.014, 0.078, 0.4), K.cloth, [0, -0.15 + i * 0.026, 0], [0.18, 0, 0.12], false);
     K.add(block(0.02, 0.03, 0.026, 0.3), K.dark, [0, 0.06, 0.038], [0, 0, 0], false);
   },
+  // THE GRAND MASTER's (the post-game's legendary hilt): white steel, a gold wire wound up it in a spiral, and a lit gold
+  // activator set in a raised collar
+  grandmaster(K){
+    K.add(loft([{ y: GRIP_LO, w: 0.074, d: 0.074 }, { y: -0.06, w: 0.068, d: 0.068 }, { y: GRIP_HI, w: 0.076, d: 0.076 }], ngon(12, Math.PI / 12)), K.metal);
+    for (let i = 0; i < 12; i++){
+      const a = i * 1.05, y = -0.155 + i * 0.019;
+      K.add(block(0.016, 0.01, 0.01, 0.2), K.dark, [Math.sin(a) * 0.037, y, Math.cos(a) * 0.037], [0, a, 0.5], false);
+    }
+    K.add(ring(-0.02, 0.0, 0.084), K.dark);
+    K.add(block(0.02, 0.024, 0.02, 0.3), K.band, [0, -0.01, 0.043], [0, 0, 0], false);
+  },
 };
 
 /* ---------- EMITTERS: +0.08 up to the blade at +0.17 ---------- */
@@ -117,6 +129,15 @@ const EMITTERS = {
     K.add(block(0.022, 0.026, 0.012, 0.2), K.band, [0, 0.125, 0.04], [0, 0, 0], false);
     K.add(block(0.022, 0.026, 0.012, 0.2), K.band, [0, 0.125, -0.04], [0, 0, 0], false);
   },
+  // NEW GAME+'s legendary head: a collar ringed by six fine prongs leaning in on the blade, a lit band at their feet
+  ascendant(K){
+    K.add(loft([{ y: GRIP_HI, w: 0.078, d: 0.078 }, { y: 0.11, w: 0.09, d: 0.09 }, { y: 0.13, w: 0.084, d: 0.084 }, { y: EMIT, w: 0.064, d: 0.064 }], ROUND), K.metal);
+    K.add(ring(0.112, 0.124, 0.094), K.band, [0, 0, 0], [0, 0, 0], false);
+    for (let i = 0; i < 6; i++){
+      const a = i * Math.PI / 3;
+      K.add(shard(0.012, 0.1, 0.012), K.dark, [Math.sin(a) * 0.044, 0.125, Math.cos(a) * 0.044], [-Math.cos(a) * 0.22, 0, Math.sin(a) * 0.22]);
+    }
+  },
 };
 
 /* ---------- POMMELS: below the grip ---------- */
@@ -147,6 +168,16 @@ const POMMELS = {
     K.add(loft([{ y: -0.205, w: 0.058, d: 0.058 }, { y: GRIP_LO, w: 0.074, d: 0.074 }], ROUND), K.metal);
     K.add(new THREE.OctahedronGeometry(0.036, 0), K.band, [0, -0.235, 0], [0, Math.PI / 4, 0]);
     K.add(ring(-0.212, -0.205, 0.07), K.dark, [0, 0, 0], [0, 0, 0], false);
+  },
+  // NEW GAME+ III's legendary end: a four-pointed star of lit kyber below a short collar
+  starfall(K){
+    K.add(loft([{ y: -0.2, w: 0.056, d: 0.056 }, { y: GRIP_LO, w: 0.074, d: 0.074 }], ROUND), K.metal);
+    K.add(ring(-0.207, -0.2, 0.066), K.dark, [0, 0, 0], [0, 0, 0], false);
+    for (let i = 0; i < 4; i++){
+      const a = i * Math.PI / 2;
+      K.add(shard(0.022, 0.06, 0.022), K.band, [Math.sin(a) * 0.02, -0.235, Math.cos(a) * 0.02], [Math.cos(a) * 1.57, 0, -Math.sin(a) * 1.57]);
+    }
+    K.add(shard(0.024, 0.07, 0.024), K.band, [0, -0.255, 0], [Math.PI, 0, 0]);
   },
 };
 

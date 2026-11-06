@@ -37,6 +37,8 @@ export const SIGNETS = [
   { id: 'mythosaur', name: 'Mythosaur', earn: { chapter: 'trial-first' }, line: 'The great skull, the oldest sign of Mandalore.' },
   { id: 'owl',       name: 'Nite owl',  earn: { missions: 2 }, line: 'Wings spread. A warrior\'s house.' },
   { id: 'jaig',      name: 'Jaig eyes', earn: { duels: 3 }, line: 'The marks round the visor, given for courage.' },
+  // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
+  { id: 'mandalore', name: 'Mand\'alor\'s sigil', earn: { top: 'Mand\'alor' }, legend: true, line: 'The crowned skull of Mandalore. Only the one the clans follow wears it.' },
 ];
 // VAMBRACES: what's on the forearms
 export const VAMBRACES = [
@@ -51,6 +53,7 @@ export const CHEST_KIT = [
   { id: 'bandolier', name: 'Bandolier', earn: { waves: 5 }, line: 'A strap across the chest, heavy with power cells.' },
   { id: 'gorget',    name: 'Beskar gorget', earn: { chapter: 'mustafar' }, line: 'A forged collar over the throat.' },
   { id: 'sash',      name: 'Hunter\'s sash', earn: { arcade: 3 }, line: 'A cloth sash from shoulder to hip, in the cape colour.' },
+  { id: 'mantle',    name: 'War mantle', earn: { ng: 3 }, legend: true, line: 'A heavy beskar mantle over both shoulders, its edge in the accent colour. Earned on the third road.' },
 ];
 
 // JETPACK: the standard pack, or the standard pack with more forged onto it
@@ -65,6 +68,7 @@ export const HELMET_MODS = [
   { id: 'fins',  name: 'Swept fins', earn: { chapter: 'jakku' }, line: 'Two fins rising off the back of the dome.' },
   { id: 'plume', name: 'Plume', earn: { missions: 3 }, line: 'A crest of cloth from brow to nape, in the cape colour.' },
   { id: 'horns', name: 'Horns', earn: { duels: 10 }, line: 'Two horns swept up and back.' },
+  { id: 'crown', name: 'Crown crest', earn: { ng: 1 }, legend: true, line: 'A ring of short beskar blades round the dome. Forged on the second road.' },
 ];
 
 // THE FORGE's rows, in order (each a row of data/customize.js's mando list, with `bench: true`)

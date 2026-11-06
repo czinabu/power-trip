@@ -27,7 +27,8 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { ZONES } from '../data/zones.js';
-import { rankIndex, track, sideWon } from '../game/profile.js';
+import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
+import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML } from './hub-map.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
@@ -52,6 +53,9 @@ const party = () => net.status === 'connected';
 const B = (t, d, go, lock) => ({ t, d, go, lock });
 
 // the open zones (data/zones.js): a button for each, from the mode tables and the maps
+// NEW GAME+ (data/ngplus.js), once this hero has beaten the campaign: the story again at the next tier, the profile kept
+const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The story again with your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter',
+  () => askParty(tierName(t), () => { G.resumeRun = null; G.ngNext = t; hubLaunch('campaign'); }))] : []; };
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
 
 function options(s){
@@ -75,6 +79,7 @@ function options(s){
       const sv = survivalUnlocked();
       return [
         B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+        ...ngButton(),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
         B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), sv ? null : 'Beat the campaign as Jedi and Mando'),
@@ -84,9 +89,8 @@ function options(s){
     }
     case 'quests': {
       // the side missions (data/side-quests.js): each waits for a rank, and a won one keeps its tick
-      const r = rankIndex(), T = track();
       return SIDE_QUESTS.map(q => {
-        const id = SIDE_PREFIX + q.slug, won = sideWon(id), lock = r < q.rank ? 'Reach ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
+        const id = SIDE_PREFIX + q.slug, won = sideWon(id), need = sideLock(q), lock = !need ? null : need.startsWith('REACH ') ? 'Reach ' + need.slice(6) : 'Beat the campaign';
         const d = q.blurb.charAt(0).toUpperCase() + q.blurb.slice(1) + '. ' + q.place + ' · ' + (won ? 'DONE · ' : '') + q.reward;
         return B(q.title + (won ? '  ✓' : ''), lock ? q.place : d, guest() ? null : () => hubLaunch('mission', id), lock);
       }).concat(guest() ? [B('THE HOST CHOOSES', 'In a party the host picks the side mission, and everyone in the temple goes with them.', null)] : []);
@@ -100,6 +104,7 @@ function options(s){
       ];
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
         ...zoneButtons(),

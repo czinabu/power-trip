@@ -18,6 +18,7 @@ import { endWave } from './readout.js';
 import { xpPointCheck } from './upgrades.js';
 import { chapterClosed } from './flow.js';
 import { profileOpens } from './profile.js';
+import { ngScale } from '../data/ngplus.js';
 
 export function skillSet(){ return isTrooper() ? TROOPER_SKILLS : isGunner() ? MANDO_SKILLS : SKILLS; }
 const TIER_NAME_TROOPER = TIER_NAME;   // (one set of tier names for every hero, clear of the ranks)
@@ -35,6 +36,7 @@ export function skillEligible(s){ return G.skillSpent >= skillReq(s) && tierStor
    ============================================================ */
 export function gainXp(n){
   if (G.endless){ if (G.mut === 'windfall') n *= 2; else if (G.mut === 'frenzy') n *= 1.5; }   // mutator XP bonuses
+  n *= ngScale('xp');   // a NEW GAME+ chapter levels the run faster (data/ngplus.js)
   n = Math.round(n);
   if (n <= 0) return;
   G.xp = (G.xp || 0) + n;

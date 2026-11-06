@@ -65,6 +65,8 @@ export const PAINTS = [
   { id: 'desert', name: 'Desert',  set: { palette: { plate: 0xcbb48a } }, earn: { arcade: 1 }, line: 'Sand-washed for the dune worlds.' },
   { id: 'jungle', name: 'Jungle',  set: { palette: { plate: 0x7d8462 } }, earn: { waves: 5 }, line: 'Swamp-green, for the long nights on the line.' },
   { id: 'guard',  name: 'Guard red', set: { palette: { plate: 0x9a302b } }, earn: { won: 1 }, line: 'The capital\'s own colour. Worn by the few who came home.' },
+  // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
+  { id: 'marshal', name: 'Marshal gold', set: { palette: { plate: 0xc29a45, grey: 0x3a3428 } }, earn: { top: 'Marshal Commander' }, legend: true, line: 'Gold plate. The legion knows who wears it.' },
 ];
 // COMPANY MARKINGS: painted in the legion colour (the customizer's LEGION row), over whatever plates he wears
 export const MARKINGS = [
@@ -72,6 +74,7 @@ export const MARKINGS = [
   { id: 'stripes', name: 'Stripes',    earn: { chapter: 'siege' }, line: 'A stripe over the bucket and down each arm.' },
   { id: 'tally',   name: 'Kill tally', earn: { squadWaves: 3 }, line: 'Hash marks on the chest plate, one for every wave the squad came through.' },
   { id: 'sigil',   name: 'Company sigil', earn: { chapter: 'trial-knight' }, line: 'The company\'s winged crest on the chest.' },
+  { id: 'chevrons', name: 'Marshal\'s chevrons', earn: { top: 'Marshal Commander' }, legend: true, line: 'Three chevrons on the chest and a bar on each shoulder: the Marshal Commander\'s.' },
 ];
 // HELMET GEAR: what's clipped to the bucket
 export const HELMET_GEAR = [
@@ -80,6 +83,7 @@ export const HELMET_GEAR = [
   { id: 'visor',   name: 'Sun visor',  earn: { chapter: 'jakku' }, line: 'A wide brim over the visor, against the glare.' },
   { id: 'antenna', name: 'Comms antenna', earn: { revives: 6 }, line: 'A long whip antenna for the company net.' },
   { id: 'mohawk',  name: 'Painted fin', earn: { squadWaves: 12 }, line: 'A tall fin over the crown, in the legion colour.' },
+  { id: 'command', name: 'Command array', earn: { ng: 1 }, legend: true, line: 'Twin rangefinders and a lit sensor bar over the T. Fitted on the second road.' },
 ];
 // BACKPACK: what he carries over the pack every clone wears
 export const BACKPACKS = [
@@ -99,6 +103,7 @@ export const FINISHES = [
   { id: 'legion', name: 'Legion bands', earn: { missions: 3 }, line: 'Bands in the legion colour round the shroud and the stock.' },
   { id: 'desert', name: 'Desert wrap', earn: { waves: 20 }, line: 'Tan wrap over the body and the shroud.' },
   { id: 'snow',   name: 'Snow wrap',   earn: { chapter: 'hoth' }, line: 'White panels, for the ice fields.' },
+  { id: 'gilded', name: 'Gilded',      earn: { ng: 3 }, legend: true, line: 'Gold inlay over the shroud and receiver. Only the third road gives it up.' },
 ];
 
 // THE LOCKER's rows, in order (each becomes a row of data/customize.js's trooper list, with `bench: true`). `set(part)`

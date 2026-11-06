@@ -20,6 +20,11 @@ import { flowDef, flowTier, flowKeyLabel } from '../player/gunner-flow.js';
 import { furyKind } from '../player/jedi/fury.js';
 import { mandoWeapon } from '../player/mando/weapons.js';
 import { MUTATORS } from '../data/mutators.js';
+import { mutatorById, ROMAN as NG_ROMAN } from '../data/ngplus.js';
+// a NEW GAME+ chapter's (or a veteran side mission's) mutators, as the survival wave's tag (data/ngplus.js)
+const ngMutsHtml = () => !G.ngMuts.length ? '' : (G.chapter >= 0 && G.ngPlus > 0 ? '<span class="wi-mut" style="color:var(--gold)">NG+ ' + NG_ROMAN[G.ngPlus] + '</span> ' : '') +
+  G.ngMuts.map(id => { const m = mutatorById(id); return m ? '<span class="wi-mut" style="color:' + m.col + '">' + m.name + '</span>' : ''; }).join(' ');
+const ngTag = () => G.ngMuts.length ? '<span class="wi-h">' + ngMutsHtml() + '</span>' : '';
 import { nextStoreGoal } from '../game/progression.js';
 import { storyRun, xpTowardPoint, XP_PER_POINT } from '../game/upgrades.js';
 import { updateBoonStrip } from '../game/boons.js';
@@ -83,7 +88,7 @@ function renderChecklist(c){
   const cur = Math.max(0, c.items.findIndex(i => i.now)), n = c.items.length;
   const from = Math.max(0, Math.min(cur - 2, n - 7)), rows = c.items.slice(from, from + 7);
   el.classList.add('on');
-  setHtml(el, (c.kicker ? '<div class="ol-k">' + c.kicker + '</div>' : '') + '<div class="ol-h">' + c.title + '</div>' + rows.map(i =>
+  setHtml(el, (c.kicker ? '<div class="ol-k">' + c.kicker + '</div>' : '') + (G.ngMuts.length && !G.training ? '<div class="ol-mut">' + ngMutsHtml() + '</div>' : '') + '<div class="ol-h">' + c.title + '</div>' + rows.map(i =>
     '<div class="ol-i' + (i.done ? ' done' : i.now ? ' now' : '') + '"><b>' + (i.done ? '✓' : i.now ? '▶' : '○') + '</b><span>' + i.text + '</span></div>' +
       (i.sub && i.sub.length ? '<div class="ol-s' + (i.warn ? ' warn' : '') + '">' + i.sub.join('<br>') + (i.frac != null ? '<span class="ol-b"><i style="width:' + (clamp(i.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : '') + '</div>' : '')).join('') +
     (n > 7 ? '<div class="ol-n">' + c.items.filter(i => i.done).length + ' / ' + n + ' DONE</div>' : '') +
@@ -266,7 +271,7 @@ export function updateHud(){
     const o = objectiveHud();
     if (o) setHtml($('waveinfo'), '<span class="wi-l">' + o.kicker + '</span><span class="wi-w">' + o.title + '</span>' +
       '<span class="wi-h' + (o.warn ? ' warn' : '') + '">' + o.status + '</span>' +
-      (o.frac != null ? '<span class="wi-bar"><i style="width:' + (clamp(o.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : ''));
+      (o.frac != null ? '<span class="wi-bar"><i style="width:' + (clamp(o.frac, 0, 1) * 100).toFixed(1) + '%"></i></span>' : '') + ngTag());
   } else if (G.hub){
     const wing = ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim();
     const Hb = HUBS[G.hubId] || HUBS.temple;   // (data/hub.js: the temple, the citadel…)
@@ -285,7 +290,7 @@ export function updateHud(){
     const wave = bossUp() ? 'BOSS FIGHT'
                              : 'WAVE ' + Math.min(G.wave - from + 1, end - from) + ' / ' + (end - from);
     setHtml($('waveinfo'), '<span class="wi-l">' + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + place) + '</span><span class="wi-w">' + wave + '</span>' +
-      (bossUp() ? '' : hostiles));
+      (bossUp() ? '' : hostiles) + ngTag());
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
   renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && (!!G.mission || !!calm));

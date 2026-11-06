@@ -31,6 +31,7 @@ import { foeBeaten, foeFell } from '../game/alignment.js';
 import { MERCY } from '../data/alignment.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
 import { addFlow, flowKill } from '../player/gunner-flow.js';
+import { mutOn } from '../data/ngplus.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -211,7 +212,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       gainCP(e.elite || e.t.heavy || e.champion || e.warbringer ? 'elite' : 'kill');   // the ARC trooper's COMMAND POINTS
     }   // small per-kill bounty, ×1–3 on a kill streak, elites pay more
     if (e.elite === 'volatile' && !e.converted){ if (e.group.userData.eliteRing) e.group.userData.eliteRing.visible = false; volatileBlast(p.clone(), e); }
-    else if (G.mut === 'volatile' && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
+    else if (mutOn('volatile') && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
     S.kill(cp, !!e.t.heavy);
     if (player.up.lifesteal) player.hp = clamp(player.hp + player.up.lifesteal, 0, maxHp());   // skill: lifesteal
     if (player.up.killHeal) player.hp = clamp(player.hp + player.up.killHeal, 0, maxHp());     // the dark path's UNLIMITED POWER (data/alignment.js)

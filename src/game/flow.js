@@ -95,7 +95,7 @@ export function onRunStart(fn){ runHooks().push(fn); }
 export function startLevel(idx, opts){
   const fresh = idx === 0 && !(opts && opts.resume);   // a brand-new campaign: reset the hero's build
   G.levelIdx = idx;
-  if (!(opts && opts.chapter)) G.chapter = -1;
+  if (!(opts && opts.chapter)){ G.chapter = -1; G.ngMuts = []; }   // (a chapter's NEW GAME+ mutators are set as it starts: game/campaign.js)
   clearComms();
   G.endless = false; G.mut = null;   // campaign — never in survival mode (startEndless re-flags after this)
   G.coopGuest = false;               // and not following a host's run until a join says so (startEndless)

@@ -2,6 +2,7 @@
 // DIFFS: difficulty presets: how tough foes are, how hard they hit, how readable they are, how forgiving a retry is.
 
 import { G } from '../state.js';
+import { ngScale } from './ngplus.js';
 
 /* DIFFICULTY — Knight is the tuned default. A preset scales more than numbers: an easier one also gives longer
    enemy tells and wider timing windows, so a casual player can actually land the parries and dodges the game is
@@ -15,8 +16,9 @@ export const DIFFS = {
   master: { hp:1.45, dmg:1.4, tell:0.88, window:0,    bossCheckpoint:false },
 };
 const diff = () => DIFFS[G.diff] || DIFFS.knight;
-export function diffHpMul(){ return diff().hp; }
-export function diffDmgMul(){ return diff().dmg; }
+// (a NEW GAME+ chapter stacks its tier on top: data/ngplus.js)
+export function diffHpMul(){ return diff().hp * ngScale('hp'); }
+export function diffDmgMul(){ return diff().dmg * ngScale('dmg'); }
 export function diffTellMul(){ return diff().tell; }
 export function diffWindow(){ return diff().window; }
 export function diffBossCheckpoint(){ return diff().bossCheckpoint; }

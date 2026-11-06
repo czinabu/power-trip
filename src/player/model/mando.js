@@ -140,6 +140,7 @@ export const MANDO_PARTS = {
     mythosaur(R, k){ signet(R, k, MYTHOSAUR); },
     owl(R, k){ signet(R, k, OWL); },
     jaig(R, k){ jaigEyes(R, k); },
+    mandalore(R, k){ signet(R, k, MANDALORE); },
   },
   // a helmet's silhouette piece, on top of whichever HELMET the customizer picked
   helmod: {
@@ -147,6 +148,7 @@ export const MANDO_PARTS = {
     fins(R, k){ helmetMod(R, k, 'fins'); },
     plume(R, k){ helmetMod(R, k, 'plume'); },
     horns(R, k){ helmetMod(R, k, 'horns'); },
+    crown(R, k){ helmetMod(R, k, 'crown'); },
   },
   vambrace: {
     standard(){},   // (the gauntlet plate arms() always builds)
@@ -158,6 +160,7 @@ export const MANDO_PARTS = {
     none(){},
     bandolier(R, k){ chestKit(R, k, 'bandolier'); },
     gorget(R, k){ chestKit(R, k, 'gorget'); },
+    mantle(R, k){ chestKit(R, k, 'mantle'); },
     sash(R, k){ chestKit(R, k, 'sash'); },
   },
 
@@ -294,6 +297,8 @@ function arms(R, k, pauldrons){
 // THE SIGNETS: flat outlines ([x, y], about ±0.06), painted in the accent colour on the outside of the left shoulder
 const MUDHORN = [[-0.055,-0.03],[-0.04,0.0],[-0.045,0.035],[-0.02,0.02],[0.0,0.045],[0.012,0.025],[0.03,0.05],[0.06,0.062],[0.045,0.02],[0.055,-0.01],[0.03,-0.035],[0.005,-0.02],[-0.02,-0.045]];
 const MYTHOSAUR = [[0,0.045],[0.03,0.04],[0.05,0.06],[0.07,0.045],[0.045,0.02],[0.03,-0.015],[0.012,-0.05],[0,-0.04],[-0.012,-0.05],[-0.03,-0.015],[-0.045,0.02],[-0.07,0.045],[-0.05,0.06],[-0.03,0.04]];
+// the Mand'alor's: the mythosaur's skull under a three-pointed crown
+const MANDALORE = [[0,0.03],[0.022,0.035],[0.028,0.072],[0.04,0.05],[0.055,0.075],[0.058,0.04],[0.075,0.035],[0.05,0.012],[0.032,-0.02],[0.014,-0.055],[0,-0.045],[-0.014,-0.055],[-0.032,-0.02],[-0.05,0.012],[-0.075,0.035],[-0.058,0.04],[-0.055,0.075],[-0.04,0.05],[-0.028,0.072],[-0.022,0.035]];
 const OWL = [[0,0.03],[0.02,0.045],[0.07,0.03],[0.05,0.0],[0.028,-0.005],[0.012,-0.05],[0,-0.035],[-0.012,-0.05],[-0.028,-0.005],[-0.05,0.0],[-0.07,0.03],[-0.02,0.045]];
 // the frame on the outside of the left shoulder that a signet lies in (+z out of the shoulder), fitted to the arms worn
 function shoulderFace(R, k){
@@ -344,6 +349,11 @@ function chestKit(R, k, kind){
     const B = k.group(R.chest, [0, 0.13, 0.172], [0, 0, 0.62]);
     k.add(block(0.05, 0.56, 0.016, 0.2), 'strap', B);
     for (let i = 0; i < 5; i++) k.add(block(0.04, 0.045, 0.03, 0.3), 'beskar2', B, [0, -0.14 + i*0.07, 0.016]);
+  } else if (kind === 'mantle'){
+    // a heavy beskar mantle over both shoulders and the top of the chest, its front edge banded in the accent colour
+    k.add(loft([{ y:0.27, w:0.5, d:0.3 }, { y:0.33, w:0.46, d:0.28 }, { y:0.39, w:0.34, d:0.24 }, { y:0.42, w:0.24, d:0.2 }], SOFT), 'beskar2', R.chest);
+    k.add(block(0.4, 0.024, 0.02, 0.2), 'accent', R.chest, [0, 0.29, 0.15], [0.25, 0, 0], { outline: false });
+    rivets(k, R.chest, [[0.15, 0.33, 0.13], [-0.15, 0.33, 0.13], [0, 0.35, 0.135]]);
   } else if (kind === 'sash'){
     // a cloth sash from the right shoulder to the left hip, in the cape colour
     const B = k.group(R.chest, [0, 0.12, 0.168], [0, 0, -0.58]);
@@ -361,6 +371,12 @@ function helmetMod(R, k, kind){
   } else if (kind === 'plume'){
     // a crest of cloth from brow to nape, in the cape colour
     k.add(plate([[-0.14,0],[0.12,0],[0.1,0.06],[0.02,0.1],[-0.1,0.09],[-0.17,0.05]], 0.035, 0.01), 'cloth', helm, [0, 0.37, -0.01], [0, -Math.PI/2, 0]);
+  } else if (kind === 'crown'){
+    // a ring of seven short blades round the dome, the middle one at the brow the tallest
+    for (let i = -3; i <= 3; i++){
+      const a = i * 0.42, h = 0.075 - Math.abs(i) * 0.008;
+      k.add(plate([[-0.016,0],[0.016,0],[0.004,h],[-0.004,h]], 0.01, 0.003), 'beskar2', helm, [Math.sin(a) * 0.13, 0.33, Math.cos(a) * 0.12 - 0.01], [-0.25 * Math.cos(a), a, 0]);
+    }
   } else if (kind === 'horns'){
     // two horns swept up and back from the temples
     for (const sx of [-1, 1]){

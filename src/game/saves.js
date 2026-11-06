@@ -46,6 +46,7 @@ function snapshotRun(){
     // saved as its chapter closes (the unlock screen's TRAIN, game/meditation.js): the trial is won, so the run picks up at
     // that close (its upgrade page, then the next chapter) instead of fighting it again; waveTotal already counts it
     closed: G.chapter >= 0 && G.chapterClosed === G.chapter, waveTotal: G.waveTotal,
+    ng: G.ngPlus || 0,   // NEW GAME+'s tier (data/ngplus.js): 0 on a first run
   };
 }
 // the run as it stands, shaped like a loaded save's (G.resumeRun): the menu's CONTINUE CAMPAIGN picks it up
@@ -71,6 +72,7 @@ export function restoreRun(run){
   G.mandoKit = cleanKit(run.mandoKit || { sidearm: run.weapon === 'dual' ? 'dual' : 'single', primary: null });
   { const W = MANDO_WEAPONS[player.weapon]; if (W && W.slot && G.mandoKit[W.slot] !== player.weapon) player.weapon = G.mandoKit.sidearm; }
   G.story = clone(run.story) || {};   // the story's choices so far (game/choices.js)
+  G.ngPlus = run.ng || 0; G.ngNext = null;   // NEW GAME+'s tier (data/ngplus.js; a save from before it: a first run)
   G.formFork = run.formFork || null; clearMeditation();   // (forms the saved chapter has passed are taught again as it starts)
   G.xp = run.xp || 0; G.xpEarned = run.xpEarned || 0; G.skillPoints = run.skillPoints || 0; G.skillSpent = run.skillSpent || 0;
   G.powerLv = clone(run.powerLv) || {}; G.mastery = clone(run.mastery) || {}; G.seenTypes = clone(run.seenTypes) || {};
@@ -124,7 +126,7 @@ export const resumeLabel = () => savedChapter(G.resumeRun, G.hero);
 export function resumeProgress(){
   const run = G.resumeRun; if (!run) return '';
   const pos = nextPos(run), list = chapterOrder(run.actTwo, run.hero), c = list[pos];
-  return c ? 'ACT ' + ['I', 'II', 'III'][c.act] + ' · ' + chapterNo(pos, list).replace('CHAPTER', 'CH') : '';
+  return c ? (run.ng > 0 ? 'NG+ ' + ['', 'I', 'II', 'III'][run.ng] + ' · ' : '') + 'ACT ' + ['I', 'II', 'III'][c.act] + ' · ' + chapterNo(pos, list).replace('CHAPTER', 'CH') : '';
 }
 // THE RUN WAITING ON THE MENU, per hero: on launch the newest saved campaign run (any slot, the autosave included) is put
 // back on the menu, with its hero picked, so CONTINUE CAMPAIGN is the title screen's default; switching hero there swaps in
@@ -205,7 +207,7 @@ export function clearProgress(){
 const placeOf = (L) => (L && L.name.split('—').map(t => t.trim())[1]) || '';
 // where the player is right now, in a few words for the slot card
 function whereNow(){
-  if (inCampaignRun()) return 'CAMPAIGN · ' + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + placeOf(LEVELS[G.levelIdx]));
+  if (inCampaignRun()) return 'CAMPAIGN · ' + (G.chapter >= 0 && G.ngPlus > 0 ? 'NG+ ' + ['', 'I', 'II', 'III'][G.ngPlus] + ' · ' : '') + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + placeOf(LEVELS[G.levelIdx]));
   if ((G.mode === 'menu' || G.training) && canResume()) return 'CAMPAIGN · ' + savedChapter(G.resumeRun, G.resumeRun.hero);
   if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'CHALLENGE · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';

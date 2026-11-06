@@ -1,0 +1,52 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   HERO UI TOKENS: the look each hero's screens wear (the "Hero UI Direction" doc)
+   The game sets data-hero="jedi|mando|trooper" on <body> whenever the hero changes (player/hero.js setHero), in every
+   mode and on each co-op screen for its own hero. A card built for one hero also carries .hero-<id> (game/campaign.js),
+   so it reads the same tokens even where the body says otherwise.
+   Components (styles/heroes/*.css) read only these --hx-* tokens and the shared ones in base.css, never a hero's raw
+   colours, so a new surface looks right for all three heroes with no extra work.
+
+   The shared rules every hero keeps (styles/heroes/ink.css):
+   · an ink edge (--hx-ink, the 3D models' outline colour) round panels, bars and buttons; flat fills, one hard highlight
+   · no backdrop blur, no glossy bar gradients, no accent rail down the side of a rounded box
+   · meaning colours (health, danger, ally, enemy, the objective marker) stay the same for every hero
+   ============================================================ */
+:root{
+  --hx-ink:#07060a;
+  /* the HOUSE look: screens outside a hero's story (and the fallback for anything a hero leaves alone) */
+  --hx-paper:rgba(14,17,22,.9); --hx-paper-2:rgba(22,26,33,.94); --hx-paper-solid:#11141a;
+  --hx-text:#ecebe6; --hx-soft:#b8b7b0; --hx-dim:#85847e; --hx-line:rgba(236,235,230,.16);
+  --hx-accent:#e8c46a; --hx-accent-hi:#f6dc98; --hx-live:#e8c46a; --hx-on-accent:#15120a;
+  --hx-display:var(--font-display); --hx-display-w:700; --hx-display-case:normal; --hx-display-ls:.06em;
+  --hx-label:var(--font-ui); --hx-label-ls:.14em;
+  --hx-read:var(--font-body);
+}
+/* THE JEDI: a holocron page. Night blue lacquer, temple gold for structure, saber blue only for what is alive right now */
+[data-hero="jedi"],.hero-jedi{
+  --hx-paper:rgba(14,18,48,.9); --hx-paper-2:rgba(23,28,68,.94); --hx-paper-solid:#0e1230;
+  --hx-text:#efe4c8; --hx-soft:#cfc3a4; --hx-dim:#958c74; --hx-line:rgba(217,178,94,.45);
+  --hx-accent:#d9b25e; --hx-accent-hi:#f3dc9c; --hx-live:#6fc8ff; --hx-on-accent:#0e1230;
+  --hx-display:'Cinzel',Georgia,'Times New Roman',serif; --hx-display-w:700; --hx-display-case:normal; --hx-display-ls:.04em;
+  --hx-label:var(--font-ui); --hx-label-ls:.2em;
+}
+/* THE MANDALORIAN: beskar and the covert. Brushed charcoal plate, chamfered corners, an ember edge from the forge */
+[data-hero="mando"],.hero-mando{
+  --hx-paper:rgba(38,40,43,.93); --hx-paper-2:rgba(52,55,59,.95); --hx-paper-solid:#2a2c2f;
+  --hx-text:#e6ddd0; --hx-soft:#bdb5a9; --hx-dim:#8d949b; --hx-line:rgba(230,221,208,.12);
+  --hx-accent:#ff7a2e; --hx-accent-hi:#ffb07a; --hx-accent-lo:#a8441a; --hx-live:#ff7a2e; --hx-on-accent:#1c0d04;
+  --hx-display:Georgia,'Times New Roman',serif; --hx-display-w:400; --hx-display-case:normal; --hx-display-ls:.14em;
+  --hx-label:Georgia,'Times New Roman',serif; --hx-label-ls:.22em;
+  --hx-plate:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),linear-gradient(180deg,#34373b,#222427);
+  --hx-chamfer:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+}
+/* THE TROOPER: orders and the field file. A matte black readout, armour white, a hazard stripe, numbers before words */
+[data-hero="trooper"],.hero-trooper{
+  --hx-paper:rgba(10,13,15,.9); --hx-paper-2:rgba(18,22,25,.94); --hx-paper-solid:#101315;
+  --hx-text:#eef1f2; --hx-soft:#b9c0c3; --hx-dim:#80898d; --hx-line:rgba(238,241,242,.22);
+  --hx-accent:#f0a52a; --hx-accent-hi:#ffc560; --hx-live:#f0a52a; --hx-on-accent:#101315; --hx-plate-white:#eef1f2;
+  --hx-display:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace; --hx-display-w:600; --hx-display-case:normal; --hx-display-ls:0;
+  --hx-label:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace; --hx-label-ls:.08em;
+  --hx-hazard:repeating-linear-gradient(-45deg,#f0a52a 0 6px,#101315 6px 12px);
+  --hx-file:#d8c79b; --hx-file-ink:#2b2416; --hx-stamp:#b8322a;
+}

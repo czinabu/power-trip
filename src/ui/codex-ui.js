@@ -3,6 +3,7 @@
 // few short lines on how it fights. Opens from CODEX on the main menu and the pause screen; entries not met yet stand
 // as dark silhouettes. A small note in the corner says when a new entry opens mid-fight (game/codex.js codexHooks).
 
+import { pushPopup } from './popups.js';
 import * as THREE from 'three';
 import { CODEX, CODEX_TABS, CODEX_BY_ID, ELITE_NOTES } from '../data/codex.js';
 import { codexMet, codexFresh, codexRead, codexCount, codexNewCount, codexHooks } from '../game/codex.js';
@@ -267,18 +268,19 @@ function refreshButton(){
 const note = document.createElement('div');
 note.id = 'cxnote';
 document.body.appendChild(note);
-let pending = [], noteT = 0;
+let noteT = 0;
+// the note goes through the pop-up queue (ui/popups.js): one at a time, in a lull, and a wave of firsts is one note
 codexHooks.met = (id) => {
   refreshButton();
   if (G.mode !== 'play') return;
-  pending.push(CODEX_BY_ID[id].name);
-  clearTimeout(noteT);
-  noteT = setTimeout(() => {   // a wave of firsts at once is one note
-    note.innerHTML = '<b>CODEX</b> ' + (pending.length === 1 ? esc(pending[0]) + ' added' : pending.length + ' new entries');
-    pending = [];
-    note.classList.add('on');
-    noteT = setTimeout(() => note.classList.remove('on'), 3200);
-  }, 500);
+  pushPopup({ kind: 'reward', key: 'codex', dur: 3.2, names: [CODEX_BY_ID[id].name],
+    merge: (a, b) => ({ names: [...a.names, ...b.names] }),
+    show(){
+      const n = this.names;
+      note.innerHTML = '<b>CODEX</b> ' + (n.length === 1 ? esc(n[0]) + ' added' : n.length + ' new entries');
+      note.classList.add('on'); clearTimeout(noteT);
+      return () => note.classList.remove('on');
+    } });
 };
 // the count follows the save: a slot loaded or a new game shows its own codex
 new MutationObserver(refreshButton).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['class', 'style'] });

@@ -466,12 +466,21 @@ body.fovpreview .set-tip{display:none}
 .cz-actions .btn.primary{flex:1.6}
 .cz-hint{font:500 13px/1.6 var(--font-body);color:var(--ink-faint)}
 .cz-hint kbd{color:var(--ink-soft)}
-.cz-benchlink{pointer-events:auto;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:10px 14px;border-radius:var(--r);
-  border:1px solid rgba(224,160,80,.45);background:rgba(12,12,13,.85)}
-.cz-benchlink b{font:600 12px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:2.4px;color:#e0a050}
-.cz-benchlink span{grid-column:1;font:500 12px/1.3 var(--font-body);color:var(--ink-soft)}
-.cz-benchlink i{grid-row:1/3;grid-column:2;align-self:center;font:700 22px/1 var(--font-ui);font-style:normal;color:#e0a050}
-.cz-benchlink:hover{border-color:rgba(255,196,106,.8)}
+/* APPEARANCE | SABER (ui/page-tabs.js): two pages of one screen across the top of the customizer and the hero's bench, a
+   hairline under both and the open page's underlined. Each screen dresses it in its own ink (--pg-*) */
+.pg-tabs{--pg-ink:var(--ink);--pg-dim:var(--ink-dim);--pg-acc:var(--accent);--pg-line:var(--edge);
+  display:flex;flex:none;border-bottom:1px solid var(--pg-line);font:600 13px/1 var(--font-ui);letter-spacing:2.5px}
+.pg-tabs span{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 8px 10px;margin-bottom:-1px;pointer-events:auto;cursor:pointer;
+  color:var(--pg-dim);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+.pg-tabs span:hover{color:var(--pg-ink)}
+.pg-tabs span.on{color:var(--pg-ink);border-bottom-color:var(--pg-acc);cursor:default}
+.pg-tabs kbd{font:700 10px/1 var(--font-ui);height:18px;min-width:22px;padding:0 4px;letter-spacing:0;opacity:.75}
+.pg-tabs span.on kbd{display:none}
+#czpage .pg-tabs{background:rgba(8,18,33,.7);border-radius:var(--r) var(--r) 0 0}   /* (readable over the hero, where a phone stacks the two) */
+body:not(.pad-ps) .pg-tabs .pg-ps,body.pad-ps .pg-tabs .pg-xb{display:none}
+.wb-panel .pg-tabs{--pg-ink:var(--wb-ink);--pg-dim:var(--wb-faint);--pg-acc:var(--wb-amber);--pg-line:var(--wb-line);font-family:var(--wb-mono);font-size:12px;margin:-4px 0 0}
+.kb-panel .pg-tabs{--pg-ink:var(--k-ink);--pg-dim:var(--k-faint);--pg-acc:var(--k-acc);--pg-line:color-mix(in srgb,var(--k-faint) 45%,transparent);margin:-4px 0 0}
+.kb-mando .pg-tabs{font-family:Georgia,'Times New Roman',serif;letter-spacing:3px}
 #overlay:not(.st-menu) #wbBtn{display:none}
 /* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — one page: FOES | YOU, the floor below ---------- */
 #sandbox{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;

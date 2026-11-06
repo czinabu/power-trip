@@ -20,9 +20,9 @@ import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
 import { overlay, setOverlayState, heroPicked } from './menus.js';
 import { audioInit } from '../audio/sfx.js';
 import { earnText } from '../data/saber-parts.js';
-import { openWorkbench } from './workbench.js';
-import { openKitBench } from './kitbench.js';
-import { BENCH_NAME } from '../data/hero-benches.js';
+import { openWorkbench, closeWorkbench, workbenchOpen } from './workbench.js';
+import { openKitBench, closeKitBench, kitBenchOpen } from './kitbench.js';
+import { pageTabs, pageTabClick } from './page-tabs.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
@@ -44,7 +44,6 @@ function unlockWhere(hero, id){
   return c ? 'ACT ' + ROMAN[c.act] + ' · ' + forHero(c.title, hero) : 'THE CAMPAIGN';
 }
 const hintEl = document.getElementById('czlock');
-const BENCH_LINE = { jedi: 'Build your lightsaber from the parts you\'ve earned', trooper: 'Your gear, power pack and squad specialist', mando: 'Your forged armour, signet and the beskar\'s forging' };
 // a row's options as shown: the ones open from the start first, then by the chapter that unlocks them, the campaign's
 // end last (the data's own order still decides what a hero wears by default: data/customize.js)
 function shownOrder(hero, row){
@@ -58,8 +57,7 @@ function render(){
   syncHeroNames();
   const tabs = document.getElementById('czhero');
   for (const t of tabs.querySelectorAll('span')) t.classList.toggle('on', t.dataset.h === hero);
-  const wb = document.getElementById('czbench');   // the hero's bench: the saber workbench, the armory locker, the beskar forge
-  if (wb) wb.innerHTML = '<b>' + BENCH_NAME[hero] + '</b><span>' + BENCH_LINE[hero] + '</span><i>›</i>';
+  document.getElementById('czpage').innerHTML = pageTabs(hero, 'look');   // APPEARANCE | the hero's bench (ui/page-tabs.js)
   let open = 0, all = 0;
   rowsEl.innerHTML = rowsShown(hero).map(row => {
     const cur = wornOption(hero, row, mine);
@@ -174,7 +172,7 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   e.stopPropagation();   // picking an option must never launch the game
   const opt = e.target.closest('[data-opt]');
   if (opt) return pick(opt.dataset.row, opt.dataset.opt);
-  if (e.target.closest('#czbench')){ closeCustomizer(); if (!openKitBench(G.hero)) openWorkbench(); return; }   // (each bench has its own screen: ui/workbench.js, ui/kitbench.js)
+  if (pageTabClick(e)) return;   // the bench's tab: 'hero-page' below
   const ht = e.target.closest('[data-h]');
   if (ht && ht.dataset.h !== G.hero){ setHero(ht.dataset.h); heroPicked(); render(); return; }   // (the title screen's pick follows: its saved run too)
   if (e.target.closest('#czrandom')) randomize();
@@ -182,6 +180,22 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   else if (e.target.closest('#czdone')) closeCustomizer();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCustomizer(); });
+// APPEARANCE | SABER (ui/page-tabs.js): a tab, or the pad's LB / RB, turns between the customizer and the hero's bench.
+// Each is still its own screen: the one shown closes (saving what was picked on it) and the other opens on the saved picks.
+// (At the temple's forge the closing screen's event is looked at a moment later, with the other open: ui/hub-ui.js)
+document.addEventListener('hero-page', (e) => {
+  const to = e.detail;
+  if (to === 'bench' && overlay.classList.contains('customizing')){
+    closeCustomizer();
+    if (!openKitBench(G.hero)) openWorkbench();   // (each bench has its own screen: ui/workbench.js, ui/kitbench.js)
+  } else if (to === 'look' && (workbenchOpen() || kitBenchOpen())){
+    if (workbenchOpen()) closeWorkbench(); else closeKitBench();
+    picks = loadPicks();   // what the bench just fitted (the saber, the kit) comes along, so DONE here can't undo it
+    restyleShowcase(picks);
+    openCustomizer();
+  } else return;
+  S.uiClick();
+});
 
 // drag on the stage to turn the hero on the stand
 let dragX = null;

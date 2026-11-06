@@ -1,12 +1,12 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE WELCOME: the first time a save file walks into a hub (data/hub.js HUBS), a card comes up over it once the wing's
-// name has faded: who lives here says hello, the card lists where everything is, and SHOW ME AROUND walks the hero to a
-// few of the stations, ending at the one that starts a first run. game/hub-welcome.js runs it, ui/hub-ui.js draws the
-// card. Any map or waystone brings it back (SHOW ME AROUND). Edit freely.
+// THE WELCOME: the first time a save file walks into a hub (data/hub.js HUBS), once the wing's name has faded, who lives
+// here says hello on a small panel to the side, and a beacon walks the hero past a few of the stations, ending at the one
+// that starts a first run. Nothing covers the screen and nothing waits on it. game/hub-welcome.js runs it. Any map or
+// waystone has SHOW ME AROUND (the walk again) and WHAT'S WHERE (a card of every place, ui/hub-ui.js). Edit freely.
 //
 // A hub's welcome:
 //   guide   the speaker's name (as the story writes it), over every line
-//   hello   what they say on the card · away: instead, to a hero visiting another's hub (a co-op guest) · guest: added for a
+//   hello   what they say on arriving (and on the card) · away: instead, to a hero visiting another's hub (a co-op guest) · guest: added for a
 //           co-op guest (the host picks the missions)
 //   places  the card's rows: [label, wing, station id, what it's for, (a guest's line instead)]. The station's own name and
 //           where its wing is (here, or which door off the start) come from data/hub.js, so moving one moves its row. A
@@ -84,7 +84,9 @@ export const WELCOME = {
 };
 
 export const WELCOME_TUNE = {
-  delay: 2.4,     // seconds after arriving before the card comes up (the wing's name banner fades first)
+  delay: 2.4,     // seconds after arriving before the guide speaks (the wing's name banner fades first)
+  greet: 9,       // seconds the hello stays up before the first stop's own line takes over
+  lineHold: 8,    // seconds a line of the guide's stays up before it folds away (the task line stays)
   beacon: 0xffd27a,
   beamAlpha: 0.42,  // the column of light over a stop (a mission's beacons are fainter)
   doorRing: 3.2,  // the ring over a door the tour points through

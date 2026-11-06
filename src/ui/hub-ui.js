@@ -27,7 +27,7 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { rankIndex, track, sideWon } from '../game/profile.js';
-import { welcomeCard, answerWelcome, replayWelcome, setWelcomeOpener } from '../game/hub-welcome.js';
+import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -54,7 +54,10 @@ function options(s){
       const W = Hb.wings[id], here = id === G_.hubWing;
       const who = partnerWorlds().filter(p => p.world === 'hub:' + G_.hubId + ':' + id).map(p => p.name);
       return B(W.name, (here ? 'YOU ARE HERE' : W.blurb) + (who.length ? ' · ' + who.join(', ') : ''), here ? null : () => goWing(id));
-    }).concat([B('SHOW ME AROUND', 'Where everything is in ' + Hb.home.toLowerCase() + ', and a short walk to your first mission', () => replayWelcome())]); }
+    }).concat([
+      B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => replayTour()),
+      B('WHAT\'S WHERE', 'Every station in ' + Hb.home.toLowerCase() + ', and which door it is behind', () => replayWelcome()),
+    ]); }
     case 'council': {
       if (guest()){
         const list = [];
@@ -128,6 +131,7 @@ function render(){
 function open(s){
   if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return false;
   station = s;
+  welcomeStation(s);   // (the welcome tour's stop reached, or the hero off on their own: game/hub-welcome.js)
   G.skillSelect = true; G.sbMenu = true;   // holds the temple still and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open');
   if (document.pointerLockElement) document.exitPointerLock();
@@ -137,7 +141,6 @@ export function closeHubPanel(relock = true){
   if (!isOpen()) return;
   if (ready && ready.host) endReady(false);   // (the host closing the ready check calls it off)
   if (ready && !ready.host && !ready.answered) answer(false);
-  if (station && station.act === 'welcome' && relock) answerWelcome(false);   // (CLOSE or Esc: seen. A run or a ready check taking its place isn't an answer)
   panel.classList.remove('open');
   G.skillSelect = false; G.sbMenu = false; station = null;
   if (relock && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
@@ -145,13 +148,14 @@ export function closeHubPanel(relock = true){
 export const hubPanelOpen = isOpen;
 
 /* ---------------- THE WELCOME (game/hub-welcome.js) ----------------
-   The first time this save file walks into a hub: its guide's hello, a row for each place worth knowing and where it is,
-   and SHOW ME AROUND (a walk to a few stations, ending at the first mission) or I KNOW THE WAY. */
+   WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW
+   ME AROUND (the walk to a few stations, ending at the first mission). The first visit itself puts up nothing like this:
+   the guide speaks on the side panel and the walk just starts. */
 function renderWelcome(){
   const C = welcomeCard(); if (!C){ panel.innerHTML = ''; panel._list = []; return; }
   const list = [
     B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => answerWelcome(true)),
-    B(C.first ? 'I KNOW THE WAY' : 'CLOSE', C.first ? 'Explore on your own' : 'Back to ' + C.start.toLowerCase(), () => answerWelcome(false)),
+    B('CLOSE', 'Back to ' + C.start.toLowerCase(), () => answerWelcome(false)),
   ];
   const esc = (t) => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +

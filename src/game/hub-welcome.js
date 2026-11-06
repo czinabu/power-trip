@@ -1,14 +1,14 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE WELCOME (data/hub-welcome.js): the first time this save file walks into a hub, the hub's guide says hello on a card
-// (ui/hub-ui.js draws it, over the hub like a station's panel) that lists where everything is. SHOW ME AROUND then walks
-// the hero to a few stations under a beacon, the guide's line on the voice panel (game/objectives.js), and ends at the
-// station that starts a first run. I KNOW THE WAY (or closing the card) leaves it be. Either way it is seen, once per hub
-// per save file (sw_hubwelcome_<hub>: a file's own key, engine/save-files.js), and any map or waystone shows it again.
+// THE WELCOME (data/hub-welcome.js): the first time this save file walks into a hub, nothing comes up over it. Once the
+// wing's name has faded, the hub's guide says hello on a small panel to the side (game/objectives.js's voice panel, kept
+// out of the way by styles/hub.css #tutor.hw-tour), and a beacon lights the first stop of a short walk past the stations
+// that ends where a first run starts. Follow it or don't: opening any other station, or launching any mode, ends it. It
+// comes once per hub per save file (sw_hubwelcome_<hub>: a file's own key, engine/save-files.js). Any map or waystone has
+// SHOW ME AROUND (the walk again) and WHAT'S WHERE (a card listing every place: ui/hub-ui.js draws it).
 //
-// It never holds anyone up: a returning file never sees it, the tour is only a beacon and a line (walk off anywhere, fast
-// travel, open any station), and launching any mode ends it. CO-OP: each screen has its own welcome, read from its own file
-// for the hub it is standing in (a guest in the host's hub sees that hub's), and nothing of it goes over the wire; a guest
-// pulled into the host's run leaves it the same way.
+// CO-OP: each screen has its own welcome, read from its own file for the hub it is standing in (a guest in the host's hub
+// gets that hub's, with the party's lines), and nothing of it goes over the wire; a guest pulled into the host's run
+// leaves it the same way.
 
 import { G, shared } from '../state.js';
 import { HUBS, doorSide, SIDE_OUT, hubOf } from '../data/hub.js';
@@ -25,7 +25,8 @@ export function welcomeSeen(hub){ try { return localStorage.getItem(key(hub)) ==
 function markSeen(hub){ try { localStorage.setItem(key(hub), '1'); } catch(e){} }
 
 const SIDE_NAME = { n: 'NORTH', s: 'SOUTH', e: 'EAST', w: 'WEST' };
-const W = { wait: 0, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false };
+const W = { wait: 0, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false, greetT: 0, lineT: 0 };
+const tutorEl = () => document.getElementById('tutor');
 const guest = () => net.role === 'guest' && connected();
 const hubNow = () => HUBS[G.hubId] || HUBS.temple;
 const dataNow = () => WELCOME[G.hubId] || null;
@@ -33,6 +34,8 @@ const stationOf = (wing, id) => { const w = hubNow().wings[wing]; return w && w.
 
 let openCard = null;
 export function setWelcomeOpener(fn){ openCard = fn; }   // ui/hub-ui.js
+
+const greeting = (D) => (hubOf(G.hero) !== G.hubId && D.away || D.hello) + (guest() && D.guest ? ' ' + D.guest : '');
 
 /* ---------- the card ---------- */
 // what the card shows for the hub you're in (ui/hub-ui.js): its guide's hello, a row per place, and how to see it again
@@ -48,21 +51,27 @@ export function welcomeCard(){
   }).filter(Boolean);
   const travel = [...new Set(Object.values(Hb.wings).flatMap(w => w.stations.filter(s => s.act === 'travel').map(s => s.name)))];
   return {
-    kicker: welcomeSeen(G.hubId) ? Hb.place : 'FIRST TIME IN ' + Hb.home,
-    title: Hb.name, guide: D.guide, hello: (!home && D.away || D.hello) + (guest() && D.guest ? ' ' + D.guest : ''),
-    rows, again: 'See this again at any ' + travel.join(' or ') + '.', first: !welcomeSeen(G.hubId), start: start.short,
+    kicker: 'WHAT\'S WHERE · ' + Hb.place,
+    title: Hb.name, guide: D.guide, hello: greeting(D),
+    rows, again: 'See this again at any ' + travel.join(' or ') + '.', start: start.short,
   };
 }
-// the card's buttons (and closing it) answer it: from then on this hub's welcome is seen
-export function answerWelcome(tour){
-  markSeen(G.hubId);
-  if (tour) startTour(); else if (W.tour) endTour();
-}
-// any map or waystone: SHOW ME AROUND (ui/hub-ui.js)
+// the card's SHOW ME AROUND (ui/hub-ui.js)
+export function answerWelcome(tour){ if (tour) startTour(); }
+// any map or waystone: WHAT'S WHERE opens the card, SHOW ME AROUND walks the tour again (ui/hub-ui.js)
 export function replayWelcome(){ W.wait = 0; return openCard ? openCard() : false; }
+export function replayTour(){ W.wait = 0; startTour(); }
+// a station's panel opening (ui/hub-ui.js): the stop the tour is on counts as reached; any other means the hero is off
+// exploring on their own, and the tour bows out
+export function welcomeStation(s){
+  if (!W.tour || !s || s.act === 'welcome' || s.act === 'ready') return;
+  const D = dataNow(), stop = D && D.tour[W.i];
+  if (stop && stop.wing === G.hubWing && stop.station === s.id){ if (W.i < D.tour.length - 1){ W.i++; W.greetT = 0; S.uiClick(); } else endTour(); }
+  else endTour();
+}
 
 /* ---------- arriving ---------- */
-// game/hub.js startHub, every time a wing loads: a fresh hub this file hasn't been welcomed to puts the card on its way;
+// game/hub.js startHub, every time a wing loads: a fresh hub this file hasn't been welcomed to puts the greeting on its way;
 // a tour under way picks up in the wing it walked into
 export function welcomeArrive(){
   dropBeacon(); W.at = ''; W.panel = '';
@@ -74,16 +83,23 @@ export function welcomeArrive(){
 onRunStart(() => { W.wait = 0; if (W.tour) endTour(); });
 
 /* ---------- the tour ---------- */
-function startTour(){
+function startTour(greet){
   const D = dataNow(); if (!D) return;
   W.tour = true; W.hub = G.hubId; W.i = 0; W.doneT = 0; W.last = false; W.at = ''; W.panel = '';
+  W.greetT = greet ? TUNE.greet : 0;
   // (a stop you're already standing at counts at once: the next frame moves past it)
   S.uiClick();
 }
 function endTour(){
-  W.tour = false; W.last = false; W.doneT = 0;
+  W.tour = false; W.last = false; W.doneT = 0; W.greetT = 0;
   dropBeacon(); W.at = '';
-  if (W.panel){ hidePanel(); W.panel = ''; }
+  if (W.panel) hideLine();
+}
+// the panel is the training's and the missions' too: hand it back as it was
+function hideLine(){
+  hidePanel(); W.panel = '';
+  // (once it has faded out where it was: a mode's own panel shown meanwhile has already taken the place back)
+  const t = tutorEl(); if (t) setTimeout(() => { if (!W.panel) t.classList.remove('hw-tour', 'hw-quiet'); }, 320);
 }
 function dropBeacon(){ if (W.beacon){ removeMarker(W.beacon); W.beacon = null; } }
 function beaconAt(tag, x, z, r){
@@ -104,19 +120,23 @@ function doorToward(wing){
 function say(who, line, keys, task, opts){
   const k = [who, line, keys, task, opts.step, !!opts.done].join('|');
   if (k === W.panel) return;
-  W.panel = k; showPanel(who, line, keys, task, opts);
+  W.panel = k;
+  const t = tutorEl(); if (t){ t.classList.add('hw-tour'); t.classList.remove('hw-quiet'); }   // (on before it shows: it fades in where it stays)
+  showPanel(who, line, keys, task, opts);
+  W.lineT = TUNE.lineHold;   // (the guide's words fold away after a while: the task line stays)
 }
 
 /* once a frame (game/hub.js updateHub) */
 export function updateWelcome(dt){
   const live = G.hub && G.mode === 'play';
   // a page over the hub (the codex, the holocron), the pause screen, the menu: the line steps aside, and comes back after
-  if (!live || G.paused){ if (W.panel){ hidePanel(); W.panel = ''; } return; }
+  if (!live || G.paused){ if (W.panel) hideLine(); return; }
   if (W.wait > 0 && !G.skillSelect && !G.cutscene && !G.cardUp && (W.wait -= dt) <= 0){
     W.wait = 0;
-    if (!welcomeSeen(G.hubId) && !(openCard && openCard())) W.wait = 0.5;   // (something else was up: try again shortly)
+    if (!welcomeSeen(G.hubId)){ markSeen(G.hubId); startTour(true); }   // (once: from here it's the hero's to follow or not)
   }
   if (!W.tour) return;
+  if (W.lineT > 0 && (W.lineT -= dt) <= 0){ const t = tutorEl(); if (t) t.classList.add('hw-quiet'); }
   const D = dataNow(); if (!D){ endTour(); return; }
   if (W.beacon){
     pulseMarker(W.beacon, dt, G.gt);
@@ -131,7 +151,7 @@ export function updateWelcome(dt){
     const way = doorToward(stop.wing); if (!way){ endTour(); return; }
     const [ox, oz] = SIDE_OUT[way.side], H = shared.arenaHalf - 3;
     beaconAt('door:' + way.side, ox * H, oz * H, TUNE.doorRing);
-    say(D.guide, stop.say, '', 'Go through the ' + SIDE_NAME[way.side] + ' DOOR to ' + way.to.name, { step });
+    say(D.guide, stop.say, '', 'Go through the ' + SIDE_NAME[way.side] + ' DOOR to ' + way.to.name, { step });   // (the greeting is in the start wing, where the tour begins)
     return;
   }
   beaconAt('st:' + s.id, s.x, s.z, (s.r || 3.2) >= 6 ? TUNE.bigRing : TUNE.stationRing);   // (a big table: the ring goes round it)
@@ -140,8 +160,13 @@ export function updateWelcome(dt){
   if (!W.last){
     if (reached){
       if (lastStop){ W.last = true; W.doneT = TUNE.doneHold; S.reward(); }
-      else { W.i++; S.uiClick(); return; }
-    } else { say(D.guide, stop.say, '', 'Walk up to the ' + s.name, { step }); return; }
+      else { W.i++; W.greetT = 0; S.uiClick(); return; }
+    } else {
+      // the greeting first: the guide's hello, over the first stop's beacon
+      if (W.greetT > 0){ W.greetT -= dt; say(D.guide, greeting(D), '', 'Follow the light to the ' + s.name + ', or explore on your own', { step: 'WELCOME TO ' + hubNow().home }); }
+      else say(D.guide, stop.say, '', 'Walk up to the ' + s.name, { step });
+      return;
+    }
   }
   // the last stop: the first run is a tap away. It stays up a while (or until the station's panel opens), then lets go
   say(D.guide, guest() && stop.guestLast ? stop.guestLast : stop.last || stop.say, 'F', 'Tap at the ' + s.name + ' to start', { step: 'FIRST STEPS · DONE', done: true });
@@ -149,7 +174,7 @@ export function updateWelcome(dt){
 }
 
 // for the smoke tests and screenshots (window.GAME.hub.welcome)
-export const welcomeState = () => ({ wait: W.wait, tour: W.tour, i: W.i, last: W.last, seen: welcomeSeen(G.hubId), beacon: !!W.beacon,
+export const welcomeState = () => ({ wait: W.wait, tour: W.tour, i: W.i, last: W.last, greet: W.greetT > 0, seen: welcomeSeen(G.hubId), beacon: !!W.beacon,
   target: W.beacon ? { x: W.beacon.position.x, z: W.beacon.position.z } : null });
 export const welcomeStops = () => ((dataNow() || {}).tour || []).map(t => { const s = stationOf(t.wing, t.station) || {}; return { wing: t.wing, id: t.station, x: s.x, z: s.z }; });
 export function forgetWelcome(){ for (const h in HUBS) try { localStorage.removeItem(key(h)); } catch(e){} }

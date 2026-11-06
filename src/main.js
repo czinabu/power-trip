@@ -122,7 +122,7 @@ import { updateHudStage } from './ui/hud-stage.js';
 import { updateGlance } from './game/glance.js';
 import { updateTalk } from './game/talk.js';
 import { updateHub, startHub, goWing, curHub } from './game/hub.js';
-import { welcomeState, welcomeStops, forgetWelcome, replayWelcome } from './game/hub-welcome.js';
+import { welcomeState, welcomeStops, forgetWelcome, replayWelcome, replayTour } from './game/hub-welcome.js';
 import { updateSecrets, secretsPlaced } from './game/secrets.js';
 import { updateAlignment } from './game/alignment.js';
 import './ui/hub-ui.js';
@@ -324,4 +324,4 @@ import { TROOPER_STORE, TROOPER_SKILLS } from './data/trooper-progression.js';
 import { clearSquad } from './allies/squad.js';
 Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
 window.GAME.squad.clearSquad = clearSquad;
-Object.assign(window.GAME, { hub: { startHub, goWing, hubs: HUBS, get wings(){ return curHub().wings; }, get id(){ return GAME.G.hubId; }, welcome: { get state(){ return welcomeState(); }, get stops(){ return welcomeStops(); }, get target(){ return welcomeState().target; }, forget: forgetWelcome, open: replayWelcome }, launch: hubLaunch } });   // the hubs (game/hub.js), for tests and shots: wings are the current hub's
+Object.assign(window.GAME, { hub: { startHub, goWing, hubs: HUBS, get wings(){ return curHub().wings; }, get id(){ return GAME.G.hubId; }, welcome: { get state(){ return welcomeState(); }, get stops(){ return welcomeStops(); }, get target(){ return welcomeState().target; }, forget: forgetWelcome, open: replayWelcome, tour: replayTour }, launch: hubLaunch } });   // the hubs (game/hub.js), for tests and shots: wings are the current hub's

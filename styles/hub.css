@@ -78,3 +78,12 @@ body.cutscene :is(#hubp,#secp,#mercyp){opacity:0 !important}
   .hw-go .hb-o b{font-size:16px}
 }
 @media (min-width:561px) and (max-height:440px){ .hw-d,.hw-go .hb-o span{display:none} }
+
+/* THE WELCOME TOUR (game/hub-welcome.js): the voice panel kept small and to the side, under the wing's name, so the hub
+   stays in view. After a while the guide's words fold away and only the task line stays (hw-quiet) */
+#tutor.hw-tour{left:20px;top:104px;transform:translate(0,-8px);width:min(400px,calc(100vw - 32px));padding:9px 14px 10px}
+#tutor.hw-tour.on{transform:translate(0,0)}
+#tutor.hw-tour .tt-task{font-size:15px;min-width:0}
+#tutor.hw-tour .tt-voice{font-size:12.5px;margin-top:7px;padding-top:6px}
+#tutor.hw-tour.hw-quiet .tt-voice{display:none}
+@media (max-width:560px){ #tutor.hw-tour{left:16px;top:84px} }

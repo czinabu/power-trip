@@ -37,7 +37,7 @@ import { missionSnap, coopMissionSync, endMission, takeOverMission, startCoopMis
 import { followChapter, chapters } from '../game/campaign.js';
 import { chapterMutators } from '../data/ngplus.js';
 import { damageBoss, bossStagger, bossStun, makeBossPuppet, dropBossPuppet } from '../boss/boss.js';
-import { net, on, send, connected } from './session.js';
+import { net, on, send, sendTo, connected } from './session.js';
 import { calmSnap, calmSync } from '../game/aftermath.js';
 import { coopRun, hitQueue } from './run.js';
 import { STANCES } from '../data/stances.js';
@@ -104,9 +104,11 @@ on('hits', (m) => {
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
     MERC.guest = true; MERC.struck = false;   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
+    const pinned = e.suppT > G.gt;   // (the guest's KILL CONFIRMED asks: game/creed.js)
     try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined } : undefined); }   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
     finally { MERC.guest = false; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
+    if (e.dead) sendTo(m.from, { t: 'kb', p: pinned ? 1 : 0, x: +e.group.position.x.toFixed(1), z: +e.group.position.z.toFixed(1) });   // the killing blow was theirs: their kill cards pay out there
     if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);   // the guest's killing cut may take limbs; the snapshot shows them to both
   }
 });

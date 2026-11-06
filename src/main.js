@@ -353,3 +353,7 @@ import * as GUN_MOVES_RT from './player/gun-moves.js';
 import { GUN_MOVES as GUN_MOVES_DATA } from './data/gun-moves.js';
 import { crosshairRay as XRAY } from './player/aim.js';
 Object.assign(window.GAME, { gunMoves: { ...GUN_MOVES_RT, DATA: GUN_MOVES_DATA, ray: XRAY } });   // the guns' signature moves and mastery (player/gun-moves.js), for tests
+import * as CREED_RT from './game/creed.js';
+import { MANDO_SKILLS } from './data/skills.js';
+import { PATH_TREE, PATH_WORDS } from './data/alignment.js';
+Object.assign(window.GAME, { creed: { ...CREED_RT, MANDO_SKILLS, TROOPER_SKILLS, PATH_TREE, PATH_WORDS } });   // the gunners' light and dark cards (game/creed.js), for tests

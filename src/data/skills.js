@@ -7,7 +7,7 @@ import { maxHp } from '../player/helpers.js';
 import { MANDO_STORE, JEDI_STORE } from './store.js';
 import { storeStageOpen } from '../game/progression.js';
 import { JEDI_TREE, RANK_SKILLS } from './profile.js';
-import { ALIGN_TREE } from './alignment.js';
+import { ALIGN_TREE, MANDO_ALIGN_TREE } from './alignment.js';
 
 /* ============================================================
    SKILL TREE — a tiered path. Tier I is open from the start; the powerful
@@ -102,6 +102,8 @@ export const MANDO_SKILLS = [
     fl:'They will look up, and they will fear.', apply(){ player.up.fuelEff = (player.up.fuelEff||1)*0.55; player.up.move *= 1.1; player.jet = player.jetMax; } },   // refuels the JETPACK (it used to refill gadget power instead)
   // ---- the clan ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
   ...RANK_SKILLS.mando,
+  // ---- HONOUR AND RUTHLESS (data/alignment.js): dealt only while you lean that way (game/profile.js alignOpen) ----
+  ...MANDO_ALIGN_TREE,
   // NOTE: the Darksaber is NOT a skill-tree pick — it's one half of the wave-10 weapon FORK
   // (DISRUPTOR *or* DARKSABER, never both). See openMandoChoice().
 ];

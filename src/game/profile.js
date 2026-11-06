@@ -11,7 +11,7 @@
 import { onFileSwitch } from '../engine/save-files.js';
 import { G } from '../state.js';
 import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
-import { ALIGN } from '../data/alignment.js';
+import { ALIGN, ALIGN_RANK } from '../data/alignment.js';
 import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 import { NG_XP, MAX_TIER } from '../data/ngplus.js';
@@ -286,7 +286,7 @@ export function setPath(id){ if (runLive()) return; const p = profileOf('jedi');
 
 // may the run's upgrade page deal this card? A tree node once learned; a Mando or trooper rank card once its rank is held
 export function owns(hero, s){
-  if (s.align) return hero === 'jedi' && alignOpen(s);
+  if (s.align) return hero === (s.hero || 'jedi') && alignOpen(s);
   if (s.prof) return hero === 'jedi' && nodeLearned(s.prof);
   if (s.rank) return hasRank(hero, s.rank);
   return true;
@@ -340,8 +340,8 @@ export function leanOf(hero = G.hero, a = alignOf(hero)){ return a >= ALIGN.lean
 export function alignStage(hero = G.hero, a = alignOf(hero)){
   return a >= ALIGN.deep ? 'deepLight' : a >= ALIGN.lean ? 'light' : a <= -ALIGN.deep ? 'deepDark' : a <= -ALIGN.lean ? 'dark' : 'mid';
 }
-// a path's card (data/alignment.js ALIGN_TREE) is open while you lean its way and hold its tier's rank
-export function alignOpen(n){ return leanOf('jedi') === n.align && hasRank('jedi', RANK_OF_TIER[n.tier]); }
+// a path's card (data/alignment.js PATH_TREE) is open while its hero leans its way and holds its tier's rank (ALIGN_RANK)
+export function alignOpen(n){ const h = n.hero || 'jedi'; return leanOf(h) === n.align && hasRank(h, ALIGN_RANK[h][n.tier]); }
 // move the meter by n (+ light, - dark); what it actually moved. `force` moves it even in practice (tests)
 let alignHook = null;
 export const onAlign = (fn) => { alignHook = fn; };
@@ -370,6 +370,15 @@ export function noteSidePick(id, key, hero = G.hero){
 export function noteMercy(kind, hero = G.hero){ const p = profileOf(hero); p.mercy ||= { spared: 0, struck: 0 }; p.mercy[kind] = (p.mercy[kind] || 0) + 1; save(); }
 
 /* ---------- the page and co-op ---------- */
+// the cards you've looked at on the profile since they opened (a card opened since shows NEW). A profile from before this
+// list starts with what it owns already seen.
+export const cardsSeen = (hero) => profileOf(hero).seenCards || null;
+export function seeCards(hero, ids){
+  const p = profileOf(hero), have = new Set(p.seenCards || []);
+  let changed = !p.seenCards;
+  for (const id of ids) if (!have.has(id)){ have.add(id); changed = true; }
+  if (changed){ p.seenCards = [...have]; save(); }
+}
 export function seenFresh(hero = G.hero){ const p = profileOf(hero); if (p.fresh){ p.fresh = false; save(); } }
 export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes[h].fresh);
 // the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable

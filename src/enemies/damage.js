@@ -27,7 +27,8 @@ import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
 import { queueHit, hooks } from '../net/run.js';
-import { foeBeaten, foeFell } from '../game/alignment.js';
+import { foeBeaten, foeFell, MERC } from '../game/alignment.js';
+import { killPerks, squadKillPerks } from '../game/creed.js';
 import { MERCY } from '../data/alignment.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
 import { addFlow, flowKill } from '../player/gunner-flow.js';
@@ -197,7 +198,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
     if (byAlly){
       // the squad's kill: a share of the bounty, none of the hero's rewards
-      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); if (hooks.sqk) hooks.sqk(); }   // (co-op: the shared squad's kill feeds the guest's BATTLE RHYTHM too)
+      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); squadKillPerks(); if (hooks.sqk) hooks.sqk(); }   // (co-op: the shared squad's kill feeds the guest's BATTLE RHYTHM too)
       S.kill(cp, !!e.t.heavy);
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);
       return;
@@ -214,9 +215,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     if (e.elite === 'volatile' && !e.converted){ if (e.group.userData.eliteRing) e.group.userData.eliteRing.visible = false; volatileBlast(p.clone(), e); }
     else if (mutOn('volatile') && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
     S.kill(cp, !!e.t.heavy);
-    if (player.up.lifesteal) player.hp = clamp(player.hp + player.up.lifesteal, 0, maxHp());   // skill: lifesteal
-    if (player.up.killHeal) player.hp = clamp(player.hp + player.up.killHeal, 0, maxHp());     // the dark path's UNLIMITED POWER (data/alignment.js)
-    if (player.up.killForce) player.force = clamp(player.force + player.up.killForce, 0, CFG.player.maxForce);   // ...and FEED ON FEAR
+    if (!MERC.guest) killPerks(e.suppT > G.gt, p);   // the per-kill cards: lifesteal, the paths' (game/creed.js; a co-op guest's kill pays on their screen: net/foes.js)
     if (player.boon){
       if (player.boon.blood) player.hp = clamp(player.hp + maxHp()*0.04, 0, maxHp());                          // BLOODTHIRST boon
       if (player.boon.momentum){ player.momentumStacks = Math.min(5, (player.momentumStacks||0)+1); player.momentumT = 5; }  // MOMENTUM boon

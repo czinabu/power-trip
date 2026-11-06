@@ -173,7 +173,8 @@ export const MANDO_CHAPTERS = {
     } },
   jakku: {
     talk: { where: 'A COMMS CALL, ON THE WAY TO JAKKU',
-      lines: [[OSSIK, 'Don\'t hang up. Please. The Magistrate\'s ships pull their routes off the old wrecks on Jakku. The nav cores remember everything.'],
+      lines: [{ by: 'ossik', trusted: [OSSIK, 'Don\'t hang up. Please. The Magistrate\'s ships pull their routes off the old wrecks on Jakku. The nav cores remember everything.'],
+                else: [OSSIK, 'I know my name is on the clan\'s list. Hear me out before you come for it. The Magistrate\'s ships pull their routes off the old wrecks on Jakku.'] },
               ['YOU', 'Why should I believe you?'],
               [OSSIK, 'Because I have nothing left to sell. He still has Nell. Get the cores and you find where he keeps them both.'],
               ['SKYE', 'And watch yourself out there. Somebody with a lightsaber is digging in the same wrecks.']] },
@@ -215,7 +216,8 @@ export const MANDO_CHAPTERS = {
     title: 'THE IRON ROAD', world: 'DUREN, THE FOUNDRY WORLD',
     mission: 'iron-road',
     talk: { where: 'ABOARD THE CINDERWAKE, DOWN THROUGH THE SMOKE OF DUREN',
-      lines: [[OSSIK, 'Nell is safe with the Armorer. I\'m flying the dropship in. Don\'t argue.'],
+      lines: [{ by: 'ossik', trusted: [OSSIK, 'Nell is safe with the Armorer. I\'m flying the dropship in. Don\'t argue.'],
+                else: [OSSIK, 'Nell is safe with the Armorer. I\'m flying the dropship in. Take it off what I owe.'] },
               ['KAEL VARR', 'Every hunter who ever left this clan is in the air behind us. All of them came back.'],
               ['BRAKKA', 'Then let us knock.']] },
     brief: ['The whole clan rides together for the first time since the covert fell, and Ossik Vane is flying the dropship.',
@@ -248,12 +250,45 @@ export const MANDO_CHAPTERS = {
 export const MANDO_EPILOGUE = {
   title: 'THE CLAN IS WHOLE',
   world: 'THE NEW COVERT, ORVANE, ONE SEASON LATER',
-  lines: ['The Magistrate is gone. The beskar he stole is back in our forge, and it is being made into what it was always meant to be.',
-          'Skye flies patrol. Brakka trains the foundlings, all sixteen of them. Kael stayed. Ossik runs our supplies, and Nell will not stop asking Skye for flying lessons.',
+  lines: [{ by: 'magistrate',
+            judged: 'The Magistrate sits in a cell under the new covert. Every clan that comes up the canyon goes down to look at him once. The beskar he stole is back in our forge.',
+            else: 'The Magistrate is gone. The beskar he stole is back in our forge, and it is being made into what it was always meant to be.' },
+          'Skye flies patrol. Brakka trains the foundlings, all sixteen of them. Kael stayed.',
+          { by: 'ossik',
+            trusted: 'Ossik runs our supplies, and Nell will not stop asking Skye for flying lessons.',
+            else: 'Ossik runs our supplies and never takes a credit for it. The clan has not forgotten what he did, and neither has he. Nell will not stop asking Skye for flying lessons.' },
+          { by: 'smiths',
+            freed: 'The smiths from Caldus found their way to us in the spring. Two of them work at the forge now.',
+            else: 'Nobody has poured a helmet for a warlord since Caldus. Nobody who knew how is left.' },
           'And Rook has his first real helmet, beaten out of the Magistrate\'s own armour. He has not taken it off in a week.',
           'One more thing. Half the beskar the Magistrate took never reached his meltworks. His ledgers show it going out past the Rim, to a buyer who paid him in warships and never gave a name.',
           'Whoever is building an army out there, the Jedi from Jakku has been asking the same questions. Keep your armour on. This is the Way.'],
 };
+
+/* THE CHOICES — asked on a card after a chapter is cleared (`after`), or after the last boss falls (`after: 'end'`), as
+   the Jedi's are (data/campaign-jedi.js JEDI_CHOICES). Each moves the hero's CREED (data/alignment.js CHOICE_WEIGHT:
+   HONOUR or RUTHLESS), and the words above pick by them. */
+export const MANDO_CHOICES = [
+  { id: 'ossik', after: 'siege', default: 'trusted', title: 'OSSIK VANE',
+    lines: ['Ossik is still on the comm. He says they will kill Nell if he does not do what they say.',
+            'He sold the covert. He has also handed you work for ten years. What do you tell him?'],
+    options: [
+      { key: 'trusted', label: 'GET NELL BACK', line: 'You will bring his daughter home. He owes the clan, and he will pay it.' },
+      { key: 'marked', label: 'MARK HIM', line: 'His name goes on the clan\'s list. Whatever happens to Nell, he answers for this.' } ] },
+  { id: 'smiths', after: 'mustafar', default: 'freed', title: 'THE SMITHS OF CALDUS',
+    who: 'BRAKKA',
+    lines: ['The forgemaster is down. The smiths who poured those helmets are chained to the moulds. They are his prisoners, and every one of them knows how to make his armour.',
+            'Cut them loose and they scatter, and some of them will sell what they know. Or bring the roof down on the moulds, and on them. Your call.'],
+    options: [
+      { key: 'freed', label: 'CUT THEM LOOSE', line: 'The smiths walk out across the ice. Some of them may talk.' },
+      { key: 'buried', label: 'BURY THE MELTWORKS', line: 'The meltworks comes down with the smiths still in it. Nobody makes his armour again.' } ] },
+  { id: 'magistrate', after: 'end', default: 'ended', title: 'THE IRON MAGISTRATE',
+    lines: ['He is down on his own throne, in armour beaten out of a hundred coverts.',
+            'The clans would see him in chains, in front of every covert he broke. Or end it here, and nobody ever has to look at him again.'],
+    options: [
+      { key: 'judged', label: 'TAKE HIM IN', line: 'He goes before the clans in chains, and every covert he broke gets to look at him.' },
+      { key: 'ended', label: 'END IT', line: 'The Magistrate falls on his iron throne.' } ] },
+];
 
 // the scenes for the Mando's story that aren't a chapter's opening (data/cutscenes.js)
 export const MANDO_BOSS = [[MAG, 'You came all this way for one boy. That is why your clans lose, Mandalorian. You never learned to let go of anything.'],

@@ -202,13 +202,21 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // the title screen plays the theme softly (low intensity = few, quiet voices), which at LEVEL was all but silent
 // (about -55 dBFS). It gets its own lift so the menu theme is clearly heard; gameplay levels are unchanged.
 // MENU_LIFT raises it into the score's compressor; MENU_POST raises it again after the compressor (the master limiter
-// still guards the peaks), since pushing it all through the compressor only squashed it. Together the theme sits
-// around -19 dBFS on the title screen, where it's the only thing playing.
-const MENU_LIFT = 7, MENU_POST = 3.2;
+// still guards the peaks), since pushing it all through the compressor only squashed it. MENU_POST was 3.2 (about
+// -15 dBFS RMS out of the speakers with every slider at 100%), which still read as quiet for a title screen that has to
+// sell the mood; at 7 it sits around -9 dBFS, and the soft ceiling after `post` (init) rounds its peaks off under
+// -1 dBFS so the lift never clips.
+const MENU_LIFT = 7, MENU_POST = 7;
 // in play the score was felt more than heard: GAME_POST lifts all of it after its compressor (about +6 dB), and the
 // quiet moments with the fight held (a cutscene's bed, the victory statement, the lament) get FILM_POST on top, so they
 // sit up near the menu theme's level. The master limiter still guards the peaks
 const GAME_POST = 2, FILM_POST = 2.2;
+
+// the soft ceiling's curve (see init): linear up to K, then a tanh knee that never passes CEIL
+const SOFT_CEIL = (() => { const n = 4096, K = 0.5, CEIL = 0.89, c = new Float32Array(n);
+  for (let i = 0; i < n; i++){ const x = (i / (n - 1)) * 8 - 4, a = Math.abs(x);
+    c[i] = Math.sign(x) * (a <= K ? a : K + (CEIL - K) * Math.tanh((a - K) / (CEIL - K))); }
+  return c; })();
 
 export const MUSIC = (function(){
   let bus=null, comp=null, post=null, delay=null, timer=null, started=false;
@@ -584,7 +592,9 @@ export const MUSIC = (function(){
   function loop(){ if (!AC() || !started) return;
     sweep(AC().currentTime);
     if (nextTime < AC().currentTime) nextTime = AC().currentTime + 0.05;   // fell behind (tab throttled): resync, no catch-up burst
-    while (nextTime < AC().currentTime + 0.12){
+    // look 0.25 s ahead: a heavy frame (the title screen's temple on a slower machine) can hold the main thread past a
+    // shorter window, and every step missed that way was a note dropped, the theme turning thin and quiet
+    while (nextTime < AC().currentTime + 0.25){
       if (restUntil && nextTime >= restUntil){ restUntil = 0; step = 0; }   // the rest after a stinger is over: from the top
       if (step % 16 === 0) barTop();
       if (!restUntil) scheduleStep(nextTime);
@@ -602,7 +612,11 @@ export const MUSIC = (function(){
       bus = AC().createGain(); bus.gain.value = 0.0001;
       comp = AC().createDynamicsCompressor(); comp.threshold.value = -15; comp.ratio.value = 4;
       post = AC().createGain(); post.gain.value = postLevel();
-      bus.connect(comp); comp.connect(post); post.connect(AE.bus.music);
+      // a soft ceiling after the post lift: clean below -6 dBFS, rounding anything louder smoothly into -1 dBFS, so the
+      // lifted title theme's rare spikes (a timpani hit, a brass stab) never reach the master limiter hot enough to clip
+      // (a shaper reads its input over -1..1, so the signal goes in at a quarter and the curve spans -4..4)
+      const into = AC().createGain(), ceil = AC().createWaveShaper(); into.gain.value = 0.25; ceil.curve = SOFT_CEIL; ceil.oversample = '2x';
+      bus.connect(comp); comp.connect(post); post.connect(into); into.connect(ceil); ceil.connect(AE.bus.music);
       delay = AC().createDelay(); delay.delayTime.value = 0.27; const fb = AC().createGain(); fb.gain.value = 0.33; const wet = AC().createGain(); wet.gain.value = 0.25;
       delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
       started = true; nextTime = AC().currentTime + 0.08; step = 0;

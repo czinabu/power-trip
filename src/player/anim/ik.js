@@ -217,7 +217,7 @@ function armCost(S, E, T){
   for (let i = 1; i <= 10; i++) c += bodyCost(_sq.copy(E).lerp(T, i / 10), TORSO.pad * 0.8);
   return c;
 }
-const CLEAR = 1e-4, STEP = 0.22, EDGE = 0.03, KEEP = 0.45, ELBOW_RATE = 22;   // clear enough; the ring search's step, the margin past the edge (rad); how much the last way is preferred; how fast the elbow settles (/s)
+const CLEAR = 1e-4, STEP = 0.22, EDGE = 0.03, KEEP = 0.45, ELBOW_RATE = 22, POLE_FIRM = 0.5;   // clear enough; the ring search's step, the margin past the edge (rad); how much the last way is preferred; how fast the elbow settles (/s); how far off the arm's line a pole must lie to hold the elbow alone
 export function solveArmClear(arm, target, pole){
   const a = DIM.upper, b = DIM.fore, S = arm.sh.position;
   const T = _st.copy(target);
@@ -236,8 +236,12 @@ export function solveArmClear(arm, target, pole){
   // the ring of elbows: centre and radius from the triangle's sides, the pole's own spot on it first
   const ca = THREE.MathUtils.clamp((a * a + dist * dist - b * b) / (2 * a * dist), -1, 1), r = a * Math.sqrt(1 - ca * ca);
   const C = _sv.copy(S).addScaledVector(dn, a * ca);
-  const u = _su.copy(pole).addScaledVector(dn, -pole.dot(dn));
-  if (u.lengthSq() < 1e-8) u.set(0, -1, 0).addScaledVector(dn, -dn.y);
+  // (a pole laid nearly along the arm's own line names no side for the elbow, and a centimetre of wrist would swing it
+  // right round: as it lines up the elbow is let drop instead, so it hangs down where the pole stops saying)
+  const u = _su.copy(pole).normalize(), pl = Math.sqrt(Math.max(0, 1 - u.dot(dn) ** 2));
+  u.addScaledVector(dn, -u.dot(dn));
+  if (pl < POLE_FIRM) u.addScaledVector(_sw.set(0, -1, 0).addScaledVector(dn, dn.y), (POLE_FIRM - pl) / POLE_FIRM * POLE_FIRM);
+  if (u.lengthSq() < 1e-8) u.set(1, 0, 0).addScaledVector(dn, -dn.x);
   u.normalize();
   const Tw = _sP.copy(S).addScaledVector(dn, dist);
   const elbowAt = (ang, out) => out.copy(u).applyAxisAngle(dn, ang).multiplyScalar(r).add(C);
@@ -297,5 +301,5 @@ export function solveArmClear(arm, target, pole){
   }
   M.t = now;
   elbowAt(best, M.e);
-  solveArm(arm, T, best ? _sp.copy(u).applyAxisAngle(dn, best) : pole);
+  solveArm(arm, T, _sp.copy(u).applyAxisAngle(dn, best));
 }

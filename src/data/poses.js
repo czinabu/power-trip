@@ -181,7 +181,7 @@ export const SABER_GUARDS = {
       // Ahsoka (live action): the lead saber thrust out before the chest, its blade laid level across the body; the off
       // arm raised up behind on its own side, its blade standing up over the shoulder
       block: { hand: [0.14, 0.12, 0.5], blade: [-0.9, 0.22, 0.36], twist: 0.18, lean: 0.1, pole: [0.75, -0.55, -0.35],
-               off: { hand: [-0.38, 0.36, -0.06], pole: [-0.8, -0.2, -0.5] }, offBlade: [-0.28, 0.92, -0.26] },
+               off: { hand: [-0.48, 0.5, -0.02], pole: [-0.6, -0.8, -0.05] }, offBlade: [-0.28, 0.92, -0.26] },
       // (every other raise) the X-BLOCK: both hilts brought together before the chest and the blades crossed above them,
       // a scissor that catches a blow in its fork
       block2: { hand: [0.12, 0.14, 0.42], blade: [-0.62, 0.76, 0.18], twist: 0, lean: 0.08, pole: POLE,
@@ -560,9 +560,11 @@ export const SWING_KEY_LOOK = {
               the arm, a bat; higher = a whippier, more fencer's cut)
    recover  — how far back toward the guard the blade flows before the swing hands over to it
    weight   — how far the hips shift onto the back foot in the wind-up and through onto the front one in the strike (m)
-   offFlare — how far the free hand works against the blade (SWING_OFF) */
+   offFlare — how far the free hand works against the blade (SWING_OFF)
+   cross    — two-handed: how far a cut carried across to the weapon side holds the hilt out in front, so the off arm
+              reaches across before the chest (anim/saber.js applySaberPose) */
 export const SWING_STYLE = {
-  shiicho:   { tc: 0.24, ts: 0.4, tf: 0.74, reach: 1.15, two: true, hands: { fin: false, spin: false, back: false }, spinHop: 0, drop: 0.06, offFlare: 0.6, overshoot: 0,
+  shiicho:   { tc: 0.24, ts: 0.4, tf: 0.74, reach: 1.15, two: true, cross: 1, hands: { fin: false, spin: false, back: false }, spinHop: 0, drop: 0.06, offFlare: 0.6, overshoot: 0,
                twist: 1.15, finisher: { pattern: 'right', spin: 1, hop: 0 },
                load: 0.1, accel: 2.3, lag: 0.3, recover: 0.5, weight: 0.07 },   // broad two-handed sweeps that carry round the body
     // Shii-Cho finishes with the SARLACC SWEEP: a full turn with the blade held out, through everything around you

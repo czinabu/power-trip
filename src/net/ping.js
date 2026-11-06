@@ -2,7 +2,9 @@
 // PING (N, or LB + D-pad up on a pad): mark the spot or the foe under your crosshair for everyone in the room. Each
 // player's ping is a beam and ring in their seat's colour where it landed (riding the foe, if it was one), and a chip
 // over it, pinned to the screen edge with an arrow when it's off-screen. One ping per player at a time: a new one moves
-// it. With nobody else in the room it still shows for you (a habit you can practise solo, in every mode).
+// it, and pinging your own ping again (the same foe, or the same spot) takes it down, for everyone. With nobody else in
+// the room it still shows for you (a habit you can practise solo, in every mode). (Not the zone map's waypoint: that's
+// yours alone, set on the map: ui/zone-map.js.)
 
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
@@ -15,7 +17,7 @@ import { SEAT_COLORS, seatCss, makeChip, placeChip, hideChip } from '../ui/coop-
 import { nameOf } from './names.js';
 import { net, on, send, connected } from './session.js';
 
-const PING = { life: 6, gap: 0.6, beam: 7 };   // seconds a ping stays up · the shortest gap between your own · beam height (m)
+const PING = { life: 6, gap: 0.6, beam: 7, same: 2.5, sameFar: 0.08 };   // seconds a ping stays up · the shortest gap between your own · beam height (m) · how close (m, plus a share of the distance to it) a ping on the ground lands to your own to count as the same spot, and take it down
 const pings = new Map();   // slot -> { pos, foe, until, mark, chip }
 let lastAt = -9;
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -43,14 +45,38 @@ function place(slot, x, y, z, foeId){
   sfx(1320, 0.07, 'triangle', 0.04, 1760); setTimeout(() => sfx(1760, 0.08, 'triangle', 0.035, 1980), 70);   // a bright two-note blip
 }
 
-// N: ping what's under the crosshair (the Mando through his reticle's offset)
+// take a seat's ping down at once (its owner pinged it again)
+function clear(slot){
+  const P = pings.get(slot);
+  if (!P) return;
+  P.until = 0; P.mark.visible = false; hideChip(P.chip);
+  sfx(1500, 0.07, 'triangle', 0.035, 1000);   // the blip run backwards: a short falling note
+}
+
+// is this ping (a foe, or a spot on the ground) the one you already have up? The same foe, or a spot close to yours
+// (the reach grows with the distance, since the crosshair lands less precisely far off)
+function samePing(P, x, z, foe){
+  if (!P || !(G.gt < P.until)) return false;
+  if (P.foe || foe) return P.foe === foe;
+  const pp = playerPos(), far = Math.hypot(P.pos.x - pp.x, P.pos.z - pp.z);
+  return Math.hypot(x - P.pos.x, z - P.pos.z) < PING.same + far * PING.sameFar;
+}
+
+// N (or LB + D-pad up): ping what's under the crosshair (the Mando through his reticle's offset); ping your own ping
+// again, the same foe or the same spot, and it comes down
 export function pingHere(){
   if (G.mode !== 'play' || G.paused || G.gt - lastAt < PING.gap) return;
   lastAt = G.gt;
   const p = dynamicCrosshair() ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);   // (the Jedi, and a Darksaber: the dynamic crosshair, player/aim.js)
   const t = lastAim.target, id = t ? (t === shared.boss ? 'B' : t.nid ?? null) : null;
   const at = t && t.group ? t.group.position : p;
-  place(net.slot || 0, at.x, at.y, at.z, id);
+  const slot = net.slot || 0;
+  if (samePing(pings.get(slot), at.x, at.z, foeBy(id))){
+    clear(slot);
+    if (connected()) send({ t: 'unmark', w: worldKey() });
+    return;
+  }
+  place(slot, at.x, at.y, at.z, id);
   if (connected()) send({ t: 'mark', x: r2(at.x), y: r2(at.y), z: r2(at.z), n: id, w: worldKey() });
 }
 
@@ -59,6 +85,7 @@ on('mark', (m) => {
   if (G.mode !== 'play' || (m.w && m.w !== worldKey())) return;   // pinged in another arena: nothing to point at here
   place(m.from || 0, m.x, m.y, m.z, m.n);
 });
+on('unmark', (m) => clear(m.from || 0));   // (whatever arena: a ping taken down is down everywhere)
 
 // every frame: follow a pinged foe, fade out, and keep the chip over it (or on the screen edge)
 export function updatePings(){

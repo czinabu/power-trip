@@ -51,6 +51,10 @@ export const CAST = {
                    colors: { tunic: 0xa49c8c, tabard: 0x5a5448, under: 0x3a3832, trim: 0x2e8a62 } },      // straight out of a prison cell
   'THE KNIGHT':  { side: 'jedi', build: 'f', w: 1.02, height: 1.02, face: { skin: 0xc49a7c, hair: 0x8a8478, style: 'bun', scar: true, lip: 0x9a6458, eyes: 0x4a6a80 },
                    armour: 'general', cloak: true, colors: { cloak: 0x6a5642, trim: 0xb8962e } },        // General Rhenna Kast, in Hoth gear
+  // the Jedi's master, fighting beside you on the temple steps (the siege chapter's guest: data/campaign-jedi.js). The
+  // same white hair, full beard and brown robe as his cutscene figure (data/cast.js)
+  'MASTER VAEL': { side: 'jedi', build: 'm', w: 0.98, face: { skin: 0xc58c64, hair: 0xd8d4cc, style: 'long', beard: 'full', eyes: 0x4a3a2a },
+                   cloak: true, colors: { tunic: 0xd2c4a2, tabard: 0x6b4f37, cloak: 0x3b2a1e, trim: 0x8a6a44 } },
   // the ARC trooper's Hoth chapter: a Jedi fighting beside the squad (a squadmate whose def names this look: data/allies.js)
   'MASTER IRO':  { side: 'jedi', build: 'm', w: 1.02, face: { skin: 0xb07a56, hair: 0x2a2018, style: 'topknot', beard: 'goatee', eyes: 0x5a3a20 },
                    cloak: true, colors: { cloak: 0x5a4632, trim: 0x2e8a52 }, blade: 0x3aff8c },

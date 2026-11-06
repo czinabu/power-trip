@@ -66,8 +66,10 @@ function stripLights(root){
   for (const l of lights) l.removeFromParent();
 }
 // the squadmate already on the field by that name (the trooper's band, the Mandalorian on Jakku), if there is one near
-function boundAlly(name, x, z){
-  const a = allies.find(a => a.def && a.def.name === name && a.state !== 'down' && !a.net && Math.hypot(a.group.position.x - x, a.group.position.z - z) < 9);   // (near the scene: one across the map gets a stand-in)
+// anywhere: the story's voice fighting beside you as the chapter's guest (Master Vael on the temple steps) is that one
+// squadmate wherever it stands, so there is never a second of them on the field
+function boundAlly(name, x, z, anywhere){
+  const a = allies.find(a => a.def && a.def.name === name && a.state !== 'down' && !a.net && (anywhere || Math.hypot(a.group.position.x - x, a.group.position.z - z) < 9));   // (near the scene: one across the map gets a stand-in)
   return a ? a.group : null;
 }
 export function heroFigure(def){   // (also the temple's people: world/arenas/tython-folk.js)
@@ -106,8 +108,8 @@ export function castPreview(name){
 export function makeFigure(name, x, z, yaw, opts = {}){
   const def = castOf(name);
   if (!def) return null;
-  if (def.bound && !opts.holo){
-    const g = boundAlly(name, x, z);
+  if ((def.bound || def.stays) && !opts.holo){
+    const g = boundAlly(name, x, z, !def.bound);
     if (g) return { name, g, own: false, bound: true, kind: 'foe', scale: g.scale.x || 1, walk: null, talk: false, look: null };
   }
   let F;

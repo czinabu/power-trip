@@ -50,7 +50,7 @@ import { chapterAt, askChoice } from './campaign.js';
 import { sideChoice, sideChoiceDue } from './alignment.js';
 import { SIDE_BY_ID } from '../data/side-quests.js';
 import { ALLY_COLOR, addFriendRing, updateFriendRing, makeFriendTag } from '../fx/friend.js';
-import { spawnSquad, addSquadmate, squadIn, squadStanding, allies } from '../allies/squad.js';
+import { spawnSquad, addSquadmate, noteGuests, squadIn, squadStanding, allies } from '../allies/squad.js';
 import { SQUAD } from '../data/allies.js';
 import { collideSolids } from '../world/collision.js';
 import { players, targetable } from '../player/players.js';
@@ -108,6 +108,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along
   shared.secretFrom = def.start || st || null;   // where the map's secrets are walked out from (game/secrets.js): the same for every player and every retry
   if (st){ playerPos().set(st[0], 0, st[1]); G.yaw = player.faceYaw = st[2] || 0; }
+  noteGuests(ch && ch.guests);   // (both screens: a co-op guest draws them by name, allies/squad.js syncNetSquad)
   if (guest){   // co-op guest: the host runs the objectives; this browser shows them (coopMissionSync)
     G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false;
     M.i = -1; M.run = -1;

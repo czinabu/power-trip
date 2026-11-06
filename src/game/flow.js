@@ -53,7 +53,7 @@ import { catchDarksaber } from '../player/mando/darksaber.js';
 import { resetGrasp } from '../player/jedi/grasp.js';
 import { resetAirCut } from '../player/jedi/aerial.js';
 import { hideThrownSaber, stowHandSaber } from '../player/jedi/force.js';
-import { clearSquad, trooperSquad, addSquadmate } from '../allies/squad.js';
+import { clearSquad, trooperSquad, addSquadmate, noteGuests } from '../allies/squad.js';
 import { clearDowned } from './revive.js';
 import { playBossIntro } from './cutscene.js';
 import { coopRun } from '../net/run.js';
@@ -240,7 +240,9 @@ export function startLevel(idx, opts){
   if (!G.hub) trooperSquad();   // the ARC trooper's clones (allies/squad.js); the temple is peaceful, no squad
   // a story's guest fighters for a wave chapter (the ARC trooper's Hoth: a Jedi on the line), beside the squad and not
   // counted in it (a mission chapter's are game/mission.js's)
-  if (opts && opts.guests && !G.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
+  noteGuests(opts && opts.guests);   // (both screens: a co-op guest draws them by name, allies/squad.js syncNetSquad; one joining
+  // the host's chapter isn't G.coopGuest yet as it builds, opts.coopGuest: game/campaign.js, and calls in none of its own)
+  if (opts && opts.guests && !G.coopGuest && !opts.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
   if (G.chapter >= 0) openFormsWindow();   // a chapter's start: the three can be re-picked until its fight is on (meditation.js)
 }
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)

@@ -8,7 +8,8 @@
 // They belong to the chapter: a new chapter, the main menu or a story that isn't on its chapters takes them off the
 // field. A death and retry of the same chapter (its opening doesn't replay) puts them back behind the hero.
 // Every mode with a chapter opening: each story's campaign, solo and co-op (each screen's own: they are scenery, and
-// never cross the network).
+// never cross the network). One who fights beside you for the chapter (its `guests`: Master Vael on the temple steps)
+// is that squadmate instead (game/cast.js binds the opening's figure to it), and never hangs back as well.
 
 import * as THREE from 'three';
 import { G, shared } from '../state.js';
@@ -18,6 +19,7 @@ import { makeFigure, stepFigure, dropFigure } from './cast.js';
 import { findClearSpawn, groundAt, segBlockedBySolids } from '../world/collision.js';
 import { sightClear } from '../world/camblock.js';
 import { commsShowing, commsSpeaker } from './story.js';
+import { allies } from '../allies/squad.js';
 
 export const STAY = { back: 5.2, spread: 1.7, far: 60 };   // m behind the hero · m between them · past this they stand still (no cloth, no idle)
 
@@ -84,6 +86,13 @@ export function updateOnSet(dt){
     S.want = false;
     const at = spots(S.names.length, G.yaw), pp = playerPos();
     S.figs = S.names.map((n, k) => { const F = makeFigure(n, at[k].x, at[k].z, yawTo(at[k].x, at[k].z, pp.x, pp.z)); if (F) F.look = pp; return F; }).filter(Boolean);
+  }
+  // one of them fighting beside you as the chapter's guest (allies/squad.js: Master Vael on the temple steps) is that
+  // squadmate, not a figure hanging back as well (a co-op guest's screen draws the host's squadmate a moment late)
+  if (S.figs.length && allies.length){
+    const fights = (F) => F.bound || allies.some(a => a.def && a.def.name === F.name);
+    for (const F of S.figs) if (fights(F)) dropFigure(F);
+    S.figs = S.figs.filter(F => !fights(F));
   }
   if (!S.figs.length || dt <= 0) return;
   const pp = playerPos(), who = commsShowing() ? commsSpeaker() : null;

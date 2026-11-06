@@ -68,13 +68,15 @@ export const JEDI_CHAPTERS = {
               say(ILSA, 'Not tonight, Master. I have somewhere to be.')] } },
   siege: {
     brief: ['They are already on the pilgrim road. Somebody let them in.',
-            'Hold the steps, Knight. I will find out who. Do not go looking for them yourself.'],
+            'We hold the steps together, Knight. Then I will find out who. Do not go looking for them yourself.'],
+    // Vael fights beside you on the steps (a melee squadmate: data/allies.js SQUAD.roles.jedi; his look: data/saber-cast.js)
+    guests: [{ name: VAEL, role: 'jedi', model: 'acolyte', look: VAEL, weapon: 'saber', color: 0xd2c4a2, eye: 0x4a86ff, cloth: 0x3b2a1e, scale: 1.2 }],
     talk: { where: 'THE TEMPLE STEPS, BEFORE DAWN',
       lines: [[VAEL, 'The pilgrim gate is open. Nobody on watch opened it by mistake.'],
            [HERO, 'Ilsa had the watch.'],
            [VAEL, 'I know.']] },
     opening: { lines: [[VAEL, 'Listen. That is the sound of a thousand years ending, unless you stand in its way.'],
-              [VAEL, 'Hold the steps, Knight. I will find out who opened that gate. Do not go looking for her yourself.']] },
+              [VAEL, 'Hold the steps with me, Knight. When they break, I will find out who opened that gate. Do not go looking for her yourself.']] },
     lines: {
       wave: [
         ['They came up the pilgrim road. Nobody stopped them at the gate. Meet them on the steps.'],

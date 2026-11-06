@@ -145,7 +145,7 @@ for (const b of document.querySelectorAll('.msub-back')) b.addEventListener('cli
 // Esc (the pad's B) closes an open group first. Capture phase, registered ahead of the CHANGE panel's own Esc below
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !_group || _step !== 'mode' || !isPickingState() || overlay.style.display === 'none' || panelOpen()) return;
-  if (/\b(customizing|mpage|confirming|newconfirming|asktrain)\b/.test(overlay.className)) return;
+  if (/\b(customizing|mpage|confirming|newconfirming|exitconfirming|asktrain)\b/.test(overlay.className)) return;
   e.stopImmediatePropagation(); openGroup(null);
 }, true);
 /* the quiet row's buttons (settings, controls, codex, profile, roadmap) wear an icon beside their name on the title
@@ -165,7 +165,7 @@ export function setOverlayState(state){
   if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
   _ovState = state;
   hubWords(); refreshGroups();
-  overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming');
+  overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming', 'exitconfirming');
   overlay.classList.add('st-' + state);
   document.body.classList.toggle('in-menu', state === 'menu');
   document.getElementById('banner').style.opacity = '0';   // the overlay carries the message; don't let a banner ghost through it
@@ -710,7 +710,7 @@ document.addEventListener('pointerlockerror', () => {
 // PAUSE KEYS — Tab pauses and resumes in every browser (Esc exits fullscreen where it isn't locked). Enter resumes from the pause screen in every browser. Where Esc is locked to the game (fullscreen in
 // Chrome / Edge, see fullscreen.js) a quick Esc pauses and resumes too, so closing the pause screen with Esc no longer
 // drops you out of fullscreen. Runs in the capture phase so it sees the screen before Esc closes a panel on top of it.
-export const panelOpen = () => howto.classList.contains('open') || settings.classList.contains('open') || document.getElementById('saves').classList.contains('open') || overlay.classList.contains('newconfirming') ||
+export const panelOpen = () => howto.classList.contains('open') || settings.classList.contains('open') || document.getElementById('saves').classList.contains('open') || overlay.classList.contains('newconfirming') || overlay.classList.contains('exitconfirming') ||
   document.getElementById('roadmap').classList.contains('open') || document.getElementById('codex').classList.contains('open') || document.getElementById('forms').classList.contains('open') || document.getElementById('coop').classList.contains('open') || overlay.classList.contains('confirming') || overlay.classList.contains('asktrain');
 window.addEventListener('keydown', (e) => {
   if (e.repeat || (e.key !== 'Escape' && e.key !== 'Enter' && e.key !== 'Tab')) return;

@@ -6,7 +6,7 @@
 //     from Node, so there is no cross-origin problem; if that fails the game falls back to STUN, as it does on file://
 //   - online co-op (PeerJS + WebRTC) runs exactly as in Chrome, and desktop players and browser players can share a room
 
-const { app, BrowserWindow, protocol, net, shell, session } = require('electron');
+const { app, BrowserWindow, protocol, net, shell, session, ipcMain } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { startUpdateCheck } = require('./updates.cjs');
@@ -42,7 +42,7 @@ function createWindow(){
     title: 'Power Trip', backgroundColor: '#000000', show: false,
     icon: path.join(__dirname, 'icon.png'),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   });
   win.removeMenu();   // no menu shortcuts: Ctrl+W, Ctrl+R and friends reach the game as they do in fullscreen Chrome
   win.once('ready-to-show', () => { win.maximize(); win.show(); });
@@ -69,6 +69,7 @@ else {
     // the game asks for fullscreen, the gamepad, pointer lock and keyboard lock: allow what it asks for, nothing else
     session.defaultSession.setPermissionRequestHandler((wc, perm, cb) =>
       cb(['fullscreen', 'pointerLock', 'keyboardLock', 'clipboard-sanitized-write'].includes(perm)));
+    ipcMain.on('power-trip:quit', () => app.quit());   // the game's EXIT GAME button (desktop/preload.cjs)
     serveGame();
     createWindow();
     startUpdateCheck();

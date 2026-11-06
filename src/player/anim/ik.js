@@ -161,7 +161,7 @@ export function holdAim(chest, wr, node, axis, dir, rest, upAxis = null, upHint 
   } else _qS.identity();
   _qW.copy(_qS).multiply(_qT.setFromAxisAngle(_e3.set(0, 1, 0), ta));
   wr.quaternion.copy(_qW);
-  if (node){
+  if (node && node.parent === wr){   // (only a weapon really in this hand: one clipped on the belt or holstered keeps the turn its socket gave it)
     // what the wrist couldn't do, the hilt does: it rolls in the fingers by the rest of the way (about the fist)
     const cur = _e3.copy(g).applyQuaternion(_qW);
     _qR.setFromUnitVectors(cur, want);   // (elbow frame)

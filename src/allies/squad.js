@@ -1159,13 +1159,18 @@ function updateAlly(a, dt, medic, pp){
    MOVE THERE beacons, so its HUD, its wheel and its tap of H read just as the host's do
    ============================================================ */
 const r2 = (n) => Math.round(n * 100) / 100;
+// a story's guest fighters (a chapter's `guests`: not on any roster) go over the wire by name, and each screen knows the
+// chapter's guests by name (game/flow.js, game/mission.js note them as the chapter starts, on the host and the guest alike)
+const GUESTS = new Map();
+export function noteGuests(defs){ for (const d of defs || []) if (d && d.name) GUESTS.set(d.name, d); }
+const rosterIdx = (a) => { const i = heroKey(SQUAD.roster).indexOf(a.def); return i >= 0 ? i : GUESTS.has(a.def.name) ? a.def.name : i; };
 export function squadSnap(nidOf){
   const mk = allies.map(a => standing(a) && markLive(a)).find(Boolean);
   return { h: G.hero, f: SQ.formation, g: Math.round(grenadeLeft() * 10) / 10, mk: mk ? nidOf(mk) : null,
     b: [...SQ.moves].map(o => [r2(o.at.x), r2(o.at.z), o.n]),
     l: allies.map(a => {
       const g = a.group;
-      return [heroKey(SQUAD.roster).indexOf(a.def), r2(g.position.x), r2(g.position.y), r2(g.position.z), r2(g.rotation.y),
+      return [rosterIdx(a), r2(g.position.x), r2(g.position.y), r2(g.position.z), r2(g.rotation.y),
         r2(standing(a) ? a.hp / a.maxHp : a.body ? Math.min(1, a.body.prog / a.body.need) : 0), orderCode(a), a.ord.partner ? 1 : 0,
         a.target ? nidOf(a.target) : null, a.kick ? 1 : 0, a.spec ? SPECIALISTS.indexOf(a.spec) : 0];
     }) };
@@ -1176,8 +1181,8 @@ export function syncNetSquad(m, foeOf){
   while (allies.length > rows.length){ const a = allies.pop(); removeAlly(a); }
   rows.forEach((r, i) => {
     let a = allies[i];
-    const roster = SQUAD.roster[m.h] || SQUAD.roster.jedi, def = roster[r[0]] || roster[i % roster.length];   // (the host's hero's squad)
-    if (a && a.def !== def){ removeAlly(a); allies.splice(i, 1); a = null; }
+    const roster = SQUAD.roster[m.h] || SQUAD.roster.jedi, def = (typeof r[0] === 'string' && GUESTS.get(r[0])) || roster[r[0]] || roster[i % roster.length];   // (the host's hero's squad, or a story's guest by name)
+    if (a && (a.def !== def || !a.net)){ removeAlly(a); allies.splice(i, 1); a = null; }   // (one this screen called in itself before it knew it was a guest: the host's puppet takes its place)
     if (!a){
       a = addSquadmateNet(def, r);
       allies.splice(i, 0, a); allies.length = Math.min(allies.length, rows.length);

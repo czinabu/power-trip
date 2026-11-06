@@ -51,6 +51,7 @@ try {
   await host.waitForFunction(() => document.querySelector('#chapcard.open'), null, poll); await begin(host);
   // the Jedi's story opens on its prologue, a one-on-one sparring duel: go on to chapter 1, the siege's waves
   await host.evaluate(() => GAME.startChapter(1)); await begin(host);
+  await host.evaluate(() => GAME.squad.clearSquad());   // (Master Vael fights on the steps beside the host: only the foes' sync is tested here, so he doesn't thin the wave out first)
   // the guest sees the run and joins it
   await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, poll);
   await guest.click('#coopclose'); await guest.$eval('#hero-mando', el => el.click());

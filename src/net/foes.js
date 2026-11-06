@@ -50,7 +50,7 @@ let sentAt = 0, hostSent = false, runListeners = [];
 const byNid = new Map();   // the guest's puppets, by the host's number for each foe
 
 // what shared run this browser is hosting: 'e' Survival, 'c' the campaign (its chapters, waves or missions), 'm' a story mission, '' none (training, the sandbox)
-export const runKind = () => G.endless ? 'e' : G.chapter >= 0 ? 'c' : G.mission ? 'm' : (!G.training && !G.sandbox && !G.hub) ? 'c' : '';
+export const runKind = () => G.zone ? 'z' : G.endless ? 'e' : G.chapter >= 0 ? 'c' : G.mission ? 'm' : (!G.training && !G.sandbox && !G.hub) ? 'c' : '';
 export const coopLive = () => !!G.coopGuest || (hostSent && connected());
 export const puppetOf = (nid) => nid === 'B' ? shared.boss : byNid.get(nid) || null;
 export function onRunChange(fn){ runListeners.push(fn); }
@@ -79,7 +79,7 @@ function snapshot(){
     bu.bodyMat ? bu.bodyMat.emissive.getHex() : 0, bu.bodyMat ? r2(bu.bodyMat.emissiveIntensity) : 0,
     bs.hero && !bs.hero.local ? [r2(bs.hero.pos.x), r2(bs.hero.pos.z)] : [r2(playerPos().x), r2(playerPos().z)],
     bu.pivot ? r2(bu.pivot.rotation.x) : 0, bu.pivot ? r2(bu.pivot.rotation.z) : 0] : null;   // (his shoulder: the cut he's swinging, boss/boss.js bossCut)
-  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission ? missionSnap() : undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, wf: G.waveFrom, ar: G.arenaRot, as: shared.arenaScale || 1, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
+  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission && !G.zone ? missionSnap() : undefined, zn: G.zone || undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, wf: G.waveFrom, ar: G.arenaRot, as: shared.arenaScale || 1, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
 }
 
 function hostTick(){
@@ -243,12 +243,12 @@ on('e', (m) => {
     return;
   }
   const ch = m.ch ?? -1;
-  const changed = !coopRun.on || coopRun.w !== m.w || coopRun.ar !== m.ar || coopRun.k !== m.k || coopRun.lv !== m.lv || coopRun.ch !== ch || coopRun.mid !== (m.ms ? m.ms.id : '');
-  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, wf: m.wf || 0, ar: m.ar, as: m.as || 1, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
+  const changed = !coopRun.on || coopRun.w !== m.w || coopRun.ar !== m.ar || coopRun.k !== m.k || coopRun.lv !== m.lv || coopRun.ch !== ch || coopRun.mid !== (m.ms ? m.ms.id : m.zn ? 'zone:' + m.zn : '');
+  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : m.zn ? 'zone:' + m.zn : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, wf: m.wf || 0, ar: m.ar, as: m.as || 1, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
   if (changed) runChanged();
   // this guest fell out of the shared fight without the host's run ending (died and retried, restarted): it was playing its
   // own foes and waves. Back in: its own foes go, and the host's take their place
-  if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && (m.k === 'e' ? G.endless : m.k === 'c' ? !G.endless && !G.mission && !G.training && !G.sandbox && !G.hub : false)){
+  if (!G.coopGuest && G.coopWasGuest && G.mode === 'play' && (m.k === 'z' ? G.zone === m.zn : m.k === 'e' ? G.endless : m.k === 'c' ? !G.endless && !G.mission && !G.training && !G.sandbox && !G.hub : false)){
     for (const e of enemies) removeEnemy(e);
     enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
     G.coopGuest = true;
@@ -269,6 +269,7 @@ on('e', (m) => {
   if (m.st) G.story = m.st;   // the host's story choices (game/choices.js): the guest's words follow them
   calmSync(m.af);   // the calm after a chapter (game/aftermath.js): the host's rally point
 
+  if (m.k === 'z'){ if (G.zone !== m.zn) endGuest(); return; }   // an open zone (game/zone.js): the same streets, each hero roaming them
   if (m.k === 'm'){   // a story mission: the host runs its objectives, this browser is shown them
     if (!G.mission || !m.ms || G.missionId !== m.ms.id){ endGuest(); return; }
     coopMissionSync(m.ms);

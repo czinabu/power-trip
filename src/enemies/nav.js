@@ -67,6 +67,35 @@ function clearanceAt(x, z){
   return best;
 }
 
+/* a zone's worth of solids (an open zone holds a whole city: data/zones.js): clearance is looked up through a coarse bucket
+   grid of the solids, and capped at BUCKET_CAP (nothing reads a clearance past a few metres) */
+const BUCKET = 8, BUCKET_CAP = 12, BUCKET_FROM = 400;
+let buckets = null;
+function bucketSolids(){
+  const hx = nav.half, hz = nav.halfZ, bn = Math.ceil(hx * 2 / BUCKET), bz = Math.ceil(hz * 2 / BUCKET);
+  const b = { n: bn, nz: bz, cells: Array.from({ length: bn * bz }, () => []) };
+  for (const c of solids){
+    if (c.climbable || c.y0) continue;
+    const ex = (c.box ? c.hx : c.r) + BUCKET_CAP, ez = (c.box ? c.hz : c.r) + BUCKET_CAP;
+    const i0 = Math.max(0, Math.floor((c.x - ex + hx) / BUCKET)), i1 = Math.min(bn - 1, Math.floor((c.x + ex + hx) / BUCKET));
+    const j0 = Math.max(0, Math.floor((c.z - ez + hz) / BUCKET)), j1 = Math.min(bz - 1, Math.floor((c.z + ez + hz) / BUCKET));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) b.cells[j * bn + i].push(c);
+  }
+  return b;
+}
+function clearanceBucketed(x, z){
+  const b = buckets, i = Math.floor((x + nav.half) / BUCKET), j = Math.floor((z + nav.halfZ) / BUCKET);
+  if (i < 0 || j < 0 || i >= b.n || j >= b.nz) return 0;
+  let best = BUCKET_CAP;
+  for (const c of b.cells[j * b.n + i]){
+    let d;
+    if (c.box){ const dx = Math.max(Math.abs(x - c.x) - c.hx, 0), dz = Math.max(Math.abs(z - c.z) - c.hz, 0); d = Math.hypot(dx, dz); }
+    else d = Math.max(0, Math.hypot(x - c.x, z - c.z) - c.r);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
 /* call after an arena is built (solids, hazard zones and vents are all in place) */
 export function buildNav(){
   nav.half = shared.arenaHalf; nav.halfZ = shared.arenaHalfZ || shared.arenaHalf;   // a long arena (the pursuit route) is deeper than it is wide
@@ -82,9 +111,11 @@ export function buildNav(){
   nav.heap = new Int32Array(N * 9 + 64);   // room for every relaxation (stale entries stay queued)
   nav.near = new Uint16Array(N); nav.stamp = 0;
   const edge = nav.half - 1, edgeZ = nav.halfZ - 1;   // clampToArena keeps bodies inside this rectangle
+  buckets = solids.length >= BUCKET_FROM && nav.half >= 100 ? bucketSolids() : null;   // (only an open zone: every other map keeps the exact scan)
+  const clearOf = buckets ? clearanceBucketed : clearanceAt;
   for (let iz = 0; iz < nav.nz; iz++) for (let ix = 0; ix < nav.n; ix++){
     const x = centre(ix), z = centreZ(iz), k = iz * nav.n + ix;
-    nav.clear[k] = (Math.abs(x) > edge || Math.abs(z) > edgeZ) ? 0 : clearanceAt(x, z);
+    nav.clear[k] = (Math.abs(x) > edge || Math.abs(z) > edgeZ) ? 0 : clearOf(x, z);
     let h = 0;
     for (let i = 0; i < hazardZones.length && !h; i++) if (hazardContains(hazardZones[i], x, z)) h = i + 1;
     for (let i = 0; i < vents.length && !h; i++){
@@ -93,6 +124,7 @@ export function buildNav(){
     }
     nav.hz[k] = h;
   }
+  buckets = null;
   // a long route (the pursuit) is mostly far behind or far ahead: fill only this far out, so a refresh stays cheap
   // and so is a battle map (shared.arenaBig): only the fight around the hero needs routing; foes further out walk
   // straight in until they reach the filled stretch

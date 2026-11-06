@@ -11,6 +11,7 @@
 
 import { shared, G, player } from '../state.js';
 import { CFG } from '../data/config.js';
+import { ZONES, ZONE_PREFIX } from '../data/zones.js';
 import { HUB, HUBS, hubOf, doorSide, SIDE_OUT } from '../data/hub.js';
 import { startLevel } from './flow.js';
 import { playerPos, fwd } from '../player/helpers.js';
@@ -136,7 +137,7 @@ export function updateHub(dt){
 /* ---------------- the party ---------------- */
 let followHost = null, backToTemple = null;
 export function setPartyHooks(follow, back){ followHost = follow; backToTemple = back; }   // ui/menus.js
-export const runLabel = () => !coopRun.on ? '' : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'A CHALLENGE' : missionTitle(coopRun.mid)) : coopRun.k === 'c' ? 'THE CAMPAIGN' : 'SURVIVAL';
+export const runLabel = () => !coopRun.on ? '' : coopRun.k === 'z' ? (ZONES[coopRun.mid.slice(ZONE_PREFIX.length)] || ZONES.jedha).name : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'A CHALLENGE' : missionTitle(coopRun.mid)) : coopRun.k === 'c' ? 'THE CAMPAIGN' : 'SURVIVAL';
 onRunChange((c) => {
   if (!(net.role === 'guest' && G.hub && G.mode === 'play' && c.on) || followT > 0) return;
   showBanner('THE PARTY IS LEAVING', 'The host is taking everyone to ' + runLabel(), 2.2);

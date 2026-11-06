@@ -20,6 +20,7 @@ import { trainingTarget } from '../game/tutorial.js';
 import { HUBS, SIDE_OUT } from '../data/hub.js';
 import { partnerStand } from '../net/partner.js';
 import { seatCss } from './coop-marks.js';
+import { zoneMarks } from '../game/zone.js';
 
 const SPAN = 75;          // degrees either side of straight ahead the strip shows
 const TAPE_FROM = -180;   // the tape runs -180…540 so any heading has a full strip under it
@@ -62,6 +63,8 @@ export function compassMarks(){
       const [ox, oz] = SIDE_OUT[side], to = Hb.wings[W.doors[side]];
       out.push({ x: ox * H, z: oz * H, kind: 'door', label: to ? (to.short || to.name) : '' });
     }
+  } else if (G.zone){
+    for (const m of zoneMarks()) out.push(m);   // an open zone: its waystones, the touched ones bright (game/zone.js)
   } else {
     const main = calmTarget() || (G.training ? trainingTarget() : objectiveTarget());
     if (main) out.push({ x: main.x, z: main.z, kind: 'obj' });

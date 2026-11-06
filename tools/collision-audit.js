@@ -56,6 +56,8 @@ import { buildCitadelArena } from '../src/world/arenas/citadel.js';
 import { spreadMark, spreadBuilt } from '../src/world/spread.js';
 import { fillCover } from '../src/world/coverfill.js';
 import { SPREAD } from '../src/data/map-scale.js';
+import { ZONES } from '../src/data/zones.js';
+import { buildZoneArena } from '../src/world/zone-stream.js';
 
 const BUILDERS = { temple: buildTempleArena, foundry: buildFoundryArena, plains: buildPlainsArena, hall: buildHallArena,
   forge: buildForgeArena, refuge: buildRefugeArena, pursuit: buildPursuitArena, dojo: buildDojoArena, throne: buildThroneArena,
@@ -65,7 +67,8 @@ const BUILDERS = { temple: buildTempleArena, foundry: buildFoundryArena, plains:
   kamino: buildKaminoArena, chipworks: buildChipworksArena, warcamp: buildWarcampArena,
   canyon: buildCanyonArena, relay: buildRelayArena,
   barge: buildBargeArena, holdfast: buildHoldfastArena, citadel: buildCitadelArena,
-  meltworks: buildFoundryArena, ironroad: buildGrasslandArena };
+  meltworks: buildFoundryArena, ironroad: buildGrasslandArena,
+  zoJedha: (L) => buildZoneArena(L, { raw: true }) };   // an open zone: every chunk of it at once (world/zone-stream.js)
 
 const STEP = 0.4;          // sample spacing
 const SINK = 0.45;         // a visible top this far over the collision top is a miss (thin caps and trims sit under it)
@@ -82,7 +85,7 @@ function levelsByLayout(){
     if (o.layout && typeof o.layout === 'string' && o.arena && !out[o.layout]) out[o.layout] = o;
     for (const v of Object.values(o)) walk(v, depth + 1);
   };
-  walk({ LEVELS, BATTLE_MAPS, MISSIONS, SANDBOX_LEVELS, TRAINING_LEVELS, CHAPTERS, MANDO_CHAPTERS, TROOPER_CHAPTERS });   // (a chapter can stage its level on its own arena)
+  walk({ ZONES, LEVELS, BATTLE_MAPS, MISSIONS, SANDBOX_LEVELS, TRAINING_LEVELS, CHAPTERS, MANDO_CHAPTERS, TROOPER_CHAPTERS });   // (a chapter can stage its level on its own arena)
   return out;
 }
 

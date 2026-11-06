@@ -80,7 +80,7 @@ export const G = {
   mandoKit: null,        // the Mando's guns on 1 / 2: { sidearm, primary } (data/mando.js KIT_SLOTS); null = RUN_KIT
   hero: 'jedi',          // 'jedi' (saber/Force), 'mando' (jetpack/blasters) or 'trooper' (clone ARC trooper) — chosen on the menu
   // SURVIVAL / ENDLESS mode
-  modeSel: 'campaign',   // menu pick: 'campaign' | 'endless' | 'training' | 'mission' | 'sandbox' | 'temple'
+  modeSel: 'campaign',   // menu pick: 'campaign' | 'endless' | 'training' | 'mission' | 'sandbox' | 'temple' | 'zone' (an open zone: game/zone.js)
   story: {},             // the campaign story's choices so far, { choice id: answer } (game/choices.js), saved with the run
   storyHero: null,      // whose story a campaign run tells (data/campaign.js storyHero): null is the hero's own; a co-op guest takes the host's
   missionId: 'refuge',   // which story mission (data/missions.js) the menu's MISSIONS list has picked
@@ -92,6 +92,9 @@ export const G = {
   hubId: 'temple',       // ...which hub (data/hub.js HUBS: one per hero)
   hubWing: 'hall',       // ...which of its wings (data/hub.js)
   fromHub: false,        // this run was started from the temple: its end screens offer the way back (ui/menus.js)
+  zone: null,            // the open zone being roamed (data/zones.js ZONES key, 'jedha'), or null (game/zone.js)
+  zoneSel: 'jedha',      // ...the one a hub station or a party is taking you to
+  zoneFallT: 0,          // s left before a hero fallen in a zone wakes at a waystone (game/zone.js)
   sandboxGod: false,     // the sandbox's god mode: the hero can't fall
   calm: false,           // the calm after a chapter's last fight (game/aftermath.js): the chapter is won, nobody falls
   forceElite: false,     // set while the sandbox spawns its ELITE foes

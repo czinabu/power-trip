@@ -146,9 +146,11 @@ export function renderBench(dt, bloomAt){
   // the camera: above the bench's near edge, a slow drift; on a narrow screen it pulls back to keep the whole hilt
   const narrow = innerWidth / innerHeight < 1.3, t = bench.t;
   cam.aspect = innerWidth / innerHeight;
-  const sideOff = narrow ? 0 : -0.17;   // (the panel sits on the left: the bench is framed right of centre)
+  // (the panel sits on the left: the bench is framed in the room right of it, and pulled back when that room is tight)
+  const pn = !narrow && document.querySelector('#workbench .wb-panel'), edge = pn ? pn.getBoundingClientRect().right / innerWidth : 0.265;
+  const sideOff = narrow ? 0 : -edge * 0.62, back = narrow ? 1 : Math.max(1, 0.6 / (1 - edge));
   cam.setViewOffset(innerWidth, innerHeight, sideOff * innerWidth, narrow ? 0.26 * innerHeight : 0, innerWidth, innerHeight);
-  cam.position.set(0.45 + Math.sin(t * 0.17) * 0.3, narrow ? 6.4 : 3.5, narrow ? 6.4 : 5);
+  cam.position.set(0.45 + Math.sin(t * 0.17) * 0.3, narrow ? 6.4 : 3.5 * back, narrow ? 6.4 : 5 * back);
   cam.lookAt(look);
   cam.updateProjectionMatrix();
   renderPass.scene = set; renderPass.camera = cam;

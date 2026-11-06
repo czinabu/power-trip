@@ -52,7 +52,7 @@ async function run(id){
   await Promise.all([connected(host), connected(guest)]);
   await host.click('#coopclose');
   // the host starts the Mandalorian's campaign
-  await host.click('#mode-campaign'); await host.$eval('#hero-mando', el => el.click());
+  await host.$eval('#mode-campaign', el => el.click()); await host.$eval('#hero-mando', el => el.click());
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     await host.waitForTimeout(800);

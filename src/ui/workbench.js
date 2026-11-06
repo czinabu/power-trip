@@ -60,7 +60,7 @@ function render(keep = false){
   panel.innerHTML = `<div class="wb-panel">
     <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
     <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
-    <p class="wb-note">More parts come from duels, the masters' trials, story missions, arcade contracts and survival waves.</p>
+    <p class="wb-note">More parts come from duels, the masters' trials, story missions, challenges and survival waves.</p>
     ${live ? '<p class="wb-live">A run is on: the saber is built between runs. Look over it here, and fit new parts from the main menu.</p>' : ''}
     <div class="wb-trays${live ? ' wb-locked' : ''}">${TRAYS.map(tray).join('')}</div>
     ${readout()}

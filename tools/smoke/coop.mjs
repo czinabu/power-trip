@@ -55,7 +55,7 @@ try {
       await page.waitForTimeout(800);
     }
   };
-  await host.click('#coopclose'); await host.click('#mode-campaign'); await host.$eval('#hero-jedi', el => el.click()); await play(host); await begin(host);
+  await host.click('#coopclose'); await host.$eval('#mode-campaign', el => el.click()); await host.$eval('#hero-jedi', el => el.click()); await play(host); await begin(host);
   await guest.click('#coopclose'); await guest.$eval('#hero-mando', el => el.click());
   await guest.click('#mode-coop');
   await guest.waitForFunction(() => document.getElementById('coopjoinrun').style.display !== 'none', null, { timeout: 20000, polling: 250 });

@@ -21,7 +21,7 @@ export function setHero(hero){
   if (xh) xh.style.display = gunner ? 'none' : '';
   if (rt) rt.style.display = gunner ? 'block' : 'none';
   renderControls(hero);   // the CONTROLS panel follows the picked hero
-  const wb = document.getElementById('wbBtn'); if (wb){ wb.textContent = BENCH_BUTTON[hero] || 'SABER'; wb.title = trooper ? 'Your armory locker: gear, power pack and squad specialist' : mando ? 'The beskar forge: your armour and its forging' : 'Build your lightsaber'; }   // (ui/kitbench.js, ui/workbench.js)
+  const wb = document.getElementById('wbBtn'); if (wb){ (wb.querySelector('.bl') || wb).textContent = BENCH_BUTTON[hero] || 'SABER'; wb.title = trooper ? 'Your armory locker: gear, power pack and squad specialist' : mando ? 'The beskar forge: your armour and its forging' : 'Build your lightsaber'; }   // (ui/kitbench.js, ui/workbench.js)
   const fpl = document.getElementById('fplabel'); if (fpl) fpl.textContent = trooper ? 'FIELD ENERGY' : mando ? 'GADGET POWER' : 'FORCE';
   document.getElementById('hero-jedi').classList.toggle('sel', !gunner);
   document.getElementById('hero-mando').classList.toggle('sel', mando);

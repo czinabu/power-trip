@@ -53,7 +53,7 @@ try {
   for (const g of [g1, g2]){ await g.bringToFront(); await g.click('#mode-coop'); await g.fill('#coopcode', code); await g.click('#coopjoin'); await connected(g); }
   await host.waitForFunction(() => /3 of 4 players/.test(document.getElementById('coopstatus').textContent), null, poll);
   await host.click('#coopclose');
-  await host.$eval('#hero-jedi', el => el.click()); await host.click('#mode-endless');
+  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-endless', el => el.click());
   await play(host); await keepUp(host);
   for (const [g, hero] of [[g1, '#hero-mando'], [g2, '#hero-trooper']]){
     await g.bringToFront();

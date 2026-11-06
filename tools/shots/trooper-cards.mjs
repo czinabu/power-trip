@@ -45,7 +45,7 @@ for (const id of pick){
   });
   await page.goto(page_url);
   await page.waitForFunction(() => window.GAME && GAME.G);
-  await page.$eval('#hero-trooper', el => el.click()); await page.click('#mode-sandbox');
+  await page.$eval('#hero-trooper', el => el.click()); await page.$eval('#mode-sandbox', el => el.click());
   for (let i = 0; i < 8; i++){
     for (const s of ['#goText', '#trainNo']) if (await page.isVisible(s)) await page.click(s, { timeout: 1500 }).catch(() => {});
     if (await page.waitForFunction(() => GAME.G.mode === 'play' && !GAME.G.paused, null, { timeout: 3000 }).then(() => true, () => false)) break;

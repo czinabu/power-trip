@@ -32,7 +32,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto(pathToFileURL(path.join(root, 'dist/index.html')).href);
 await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-await page.$eval('#hero-jedi', el => el.click()); await page.click('#mode-sandbox');
+await page.$eval('#hero-jedi', el => el.click()); await page.$eval('#mode-sandbox', el => el.click());
 const tap = async sel => { if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {}); };
 for (let i = 0; i < 6; i++){
   await tap('#goText'); await tap('#trainNo'); await tap('#forms [data-go]');

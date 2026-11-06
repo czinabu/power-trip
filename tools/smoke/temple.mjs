@@ -112,7 +112,7 @@ for (const hero of HEROES){
 
     // the COUNCIL TABLE: an arcade mission, and back
     check(await travel(P.council), `${hero}: travel back to the council`);
-    check(await station(0, 7, Math.PI, 'ARCADE'), `${hero}: the council table lists the modes`);
+    check(await station(0, 7, Math.PI, 'CHALLENGE'), `${hero}: the council table lists the modes`);
     await fight();
     check(await runs(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.mission), `${hero}: the council table launches an arcade mission`);
     await backToTemple('a mission');

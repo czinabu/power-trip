@@ -15,7 +15,7 @@ for (const [hero, ids] of Object.entries(SETS)){
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('x', 'NotSupportedError')); }; });
   await page.goto(pathToFileURL(root + '/dist/index.html').href + '?trooper');
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
-  await page.$eval('#hero-' + hero, el => el.click()); await page.click('#mode-campaign');
+  await page.$eval('#hero-' + hero, el => el.click()); await page.$eval('#mode-campaign', el => el.click());
   for (let i = 0; i < 10 && !(await page.isVisible('#chapcard.open')); i++){
     if (await page.isVisible('#goText')) await page.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});

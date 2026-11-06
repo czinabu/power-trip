@@ -9,6 +9,7 @@
 const { app, BrowserWindow, protocol, net, shell, session } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { startUpdateCheck } = require('./updates.cjs');
 
 const GAME_DIR = path.join(__dirname, 'game');
 const WEB_URL = (process.env.POWER_TRIP_WEB_URL || 'https://sw-power-trip.vercel.app').replace(/\/+$/, '');
@@ -63,12 +64,14 @@ else {
     const [win] = BrowserWindow.getAllWindows();
     if (win){ if (win.isMinimized()) win.restore(); win.focus(); }
   });
+  app.setAppUserModelId('com.czinabu.powertrip');   // Windows: notifications carry the game's name and icon
   app.whenReady().then(() => {
     // the game asks for fullscreen, the gamepad, pointer lock and keyboard lock: allow what it asks for, nothing else
     session.defaultSession.setPermissionRequestHandler((wc, perm, cb) =>
       cb(['fullscreen', 'pointerLock', 'keyboardLock', 'clipboard-sanitized-write'].includes(perm)));
     serveGame();
     createWindow();
+    startUpdateCheck();
   });
   app.on('window-all-closed', () => app.quit());
 }

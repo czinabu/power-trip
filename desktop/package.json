@@ -21,6 +21,7 @@
     },
     "files": [
       "main.cjs",
+      "updates.cjs",
       "icon.png",
       "game/**/*",
       "package.json"
@@ -36,6 +37,17 @@
       "oneClick": true,
       "createDesktopShortcut": true,
       "shortcutName": "Power Trip"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "czinabu",
+        "repo": "power-trip",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
   }
 }

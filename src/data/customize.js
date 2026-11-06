@@ -99,6 +99,7 @@ export const CUSTOMIZE = {
       { id: 'temple',  name: 'Temple blue', set: pal({ robe: 0x1e2a4a, tabard: 0x34466e }), unlock: 'trial-first' },
       { id: 'forest',  name: 'Forest',      set: pal({ robe: 0x24331f, tabard: 0x3e5236 }), unlock: 'lothal' },
       { id: 'crimson', name: 'Crimson',     set: pal({ robe: 0x4a1414, tabard: 0x6e2424 }), unlock: 'mustafar' },
+      { id: 'council', name: 'Council white', set: pal({ robe: 0xcfc8b8, tabard: 0xa8873e }), earn: { top: 'Grand Master' } },   // (the post-game's: the top rank's)
     ] },
     { id: 'tunic', label: 'TUNIC', kind: 'color', options: [
       { id: 'tan',   name: 'Tan',      set: pal({ tunic: 0x9c7d58 }) },
@@ -151,6 +152,7 @@ export const CUSTOMIZE = {
       { id: 'gold',    name: 'Gold',        set: pal({ beskar: 0xc9a24a, beskar2: 0x76664a }), unlock: 'won' },
       { id: 'white',   name: 'Ivory',       set: pal({ beskar: 0xd6dbe0, beskar2: 0x8a929b }), unlock: 'hoth' },
       { id: 'shadow',  name: 'Shadow',      set: pal({ beskar: 0x2c2f35, beskar2: 0x1b1d21 }), unlock: 'chase' },
+      { id: 'mandalor', name: 'Mand\'alor',  set: pal({ beskar: 0x17181b, beskar2: 0xc9a24a }), earn: { top: 'Mand\'alor' } },   // (the post-game's: the top rank's)
     ] },
     { id: 'accent', label: 'ACCENT', kind: 'color', options: [
       { id: 'rust',   name: 'Rust',   set: pal({ accent: 0xb84327 }) },

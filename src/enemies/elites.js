@@ -15,6 +15,7 @@ import { hurtPlayer } from '../player/damage.js';
 import { hooks } from '../net/run.js';
 import { diffHpMul } from '../data/difficulty.js';
 import { ELITES } from '../data/enemies.js';
+import { mutOn, NG_VANGUARD, VANGUARD_CAP } from '../data/ngplus.js';
 
 export { ELITES };
 
@@ -26,11 +27,14 @@ export function enemyHpScale(){
   // CAMPAIGN: a gentle linear ramp. SURVIVAL: COMPOUNDS past wave ~5 so enemy HP keeps pace with the player's
   // snowballing (boons + repeatable power-ups multiply damage exponentially; a flat +5%/wave fell way behind).
   const s = G.endless ? (1 + wt*0.06) * Math.pow(1.05, Math.max(0, wt-5)) : (1 + wt*0.05);
-  return s * (G.mut === 'ironhide' ? 1.4 : 1) * diffHpMul();   // DIFFICULTY scales enemy durability
+  return s * (mutOn('ironhide') ? 1.4 : 1) * diffHpMul();   // DIFFICULTY scales enemy durability
 }
 
 const ELITE_KEYS = Object.keys(ELITES);
-export function eliteChance(){ return clamp(((G.waveTotal || 0) - 2) * (G.endless ? 0.05 : 0.04), 0, G.endless ? 0.55 : 0.3); }   // survival floods with elites late
+export function eliteChance(){
+  const c = clamp(((G.waveTotal || 0) - 2) * (G.endless ? 0.05 : 0.04), 0, G.endless ? 0.55 : 0.3);   // survival floods with elites late
+  return mutOn('vanguard') ? Math.min(VANGUARD_CAP, c + NG_VANGUARD) : c;   // the VANGUARD mutator (NEW GAME+, data/ngplus.js)
+}
 const _eliteCol = new THREE.Color();
 export function applyElite(e, g){
   if (Math.random() > (G.forceElite ? 1 : G.eliteSurge ? 0.85 : eliteChance())) return;   // survival ELITE SURGE: nearly everything comes elite · the sandbox's ELITE switch: all of it

@@ -38,6 +38,7 @@ import { updateUpper } from './upper.js';
 import { defeatMotion, defeatLife } from './defeat.js';
 import { MOVE } from '../data/movement.js';
 import { foeAllyTarget, hurtAlly } from '../allies/squad.js';
+import { mutOn } from '../data/ngplus.js';
 import { heroFor } from './targets.js';
 import { updateBubble, heldBy, wideAim } from './bubble.js';
 import { BUBBLE } from '../data/duel-bubble.js';
@@ -61,7 +62,7 @@ function fireAt(e, tgtPos, spread, wide){
   const aimDir = V3(tgtPos.x, tgtPos.y + aimH, tgtPos.z).sub(muzzle).normalize();
   if (spread){ aimDir.x += rand(-spread, spread); aimDir.y += rand(-spread, spread) * 0.5; aimDir.z += rand(-spread, spread); aimDir.normalize(); }
   e.kick = 1;   // the shoulders take the recoil (enemies/upper.js)
-  fireBolt(muzzle, aimDir, t.boltSpeed * (G.mut === 'marksmen' ? 1.4 : 1), (e.converted ? t.dmg * CFG.convertDmgMult : t.dmg) * enemyDmgScale(), e.converted, false, e);
+  fireBolt(muzzle, aimDir, t.boltSpeed * (mutOn('marksmen') ? 1.4 : 1), (e.converted ? t.dmg * CFG.convertDmgMult : t.dmg) * enemyDmgScale(), e.converted, false, e);
 }
 
 /* is there real cover between a melee foe and its target, tall enough that a swing can't reach over it? A solid the
@@ -318,7 +319,7 @@ export function updateEnemies(dt){
           mx = ux - uz * e.unstickSide * 1.4; mz = uz + ux * e.unstickSide * 1.4;
         }
         const ml = Math.hypot(mx, mz) || 1;
-        const esp = e.rooted ? 0 : e.spd * paceMul * (G.mut === 'berserk' ? 1.3 : 1) * (e.suppT > G.gt ? TROOPER.command.suppress.slow : 1);   // PINNED (the ARC trooper's SUPPRESS): a crawl · BERSERK mutator: enemies surge in faster · a ROOTED training foe holds its spot
+        const esp = e.rooted ? 0 : e.spd * paceMul * (mutOn('berserk') ? 1.3 : 1) * (e.suppT > G.gt ? TROOPER.command.suppress.slow : 1);   // PINNED (the ARC trooper's SUPPRESS): a crawl · BERSERK mutator: enemies surge in faster · a ROOTED training foe holds its spot
         // MOMENTUM — the hero's ground handling (data/movement.js MOVE): speed builds at `accel`, stopping or turning
         // back against the momentum brakes harder, and reversing hard at speed plants the feet for a beat (a pivot)
         const mv = e.mv || (e.mv = { x: 0, z: 0 });

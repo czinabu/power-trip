@@ -66,6 +66,7 @@ export const TROOPER_PARTS = {
     stripes(R, k){ markStripes(R, k); },
     tally(R, k){ markTally(R, k); },
     sigil(R, k){ markSigil(R, k); },
+    chevrons(R, k){ markChevrons(R, k); },
   },
   hgear: {
     none(){},
@@ -73,6 +74,7 @@ export const TROOPER_PARTS = {
     visor(R, k){ gearVisor(R, k); },
     antenna(R, k){ gearAntenna(R, k); },
     mohawk(R, k){ gearMohawk(R, k); },
+    command(R, k){ gearCommand(R, k); },
   },
   // what he carries on his back, over the pack every clone wears
   backpack: {
@@ -372,6 +374,24 @@ function markSigil(R, k){
   k.add(plate([[0,0.04],[0.028,0.03],[0.026,-0.012],[0,-0.045],[-0.026,-0.012],[-0.028,0.03]], 0.006, 0.002), 'mark', P, [-0.078, 0.074, 0.024], [0, 0, 0], { outline: false });
   const wing = [[0,0.02],[0.075,0.045],[0.065,0.018],[0.05,0.004],[0.036,-0.01],[0,-0.012]];
   for (const sx of [-1, 1]) k.add(plate(wing, 0.005, 0.0015), 'mark', P, [-0.078 + 0.03 * sx, 0.074, 0.023], [0, 0, 0], { outline: false, scale: [sx, 1, 1] });
+}
+function markChevrons(R, k){
+  // THE MARSHAL COMMANDER's: three chevrons stacked on the left pec, and a bar across each shoulder shell
+  const P = leftPec(R, k);
+  const chev = [[0,0.012],[0.05,-0.018],[0.05,-0.03],[0,0],[-0.05,-0.03],[-0.05,-0.018]];
+  for (let i = 0; i < 3; i++) k.add(plate(chev, 0.006, 0.002), 'mark', P, [-0.085, 0.14 - i * 0.03, 0.028], [0, 0, 0], { outline: false });
+  for (const A of [R.armL, R.armR]) k.add(block(0.012, 0.03, 0.08, 0.2), 'mark', A.sh, [0.074 * A.side, -0.02, 0], [0, 0, 0], { outline: false });
+}
+function gearCommand(R, k){
+  // the Marshal's command array: a rangefinder stalk either side of the bucket, and a lit sensor bar across the brow
+  const helm = k.group(R.head);
+  for (const sx of [-1, 1]){
+    k.add(block(0.02, 0.12, 0.02, 0.3), 'grey', helm, [0.14 * sx, 0.32, 0.02], [0, 0, -0.12 * sx]);
+    k.add(block(0.05, 0.02, 0.05, 0.3), 'grey', helm, [0.15 * sx, 0.385, 0.03], [0, 0, 0]);
+  }
+  k.add(block(0.18, 0.018, 0.016, 0.2), 'grey', helm, [0, 0.33, 0.135], [-0.25, 0, 0]);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.008, 0.006), new THREE.MeshBasicMaterial({ color: 0x7fe3ff }));
+  bar.position.set(0, 0.333, 0.145); bar.rotation.x = -0.25; helm.add(bar);
 }
 function gearMacro(R, k){
   // macrobinoculars on a hinge over the right ear, swung down in front of the right eye

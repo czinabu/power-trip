@@ -12,7 +12,9 @@ import {
   profileOf, track, rankNeeds, trialsPassed, insightLeft, insightTotal, nodeState, learnNode, resetTree, treePath, setPath,
   seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
   owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck, alignOf, alignStage, leanOf, alignOpen,
+  ngBest, ngNextTier,
 } from '../game/profile.js';
+import { tierName, MAX_TIER } from '../data/ngplus.js';
 import { ALIGN, ALIGN_WORDS, ALIGN_TREE, ALIGN_PATHS } from '../data/alignment.js';
 import { TRIALS, JEDI_TREE, RANK_SKILLS, BRANCHES, BRANCH, FORK_BRANCH, DECK_QUOTA, DECK_SIZE } from '../data/profile.js';
 import { SKILLS, MANDO_SKILLS, TIER_NAME } from '../data/skills.js';
@@ -62,6 +64,7 @@ function opens(h, ri){
   for (const s of RANK_SKILLS[h] || []) if (s.rank === R.id) out.push(esc(s.nm) + ' card');
   const look = LOOK_OF_RANK[h] && LOOK_OF_RANK[h][R.id];
   if (look) out.push(esc(look));
+  for (const [, nm] of R.gives || []) out.push(esc(nm.charAt(0) + nm.slice(1).toLowerCase()));   // the top rank's legendary parts and looks
   return out.join(' · ');
 }
 function leftCol(h){
@@ -78,14 +81,16 @@ function leftCol(h){
   const rec = [['CHAPTERS', Object.keys(p.cleared).length], ['TRIALS', trialsPassed(p) + ' / 3'], ['MISSIONS', Object.keys(p.missions).length],
                ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers],
                ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length],
-               ['SPARED', (p.mercy || {}).spared || 0], ['STRUCK DOWN', (p.mercy || {}).struck || 0]];
+               ['SPARED', (p.mercy || {}).spared || 0], ['STRUCK DOWN', (p.mercy || {}).struck || 0],
+               ...((p.ng && p.ng.runs) ? [['NEW GAME+ WINS', p.ng.runs]] : [])];
   return `<div class="pf-col pf-left">
     <div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
     <div class="pf-rank">${esc(R.nm)}</div>
     <div class="pf-xp"><b>${num(p.xp)}</b> ${esc(T.unit)}</div>
     <div class="pf-bar"><i style="width:${Math.round(frac * 100)}%"></i></div>
     ${alignRow(h)}
-    ${next ? `<div class="pf-next"><h4>NEXT RANK · ${esc(next.nm)}</h4><ul>${nx.map(n => needLine(n, h)).join('')}</ul>${unlock ? `<p class="pf-opens">Unlocks: <b>${unlock}</b></p>` : ''}</div>` : '<div class="pf-next"><h4>TOP RANK</h4><p class="pf-note">Every rank is yours.</p></div>'}
+    ${next ? `<div class="pf-next"><h4>NEXT RANK · ${esc(next.nm)}</h4><ul>${nx.map(n => needLine(n, h)).join('')}</ul>${unlock ? `<p class="pf-opens">Unlocks: <b>${unlock}</b></p>` : ''}</div>` : `<div class="pf-next"><h4>TOP RANK</h4><p class="pf-note">Every rank is yours.${opens(h, p.rank) ? ` Legendary: <b>${opens(h, p.rank)}</b>.` : ''}</p></div>`}
+    ${ngSec(h)}
     <span class="pf-link" data-ladder>${ladderOpen ? '▾ HIDE RANKS' : '▸ VIEW ALL RANKS'}</span>
     ${ladderOpen ? `<ol class="pf-ladder">${ladder}</ol>` : ''}
     <div class="pf-sec pf-deckbox"><h4>YOUR DECK</h4>${deckBox}</div>
@@ -93,6 +98,14 @@ function leftCol(h){
     ${recBox(rec)}
     <p class="pf-note pf-how">Earn ${esc(T.unit)} from story chapters, missions, challenges, duels and survival. Training and sandbox don't count.</p>
   </div>`;
+}
+
+// NEW GAME+ (data/ngplus.js), once the campaign is beaten: the best tier beaten, the next one, and its legendary parts
+function ngSec(h){
+  const p = profileOf(h); if (!(p.won > 0)) return '';
+  const best = ngBest(h), t = ngNextTier(h);
+  const legends = earnableOf(h).filter(([, part]) => part.earn.ng).map(([, part]) => (earnProgress(p, part.earn).have >= part.earn.ng ? '✓ ' : '') + esc(part.name) + ' (' + esc(tierName(part.earn.ng)) + ')');
+  return `<div class="pf-sec pf-ng"><h4>NEW GAME+</h4><p class="pf-note">${best ? 'Beaten: <b class="pf-hl">' + esc(tierName(best)) + '</b>. ' : ''}${best >= MAX_TIER ? 'Every tier is yours.' : 'Next: <b class="pf-hl">' + esc(tierName(t)) + '</b>, from CAMPAIGN on the main menu.'}</p>${legends.length ? '<p class="pf-note">Legendary parts: ' + legends.join(' · ') + '</p>' : ''}</div>`;
 }
 
 // LIGHT AND DARK, one compact row (data/alignment.js, game/alignment.js): the meter from dark to light, where you stand

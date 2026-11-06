@@ -442,7 +442,7 @@ function dc15Stock(S, g, stock){
   }
   return false;
 }
-const FINISH = { desert: 0xb89d6e, snow: 0xe4e7ea };
+const FINISH = { desert: 0xb89d6e, snow: 0xe4e7ea, gilded: 0xd4a640 };
 function dc15Finish(S, g, finish, mark){
   if (finish === 'legion'){
     const m = S.mat('gunMetal', { c: mark ?? 0x2f7fd6 });

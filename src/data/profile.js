@@ -21,6 +21,8 @@
 //   BRANCH   where each of the run's own skill cards (data/skills.js SKILLS) sits on the tree, and FORK_BRANCH the store's
 //            fork picks (data/store.js), shown on the tree with the side you took last.
 //   RANK_SKILLS the Mando's and the trooper's lighter track: each rank simply opens its card, no tree to fill in.
+//   `gives`  (the TOP rank) the LEGENDARY parts and looks it opens, as rows for its card and the profile page. Looks only:
+//            the parts themselves are the benches' (data/saber-parts.js `earn: { top }`), and NEW GAME+ has more.
 
 import { player } from '../state.js';
 
@@ -53,7 +55,8 @@ export const TRACKS = {
       { id: 'padawan', nm: 'PADAWAN', line: 'Vael\'s student. Every Jedi starts here.' },
       { id: 'knight', nm: 'KNIGHT', xp: 100, line: 'Vael\'s Knight. Clear your first chapter.' },
       { id: 'master', nm: 'MASTER', xp: 1500, trials: true, line: 'Pass the three masters\' trials: the Wall, the Acrobat and the Knight.' },
-      { id: 'grandmaster', nm: 'GRAND MASTER', xp: 5000, won: true, line: 'Lead what is left of the Order. Beat the campaign, then keep going.' },
+      { id: 'grandmaster', nm: 'GRAND MASTER', xp: 5000, won: true, line: 'Lead what is left of the Order. Beat the campaign, then keep going.',
+        gives: [['LEGENDARY CRYSTAL', 'GRAND MASTER\'S'], ['LEGENDARY HILT', 'GRAND MASTER'], ['NEW LOOK', 'COUNCIL WHITE ROBES']] },
     ],
     insight: [1, 1, 1, 1],
   },
@@ -63,7 +66,8 @@ export const TRACKS = {
       { id: 'foundling', nm: 'FOUNDLING', line: 'Taken in by the covert. The Way starts here.' },
       { id: 'verd', nm: 'VERD', xp: 100, line: 'A warrior of the clan. Clear your first chapter.' },
       { id: 'alor', nm: 'ALOR', xp: 1500, trials: true, line: 'Beat the clan\'s three champions and lead them.' },
-      { id: 'mandalor', nm: 'MAND\'ALOR', xp: 5000, won: true, line: 'The clans follow you. Beat the campaign, then keep going.' },
+      { id: 'mandalor', nm: 'MAND\'ALOR', xp: 5000, won: true, line: 'The clans follow you. Beat the campaign, then keep going.',
+        gives: [['LEGENDARY SIGNET', 'MAND\'ALOR\'S SIGIL'], ['NEW LOOK', 'MAND\'ALOR ARMOUR']] },
     ],
   },
   trooper: {
@@ -75,7 +79,8 @@ export const TRACKS = {
       { id: 'captain', nm: 'CAPTAIN', chapter: 'trial-first', line: 'The Captain\'s own commission.' },
       { id: 'commander', nm: 'COMMANDER', chapter: 'trial-knight', line: 'General Kast\'s commission, on Hoth.' },
       { id: 'arc', nm: 'ARC COMMANDER', chapter: 'mustafar', line: 'An ARC, in the Captain\'s old kit.' },
-      { id: 'marshal', nm: 'MARSHAL COMMANDER', xp: 5000, won: true, line: 'Command of what is left of the legion. Beat the campaign, then keep going.' },
+      { id: 'marshal', nm: 'MARSHAL COMMANDER', xp: 5000, won: true, line: 'Command of what is left of the legion. Beat the campaign, then keep going.',
+        gives: [['LEGENDARY PAINT', 'MARSHAL GOLD'], ['LEGENDARY MARKINGS', 'MARSHAL\'S CHEVRONS']] },
     ],
   },
 };

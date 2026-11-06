@@ -100,6 +100,9 @@ export const G = {
   forceElite: false,     // set while the sandbox spawns its ELITE foes
   endlessWave: 0,        // current survival wave (1-based)
   mut: null,             // active wave mutator id (or null)
+  ngPlus: 0,             // NEW GAME+ tier of the campaign run (0: a first run; game/ngplus.js)
+  ngNext: null,          // ...the tier the next BEGIN starts at, armed by the NEW GAME+ button (null: as it was)
+  ngMuts: [],            // the NG+ chapter's (or a veteran side mission's) mutators, stacked on top of G.mut
   arenaRot: 0,           // which authored arena the survival run is currently on
   resumeRun: null,       // a loaded save's campaign run, waiting on the menu's CONTINUE CAMPAIGN (game/saves.js)
 };

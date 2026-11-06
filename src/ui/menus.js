@@ -248,8 +248,8 @@ function beginPlay(){
       G.hub = false;
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
-      else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
-      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume()) resumeRun(); else startCampaign();
+      else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; G.ngPlus = coopRun.ng | 0; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
+      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (canResume() && G.ngNext == null) resumeRun(); else startCampaign();   // (NEW GAME+ armed: a fresh run at its tier, game/campaign.js)
       G.paused = false;   // unfreeze the sim on entering play
     }, stillWanted);
   } else if (G.mode === 'dead'){
@@ -310,6 +310,7 @@ export function setModeSel(m){
   for (const k of ['campaign', 'mission', 'endless', 'training', 'sandbox', 'temple']) document.getElementById('mode-' + k).classList.toggle('sel', m === k);
   document.getElementById('setup').classList.toggle('camp', m === 'campaign');
   refreshTile(); refreshGroups();
+  document.dispatchEvent(new Event('campaignmark'));   // (the NEW GAME+ button follows the mode: ui/saves-ui.js)
   document.getElementById('stepMode').textContent = m === 'temple' ? nextHub().name : STEP_NAME[m] || 'CAMPAIGN';
   refreshPicks();   // headline + button follow the mode
   return true;
@@ -355,6 +356,7 @@ function refreshCampaignMark(){
   md.innerHTML = canResume() ? resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '')
                : '13 chapters, three acts' + (done ? ' · <span class="ok">✓</span> beaten' : '');
   refreshGroups();
+  document.dispatchEvent(new Event('campaignmark'));   // (the NEW GAME+ button follows the hero: ui/saves-ui.js)
 }
 // TRAINING marks which heroes have finished it
 function refreshTrainingMark(){
@@ -809,6 +811,7 @@ export function goHome(){
   document.getElementById('runsummary').style.display = 'none';
   startLevel(0);   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would
   G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.fromHub = false;
+  G.ngPlus = 0; G.ngNext = null;   // (a NEW GAME+ run is over: CONTINUE brings its tier back from the save, game/saves.js restoreRun)
   overlay.style.display = 'flex';
   if (!G.coopJoin) followHero();   // the run just played was used up as it began: this hero's newest save waits again for CONTINUE CAMPAIGN
   showMenuStep('mode');   // the title screen opens on its first step
@@ -865,6 +868,7 @@ export function launchNow(){
 function leaveHub(){
   closeHubPanel(false);
   G.fromHub = true; G.hub = false; G.mode = 'menu'; G.paused = false; G.skillSelect = false; G.sbMenu = false;
+  G.ngPlus = 0;   // (the temple is between runs: a campaign from here is a first run unless NEW GAME+ arms one)
   overlay.style.display = 'flex';
   if (!G.coopJoin) followHero();
   refreshMenu();

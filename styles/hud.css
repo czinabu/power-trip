@@ -625,6 +625,8 @@ body.mission-play #objlist{width:330px;border-color:rgba(255,210,90,.5);backgrou
    line would only say it again, so it steps aside (the kicker above the checklist keeps the run's name) */
 body.has-checklist #waveinfo{display:none}
 #objlist .ol-k{font:600 11px/1.2 var(--font-ui);letter-spacing:1.8px;color:var(--ink-soft);text-align:right;margin-bottom:3px}
+#objlist .ol-mut{text-align:right;margin:2px 0 4px;font:700 10px/1.6 var(--font-ui);letter-spacing:1.5px}
+#objlist .ol-mut .wi-mut{display:inline-block;padding:0 6px;border-radius:var(--r-chip);border:1px solid currentColor;margin-left:3px}
 #objlist .ol-s.warn{color:#ff9a8a}
 /* every small HUD label gets a tight dark rim, not just a soft glow, so it holds against a white sky */
 #waveinfo,#status,#actionbar,#xpmeter,#squadhud,#streak{text-shadow:0 0 2px rgba(0,6,14,.95),0 1px 3px rgba(0,6,14,.9),0 0 10px rgba(0,6,14,.6)}

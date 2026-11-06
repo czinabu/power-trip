@@ -14,7 +14,8 @@ import { campaignWon } from './campaign.js';
 import { storyHero } from '../data/campaign.js';
 import { TROOPER_VICTORY } from '../data/campaign-trooper.js';
 import { isArcadeId } from '../data/arcade.js';
-import { noteCampaignWon } from './profile.js';
+import { noteCampaignWon, ngNextTier } from './profile.js';
+import { tierName, NG_WORDS } from '../data/ngplus.js';
 
 /* ---------- END-OF-RUN SUMMARY + SCORE ---------- */
 export function endRun(won){
@@ -70,7 +71,7 @@ export function victory(afterEpilogue){
   G.mode = 'victory';
   G.slowmo = 1; G.slowmoT = 0;   // the fight is won — drop out of slow motion
   // record this hero's CAMPAIGN clear — SURVIVAL unlocks once BOTH heroes have finished the campaign
-  const hadBoth = survivalUnlocked();
+  const hadBoth = survivalUnlocked(), ngBefore = ngNextTier(G.hero), ngRun = G.ngPlus || 0;
   try { localStorage.setItem('sw_camp_' + G.hero, '1'); } catch(e){}
   noteCampaignWon();   // your profile: the post-game rank asks for this (game/profile.js)
   autosave('campaign won', { finished: true });
@@ -83,6 +84,8 @@ export function victory(afterEpilogue){
     // always raise the win screen (not just in the embedded fallback)
     overlay.style.display = 'flex';
     setOverlayState('victory');
-    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : storyHero() === 'trooper' ? TROOPER_VICTORY : 'THE HERALD OF THE VOID IS NO MORE';
+    // NEW GAME+ (data/ngplus.js): the first win opens it, each tier beaten the next
+    const ngNow = ngNextTier(G.hero), ngLine = ngRun > 0 ? '★ ' + tierName(ngRun) + ' BEATEN · ' + NG_WORDS.won(ngRun).toUpperCase() + ' ★' : ngNow && !ngBefore ? '★ ' + tierName(ngNow) + ' UNLOCKED ★' : '';
+    document.getElementById('ovsub').textContent = newlyUnlocked ? '★ SURVIVAL MODE UNLOCKED ★' : ngLine || (storyHero() === 'trooper' ? TROOPER_VICTORY : 'THE HERALD OF THE VOID IS NO MORE');
   }, 1400);
 }

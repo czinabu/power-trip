@@ -14,6 +14,7 @@ import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, B
 import { ALIGN } from '../data/alignment.js';
 import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
+import { NG_XP, MAX_TIER } from '../data/ngplus.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
@@ -29,7 +30,8 @@ function load(){
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
                        picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {},
-                       align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 } });
+                       align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 },
+                       top: 0, ng: { best: 0, runs: 0 } });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -54,6 +56,7 @@ export function profileOf(hero = G.hero){
   if (!s.heroes[hero]){ s.heroes[hero] = seed(hero); save(); }
   const p = s.heroes[hero];
   if (!Array.isArray(p.parts)){ p.parts = earnedParts(hero, p); save(); }   // (what a profile from before its bench has earned comes with no fanfare)
+  if (!p.ng || (!p.top && p.rank >= track(hero).ranks.length - 1)){ p.ng ||= { best: 0, runs: 0 }; if (p.rank >= track(hero).ranks.length - 1) p.top = 1; save(); }   // (a profile from before the post-game)
   return p;
 }
 
@@ -91,7 +94,9 @@ const heldCards = [];
 // atClose: a chapter's close, where a rank-up is a card among what the chapter hands over; anywhere else, a corner note
 function settle(hero, atClose){
   const p = profileOf(hero), was = p.rank, now = rankFor(hero, p);
-  settleParts(hero, p, atClose);
+  const last = track(hero).ranks.length - 1;
+  if (now >= last) p.top = 1;   // THE TOP RANK holds its legendary parts and looks (data/saber-parts.js `earn: { top }`)
+  settleParts(hero, p, atClose, atClose && now > was && now === last);   // (reached at a close: they ride on the rank's own card)
   if (now <= was){ save(); return; }
   p.rank = now; p.fresh = true;
   save();
@@ -112,6 +117,7 @@ function rankCard(hero, r){
   for (const s of RANK_SKILLS[hero] || []) if (s.rank === R.id) rows.push(['NEW TRAINING CARD', s.nm]);
   const tier = TIER_OF_RANK[hero] && TIER_OF_RANK[hero][R.id];
   if (tier) rows.push(['FORCE TREE', 'TIER ' + ['', 'I', 'II', 'III'][tier] + ' NODES OPEN']);
+  for (const g of R.gives || []) rows.push(g);   // the top rank's legendary parts and looks (data/profile.js TRACKS `gives`)
   return { key: 'rank-' + R.id, hud: '', card: { kicker: book.kicker, name: R.nm, lines: [...lines, 'Your rank stays with you in every mode, run and co-op game. Open PROFILE to see it.'], rows } };
 }
 export const takeRankCards = () => heldCards.splice(0);
@@ -128,13 +134,14 @@ export const onPart = (fn) => { partHook = fn; };
 const partWhat = (hero, row) => row === 'saber' ? 'KYBER CRYSTAL' : benchOf(hero).find(r => r.id === row).label;
 const partLine = (row, part) => part.att ? part.att + ': ' + part.ds : part.line;
 // a part just earned: a card at a chapter's close (with what the chapter hands over), a corner note anywhere else
-function settleParts(hero, p, atClose){
+function settleParts(hero, p, atClose, topCard = false){
   const have = new Set(p.parts || []);
   for (const [row, part] of earnableOf(hero)){
     const k = partKey(row, part);
     if (have.has(k) || !partEarned(p, part.earn)) continue;
     have.add(k); p.fresh = true;
     const what = partWhat(hero, row), line = partLine(row, part);
+    if (topCard && part.earn.top) continue;   // (listed on the top rank's own card instead: rankCard)
     if (atClose) heldCards.push({ key: 'part-' + hero + '-' + k, hud: '', card: { kicker: BENCH_KICKER[hero], name: part.name.toUpperCase() + (hero === 'jedi' ? ' ' : ' · ') + what,
       lines: [line, 'Fit it at the ' + BENCH_NAME[hero] + ' between runs: ' + BENCH_BUTTON[hero] + ' on the main menu. It stays yours in every mode, run and co-op game.'],
       rows: [['NEW ' + what, part.name.toUpperCase()]] } });
@@ -154,7 +161,7 @@ export function noteChapterCleared(id){
   const p = profileOf();
   const first = !p.cleared[id];
   p.cleared[id] = (p.cleared[id] || 0) + 1;
-  gain(first ? (TRIALS.includes(id) ? RANK_XP.trial : RANK_XP.chapter) : RANK_XP.replay);
+  gain(first ? (TRIALS.includes(id) ? RANK_XP.trial : RANK_XP.chapter) : G.ngPlus > 0 ? NG_XP.chapter : RANK_XP.replay);   // (a NEW GAME+ chapter pays more: data/ngplus.js)
   settle(G.hero, true);
 }
 // a story mission won from the Missions page (not a campaign chapter: that's its close), or an arcade contract
@@ -174,6 +181,14 @@ export function noteSideWon(id){
   p.sides[id] = (p.sides[id] || 0) + 1;
   gain(first ? RANK_XP.side : RANK_XP.sideAgain);
   settle(G.hero);
+}
+// what a side mission (data/side-quests.js) still waits for, in words ('REACH KNIGHT', 'BEAT THE CAMPAIGN'), or null: open.
+// The temple's CALLS FOR AID stone and the Missions page both ask this
+export function sideLock(q, hero = G.hero){
+  if (!q) return 'UNKNOWN';
+  if (q.post && !(profileOf(hero).won > 0)) return 'BEAT THE CAMPAIGN';
+  const T = track(hero);
+  return rankIndex(hero) < q.rank ? 'REACH ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
 }
 export const sidesWon = (hero = G.hero) => Object.keys(profileOf(hero).sides || {}).length;
 export const sideWon = (id, hero = G.hero) => !!(profileOf(hero).sides || {})[id];
@@ -200,10 +215,15 @@ export function noteZone(zid, field, id, hero = G.hero){
 }
 export function noteCampaignWon(){
   const p = profileOf();
-  gain(p.won ? RANK_XP.wonAgain : RANK_XP.won);
+  gain(!p.won ? RANK_XP.won : G.ngPlus > 0 ? NG_XP.won : RANK_XP.wonAgain);
   p.won++;
+  // NEW GAME+ (data/ngplus.js): a tier beaten opens the next, and its legendary parts (`earn: { ng }`)
+  if (G.ngPlus > 0){ p.ng ||= { best: 0, runs: 0 }; p.ng.runs++; p.ng.best = Math.max(p.ng.best || 0, Math.min(MAX_TIER, G.ngPlus)); p.fresh = true; }
   settle(G.hero);
 }
+// NEW GAME+: the highest tier this hero has beaten (0: none), and the one a new NG+ run starts at (0: not open yet)
+export const ngBest = (hero = G.hero) => (profileOf(hero).ng || {}).best || 0;
+export const ngNextTier = (hero = G.hero) => profileOf(hero).won > 0 ? Math.min(MAX_TIER, ngBest(hero) + 1) : 0;
 // mid-fight: a mastery rank, a duel, a survival wave (no card: a corner note if it promotes)
 function counted(field, xp){
   if (!learning()) return;

@@ -10,6 +10,7 @@ import { shared, G, player, isGunner, isTrooper } from '../state.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { setHero } from '../player/hero.js';
 import { setStrafeMode } from '../player/strafe.js';
+import './settings-tips.js';   // the "i" explainers on every setting
 import { startLevel, retryLevel, retryIsBoss, startCoopCampaign } from '../game/flow.js';
 import { coopRun } from '../net/run.js';
 import { startEndless } from '../game/survival.js';

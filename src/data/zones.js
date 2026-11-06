@@ -5,7 +5,7 @@
 // data, and cheap), but a chunk's meshes are only built while someone is near it and thrown away once they are far, so
 // phones and co-op hosts only ever draw the streets round them. game/zone.js runs the mode. Edit the words freely.
 //
-// A ZONE: { name, place, blurb, size (metres across, square), chunk (metres across a chunk), seed, level (what buildArena
+// A ZONE: { name, place, blurb, opensAfter (the chapter that opens it: game/zone-gate.js), size (metres across, square), chunk (metres across a chunk), seed, level (what buildArena
 //   reads), spawn [x, z, yaw] where you land, districts, waystones, life (its patrols, people and secrets: data/zone-jedha.js) }
 // A DISTRICT: { id, name, kicker, x0, z0, x1, z1 (its rectangle; north is −z), line (the banner's line as you walk in) }.
 //   A spot belongs to the first district whose rectangle holds it.
@@ -31,6 +31,10 @@ export const ZONES = {
   jedha: {
     name: 'THE OLD CITY OF JEDHA', place: 'JEDHA', short: 'OLD CITY',
     blurb: 'The holy city\'s oldest streets, half empty since the occupation. Pilgrims still come. So do the patrols.',
+    // THE GATE (game/zone-gate.js): the chapter whose close opens it, per hero. 'trial-first' is Act I's last chapter in
+    // every story (the Jedi's TRIAL OF THE WALL, the Mando's THE EXILE'S CHALLENGE, the trooper's BROTHERS IN ARMS).
+    // Change it to any chapter id in data/campaign.js (e.g. 'mustafar', the end of Act II), or delete it to open it from the start.
+    opensAfter: 'trial-first',
     size: 240, chunk: 48, seed: 1607, life: JEDHA_LIFE,
     level: { name: 'OPEN ZONE — THE OLD CITY OF JEDHA', sub: 'Roam the old city. The shuttle on the pad takes you home.', arena: 240, layout: 'zoJedha', waves: [], hazards: {} },
     spawn: [0, 96, Math.PI],

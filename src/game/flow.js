@@ -39,6 +39,7 @@ import { TROOPER_AUTO } from '../data/trooper-progression.js';
 import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
 import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
+import { zoneReached } from './zone-gate.js';
 import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending } from '../ui/ability-card.js';
 import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
@@ -290,25 +291,26 @@ export function checkUnlocks(bannerDelay, closing){
   let forceUp = 0, forceWas = 1;
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
-      const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;
+      const reached = G.zone ? zoneReached(u) : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;   // (an open zone: what this hero's story has handed out, game/zone-gate.js)
       if (reached && !u.has()){ u.grant(); announce.push(u); }
     }
     syncTrooperChips();
   } else if (isGunner()){
     for (const u of MANDO_AUTO){
-      const reached = (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;   // the campaign: the chapter that hands it over (data/store.js)
+      const reached = G.zone ? zoneReached(u) : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;   // the campaign: the chapter that hands it over (data/store.js)
       if (reached && !u.has()){ u.grant(); announce.push(u); }
     }
     syncMandoChips();
   } else {
     const meditates = formsTaught();
-    const jediReached = (u) => (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
+    const jediReached = (u) => G.zone ? zoneReached(u)   // an open zone: what this Jedi's story has handed out (game/zone-gate.js)
+                                : (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
                                 : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter)           // a form or a power: the chapter that teaches it, at its close
                                 : (G.levelIdx > u.level || (G.levelIdx === u.level && G.wave >= u.wave));
     // THE FORCE LEVEL rides the same gates (data/force-level.js): a run only climbs; the training grounds and the sandbox
     // fight at the level the story has reached (the sandbox's slider overrides it). Set first: a power waits for its level
     const was = G.forceLevel || 1;
-    G.forceLevel = (G.sandbox || G.training || G.hub) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
+    G.forceLevel = G.zone ? 1 + FORCE_LEVELS.filter(jediReached).length : (G.sandbox || G.training || G.hub) ? storyForceLevel() : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
     if (G.forceLevel > was && !G.sandbox && !G.training && !G.hub){ forceUp = G.forceLevel; forceWas = was; }
     for (const u of JEDI_AUTO){
       const reached = jediReached(u);

@@ -28,6 +28,7 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { ZONES } from '../data/zones.js';
+import { zoneLock } from '../game/zone-gate.js';
 import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML } from './hub-map.js';
@@ -59,7 +60,8 @@ const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The
   () => askParty(tierName(t), () => { G.resumeRun = null; G.ngNext = t; hubLaunch('campaign'); }))] : []; };
 // ACT IV · THE SITH GATE (game/gate.js): the shared campaign after the three, for the whole party
 const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign');
-const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
+// (each waits for the chapter that opens it, for the hero in hand: game/zone-gate.js)
+const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)));
 
 function options(s){
   const G_ = G;

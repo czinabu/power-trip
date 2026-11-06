@@ -21,14 +21,16 @@ const step = (what) => console.log('ok   ' + what);
 const HEROES = ['jedi', 'trooper', 'mando'];
 
 const SHOTS = process.env.SHOTS;
-async function open(name){
+// cleared: the chapters this save has closed, per hero (the host has closed Act I, which opens Jedha: game/zone-gate.js;
+// a guest on a brand-new save still goes along with them)
+async function open(name, cleared = {}){
   const page = await browser.newPage({ viewport: { width: 400, height: 225 } });
   page.on('pageerror', e => errors.push(name + ': ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(name + ': ' + m.text()); });
-  await page.addInitScript(() => {
-    try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
+  await page.addInitScript((cleared) => {
+    try { for (const h in cleared) localStorage.setItem('sw_camp_ch_' + h, JSON.stringify(cleared[h])); localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
-  });
+  }, cleared);
   await page.goto(url, { timeout: 120000 });
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);
   return page;
@@ -43,7 +45,7 @@ const godly = (page) => page.evaluate(() => { setInterval(() => { if (GAME.G.mod
 
 let ok = false;
 try {
-  const host = await open('host'), g1 = await open('guest1'), g2 = await open('guest2');
+  const host = await open('host', { [HEROES[0]]: ['siege', 'archive', 'refuge', 'trial-first'] }), g1 = await open('guest1'), g2 = await open('guest2');
   const all = [host, g1, g2], guests = [g1, g2];
   await host.click('#mode-coop'); await host.click('#coophost');
   await host.waitForFunction(() => document.querySelector('#coopstatus .code'), null, poll);

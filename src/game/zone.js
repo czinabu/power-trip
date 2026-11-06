@@ -1,11 +1,12 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // AN OPEN ZONE, in play (data/zones.js has the zones, world/zone-stream.js builds them in chunks): roam it as any hero,
-// with your profile's kit, for as long as you like. Reached from a station in every hero's hub, left by the shuttle at
+// with the kit your story has earned, for as long as you like. Reached from a station in every hero's hub, left by the shuttle at
 // its gate (or the pause screen's RETURN TO …), and in co-op the whole party roams it together.
 //
-//   · THE KIT: a zone plays like a mission from the Missions page (G.mission is set alongside G.zone, so the forms, guns
-//     and powers a mission hands out up front are handed out here too), and how much of it you carry follows your rank:
-//     a Padawan / Verd / Trooper carries less than a Master / Alor / Commander.
+//   · THE GATE: a zone opens once this hero has closed the chapter it names (data/zones.js `opensAfter`: game/zone-gate.js).
+//   · THE KIT: a zone plays like a mission from the Missions page (G.mission is set alongside G.zone, so it is all handed
+//     out up front, with no fanfare), but what you carry is what your own story has handed out so far: the forms, powers,
+//     guns and gear of every chapter this hero has closed (game/zone-gate.js), not a fixed kit.
 //   · WAYSTONES: walking up to one touches it (your profile keeps it: game/profile.js noteZone); tap F at any one to travel
 //     to another you've touched. The gate's also takes you home.
 //   · DISTRICTS: walking into one names it in a banner; the first time, it counts as seen on your profile.
@@ -26,7 +27,8 @@ import { updateZoneStream, zoneStreamExtra } from '../world/zone-stream.js';
 import { showBanner } from '../ui/banners.js';
 import { onInteract, INTERACT_KEY } from './interact.js';
 import { pad, padKeys } from '../engine/gamepad.js';
-import { rankIndex, noteZone, zoneMemo } from './profile.js';
+import { noteZone, zoneMemo } from './profile.js';
+import { zoneDepth, zoneFork } from './zone-gate.js';
 import { net, connected } from '../net/session.js';
 import { partnerStand } from '../net/partner.js';
 import { coopLive } from '../net/foes.js';
@@ -41,8 +43,12 @@ import { MUSIC } from '../audio/music.js';
 import { startZoneFights, updateZoneFights, zoneTier } from './zone-fights.js';
 import { startZoneQuests, updateZoneQuests, zoneQuestMarks } from './zone-quests.js';
 
-// what a zone hands out up front, by your rank (the stage a mission's `kit` names: data/missions.js), and how tough its foes
-const KIT_BY_RANK = [5, 7, 9, 9, 9];
+// what a zone hands out up front: what this hero's own story has handed out so far (game/zone-gate.js), no more
+function storyKit(){
+  const kept = zoneFork();   // (Form VII: the one this Jedi kept, once they're past the chapter that offers it)
+  if (kept){ G.formFork = kept; (G.stanceUnlocked = G.stanceUnlocked || {})[kept] = true; }
+  G.waveTotal = zoneDepth(); checkUnlocks();   // (the depth sets how practised the forms are and which guns a Mando carries)
+}
 const ZN = { key: null, Z: null, district: null, named: null, distT: 0, near: null, shownKey: '', arrived: 0 };
 let el = null;
 const prompt = () => el || (el = document.getElementById('zonep'));
@@ -78,8 +84,9 @@ export function startZone(key = 'jedha', opts = {}){
   const Z = ZONES[key]; if (!Z) return false;
   hookUp();
   ZN.key = key; ZN.Z = Z; ZN.district = null; ZN.named = null; ZN.distT = 0; ZN.near = null; ZN.shownKey = '';
+  G.missionForms = null; G.missionKit = null;   // (not the forms or guns last picked on the Missions page: the zone's kit is your story's)
   startLevel(0, { level: Z.level, mission: true, zone: key });
-  G.waveTotal = KIT_BY_RANK[Math.min(KIT_BY_RANK.length - 1, rankIndex())]; checkUnlocks();   // the kit, by rank
+  storyKit();
   G.waveTotal = 2;   // ...and foes as tough as an early wave (each district sets its own when its fights begin)
   noteZone(key, 'stones', Z.waystones.find(w => w.gate).id);   // the gate's stone is yours from the first visit
   const at = opts.at && Z.waystones.find(w => w.id === opts.at);

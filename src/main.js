@@ -142,6 +142,7 @@ import { updatePings, pingHere, pingInfo } from './net/ping.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
 import { continueOnLaunch } from './ui/saves-ui.js';
+import './ui/exit-game.js';   // EXIT GAME on the title and pause screens, in the desktop app only
 import './ui/files-ui.js';   // the title screen's save file line and the files panel   // NEW GAME / SAVE GAME / LOAD GAME and the save-slot panel
 
 setHero(G.hero);   // initialise control text + crosshair for the default hero

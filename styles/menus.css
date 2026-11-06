@@ -229,6 +229,15 @@
   border:1px solid rgba(200,120,60,.45);border-radius:var(--r-lg);background:rgba(30,16,8,.72);animation:rise .2s var(--ease)}
 #overlay.newconfirming #newconfirm{display:flex}
 #overlay.newconfirming .ov-actions{display:none}
+/* exit-game confirm (the desktop app only, ui/exit-game.js): the same swap */
+#exitBtn{display:none}
+html.desktop-app #exitBtn{display:inline-flex}
+#exitconfirm{display:none;flex-direction:column;align-items:center;gap:12px;margin-top:22px;padding:16px 22px;cursor:default;
+  border:1px solid rgba(200,120,60,.45);border-radius:var(--r-lg);background:rgba(30,16,8,.72);animation:rise .2s var(--ease)}
+#overlay.exitconfirming #exitconfirm{display:flex}
+#overlay.exitconfirming .ov-actions{display:none}
+#exitYes{color:#ffcfa0;border-color:rgba(200,120,60,.6)}
+#exitYes:hover{border-color:#ffb060;color:#ffe2c4}
 #newYes{color:#ffcfa0;border-color:rgba(200,120,60,.6)}
 #newYes:hover{border-color:#ffb060;color:#ffe2c4}
 .hc-q{font:600 15px/1.35 var(--font-ui);letter-spacing:1px;color:var(--ink-soft)}
@@ -713,6 +722,11 @@ body.pad .bs-aim{display:block}
 #overlay.st-pause #homeBtn{grid-column:1/-1;order:10;margin-top:16px;color:#ffcfa0;border-color:rgba(200,120,60,.45)}
 #overlay.st-pause #homeBtn:hover{border-color:#ffb060;color:#ffe2c4}
 #overlay.st-pause #homeconfirm{align-items:flex-start;margin-top:26px}
+/* EXIT GAME (the desktop app only, ui/exit-game.js) shares MAIN MENU's row at the bottom; its confirm swaps in for the grid */
+html.desktop-app #overlay.st-pause #homeBtn{grid-column:span 3}
+html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-top:16px}
+#overlay.st-pause.exitconfirming .ov-actions{display:none}
+#overlay.st-pause #exitconfirm{align-items:flex-start;margin-top:26px}
 #overlay.st-pause .ov-foot{text-align:left;margin-top:22px;font-size:12px}
 #overlay.st-pause .ov-inner,#overlay.st-pause .ov-actions .btn{animation:rise .3s var(--ease) both}
 @media (max-width:520px){#overlay.st-pause .ov-actions{grid-template-columns:repeat(2,1fr)} #overlay.st-pause .ov-actions .btn:not(.go,#homeBtn){grid-column:span 1;padding:12px 6px;font-size:12px;letter-spacing:1.5px} #overlay.st-pause .ov-actions #formsBtn[style*="none"] ~ #coopBtn.btn,#overlay.st-pause .ov-actions #restartBtn.btn{grid-column:1/-1} #overlay:is(.st-menu,.vpicking) .mp-grid{grid-template-columns:1fr} .mp-head .cz-tabs{margin-left:0} .mp-fold .mp-sub{display:none}}

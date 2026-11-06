@@ -299,7 +299,7 @@ function slide(dir){
   return true;
 }
 const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex'].some(id => document.getElementById(id).classList.contains('open')) ||
-  sandboxOpen() || /\b(confirming|newconfirming|asktrain|customizing|kitbench)\b/.test(overlay.className) || document.body.classList.contains('wb-open');   // (the benches: B closes them, ui/workbench.js, ui/kitbench.js)
+  sandboxOpen() || /\b(confirming|newconfirming|exitconfirming|asktrain|customizing|kitbench)\b/.test(overlay.className) || document.body.classList.contains('wb-open');   // (the benches: B closes them, ui/workbench.js, ui/kitbench.js)
 
 function menu(btn, down, lx, ly, ry, dt){
   // keep the ring on something real as screens and panels come and go (back to where it was when a panel closes)

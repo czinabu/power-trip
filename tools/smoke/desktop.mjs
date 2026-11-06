@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // DESKTOP SMOKE TEST — opens the desktop app (desktop/main.cjs, Electron) on the built game, checks it loads from its
-// own app:// origin with no errors, that its /api/turn route answers, and that online co-op connects between the
-// desktop app (hosting) and a plain browser on the website build (joining), through a local PeerServer.
+// own app:// origin with no errors, that its /api/turn route answers, that online co-op connects between the desktop
+// app (hosting) and a plain browser on the website build (joining), through a local PeerServer, and that EXIT GAME
+// (the app only) asks first and then closes it.
 //   npm run desktop:prepare && npm run smoke:desktop      (Linux needs a display: xvfb-run -a npm run smoke:desktop)
 
 import { chromium, _electron } from 'playwright';
@@ -38,6 +39,13 @@ try {
   const turn = await win.evaluate(async () => { const r = await fetch('/api/turn'); return { status: r.status, json: !!(await r.json().catch(() => null)) }; });
   if (!turn.json) throw new Error('/api/turn should answer with JSON, got ' + JSON.stringify(turn));
   console.log('desktop: loaded from', where, '· /api/turn', turn.status);
+  // EXIT GAME shows in the app (never in a browser, checked below) and asks first; Esc backs out of it
+  const shown = (sel) => win.evaluate((s) => { const el = document.querySelector(s); return !!el && el.offsetParent !== null; }, sel);
+  if (!(await shown('#exitBtn'))) throw new Error('EXIT GAME should show on the desktop app\'s title screen');
+  await win.click('#exitBtn');
+  if (!(await shown('#exitYes')) || await shown('#exitBtn')) throw new Error('EXIT GAME should swap the buttons for a confirm');
+  await win.keyboard.press('Escape');
+  if (await shown('#exitYes') || !(await shown('#exitBtn'))) throw new Error('Esc should cancel the exit confirm');
 
   // co-op: the desktop app hosts, a browser on the website build joins with the code
   await win.evaluate(prefs);
@@ -56,6 +64,14 @@ try {
   await guest.waitForFunction(() => /DESKTOP/.test(document.getElementById('cooproster').textContent), null, { timeout: 15000, polling: 250 });
   console.log('desktop: co-op room', code, 'connected desktop host <-> browser guest');
   if (process.env.SHOT) await win.screenshot({ path: process.env.SHOT });
+  if (await guest.evaluate(() => { const el = document.getElementById('exitBtn'); return !!el && el.offsetParent !== null; })) throw new Error('EXIT GAME must not show in a browser');
+  // ...and EXIT GAME, confirmed, closes the app
+  await win.click('#coopclose');
+  const closed = new Promise((res) => app.once('close', res));
+  await win.click('#exitBtn'); await win.click('#exitYes');
+  await Promise.race([closed, new Promise((_, rej) => setTimeout(() => rej(new Error('EXIT GAME did not close the app')), 10000))]);
+  app = null;
+  console.log('desktop: EXIT GAME asks first, then closes the app');
   if (errors.length) throw new Error('errors:\n  ' + errors.join('\n  '));
   ok = true;
 } catch(e){

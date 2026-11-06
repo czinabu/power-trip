@@ -9,7 +9,7 @@ import { G, shared, isGunner } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub.js';
-import { hubLaunch, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser } from './menus.js';
+import { hubLaunch, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser, overlay } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
 import { randomArcadeId } from '../data/arcade.js';
@@ -153,7 +153,10 @@ panel.addEventListener('click', (e) => {
   if (ready){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves)
   closeHubPanel(false);
   b.go();
-  if (G.hub && G.mode === 'play' && !G.paused && !isOpen() && !shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }   // (a wing to travel to: the lock back while the click still counts)
+  // a wing to travel to (or any pick that leaves you in the hub): take the lock back while the click still counts.
+  // goWing pauses the game for the loading screen straight away, so G.paused can't rule this out; what rules it out is
+  // a pick that left the hub, or opened another panel or a page over it (the codex, the holocron)
+  if (G.hub && G.mode === 'play' && !isOpen() && overlay.style.display !== 'flex' && !G.skillSelect && !G.cardUp && !shared.lockFallback && !document.pointerLockElement){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
 });
 document.addEventListener('keydown', (e) => { if (isOpen() && (e.key === 'Escape' || e.key === 'Tab')){ e.preventDefault(); closeHubPanel(); } }, true);
 

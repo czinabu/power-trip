@@ -105,7 +105,8 @@ const STYLES = {
     hit(w.x, w.z, w.ax ? w.hl : HALF_T, w.ax ? HALF_T : w.hl, LOW);
     K.deco(new THREE.CylinderGeometry(LOW * 0.5, LOW * 0.56, w.hl * 2 + 0.3, 9), M.body, w.x, LOW * 0.5, w.z, w.ax ? 0 : Math.PI / 2, 0, w.ax ? Math.PI / 2 : 0);
     K.deco(new THREE.BoxGeometry(w.ax ? w.hl * 1.4 : 0.5, 0.12, w.ax ? 0.5 : w.hl * 1.4), M.cap, w.x, LOW + 0.02, w.z);
-    if (t){ hit(t.x, t.z, w.ax ? t.hl : 0.75, w.ax ? 0.75 : t.hl, TALL);
+    if (t){ const e = Math.max(t.hl * 1.1, 0.95);   // (the rock is turned: its collider holds it whichever way it lies)
+            hit(t.x, t.z, e, e, TALL);
             const m = K.deco(new THREE.DodecahedronGeometry(1, 0), M.box2, t.x, TALL * 0.5, t.z, 0.4, 1.1, 0.2);
             m.scale.set(w.ax ? t.hl * 1.1 : 0.95, TALL * 0.55, w.ax ? 0.95 : t.hl * 1.1);
             K.deco(new THREE.SphereGeometry(1, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), M.cap, t.x, TALL * 0.95, t.z).scale.set(0.8, 0.3, 0.8); }
@@ -113,7 +114,7 @@ const STYLES = {
 };
 
 /* every [x, z] a story mission on this layout uses (and a battle map's squad spots), as it lands on this build */
-function keepPoints(layout){
+export function keepPoints(layout){
   const out = [], at = shared.spreadAt || ((x, z) => [x, z]);
   const walk = (o, r) => {
     if (!o || typeof o !== 'object') return;

@@ -380,6 +380,9 @@ export const MISSION_WORLDS = {
       { kind: 'stacks', count: 5, r: [1.3, 1.6], h: [20, 30], color: 0x2a3036, band: 0xd0a030, glow: 0xff8a2a, smoke: 0x3a4048 },
       // TOWERING (world/towering.js): the yard's cranes, spanning the whole deck far overhead
       { kind: 'gantry', axis: 'x', at: [-0.4, 0.45], y: [38, 46], color: 0x2a3038, color2: 0x20262e, stripe: 0xd0a030, lamp: 0xff3a2a },
+      { kind: 'gantry', axis: 'z', at: 0.1, y: 54, color: 0x2a3038, color2: 0x20262e, stripe: 0xd0a030, lamp: 0xff3a2a },
+      // the dry dock's control tower past the yard, lit
+      { kind: 'tower', az: -Math.PI / 2 - 0.4, r: 1.7, h: 120, w: 40, sides: 3, tiers: 3, taper: 0.55, color: 0x5a5e64, color2: 0x4a4e54, glow: 0x6ac8ff, windows: 0xffd890, beacon: 0xff3a2a },
     ],
     ambient: { kind: 'rain', color: 0xb8c8d8, count: 420, size: 0.12, opacity: 0.55 },
     mist: { color: 0x6a7a8a, count: 30, size: 10, opacity: 0.1 },
@@ -399,6 +402,9 @@ export const MISSION_WORLDS = {
     pal: { wall: 0x6a6e74, wallD: 0x4a4e56, metal: 0x8a9098, metalD: 0x3a3e46, door: 0x5a5e66, crate: 0x5a5a52, stripe: 0xc8a03a, red: 0xff3a2a, lamp: 0xd8e8ff, screen: 0x4ad2ff },
     backdrop: [
       { kind: 'towers', count: 22, r: [1.4, 2.4], h: [12, 28], color: 0x1a1e24, color2: 0x22262c, windows: 0xff5a4a },
+      // TOWERING (world/towering.js): the garrison's keep looming over the cell block, the yards' crane over the gate road
+      { kind: 'tower', az: Math.PI / 2 + 0.35, r: 1.55, h: 170, w: 30, sides: 4, tiers: 4, color: 0x3a4048, color2: 0x2e343c, glow: 0xff4a3a, windows: 0xffa080, beacon: 0xff3a2a },
+      { kind: 'gantry', axis: 'z', at: -0.55, y: 40, color: 0x2a3038, color2: 0x20262e, stripe: 0xc8a03a, lamp: 0xff3a2a },
     ],
     ambient: { kind: 'rain', color: 0xb8c8d8, count: 400, size: 0.12, opacity: 0.5 },
     beats: { fog: 0x2a2028, fill: 1.05, tint: 0xffb0a0 },
@@ -412,6 +418,10 @@ export const MISSION_WORLDS = {
     light: { sun: 0xffd8d0, sunI: 1.3, dir: [-10, 44, 20], hemiSky: 0xc8b0b0, hemiGround: 0x2a2428, fill: 1.0, rim: 0xff6a4a, rimI: 0.6 },
     floor: { kind: 'deck', base: 0x8a8e92, stripe: 0x8a2a24, seed: 37 },
     outer: 0x2a2e34,
+    backdrop: [
+      // TOWERING (world/towering.js): the frigate's great frames arching over the deck, far overhead
+      { kind: 'gantry', axis: 'x', at: [-0.7, -0.25, 0.2, 0.65], y: [28, 32], depth: 4, color: 0x8a9098, color2: 0x6a7078, stripe: 0x8a2a24, lamp: 0xff6a4a },
+    ],
     pal: { wall: 0xb8bcc0, wallD: 0x6a7078, metal: 0x8a9098, metalD: 0x3a4048, redPaint: 0x8a2a24, glass: 0x7ad8c8, bacta: 0x3ac8a8, crate: 0x5a5a52, lamp: 0xff6a4a, screen: 0x6ac8ff },
     ambient: { kind: 'dust', color: 0xd8e0e8, count: 90, size: 0.16, opacity: 0.4 },
     beats: { fog: 0x2a1a1e, fill: 1.1, tint: 0xff9a8a },
@@ -468,7 +478,7 @@ export const MISSION_WORLDS = {
     outer: 0x3a3a40,
     backdrop: [
       // TOWERING (world/towering.js): the mountains round the plateau, snow on their tops
-      { kind: 'bluffs', count: 8, r: [1.35, 1.65], h: [50, 80], w: 0.32, color: 0x4a4e54, color2: 0x3a3e44, cap: 0xe8ecf0 },
+      { kind: 'bluffs', count: 8, r: [1.35, 1.65], h: [75, 120], w: 0.32, color: 0x4a4e54, color2: 0x3a3e44, cap: 0xe8ecf0 },
     ],
     pal: { wall: 0x4a4e54, wallD: 0x2a2e34, metal: 0x6a7078, metalD: 0x2e3238, sand: 0x6a6250, crate: 0x4a4a42, rock: 0x5a5a5e,
            red: 0xff3a2a, lamp: 0xffe0b0, cloth: 0x8a1a1a },
@@ -507,7 +517,7 @@ export const MISSION_WORLDS = {
     outer: 0x18181e,
     backdrop: [
       // TOWERING (world/towering.js): the black headland's sea stacks, high in the storm
-      { kind: 'bluffs', count: 6, r: [1.45, 1.8], h: [55, 85], w: 0.24, color: 0x14141c, color2: 0x1c1c26, skip: [[Math.PI/2, 0.5]] },
+      { kind: 'bluffs', count: 6, r: [1.45, 1.8], h: [80, 125], w: 0.24, color: 0x14141c, color2: 0x1c1c26, skip: [[Math.PI/2, 0.5]] },
     ],
     pal: { stone: 0x3a3a40, stoneD: 0x24242a, metal: 0x5a6068, metalD: 0x2a2e34, sand: 0x5a5648, glow: 0x8ad8ff, red: 0xff3a2a, old: 0x9a7aff },
     ambient: { kind: 'rain', color: 0xb8c0d8, count: 460, size: 0.12, opacity: 0.55 },
@@ -705,7 +715,7 @@ export const MISSION_WORLDS = {
       { kind: 'mesas', count: 9, r: [2.0, 2.8], h: [12, 26], w: [16, 30], color: 0xb87a5a, color2: 0xa06848 },
       { kind: 'district', h: [3, 6], w: [5, 9], color: 0xd8ccb6, color2: 0xb2a48a, trim: 0x7a5a3c, roof: 0xb2a48a, domes: 0.5, spires: 0.05, setback: 0.4, gap: 7 },
       // TOWERING (world/towering.js): a few red buttes close behind the town (the flat itself stays flat: it's the open you feel here)
-      { kind: 'bluffs', az: [0.5, 1.2, 2.6], r: 1.75, h: [55, 75], w: 0.36, tiers: 2, color: 0xb87a5a, color2: 0xa06848 },
+      { kind: 'bluffs', az: [0.5, 1.2, 2.6, -0.4, -1.9, -2.7], r: [1.55, 1.8], h: [70, 105], w: 0.36, tiers: 2, color: 0xb87a5a, color2: 0xa06848 },
     ],
     ambient: { kind: 'dust', color: 0xfff8ec, count: 160, size: 0.24 },
     // the Magistrate's ambush: his dropships over the rooftops, a little trouble in the side streets
@@ -759,7 +769,8 @@ export const MISSION_WORLDS = {
       { kind: 'cliffs', count: 7, r: [2.0, 2.6], h: [14, 26], w: 0.2, color: 0x1a242c, color2: 0x141c24 },   // sea stacks
       { kind: 'stacks', count: 2, r: [1.6, 1.9], h: [14, 18], color: 0x2a3038, band: 0xd9a43a, glow: 0xff3a2a, smoke: 0x2a3038 },   // the barge's own funnels
       // TOWERING (world/towering.js): sea stacks rearing out of the swell, high as the storm
-      { kind: 'bluffs', count: 4, r: [1.7, 2.2], h: [55, 85], w: 0.22, tiers: 2, color: 0x1a242c, color2: 0x141c24 },
+      { kind: 'bluffs', count: 5, r: [1.7, 2.2], h: [70, 110], w: 0.22, tiers: 2, color: 0x1a242c, color2: 0x141c24 },
+      { kind: 'tower', az: -Math.PI / 2 + 0.5, r: 1.7, h: 160, w: 26, sides: 6, tiers: 4, color: 0x2a323a, color2: 0x1e262e, glow: 0xff3a2a, windows: 0xe8f0ff, beacon: 0xff3a2a },
     ],
     ambient: { kind: 'snow', color: 0xb8c8d8, count: 320, size: 0.16, opacity: 0.6 },   // rain and spray
     mist: { color: 0x5a6a7a, count: 40, size: 12, opacity: 0.15 },

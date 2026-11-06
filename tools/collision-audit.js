@@ -55,6 +55,8 @@ import { buildHoldfastArena } from '../src/world/arenas/holdfast.js';
 import { buildCitadelArena } from '../src/world/arenas/citadel.js';
 import { spreadMark, spreadBuilt } from '../src/world/spread.js';
 import { fillCover } from '../src/world/coverfill.js';
+import { buildLandmarks } from '../src/world/landmarks.js';
+import { grownLevel } from '../src/world/arena.js';
 import { SPREAD } from '../src/data/map-scale.js';
 import { ZONES } from '../src/data/zones.js';
 import { buildZoneArena } from '../src/world/zone-stream.js';
@@ -136,6 +138,7 @@ function name(o){
 }
 
 function auditLayout(id, L, opt){
+  L = grownLevel(L);
   scene.remove(shared.arenaGroup);
   shared.arenaGroup = new THREE.Group();
   shared.arenaHalf = L.arena / 2; shared.arenaHalfZ = (L.arenaZ || L.arena) / 2;
@@ -144,12 +147,13 @@ function auditLayout(id, L, opt){
   for (const v of vents) scene.remove(v.group); vents.length = 0;
   for (const b of barrels) scene.remove(b.mesh); barrels.length = 0;
   const T = themeFor(L);
-  // as world/arena.js builds it: a SPREAD layout at its authored size, pulled apart to fit; then the cover pass
+  // as world/arena.js builds it: a SPREAD layout at its authored size, pulled apart to fit; then the landmarks and the cover pass
   const authored = !(L.arenaZ && L.arenaZ !== L.arena) && SPREAD[L.layout], S = authored && L.arena > authored ? L.arena / authored : 1;
   const mark = spreadMark(); shared.spreadAt = null; shared.doors = [];
   if (S > 1){ shared.arenaHalf = shared.arenaHalfZ = authored / 2; }
   BUILDERS[id]({ ...L, arena: S > 1 ? authored : L.arena, pal: (T && T.pal) || {} });
   if (S > 1){ shared.arenaHalf = shared.arenaHalfZ = L.arena / 2; spreadBuilt(S, authored, mark); }
+  buildLandmarks({ ...L, pal: (T && T.pal) || {} });
   fillCover({ ...L, pal: (T && T.pal) || {} });
   if (T && T.backdrop){
     const back = buildBackdrop(T.backdrop, L.arena/2, T.seed || 1, shared.arenaHalfZ);

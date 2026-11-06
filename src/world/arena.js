@@ -66,7 +66,8 @@ import { buildSkywar } from './skywar.js';
 import { buildGrass, clearGrass } from './grass.js';
 import { spreadMark, spreadBuilt } from './spread.js';
 import { fillCover } from './coverfill.js';
-import { SPREAD } from '../data/map-scale.js';
+import { SPREAD, GROW } from '../data/map-scale.js';
+import { buildLandmarks } from './landmarks.js';
 
 /* ============================================================
    ARENA
@@ -100,7 +101,14 @@ function jetCeilingFor(L){
   return Math.max(JET_CEILING.min, top + JET_CEILING.over);
 }
 
+/* the width a level's layout is built at: a GROW layout (data/map-scale.js) never smaller than its floor */
+export function grownLevel(L){
+  const g = L && !(L.arenaZ && L.arenaZ !== L.arena) && GROW[L.layout];
+  return g && L.arena < g ? { ...L, arena: g } : L;
+}
+
 export function buildArena(L){
+  L = grownLevel(L);
   { const s = arenaScaleFor(L);
     shared.arenaScale = s;
     if (s !== 1) L = { ...L, arena: Math.round(L.arena * s / 2) * 2 }; }
@@ -300,6 +308,7 @@ export function buildArena(L){
       spawnBarrel(V3(Math.cos(a)*r, 0, Math.sin(a)*r));
     }
   }
+  buildLandmarks(LP);   // the colossal pieces among the fight: a parked walker, a pylon, a forest giant (world/landmarks.js)
   shared.perches = null;
   buildPerches(LP);
   fillCover(LP);   // real cover in the open holes of the map, clear of the perches (world/coverfill.js, data/map-scale.js COVER_FILL)

@@ -5,6 +5,7 @@
 //     an overhead slab; hazard zones and fuel drums in their warning colours; the hero's spawn and the enemy edge ring;
 //   · a heat wash of EXPOSURE: open floor shaded by how far it is from the nearest cover a body can hide behind;
 //   · cells a trooper can reach but a brute can't (chokes), and floor no grounded foe can reach at all (pockets).
+//   · the landmarks it stands (world/landmarks.js), and any it left out (dropped) because they crowded a point or a solid.
 // The numbers go to <outDir>/audit.json so a layout pass can be compared before and after.
 //   npm run build && node tools/shots/map-audit.mjs [outDir] [map,map,...]
 
@@ -148,7 +149,7 @@ for (const id of maps){
         exposedPct: Math.round(exposed / open * 100), shelteredPct: Math.round(sheltered / open * 100),
         meanCoverDist: +(sum / open).toFixed(1), worstCoverDist: +worst.toFixed(1), longestSightline: longest,
         heights, chokeCells: choke, pocketCells: pocket, spawn: [+spawn.x.toFixed(1), +spawn.z.toFixed(1)], spawnCoverDist: +spawnCover.toFixed(1),
-        hazards: hazardZones.length },
+        hazards: hazardZones.length, landmarks: (shared.landmarks || {}).placed, dropped: (shared.landmarks || {}).dropped },
     };
   }, id);
   writeFileSync(path.join(out, id + '.png'), Buffer.from(res.img.split(',')[1], 'base64'));

@@ -1,0 +1,425 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE MENUS in the look of the hero being played (docs/hero-ui.md, the "Hero UI Direction" doc): settings, controls,
+   load / save, save files, co-op, the codex, the roadmap, the sandbox panel and its battle simulator, the battle setup's
+   bars, the floating notes (a control's card, a setting's "i"), the confirms (leave the run, new game, exit, train first)
+   and the pause screen's last generic bits (its small logo, the hint row).
+   They follow body[data-hero], which player/hero.js keeps on the hero being played, so every mode (sandbox, training,
+   the story, missions, survival, arcade, the battle simulator, co-op) gets it with no work of its own. On the TITLE
+   SCREEN that is the hero on the stand: the last one picked, the one BEGIN would play.
+   Not here: the profile (heroes/profile.css), the forms and mastery pages (#forms, #armory), the hub and zone panels,
+   the HUD: other passes own those.
+
+   How it works: inside a menu the old blue tokens (--ink, --accent, --edge, ...) are pointed at the hero's --hx-*
+   tokens, so the older rules in menus.css / codex.css recolour on their own; then this file takes away what the ink
+   rules retire (blur, rounding, glows, pills) and draws each hero's frame, type and button shape. Paint only: no rule
+   here changes a size or a layout, so phones and the controller ring work as they did.
+   · the Jedi: a holocron page. Night blue, a gold double hairline round the panel, Cinzel titles between diamond studs,
+     gold for structure and saber blue for what is live
+   · the Mandalorian: beskar plate. Chamfered plates, an ember strip along the top, Georgia small caps
+   · the trooper: orders. A black readout under a hazard stripe, mono labels, numbered groups, armour-white plates for
+     the button that acts, and the codex's entry typed on the tan field file
+   ============================================================ */
+
+/* ---------- the old tokens, pointed at the hero's ---------- */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan,#ctltip,.set-tip),
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm){
+  --ink:var(--hx-text); --ink-soft:var(--hx-soft); --ink-dim:var(--hx-dim); --ink-faint:color-mix(in srgb,var(--hx-dim) 72%,transparent);
+  --accent:var(--hx-accent); --accent-glow:transparent; --gold:var(--hx-accent-hi);
+  --edge:var(--hx-line); --edge-mid:color-mix(in srgb,var(--hx-accent) 50%,transparent); --edge-lit:var(--hx-accent-hi);
+  --panel:var(--hx-paper); --panel-solid:var(--hx-paper-solid); --panel-hi:var(--hx-paper-2); --blur:none;
+  --mx-ok:#7fd88f; --mx-bad:#ff8a7a;
+}
+
+/* the dimmed world behind a menu: flat, no blur, the hero's night */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex){background:rgba(2,3,6,.8);backdrop-filter:none;-webkit-backdrop-filter:none}
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex){background:rgba(3,4,16,.8)}
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex){background:rgba(8,6,4,.82)}
+#sandbox{background:rgba(2,3,6,.6);backdrop-filter:none;-webkit-backdrop-filter:none}
+body.fovpreview #settings{background:transparent}
+
+/* ---------- the panel: flat paper, an ink edge, square, a stepped entrance ---------- */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex) .howto-panel,#sandbox :is(.sb-panel,.sb-bsimbox){
+  border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-solid);box-shadow:0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7);
+  animation:hxcard .26s steps(4) both;scrollbar-color:var(--hx-line) transparent}
+body.fovpreview #settings .howto-panel{background:transparent;box-shadow:none;animation:none}
+#sandbox .sb-bsim{background:rgba(2,3,6,.6)}
+
+/* the screen's word, once: the hero's display face, an ink drop */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title{font-family:var(--hx-display);font-weight:var(--hx-display-w);
+  letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .rm-sub{font-family:var(--font-body);font-weight:500;letter-spacing:0;color:var(--hx-dim)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-x{border:0;border-radius:0;color:var(--hx-soft);background:var(--hx-paper-2);
+  box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-x:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+
+/* tabs and segments: square cells on an ink bar, the open one in the accent (no pill) */
+:is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg){gap:2px;padding:2px;border:0;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+:is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg) span{border-radius:0;font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);background:var(--hx-paper)}
+:is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg) span:hover{color:var(--hx-text);background:var(--hx-paper-2)}
+:is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg) span.on{color:var(--hx-on-accent);background:var(--hx-accent)}
+#sandbox .sb-seg span{letter-spacing:.06em}
+#codex .cx-dot{border-radius:0;transform:rotate(45deg);background:var(--hx-accent-hi);box-shadow:0 0 0 1.5px var(--hx-ink)}
+#codex .cz-tabs span.on .cx-dot{background:var(--hx-on-accent);box-shadow:none}
+
+/* buttons: the hero's plate with an ink edge; the one that acts in the accent, no arrow */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) :is(.btn,.setpill,.howto-more,.cx-arrow),
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn{
+  border:0;border-radius:0;color:var(--hx-soft);background:var(--hx-paper-2);backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);transition:none}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) :is(.btn,.setpill,.howto-more,.cx-arrow):hover,
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn:hover{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary,
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:inset 0 3px 0 rgba(255,255,255,.28),0 0 0 2px var(--hx-ink)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary:hover,
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary:hover{color:var(--hx-on-accent);background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink)}
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary::after,
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary::after{content:none}
+#sandbox .sb-done,#bsplan .bs-row .btn.primary{padding-left:30px;padding-right:30px}
+/* what can't be undone (delete, start over, leave, reset): the shared danger colour, on any hero */
+:is(#settings,#saves,#files) :is(.btn.warn,#setresetyes),#overlay :is(#homeYes,#newYes,#exitYes){color:var(--danger-soft);box-shadow:inset 0 0 0 1px var(--danger-soft),0 0 0 2px var(--hx-ink)}
+
+/* a setting's row and an on / off toggle: the value in the accent, ON lit */
+:is(#settings,#sandbox,#bsplan) .setpill .setval{color:var(--hx-accent-hi);font-family:var(--hx-label)}
+:is(#settings,#sandbox,#bsplan) .setpill .gfxhint{border-radius:0;border:0;color:var(--hx-dim);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#sandbox .setpill.sb-tog{background:var(--hx-paper)}
+#sandbox .setpill.sb-tog.on,#bsplan .setpill.on{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#sandbox .setpill.sb-tog .setval{color:var(--hx-dim)}
+#sandbox .setpill.sb-tog.on .setval{color:var(--hx-accent-hi)}
+#settings .set-i{border-radius:0;border-color:var(--hx-line);color:var(--hx-dim)}
+#settings .set-i:is(:hover,:focus-visible),#settings .setpill.padfocus .set-i{color:var(--hx-on-accent);border-color:var(--hx-accent);background:var(--hx-accent)}
+#settings .set-i{font-style:normal}
+/* a slider: an inked groove, a square thumb in the accent */
+:is(#settings,#sandbox) .setpill input[type=range]{height:4px;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+:is(#settings,#sandbox) .setpill input[type=range]::-webkit-slider-thumb{width:12px;height:16px;border-radius:0;background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),inset 0 3px 0 rgba(255,255,255,.3)}
+:is(#settings,#sandbox) .setpill input[type=range]::-moz-range-thumb{width:12px;height:16px;border-radius:0;background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+
+/* the boxes inside a panel: a settings group, a controls group, a co-op side, a save slot, a codex row, a roadmap card */
+:is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col,:is(#saves,#files) .sv-slot,#roadmap .rm-phase,#sandbox .sb-save){
+  border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+:is(#saves,#files) .sv-slot.empty{background:transparent;box-shadow:inset 0 0 0 1px var(--hx-line);
+  background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.025) 6px 8px)}
+#files .sv-slot.live{background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#roadmap .rm-now .rm-phase{background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#roadmap .rm-phase:hover{box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+/* their headings: the hero's label face in the accent */
+:is(#settings .set-grp h4,#howto .ctl .cg h4,#coop .coop-col h4,#codex .cx-sec h4,#codex .cx-kick,#roadmap .rm-st,#sandbox .sb-colhd,#coop .coop-name label){
+  font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+:is(#sandbox,#bsplan) :is(.sec-label,.sb-pl,.sb-gl,.bs-pal .grp){font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+:is(#sandbox,#bsplan) .sec-label::after{background:var(--hx-line)}
+#roadmap .rm-st{border-bottom-color:var(--hx-line)}
+#roadmap .rm-done .rm-st{color:var(--hx-dim)}
+#roadmap .rm-next .rm-st{color:var(--hx-accent-hi)}
+#roadmap .rm-title{font-family:var(--hx-label);letter-spacing:.06em;color:var(--hx-text)}
+[data-hero="trooper"] #roadmap .rm-title{font-family:var(--font-ui);letter-spacing:.08em}
+/* reading text stays Barlow, sentence case */
+:is(#coop .coop-col p,#coop .coop-note,:is(#saves,#files) .sv-d,:is(#saves,#files) .sv-note,#roadmap .rm-phase ul,#sandbox .sb-hint){font-family:var(--font-body);letter-spacing:0}
+
+/* keys: a square ink-edged key on the hero's paper */
+:is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan,#ctltip,.set-tip) kbd{border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-2);
+  box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 -2px 0 var(--hx-ink),0 0 0 1.5px var(--hx-ink)}
+
+/* the floating notes: a control's card (#ctltip) and a setting's "i" (.set-tip) */
+:is(#ctltip,.set-tip){border:0;border-radius:0;color:var(--hx-soft);background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink),0 10px 30px rgba(0,0,0,.6)}
+#ctltip b{font-family:var(--hx-label);letter-spacing:.06em;color:var(--hx-text)}
+#ctltip li::before{content:'';top:.45em;width:6px;height:6px;background:var(--hx-accent);transform:rotate(45deg)}
+
+/* inputs (co-op's name and code): an ink well, the hero's label face */
+#coop :is(#coopname,#coopcode){border:0;border-radius:0;font-family:var(--hx-label);color:var(--hx-text);background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#coop :is(#coopname,#coopcode):focus{box-shadow:inset 0 0 0 2px var(--hx-accent)}
+#coop #coopstatus{font-family:var(--font-body);letter-spacing:0}
+#coop #coopstatus .code{font-family:var(--hx-display);color:var(--hx-accent-hi);text-shadow:0 2px 0 var(--hx-ink)}
+#coop #coopstatus .players{font-family:var(--hx-label)}
+#coop #coopstatus.ok{color:var(--mx-ok)} #coop #coopstatus.bad{color:var(--mx-bad)}
+#coop #cooproster span{border:0;border-radius:0;font-family:var(--hx-label);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+
+/* CONTROLS: the rows */
+#howto .ctl .cr{border-top-color:var(--hx-line)}
+#howto .ctl .cr:is(:hover,:focus){background:var(--hx-paper-2)}
+#howto .ctl .ca{font-family:var(--font-body);font-weight:600;font-size:15px;color:var(--hx-text)}
+#howto .ctl .cr:has(small):not(.adv) .ca::after{color:var(--hx-accent)}
+#howto .ctl .tips li::before{content:'';top:.5em;width:6px;height:6px;background:var(--hx-accent);transform:rotate(45deg)}
+#howto .ctl .tells b{font-family:var(--hx-label);letter-spacing:.08em}
+#howto .ctl .tells i{box-shadow:0 0 0 2px var(--hx-ink)}   /* (the tells' colours are the fight's own: white, red, orange) */
+
+/* SAVES and SAVE FILES: the slot's letter in the display face */
+:is(#saves,#files) .sv-n{font-family:var(--hx-display);font-weight:var(--hx-display-w);color:var(--hx-accent)}
+:is(#saves,#files) .sv-slot.empty .sv-n{color:var(--hx-dim)}
+:is(#saves,#files) .sv-t{font-family:var(--hx-label);letter-spacing:.08em}
+:is(#saves,#files) .sv-del{border-radius:0}
+:is(#saves,#files) .sv-del:hover,:is(#saves,#files) .sv-del.warn{color:var(--danger-soft);border-color:transparent;box-shadow:inset 0 0 0 1px var(--danger-soft)}
+#files .fl-tag{font-family:var(--hx-label);color:var(--hx-accent-hi)}
+
+/* THE CODEX: the list, the stage, the entry */
+#codex .cx-item{border:0;border-radius:0;font-family:var(--hx-label);letter-spacing:.08em;color:var(--hx-soft);background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#codex .cx-item:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-soft)}
+#codex .cx-item.on{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 3px 0 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#codex .cx-item.locked{background:transparent;color:var(--hx-dim);background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.025) 6px 8px)}
+#codex .cx-new{border-radius:0;font-family:var(--font-ui);color:var(--hx-on-accent);background:var(--hx-accent-hi);box-shadow:0 0 0 1.5px var(--hx-ink)}
+#codex .cx-stage{border:0;border-radius:0;box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);
+  background:radial-gradient(ellipse at 50% 72%,color-mix(in srgb,var(--hx-accent) 22%,transparent),transparent 62%),var(--hx-paper)}
+#codex .cx-lk{border-radius:0;font-family:var(--hx-label);letter-spacing:.08em;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#codex .cx-lk em{color:var(--hx-accent-hi)}
+#codex .cx-name{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+#codex .cx-name.dim{color:var(--hx-dim)}
+#codex .cx-threat{font-family:var(--hx-label);letter-spacing:.1em}
+#codex .cx-pips i{border-radius:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#codex .cx-pips i.on{background:var(--danger);box-shadow:inset 0 2px 0 rgba(255,255,255,.3)}   /* (threat keeps the shared danger red) */
+#codex .cx-lore{color:var(--hx-soft)}
+#codex .cx-sec ul{color:var(--hx-text)}
+#codex .cx-chips span{border:0;border-radius:0;font-family:var(--font-ui);color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent)}
+#codex :is(.cx-list,.cx-info){scrollbar-color:var(--hx-line) transparent}
+
+/* THE SANDBOX: the call-in chips, the columns' rule, the floor strip */
+#sandbox .sb-chip{border:0;border-radius:0;font-family:var(--hx-label);letter-spacing:.06em;color:var(--hx-soft);background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#sandbox .sb-chip:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-soft)}
+#sandbox .sb-chip.on{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#sandbox .sb-chip.on .k{color:var(--hx-accent-hi)}
+#sandbox .sb-chip.special{color:var(--danger-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger-soft) 55%,transparent);background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,90,80,.05) 6px 8px)}
+#sandbox .sb-chip.locked{box-shadow:inset 0 0 0 1px var(--hx-line)}
+#sandbox .sb-chip .k{font-family:var(--font-ui)}
+#sandbox :is(.sb-col+.sb-col,.sb-strip){border-color:var(--hx-line)}
+#sandbox .sb-story{font-family:var(--font-body);letter-spacing:0;color:var(--hx-accent-hi)}
+#sandbox .sb-count{font-family:var(--hx-label)}
+#sandbox .sb-sec.flash{animation:hxflash .5s steps(3)}
+@keyframes hxflash{0%,66%{box-shadow:0 0 0 2px var(--hx-accent-hi)}100%{box-shadow:0 0 0 2px transparent}}
+/* THE BATTLE SETUP: its two bars on the hero's paper, the palette's chips square (their sides keep the shared colours) */
+#bsplan :is(.bs-top,.bs-bar){background:none}
+#bsplan .bs-top{background:linear-gradient(var(--hx-paper-solid),transparent)}
+#bsplan .bs-bar{background:linear-gradient(transparent,var(--hx-paper-solid) 30%)}
+#bsplan .bs-title{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);text-shadow:0 2px 0 var(--hx-ink)}
+#bsplan .bs-title span{font-family:var(--hx-label);color:var(--hx-accent-hi)}
+#bsplan .bs-chip{border-radius:0;font-family:var(--hx-label);letter-spacing:.06em;background:var(--hx-paper);box-shadow:0 0 0 1.5px var(--hx-ink)}
+#bsplan .bs-chip.on{color:#101315}
+
+/* THE CONFIRMS on the menu and pause (leave the run, new game, exit, train first): a plate with the danger line */
+#overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm){border:0;border-radius:0;background:var(--hx-paper-solid);
+  box-shadow:inset 0 3px 0 var(--danger-soft),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);animation:hxcard .2s steps(3) both}
+#overlay #trainconfirm{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#overlay .hc-q{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--hx-text)}
+
+/* THE PAUSE SCREEN's grid: six equal columns that never stretch to fit a long name (minmax(0,1fr)), and RETURN TO THE
+   TEMPLE / COVERT / CITADEL (a run started from a hub) on its own row under RESUME. Before, that button took one cell of
+   the first row and stretched its column, squeezing SAVE GAME, LOAD GAME, PROFILE, CONTROLS and CODEX to slivers. */
+#overlay.st-pause .ov-actions{grid-template-columns:repeat(6,minmax(0,1fr))}
+#overlay.st-pause #templeBtn{grid-column:1/-1;order:2;color:var(--hx-accent-hi)}
+#overlay.st-pause .ov-actions .btn{min-width:0;overflow:hidden;text-overflow:ellipsis}
+[data-hero="mando"] #overlay.st-pause .ov-actions .btn:not(.go){letter-spacing:.12em}
+@media (max-width:520px){ #overlay.st-pause #templeBtn.btn{grid-column:1/-1} }
+
+/* THE PAUSE SCREEN's last generic bits: the small logo's rule and the hint row's keys */
+#overlay.st-pause .ov-head h1{color:var(--hx-dim)}
+#overlay.st-pause .ov-head h1::after{background:var(--hx-accent);box-shadow:0 0 0 1px var(--hx-ink)}
+#overlay.st-pause .ov-foot{font-family:var(--font-body);color:var(--hx-dim)}
+#overlay.st-pause .ov-foot kbd{border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 1.5px var(--hx-ink)}
+#overlay.st-pause .fsmini{border-radius:0;color:var(--hx-dim)}
+#overlay.st-pause .fsmini:hover{color:var(--hx-text);background:var(--hx-paper-2)}
+
+/* ======================= THE JEDI: a holocron page ======================= */
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex) .howto-panel,[data-hero="jedi"] #sandbox :is(.sb-panel,.sb-bsimbox){
+  background:linear-gradient(180deg,#141a46,#0e1230 60%);
+  box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title{letter-spacing:.08em}
+[data-hero="jedi"] #settings .setpill{letter-spacing:.12em}
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::before,
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::after{content:'';display:inline-block;width:7px;height:7px;margin:0 12px 5px 0;
+  vertical-align:middle;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::after{margin:0 0 5px 12px}
+[data-hero="jedi"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col,#roadmap .rm-phase){position:relative;background:linear-gradient(var(--hx-paper-2),var(--hx-paper))}
+[data-hero="jedi"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col)::before{content:'';position:absolute;top:-5px;left:calc(50% - 4px);width:7px;height:7px;
+  background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(#settings .set-grp h4,#howto .ctl .cg h4,#coop .coop-col h4,#codex .cx-sec h4,#roadmap .rm-st){font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:13px;letter-spacing:.12em}
+[data-hero="jedi"] :is(#settings .set-grp h4,#howto .ctl .cg h4){display:flex;align-items:center;gap:10px}
+[data-hero="jedi"] :is(#settings .set-grp h4,#howto .ctl .cg h4)::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hx-line),transparent)}
+[data-hero="jedi"] #codex .cx-kick{color:var(--hx-live)}
+[data-hero="jedi"] #codex .cx-name{letter-spacing:.06em}
+[data-hero="jedi"] #codex .cx-stage{background:radial-gradient(ellipse at 50% 72%,rgba(111,200,255,.2),transparent 60%),linear-gradient(var(--hx-paper-2),var(--hx-paper))}
+[data-hero="jedi"] #codex .cx-item.on{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-2),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(:is(#saves,#files) .sv-n,#coop #coopstatus .code){font-family:'Cinzel',Georgia,serif}
+/* the slider's thumb is a gold stud; what is live (a toggle that's ON, a slider's thumb on focus) glows saber blue */
+[data-hero="jedi"] :is(#settings,#sandbox) .setpill input[type=range]::-webkit-slider-thumb{width:13px;height:13px;border-radius:50%;background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+[data-hero="jedi"] :is(#settings,#sandbox) .setpill input[type=range]:focus-visible::-webkit-slider-thumb{background:var(--hx-live)}
+[data-hero="jedi"] :is(#settings,#sandbox) .setpill input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%}
+[data-hero="jedi"] #sandbox .setpill.sb-tog.on .setval{color:var(--hx-live)}
+[data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary,
+[data-hero="jedi"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary{font-family:var(--font-ui);font-weight:700;letter-spacing:.14em;
+  box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+[data-hero="jedi"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm){
+  box-shadow:inset 0 3px 0 var(--danger-soft),inset 0 0 0 1px var(--hx-line),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px var(--hx-line),0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] #overlay #trainconfirm{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px var(--hx-line),0 0 0 2px var(--hx-ink)}
+
+/* ======================= THE MANDALORIAN: beskar plate ======================= */
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex) .howto-panel,[data-hero="mando"] #sandbox :is(.sb-panel,.sb-bsimbox){
+  background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent;box-shadow:none}
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title{letter-spacing:.2em;font-variant:small-caps}
+[data-hero="mando"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col,:is(#saves,#files) .sv-slot:not(.empty),#roadmap .rm-phase,#sandbox .sb-save,#codex .cx-stage){
+  background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 3px 0 var(--hx-dim),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] :is(#saves,#files) .sv-slot.empty{clip-path:var(--hx-chamfer)}
+[data-hero="mando"] #files .sv-slot.live,[data-hero="mando"] #roadmap .rm-now .rm-phase{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] :is(#settings .set-grp h4,#howto .ctl .cg h4,#coop .coop-col h4,#codex .cx-sec h4,#codex .cx-kick,#roadmap .rm-st,#sandbox .sb-colhd){
+  font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:15px;letter-spacing:.2em;font-variant:small-caps;text-transform:lowercase}
+[data-hero="mando"] #codex .cx-kick{font-size:13px}
+/* rivets in the plates' top corners */
+[data-hero="mando"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col){position:relative}
+[data-hero="mando"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col)::after{content:'';position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%;background:var(--hx-dim);box-shadow:0 0 0 1px var(--hx-ink)}
+/* the buttons and rows are plates with their corners cut; the one that acts is forged ember */
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) :is(.btn,.howto-more,.cx-arrow),
+[data-hero="mando"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn{
+  background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.16em}
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) :is(.btn,.howto-more,.cx-arrow):hover,
+[data-hero="mando"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+[data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary,
+[data-hero="mando"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary{
+  color:var(--hx-on-accent);background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none}
+[data-hero="mando"] :is(#settings,#saves,#files) :is(.btn.warn,#setresetyes),[data-hero="mando"] #overlay :is(#homeYes,#newYes,#exitYes){box-shadow:inset 0 -3px 0 var(--danger-soft),inset 0 0 0 1px var(--danger-soft)}
+[data-hero="mando"] :is(#settings,#sandbox,#bsplan) .setpill{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.12)),var(--hx-paper-2);font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.08em;font-variant:small-caps;text-transform:lowercase}
+[data-hero="mando"] :is(#settings,#sandbox,#bsplan) .setpill .setval{font-family:Georgia,'Times New Roman',serif;font-variant:small-caps;letter-spacing:.08em}
+[data-hero="mando"] :is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero) span{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.14em}
+[data-hero="mando"] :is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg) span.on{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
+/* the slider's thumb is a slanted plate */
+[data-hero="mando"] :is(#settings,#sandbox) .setpill input[type=range]::-webkit-slider-thumb{width:10px;height:16px;clip-path:polygon(35% 0,100% 0,65% 100%,0 100%);box-shadow:none;
+  background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
+[data-hero="mando"] :is(:is(#saves,#files) .sv-n,#coop #coopstatus .code){font-family:Georgia,'Times New Roman',serif;font-weight:400}
+[data-hero="mando"] #codex .cx-item{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.1em}
+[data-hero="mando"] #codex .cx-item.on{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent)}
+[data-hero="mando"] #codex .cx-name{letter-spacing:.14em;font-variant:small-caps}
+[data-hero="mando"] #codex .cx-stage{background:radial-gradient(ellipse at 50% 74%,rgba(255,122,46,.16),transparent 60%),var(--hx-plate)}
+[data-hero="mando"] #codex .cx-sec li::marker{color:var(--hx-accent)}
+[data-hero="mando"] #sandbox :is(.sb-chip,.btn,.setpill){letter-spacing:.06em}
+[data-hero="mando"] #sandbox .sb-chip.on{clip-path:var(--hx-chamfer);box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent)}
+[data-hero="mando"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm){background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 3px 0 var(--danger-soft),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] #overlay #trainconfirm{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] :is(#ctltip,.set-tip){box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 10px 30px rgba(0,0,0,.6);background:var(--hx-plate)}
+
+/* ======================= THE TROOPER: orders, and the field file ======================= */
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex) .howto-panel,[data-hero="trooper"] #sandbox :is(.sb-panel,.sb-bsimbox){
+  background:#101315;box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-head{position:relative;padding-top:14px}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-head::before{content:'';position:absolute;left:0;top:0;width:140px;height:6px;background:var(--hx-hazard);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title{letter-spacing:.02em}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::before{content:'// ';color:var(--hx-accent)}
+[data-hero="trooper"] :is(#settings .set-grp,#howto .ctl .cg,#coop .coop-col,:is(#saves,#files) .sv-slot:not(.empty),#roadmap .rm-phase){background:rgba(238,241,242,.03)}
+/* the groups are numbered, like an order's paragraphs */
+[data-hero="trooper"] :is(#settings .set-grid,#howto .ctl,#coop .coop-grid){counter-reset:hxg}
+[data-hero="trooper"] :is(#settings .set-grp h4,#howto .ctl .cg h4,#coop .coop-col h4)::before{counter-increment:hxg;content:'[0' counter(hxg) '] ';color:var(--hx-dim)}
+[data-hero="trooper"] :is(#settings .set-grp h4,#howto .ctl .cg h4,#coop .coop-col h4,#codex .cx-sec h4,#roadmap .rm-st,#sandbox .sb-colhd){font-size:12px;letter-spacing:.1em}
+/* the button that acts is an armour-white plate with a hazard tab */
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary,
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary{position:relative;padding-right:34px;color:#101315;background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -4px 0 #c5cbce}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary::after,
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary::after{content:'';position:absolute;right:0;top:0;bottom:0;width:14px;height:auto;margin:0;border:0;background:var(--hx-hazard)}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn.primary:hover,
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn.primary:hover{color:#101315;background:#fff}
+[data-hero="trooper"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox,#bsplan) .btn,
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm) .btn{font-weight:600;letter-spacing:.06em}
+[data-hero="trooper"] :is(#howto,#coop,#codex,#sandbox,#bsplan) :is(.cz-tabs,.howto-hero,.sb-seg) span.on{color:#101315;background:var(--hx-plate-white);box-shadow:inset 0 -3px 0 var(--hx-accent)}
+[data-hero="trooper"] :is(#settings,#sandbox,#bsplan) .setpill{font-weight:500;letter-spacing:.04em}
+[data-hero="trooper"] #sandbox .sb-chip{letter-spacing:.02em}
+/* the slider's thumb is a scope's tick on a ruled groove */
+[data-hero="trooper"] :is(#settings,#sandbox) .setpill input[type=range]{background:repeating-linear-gradient(90deg,var(--hx-line) 0 1px,transparent 1px 10%),var(--hx-ink)}
+[data-hero="trooper"] :is(#settings,#sandbox) .setpill input[type=range]::-webkit-slider-thumb{width:6px;height:18px;background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent)}
+[data-hero="trooper"] :is(#saves,#files) .sv-n{font-weight:600}
+[data-hero="trooper"] :is(#saves,#files) .sv-n::before{content:'#';color:var(--hx-dim);font-size:.6em;vertical-align:.3em}
+[data-hero="trooper"] #codex .cx-item{font-weight:500;letter-spacing:.02em}
+[data-hero="trooper"] #codex .cx-item.on{box-shadow:inset 3px 0 0 var(--hx-accent),inset 0 0 0 1px var(--hx-plate-white),0 0 0 2px var(--hx-ink)}
+[data-hero="trooper"] #codex .cx-name{font-size:30px;letter-spacing:0}
+[data-hero="trooper"] #codex .cx-stage{background:repeating-linear-gradient(0deg,rgba(238,241,242,.035) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(238,241,242,.035) 0 1px,transparent 1px 24px),radial-gradient(ellipse at 50% 74%,rgba(240,165,42,.12),transparent 60%),#0c0f11}
+/* the codex's entry is a dossier on the field file: its name stamped, its lines typed */
+[data-hero="trooper"] #codex .cx-info{--hx-text:#1d1810; --hx-soft:#3a3122; --hx-dim:#6a5c40; --hx-line:rgba(43,36,22,.3); --hx-accent:#8a4a12; --hx-accent-hi:#8a4a12;
+  padding:16px 18px;color:var(--hx-file-ink);background:var(--hx-file);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="trooper"] #codex .cx-info .cx-kick{color:var(--hx-dim)}
+[data-hero="trooper"] #codex .cx-info .cx-name{display:inline-block;margin-top:10px;padding:5px 9px;font-size:24px;letter-spacing:.06em;color:var(--hx-stamp);text-shadow:none;border:2px solid var(--hx-stamp);transform:rotate(-1.5deg)}
+[data-hero="trooper"] #codex .cx-info .cx-name.dim{color:var(--hx-dim);border-color:var(--hx-dim)}
+[data-hero="trooper"] #codex .cx-info :is(.cx-lore,.cx-sec ul){font-family:var(--hx-display);font-size:13.5px;line-height:1.5;font-style:normal}
+[data-hero="trooper"] #codex .cx-info .cx-lore{color:var(--hx-soft)}
+[data-hero="trooper"] #codex .cx-info .cx-chips span{color:var(--hx-file-ink);background:rgba(43,36,22,.08);box-shadow:inset 0 0 0 1.5px var(--hx-file-ink)}
+[data-hero="trooper"] #codex .cx-info .cx-pips i{background:rgba(43,36,22,.15);box-shadow:inset 0 0 0 1px rgba(43,36,22,.35)}
+[data-hero="trooper"] #codex .cx-info .cx-pips i.on{background:var(--hx-stamp)}
+[data-hero="trooper"] #codex .cx-info .cx-sec ul{list-style:none;padding-left:0}
+[data-hero="trooper"] #codex .cx-info .cx-sec li::before{content:'[ ] ';color:var(--hx-dim)}
+[data-hero="trooper"] #codex .cx-info kbd{color:var(--hx-file-ink);background:transparent;box-shadow:inset 0 0 0 1.5px var(--hx-file-ink)}
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm,#trainconfirm){background:#101315;box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);position:relative;padding-top:22px}
+[data-hero="trooper"] #overlay :is(#homeconfirm,#newconfirm,#exitconfirm)::before{content:'';position:absolute;left:0;right:0;top:0;height:6px;background:repeating-linear-gradient(-45deg,var(--danger-soft) 0 6px,#101315 6px 12px)}
+[data-hero="trooper"] #overlay #trainconfirm::before{content:'';position:absolute;left:0;right:0;top:0;height:6px;background:var(--hx-hazard)}
+
+/* ======================= THE TITLE SCREEN (and the results' CHANGE panel) =======================
+   It wears the hero on the stand: the one last picked, the one BEGIN plays (body[data-hero], player/hero.js), so picking
+   another hero re-dresses the menu at once. The POWER TRIP logo keeps the house look (the direction doc's open question). */
+#overlay:is(.st-menu,.vpicking){
+  --ink:var(--hx-text); --ink-soft:var(--hx-soft); --ink-dim:var(--hx-dim); --ink-faint:color-mix(in srgb,var(--hx-dim) 72%,transparent);
+  --accent:var(--hx-accent); --accent-glow:transparent; --gold:var(--hx-accent-hi);
+  --edge:var(--hx-line); --edge-mid:color-mix(in srgb,var(--hx-accent) 50%,transparent); --edge-lit:var(--hx-accent-hi); --blur:none}
+#overlay.st-menu .ov-head h1::after{background:var(--hx-accent);box-shadow:0 0 0 1px var(--hx-ink)}
+#overlay.st-menu .ov-head h2{font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#overlay:is(.st-menu,.vpicking) .sec-label{font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#overlay:is(.st-menu,.vpicking) .sec-label::after{background:var(--hx-line)}
+/* the tiles (modes, groups, difficulty, heroes) and the buttons: the hero's plates with an ink edge */
+#overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,#herobio){--bc:var(--hx-accent-hi);border:0;border-radius:0;background:var(--hx-paper);
+  box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);backdrop-filter:none;-webkit-backdrop-filter:none;transition:none}
+#overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold):hover{box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+  background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) #modeselect .mgroups .modeopt.sel{background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) .modeopt.locked{background:transparent;background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.025) 6px 8px)}
+#overlay:is(.st-menu,.vpicking) .modeopt .lockt{border:0;border-radius:0;color:var(--hx-accent-hi);background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn,.msub-t,#stepMode){font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls)}
+#overlay:is(.st-menu,.vpicking) :is(.msub-t,#stepMode){color:var(--hx-accent-hi);text-shadow:0 2px 0 var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) .herocard .hrole,#overlay:is(.st-menu,.vpicking) #hero-mando .hrole{font-family:var(--hx-label);color:var(--hx-accent)}
+#overlay:is(.st-menu,.vpicking) .herocard .hi{border:0;border-radius:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#overlay:is(.st-menu,.vpicking) #herobio{border-left:0;color:var(--hx-soft)}
+#overlay:is(.st-menu,.vpicking) :is(#herobio li,.herocard .hd li)::before{background:var(--hx-accent)}
+#overlay:is(.st-menu,.vpicking) .modeopt .mt::after{font-family:var(--font-ui)}
+#overlay:is(.st-menu,.vpicking) .btn,#overlay:is(.st-menu,.vpicking) .cz-tabs span{transition:none}
+#overlay:is(.st-menu,.vpicking) .btn{border:0;border-radius:0;color:var(--hx-soft);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);
+  font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+#overlay:is(.st-menu,.vpicking) .btn:hover{color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) .btn.primary{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:inset 0 3px 0 rgba(255,255,255,.28),0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) .btn.primary:hover{color:var(--hx-on-accent);background:var(--hx-accent-hi);box-shadow:0 0 0 2px var(--hx-ink)}
+#overlay:is(.st-menu,.vpicking) .btn.primary::after{content:none}
+#overlay:is(.st-menu,.vpicking) #campNgBtn{color:var(--hx-accent-hi)}
+#overlay:is(.st-menu,.vpicking) .cz-tabs{gap:2px;padding:2px;border:0;border-radius:0;background:var(--hx-ink);box-shadow:0 0 0 1px var(--hx-line)}
+#overlay:is(.st-menu,.vpicking) .cz-tabs span{border-radius:0;font-family:var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-soft);background:var(--hx-paper)}
+#overlay:is(.st-menu,.vpicking) .cz-tabs span.on{color:var(--hx-on-accent);background:var(--hx-accent)}
+#overlay.st-menu .ov-foot{font-family:var(--font-body)}
+#overlay.st-menu .ov-foot kbd,#overlay.st-menu #fileline .fl-k{border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 1.5px var(--hx-ink)}
+#overlay.st-menu #fileline{font-family:var(--hx-label);letter-spacing:.1em}
+#overlay.st-menu .fsmini{border-radius:0}
+/* the Jedi: Cinzel names, the picked tile in a gold double hairline, diamond studs */
+[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+  background:linear-gradient(180deg,#171c44,#0e1230);box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn){letter-spacing:.06em}
+[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) .btn{font-family:'Cinzel',Georgia,serif;font-weight:700;letter-spacing:.06em}
+[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) .btn.primary{font-family:var(--font-ui);letter-spacing:.16em;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink)}
+/* the Mandalorian: chamfered plates, Georgia small caps, an ember strip on the picked one */
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,#herobio,.btn){background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,.btn):hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="mando"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+  box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .brk::before,[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .brk::after{display:none}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn,.msub-t,#stepMode){font-variant:small-caps;letter-spacing:.14em}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .btn{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.14em}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .btn.primary,[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .cz-tabs span.on{color:var(--hx-on-accent);
+  background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none}
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .cz-tabs span{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.12em}
+/* the trooper: the readout, white plates for what is picked and what acts, a hazard tab on BEGIN */
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold){background:rgba(16,19,21,.9)}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+  background:#101315;box-shadow:inset 4px 0 0 var(--hx-accent),inset 0 0 0 1px var(--hx-plate-white),0 0 0 2px var(--hx-ink)}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn){letter-spacing:0}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .btn{font-weight:600;letter-spacing:.06em}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .btn.primary{position:relative;padding-right:40px;color:#101315;background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -4px 0 #c5cbce}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .btn.primary::after{content:'';position:absolute;right:0;top:0;bottom:0;width:16px;height:auto;margin:0;border:0;background:var(--hx-hazard)}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .btn.primary:hover{background:#fff}
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .cz-tabs span.on{color:#101315;background:var(--hx-plate-white);box-shadow:inset 0 -3px 0 var(--hx-accent)}
+
+/* a phone (or any small window): the Mandalorian's wide-spaced Georgia gives a little room back, so the tabs and the
+   title keep to one line beside the ✕ */
+@media (max-width:900px),(max-height:560px){
+  :is(#howto,#coop,#codex,#sandbox) :is(.cz-tabs,.howto-hero) span{white-space:nowrap}
+  [data-hero="mando"] :is(#howto,#coop,#codex,#sandbox) :is(.cz-tabs,.howto-hero) span{letter-spacing:.04em}
+  [data-hero="mando"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title{letter-spacing:.1em}
+  [data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::before{display:none}
+  [data-hero="jedi"] :is(#howto,#settings,#saves,#files,#coop,#roadmap,#codex,#sandbox) .howto-title::after{display:none}
+}

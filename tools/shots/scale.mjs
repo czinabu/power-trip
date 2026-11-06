@@ -3,7 +3,7 @@
 // each on a held clock, for a maps pass that wants the hero to look small and the cover to read:
 //   <map>-eye.png   from just behind the hero on the south side, facing north, tipped up, so what towers over the floor shows
 //   <map>-over.png  a high three-quarter view of the whole floor, so the lanes and the cover read
-//   <map>-up.png    from the floor looking up at the map's first landmark (world/landmarks.js), the hero before it
+//   <map>-up.png    from the floor looking up at the map's first landmark (world/landmarks.js; LM=<kind> picks one), the hero before it
 //   npm run build && node tools/shots/scale.mjs <out-dir> [map,map,...]   (HERO=trooper|mando|jedi, default trooper;
 //   DIST=<an index.html> shoots another build; PW_CHROMIUM a Chromium binary when Playwright's own isn't installed)
 import { chromium } from 'playwright';
@@ -46,7 +46,7 @@ const step = n => page.evaluate(n => { for (let i = 0; i < n; i++) window.__step
 const maps = await page.evaluate(() => Object.keys(GAME.mapLevels()));
 for (const id of maps){
   if (only && !only.includes(id)) continue;
-  const info = await page.evaluate(id => {
+  const info = await page.evaluate(([id, LM]) => {
     const { G, player } = GAME, L = GAME.mapLevels()[id];
     GAME.sandboxClear();
     GAME.buildArena(L);
@@ -70,7 +70,7 @@ for (const id of maps){
       const e = GAME.enemies[GAME.enemies.length - 1]; e.dummy = true; e.home = { x: q.x, z: q.z };
     }
     // the first landmark (world/landmarks.js), for a third view looking up at it from the floor
-    const lm = ((GAME.shared.landmarks || {}).placed || [])[0];
+    const placed = (GAME.shared.landmarks || {}).placed || [], lm = placed.find(p => p.startsWith(LM + '@')) || placed[0];
     let look = null;
     if (lm){
       const [lx, lz] = lm.split('@')[1].split(',').map(Number), d = Math.hypot(lx, lz) || 1;
@@ -80,7 +80,7 @@ for (const id of maps){
       }
     }
     return { half, x: s.x, z: s.z, look };
-  }, id);
+  }, [id, process.env.LM || '']);
   await step(20);
   for (const [view, cam] of [['eye', 'eye'], ['over', 'over'], ...(info.look ? [['up', 'up']] : [])]){
     const img = await page.evaluate(([cam, I]) => {

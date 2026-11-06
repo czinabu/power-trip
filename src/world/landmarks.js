@@ -17,6 +17,7 @@
 // under and can land on. Above 16 m anything goes: a canopy, a statue's helmet, a tower's crown.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { shared, solids, pillars, hazardZones, vents, barrels } from '../state.js';
 import { arenaKit, seeded } from './arenas/kit.js';
 import { LANDMARKS } from '../data/landmarks.js';
@@ -283,6 +284,83 @@ const KINDS = {
     put(new THREE.BoxGeometry(5.2 * s, 14 * s, 0.35 * s), M.trim, 0, P + 9.0 * s, -2.5 * s, -0.12, 0, 0);               // the cape
     g.traverse(m => { if (m.isMesh) m.userData.passThrough = true; });   // (the collider above holds the figure; its arms, rifle and cape stand on the plinth)
     void ax; void R;
+  },
+
+  /* BUILDING — a real multi-storey building standing in the fight: a podium block with a lit entrance under a canopy,
+     a tower set back above it, storey bands, pilasters and rows of windows (some lit) on every face, and a roof of
+     plant, a mast and a beacon. Its walls are hard cover and wall-kick faces; the barriers at its doors are cover to
+     crouch behind; the podium's roof is a deck the jetpack can land on. Detail is merged into a few meshes per building.
+     `w` / `d` half its length / depth, `h` its height, `podium` the podium's height (all of it when there's no tower),
+     `inset` the tower's setback, `storey`, `bay` (window spacing), `lit` (share of windows lit), `front` 1 / −1 / 0 (which
+     long face has the entrance, 0 both), `bands` false for plain walls (adobe), `roof` false for no plant. */
+  building(K, x, z, ax, M, o, R){
+    const w = o.w ?? 7, d = o.d ?? 5, H = o.h ?? 28, st = o.storey ?? 3.6, bay = o.bay ?? 3.2;
+    const pod = Math.min(o.podium ?? (H > 20 ? 12.6 : H), H), tower = H - pod > 2;
+    const tw = w - (o.inset ?? 1.6), td = d - (o.inset ?? 1.6);
+    const rot = ax ? 0 : PI / 2;
+    const W = (u, v) => ax ? [x + u, z + v] : [x + v, z - u];                               // local (along, across) to the world
+    const ext = (hu, hv) => ax ? [hu, hv] : [hv, hu];
+    const bins = new Map();
+    const add = (mat, geo) => { if (!bins.has(mat)) bins.set(mat, []); bins.get(mat).push(geo); };
+    const bx = (mat, u, y, v, su, sy, sv) => add(mat, new THREE.BoxGeometry(su, sy, sv).translate(u, y, v));
+    // the solid masses: a step round the foot, the podium, the tower over it
+    { const [ex, ez] = ext(w + 0.5, d + 0.5); K.box(x, z, ex, ez, 0.3, M.dark, { climbable: true }); }
+    { const [ex, ez] = ext(w, d); K.box(x, z, ex, ez, pod, M.a); }
+    if (tower){ const [ex, ez] = ext(tw, td); K.box(x, z, ex, ez, H - pod, M.a, { y: pod }); }   // (its collider runs from the floor up)
+    // the faces of a mass (half-sizes hu, hv) from y0 to y1: pilasters, storey bands, windows
+    const faces = (hu, hv, y0, y1, ground) => {
+      const sides = [[0, 1, hu], [0, -1, hu], [1, 0, hv], [-1, 0, hv]];   // [nu, nv, half-length of that face]
+      for (const [nu, nv, hl] of sides){
+        const n = Math.max(1, Math.round(hl * 2 / bay)), b = hl * 2 / n;
+        const at = (t, off) => nu ? [nu * (hu + off), t] : [t, nv * (hv + off)];   // t along the face
+        const dims = (along, up, out) => nu ? [out, up, along] : [along, up, out];
+        for (let i = 0; i <= n; i++){   // pilasters
+          const [pu, pv] = at(-hl + i * b, 0.12), [su, sy, sv] = dims(0.5, y1 - y0, 0.24);
+          bx(M.b, pu, (y0 + y1) / 2, pv, su, sy, sv);
+        }
+        if (o.bands !== false) for (let y = y0 + st; y < y1 - 0.5; y += st){   // a band at every floor
+          const [pu, pv] = at(0, 0.09), [su, sy, sv] = dims(hl * 2 + 0.2, 0.32, 0.18);
+          bx(M.b, pu, y, pv, su, sy, sv);
+        }
+        for (let y = y0 + (ground ? st : 0); y + st <= y1 + 0.01; y += st) for (let i = 0; i < n; i++){   // the windows
+          const t = -hl + (i + 0.5) * b, [pu, pv] = at(t, 0.04);
+          const [su, sy, sv] = dims(b * (o.winW ?? 0.56), st * (o.winH ?? 0.46), 0.08);
+          bx(R() < (o.lit ?? 0.45) ? M.glow : M.dark, pu, y + st * 0.55, pv, su, sy, sv);
+        }
+      }
+    };
+    faces(w, d, 0.3, pod, true);
+    if (tower) faces(tw, td, pod, H, false);
+    // the cornices: a lip round the podium roof and the tower top
+    bx(M.b, 0, pod - 0.25, 0, w * 2 + 0.5, 0.5, d * 2 + 0.5);
+    if (tower) bx(M.b, 0, H - 0.3, 0, tw * 2 + 0.4, 0.6, td * 2 + 0.4);
+    // the ground floor: on each entrance face a lit doorway under a canopy, and a barrier either side to crouch behind
+    for (const sv of o.front === 0 ? [-1, 1] : [o.front ?? 1]){
+      const dw = Math.min(2.2, w * 0.3);
+      bx(M.dark, 0, 2.2, sv * (d + 0.05), dw * 2, 3.8, 0.1);                                   // the doors
+      bx(M.glow, 0, 4.3, sv * (d + 0.06), dw * 2, 0.22, 0.1);                                  // the lit strip over them
+      bx(M.b, 0, 4.75, sv * (d + 1.2), dw * 2 + 1.6, 0.4, 2.4);                                // the canopy
+      { const [cx, cz] = W(0, sv * (d + 1.2)), [ex, ez] = ext(dw + 0.8, 1.2); K.slab(cx, cz, ex, ez, 4.55, 4.95); }
+      for (const su of [-1, 1]){
+        const [cx, cz] = W(su * (dw + 2.2), sv * (d + 3.0)), [ex, ez] = ext(1.1, 0.5);
+        K.box(cx, cz, ex, ez, 1.2, M.dark);
+        const g = K.deco(new THREE.BoxGeometry(ex * 2 + 0.06, 0.12, ez * 2 + 0.06), M.trim, cx, 1.26, cz);
+        g.userData.passThrough = true;
+      }
+    }
+    // the roof: plant boxes, a mast and a beacon (all past reach)
+    if (o.roof !== false){
+      const rw = tower ? tw : w, rd = tower ? td : d;
+      bx(M.dark, -rw * 0.4, H + 1.0, rd * 0.2, rw * 0.6, 2.0, rd * 0.8);
+      bx(M.b, rw * 0.35, H + 0.7, -rd * 0.3, rw * 0.5, 1.4, rd * 0.6);
+      add(M.dark, new THREE.CylinderGeometry(0.12, 0.3, 7, 6).translate(rw * 0.5, H + 3.5, rd * 0.5));
+      add(M.glow, new THREE.SphereGeometry(0.45, 8, 6).translate(rw * 0.5, H + 7.2, rd * 0.5));
+    }
+    for (const [mat, list] of bins){
+      const m = K.deco(mergeGeometries(list, false), mat, x, 0, z, 0, rot, 0);
+      m.userData.passThrough = true;   // (detail on the faces of the masses above: their colliders hold it)
+      for (const g of list) g.dispose();
+    }
   },
 };
 

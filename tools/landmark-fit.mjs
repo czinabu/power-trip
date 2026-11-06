@@ -4,7 +4,7 @@
 // door and hazard), and pick the spot in the most exposed open floor, spread from the others. Prints placements to paste
 // into data/landmarks.js:
 //   node tools/landmark-fit.mjs wish.json      wish: { layout: { base, apart, pieces: [ { kind, …options, rmin, rmax,
-//                                                xmin, xmax, zmin, zmax } ] } }   (CHROMIUM: a Chromium binary)
+//                                                xmin, xmax, zmin, zmax } ] } }   (a piece with `at` stays put)   (CHROMIUM: a Chromium binary)
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { fileURLToPath } from 'url';
@@ -55,7 +55,11 @@ const res = await page.evaluate(async wish => {
       const foot = solids.slice(s0).filter(floor).map(boxOf);
       g.children.splice(n0); solids.length = s0; pillars.length = p0;
       let best = null;
-      for (let x = -hx; x <= hx; x += 1) for (let z = -hx; z <= hx; z += 1){
+      if (spec.at){   // a piece already placed: kept where it is, the others fit round it
+        const [x, z] = [spec.at[0] * k, spec.at[1] * k];
+        best = { x, z, score: 0, fs: foot.map(f => ({ x0: f.x0 + x, x1: f.x1 + x, z0: f.z0 + z, z1: f.z1 + z })) };
+      }
+      else for (let x = -hx; x <= hx; x += 1) for (let z = -hx; z <= hx; z += 1){
         const r = Math.hypot(x, z) / hx;
         if (r < (rmin ?? 0.3) || r > (rmax ?? 0.85)) continue;
         if ((zmin != null && z < zmin * k) || (zmax != null && z > zmax * k) || (xmin != null && x < xmin * k) || (xmax != null && x > xmax * k)) continue;

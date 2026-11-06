@@ -134,7 +134,7 @@ composer.addPass(new OutputPass());
 /* COLOUR GRADE — after tone mapping, on the display image: a little more colour and contrast, and a split tone (the
    shadows lean toward the arena's sky fill, the highlights toward its sun) so each world has its own cast. Brightness
    is kept: the tint is normalised to its own luminance. world/atmosphere.js sets it per arena (setGrade); the menu
-   stand switches it off for its frame (ui/showcase.js). The vignette is the CSS #cine overlay. */
+   stand switches it off for its frame (ui/showcase.js). */
 export const gradePass = new ShaderPass({
   uniforms: { tDiffuse: { value: null }, amount: { value: 1 }, sat: { value: 1.1 }, contrast: { value: 1.08 },
     shadow: { value: new THREE.Color(0.93, 0.97, 1.06) }, high: { value: new THREE.Color(1.05, 1.0, 0.93) } },

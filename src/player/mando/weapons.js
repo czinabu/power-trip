@@ -35,6 +35,7 @@ import { squadStanding } from '../../allies/squad.js';
 import { launchAtRocket } from './gadgets.js';
 import { gunLook, TROOPER } from '../../data/trooper.js';
 import { coverHoldsFire, coverShotMul, heroSuppSpread } from '../trooper/cover.js';
+import { addFlow, flowSpreadMul } from '../gunner-flow.js';
 
 /* ============================================================
    MANDALORIAN — jetpack, dual blasters, flamethrower, wrist rockets
@@ -106,6 +107,7 @@ function activeVent(){
     player.heat = 0; player.overheat = false; player.ventT = 0.12; player.fireCd = Math.min(player.fireCd, 0.12);
     tutEvent('vent');
     sfx(880, 0.06, 'square', 0.05, 1320); sfx(1320, 0.08, 'triangle', 0.04, 1760); floater(playerPos(), 'PERFECT VENT', '#9fe6ff');
+    addFlow('vent');   // BATTLE RHYTHM (player/gunner-flow.js)
   } else {
     player.jamT = V.jam;
     sfx(110, 0.16, 'sawtooth', 0.06, 60); floater(playerPos(), 'JAMMED', '#ff9a66');
@@ -344,7 +346,7 @@ function fireBlaster(W, hand){
   const dmg = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * coverShotMul() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
   const foMin = steadyAim ? Math.min(1, (W.foMin || 1) + 0.25) : W.foMin;   // bracing stretches effective range
   const baseSpread = steadyAim ? W.braceSpread : W.hipSpread;
-  const spread = (baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028)) * heroSuppSpread();   // boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
+  const spread = (baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028)) * heroSuppSpread() * flowSpreadMul();   // (HUNTER'S EYE steadies it: player/gunner-flow.js) boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
   const opts = { spread, foMin, to: aim };
   const col = W.col || (steadyAim ? 0xffd24a : 0xffb84a);   // braced bolts glint hotter (a long gun, or the trooper's guns, fire their own colour)
   if (hand){   // one named pistol (the trooper's twin DC-17s)

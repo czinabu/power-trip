@@ -30,6 +30,7 @@ import { queueHit, hooks } from '../net/run.js';
 import { foeBeaten, foeFell } from '../game/alignment.js';
 import { MERCY } from '../data/alignment.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
+import { addFlow, flowKill } from '../player/gunner-flow.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -67,6 +68,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
     if (opts && opts.ally) return;
     queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide);
+    if (!tick && e.hp > 0 && dmg >= e.hp) flowKill(e, knockDir);   // (a blow that will kill it feeds the guest's own flow meter: player/gunner-flow.js)
     if (dmg > 0 && !tick){
       spawnHitSpark(opts && opts.at ? opts.at : V3(e.group.position.x, e.group.position.y + 1.3, e.group.position.z), e.t.eye, 0.8);
       G.hitstop = Math.max(G.hitstop, 0.03); G.shake = Math.max(G.shake, 0.14);
@@ -194,7 +196,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
     if (byAlly){
       // the squad's kill: a share of the bounty, none of the hero's rewards
-      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); }
+      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); }
       S.kill(cp, !!e.t.heavy);
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);
       return;
@@ -227,6 +229,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       // the last of the fight down: THE KILL CAM (engine/killcam.js), or with it off (or no room for it) the old slow-mo dip
       if (hostiles === 0 && G.spawnQueue.length === 0 && !killCam('last', e) && !killCamOn()){ G.slowmo = 0.3; G.slowmoT = 0.5; }
     }
+    if (!e.converted) flowKill(e, knockDir);   // the gunners' flow meters (player/gunner-flow.js): after the last-foe beat, so it keeps its shot
   } else if (opts && opts.launch === false){
     // no launch: the caller decides how it reels (a flinch, a shove, a stagger)
   } else if (opts && opts.slide && knockDir && !tick && (e.noFloor || knockPow <= (e.t.heavy ? 26 : 16))){

@@ -33,6 +33,7 @@ import { noteStamina } from '../game/readout.js';
 import { updateTrooperKit } from './trooper/kit.js';
 import { updateOffThrow } from './jedi/offthrow.js';
 import { syncOffSaber } from './model/weapons.js';
+import { updateGunnerFlow } from './gunner-flow.js';
 
 // Per-frame player update. Each step below runs in this exact order every frame; the order matters
 // (e.g. movement feeds the jetpack, both feed gravity/landing, and the pose reads the landed state).
@@ -110,6 +111,7 @@ function updatePlayerMeters(dt, pp, st){
   if (!isGunner()){ updateJumpAttack(dt); updateAirCut(dt); updateGrasp(dt); }   // the jump attack's wind-up, the aerial cut, the Force grasp
   if (player.momentumT > 0){ player.momentumT -= dt; if (player.momentumT <= 0) player.momentumStacks = 0; }   // MOMENTUM boon decay
   updateFocus(dt);   // FORCE FOCUS meter (decay/ebb/tier-ups)
+  updateGunnerFlow(dt);    // the gunners' HUNTER'S EYE / BATTLE RHYTHM and their signature moves (gunner-flow.js)
   if (player.dmgIndT > 0) player.dmgIndT -= dt * 1.6;   // THREAT — fade the directional damage arc
   if (player.landDip > 0) player.landDip = Math.max(0, player.landDip - dt * 1.7);   // TOUCHDOWN — camera dip springs back
   if (player.hitMarkT > 0){ player.hitMarkT -= dt * 4.5; if (player.hitMarkT <= 0) player._hmRank = 0; }   // HIT MARKER fade

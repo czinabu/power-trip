@@ -93,6 +93,7 @@ const CONTROLS = {
       ['4', 'Holster', 'Take a fighting stance with fists and gadgets: LMB / E swing hook, hook, uppercut, haymaker, hold RMB for the gauntlet shield (LMB behind it cuts shield and blade), and gadget power refills faster · 4 or 1 / 2 / 3 draws', 1],
     ]},
     { title: 'GADGETS', rows: [
+      ['T', 'Dead Eye', 'With HUNTER\'S EYE full (the amber bar over vitality): time slows, up to three heads near the reticle are tagged and he puts a bolt through each · Fills with headshots, beskar ricochets, kills in the air and takedowns; a hit you take knocks it back · STEADY: a tighter cone · ON THE HUNT: the jetpack refuels faster · full: DEAD EYE'],
       ['F', 'Flamethrower', 'Unlocks after wave 2 · with a prompt up (TALK, a temple station), F interacts instead'],
       ['Q', 'Wrist rocket', 'From the start'],
       ['X', 'Grappling hook', 'Earned with XP · or Jetpack Slam'],
@@ -128,6 +129,7 @@ const CONTROLS = {
       ['X', 'Gunship strafing run', 'A gunship lays a line of blasts from you toward the crosshair', 1],
       ['MMB / H', 'Squad orders', 'TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows) · ATTACK, GRENADE and SUPPRESS cost COMMAND POINTS, earned by your kills and the squad\'s · SUPPRESS pins the foes round the crosshair: they crawl and slow their shots · ATTACK sends two round the target\'s sides to FLANK it: they hit it harder from there'],
       ['F', 'Interact', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it · in the temple, opens the station you are at · beside a beaten foe on its knees, SPARE comes up: tap to let it go (light), or strike it down (dark) · F only interacts while a prompt is up: anywhere else it is your grenade or charge'],
+      ['Y', 'Coordinated Fire', 'With BATTLE RHYTHM full (the blue bar over vitality): mark the foe at the reticle and every squadmate in reach puts a heavy bolt into it on your call · Fills with perfect vents, pinning foes, flanking shots, the squad\'s kills and dashing cover to cover under fire; a hit in the open breaks it, in cover far less · STEADY: suppression shakes your aim half as much · IN STEP: command points come in faster · full: COORDINATED FIRE'],
       ['T', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['N', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
       ['HOLD O', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],
@@ -162,6 +164,7 @@ const TIPS = {
     '<b>Jet fuel</b> shows on the lights of your jetpack. The reticle turns orange when it runs low.',
     '<b>Gadget power</b> (bottom-left bar) fuels flame, rockets and other gadgets.',
     'The reticle turns <b>gold</b> when a target is under it.',
+    '<b>Hunter\'s Eye</b> (the amber bar over vitality) fills with headshots, ricochets, kills on the wing and takedowns. Full, <b>T</b> is <b>Dead Eye</b>: time slows and you drop up to three heads.',
     'Tap <b>RMB</b> just as a bolt reaches you for a <b>beskar parry</b>: it ricochets straight back at the shooter. It works with any gun.',
     'You carry two guns: a <b>sidearm</b> on 1 and a <b>primary</b> on 2. When a run hands you a gun for a full slot, you choose which to carry.',
     'Hold RMB with the single blaster to raise a shield that deflects bolts. Firing drops it; it comes back half a second after you stop. Press E behind it to cut with the vibroblade and bash with the shield, which keeps it up but spends stamina.',
@@ -173,6 +176,7 @@ const TIPS = {
     '<b>Heat</b> is the gauge beside your reticle. Overheat, and R pressed in the beat clears it at once.',
     'Your squad of clones holds ground while you lead: tap the <b>middle mouse button</b> (or H) on a foe to focus it, hold it for every order.',
     '<b>Specialists:</b> Hammer\'s rotary pins whatever it hits, Patch the medic (with Field Medic) patches you and gets the downed up, and Tally the scout picks off the far line.',
+    '<b>Battle Rhythm</b> (the blue bar over vitality) fills with perfect vents, pins, flanks, the squad\'s kills and dashes from cover to cover. Full, <b>Y</b> is <b>Coordinated Fire</b>: your squad puts one volley into the foe you mark.',
     '<b>Command points</b> (the gold bar over your squad) come from kills. Spend them on the orders that matter and on <b>T</b>: reinforcements or a supply drop.',
   ],
 };

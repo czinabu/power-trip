@@ -16,6 +16,7 @@ import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon } from '..
 import { abil } from '../data/mastery.js';
 import { maxHp, maxStam } from '../player/helpers.js';
 import { FOCUS, focusTier } from '../player/jedi/focus.js';
+import { flowDef, flowTier, flowKeyLabel } from '../player/gunner-flow.js';
 import { furyKind } from '../player/jedi/fury.js';
 import { mandoWeapon } from '../player/mando/weapons.js';
 import { MUTATORS } from '../data/mutators.js';
@@ -171,6 +172,16 @@ export function updateHud(){
     setText($('fclabel'), t > 0 ? ('FOCUS · ' + FOCUS.names[t]) : 'FOCUS');
     fcw.classList.toggle('t3', t >= 3);
   }
+  // THE GUNNERS' FLOW METERS — HUNTER'S EYE (the Mando) and BATTLE RHYTHM (the trooper): player/gunner-flow.js
+  { const D = flowDef(), gm = $('gfmeter');
+    gm.classList.toggle('on', !!D);
+    if (D){
+      const t = flowTier(), mando = isMando();
+      gm.classList.toggle('tr', !mando); gm.classList.toggle('t3', t >= 3);
+      $('gfbar').style.width = (player.flowSig ? 0 : (player.flow || 0)) + '%';
+      setText($('gflabel'), (mando ? 'HUNTER\'S EYE' : 'BATTLE RHYTHM') + (t > 0 && t < 3 ? ' · ' + D.names[t] : ''));
+      setText($('gfval'), t >= 3 ? D.names[3] + ' · ' + flowKeyLabel() : '');
+    } }
   // FORM VII FURY meter — only while Juyo (FURY) or Vaapad (CONTROL) is the active form; glows when full
   { const fk = furyKind(), fm = $('fymeter');
     fm.classList.toggle('on', !!fk);

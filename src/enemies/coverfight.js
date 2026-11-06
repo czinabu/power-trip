@@ -19,6 +19,7 @@ import { floater } from '../fx/floaters.js';
 import { tacticsRamp } from './tactics.js';
 import { throwGrenade } from './grenades.js';
 import { players } from '../player/players.js';
+import { addFlow } from '../player/gunner-flow.js';
 
 const SF = TROOPER.suppress.onFoe;
 const flat = (ax, az, bx, bz) => Math.hypot(ax - bx, az - bz);
@@ -53,6 +54,7 @@ function frighten(e, amt){
     e.fear = 0.35;
     const was = e.suppT > G.gt;
     e.suppT = Math.max(e.suppT || 0, G.gt + SF.pin);
+    if (!was) addFlow('pin');   // BATTLE RHYTHM (player/gunner-flow.js)
     if (!was && G.gt - (e.pinCallT ?? -9) > 3){ e.pinCallT = G.gt; floater(V3(e.group.position.x, e.group.position.y + 2.6, e.group.position.z), 'PINNED', '#9fd4ff'); }
   } else e.fear = f;
 }

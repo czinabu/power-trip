@@ -102,6 +102,17 @@ body.mando #fpbar{background:linear-gradient(90deg,#d98a2b,#ffd9a0)}
 #fcbar{background:linear-gradient(90deg,#caa23a,#ffe27a);transition:width .1s ease-out}
 #fclabel{color:#e8cf7a}
 #fcwrap.t3{box-shadow:0 0 14px rgba(255,210,90,.65);border-color:rgba(255,210,90,.7)}
+/* the gunners' flow meters (player/gunner-flow.js): HUNTER'S EYE (the Mando, amber) · BATTLE RHYTHM (the trooper, clone blue) */
+#gfmeter{display:none}
+body.mando #gfmeter.on{display:block}
+#gfwrap{height:6px;width:70%}
+#gfbar{background:linear-gradient(90deg,#b8661f,#ffc46a);transition:width .1s ease-out}
+#gflabel{color:#ffc98a}
+#gfmeter.tr #gfbar{background:linear-gradient(90deg,#2f6fb8,#9fd4ff)}
+#gfmeter.tr #gflabel{color:#a8d6ff}
+#gfval{color:#fff3d6;font-weight:700;letter-spacing:.08em}
+#gfmeter.t3 #gfwrap{box-shadow:0 0 14px rgba(255,190,100,.65);border-color:rgba(255,196,106,.75)}
+#gfmeter.tr.t3 #gfwrap{box-shadow:0 0 14px rgba(120,190,255,.65);border-color:rgba(159,212,255,.75)}
 /* FORM VII fury meter — shown only while Juyo (FURY, red) or Vaapad (CONTROL, violet) is the active form */
 #fymeter{display:none}
 #fymeter.on{display:block}

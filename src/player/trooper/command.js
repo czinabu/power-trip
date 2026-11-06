@@ -8,6 +8,7 @@ import { G, player, isTrooper } from '../../state.js';
 import { TROOPER } from '../../data/trooper.js';
 import { showBanner } from '../../ui/banners.js';
 import { sfx } from '../../audio/sfx.js';
+import { flowCpMul } from '../gunner-flow.js';
 
 const C = TROOPER.command;
 export const cpMax = () => C.max;
@@ -19,7 +20,7 @@ export function resetCommand(){ player.cp = C.start; player.cpFlash = 0; }
 // a kill: `kind` is 'kill', 'elite' or 'squadKill' (enemies/damage.js)
 export function gainCP(kind){
   if (!isTrooper() || G.mode !== 'play') return;
-  player.cp = Math.min(C.max, commandPoints() + (C.gain[kind] || 0));
+  player.cp = Math.min(C.max, commandPoints() + (C.gain[kind] || 0) * flowCpMul());   // (BATTLE RHYTHM: player/gunner-flow.js)
 }
 // what an order costs the trooper (0: free, and always 0 for the other heroes)
 export const orderCost = (id) => isTrooper() ? (C.cost[id] || 0) : 0;

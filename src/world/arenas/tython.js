@@ -1,8 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE HIDDEN TEMPLE ON TYTHON: the hub's five wings (data/hub.js). Each wing is its own arena build, so only the one you
+// THE HIDDEN TEMPLE ON TYTHON: the hub's six wings (data/hub.js). Each wing is its own arena build, so only the one you
 // stand in is ever in memory. The halls are the sanctum (world/sanctum.js) at a far bigger scale and opened right up:
 // tall open arcades onto Tython's mountains, an oculus in the Grand Hall's vault, daylight falling across the floor.
-// The Saber Forge is the odd one out: a kyber cave under the temple.
+// The Saber Forge is the odd one out: a kyber cave under the temple. The Landing Platform is the other: no hall at all, a
+// terrace out past the council chamber under the open sky, with the pilgrim shuttle to Jedha on its pad.
 //
 // Every station (data/hub.js `stations`) gets a lit ring on the floor and a sign over it; game/hub.js reads the same
 // list for the prompts. Anything that moves (the map's hologram, the remotes, the forge's hilt parts) is flagged
@@ -21,7 +22,7 @@ export function buildTythonArena(L){
   shared.hubAnim = [];
   const wings = HUBS.temple.wings, found = wingByLayout(L.layout), wing = found && found.hub === 'temple' ? found.id : 'hall';
   const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 31 + 7), W = wings[wing];
-  ({ hall, council, training, archives, forge })[wing](L, K, pal, R);
+  ({ hall, council, landing, training, archives, forge })[wing](L, K, pal, R);
   hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z), stone: { stone: pal.stoneD ?? 0xa89f8c, trim: pal.trim ?? 0xd8b860, glow: pal.kyber ?? 0x5ad2ff } });
   hubDoorSigns(W, wings, K, { runner: pal.kyber ?? 0x5ad2ff });
   templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
@@ -124,13 +125,13 @@ function hall(L, K, pal, R){
 function council(L, K, pal, R){
   const stone = std(pal.stone ?? 0xd6cfbe), stoneD = std(pal.stoneD ?? 0xa89f8c), trim = std(pal.trim ?? 0xd8b860, 0.45, 0.55);
   const s = buildSanctum({ style: 'temple', seed: 57, wallH: 32, rise: 18, bay: 9, gallery: [13], windowW: 2.6,
-    doors: ['s'], sigilSide: null, doorW: 8, doorH: 12, doorArch: true,
-    arcade: ['n', 'e', 'w'], arcadeTop: 24, statueH: 9, light: [10, 40, -30],
+    doors: ['s', 'n'], sigilSide: null, doorW: 8, doorH: 12, doorArch: true,   // (north: out to the landing platform)
+    arcade: ['e', 'w'], arcadeTop: 24, statueH: 9, light: [10, 40, -30],
     hole: (x, z) => Math.hypot(x, z) < 7, holeShafts: [[0, 0, 5]], holeOp: 0.16, shaftOp: 0.12, shaftColor: 0xfff0d0,
     stone: 0xd6cfbe, stoneD: 0xb0a794, rib: 0xe2dccc, roof: 0xbcb4a2, coffer: 0x9a9282, trim: 0xd8b860, cloth: 0x2e6a8a,
     door: 0xffe8c0, vaultGlow: 0.45 });
   const H = shared.arenaHalf;
-  for (const side of ['n', 'e', 'w']) terrace(side, s.off, H * 2, stoneD, trim);
+  for (const side of ['e', 'w']) terrace(side, s.off, H * 2, stoneD, trim);
   // the raised floor, a gold inlay ring, and the TABLE: a round slab with the galaxy turning over it
   roundStep(K, 0, 0, 15, 0.45, stoneD, 64);
   K.deco(new THREE.TorusGeometry(15, 0.14, 8, 96), trim, 0, 0.45, 0, -PI / 2).userData.noOutline = true;
@@ -162,6 +163,106 @@ function council(L, K, pal, R){
   }
   // planters by the arcades and a founder at each side of the window wall
   for (const [x, z] of [[-24, -22], [24, -22], [-24, 14], [24, 14]]) planter(K, x, z, pal, R, 0.9);
+}
+
+/* ---------------- THE LANDING PLATFORM ---------------- */
+// out past the council chamber: a stone terrace under the sky, open to the valley on three sides, the temple's wall and
+// its great door behind you (south). The pilgrim SHUTTLE stands on a pad in the middle, nose to the valley, its ramp down
+// toward you: its station (data/hub.js) is at the foot of the ramp. Everything you can walk into is solid.
+function landing(L, K, pal, R){
+  const H = shared.arenaHalf, g = shared.arenaGroup;
+  const stone = std(pal.stone ?? 0xd6cfbe), stoneD = std(pal.stoneD ?? 0xa89f8c), trim = std(pal.trim ?? 0xd8b860, 0.45, 0.55);
+  const pic = (m) => { m.userData.passThrough = true; return m; };
+  // the TEMPLE behind: a tall wall across the south edge, pilasters, a gold band, and the great door back to the council
+  const wz = H + 1.5, doorW = 9, doorH = 13, wallH = 22;
+  for (const sx of [-1, 1]){
+    const w = H + 6 - doorW / 2;
+    pic(K.deco(new THREE.BoxGeometry(w, wallH, 3), stone, sx * (doorW / 2 + w / 2), wallH / 2, wz));
+    for (let a = doorW / 2 + 5; a < H + 4; a += 9) pic(K.deco(new THREE.BoxGeometry(1.6, wallH, 0.9), stoneD, sx * a, wallH / 2, wz - 1.8));
+  }
+  pic(K.deco(new THREE.BoxGeometry(doorW + 0.2, wallH - doorH, 3), stone, 0, doorH + (wallH - doorH) / 2, wz));
+  pic(K.deco(new THREE.BoxGeometry((H + 6) * 2, 0.6, 3.4), trim, 0, wallH - 3, wz - 0.2));
+  pic(K.deco(new THREE.BoxGeometry((H + 6) * 2, 1.2, 3.6), stoneD, 0, wallH, wz - 0.2));
+  pic(K.deco(new THREE.TorusGeometry(doorW / 2, 0.5, 8, 24, PI), trim, 0, doorH - doorW / 2 + 0.2, wz - 1.6));
+  pic(K.deco(new THREE.PlaneGeometry(doorW, doorH), new THREE.MeshBasicMaterial({ color: 0xffe8c0, fog: false }), 0, doorH / 2, wz + 1.4));   // the warm hall beyond
+  // the TERRACES: the ledge and balustrade past the three open edges, and the valley beyond (the theme's backdrop)
+  for (const side of ['n', 'e', 'w']) terrace(side, H - 1, H * 2 + 8, stoneD, trim);
+  // the PAD: a wide round step, a gold lip, a lit ring and the guide marks to set down on
+  const pz = -8;
+  roundStep(K, 0, pz, 13, 0.35, stoneD, 64);
+  K.deco(new THREE.TorusGeometry(13, 0.14, 8, 96), trim, 0, 0.35, pz, -PI / 2).userData.noOutline = true;
+  live(K.deco(new THREE.RingGeometry(10.6, 11.1, 64), glowM(pal.kyber ?? 0x5ad2ff, 0.6), 0, 0.38, pz, -PI / 2));
+  for (let i = 0; i < 8; i++){ const a = i / 8 * PI * 2;
+    live(K.deco(new THREE.PlaneGeometry(0.5, 1.8), glowM(pal.trim ?? 0xd8b860, 0.8), Math.cos(a) * 12, 0.38, pz + Math.sin(a) * 12, -PI / 2, 0, -a + PI / 2)); }
+  shuttle(K, pal, 0, pz - 1, 0.35);
+  // LAMPS on posts round the pad's edge, and cargo by it (crates you can climb)
+  for (const [x, z] of [[-17, -18], [17, -18], [-17, 4], [17, 4]]){
+    K.column(x, z, 0.22, 4.2, std(0x6a6e74, 0.5, 0.5), { wallKick: false, seg: 8, taper: 1 });
+    K.deco(new THREE.BoxGeometry(0.6, 0.3, 0.6), trim, x, 4.3, z);
+    live(K.deco(new THREE.BoxGeometry(0.42, 0.5, 0.42), glowM(0xffe2a8), x, 4.7, z));
+  }
+  const crate = std(pal.wood ?? 0x7a5230, 0.85), band = std(pal.bronze ?? 0x9a7440, 0.5, 0.5);
+  for (const [x, z, n] of [[-22, -4, 2], [-20, 8, 1], [22, -2, 3], [24, 10, 1]]){
+    for (let k = 0; k < n; k++){
+      const cx = x + (k === 1 ? 1.5 : 0), cz = z + (k === 2 ? 1.5 : 0), y = k === 2 ? 0 : 0;
+      K.box(cx, cz, 0.7, 0.7, 1.4, crate, { y, climbable: false });
+      K.deco(new THREE.BoxGeometry(1.46, 0.12, 1.46), band, cx, y + 1.1, cz);
+    }
+  }
+  // the PILGRIMS' BANNERS on the temple wall either side of the door: the Order's blue, and Jedha's sand-gold
+  for (const sx of [-1, 1]) K.banner(sx * 10, 18, wz - 1.6, 0, 2.6, 10, sx < 0 ? (pal.cloth ?? 0x2e6a8a) : 0xb8873a, pal.trim ?? 0xd8b860, 0xffe0a0);
+  // planters at the terrace corners
+  for (const [x, z] of [[-26, -26], [26, -26]]) planter(K, x, z, pal, R, 0.8);
+  void g;
+}
+/* the PILGRIM SHUTTLE: a long pale hull on three legs, swept wings, a tall fin, two engines glowing low at its back and the
+   ramp down at the rear (south, +z), lit inside. At (x, z) on a floor at `y0`; its nose points north */
+function shuttle(K, pal, x, z, y0 = 0){
+  const hull = std(0xe8e2d4, 0.55, 0.2), hullD = std(0xa8a294, 0.6, 0.3), metal = std(0x6a6e74, 0.45, 0.6);
+  const stripe = std(pal.cloth ?? 0x2e6a8a, 0.6, 0.1), gold = std(pal.trim ?? 0xd8b860, 0.4, 0.6);
+  const glass = new THREE.MeshStandardMaterial({ color: 0x1a2a38, roughness: 0.1, metalness: 0.6, emissive: 0x0a2a3a, emissiveIntensity: 0.6 });
+  const gy = y0 + 1.3;   // the hull's belly, up on its gear
+  // the body: one solid block (you walk round it, not under), dressed with a rounded top and the nose
+  K.box(x, z, 2.6, 5.2, 3.0, hull, { y: gy });
+  K.slab(x, z, 2.6, 5.2, 0, gy + 3.0);   // (from the floor up: nothing gets under the belly)
+  K.deco(new THREE.BoxGeometry(4.2, 0.8, 9.6), hull, x, gy + 3.4, z + 0.2);   // the roof, stepped in
+  K.deco(new THREE.BoxGeometry(2.6, 0.5, 6), hullD, x, gy + 4.0, z + 1.2);
+  const nose = K.deco(new THREE.ConeGeometry(2.6, 4.2, 16, 1, false), hull, x, gy + 1.7, z - 7.3, -PI / 2, 0, 0); nose.scale.set(1, 1, 0.66);
+  K.slab(x, z - 6.6, 1.8, 1.6, 0, gy + 3.0);
+  K.deco(new THREE.BoxGeometry(3.2, 0.9, 1.6), glass, x, gy + 3.1, z - 4.6, -0.5, 0, 0).userData.noOutline = true;   // the cockpit glass
+  K.deco(new THREE.BoxGeometry(5.3, 0.4, 10.5), stripe, x, gy + 1.5, z);   // the Order's stripe along both flanks
+  K.deco(new THREE.BoxGeometry(5.35, 0.12, 10.6), gold, x, gy + 1.8, z);
+  // the WINGS: swept back from the hull's middle, each a slab you could land on, tipped with a running light
+  for (const sx of [-1, 1]){
+    const wing = K.deco(new THREE.BoxGeometry(6.4, 0.5, 3.6), hullD, x + sx * 5.6, gy + 1.2, z + 1.4, 0, sx * 0.32, sx * -0.12);
+    wing.userData.passThrough = true;
+    K.slab(x + sx * 5.4, z + 1.4, 3.0, 1.8, gy + 1.0, gy + 1.4);
+    const tipL = live(K.deco(new THREE.SphereGeometry(0.2, 8, 6), glowM(sx < 0 ? 0xff5a40 : 0x5aff8a), x + sx * 8.7, gy + 1.3, z + 2.4));
+    anim(tipL, (o, t) => { o.visible = Math.sin(t * 3 + sx) > -0.2; });
+  }
+  // the FIN over the tail
+  K.deco(new THREE.BoxGeometry(0.35, 2.4, 2.6), hullD, x, gy + 5.2, z + 3.6, 0.4, 0, 0);
+  K.deco(new THREE.BoxGeometry(0.4, 0.4, 2.2), stripe, x, gy + 6.0, z + 4.0, 0.4, 0, 0);
+  // two ENGINES either side of the ramp, their glow breathing while it idles
+  for (const sx of [-1, 1]){
+    K.deco(new THREE.CylinderGeometry(0.95, 1.1, 2.8, 14), metal, x + sx * 2.9, gy + 1.0, z + 4.6, PI / 2, 0, 0);
+    const glow = live(K.deco(new THREE.CircleGeometry(0.8, 16), glowM(0x8ad8ff, 0.85), x + sx * 2.9, gy + 1.0, z + 6.05));
+    anim(glow, (o, t) => { o.material.opacity = 0.6 + Math.sin(t * 2.2 + sx) * 0.2; });
+    K.column(x + sx * 2.9, z + 4.6, 1.1, gy + 2.0, metal, { wallKick: false, seg: 10, taper: 1 }).visible = false;   // (their collision)
+  }
+  // the GEAR: three legs and their feet
+  for (const [lx, lz] of [[0, -5.6], [-1.9, 3.4], [1.9, 3.4]]){
+    K.deco(new THREE.CylinderGeometry(0.18, 0.22, gy - y0 + 0.2, 6), metal, x + lx, y0 + (gy - y0) / 2, z + lz);
+    K.deco(new THREE.CylinderGeometry(0.5, 0.55, 0.16, 10), metal, x + lx, y0 + 0.08, z + lz);
+  }
+  // the RAMP down from the hold at the rear, toward the way you come in, lit from inside; two low steps under it to climb
+  const rz0 = z + 5.2, rz1 = z + 9.4, rl = Math.hypot(rz1 - rz0, gy - y0);
+  const ramp = K.deco(new THREE.BoxGeometry(2.6, 0.18, rl), hullD, x, (gy + y0) / 2, (rz0 + rz1) / 2, -Math.atan2(gy - y0, rz1 - rz0) * -1, 0, 0);
+  ramp.rotation.x = Math.atan2(gy - y0, rz1 - rz0); ramp.userData.passThrough = true;
+  K.box(x, z + 8.3, 1.3, 1.1, 0.4, hullD, { y: y0, climbable: true }).visible = false;
+  K.box(x, z + 6.3, 1.3, 1.0, 0.85, hullD, { y: y0, climbable: true }).visible = false;
+  for (const sx of [-1, 1]) live(K.deco(new THREE.BoxGeometry(0.08, 0.08, rl), glowM(0x8ad8ff, 0.9), x + sx * 1.2, (gy + y0) / 2 + 0.12, (rz0 + rz1) / 2, Math.atan2(gy - y0, rz1 - rz0), 0, 0));
+  live(K.deco(new THREE.PlaneGeometry(2.4, 2.4), glowM(0xfff0d0, 0.9), x, gy + 1.3, z + 5.25));   // the lit hold
 }
 
 /* ---------------- THE TRAINING WING ---------------- */

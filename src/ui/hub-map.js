@@ -68,7 +68,7 @@ function glyph(s){
     case 'sparring': return [`<rect x="${n(x - 3.2)}" y="${n(z - 6)}" width="6.4" height="12" style="fill:${STONE}" opacity=".28"/>`, 6.7];
     case 'forge': return [`<rect x="${n(x - 4.6)}" y="${n(z - 3)}" width="9.2" height="6" style="fill:${GOLD}"/>`, 3.6];
     case 'quests': return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.5" style="fill:var(--hm-c5)"/>`, 2.2];
-    case 'ship': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
+    case 'ship': case 'shuttle': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
     case 'bounties': return [`<rect x="${n(x - 3.5)}" y="${n(z - 1.2)}" width="7" height="2.4" style="fill:${GOLD}"/>`, 2];
   }
   return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.6" style="fill:${BLUE}"/>`, 2.2];

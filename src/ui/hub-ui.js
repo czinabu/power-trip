@@ -110,12 +110,17 @@ function options(s){
       ];
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') })),   // (the covert's ship is its way to Jedha)
         gateButton(),
         ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
-        ...zoneButtons(),
       ];
+    }
+    // a ship to an open zone (the temple's landing platform, the citadel's gunship; the covert's own ship lists it too)
+    case 'shuttle': {
+      if (guest()) return options({ act: 'council' });
+      return zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') }));
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];

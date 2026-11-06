@@ -231,6 +231,48 @@ function build(picks){
   if (crystal != null){ fig.blade.glow.material.color.setHex(crystal); fig.blade.light.color.setHex(crystal); }
   R = fig.rig;
   hipsY = R.hips.position.y;
+  standWarm = false; warmAt = performance.now() + 600;   // a new figure: its outfits' buffers are new too (warmStand)
+}
+/* THE FIRST-SWAP HITCH: every outfit lives on the one rig, hidden until its hero is picked, and three.js only builds a
+   material's shader and uploads a mesh's buffers the first time it's drawn. So the first switch to each hero paid for a
+   dozen shader programs and ~180 meshes in one frame, a visible stutter as the stand spun. Instead the whole wardrobe
+   is drawn off screen, into the composer's spare buffer (the same target, so the same shader variants, as the stand's
+   real draw): on the title screen's first frame, behind the loader (ui/boot.js). A moment after the customizer
+   rebuilds the figure (a new look can need new programs) they're compiled again. In a fight the hero never changes:
+   the arena's own warm-up (engine/prewarm.js) compiles the player as they are. */
+let standWarm = false, warmAt = 0, stageWarmed = false;
+function standDraw(draw){
+  stage.updateMatrixWorld(true);
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(composer.readBuffer);
+  try { renderer.compile(stage, cam); if (draw) renderer.render(stage, cam); } catch(e){}
+  finally { renderer.setRenderTarget(prev); }
+}
+const _snap = [];
+function warmStand(){
+  standWarm = true;
+  const first = !stageWarmed, was = shown;
+  stageWarmed = true;
+  // the figure's pose as it stands now (its idle, a stance preview…), put back after, so the warm-up never shows
+  _snap.length = 0;
+  fig.group.traverse(o => _snap.push(o, o.position.clone(), o.quaternion.clone(), o.scale.clone()));
+  // the number of lights is part of every program, and the Jedi's lit blade is one: so each hero, dressed as the stand
+  // shows them (the gunners with no blade light), gets its own pass. The first time, behind the loader, each is drawn
+  // too, so the programs are linked and the buffers up; after a rebuild, with the menu showing, the programs are only
+  // compiled (drawing it all then cost a long frame of its own)
+  for (const h of ['mando', 'trooper', 'jedi']){ dress(h, false); standDraw(first); }
+  // …then, as the Jedi, everything on the rig at once (the long guns, the Darksaber, the second blades): every hidden
+  // part shown, but no light that's off now comes on, so the count (and so the programs) stays the Jedi's
+  const lit = [], parts = [];
+  fig.vis.traverse(o => { if (o.isLight && o.visible && !chainVisible(o)){ o.visible = false; lit.push(o); } });
+  fig.vis.traverse(o => { if (!o.visible && !o.isLight){ o.visible = true; parts.push(o); } });
+  if (first) for (const k in textures) renderer.initTexture(textures[k]);   // the other heroes' painted backdrops
+  standDraw(first);
+  for (const o of parts) o.visible = false;
+  for (const o of lit) o.visible = true;
+  dress(was, false);
+  for (let i = 0; i < _snap.length; i += 4){ const o = _snap[i]; o.position.copy(_snap[i + 1]); o.quaternion.copy(_snap[i + 2]); o.scale.copy(_snap[i + 3]); }
+  _snap.length = 0;
 }
 build(loadPicks());
 // the customizer restyles the figure on the stand as each option is picked
@@ -244,7 +286,7 @@ export function restyleShowcase(picks){
 let shown = null;   // hero currently on the stand
 let rifleOn = false;   // the trooper holds the DC-15, not the DC-17s (showcaseRifle)
 let figTop = 0, fitTop = 0;   // the dressed figure's top (world y), and the eased value the close-up frames to
-function dress(hero){
+function dress(hero, settle = true){   // (settle: false, for warmStand, leaves the cloth as it hangs)
   if (hero === 'trooper' && !(fig.trooperParts && fig.trooperParts.length)) hero = 'mando';
   shown = hero;
   const mando = hero === 'mando', trooper = hero === 'trooper', gunner = mando || trooper, P = POSES[hero];
@@ -275,7 +317,7 @@ function dress(hero){
     stage.updateMatrixWorld(true);
     riflePose(1, R, { rifleMesh: fig.rifleMesh, recoil: 0 }, fig.vis.localToWorld(new THREE.Vector3(0.6, 0.2, 6)));
   } else if (trooper) rexRest(R, fig.pistols);   // the DC-17s Rex's way, as he carries them in the fight: one up, one down
-  settleCloth(fig);
+  if (settle) settleCloth(fig);
   figTop = measureTop();
 }
 
@@ -582,6 +624,9 @@ export function renderShowcase(dt){
   }
   if (!warm){ warm = true; compileLive(); prewarmJudgeFX(); }   // keep the arena's shaders ready, so BEGIN doesn't hitch
   if (!shown){ dress(G.hero); setTheme(G.hero, true); }
+  // (after the first dress, so it puts back the picked hero's own outfit; after a rebuild, once the picks settle and
+  // with no swap, stance preview or kit on the stand, which a re-dress would undo)
+  if (!standWarm && (!stageWarmed || (performance.now() >= warmAt && swapT < 0 && !pv.id && !kitOn))) warmStand();
   // hero picked → spin the stand once, swapping the figure at the brightest point of the beam
   if (G.hero !== shown && swapT < 0){ idleStop(); swapT = 0; nextHero = G.hero; setTheme(nextHero, false); bgMat.uniforms.b.value = textures[nextHero]; }
   let flare = 0, boost = 0;

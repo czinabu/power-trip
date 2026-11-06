@@ -206,7 +206,12 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // -15 dBFS RMS out of the speakers with every slider at 100%), which still read as quiet for a title screen that has to
 // sell the mood; at 7 it sits around -9 dBFS, and the soft ceiling after `post` (init) rounds its peaks off under
 // -1 dBFS so the lift never clips.
-const MENU_LIFT = 7, MENU_POST = 7;
+const MENU_LIFT = 3, MENU_POST = 4;
+// ...and it still wasn't something you FEEL: at the menu's old intensity (0.16) the title theme was a soft pad, a sub
+// drone and a horn, with no bass line or drums. The title screen now plays the hero's theme at TITLE_I, the full
+// orchestra (bass line, kick, timpani every bar, horns doubled by trumpets on the tune), with a low shelf of TITLE_SHELF dB
+// under 120 Hz for weight. Only the title's own palette gets this: a pause or a menu over a world keeps BASE.menu.
+const TITLE_I = 0.62, TITLE_SHELF = 6;
 // in play the score was felt more than heard: GAME_POST lifts all of it after its compressor (about +6 dB), and the
 // quiet moments with the fight held (a cutscene's bed, the victory statement, the lament) get FILM_POST on top, so they
 // sit up near the menu theme's level. The master limiter still guards the peaks
@@ -219,7 +224,7 @@ const SOFT_CEIL = (() => { const n = 4096, K = 0.5, CEIL = 0.89, c = new Float32
   return c; })();
 
 export const MUSIC = (function(){
-  let bus=null, comp=null, post=null, delay=null, timer=null, started=false;
+  let bus=null, shelf=null, comp=null, post=null, delay=null, timer=null, started=false;
   let nextTime=0, step=0, intensity=0, target=0.16, state='menu', prevState='';
   let pal = PALETTES.menu, want = 'menu', palName = 'menu';
   let section = 'hero', entered = false, heroKey = 'jedi', bpmMul = 1, dangerLv = 0;
@@ -508,7 +513,14 @@ export const MUSIC = (function(){
   // never play at the title screen's level while the menu's last bar finishes
   const level = () => enabled ? LEVEL * (want === 'menu' ? MENU_LIFT : 1) * (film ? FILM_LIFT : 1) * dip : 0.0001;
   const postLevel = () => want === 'menu' ? MENU_POST : GAME_POST * (film || LOUD_STATES.has(state) ? FILM_POST : 1);
-  function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc); }
+  const shelfDb = () => want === 'menu' ? TITLE_SHELF : 0;
+  function setLevel(tc){ const t = AC().currentTime; bus.gain.setTargetAtTime(level(), t, tc); post.gain.setTargetAtTime(postLevel(), t, tc);
+    shelf.gain.setTargetAtTime(shelfDb(), t, tc); compFor(t, tc); }
+  // the title's full orchestra is all transients (kick, timpani, crash): it gets a harder compressor so it can sit loud
+  // without its hits slamming the ceiling; in play the score keeps its gentle one
+  function compFor(t, tc){ const T = want === 'menu', set = (p, v) => tc ? p.setTargetAtTime(v, t, tc) : (p.value = v);
+    set(comp.threshold, T ? -28 : -15); set(comp.ratio, T ? 10 : 4); set(comp.knee, T ? 8 : 30);
+    set(comp.attack, T ? 0.004 : 0.003); set(comp.release, T ? 0.3 : 0.25); }
   function barTop(){
     if (want !== palName){ palName = want; pal = PALETTES[want] || PALETTES.menu; step = 0; }
     const hk = G.hero === 'trooper' ? 'trooper' : isGunner() ? 'mando' : 'jedi';
@@ -610,13 +622,14 @@ export const MUSIC = (function(){
   const M = {
     init(){ if (started || !AC() || !AE.ready) return;
       bus = AC().createGain(); bus.gain.value = 0.0001;
-      comp = AC().createDynamicsCompressor(); comp.threshold.value = -15; comp.ratio.value = 4;
+      comp = AC().createDynamicsCompressor(); compFor(0, 0);
       post = AC().createGain(); post.gain.value = postLevel();
       // a soft ceiling after the post lift: clean below -6 dBFS, rounding anything louder smoothly into -1 dBFS, so the
       // lifted title theme's rare spikes (a timpani hit, a brass stab) never reach the master limiter hot enough to clip
       // (a shaper reads its input over -1..1, so the signal goes in at a quarter and the curve spans -4..4)
       const into = AC().createGain(), ceil = AC().createWaveShaper(); into.gain.value = 0.25; ceil.curve = SOFT_CEIL; ceil.oversample = '2x';
-      bus.connect(comp); comp.connect(post); post.connect(into); into.connect(ceil); ceil.connect(AE.bus.music);
+      shelf = AC().createBiquadFilter(); shelf.type = 'lowshelf'; shelf.frequency.value = 120; shelf.gain.value = shelfDb();
+      bus.connect(shelf); shelf.connect(comp); comp.connect(post); post.connect(into); into.connect(ceil); ceil.connect(AE.bus.music);
       delay = AC().createDelay(); delay.delayTime.value = 0.27; const fb = AC().createGain(); fb.gain.value = 0.33; const wet = AC().createGain(); wet.gain.value = 0.25;
       delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
       started = true; nextTime = AC().currentTime + 0.08; step = 0;
@@ -733,7 +746,7 @@ export const MUSIC = (function(){
         s = warb ? 'boss' : host >= 7 ? 'heavy' : host > 0 ? 'combat' : 'lull'; }
       if (film && s !== 'victory' && s !== 'dead'){ target = FILM; return; }   // a cutscene holds the fight's state (a boss's sting waits for the fight)
       this.setState(s);
-      let t = BASE[s];
+      let t = s === 'menu' && want === 'menu' ? TITLE_I : BASE[s];
       const C = liveCue();
       if (C){
         t = Math.max(t, C.floor + drive.urgency * 0.3 + (drive.focus ? 0.05 : 0) + (drive.danger ? 0.15 : 0));

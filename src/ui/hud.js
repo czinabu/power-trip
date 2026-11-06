@@ -32,6 +32,7 @@ import { chapterLabel } from '../game/campaign.js';
 import { objectiveHud } from '../game/objectives.js';
 import { calmHud, calmTarget } from '../game/aftermath.js';
 import { objectiveKey } from './objective-view.js';
+import { renderCompass } from './compass.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { pickCut } from '../player/jedi/cutaim.js';
@@ -270,6 +271,7 @@ export function updateHud(){
   }
   { const ro = $('readout'), on = !!G.sandbox && G.mode === 'play' && readoutOn(); ro.style.display = on ? 'block' : 'none'; if (on) setHtml(ro, readoutLiveHtml()); }
   renderWaypoint(G.mode === 'play' && !G.sandbox && !G.training && (!!G.mission || !!calm));
+  renderCompass();   // the strip along the top: N / E / S / W and the marks (ui/compass.js)
   { const c = G.mode === 'play' && !G.sandbox ? (calm ? { kicker: chapterLabel() + ' · COMPLETE', title: calm.title, items: [{ text: calm.status, now: true }] }   // (the calm after a chapter)
                                                 : G.training ? trainingChecklist() : G.mission ? missionChecklist() : null) : null;
     if (c && G.training && !c.kicker) c.kicker = 'TRAINING · ' + trainingProgress().place;   // (the run line it stands in for)

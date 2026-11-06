@@ -170,6 +170,14 @@ export function trainingProgress(){
            lesson: Math.min(T.i + 1, T.steps.length), total: T.steps.length };
 }
 // the on-screen checklist: each step's task in short, ticked off as it passes
+// the beacon the live step points at (the nearest, if a step has several), for the HUD compass (ui/compass.js)
+export function trainingTarget(){
+  if (!T.on || !T.beacons.length) return null;
+  const pp = playerPos();
+  let best = null, bd = Infinity;
+  for (const b of T.beacons){ const d = Math.hypot(b.position.x - pp.x, b.position.z - pp.z); if (d < bd){ bd = d; best = b; } }
+  return best ? best.position : null;
+}
 export function trainingChecklist(){
   if (!T.on || !T.lesson) return null;
   const items = T.steps.map((s, k) => ({

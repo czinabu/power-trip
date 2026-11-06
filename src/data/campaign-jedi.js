@@ -223,8 +223,8 @@ export const JEDI_CHAPTERS = {
       burned: ['Ilsa has the refuge\'s new coordinates. Vexis cannot read the Ledger, so he will settle for the children at the refuge.', 'She is at Khel Dar, making for her ship. Run her down.'] },
     opening: { lines: [[ILSA, 'You should have let me go at the refuge. Catch me, then.'],
               [KAST, 'She is fast. So are you.']], quarry: true },
-    says: [{ by: 'ledger', saved: 'Ilsa has the Ledger. Keep her in sight. Over the stalls, not around them, and take the lane north of the cross if you can climb it.',
-                           burned: 'Ilsa has the refuge\'s coordinates. Keep her in sight. Over the stalls, not around them, and take the lane north of the cross if you can climb it.' },
+    says: [{ by: 'ledger', saved: 'Ilsa has the Ledger. Keep her in sight. Over the stalls, not around them, and take the roofline lane off the cross if you can climb it.',
+                           burned: 'Ilsa has the refuge\'s coordinates. Keep her in sight. Over the stalls, not around them, and take the roofline lane off the cross if you can climb it.' },
            'She is making for the docks. The causeway is faster, if you can clear the gaps, and the stacks west of the hangars cut straight to the bay.',
            'Her ship is clamped down. Nowhere left to run. Beat her, Knight. Then we will see.'],
     lines: {

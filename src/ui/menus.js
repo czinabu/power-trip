@@ -466,6 +466,13 @@ for (const [key, id] of [['finSlow', 'finslowctl'], ['finCam', 'fincamctl'], ['k
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setFinToggle(key, !G[key]); });
 }
+// COMPASS — the strip along the top of the HUD (ui/compass.js)
+function setCompass(on){
+  G.compass = on; try { localStorage.setItem('sw_compass', on ? '1' : '0'); } catch(e){}
+  const sv = document.getElementById('compassval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
+}
+{ let v; try { v = localStorage.getItem('sw_compass'); } catch(e){} setCompass(v !== '0'); }
+document.getElementById('compassctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setCompass(!G.compass); });
 // SKY BATTLE — how much of the trailer layer over the war beyond the walls plays (world/skywar.js)
 const SKYWAR = ['auto', 'full', 'light', 'off'];
 function setSkywar(v){
@@ -603,7 +610,7 @@ function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
   setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
   setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
-  setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto');
+  setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
   setAimHint(true); setSwingMirror(false); setSaberGrip('regular');
   resetQuality();

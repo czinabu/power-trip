@@ -35,7 +35,7 @@ function figure(kind, seed){
    model carries hidden go entirely, and the rigid pieces riding each joint are merged, one mesh per material (and one
    outline), instead of a mesh each. What the face and the saber move stays as it is. A hero model is well over a hundred
    draws; this brings one down to a few dozen. */
-function slim(target){
+export function slim(target){
   const T = target;
   for (const m of [...(T.mandoParts || []), ...(T.trooperParts || [])]) m.removeFromParent();
   for (const w of [T.pistols && T.pistols.L, T.pistols && T.pistols.R, T.rifleMesh, T.darksaberMesh]) if (w) w.removeFromParent();

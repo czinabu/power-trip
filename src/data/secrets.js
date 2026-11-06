@@ -13,6 +13,10 @@
 // game/secrets.js walks it out from where you start and picks reachable, out-of-the-way corners well apart (next to a
 // wall or a rock, far from the start), so the secrets stay hidden on every map, and a map's layout can change without
 // stranding one inside a wall. `holocron` names the page it opens (HOLOCRONS below).
+// An open zone is too big for that: its map lists `spots` set by hand instead (data/zone-jedha.js), each its own find,
+// with its own page.
+
+import { JEDHA_LIFE } from './zone-jedha.js';
 
 export const SECRET_KINDS = {
   holocron: { name: 'HOLOCRON', verb: 'TAKE THE HOLOCRON', col: 0x7fd8ff, found: 'HOLOCRON FOUND' },
@@ -59,6 +63,7 @@ export const SECRET_MAPS = {
   approach:   { cave: true },
   meltworks:  { cave: true, meditate: true },
   ironroad:   { meditate: true },
+  zoJedha:    { spots: JEDHA_LIFE.secrets },   // the open zone (data/zones.js): three of each, set by hand
 };
 
 // THE HOLOCRONS' PAGES (the codex's HOLOCRONS tab): who left it, and what it says. `lines` are the recording's own words
@@ -102,4 +107,14 @@ export const HOLOCRONS = [
   { id: 'holo-kamino', name: 'THE DROWNED HOLOCRON', kicker: 'TIPOCA CITY ON KAMINO',
     lore: 'A Jedi\'s notes on the clone army, from the war\'s first year.',
     lines: ['They are kind, and brave, and they were grown to die. I cannot make the Council hear me.', 'There is something in their heads. I could not find out what.'] },
+  // the old city of Jedha's (the open zone: data/zone-jedha.js)
+  { id: 'holo-pilgrim', name: 'THE PILGRIM\'S HOLOCRON', kicker: 'THE SILENT QUARTER',
+    lore: 'Tucked under a doorstep in the empty quarter, by someone who meant to come back for it.',
+    lines: ['I walked here from the Outer Rim to touch the temple wall once. I touched it. That was enough.', 'If my lamp has gone out, light it for me. Then go home. Somebody is waiting for you.'] },
+  { id: 'holo-guildhall', name: 'THE GUILD MASTER\'S HOLOCRON', kicker: 'THE GARRISON',
+    lore: 'Walled up in the old crystal-cutters\' guild hall before the occupation built its compound over it.',
+    lines: ['We cut kyber for the Jedi for nine hundred years. We never once asked what they would do with it.', 'They will ask now. Tell them no. Tell them the stones remember whose hands are on them.'] },
+  { id: 'holo-firstlight', name: 'THE HOLOCRON OF THE FIRST LIGHT', kicker: 'THE TEMPLE OF THE FIRST LIGHT',
+    lore: 'Older than the dome above it: the temple\'s founders, speaking in a dialect nobody uses now.',
+    lines: ['We did not build this place. We found the light already here, and built walls round it to keep the wind off.', 'Whoever you are, you are not the first to stand here afraid. Sit. The light is patient.'] },
 ];

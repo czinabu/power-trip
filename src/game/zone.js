@@ -9,6 +9,8 @@
 //   · WAYSTONES: walking up to one touches it (your profile keeps it: game/profile.js noteZone); tap F at any one to travel
 //     to another you've touched. The gate's also takes you home.
 //   · DISTRICTS: walking into one names it in a banner; the first time, it counts as seen on your profile.
+//   · ITS LIFE: patrols in every district but the gate's (game/zone-fights.js), people who need a hand and moments that
+//     test which way you lean (game/zone-quests.js), and secrets set by hand in its corners (game/secrets.js).
 //   · A FALL is never the end: the hero wakes at the nearest waystone they have touched, whole (player/damage.js onHeroFall).
 //   · CO-OP: the host owns the foes, as in every mode (net/foes.js). Everyone lands at the gate, each in their own seat;
 //     every screen streams the streets round its own camera, and the host's also round every guest (so a guest's fight
@@ -35,6 +37,8 @@ import { floater } from '../fx/floaters.js';
 import { burst } from '../fx/particles.js';
 import { V3 } from '../utils.js';
 import { MUSIC } from '../audio/music.js';
+import { startZoneFights, updateZoneFights, zoneTier } from './zone-fights.js';
+import { startZoneQuests, updateZoneQuests, zoneQuestMarks } from './zone-quests.js';
 
 // what a zone hands out up front, by your rank (the stage a mission's `kit` names: data/missions.js), and how tough its foes
 const KIT_BY_RANK = [5, 7, 9, 9, 9];
@@ -81,6 +85,7 @@ export function startZone(key = 'jedha', opts = {}){
   land(at ? [at.x, at.z + 3, Math.PI] : Z.spawn);
   ZN.arrived = performance.now();
   if (opts.guest){ G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false; }
+  startZoneFights(Z); startZoneQuests(key, Z);   // its patrols and its people (game/zone-fights.js, game/zone-quests.js)
   MUSIC.setCue && MUSIC.setCue(null);
   return true;
 }
@@ -135,8 +140,11 @@ export function updateZone(dt){
   zoneStreamExtra(net.role === 'host' && connected() ? partnerStand().map(P => ({ x: P.pos.x, z: P.pos.z })) : null);
   updateZoneStream(false);
   if (G.zoneFallT > 0 && (G.zoneFallT -= dt) <= 0){ G.zoneFallT = 0; wake(); }
+  updateZoneQuests(G.paused || G.skillSelect || G.cutscene ? 0 : dt);
   if (G.paused || G.skillSelect || G.cutscene) return;
   const p = playerPos();
+  if (!G.coopGuest) G.waveTotal = zoneTier(p.x, p.z);   // the foes' tricks follow where the fight is (a guest is sent the host's)
+  updateZoneFights(dt);
   // a district walked into names itself in a banner (held a moment, so a border walked along doesn't flicker); the HUD
   // names the one you're in at once
   const d = districtAt(ZN.Z, p.x, p.z);
@@ -171,7 +179,7 @@ export function updateZone(dt){
 export function zoneMarks(){
   if (!G.zone || !ZN.Z) return [];
   const memo = zoneMemo(ZN.key);
-  return ZN.Z.waystones.map(w => ({ x: w.x, z: w.z, kind: memo.stones[w.id] ? 'spot' : 'part', label: w.name }));
+  return [...ZN.Z.waystones.map(w => ({ x: w.x, z: w.z, kind: memo.stones[w.id] ? 'spot' : 'part', label: w.name })), ...zoneQuestMarks()];
 }
 export const zoneLabel = (key) => (ZONES[key] || ZONES.jedha).name;
 export { ZONE_PREFIX };

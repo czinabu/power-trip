@@ -2,7 +2,7 @@
 // cuts, frame by frame on a held clock (testing only):
 //   npm run build && node tools/shots/grips.mjs <out-dir> [forms]   (DIST=<an index.html> films another build)
 //   forms: comma list of stance ids, each with +r for the reverse grip (jarkai+r: both reversed, jarkai+m: mixed).
-//   PHASES=idle,guard,cuts (also sprint, push: a Force push, jump, ease: the cutscene stand)
+//   PHASES=idle,guard,cuts (also sprint, push: a Force push, jump, ease: the cutscene stand, covers: the held catches zone by zone)  JITTER=1|2 counts elbow jerks
 //   VIEWS=front,side,back (default front,side)  FRAMES=<cut frames, default 60>  WIDE=1 frames the whole body
 // FOCUS=off centres on the off hand. Writes <out-dir>/<form>-<phase>-<view>/NNN.jpg, and prints how far the fist's hollow
 // sits off the hilt's axis (cm: a hilt held in the fist reads ~0) and how far the off hand is from its spot on a two-handed hilt.
@@ -80,6 +80,7 @@ async function frame(file){
     // how far any of them reaches round behind the back (z < -0.16 with the point inside the shoulders' width)
     const R = p.rig, inv = R.chest.matrixWorld.clone().invert(), W = n => new V().setFromMatrixPosition(n.matrixWorld).applyMatrix4(inv);
     let armIn = 0, armBack = 0, worst = '';
+    const elR = W(R.armR.el), elL = W(R.armL.el);   // (the elbows in chest space, for the jitter count: JITTER=1)
     for (const [A, nm] of [[R.armR, 'R'], [R.armL, 'L']]){
       const sh = W(A.sh), el = W(A.el), wr = W(A.wr);
       for (let t = 0.35; t <= 2.001; t += 0.1){
@@ -88,7 +89,7 @@ async function frame(file){
         if (Math.abs(q.x) < 0.3 && q.z < -0.16) armBack = Math.max(armBack, -0.16 - q.z);
       }
     }
-    return { armIn, armBack, worst, twoAng: ang(p.rig.armL.wr, p.saberBladeRoot), main: axisDist(p.rig.armR.wr, p.saberBladeRoot), two: axisDist(p.rig.armL.wr, p.saberBladeRoot, -1), offd: p.offSaber && p.offSaber.node.visible ? axisDist(p.rig.armL.wr, p.offSaber.root, -1) : null,
+    return { armIn, armBack, worst, elR: elR.toArray(), elL: elL.toArray(), twoAng: ang(p.rig.armL.wr, p.saberBladeRoot), main: axisDist(p.rig.armR.wr, p.saberBladeRoot), two: axisDist(p.rig.armL.wr, p.saberBladeRoot, -1), offd: p.offSaber && p.offSaber.node.visible ? axisDist(p.rig.armL.wr, p.offSaber.root, -1) : null,
       img: shoot ? GAME.gfx.renderer.domElement.toDataURL('image/jpeg', 0.88) : null };
   }, [!!file, view, WIDE, process.env.FOCUS || '']);
   if (file) writeFileSync(file, Buffer.from(r.img.split(',')[1], 'base64'));
@@ -111,17 +112,20 @@ for (const entry of LIST){
       for (let i = 0; i < 30; i++) await frame();
       const dir = path.join(out, `${name}-${ph}-${v}`); mkdirSync(dir, { recursive: true });
       stats.length = 0;
-      const n = ph === 'cuts' || ph === 'sprint' || ph === 'push' || ph === 'jump' || ph === 'ease' ? FRAMES : 12;
+      const n = ph === 'covers' ? 120 : ph === 'guard' && process.env.JITTER ? 60 : ph === 'cuts' || ph === 'sprint' || ph === 'push' || ph === 'jump' || ph === 'ease' ? FRAMES : 12;
       if (ph === 'sprint'){ await key('Shift', true); await key('w', true); }
       if (ph === 'ease') await page.evaluate(() => { GAME.G.cutscene = true; });
       for (let i = 0; i < n; i++){
         if (ph === 'push' && i % 30 === 0) await page.evaluate(() => { GAME.player.force = 999; GAME.forcePush(); });
         if (ph === 'jump' && i % 30 === 0){ await key(' ', true); await key(' ', false); }
         if (ph === 'guard') await page.evaluate(() => { GAME.player.blockHeld = true; });
+        // COVERS: the held catches a duellist's line waits on (jedi/guardline.js), each zone in turn, 20 frames apiece
+        if (ph === 'covers' && i % 20 === 0) await page.evaluate(z => { const Z = [[1, 0], [-1, 0], [1, 0.6], [-1, 0.6], [1, -0.6], [-1, -0.6]][z % 6];
+          GAME.player.blockHeld = true; GAME.player.deflectAnim = { t: 0, dur: 99, pose: null, side: Z[0], h: Z[1], hold: true, line: 'z' + z }; }, i / 20);
         if (ph === 'cuts' && i % 15 === 0) await page.evaluate(() => { GAME.player.atkHeld = false; GAME.tryAttack(); });
         await frame(path.join(dir, String(i).padStart(3, '0') + '.jpg'));
       }
-      await page.evaluate(() => { GAME.player.blockHeld = false; GAME.G.cutscene = false; });
+      await page.evaluate(() => { GAME.player.blockHeld = false; GAME.G.cutscene = false; GAME.player.deflectAnim = null; });
       if (ph === 'sprint'){ await key('w', false); await key('Shift', false); }
       if (v === VIEWS[0]){
         const m = stats.map(s => s.main).filter(x => x != null), o = stats.map(s => s.offd).filter(x => x != null);
@@ -130,6 +134,16 @@ for (const entry of LIST){
         const ta = stats.filter(s => s.two != null && s.two < 0.03).map(s => s.twoAng);
         const ai = stats.map(s => s.armIn), ab = stats.map(s => s.armBack);
         if (process.env.ARMS === '2') stats.forEach((s, i) => { if (s.armIn > 0.02 || s.armBack > 0.02) console.log('  frame', i, (s.armIn * 100).toFixed(1), s.worst, (s.armBack * 100).toFixed(1)); });
+        // ELBOW JITTER: an elbow's jerk (its second difference frame to frame, cm) — a flip between solutions shows as a spike
+        if (process.env.JITTER){
+          const jerk = k => stats.slice(2).map((s, i) => Math.hypot(...s[k].map((x, j) => x - 2 * stats[i + 1][k][j] + stats[i][k][j])) * 100);
+          const jR = jerk('elR'), jL = jerk('elL'), J = jR.map((x, i) => Math.max(x, jL[i]));
+          // …and a SHAKE: the elbow doubling back on itself (each step over 0.6cm, the two steps more than 90° apart)
+          const shake = k => stats.slice(2).filter((s, i) => { const a = stats[i + 1][k].map((x, j) => x - stats[i][k][j]), b = s[k].map((x, j) => x - stats[i + 1][k][j]);
+            const la = Math.hypot(...a), lb = Math.hypot(...b); return la > 0.006 && lb > 0.006 && a.reduce((t, x, j) => t + x * b[j], 0) < 0; }).length;
+          console.log(name, ph, 'elbow shakes R', shake('elR'), 'L', shake('elL'), ' jerk: frames >2cm', J.filter(x => x > 2).length + '/' + J.length, ' >5cm', J.filter(x => x > 5).length, ' worst', Math.max(...J).toFixed(1) + 'cm', '(R', Math.max(...jR).toFixed(1), 'L', Math.max(...jL).toFixed(1) + ')');
+          if (process.env.JITTER === '2') J.forEach((x, i) => { if (x > 2) console.log('  frame', i + 2, x.toFixed(1)); });
+        }
         if (process.env.ARMS) console.log(name, ph, 'arm in body: frames', ai.filter(x => x > 0.01).length + '/' + ai.length, 'deepest', (Math.max(...ai) * 100).toFixed(1) + 'cm', stats.reduce((a, s) => s.armIn > a.armIn ? s : a).worst,
           ' behind the back: frames', ab.filter(x => x > 0.01).length, 'furthest', (Math.max(...ab) * 100).toFixed(1) + 'cm');
         else console.log(name, ph, 'main fist↔hilt', f(m), ' off fist↔its hilt', f(o), ' off fist↔main hilt', f(t), ta.length ? ` (its turn off the hilt ${Math.min(...ta).toFixed(0)}–${Math.max(...ta).toFixed(0)}°)` : '');

@@ -206,7 +206,7 @@ const LEVEL = 0.15;   // the score's level on the music bus: the orchestra is de
 // -15 dBFS RMS out of the speakers with every slider at 100%), which still read as quiet for a title screen that has to
 // sell the mood; at 7 it sits around -9 dBFS, and the soft ceiling after `post` (init) rounds its peaks off under
 // -1 dBFS so the lift never clips.
-const MENU_LIFT = 3, MENU_POST = 4;
+const MENU_LIFT = 3, MENU_POST = 3;
 // ...and it still wasn't something you FEEL: at the menu's old intensity (0.16) the title theme was a soft pad, a sub
 // drone and a horn, with no bass line or drums. The title screen now plays the hero's theme at TITLE_I, the full
 // orchestra (bass line, kick, timpani every bar, horns doubled by trumpets on the tune), with a low shelf of TITLE_SHELF dB

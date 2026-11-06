@@ -74,6 +74,43 @@ try {
   if (SHOTS){ await page.$eval('#profile .pf-sides-h', el => el.scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') }); }
   await page.click('#pfclose');
 
+  // ---- THE GUNNERS' PATHS: the Mando's HONOUR / RUTHLESS and the trooper's MERCY / RUTHLESS (data/alignment.js) ----
+  const gp = await page.evaluate(() => {
+    const { PROFILE: P, creed: C } = GAME, out = {};
+    for (const [h, set, top] of [['mando', C.MANDO_SKILLS, 'alor'], ['trooper', C.TROOPER_SKILLS, 'commander']]){
+      const tree = C.PATH_TREE[h], o = out[h] = {};
+      o.inSet = tree.every(n => set.includes(n));
+      o.mirrored = [1, 2, 3].every(t => tree.filter(n => n.tier === t && n.align === 'light').length === 1 && tree.filter(n => n.tier === t && n.align === 'dark').length === 1);
+      const pr = P.profileOf(h), owns = (side) => tree.filter(n => n.align === side && P.owns(h, n)).length;
+      P.shiftAlign(40, h, 'test', true); pr.rank = 0;
+      o.lightLow = owns('light'); o.darkLow = owns('dark');   // (only the FOUNDATION card at the first rank)
+      pr.rank = P.track(h).ranks.findIndex(r => r.id === top);
+      o.light = owns('light'); o.dark = owns('dark');
+      o.jediGets = tree.some(n => P.owns('jedi', n));
+      P.shiftAlign(-80, h, 'test', true);
+      o.light2 = owns('light'); o.dark2 = owns('dark');
+    }
+    return out;
+  });
+  for (const h of ['mando', 'trooper']){
+    const o = gp[h];
+    check(o.inSet && o.mirrored, h + ': six path cards on its card list, a light and a dark at every tier');
+    check(o.lightLow === 1 && o.darkLow === 0, h + ': leaning light at the first rank opens only the FOUNDATION light card (' + o.lightLow + ')');
+    check(o.light === 3 && o.dark === 0 && !o.jediGets, h + ': at the top rank all three light cards open, none of the dark (' + o.light + '/' + o.dark + ')');
+    check(o.light2 === 0 && o.dark2 === 3, h + ': swinging to the dark closes the light cards and opens the dark (' + o.light2 + '/' + o.dark2 + ')');
+  }
+  // the Mando's profile page: the cards tagged RUTHLESS, and the HONOUR AND RUTHLESS section
+  await page.click('#pfBtn');
+  await page.waitForSelector('#profile.open', { timeout: 5000 }).catch(() => {});
+  await page.click('#profile [data-h="mando"]');
+  const mp = await page.evaluate(() => ({ h: document.querySelector('#profile .pf-sides-h h3') && document.querySelector('#profile .pf-sides-h h3').textContent,
+    nodes: document.querySelectorAll('#profile .pf-sides .pf-node').length, tags: [...document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-dark')].map(t => t.textContent) }));
+  check(mp.h === 'HONOUR AND RUTHLESS' && mp.nodes === 6, 'the Mando\'s profile shows HONOUR AND RUTHLESS with its six cards (' + mp.h + ', ' + mp.nodes + ')');
+  check(mp.tags.length === 3 && mp.tags.every(t => t === 'RUTHLESS'), 'the Mando\'s dark cards are tagged RUTHLESS (' + mp.tags.join(', ') + ')');
+  if (SHOTS){ await page.$eval('#profile .pf-sides-h', el => el.scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'profile-creed.png') }); }
+  await page.click('#pfclose').catch(() => {});
+  await page.evaluate(() => { for (const h of ['mando', 'trooper']) GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf(h), h, 'test', true); });
+
   // ---- MERCY, in survival ----
   await page.evaluate(() => { GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf('jedi'), 'jedi', 'test', true); });   // back to balanced
   await page.$eval('#mode-endless', el => el.click());
@@ -126,6 +163,7 @@ try {
   check(eyes.plain && eyes.dark !== eyes.plain && eyes.light !== eyes.plain && eyes.dark !== eyes.light, 'the eyes take the side you lean to (' + eyes.plain + ' · dark ' + eyes.dark + ' · light ' + eyes.light + ')');
   // ---- the dark path's card cuts its own powers' cost ----
   check(await page.evaluate(() => { const { SKILLS, player } = GAME; SKILLS.find(s => s.id === 'wrath').apply(); return player.up.costOf.judge === 0.85 && player.up.costOf.grasp === 0.85; }), 'WRATH cuts Judgement and the Grip by 15%');
+
 } catch(e){ check(false, e.message); }
 for (const e of errors) check(false, e);
 await browser.close();

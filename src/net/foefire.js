@@ -17,6 +17,7 @@ import { endLunge, paintLungeLine } from '../enemies/tactics.js';
 import { updateAimLine } from '../enemies/specials.js';
 import { addPosture, drainBreath, netGuardHit } from '../enemies/duel.js';
 import { DUEL } from '../data/duel.js';
+import { squadKillPerks } from '../game/creed.js';
 import { gainXp } from '../game/progression.js';
 import { hurtPlayer } from '../player/damage.js';
 import { players } from '../player/players.js';
@@ -187,7 +188,7 @@ hooks.xp = (n) => { if (asHost() && n > 0) send({ t: 'xp', n: Math.round(n) }); 
 on('xp', (m) => { if (asGuest()) gainXp(m.n); });
 // the shared squad's kills feed the guest's flow meter as they do the host's (player/gunner-flow.js: the trooper's BATTLE RHYTHM)
 hooks.sqk = () => { if (asHost()) send({ t: 'sqk' }); };
-on('sqk', () => { if (asGuest()) addFlow('squadKill'); });
+on('sqk', () => { if (asGuest()){ addFlow('squadKill'); squadKillPerks(); } });   // (and BROTHER'S KEEPER: game/creed.js)
 // a guest trooper's fire pins a foe (enemies/coverfight.js frighten): the host's AI is the one that has to crawl
 hooks.fpin = (e, s) => { if (asGuest() && e.nid != null) send({ t: 'fpin', n: e.nid, s: r2(s) }); };
 on('fpin', (m) => {

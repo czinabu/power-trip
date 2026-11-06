@@ -3,7 +3,8 @@
 //
 // Each hero's profile (game/profile.js) holds one ALIGNMENT, from -100 (all the way to the dark) to +100 (all the way to
 // the light), starting at 0. What moves it:
-//   CHOICES   the story's choices (data/campaign-jedi.js JEDI_CHOICES, data/campaign-trooper.js TROOPER_CHOICES), each
+//   CHOICES   the story's choices (data/campaign-jedi.js JEDI_CHOICES, data/campaign-mando.js MANDO_CHOICES,
+//             data/campaign-trooper.js TROOPER_CHOICES), each
 //             time a run makes one, and the side missions' own choices (data/side-quests.js `choice`), the first time
 //             only. In co-op each player's own pick moves their own meter; the host's pick decides the story.
 //   MERCY     how you fight. A beaten duellist YIELDS (it throws its blade down and backs off), and so is any foe a
@@ -11,7 +12,8 @@
 //             down while it's helpless. Each visit to a fight moves the meter at most `cap` this way.
 // Only real fights move it: training and the sandbox are practice (the same rule as rank XP).
 //
-// THE GUARDRAIL: light and dark are two STYLES, never two power levels. The two paths' cards (ALIGN_TREE) come in
+// THE GUARDRAIL: light and dark are two STYLES, never two power levels. The two paths' cards (PATH_TREE: the Jedi's
+// ALIGN_TREE, the Mando's and the trooper's below it) come in
 // mirrored pairs with the same budget at every tier, and each is one more card on the run's upgrade page at the same
 // one skill point (data/profile.js), so leaning either way opens breadth, never bigger numbers.
 
@@ -31,6 +33,9 @@ export const CHOICE_WEIGHT = {
   vexis: { vael: 25, ended: -20 },
   marshal: { home: 20, ended: -15 },      // (the trooper's)
   gate: { sealed: 20, kept: -20 },        // (Act IV's: seal the Sith gate, or keep it open)
+  ossik: { trusted: 8, marked: -8 },      // (the Mando's: what you tell the broker who sold the covert)
+  smiths: { freed: 20, buried: -20 },     // (the Mando's: the meltworks' chained smiths)
+  magistrate: { judged: 25, ended: -20 }, // (the Mando's last: the Iron Magistrate on his knees)
 };
 // a side mission's choice: its `light` answer and its `dark` answer
 export const SIDE_WEIGHT = 12;
@@ -95,6 +100,67 @@ export const ALIGN_PATHS = [
   { id: 'light', nm: 'THE LIGHT', line: 'Defence, shelter and mercy. Force from the parry; Barrier, Mend and Repulse come cheaper.' },
   { id: 'dark', nm: 'THE DARK', line: 'Aggression and fear. Force from the kill; Pull, the Grip and Judgement come cheaper.' },
 ];
+
+/* THE GUNNERS' PATHS — the same guardrail for the Mandalorian (HONOUR / RUTHLESS) and the ARC trooper (MERCY /
+   RUTHLESS): mirrored pairs, one budget per tier, open while you lean that way and hold the tier's rank (ALIGN_RANK).
+   game/creed.js runs what a card adds that the stats don't (a blow turned aside, a kill, a pinned foe). */
+export const ALIGN_RANK = {
+  jedi: { 1: 'padawan', 2: 'knight', 3: 'master' },
+  mando: { 1: 'foundling', 2: 'verd', 3: 'alor' },
+  trooper: { 1: 'trooper', 2: 'sergeant', 3: 'commander' },
+};
+// the tuning game/creed.js reads
+export const CREED = {
+  guardGap: 0.8,    // s: a blow turned aside pays a light card at most once in this long (a brace soaks every bolt)
+  wounded: 0.5,     // NO QUARTER: a foe under this share of its health
+  terror: 6,        // TERROR: m round a kill that every foe is pinned in
+};
+const dr = (k) => { player.up.dr = 1 - (1 - (player.up.dr || 0)) * k; };
+export const MANDO_ALIGN_TREE = [
+  // ---- FOUNDATION: power from the guard, or from the kill ----
+  { id: 'oath', hero: 'mando', align: 'light', ico: '⛨', nm: 'THE OATH', tier: 1, max: 2, ds: 'Turning a blow aside (a block, a deflect, a catch) restores +5 gadget power · +10% stamina regen',
+    fl: 'A Mandalorian\'s word is armour too.', apply(){ player.up.guardForce = (player.up.guardForce || 0) + 5; player.up.stamRegen *= 1.1; } },
+  { id: 'looseends', hero: 'mando', align: 'dark', ico: '✹', nm: 'NO LOOSE ENDS', tier: 1, max: 2, ds: 'A kill restores +5 gadget power · +10% stamina regen',
+    fl: 'Nobody left to come after you.', apply(){ player.up.killForce = (player.up.killForce || 0) + 5; player.up.stamRegen *= 1.1; } },
+  // ---- DISCIPLINE: the gadgets come cheaper ----
+  { id: 'clanshield', hero: 'mando', align: 'light', ico: '⛊', nm: 'SHIELD OF THE CLAN', tier: 2, max: 2, ds: 'Gadgets cost 10% less · take 6% less damage',
+    fl: 'Stand in front of the foundlings. That is the whole job.', apply(){ player.up.abilityCostMul *= 0.9; dr(0.94); } },
+  { id: 'noquarter', hero: 'mando', align: 'dark', ico: '⚡', nm: 'NO QUARTER', tier: 2, max: 2, ds: 'Gadgets cost 10% less · blaster bolts hit 12% harder on a foe under half health',
+    fl: 'Wounded is not finished.', apply(){ player.up.abilityCostMul *= 0.9; player.up.woundedDmg = (player.up.woundedDmg || 1) * 1.12; } },
+  // ---- CAPSTONE: mended by the guard, or by the kill ----
+  { id: 'beskarholds', hero: 'mando', align: 'light', ico: '☀', nm: 'THE BESKAR HOLDS', tier: 3, max: 1, ds: 'Turning a blow aside heals 4 vitality · +20% gadget power regen',
+    fl: 'They broke their blades on you. You are still here.', apply(){ player.up.guardHeal = (player.up.guardHeal || 0) + 4; player.up.forceRegen *= 1.2; } },
+  { id: 'trophy', hero: 'mando', align: 'dark', ico: '☄', nm: 'TROPHY HUNTER', tier: 3, max: 1, ds: 'A kill heals 4 vitality · +20% gadget power regen',
+    fl: 'Every helmet on the wall made you harder to kill.', apply(){ player.up.killHeal = (player.up.killHeal || 0) + 4; player.up.forceRegen *= 1.2; } },
+];
+export const TROOPER_ALIGN_TREE = [
+  // ---- FOUNDATION: bring them back faster, or make the kills pay ----
+  { id: 'leftbehind', hero: 'trooper', align: 'light', ico: '✚', nm: 'NOBODY LEFT BEHIND', tier: 1, max: 2, ds: 'You revive 25% faster · +10% stamina regen',
+    fl: 'Grab his collar and drag. Talk later.', apply(){ player.up.reviveMul = (player.up.reviveMul || 1) * 0.75; player.up.stamRegen *= 1.1; } },
+  { id: 'confirmed', hero: 'trooper', align: 'dark', ico: '✹', nm: 'KILL CONFIRMED', tier: 1, max: 2, ds: 'A kill on a pinned foe gives +4 more command points · +10% stamina regen',
+    fl: 'Pin them. Then finish them.', apply(){ player.up.pinKillCp = (player.up.pinKillCp || 0) + 4; player.up.stamRegen *= 1.1; } },
+  // ---- DISCIPLINE: a tougher squad, or a harder one ----
+  { id: 'shieldline', hero: 'trooper', align: 'light', ico: '⛨', nm: 'SHIELD THE LINE', tier: 2, max: 2, ds: 'Your squad takes 12% less damage · you take 5% less',
+    fl: 'Every brother on the line goes home.', apply(){ player.up.squadDr = (player.up.squadDr || 1) * 0.88; dr(0.95); } },
+  { id: 'noprisoners', hero: 'trooper', align: 'dark', ico: '⚡', nm: 'NO PRISONERS', tier: 2, max: 2, ds: 'Your squad hits 10% harder · your bolts hit 10% harder on a pinned foe',
+    fl: 'Heads down means heads still.', apply(){ player.up.squadDmg = (player.up.squadDmg || 1) * 1.1; player.up.pinnedDmg = (player.up.pinnedDmg || 1) * 1.1; } },
+  // ---- CAPSTONE: kept up by the squad, or by fear ----
+  { id: 'keeper', hero: 'trooper', align: 'light', ico: '☀', nm: 'BROTHER\'S KEEPER', tier: 3, max: 1, ds: 'The squad\'s kills heal you 3 vitality · +20% ability energy regen',
+    fl: 'You watch their backs. They watch yours.', apply(){ player.up.squadKillHeal = (player.up.squadKillHeal || 0) + 3; player.up.forceRegen *= 1.2; } },
+  { id: 'terror', hero: 'trooper', align: 'dark', ico: '☄', nm: 'TERROR', tier: 3, max: 1, ds: 'Your kills pin every foe within 6 m · +20% ability energy regen',
+    fl: 'They saw what happened to him. Nobody else stands up.', apply(){ player.up.terror = 1; player.up.forceRegen *= 1.2; } },
+];
+// every hero's path cards, and how each path reads on the profile page
+export const PATH_TREE = { jedi: ALIGN_TREE, mando: MANDO_ALIGN_TREE, trooper: TROOPER_ALIGN_TREE };
+export const PATH_WORDS = {
+  jedi: ALIGN_PATHS,
+  mando: [
+    { id: 'light', nm: 'HONOUR', line: 'The guard and the clan. Power and health from a blow turned aside; tougher in the open.' },
+    { id: 'dark', nm: 'RUTHLESS', line: 'The kill and the finish. Power and health from the kill; harder on the wounded.' } ],
+  trooper: [
+    { id: 'light', nm: 'MERCY', line: 'The squad first. Faster revives, a tougher line, and the squad\'s kills keep you up.' },
+    { id: 'dark', nm: 'RUTHLESS', line: 'Pin, then finish. Pinned kills pay command points, and your kills pin the rest.' } ],
+};
 
 // what the people around you say once you lean (game/talk.js lays these over data/talk.js, by name then `light` / `dark`)
 export const ALIGN_TALK = {

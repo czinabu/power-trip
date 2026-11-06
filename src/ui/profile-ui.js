@@ -15,7 +15,7 @@ import {
   ngBest, ngNextTier,
 } from '../game/profile.js';
 import { tierName, MAX_TIER } from '../data/ngplus.js';
-import { ALIGN, ALIGN_WORDS, ALIGN_TREE, ALIGN_PATHS } from '../data/alignment.js';
+import { ALIGN, ALIGN_WORDS, ALIGN_RANK, PATH_TREE, PATH_WORDS } from '../data/alignment.js';
 import { TRIALS, JEDI_TREE, RANK_SKILLS, BRANCHES, BRANCH, FORK_BRANCH, DECK_QUOTA, DECK_SIZE } from '../data/profile.js';
 import { SKILLS, MANDO_SKILLS, TIER_NAME } from '../data/skills.js';
 import { TROOPER_SKILLS } from '../data/trooper-progression.js';
@@ -173,16 +173,18 @@ function treeCol(){
     ${alignTreeSec()}
   </div>`;
 }
-// LIGHT AND DARK on the tree: the two sides' mirrored cards, open while you lean their way (no Insight: data/alignment.js)
-function alignTreeSec(){
-  const lean = leanOf('jedi');
-  const cols = ALIGN_PATHS.map(P => '<div class="pf-branch al-' + P.id + (lean === P.id ? ' path' : '') + '"><div class="pf-bh"><b>' + esc(P.nm) + '</b>' + (lean === P.id ? '<em class="pf-got">YOU LEAN THIS WAY</em>' : '') + '</div><p class="pf-bl">' + esc(P.line) + '</p>' +
-    ALIGN_TREE.filter(n => n.align === P.id).map(n => {
+// LIGHT AND DARK: each side's mirrored cards, open while you lean their way (no Insight: data/alignment.js). On the
+// Jedi's Force Tree; under the cards for the Mando (HONOUR / RUTHLESS) and the trooper (MERCY / RUTHLESS)
+const sideWord = (h, side) => (ALIGN_WORDS[h] || ALIGN_WORDS.jedi)[side];
+function alignTreeSec(h = 'jedi'){
+  const lean = leanOf(h), W = ALIGN_WORDS[h] || ALIGN_WORDS.jedi;
+  const cols = PATH_WORDS[h].map(P => '<div class="pf-branch al-' + P.id + (lean === P.id ? ' path' : '') + '"><div class="pf-bh"><b>' + esc(P.nm) + '</b>' + (lean === P.id ? '<em class="pf-got">YOU LEAN THIS WAY</em>' : '') + '</div><p class="pf-bl">' + esc(P.line) + '</p>' +
+    PATH_TREE[h].filter(n => n.align === P.id).map(n => {
       const open = alignOpen(n);
-      const tag = open ? '<em class="pf-got">✓ OPEN</em>' : '<em class="pf-lock">' + esc(lockWhy('jedi', n)) + '</em>';
+      const tag = open ? '<em class="pf-got">✓ OPEN</em>' : '<em class="pf-lock">' + esc(lockWhy(h, n)) + '</em>';
       return '<div class="pf-node al-' + n.align + ' ' + (open ? 'learned' : 'rank') + '"><div class="pf-nh"><span class="pf-ic">' + icon(n.ico) + '</span><b>' + esc(n.nm) + '</b><span class="pf-tier-k">' + TIER_NAME[n.tier] + '</span></div><p>' + n.ds + '</p>' + tag + '</div>';
     }).join('') + '</div>').join('');
-  return `<div class="pf-th pf-sides-h"><h3>LIGHT AND DARK</h3></div>
+  return `<div class="pf-th pf-sides-h"><h3>${esc(W.light)} AND ${esc(W.dark)}</h3></div>
     <p class="pf-note">Lean past ${ALIGN.lean} either way and that side's cards open for your deck. Same cost, same strength, a different way to fight. Swing back and they close.</p>
     <div class="pf-tree pf-sides">${cols}</div>`;
 }
@@ -194,8 +196,8 @@ function viewTabs(h){
 }
 function lockWhy(h, s){
   if (s.align){
-    const R = track('jedi').ranks.find(r => r.id === tierRank(s.tier));
-    return leanOf('jedi') === s.align ? 'UNLOCKS AT ' + (R ? R.nm : 'A HIGHER RANK') : 'NEEDS ' + s.align.toUpperCase() + ' ALIGNMENT';
+    const R = track(h).ranks.find(r => r.id === ALIGN_RANK[h][s.tier]);
+    return leanOf(h) === s.align ? 'UNLOCKS AT ' + (R ? R.nm : 'A HIGHER RANK') : 'NEEDS ' + sideWord(h, s.align) + ' ALIGNMENT';
   }
   if (s.prof) return 'LEARN ON THE FORCE TREE';
   const R = track(h).ranks.find(r => r.id === s.rank);
@@ -229,7 +231,7 @@ function deckCol(h){
       const st = !mine ? 'rank' : !deck ? 'all' : inD ? 'learned' : full ? 'insight' : 'open';
       const tag = !mine ? '<em class="pf-lock">' + esc(lockWhy(h, s)) + '</em>' : inD ? '<em class="pf-got">✓ IN YOUR DECK</em>' : deck && full ? '<em class="pf-lock">TIER FULL</em>' : '';
       const click = mine && deck && !live && (inD || !full) ? ' data-deck="' + s.id + '"' : '';
-      return '<div class="pf-node pf-dcard ' + st + (s.align ? ' al-' + s.align : '') + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b>' + (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + s.align.toUpperCase() + '</span>' : '') + '</div><p>' + s.ds + '</p>' + tag + '</div>';
+      return '<div class="pf-node pf-dcard ' + st + (s.align ? ' al-' + s.align : '') + (click ? ' pick' : '') + '"' + click + '><div class="pf-nh"><span class="pf-ic">' + icon(s.ico) + '</span><b>' + esc(s.nm) + '</b>' + (s.align ? '<span class="pf-tier-k al-' + s.align + '">' + esc(sideWord(h, s.align)) + '</span>' : '') + '</div><p>' + s.ds + '</p>' + tag + '</div>';
     }).join('')
       + (f === 'deck' ? Array.from({ length: Math.max(0, DECK_QUOTA[t] - k) }, () => '<div class="pf-slot" data-filter="all">+ EMPTY SLOT</div>').join('') : '')
       + (!cards.length && f !== 'deck' ? '<p class="pf-empty">' + (f === 'locked' ? 'Nothing locked here.' : 'Nothing yet.') + '</p>' : '')
@@ -242,6 +244,7 @@ function deckCol(h){
     <div class="pf-th"><h3>CARDS</h3>${bar}${acts}</div>
     <p class="pf-note${live ? ' pf-live-note' : ''}">${note}</p>
     <div class="pf-tree">${cols}</div>
+    ${h === 'jedi' ? '' : alignTreeSec(h)}
   </div>`;
 }
 

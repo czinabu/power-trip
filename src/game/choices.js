@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // STORY CHOICES: the campaign's decisions that carry forward (save the Ledger or burn it, spare Ilsa or strike her down…).
-// A story lists its choices (data/campaign-jedi.js JEDI_CHOICES), each asked on a card after a chapter is cleared, or
+// A story lists its choices (data/campaign-jedi.js JEDI_CHOICES, data/campaign-mando.js MANDO_CHOICES), each asked on a card after a chapter is cleared, or
 // after the last boss (`after: 'end'`). The answers live in G.story ({ choice id: answer key }), saved with the run
 // (game/saves.js) and sent to a co-op guest with the host's run (net/foes.js), so both screens tell the same story.
 //
@@ -11,8 +11,9 @@ import { G } from '../state.js';
 import { JEDI_CHOICES } from '../data/campaign-jedi.js';
 import { TROOPER_CHOICES } from '../data/campaign-trooper.js';
 import { GATE_CHOICES } from '../data/campaign-gate.js';
+import { MANDO_CHOICES } from '../data/campaign-mando.js';
 
-const CHOICES = { jedi: JEDI_CHOICES, trooper: TROOPER_CHOICES, gate: GATE_CHOICES };
+const CHOICES = { jedi: JEDI_CHOICES, mando: MANDO_CHOICES, trooper: TROOPER_CHOICES, gate: GATE_CHOICES };
 
 // the answer to a choice so far: before it's made (or on a save from before it was asked), the choice's `default`
 const CHOICE = {};

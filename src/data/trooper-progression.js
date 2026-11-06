@@ -15,6 +15,7 @@ import { SQUAD } from './allies.js';
 import { TROOPER } from './trooper.js';
 import { switchWeapon } from '../player/mando/weapons.js';
 import { RANK_SKILLS } from './profile.js';
+import { TROOPER_ALIGN_TREE } from './alignment.js';
 import { recordFork } from '../game/wardrobe.js';
 // the path's kit is his from the signature chapter's close (game/wardrobe.js, game/look-unlocks.js)
 const wearFork = (id) => recordFork(id);
@@ -98,4 +99,6 @@ export const TROOPER_SKILLS = [
     fl:'No one gets left behind. Not again.', apply(){ player.up.reviveMul = (player.up.reviveMul || 1) * 0.33; player.up.brothers = 1; } },
   // ---- the service ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
   ...RANK_SKILLS.trooper,
+  // ---- MERCY AND RUTHLESS (data/alignment.js): dealt only while you lean that way (game/profile.js alignOpen) ----
+  ...TROOPER_ALIGN_TREE,
 ];

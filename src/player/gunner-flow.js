@@ -18,7 +18,8 @@ import { camera } from '../engine/renderer.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
 import { padKey } from '../engine/gamepad.js';
 import { padLayout } from '../data/gamepad.js';
-import { coopRun } from '../net/run.js';
+import { coopRun, hooks } from '../net/run.js';
+import { MERC } from '../game/alignment.js';
 import { G, enemies, bolts, solids, player, isGunner, isMando, isTrooper } from '../state.js';
 import { playerPos, fwd, rightV } from './helpers.js';
 import { crosshairPoint } from './aim.js';
@@ -77,7 +78,7 @@ function flanked(e, dir){
 }
 // a bolt of the trooper's landed (enemies/bolts.js)
 export function flowShotHit(e, dir){
-  if (!isTrooper() || !flanked(e, dir)) return;
+  if (!isTrooper() || MERC.guest || !flanked(e, dir)) return;
   if (G.gt - (e.flowFlankT ?? -9) < 0.5) return;   // a burst is one flank, not three
   e.flowFlankT = G.gt;
   addFlow('flank');
@@ -92,7 +93,7 @@ export function flowCoverTaken(){
 export function flowCoverLeft(){ const pp = playerPos(); player.flowCoverLeft = { t: G.gt, x: pp.x, z: pp.z }; }
 // the hero's own kill (enemies/damage.js, after the fight's last-foe beat)
 export function flowKill(e, dir){
-  if (!flowDef()) return;
+  if (!flowDef() || MERC.guest) return;   // (co-op: a guest's blow applied on the host's browser is the guest's kill, fed on their side)
   if (isMando()){
     addFlow(player.grounded ? 'kill' : 'airKill');
     return;
@@ -104,7 +105,7 @@ export function flowKill(e, dir){
 }
 // the Mando's takedown kills (mando/melee.js)
 export function flowTakedown(e){
-  if (!isMando()) return;
+  if (!isMando() || MERC.guest) return;
   addFlow('takedown');
   if (e && e.dead && !killCamOn()) killCam('takedown', e);
 }
@@ -209,7 +210,7 @@ function fireSig(s, kind){
     from = V3(pp.x + r.x * 0.26 + f.x * 0.65, pp.y + 1.78, pp.z + r.z * 0.26 + f.z * 0.65);
     to = headPos(e, V3());
     const W = MANDO_WEAPONS[player.weapon] && !MANDO_WEAPONS[player.weapon].melee ? MANDO_WEAPONS[player.weapon] : MANDO_WEAPONS.single;
-    spawnBlasterBolt(from, V3(to.x - from.x, to.y - from.y, to.z - from.z).normalize(), 0, S.color, 1.35, W, { spread: 0, to });
+    spawnBlasterBolt(from, V3(to.x - from.x, to.y - from.y, to.z - from.z).normalize(), 0, S.color, 1.35, W, { spread: 0, to, quiet: true });
     sfx(1500, 0.07, 'square', 0.06, 380);
     G.shake = Math.max(G.shake, 0.2);
   } else {
@@ -226,7 +227,10 @@ function fireSig(s, kind){
     sfx(700, 0.05, 'square', 0.04, 300);
   }
   const b = bolts[bolts.length - 1], dist = from.distanceTo(to);
-  if (b){ b.speed = S.speed; b.ghost = true; b.life = dist / S.speed; }   // (drawn only: it ends where it lands)
+  if (b){
+    b.speed = S.speed; b.ghost = true; b.life = dist / S.speed;   // (drawn only: it ends where it lands)
+    if (hooks.pbolt) hooks.pbolt(b, S.color, 1.35);   // co-op: the partner sees every bolt of it fly, at its real speed
+  }
   s.hitAt = G.gt + dist / S.speed;
   s.dir = V3(to.x - from.x, 0, to.z - from.z).normalize();
 }

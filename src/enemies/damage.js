@@ -197,7 +197,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
     if (byAlly){
       // the squad's kill: a share of the bounty, none of the hero's rewards
-      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); }
+      if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); if (hooks.sqk) hooks.sqk(); }   // (co-op: the shared squad's kill feeds the guest's BATTLE RHYTHM too)
       S.kill(cp, !!e.t.heavy);
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);
       return;

@@ -204,7 +204,7 @@ export function spawnBlasterBolt(origin, dir, dmg, color, scale, W, opts){
     b.foMin = opts.foMin != null ? opts.foMin : W.foMin;   // for range damage falloff (bracing lifts the floor)
     b.playerShot = true;   // tag for accuracy tracking
     if (W.flinch != null) b.flinch = W.flinch;   // how hard it rocks the foe it hits (enemies/bolts.js)
-    if (hooks.pbolt) hooks.pbolt(b, color, scale); }   // co-op: the partner sees it fly
+    if (hooks.pbolt && !opts.quiet) hooks.pbolt(b, color, scale); }   // (opts.quiet: the caller sends it, player/gunner-flow.js)   // co-op: the partner sees it fly
   if (G.stats) G.stats.shotsFired++;
   // muzzle flash fires every shot, drawn at the barrel of whichever gun is nearest the bolt's origin — pooled Ink
   // sprites, no per-shot PointLight (a light here would churn the light count; big blasts use flashLight()).

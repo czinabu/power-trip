@@ -119,7 +119,8 @@ for (const hero of HEROES){
 
     // every other side mission builds and starts on its map, its objectives in order
     for (const id of ['side:ledger-child', 'side:temple-droid', 'side:relic-thief', 'side:drowned-holocron', 'side:grave-knight']){
-      await page.evaluate((id) => { document.getElementById('overlay').style.display = 'none'; GAME.G.missionId = id; GAME.startMission(id); GAME.G.mode = 'play'; GAME.G.paused = false; }, id);
+      await page.evaluate((id) => { const pick = document.querySelector('#chapcard.open .cc-opt'); if (pick) pick.click();   // (the last one's light-or-dark choice, if it is up)
+        document.getElementById('overlay').style.display = 'none'; GAME.G.missionId = id; GAME.startMission(id); GAME.G.mode = 'play'; GAME.G.paused = false; }, id);
       const ok = await page.waitForFunction((id) => GAME.missionState().on && GAME.missionState().def.id === id && GAME.missionState().o, id, poll).then(() => true, () => false);
       const objs = await page.evaluate(() => GAME.missionState().def.objectives.map(o => o.kind).join(' › '));
       check(ok, `${hero}: ${id} starts (${objs})`);

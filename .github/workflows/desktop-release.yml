@@ -1,12 +1,16 @@
 # Publishes a new version of the Windows desktop app as a GitHub Release. Installed copies (PowerTrip-…-setup.exe) find it
 # the next time they start, download it in the background and install it when the game is closed; the portable .exe
-# says a new version is out and links here. Run it from the Actions tab: "Desktop release" -> Run workflow (on main).
+# says a new version is out and links here.
+# It runs by itself every night (09:00 UTC) and releases only if main has changed since the last release; to release
+# right away, run it from the Actions tab: "Desktop release" -> Run workflow (on main).
 # Each release is numbered <major>.<minor>.<this workflow's run number>, so every one is newer than the last.
 # The website, Vercel previews and the main check don't depend on any of this.
 name: Desktop release
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'   # nightly; skipped when nothing was merged since the last release
 
 permissions:
   contents: write   # create the release and upload the .exe files
@@ -16,7 +20,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changed:
+    # the nightly run releases only when main has moved on from the last release's commit (Run workflow always releases)
+    runs-on: ubuntu-24.04
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          tag=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+          if [ -z "$tag" ]; then echo "No release yet: releasing."; echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          last=$(gh api "repos/$REPO/commits/$tag" --jq .sha)
+          if [ "$last" = "${{ github.sha }}" ]; then echo "Nothing merged since $tag: skipping."; echo "go=false" >> "$GITHUB_OUTPUT"
+          else echo "main moved on since $tag: releasing."; echo "go=true" >> "$GITHUB_OUTPUT"; fi
+
   release:
+    needs: changed
+    if: needs.changed.outputs.go == 'true'
     runs-on: windows-latest
     timeout-minutes: 25
     steps:

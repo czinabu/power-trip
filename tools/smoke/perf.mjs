@@ -24,7 +24,7 @@ const browser = await chromium.launch({ ...(process.env.PW_CHROMIUM ? { executab
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.addInitScript(q => {
   try { for (const k of ['sw_camp_mando', 'sw_camp_jedi']) localStorage.setItem(k, '1');
-        localStorage.setItem('jpt_quality', q); localStorage.setItem('sw_fullscreen', '0'); } catch(e){}
+        localStorage.setItem('jpt_quality', q); localStorage.setItem('sw_fullscreen', '0'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
   Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('perf', 'NotSupportedError')); };
 }, process.env.PERF_QUALITY || 'high');
 const errors = [];

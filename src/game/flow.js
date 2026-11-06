@@ -88,6 +88,10 @@ function spawnBossWhenReady(still, ms){
     if (G.chapter >= 0) playBossIntro();   // the campaign's last boss gets his entrance (game/cutscene.js)
   }, ms);
 }
+// called as any level but a hub's starts, before it builds (a hook, so this file needn't import its listeners)
+// (a function's own list, not a const: a listener can register while this file is still loading, in an import cycle)
+function runHooks(){ return runHooks.list || (runHooks.list = []); }
+export function onRunStart(fn){ runHooks().push(fn); }
 export function startLevel(idx, opts){
   const fresh = idx === 0 && !(opts && opts.resume);   // a brand-new campaign: reset the hero's build
   G.levelIdx = idx;
@@ -99,6 +103,7 @@ export function startLevel(idx, opts){
   G.mission = !!(opts && opts.mission);
   G.sandbox = !!(opts && opts.sandbox);
   G.hub = !!(opts && opts.hub);   // the hidden temple (game/hub.js): no foes, no waves, no run
+  if (!G.hub) for (const fn of runHooks()) fn();   // a run setting off (the hub's welcome tour ends: game/hub-welcome.js), before this mode puts up a panel of its own
   setFoeLook(opts && opts.foeLook);   // a story mission's uniform for the foes it sends (enemies/look.js), or none
   G.squadCap = (opts && opts.squadCap) || 0;   // and the most squadmates its story has (allies/squad.js trooperSquad), or no cap
   const L = (opts && opts.level) || LEVELS[idx];

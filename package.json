@@ -36,7 +36,9 @@
     "smoke:coop-citadel": "HOST=trooper node tools/smoke/coop-temple.mjs",
     "perf:hitch": "node tools/smoke/hitch.mjs",
     "shots:maps": "node tools/shots/maps.mjs",
-    "smoke:files": "node tools/smoke/files.mjs"
+    "smoke:files": "node tools/smoke/files.mjs",
+    "smoke:welcome": "node tools/smoke/hub-welcome.mjs",
+    "smoke:coop-welcome": "node tools/smoke/coop-welcome.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

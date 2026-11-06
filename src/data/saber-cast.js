@@ -69,6 +69,10 @@ export const CAST = {
   // Vael's old apprentice: a pale, scarred face under the hood, half of it behind the cracked mask the temple left him
   'DARTH VEXIS': { side: 'sith', build: 'm', w: 1.16, height: 1.08, face: { skin: 0xb9aca8, hair: 0x120e0e, style: 'bald', scar: true, marks: 0x4a0c12, markStyle: 'lines', sith: true },
                    mask: 'lord', armour: 'lord', cloak: true, hood: true, colors: { tunic: 0x141116, tabard: 0x0a090c, cloak: 0x0b0709, trim: 0xb3121e, belt: 0x120d0d } },
+  // DARTH KHAREL, Act IV's gate guardian (data/boss-kharel.js): a thousand years dead, in a VESSEL of the clans' beskar.
+  // No face under the lord's mask, only the void and violet eyes; the armour is beskar grey with the old violet trim
+  'DARTH KHAREL': { side: 'sith', build: 'm', w: 1.2, height: 1.1, face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xb46bff },
+                   mask: 'lord', armour: 'lord', cloak: true, hood: true, colors: { tunic: 0x2a2c34, tabard: 0x3c404a, cloak: 0x120a18, trim: 0x8a4ad2, belt: 0x5a5e68 } },
   'THE ECHO':    { side: 'echo', build: 'm', face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xc49aff }, cloak: true, hood: true },
 };
 // the Jedi's sparring blade, and the masters' (Ataru's acrobat), share the names other stories give them

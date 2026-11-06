@@ -30,6 +30,7 @@ export const CHOICE_WEIGHT = {
   ilsa: { spared: 25, struck: -25 },
   vexis: { vael: 25, ended: -20 },
   marshal: { home: 20, ended: -15 },      // (the trooper's)
+  gate: { sealed: 20, kept: -20 },        // (Act IV's: seal the Sith gate, or keep it open)
 };
 // a side mission's choice: its `light` answer and its `dark` answer
 export const SIDE_WEIGHT = 12;

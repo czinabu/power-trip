@@ -10,8 +10,9 @@
 import { G } from '../state.js';
 import { JEDI_CHOICES } from '../data/campaign-jedi.js';
 import { TROOPER_CHOICES } from '../data/campaign-trooper.js';
+import { GATE_CHOICES } from '../data/campaign-gate.js';
 
-const CHOICES = { jedi: JEDI_CHOICES, trooper: TROOPER_CHOICES };
+const CHOICES = { jedi: JEDI_CHOICES, trooper: TROOPER_CHOICES, gate: GATE_CHOICES };
 
 // the answer to a choice so far: before it's made (or on a save from before it was asked), the choice's `default`
 const CHOICE = {};

@@ -578,4 +578,7 @@ const look = {
 };
 const guest = { zap: null };
 
-registerFinale(VEXIS, { guardBreak, throw: saberThrow, lightning, choke, repulse, blink, storm, lastStand }, look);
+// (his moves and his look are lent to the gate's guardian, Darth Kharel, who fights in the same old Sith way: boss/kharel.js)
+export const VEXIS_MOVES = { guardBreak, throw: saberThrow, lightning, choke, repulse, blink, storm, lastStand };
+export const VEXIS_LOOK = look;
+registerFinale(VEXIS, VEXIS_MOVES, look);

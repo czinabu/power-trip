@@ -43,7 +43,7 @@ import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending } from '../ui/ability-card.js';
 import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
-import { chapterOrder } from '../data/campaign.js';
+import { chapterOrder, storyHero } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint, noteWavePoint, resetUpgrades, upToast } from './upgrades.js';
 import { inCombat } from '../player/mobility.js';
@@ -327,7 +327,7 @@ export function checkUnlocks(bannerDelay, closing){
       setLoadout(G.missionForms);
     } else setLoadout(autoLoadout());
   }
-  if (G.training || (G.mission && G.chapter < 0) || G.sandbox || G.hub) return;   // (the temple: no fanfare either) the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
+  if (G.training || (G.mission && G.chapter < 0) || G.sandbox || G.hub || G.kitQuiet) return;   // (and a veteran's kit, handed over at once in Act IV: game/gate.js)   // (the temple: no fanfare either) the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
   // the Force Level rose (ui/force-toast.js): FORCE LEVEL N across the screen with a Force pulse round the hero, in play.
   // At a chapter's close, or with a power that has its own card, it leads: those screens open after the rise
   if (forceUp && (closing || G.endless)){
@@ -371,7 +371,8 @@ function forceRise(lv, was){
 // a chapter of this run (by id) is behind the hero: the run is on a later chapter, or it has just closed (G.chapterClosed):
 // what it hands out is granted and shown at its close, and its closing upgrade page offers its powers (data/store.js)
 const chapterPos = (id) => chapterOrder(G.actTwo).findIndex(c => c.id === id);
-export function chapterClosed(id){ const at = chapterPos(id); return at >= 0 && (G.chapter > at || (G.chapter === at && G.chapterClosed === at)); }
+// ACT IV (game/gate.js) is played by heroes who have finished a story: every chapter of the three is behind them
+export function chapterClosed(id){ const at = chapterPos(id); if (at < 0 && G.chapter >= 0 && storyHero() === 'gate') return true; return at >= 0 && (G.chapter > at || (G.chapter === at && G.chapterClosed === at)); }
 // ...and it is the one that just closed (the upgrade page marks what it taught as NEW)
 export function chapterJustClosed(id){ const at = chapterPos(id); return at >= 0 && G.chapter === at && G.chapterClosed === at; }
 // unlocks that landed while a chapter card was up (game/campaign.js), announced once it closes

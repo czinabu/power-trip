@@ -3,6 +3,7 @@ import { G, heroKey } from '../state.js';
 import { TROOPER_VOICE, TROOPER_ACTS, TROOPER_ACT_TWO, TROOPER_ACT_TWO_LABEL, TROOPER_CHAPTERS, TROOPER_EPILOGUE } from './campaign-trooper.js';
 import { MANDO_VOICE, MANDO_ACTS, MANDO_ACT_TWO, MANDO_ACT_TWO_LABEL, MANDO_CHAPTERS, MANDO_EPILOGUE } from './campaign-mando.js';
 import { JEDI_VOICE, JEDI_ACTS, JEDI_ACT_TWO, JEDI_CHAPTERS, JEDI_ENDINGS } from './campaign-jedi.js';
+import { GATE_VOICE, GATE_ACT, GATE_CHAPTERS } from './campaign-gate.js';
 import { storyWords, answer } from '../game/choices.js';
 // THE CAMPAIGN, as data: three acts of chapters, played in order (game/campaign.js runs them). Edit the words freely.
 //
@@ -210,6 +211,7 @@ export function storyChapter(c, story = storyHero()){
 export const storyMissions = (c) => [c.mission, ...Object.values(OWN).map(s => s[c.id] && s[c.id].mission)].filter(Boolean);
 // the order a run plays them in: Act II's pairs follow the player's pick (default Lothal first, before the pick is made)
 export function chapterOrder(first, story = storyHero()){
+  if (story === 'gate') return GATE_CHAPTERS.map(c => ({ ...storyWords(c), story }));   // ACT IV, the shared campaign after the three (data/campaign-gate.js)
   const lothal = CHAPTERS.filter(c => c.pair === 'lothal'), hoth = CHAPTERS.filter(c => c.pair === 'hoth');
   const pairs = first === 'hoth' ? [...hoth, ...lothal] : [...lothal, ...hoth];
   const at = CHAPTERS.findIndex(c => c.pair);
@@ -228,7 +230,11 @@ const OWN_WORDS = {
   mando: { voice: MANDO_VOICE, acts: MANDO_ACTS, actTwo: MANDO_ACT_TWO, actTwoLabel: MANDO_ACT_TWO_LABEL, epilogue: () => MANDO_EPILOGUE },
   jedi:  { voice: JEDI_VOICE, acts: JEDI_ACTS, actTwo: JEDI_ACT_TWO, actTwoLabel: { lothal: 'THE PENS FIRST' }, epilogue: () => JEDI_ENDINGS[jediEnding()] },
   trooper: { voice: TROOPER_VOICE, acts: TROOPER_ACTS, actTwo: TROOPER_ACT_TWO, actTwoLabel: TROOPER_ACT_TWO_LABEL, epilogue: () => TROOPER_EPILOGUE },
+  // ACT IV (data/campaign-gate.js): one act, at index 3, and no Act II pick. Its epilogue is each screen's own, built from
+  // that player's lean and earlier endings (game/gate.js sets it: setGateEpilogue)
+  gate: { voice: GATE_VOICE, acts: [GATE_ACT, GATE_ACT, GATE_ACT, GATE_ACT], actTwo: {}, actTwoLabel: {}, epilogue: () => ({}) },
 };
+export const setGateEpilogue = (fn) => { OWN_WORDS.gate.epilogue = fn; };
 const own = (story) => OWN_WORDS[story];
 // (a chapter's own `voice` speaks for it instead: a story can hand the comms to someone else partway through)
 export const storyVoice = (story = storyHero(), c = null) => (c && c.voice) || (own(story) ? own(story).voice : heroKey(VOICE));

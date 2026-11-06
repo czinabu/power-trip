@@ -12,6 +12,7 @@ import { setStationOpener, goWing, hubWing, curHub, runLabel } from '../game/hub
 import { hubLaunch, hubLaunchZone, hubToMenu, hubOpenPanel, survivalUnlocked, joinHostRun, goTemple, setHubPanelCloser, overlay } from './menus.js';
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
+import { gateOpen } from '../game/gate.js';
 import { randomArcadeId } from '../data/arcade.js';
 import { openMissionPage } from './missions-ui.js';
 import { openCustomizer } from './customizer.js';
@@ -56,6 +57,8 @@ const B = (t, d, go, lock) => ({ t, d, go, lock });
 // NEW GAME+ (data/ngplus.js), once this hero has beaten the campaign: the story again at the next tier, the profile kept
 const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The story again with your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter',
   () => askParty(tierName(t), () => { G.resumeRun = null; G.ngNext = t; hubLaunch('campaign'); }))] : []; };
+// ACT IV · THE SITH GATE (game/gate.js): the shared campaign after the three, for the whole party
+const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign');
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
 
 function options(s){
@@ -79,6 +82,7 @@ function options(s){
       const sv = survivalUnlocked();
       return [
         B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+        gateButton(),
         ...ngButton(),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
@@ -104,6 +108,7 @@ function options(s){
       ];
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        gateButton(),
         ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),

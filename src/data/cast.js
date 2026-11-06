@@ -31,6 +31,7 @@ export const CAST = {
   'CAPTAIN DACE': jedi({ parts: { hair: 'short', beard: 'moustache' }, palette: { skin: 0xf1c9a5, hair: 0xb89656, robe: 0x1e2a4a, tabard: 0x34466e } }),
   'THE MANDALORIAN': mando({ parts: { helmet: 'clean', cape: 'full' }, palette: { beskar: 0x8c8f94, beskar2: 0x4a4f58, cloth: 0x3a3a3a, accent: 0x1f2126 } }, { bound: true }),
   'THE INQUISITOR': { kind: 'foe', t: { model: 'acolyte', color: 0x2a1418, eye: 0xff3a2a, cloth: 0x5a0e14 }, scale: 1.31, foe: true },
+  'DARTH KHAREL': { kind: 'foe', t: { model: 'acolyte', color: 0x4a4e58, eye: 0xb46bff, cloth: 0x1a0e22, weapon: 'saber' }, look: 'DARTH KHAREL', scale: 1.3, foe: true },   // (the vessel's beskar and mask: data/saber-cast.js)
   'DARTH VEXIS': { kind: 'foe', t: { model: 'acolyte', color: 0x2c2a30, eye: 0xff2a36, cloth: 0x1c1416, weapon: 'saber' }, look: 'DARTH VEXIS', scale: 1.49, foe: true },   // (his own armour and mask: data/saber-cast.js)
 
   // ---------------- the Mandalorian's story ----------------

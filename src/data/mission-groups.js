@@ -21,6 +21,7 @@ import { MISSIONS } from './missions.js';
 // (a string, or { jedi, mando, trooper })
 export const STORIES = [
   { id: 'campaign', title: 'THE CAMPAIGN', acts: ACTS.map(a => a.title) },   // the story every hero plays
+  { id: 'gate', title: 'ACT IV · THE SITH GATE', acts: ['THE SITH GATE'], actFrom: 3 },   // the shared campaign after the three (data/missions-gate.js)
   // a hero's own story goes here, e.g.
   // { id: 'mando-saga', title: 'THE MANDALORIAN\'S HUNT', heroes: ['mando'], acts: ['THE BOUNTY', 'THE COVERT'] },
   // { id: 'arc-chapters', title: 'THE ARC TROOPER', heroes: ['trooper'], acts: ['THE ORDER'] },
@@ -58,7 +59,7 @@ export function missionShelves(hero){
   return stories.map(st => {
     const mine = placed.filter(p => p.s.story === st.id || (st === SIDE_STORY && !stories.some(o => o.id === p.s.story)));
     const groups = st.acts.map((a, ai) => ({
-      title: st === SIDE_STORY ? '' : 'ACT ' + ROMAN[ai] + (forHero(a, hero) ? ' · ' + forHero(a, hero) : ''),
+      title: st === SIDE_STORY ? '' : 'ACT ' + ROMAN[ai + (st.actFrom || 0)] + (forHero(a, hero) ? ' · ' + forHero(a, hero) : ''),
       missions: mine.filter(p => (st === SIDE_STORY ? 0 : Math.min(p.s.act, st.acts.length - 1)) === ai)
                     .sort((a, b) => a.s.pos - b.s.pos || a.i - b.i).map(p => p.m),
     })).filter(g => g.missions.length);

@@ -287,77 +287,142 @@ const KINDS = {
   },
 
   /* BUILDING — a real multi-storey building standing in the fight: a podium block with a lit entrance under a canopy,
-     a tower set back above it, storey bands, pilasters and rows of windows (some lit) on every face, and a roof of
-     plant, a mast and a beacon. Its walls are hard cover and wall-kick faces; the barriers at its doors are cover to
-     crouch behind; the podium's roof is a deck the jetpack can land on. Detail is merged into a few meshes per building.
+     a tower set back above it, and roof plant, a mast and a beacon. Its walls are hard cover and wall-kick faces; the
+     barriers at its doors are cover to crouch behind; the podium's roof is a deck the jetpack can land on. Detail is
+     merged into a few meshes per building. `style` dresses it for its world; the masses (so the cover and the lanes)
+     are the same in every style:
+       block    (the default) storey bands, pilasters, rows of windows: a garrison block, a relay station
+       spire    Kamino's: smooth pale walls, rounded corners, round ports, a saucer deck, a domed crown
+       keep     a fortress: buttresses, slit windows, battlements, a pyramid roof
+       bunker   a prefab command bunker: armour plates leaning on its walls, shuttered slits, a comms dish
+       control  a dock control tower: its top storeys a wide band of slanted glass over the yard
+       adobe    a desert tower: rounded corners, small deep windows, beam ends, a dome and a vapour vane
      `w` / `d` half its length / depth, `h` its height, `podium` the podium's height (all of it when there's no tower),
      `inset` the tower's setback, `storey`, `bay` (window spacing), `lit` (share of windows lit), `front` 1 / −1 / 0 (which
-     long face has the entrance, 0 both), `bands` false for plain walls (adobe), `roof` false for no plant. */
+     long face has the entrance, 0 both), `bands` false for no storey bands, `roof` false for no plant. */
   building(K, x, z, ax, M, o, R){
+    const S = o.style || 'block';
     const w = o.w ?? 7, d = o.d ?? 5, H = o.h ?? 28, st = o.storey ?? 3.6, bay = o.bay ?? 3.2;
     const pod = Math.min(o.podium ?? (H > 20 ? 12.6 : H), H), tower = H - pod > 2;
     const tw = w - (o.inset ?? 1.6), td = d - (o.inset ?? 1.6);
+    const rc = { spire: 0.5, keep: 0.55, bunker: 0.6, adobe: 0.45 }[S] || 0;   // the walls drawn this far in from the collider: corners, buttresses or plates fill it
     const rot = ax ? 0 : PI / 2;
     const W = (u, v) => ax ? [x + u, z + v] : [x + v, z - u];                               // local (along, across) to the world
     const ext = (hu, hv) => ax ? [hu, hv] : [hv, hu];
     const bins = new Map();
     const add = (mat, geo) => { if (!bins.has(mat)) bins.set(mat, []); bins.get(mat).push(geo); };
     const bx = (mat, u, y, v, su, sy, sv) => add(mat, new THREE.BoxGeometry(su, sy, sv).translate(u, y, v));
-    // the solid masses: a step round the foot, the podium, the tower over it
+    const mass = (hu, hv, h, y = 0) => { const [ex, ez] = ext(hu, hv), m = K.box(x, z, ex, ez, h, M.a, y ? { y } : {}); if (rc) m.scale.set((ex - rc) / ex, 1, (ez - rc) / ez); };
+    // the solid masses: a step round the foot, the podium, the tower over it (its collider from the floor up)
     { const [ex, ez] = ext(w + 0.5, d + 0.5); K.box(x, z, ex, ez, 0.3, M.dark, { climbable: true }); }
-    { const [ex, ez] = ext(w, d); K.box(x, z, ex, ez, pod, M.a); }
-    if (tower){ const [ex, ez] = ext(tw, td); K.box(x, z, ex, ez, H - pod, M.a, { y: pod }); }   // (its collider runs from the floor up)
-    // the faces of a mass (half-sizes hu, hv) from y0 to y1: pilasters, storey bands, windows
-    const faces = (hu, hv, y0, y1, ground) => {
+    mass(w, d, pod);
+    if (tower) mass(tw, td, H - pod, pod);
+    // the faces of a mass (half-sizes hu, hv) from y0 to y1
+    const faces = (hu, hv, y0, y1, ground, top) => {
       const sides = [[0, 1, hu], [0, -1, hu], [1, 0, hv], [-1, 0, hv]];   // [nu, nv, half-length of that face]
+      if (S === 'spire' || S === 'adobe'){   // rounded corners, out to the collider's corner
+        const r = rc + 0.5;
+        for (const su of [-1, 1]) for (const sv of [-1, 1]) add(M.a, new THREE.CylinderGeometry(r, r, y1 - y0, 12).translate(su * (hu - r), (y0 + y1) / 2, sv * (hv - r)));
+      }
       for (const [nu, nv, hl] of sides){
-        const n = Math.max(1, Math.round(hl * 2 / bay)), b = hl * 2 / n;
-        const at = (t, off) => nu ? [nu * (hu + off), t] : [t, nv * (hv + off)];   // t along the face
+        const n = Math.max(1, Math.round(hl * 2 / bay)), b = hl * 2 / n, face = (nu ? hu : hv) - rc;
+        const at = (t, off) => nu ? [nu * (face + off), t] : [t, nv * (face + off)];   // t along the face, off out from the wall
         const dims = (along, up, out) => nu ? [out, up, along] : [along, up, out];
-        for (let i = 0; i <= n; i++){   // pilasters
-          const [pu, pv] = at(-hl + i * b, 0.12), [su, sy, sv] = dims(0.5, y1 - y0, 0.24);
-          bx(M.b, pu, (y0 + y1) / 2, pv, su, sy, sv);
+        const box = (mat, t, off, y, along, up, out) => { const [pu, pv] = at(t, off), [su, sy, sv] = dims(along, up, out); bx(mat, pu, y, pv, su, sy, sv); };
+        const lit = () => R() < (o.lit ?? 0.45) ? M.glow : M.dark;
+        const rows = fn => { for (let y = y0 + (ground ? st : 0); y + st <= y1 + 0.01; y += st) for (let i = 0; i < n; i++) fn(-hl + (i + 0.5) * b, y); };
+        const inner = hl - (rc ? rc + 0.5 : 0);   // the face's length between rounded corners
+        if (S === 'block' || S === 'control'){
+          for (let i = 0; i <= n; i++) box(M.b, -hl + i * b, 0.12, (y0 + y1) / 2, 0.5, y1 - y0, 0.24);                 // pilasters
+          if (o.bands !== false) for (let y = y0 + st; y < y1 - 0.5; y += st) box(M.b, 0, 0.09, y, hl * 2 + 0.2, 0.32, 0.18);   // a band at every floor
+          rows((t, y) => box(lit(), t, 0.04, y + st * 0.55, b * (o.winW ?? 0.56), st * (o.winH ?? 0.46), 0.08));
+        } else if (S === 'spire'){
+          for (let y = y0 + st * 2; y < y1 - 0.5; y += st * 2) box(M.b, 0, 0.05, y, inner * 2, 0.22, 0.1);              // a thin band every other floor
+          rows((t, y) => { if (Math.abs(t) > inner - 0.7) return;
+            const g = new THREE.CylinderGeometry(st * 0.2, st * 0.2, 0.1, 14);
+            if (nu) g.rotateZ(PI / 2); else g.rotateX(PI / 2);
+            const [pu, pv] = at(t, 0.04); add(lit(), g.translate(pu, y + st * 0.55, pv)); });
+        } else if (S === 'keep'){
+          for (let i = 0; i <= n; i += 2){ const t = Math.max(-hl + 0.45, Math.min(hl - 0.45, -hl + i * b));
+            box(M.b, t, rc / 2, (y0 + y1) / 2, 0.9, y1 - y0, rc);                                                   // buttresses, out to the collider
+            box(M.dark, t, rc / 2, y0 + 1.2, 1.2, 2.4, rc + 0.02); }
+          box(M.dark, 0, 0.06, y0 + 0.9, hl * 2, 1.8, 0.12);                                                         // a dark plinth course
+          rows((t, y) => box(lit(), t, 0.04, y + st * 0.5, 0.28, st * 0.62, 0.08));                                   // arrow slits
+        } else if (S === 'bunker'){
+          const ph = Math.min(y1 - y0, 5.6), lean = Math.atan2(rc - 0.1, ph);
+          for (let i = 0; i < n; i++){   // armour plates leaning on the wall, their feet at the collider
+            const t = -hl + (i + 0.5) * b, g = new THREE.BoxGeometry(nu ? 0.22 : b * 0.92, ph / Math.cos(lean), nu ? b * 0.92 : 0.22);
+            if (nu) g.rotateZ(nu * lean); else g.rotateX(-nv * lean);   // (the top in against the wall)
+            const [pu, pv] = at(t, (rc - 0.1) / 2 + 0.1); add(M.b, g.translate(pu, y0 + ph / 2, pv));
+          }
+          box(M.trim, 0, rc - 0.05, y0 + ph + 0.15, hl * 2 - 0.2, 0.3, 0.1);                                         // a hazard stripe over them
+          rows((t, y) => { if (y < y0 + ph) return; box(lit(), t, 0.04, y + st * 0.55, b * 0.8, st * 0.16, 0.08);    // shuttered slits
+            box(M.dark, t, 0.08, y + st * 0.72, b * 0.86, st * 0.1, 0.16); });
+        } else if (S === 'adobe'){
+          rows((t, y) => { if (Math.abs(t) > inner - 0.6) return;
+            box(M.dark, t, 0.03, y + st * 0.55, b * 0.42, st * 0.34, 0.06);                                          // a deep reveal
+            if (R() < (o.lit ?? 0.3)) box(M.glow, t, 0.05, y + st * 0.55, b * 0.26, st * 0.22, 0.06); });
+          for (let t = -inner + 0.6; t <= inner - 0.6; t += 1.2){                                                    // the beam ends under the roof line
+            const g = new THREE.CylinderGeometry(0.12, 0.12, rc, 6); if (nu) g.rotateZ(PI / 2); else g.rotateX(PI / 2);
+            const [pu, pv] = at(t, rc / 2); add(M.trim, g.translate(pu, y1 - 0.7, pv)); }
         }
-        if (o.bands !== false) for (let y = y0 + st; y < y1 - 0.5; y += st){   // a band at every floor
-          const [pu, pv] = at(0, 0.09), [su, sy, sv] = dims(hl * 2 + 0.2, 0.32, 0.18);
-          bx(M.b, pu, y, pv, su, sy, sv);
-        }
-        for (let y = y0 + (ground ? st : 0); y + st <= y1 + 0.01; y += st) for (let i = 0; i < n; i++){   // the windows
-          const t = -hl + (i + 0.5) * b, [pu, pv] = at(t, 0.04);
-          const [su, sy, sv] = dims(b * (o.winW ?? 0.56), st * (o.winH ?? 0.46), 0.08);
-          bx(R() < (o.lit ?? 0.45) ? M.glow : M.dark, pu, y + st * 0.55, pv, su, sy, sv);
-        }
+        if (top && S === 'keep') for (let t = -hl + 0.4; t <= hl - 0.4; t += 1.6) box(M.a, t, rc - 0.4, y1 + 0.55, 0.8, 1.1, 0.8);   // battlements
+        if (top && S === 'adobe') box(M.a, 0, rc - 0.25, y1 + 0.4, inner * 2, 0.8, 0.5);                            // a parapet
       }
     };
-    faces(w, d, 0.3, pod, true);
-    if (tower) faces(tw, td, pod, H, false);
-    // the cornices: a lip round the podium roof and the tower top
-    bx(M.b, 0, pod - 0.25, 0, w * 2 + 0.5, 0.5, d * 2 + 0.5);
-    if (tower) bx(M.b, 0, H - 0.3, 0, tw * 2 + 0.4, 0.6, td * 2 + 0.4);
+    faces(w, d, 0.3, pod, true, !tower && pod >= 16);
+    if (tower) faces(tw, td, pod, H, false, true);
+    // the cornices: a lip round the podium roof and the tower top (a saucer deck on a spire)
+    if (S === 'spire') add(M.b, new THREE.CylinderGeometry(1, 1, 0.5, 28).scale(w, 1, d).translate(0, pod - 0.25, 0));
+    else if (S !== 'adobe') bx(M.b, 0, pod - 0.25, 0, w * 2 + (rc ? 0 : 0.5), 0.5, d * 2 + (rc ? 0 : 0.5));
+    if (tower && S !== 'adobe' && S !== 'spire') bx(M.b, 0, H - 0.3, 0, tw * 2 + 0.4, 0.6, td * 2 + 0.4);
     // the ground floor: on each entrance face a lit doorway under a canopy, and a barrier either side to crouch behind
     for (const sv of o.front === 0 ? [-1, 1] : [o.front ?? 1]){
-      const dw = Math.min(2.2, w * 0.3);
-      bx(M.dark, 0, 2.2, sv * (d + 0.05), dw * 2, 3.8, 0.1);                                   // the doors
-      bx(M.glow, 0, 4.3, sv * (d + 0.06), dw * 2, 0.22, 0.1);                                  // the lit strip over them
+      const dw = Math.min(2.2, w * 0.3), fz = d - rc;
+      bx(M.dark, 0, 2.2, sv * (fz + 0.05), dw * 2, 3.8, 0.1);                                  // the doors
+      bx(M.glow, 0, 4.3, sv * (fz + 0.06), dw * 2, 0.22, 0.1);                                 // the lit strip over them
       bx(M.b, 0, 4.75, sv * (d + 1.2), dw * 2 + 1.6, 0.4, 2.4);                                // the canopy
       { const [cx, cz] = W(0, sv * (d + 1.2)), [ex, ez] = ext(dw + 0.8, 1.2); K.slab(cx, cz, ex, ez, 4.55, 4.95); }
       for (const su of [-1, 1]){
         const [cx, cz] = W(su * (dw + 2.2), sv * (d + 3.0)), [ex, ez] = ext(1.1, 0.5);
         K.box(cx, cz, ex, ez, 1.2, M.dark);
-        const g = K.deco(new THREE.BoxGeometry(ex * 2 + 0.06, 0.12, ez * 2 + 0.06), M.trim, cx, 1.26, cz);
-        g.userData.passThrough = true;
+        K.deco(new THREE.BoxGeometry(ex * 2 + 0.06, 0.12, ez * 2 + 0.06), M.trim, cx, 1.26, cz).userData.passThrough = true;
       }
     }
-    // the roof: plant boxes, a mast and a beacon (all past reach)
+    // the roof (all past reach)
     if (o.roof !== false){
-      const rw = tower ? tw : w, rd = tower ? td : d;
-      bx(M.dark, -rw * 0.4, H + 1.0, rd * 0.2, rw * 0.6, 2.0, rd * 0.8);
-      bx(M.b, rw * 0.35, H + 0.7, -rd * 0.3, rw * 0.5, 1.4, rd * 0.6);
-      add(M.dark, new THREE.CylinderGeometry(0.12, 0.3, 7, 6).translate(rw * 0.5, H + 3.5, rd * 0.5));
-      add(M.glow, new THREE.SphereGeometry(0.45, 8, 6).translate(rw * 0.5, H + 7.2, rd * 0.5));
+      const rw = tower ? tw : w, rd = tower ? td : d, rm = Math.min(rw, rd);
+      const mast = (u, v, y, len) => { add(M.dark, new THREE.CylinderGeometry(0.12, 0.3, len, 6).translate(u, y + len / 2, v)); add(M.glow, new THREE.SphereGeometry(0.45, 8, 6).translate(u, y + len + 0.2, v)); };
+      if (S === 'spire'){
+        add(M.b, new THREE.CylinderGeometry(1, 1, 0.5, 28).scale(rw + 0.8, 1, rd + 0.8).translate(0, H + 0.25, 0));
+        add(M.a, new THREE.SphereGeometry(rm * 0.85, 18, 8, 0, PI * 2, 0, PI / 2).translate(0, H + 0.5, 0));
+        add(M.glow, new THREE.CylinderGeometry(rm * 0.87, rm * 0.87, 0.25, 24).translate(0, H + 0.9, 0));
+        mast(0, 0, H + rm * 0.8, 5);
+      } else if (S === 'keep'){
+        add(M.b, new THREE.ConeGeometry(Math.SQRT2, 1, 4).rotateY(PI / 4).scale(rw - 0.9, rm * 1.4, rd - 0.9).translate(0, H + rm * 0.7, 0));
+        mast(0, 0, H + rm * 1.4, 3);
+      } else if (S === 'bunker'){
+        bx(M.dark, -rw * 0.4, H + 0.9, 0, rw * 0.5, 1.8, rd * 1.1);
+        const dish = new THREE.SphereGeometry(2.0, 14, 6, 0, PI * 2, 0, PI / 3.2).rotateX(PI).rotateX(-0.9).translate(rw * 0.35, H + 3.0, 0);
+        add(M.b, dish); add(M.dark, new THREE.CylinderGeometry(0.2, 0.3, 2.4, 6).translate(rw * 0.35, H + 1.2, 0));
+        mast(-rw * 0.6, rd * 0.5, H, 6);
+      } else if (S === 'control'){
+        add(M.glow, new THREE.CylinderGeometry(Math.SQRT2, Math.SQRT2 * 0.8, 1, 4, 1).rotateY(PI / 4).scale(rw + 1.4, 4.0, rd + 1.4).translate(0, H - 2.6, 0));
+        add(M.dark, new THREE.CylinderGeometry(Math.SQRT2, Math.SQRT2, 1, 4, 1).rotateY(PI / 4).scale(rw + 1.6, 0.7, rd + 1.6).translate(0, H - 0.25, 0));
+        bx(M.b, rw * 0.3, H + 0.6, 0, rw * 0.6, 1.2, rd * 0.8);
+        mast(-rw * 0.5, rd * 0.4, H, 8);
+      } else if (S === 'adobe'){
+        add(M.a, new THREE.SphereGeometry(rm * 0.7, 14, 6, 0, PI * 2, 0, PI / 2).translate(-rw * 0.15, H, 0));
+        add(M.dark, new THREE.CylinderGeometry(0.08, 0.1, 4.5, 6).translate(rw * 0.55, H + 2.25, rd * 0.4));      // the vapour vane
+        for (const y of [3.2, 4.0]) bx(M.trim, rw * 0.55, H + y, rd * 0.4, 1.6, 0.12, 0.12);
+      } else {
+        bx(M.dark, -rw * 0.4, H + 1.0, rd * 0.2, rw * 0.6, 2.0, rd * 0.8);
+        bx(M.b, rw * 0.35, H + 0.7, -rd * 0.3, rw * 0.5, 1.4, rd * 0.6);
+        mast(rw * 0.5, rd * 0.5, H, 7);
+      }
     }
     for (const [mat, list] of bins){
-      const m = K.deco(mergeGeometries(list, false), mat, x, 0, z, 0, rot, 0);
+      const m = K.deco(mergeGeometries(list.map(g => g.index ? g.toNonIndexed() : g), false), mat, x, 0, z, 0, rot, 0);
       m.userData.passThrough = true;   // (detail on the faces of the masses above: their colliders hold it)
       for (const g of list) g.dispose();
     }

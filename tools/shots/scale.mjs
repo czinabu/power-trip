@@ -3,7 +3,7 @@
 // each on a held clock, for a maps pass that wants the hero to look small and the cover to read:
 //   <map>-eye.png   from just behind the hero on the south side, facing north, tipped up, so what towers over the floor shows
 //   <map>-over.png  a high three-quarter view of the whole floor, so the lanes and the cover read
-//   <map>-up.png    from the floor looking up at the map's first landmark (world/landmarks.js; LM=<kind> picks one), the hero before it
+//   <map>-up.png    from the floor looking up at the map's first landmark (world/landmarks.js; LM=<kind> picks one, UPY=<m> how high to look), the hero before it
 //   npm run build && node tools/shots/scale.mjs <out-dir> [map,map,...]   (HERO=trooper|mando|jedi, default trooper;
 //   DIST=<an index.html> shoots another build; PW_CHROMIUM a Chromium binary when Playwright's own isn't installed)
 import { chromium } from 'playwright';
@@ -46,7 +46,7 @@ const step = n => page.evaluate(n => { for (let i = 0; i < n; i++) window.__step
 const maps = await page.evaluate(() => Object.keys(GAME.mapLevels()));
 for (const id of maps){
   if (only && !only.includes(id)) continue;
-  const info = await page.evaluate(([id, LM]) => {
+  const info = await page.evaluate(([id, LM, UPY]) => {
     const { G, player } = GAME, L = GAME.mapLevels()[id];
     GAME.sandboxClear();
     GAME.buildArena(L);
@@ -79,8 +79,8 @@ for (const id of maps){
         if (!blocked(hx, hz, 1.0) && !blocked(hx - lx / d * 4, hz - lz / d * 4, 0.8)) look = { lx, lz, hx, hz, dx: lx / d, dz: lz / d };
       }
     }
-    return { half, x: s.x, z: s.z, look };
-  }, [id, process.env.LM || '']);
+    return { half, x: s.x, z: s.z, look, upY: UPY };
+  }, [id, process.env.LM || '', +(process.env.UPY || 11)]);
   await step(20);
   for (const [view, cam] of [['eye', 'eye'], ['over', 'over'], ...(info.look ? [['up', 'up']] : [])]){
     const img = await page.evaluate(([cam, I]) => {
@@ -88,7 +88,7 @@ for (const id of maps){
       if (cam === 'eye'){ c.position.set(I.x + 1.2, 2.1, I.z - 3.6); c.lookAt(I.x, 9, I.z + 30); c.fov = 62; }
       else if (cam === 'up'){ const L = I.look, p = GAME.player;
         p.group.position.set(L.hx, 0, L.hz); p.group.rotation.y = Math.atan2(L.dx, L.dz); GAME.G.yaw = p.faceYaw = p.group.rotation.y; p.group.updateMatrixWorld(true);
-        c.position.set(L.hx - L.dx * 5 + L.dz * 1.4, 1.7, L.hz - L.dz * 5 - L.dx * 1.4); c.lookAt(L.lx, 11, L.lz); c.fov = 66; }
+        c.position.set(L.hx - L.dx * 5 + L.dz * 1.4, 1.7, L.hz - L.dz * 5 - L.dx * 1.4); c.lookAt(L.lx, I.upY, L.lz); c.fov = 66; }
       else { c.position.set(h * 0.95, h * 1.05, -h * 1.25); c.lookAt(0, 0, h * 0.05); c.fov = 55; }
       c.aspect = innerWidth / innerHeight; c.far = Math.max(c.far, 4000); c.updateProjectionMatrix(); c.updateMatrixWorld();
       GAME.gfx.composer.render();

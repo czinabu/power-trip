@@ -5,9 +5,10 @@
 // It fades by itself. A level that also hands over a power (`lead`) is followed by that power's own card
 // (ui/ability-card.js waits on forceToastHolds): the rise first, felt in the world, then the power.
 //
-// It waits for a lull: never over a line of dialogue (game/story.js), never under a screen (a card, a cutscene, the
-// upgrade page, the pause menu), and a lone rise never mid-fight (no foe up or still to come, the hero out of combat:
-// player/mobility.js). A rise that leads a power's card waits only as long as that card would.
+// It never comes up under a screen (a card, a cutscene, the upgrade page, the pause menu, a loading screen, the fade into
+// the next chapter). A chapter's rise (`lead`) comes up the moment the cutscene hands the hero back, over the walk-off
+// talk; a lone rise (survival) waits for a lull: no line of dialogue (game/story.js), no foe up or still to come, the hero
+// out of combat (player/mobility.js).
 // The first rise of a run says once, in a line, what the Force Level is; later ones list only what grew.
 //
 // Every mode that climbs the level: the story (solo, and each co-op screen for its own hero: coopRun.holdPopups holds it
@@ -19,8 +20,10 @@ import { storySpeaking, commsShowing } from '../game/story.js';
 import { inCombat } from '../player/mobility.js';
 import { S } from '../audio/sfx.js';
 import { forcePulse } from '../fx/force-rise.js';
+import { loadingNow } from './loading.js';
+import { doorState } from '../world/doorway.js';
 
-export const FORCE_TOAST = { calm: 0.9, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up · s it stays · s it fades over · s before the power it brought opens its card
+export const FORCE_TOAST = { calm: 0.9, calmLead: 0.35, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up (one that leads: s after the cutscene) · s it stays · s it fades over · s before the power it brought opens its card
 
 let el = null, wait = null, calmT = 0, hideT = 0, goneT = 0, leadT = 0;
 const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
@@ -44,21 +47,24 @@ export const forceToastHolds = () => !!(wait && wait.lead) || (forceToastUp() &&
 // a card opened over it: it goes
 export const fadeForceToast = () => { leadT = 0; hide(); };
 
-const screenFree = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
-  performance.now() >= (shared.unlockHold || 0) && !storySpeaking() && !commsShowing();
-const lull = () => screenFree() && (wait.lead ||
-  (!G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted) && !inCombat()));
+// the hero is on screen and in hand: no screen over it, no cutscene, no loading screen or fade to the next chapter
+const inPlay = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
+  !loadingNow() && doorState() < 2 && performance.now() >= (shared.unlockHold || 0);
+// a rise that leads (a chapter's close) comes up the moment the cutscene hands the hero back, over the walk-off talk;
+// a lone one waits for the talk and the fight to be done
+const lull = () => inPlay() && (wait.lead ||
+  (!storySpeaking() && !commsShowing() && !G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted) && !inCombat()));
 
 // game/flow.js, every frame of play
 let lastT = 0;
 export function tickForceToast(){
   const now = performance.now(), dt = Math.min(0.25, (now - (lastT || now)) / 1000); lastT = now;   // (real time: a slow frame doesn't stretch the wait)
-  if (G.mode !== 'play' && forceToastUp()) hide(true);   // (the menu, a death screen: it goes with the run)
+  if ((G.mode !== 'play' || loadingNow() || doorState() >= 2) && forceToastUp()) hide(true);   // (the menu, a death screen, a loading screen or the fade into the next chapter: it goes)
   if (hideT && now > hideT) hide();
   if (goneT && now > goneT){ goneT = 0; if (el) el.classList.remove('on', 'out'); }
   if (!wait) return;
   calmT = lull() ? calmT + dt : 0;   // it has to stay quiet for a moment: not the instant a line or a foe is done
-  if (calmT < FORCE_TOAST.calm) return;
+  if (calmT < (wait.lead ? FORCE_TOAST.calmLead : FORCE_TOAST.calm)) return;
   const r = wait; wait = null; calmT = 0;
   show(r);
 }

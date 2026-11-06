@@ -1,5 +1,5 @@
 /* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
-/* ---------- PROFILE: the hero's rank on the left, the Force Tree (or the rank cards) on the right (ui/profile-ui.js) ---------- */
+/* ---------- PROFILE: the OVERVIEW on the left, CARDS (and the Jedi's FORCE TREE) on the right (ui/profile-ui.js) ---------- */
 #profile{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
 #profile.open{display:flex}
@@ -29,10 +29,10 @@
 .pf-ladder li.done{border-color:var(--accent);color:var(--ink-soft)}
 .pf-ladder li.on{border-color:var(--gold);color:var(--ink)}
 .pf-ladder li.on b{color:var(--gold)}
-.pf-rec{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.pf-rec div{display:flex;flex-direction:column;gap:3px;padding:7px 9px;border:1px solid var(--edge);border-radius:var(--r)}
-.pf-rec span{font:700 10px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-faint)}
-.pf-rec b{font:700 17px/1 var(--font-display);letter-spacing:1px;color:var(--ink)}
+.pf-rec{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pf-rec div{display:flex;flex-direction:column;gap:3px;padding:5px 8px;border:1px solid var(--edge);border-radius:var(--r)}
+.pf-rec span{font:700 9px/1.1 var(--font-ui);letter-spacing:1.3px;color:var(--ink-faint)}
+.pf-rec b{font:700 16px/1 var(--font-display);letter-spacing:1px;color:var(--ink)}
 .pf-how p,.pf-note{margin:0;font:500 13px/1.4 var(--font-body);color:var(--ink-soft)}
 .pf-th{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
 .pf-th h3{margin:0;font:700 22px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
@@ -113,14 +113,46 @@
 #overlay:is(.st-victory,.st-dead) .ov-actions #pfBtn:hover{color:var(--ink)}
 @media (max-width:520px){ #overlay:is(.st-victory,.st-dead) .ov-actions #pfBtn{flex:1 1 28%;padding:8px 4px;font-size:11px;white-space:nowrap} }
 @media (max-width:520px){ #overlay.st-menu .ov-actions .btn.btn.btn:not(.go){flex-basis:30%;letter-spacing:1.5px} }
-/* YOUR SABER (the workbench's build, ui/profile-ui.js saberSec) */
+/* the OVERVIEW's extras: what the next rank opens, the ladder behind a link, the deck's one button */
+.pf-opens{margin:8px 0 0;padding-top:7px;border-top:1px solid var(--edge);font:500 13px/1.35 var(--font-body);color:var(--ink-soft)}
+.pf-opens b{color:var(--gold);font-weight:600}
+.pf-link{display:inline-block;margin-top:10px;font:700 11px/1 var(--font-ui);letter-spacing:1.8px;color:var(--accent);cursor:pointer}
+.pf-link:hover{color:var(--ink)}
+.pf-left .pf-ladder{margin-top:8px}
+.pf-deckbox .pf-note{margin-bottom:7px}
+.pf-left .pf-sec{margin-top:14px}
+.pf-hl{color:var(--gold);font-weight:700}
+.pf-left .btn{padding:7px 12px;font-size:11px;letter-spacing:1.6px}
+.pf-left .pf-build{margin-left:0}
+.pf-how{margin-top:10px;font-size:11px;line-height:1.35;color:var(--ink-faint)}
+/* CARDS' filter row: MY DECK · ALL CARDS · LOCKED, each with its count */
+.pf-filter{display:flex;gap:4px;padding:3px;border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(255,255,255,.02)}
+.pf-filter span{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--r);font:700 11px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-soft);cursor:pointer}
+.pf-filter span:hover{color:var(--ink)}
+.pf-filter span.on{background:rgba(92,198,255,.14);color:var(--ink)}
+.pf-filter i{font-style:normal;font-size:10px;color:var(--ink-faint)}
+.pf-filter span.on i{color:var(--gold)}
+.pf-tbody{display:flex;flex-direction:column;gap:8px}
+.pf-slot,.pf-more{padding:10px;border:1px dashed var(--edge-mid);border-radius:var(--r);font:700 10px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-faint);text-align:center;cursor:pointer}
+.pf-slot:hover,.pf-more:hover{color:var(--ink);border-color:var(--edge-lit)}
+.pf-more{border-style:none;padding:4px;text-align:left}
+.pf-empty{margin:0;font:500 12px/1.3 var(--font-body);color:var(--ink-faint)}
+.pf-caret{display:none;font-style:normal;color:var(--ink-faint)}
+/* a phone: each tier folds shut with a tap on its name */
+@media (max-width:760px){
+  .pf-dtier .pf-bh{cursor:pointer}
+  .pf-caret{display:inline}
+  .pf-dtier.shut .pf-tbody{display:none}
+  .pf-dtier.shut .pf-caret{transform:rotate(-90deg)}
+  .pf-th .pf-filter{order:5;flex-basis:100%;justify-content:space-between}
+}
+/* YOUR SABER / YOUR KIT, the short card (ui/profile-ui.js gearSec) */
 .pf-saber h4{display:flex;align-items:baseline;gap:8px}
 .pf-saber h4 em{margin-left:auto;font-style:normal;color:var(--ink-soft);letter-spacing:1.4px;font-size:11px}
 .pf-sb{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--edge);border-radius:var(--r)}
-.pf-sb i{flex:none;width:6px;height:34px;border-radius:3px;background:var(--c);box-shadow:0 0 10px var(--c),0 0 3px #fff inset}
-.pf-sb div,.pf-sb-att{display:flex;flex-direction:column;gap:3px}
-.pf-sb b,.pf-sb-att b{font:700 13px/1 var(--font-ui);letter-spacing:1.8px;color:var(--ink)}
-.pf-sb span,.pf-sb-att span{font:500 12px/1.3 var(--font-body);color:var(--ink-soft)}
-.pf-sb-att{margin:8px 0 6px;padding:0 2px}
-.pf-saber .pf-note{margin-top:4px;font-size:12px}
+.pf-sb i{flex:none;width:6px;height:30px;border-radius:3px;background:var(--c);box-shadow:0 0 10px var(--c),0 0 3px #fff inset}
+.pf-sb div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pf-sb b{font:700 13px/1 var(--font-ui);letter-spacing:1.8px;color:var(--ink)}
+.pf-sb span{font:500 12px/1.3 var(--font-body);color:var(--ink-soft)}
+.pf-saber .pf-note{margin-top:6px;font-size:12px}
 .pf-saber .pf-note b{color:var(--gold);font-weight:600}

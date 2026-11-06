@@ -3,7 +3,7 @@
 // the record; the full ladder behind VIEW ALL RANKS) and CARDS on the right: every card the hero has, by tier, the deck's
 // picks lit and locked ones (rank cards, the tree's) dimmed. The Jedi alone has a second tab, the FORCE TREE, where Insight
 // from each rank learns the tree's cards and a PATH picks the branch the upgrade page always deals from. The saber and the
-// kit live at their benches (workbench, forge, locker), not here. Opens from PROFILE on the main menu, the hub and the pause
+// kit get a short card here (what's fitted, parts, the next one); the benches (workbench, forge, locker) have the rest. Opens from PROFILE on the main menu, the hub and the pause
 // screen, in every mode. game/profile.js keeps it all; data/profile.js has the words.
 
 import { G } from '../state.js';
@@ -21,7 +21,10 @@ import { FORMS } from '../data/forms.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { icon } from './icons.js';
 import { upToast } from '../game/upgrades.js';
-import { BENCH_NAME } from '../data/hero-benches.js';
+import { EARNABLE, crystalOf, earnProgress, earnText } from '../data/saber-parts.js';
+import { benchOf, earnableOf, SIDE_ROW, BENCH_NAME } from '../data/hero-benches.js';
+import { CUSTOMIZE, wornOption } from '../data/customize.js';
+import { loadPicks } from '../player/mesh.js';
 
 const panel = document.getElementById('profile');
 const btn = document.getElementById('pfBtn');
@@ -73,8 +76,7 @@ function leftCol(h){
     : '<p class="pf-note">Not built yet, so runs deal from every card you own.</p>' + (live ? '' : '<span class="btn pf-build" data-deckact="suggest">BUILD A DECK</span>');
   const rec = [['CHAPTERS', Object.keys(p.cleared).length], ['TRIALS', trialsPassed(p) + ' / 3'], ['MISSIONS', Object.keys(p.missions).length],
                ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers],
-               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length],
-               [h === 'jedi' ? 'SABER PARTS' : 'KIT PARTS', partsOwned(h) + ' / ' + partsTotal(h)]];
+               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length]];
   return `<div class="pf-col pf-left">
     <div class="pf-kick">${esc(T.name)} · ${esc(HERO_NAME[h])}</div>
     <div class="pf-rank">${esc(R.nm)}</div>
@@ -84,15 +86,36 @@ function leftCol(h){
     <span class="pf-link" data-ladder>${ladderOpen ? '▾ HIDE RANKS' : '▸ VIEW ALL RANKS'}</span>
     ${ladderOpen ? `<ol class="pf-ladder">${ladder}</ol>` : ''}
     <div class="pf-sec pf-deckbox"><h4>YOUR DECK</h4>${deckBox}</div>
+    ${gearSec(h)}
     ${recBox(rec)}
     <p class="pf-note pf-how">Earn ${esc(T.unit)} from story chapters, missions, challenges, duels and survival. Training and sandbox don't count.</p>
   </div>`;
 }
 
+// YOUR SABER / YOUR KIT, the short version: what's fitted, how many parts, the nearest next one (the benches have the rest)
+function gearSec(h){
+  const mine = (loadPicks()[h]) || {}, at = (id) => wornOption(h, CUSTOMIZE[h].find(r => r.id === id), mine);
+  let col, title, sub;
+  if (h === 'jedi'){
+    const c = crystalOf(at('saber').id);
+    col = c.col; title = at('hilt').name.toUpperCase() + ' HILT'; sub = c.name + ' · ' + c.att;
+  } else {
+    const side = benchOf(h).find(r => r.id === SIDE_ROW[h]), part = side.parts.find(p => p.id === at(side.id).id) || side.parts[0];
+    col = part.col; title = side.label; sub = part.att;
+  }
+  const next = (h === 'jedi' ? EARNABLE : earnableOf(h)).map(([row, part]) => ({ part, e: earnProgress(profileOf(h), part.earn) }))
+    .filter(x => x.e.have < x.e.need).sort((a, b) => (b.e.have / b.e.need) - (a.e.have / a.e.need))[0];
+  const c = col != null ? '#' + col.toString(16).padStart(6, '0') : 'var(--accent)';
+  return '<div class="pf-sec pf-saber"><h4>' + (h === 'jedi' ? 'YOUR SABER' : 'YOUR KIT') + '<em>' + partsOwned(h) + ' / ' + partsTotal(h) + ' PARTS</em></h4>' +
+    '<div class="pf-sb"><i style="--c:' + c + '"></i><div><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></div></div>' +
+    (next ? '<p class="pf-note">Next: <b>' + esc(next.part.name) + '</b> · ' + esc(earnText(next.part.earn, (id) => chapterName(id, h))) + (next.e.need > 1 ? ' (' + next.e.have + ' / ' + next.e.need + ')' : '') + '</p>' : '<p class="pf-note">Every part is yours.</p>') +
+    '</div>';
+}
+
 // the RECORD shows what's been earned: zeros are hidden, and a new hero gets one line instead of a grid of them
 function recBox(rec){
   const got = rec.filter(r => !/^0(\b| \/)/.test(String(r[1])));
-  const any = got.some(r => !/PARTS$/.test(r[0]));
+  const any = got.length > 0;
   return '<div class="pf-sec"><h4>RECORD</h4>' + (got.length ? '<div class="pf-rec">' + got.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('') + '</div>' : '') +
     (any ? '' : '<p class="pf-note">Clear a chapter or win a mission to start your record.</p>') + '</div>';
 }

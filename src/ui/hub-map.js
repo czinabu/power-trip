@@ -8,8 +8,8 @@
 
 import { SIDE_OUT } from '../data/hub.js';
 
-const GAP = 14;   // metres of corridor between two wings on the map
-const PAD = 4;    // metres of margin round the plan
+const GAP = 22;   // metres of corridor between two wings on the map (room for a wing's title over or under it)
+const PAD = 12;   // metres of margin round the plan (the outer wings' titles)
 
 /* where every wing sits, in metres (x east, z south, as the world has them): a walk out from the start wing, door by door */
 const cache = new Map();
@@ -40,62 +40,100 @@ export function mapLayout(Hb){
 
 const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pc = (v) => (+v.toFixed(3)) + '%';
-// what a station's pin looks like, by what it does
-const PIN = { travel: 'go', council: 'big', ship: 'big', bounties: 'big', quests: 'call', forge: 'make' };
+const n = (v) => +v.toFixed(2);
+
+/* what each station looks like from above, drawn in metres round its spot (an SVG in the wing's own metres), by what
+   it does; and how far its name sits below it */
+// (the colours are the hub's theme, styles/hub.css .hm-t-<hub>: gold, glow and stone mean different things in each hub)
+const GOLD = 'var(--hm-c1)', BLUE = 'var(--hm-c2)', STONE = 'var(--hm-c3)', FIRE = 'var(--hm-c4)';
+function glyph(s){
+  const { x, z } = s, r = s.r || 3.2;
+  switch (s.act){
+    case 'travel': {
+      if (r < 6) return [`<path d="M${n(x)} ${n(z - 2.6)}L${n(x + 2.6)} ${n(z)}L${n(x)} ${n(z + 2.6)}L${n(x - 2.6)} ${n(z)}Z" fill="none" style="stroke:${BLUE}" stroke-width=".9"/><circle cx="${n(x)}" cy="${n(z)}" r=".9" style="fill:${BLUE}"/>`, 3.4];
+      const R = r * 1.45;   // the hub's great map: a ring round a glowing table, four lamps at its corners
+      let o = `<circle cx="${n(x)}" cy="${n(z)}" r="${n(R)}" fill="none" style="stroke:${BLUE}" stroke-width="1"/><circle cx="${n(x)}" cy="${n(z)}" r="${n(R * 0.3)}" style="fill:${BLUE}"/>`;
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o += `<rect x="${n(x + a * R * 0.78 - 1.1)}" y="${n(z + b * R * 0.78 - 1.1)}" width="2.2" height="2.2" style="fill:${STONE}"/>`;
+      return [o, R + 1.6];
+    }
+    case 'council': {   // the round table, its seats about it
+      const R = r * 1.45;
+      let o = `<circle cx="${n(x)}" cy="${n(z)}" r="${n(R)}" fill="none" style="stroke:${GOLD}" stroke-width=".7"/><circle cx="${n(x)}" cy="${n(z)}" r="${n(R * 0.38)}" style="fill:${BLUE}"/>`;
+      for (let i = 0; i < 8; i++){ if (i === 2) continue; const a = -Math.PI / 2 + (i - 1) * Math.PI * 2 / 8 + Math.PI / 4; o += `<circle cx="${n(x + Math.cos(a) * R * 1.1)}" cy="${n(z + Math.sin(a) * R * 1.1)}" r="1" style="fill:${GOLD}"/>`; }
+      return [o, R * 1.1 + 1.8];
+    }
+    case 'codex': return [`<circle cx="${n(x)}" cy="${n(z)}" r="3" style="fill:${BLUE}"/>`, 3.6];
+    case 'profile': case 'records': return [`<rect x="${n(x - 1.8)}" y="${n(z - 1.8)}" width="3.6" height="3.6" rx=".6" style="fill:${BLUE}" opacity=".85"/>`, 2.6];
+    case 'training': case 'proving': return [`<circle cx="${n(x)}" cy="${n(z)}" r="7" fill="none" style="stroke:${STONE}" stroke-width=".6"/>`, 7.8];
+    case 'sparring': return [`<rect x="${n(x - 3.2)}" y="${n(z - 6)}" width="6.4" height="12" style="fill:${STONE}" opacity=".28"/>`, 6.7];
+    case 'forge': return [`<rect x="${n(x - 4.6)}" y="${n(z - 3)}" width="9.2" height="6" style="fill:${GOLD}"/>`, 3.6];
+    case 'quests': return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.5" style="fill:var(--hm-c5)"/>`, 2.2];
+    case 'ship': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
+    case 'bounties': return [`<rect x="${n(x - 3.5)}" y="${n(z - 1.2)}" width="7" height="2.4" style="fill:${GOLD}"/>`, 2];
+  }
+  return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.6" style="fill:${BLUE}"/>`, 2.2];
+}
+
+/* a wing's own look (its `map` list in data/hub.js and friends): what the room is built of, under its stations */
+const ART = {
+  // a ring of pillars, as round the grand hall
+  pillars: (h) => { let o = ''; for (const x of [-0.6, 0.6]) for (const z of [-0.6, -0.2, 0.2, 0.6]) o += `<circle cx="${n(x * h)}" cy="${n(z * h)}" r="${n(h * 0.045)}" style="fill:${STONE}" opacity=".22"/>`; return o; },
+  // rows of shelves, as in the archives
+  shelves: (h) => { let o = ''; for (const z of [-0.72, -0.48, 0.48, 0.72]) for (const x of [-0.42, 0.42]) o += `<rect x="${n(x * h - h * 0.3)}" y="${n(z * h - h * 0.035)}" width="${n(h * 0.6)}" height="${n(h * 0.07)}" style="fill:${BLUE}" opacity=".45"/>`; return o; },
+  // crystals in the corners, as in the saber forge's cave
+  crystals: (h) => { let o = ''; for (const [x, z, k] of [[-0.82, -0.82, 0.8], [0.82, -0.82, 0.8], [-0.8, 0.8, 1.2], [0.8, 0.8, 1.2]]){ const s = h * 0.07 * k; o += `<path d="M${n(x * h)} ${n(z * h - s)}L${n(x * h + s * 0.6)} ${n(z * h + s * 0.6)}L${n(x * h - s * 0.6)} ${n(z * h + s * 0.6)}Z" style="fill:${BLUE}" opacity=".85"/>`; } return o; },
+  // landing pads, as on the hangar deck
+  pads: (h) => { let o = ''; for (const [x, z] of [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]]) o += `<circle cx="${n(x * h)}" cy="${n(z * h)}" r="${n(h * 0.17)}" fill="none" style="stroke:${STONE}" stroke-width=".5" stroke-dasharray="1.6 1.2" opacity=".5"/>`; return o; },
+  // rows of tanks, as in the cloning halls
+  tanks: (h) => { let o = ''; for (const z of [-0.72, -0.5, 0.5, 0.72]) for (const x of [-0.6, -0.3, 0, 0.3, 0.6]) o += `<circle cx="${n(x * h)}" cy="${n(z * h)}" r="${n(h * 0.06)}" fill="none" style="stroke:${BLUE}" stroke-width=".6" opacity=".55"/>`; return o; },
+  // a fire pit in the floor, as round the covert's great forge
+  fire: (h) => `<circle cx="0" cy="0" r="${n(h * 0.2)}" style="fill:${FIRE}" opacity=".25"/><circle cx="0" cy="0" r="${n(h * 0.1)}" style="fill:${FIRE}" opacity=".6"/>`,
+  // racks along the walls, as in an armory
+  racks: (h) => { let o = ''; for (const x of [-0.86, 0.86]) for (const z of [-0.5, 0, 0.5]) o += `<rect x="${n(x * h - h * 0.04)}" y="${n(z * h - h * 0.13)}" width="${n(h * 0.08)}" height="${n(h * 0.26)}" style="fill:${STONE}" opacity=".4"/>`; return o; },
+};
 
 /* the map's markup: `here` the wing you're in, `you` { x, z, yaw, half } where you stand in it, `who(id)` the party
    members in a wing, `idx(id)` the panel's option index for a wing's button */
-export function mapHTML(Hb, here, you, who, idx){
+export function mapHTML(Hb, hubId, here, you, who, idx){
   const L = mapLayout(Hb), X = (x) => pc((x - L.x0) / L.w * 100), Z = (z) => pc((z - L.z0) / L.h * 100);
   const W_ = (m) => pc(m / L.w * 100), H_ = (m) => pc(m / L.h * 100);
   let out = '';
-  // the corridors, under the wings: from door to door
+  // the corridors, under the wings: from door to door, as wide as the great doors' arches
   for (const { a, b, side } of L.links){
     const [ax, az] = L.at[a], [bx, bz] = L.at[b], [ox, oz] = SIDE_OUT[side];
     const sx = ax + ox * L.half(a), sz = az + oz * L.half(a), ex = bx - ox * L.half(b), ez = bz - oz * L.half(b);
-    const cw = 9;   // a corridor as wide as a great door
+    const cw = 18;
     const l = Math.min(sx, ex) - (ox ? 0 : cw / 2), t = Math.min(sz, ez) - (oz ? 0 : cw / 2);
     const w = ox ? Math.abs(ex - sx) : cw, h = oz ? Math.abs(ez - sz) : cw;
     out += '<i class="hm-hall' + (oz ? ' v' : '') + '" style="left:' + X(l) + ';top:' + Z(t) + ';width:' + W_(w) + ';height:' + H_(h) + '"></i>';
   }
+  const startZ = L.at[Hb.start][1];
   for (const id of Hb.order){
     const Wg = Hb.wings[id], [cx, cz] = L.at[id], h = L.half(id), isHere = id === here, names = who(id);
-    // its name along the top, or the bottom when more stations crowd the top edge (the YOU ARE HERE tag takes the other)
-    const edge = (sgn) => Wg.stations.filter(s => s.z / h * sgn > 0.45 && Math.abs(s.x / h) < 0.7).length;
-    const low = edge(-1) > edge(1);
-    let inner = '<b class="hm-n' + (low ? ' low' : '') + '">' + esc(Wg.short || Wg.name) + '</b>';
-    // the doors: a gap in the wall on each side that has one
-    for (const side in Wg.doors || {}) inner += '<i class="hm-door ' + side + '"></i>';
-    // each pin's name goes beside it, right if there's room, else left, under or over: not off the wing, not over
-    // another pin or a name already placed (sizes in metres: the label's font is 1.25% of the plan's width)
-    const em = L.w * 0.0125, taken = Wg.stations.map(s => ({ x0: s.x - 1.6, x1: s.x + 1.6, z0: s.z - 1.6, z1: s.z + 1.6 }));
-    const clear = (r) => r.x0 > -h + 1 && r.x1 < h - 1 && r.z0 > -h + 1 && r.z1 < h - 1 && !taken.some(t => r.x0 < t.x1 && r.x1 > t.x0 && r.z0 < t.z1 && r.z1 > t.z0);
+    // its title over it (under it, for a wing south of the start: the plan's bottom edge)
+    const below = cz > startZ + 1;
+    let inner = '<b class="hm-n' + (below ? ' low' : '') + '">' + esc(Wg.name.replace(/^THE /, '')) + '</b>';
+    let svg = (Wg.map || []).map(k => ART[k] ? ART[k](h) : '').join('');
+    // each station drawn where it stands, its name under it (shown on the wing you're in, and the one you point at)
+    let labels = '';
     for (const s of Wg.stations){
-      const kind = PIN[s.act] || 'dot';
-      // (the maps and waystones go unnamed: there's one in every wing, and the key under the plan says what the ◇ is)
-      let label = '';
-      if (kind !== 'go'){
-        const lw = s.name.length * em * 0.58 + em, lh = em * 1.1, g = 2.2;
-        const tries = [['', { x0: s.x + g, x1: s.x + g + lw, z0: s.z - lh / 2, z1: s.z + lh / 2 }], ['l', { x0: s.x - g - lw, x1: s.x - g, z0: s.z - lh / 2, z1: s.z + lh / 2 }],
-          ['d', { x0: s.x - lw / 2, x1: s.x + lw / 2, z0: s.z + g, z1: s.z + g + lh }], ['u', { x0: s.x - lw / 2, x1: s.x + lw / 2, z0: s.z - g - lh, z1: s.z - g }]];
-        const [cls, r] = tries.find(([, r]) => clear(r)) || tries[s.x / h > 0.35 ? 1 : 0];
-        taken.push(r);
-        label = '<em' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(s.name) + '</em>';
-      }
-      inner += '<i class="hm-pin ' + kind + '" style="left:' + pc(50 + s.x / h * 50) + ';top:' + pc(50 + s.z / h * 50) + '">' + label + '</i>';
+      const [g, drop] = glyph(s);
+      svg += g;
+      if (s.act === 'travel' && (s.r || 0) < 6) continue;   // (a waystone or beacon: one in every wing, its ◇ says enough)
+      const tx = Math.max(-0.8, Math.min(0.8, s.x / h)), tz = (s.z + drop) / h;
+      labels += '<em class="hm-l' + (tz > 0.84 ? ' up' : '') + '" style="left:' + pc(50 + tx * 50) + ';top:' + pc(50 + (tz > 0.84 ? (s.z - drop) / h : tz) * 50) + '">' + esc(s.name) + '</em>';
     }
+    inner += '<svg viewBox="' + [-h, -h, 2 * h, 2 * h].map(n).join(' ') + '" preserveAspectRatio="none" aria-hidden="true">' + svg + '</svg>' + labels;
     if (isHere && you){
       const k = 50 / (you.half || h), rot = Math.round((Math.PI - you.yaw) * 180 / Math.PI);
       const ux = Math.max(4, Math.min(96, 50 + you.x * k)), uz = Math.max(4, Math.min(96, 50 + you.z * k));
       inner += '<i class="hm-you" style="left:' + pc(ux) + ';top:' + pc(uz) + '"><i style="transform:rotate(' + rot + 'deg)"></i></i>';
+      inner += '<span class="hm-tag' + (below ? '' : ' low') + '">YOU ARE HERE</span>';
     }
-    if (isHere) inner += '<span class="hm-tag' + (low ? ' high' : '') + '">YOU ARE HERE</span>';
-    if (names.length) inner += '<span class="hm-who">' + names.map(esc).join(' · ') + '</span>';
+    if (names.length) inner += '<span class="hm-who' + (below ? '' : ' low') + '">' + names.map(esc).join(' · ') + '</span>';
     out += '<div class="hm-wing' + (isHere ? ' here' : '') + '" data-w="' + id + '"' + (isHere ? '' : ' data-i="' + idx(id) + '"') +
       ' style="left:' + X(cx - h) + ';top:' + Z(cz - h) + ';width:' + W_(2 * h) + ';height:' + H_(2 * h) + '">' + inner + '</div>';
   }
-  // the compass, top right; the key, bottom left
-  const travel = [...new Set(Hb.order.flatMap(id => Hb.wings[id].stations.filter(s => s.act === 'travel').map(s => s.name)))];
-  out += '<span class="hm-north">N</span><span class="hm-key"><i class="hm-pin go"></i>' + travel.map(esc).join(' · ') + '</span>';
-  return '<div class="hm-map" style="aspect-ratio:' + (+L.w.toFixed(2)) + '/' + (+L.h.toFixed(2)) + ';--hm-r:' + (+(L.w / L.h).toFixed(4)) + '">' + out + '</div>';
+  out += '<span class="hm-north">N</span>';
+  return '<div class="hm-map hm-t-' + esc(hubId) + '" style="aspect-ratio:' + n(L.w) + '/' + n(L.h) + ';--hm-r:' + n(L.w / L.h * 100) / 100 + '">' + out + '</div>';
 }

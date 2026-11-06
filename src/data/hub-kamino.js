@@ -9,6 +9,7 @@ export const KAMINO_WINGS = {
     name: 'THE HANGAR DECK', short: 'HANGAR DECK',
     blurb: 'The citadel\'s great hangar, open to the storm. Gunships on their pads, squads drilling, every deck a door away.',
     level: { name: 'THE CLONE CITADEL — THE HANGAR DECK', sub: 'Kamino. Walk up to a station and tap F.', arena: 96, layout: 'kmDeck', waves: [], hazards: {} },
+    map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'warroom', e: 'range', w: 'halls', s: 'armory' },
     spawn: [0, 30, Math.PI],
     stations: [
@@ -44,6 +45,7 @@ export const KAMINO_WINGS = {
     name: 'THE CLONING HALLS', short: 'CLONING HALLS',
     blurb: 'Row on row of growth pods, an army waiting to be born. The genome records, your service file and the mission logs.',
     level: { name: 'THE CLONE CITADEL — THE CLONING HALLS', sub: 'The codex, your service record and the mission logs.', arena: 72, layout: 'kmHalls', waves: [], hazards: {} },
+    map: ['tanks'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { e: 'deck' },
     spawn: [26, 0, -Math.PI / 2],
     stations: [
@@ -57,6 +59,7 @@ export const KAMINO_WINGS = {
     name: 'THE ARMORY', short: 'ARMORY',
     blurb: 'Racks of rifles and armour on its stands. Kit yourself out before you ship.',
     level: { name: 'THE CLONE CITADEL — THE ARMORY', sub: 'Make your hero your own.', arena: 56, layout: 'kmArmory', waves: [], hazards: {} },
+    map: ['racks'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'deck' },
     spawn: [0, -18, 0],
     stations: [

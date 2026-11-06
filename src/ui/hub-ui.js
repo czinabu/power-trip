@@ -161,9 +161,9 @@ function renderMap(){
   const wingIdx = (id) => Hb.order.indexOf(id);
   const extra = list.slice(Hb.order.length);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
-  panel.innerHTML = '<div class="hb-box hm-box"><div class="hm-head"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
+  panel.innerHTML = '<div class="hb-box hm-box hm-t-' + G.hubId + '"><div class="hm-head"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
     '<div class="hb-d">' + Hb.travel + '</div>' + partyLine + '</div>' +
-    '<div class="hm-body">' + mapHTML(Hb, here, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, who, wingIdx) +
+    '<div class="hm-body">' + mapHTML(Hb, G.hubId, here, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, who, wingIdx) +
     '<div class="hm-side"><div class="hm-info"></div>' +
     '<div class="hb-list">' + extra.map((b, i) => '<div class="hb-o" data-i="' + (Hb.order.length + i) + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div></div></div>';

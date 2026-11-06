@@ -12,6 +12,7 @@ export const COVERT_WINGS = {
     name: 'THE GREAT FORGE', short: 'GREAT FORGE',
     blurb: 'The heart of the covert: a furnace that never goes out, and the anvil every piece of the clan\'s armour was beaten on.',
     level: { name: 'THE HIDDEN COVERT — THE GREAT FORGE', sub: 'Walk up to a station and tap F.', arena: 88, layout: 'mfForge', waves: [], hazards: {} },
+    map: ['fire'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'clan', e: 'pit', w: 'vault', s: 'hangar' },
     spawn: [0, 32, Math.PI],
     stations: [
@@ -47,6 +48,7 @@ export const COVERT_WINGS = {
     name: 'THE TROPHY VAULT', short: 'TROPHY VAULT',
     blurb: 'Every helmet the clan ever took, and every record it keeps: the bounty archive, your signet, the mission records.',
     level: { name: 'THE HIDDEN COVERT — THE TROPHY VAULT', sub: 'The bounty archive, your signet and the mission records.', arena: 68, layout: 'mfVault', waves: [], hazards: {} },
+    map: ['shelves'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { e: 'forge' },
     spawn: [26, 0, -Math.PI / 2],
     stations: [
@@ -60,6 +62,7 @@ export const COVERT_WINGS = {
     name: 'THE HANGAR', short: 'HANGAR',
     blurb: 'The clan\'s ship on its pad under the open sky. Take a job, or pick the hunt back up.',
     level: { name: 'THE HIDDEN COVERT — THE HANGAR', sub: 'Your ship, and the bounty board.', arena: 72, layout: 'mfHangar', waves: [], hazards: {} },
+    map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'forge' },
     spawn: [0, -27, 0],
     stations: [

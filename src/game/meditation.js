@@ -23,6 +23,8 @@ import { JEDI_FORK_LINE } from '../data/campaign-jedi.js';
 import { storyWords } from './choices.js';
 import { MOBILITY } from '../data/mobility.js';
 import { forceToastHolds, fadeForceToast } from '../ui/force-toast.js';
+import { loadingNow } from '../ui/loading.js';
+import { doorState } from '../world/doorway.js';
 
 const el = document.getElementById('meditate');
 const pending = [];   // form ids learned and not yet shown
@@ -46,7 +48,7 @@ export function queueMeditation(ids){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickMeditation(){
-  if (!pending.length || meditationUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || meditationUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || loadingNow() || doorState() >= 2 || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   if (forceToastHolds()) return;   // the Force Level's rise the chapter brought comes up first (ui/force-toast.js)
   fadeForceToast();
   open();

@@ -10,6 +10,7 @@
 // ARCADE and each act fold under a header (arrow + progress): the act the player is on (and the picked mission's) opens,
 // the rest stay shut, and a fold set by hand is remembered.
 
+import { onFileSwitch } from '../engine/save-files.js';
 import { G } from '../state.js';
 import { missionDone, missionTitle } from '../game/mission.js';
 import { missionUnlocked, missionChapterNo } from '../game/sandbox-unlocks.js';
@@ -54,7 +55,8 @@ export function setMission(id){
 /* ---------- the ARCADE board ---------- */
 // the board's seed stays put (a reload shows the same six) until SHUFFLE deals another
 let boardSeed = 0;
-try { boardSeed = parseInt(localStorage.getItem('sw_arcade_board') || '0', 10) || 0; } catch(e){}
+const readBoard = () => { try { boardSeed = parseInt(localStorage.getItem('sw_arcade_board') || '0', 10) || 0; } catch(e){ boardSeed = 0; } };
+readBoard(); onFileSwitch(readBoard);   // (another save file's board: engine/save-files.js)
 if (!boardSeed) shuffleBoard(true);
 function shuffleBoard(quiet){
   boardSeed = newSeed();

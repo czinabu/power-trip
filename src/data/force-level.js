@@ -10,6 +10,7 @@
 // game/flow.js checkUnlocks sets G.forceLevel; game/upgrades.js trainForm earns the ranks; player/helpers.js stance() and
 // data/mastery.js abil() read them, so every mode that hands out the kit also sets the level.
 
+import { onFileSwitch } from '../engine/save-files.js';
 import { G, isGunner } from '../state.js';
 import { STANCES } from './stances.js';
 import { CFG } from './config.js';
@@ -114,6 +115,7 @@ export const FORM_MASTERY = {
 // the best rank each form has reached in any run (the training grounds and the sandbox fight with it)
 const BEST_KEY = 'sw_formrank_jedi';
 let best = null;
+onFileSwitch(() => { best = null; });   // (another save file's: engine/save-files.js)
 export function bestRanks(){
   if (best) return best;
   try { best = JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch(e){ best = {}; }

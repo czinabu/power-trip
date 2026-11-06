@@ -8,7 +8,7 @@
 //   · SETTINGS (volume, sensitivity, FOV, graphics, grips, comfort toggles…) belong to the device, not a file: GLOBAL
 //     below. Anything else the game saves under sw_ is the file's, so a new progress key follows the file by default.
 //
-// Switching files reloads the page (every module reads its store once, on load): ui/files-ui.js.
+// Switching files happens in place (switchFile): modules that keep a copy of saved progress drop it (onFileSwitch).
 
 export const FILES = 3;
 const META = 'sw_files';   // { active, files: { 1: { at, hero, ranks }, 2: null… } } (global, raw)
@@ -43,22 +43,23 @@ let meta = raw ? readMeta() : { active: 1, files: { 1: {} } };
 export const activeFile = () => meta.active;
 
 /* THE NAMESPACE: the active file's keys read and write under its prefix, and walking localStorage (key(i), length) sees the
-   device's settings plus the active file's keys by their plain names, never another file's. */
-if (raw && meta.active !== 1){
-  const pre = prefix(meta.active);
-  const map = (k) => { k = String(k); return fileScoped(k) ? pre + k : k; };
-  const view = () => rKeys().map(k => k.startsWith(pre) ? k.slice(pre.length) : (fileScoped(k) || PRE.test(k)) ? null : k).filter(k => k != null);
+   device's settings plus the active file's keys by their plain names, never another file's. The prefix follows the
+   active file, so a switch (switchFile below) takes effect on the very next read, with no reload. */
+let pre = prefix(meta.active);
+if (raw){
+  const map = (k) => { k = String(k); return pre && fileScoped(k) ? pre + k : k; };
+  const view = () => rKeys().map(k => pre && k.startsWith(pre) ? k.slice(pre.length) : (PRE.test(k) || (pre && fileScoped(k))) ? null : k).filter(k => k != null);
   P.getItem = function(k){ return this === ls ? raw.get.call(this, map(k)) : raw.get.call(this, k); };
   P.setItem = function(k, v){ return this === ls ? raw.set.call(this, map(k), v) : raw.set.call(this, k, v); };
   P.removeItem = function(k){ return this === ls ? raw.del.call(this, map(k)) : raw.del.call(this, k); };
   P.key = function(i){ return this === ls ? (view()[i] ?? null) : raw.key.call(this, i); };
   Object.defineProperty(P, 'length', { configurable: true, get(){ return this === ls ? view().length : raw.len.call(this); } });
-} else if (raw){
-  // file 1: its keys are the plain ones, but a walk still mustn't see files 2 and 3's
-  const view = () => rKeys().filter(k => !PRE.test(k));
-  P.key = function(i){ return this === ls ? (view()[i] ?? null) : raw.key.call(this, i); };
-  Object.defineProperty(P, 'length', { configurable: true, get(){ return this === ls ? view().length : raw.len.call(this); } });
 }
+
+/* MODULES THAT KEEP A COPY of something a file saved (a parsed store, a count read once on load) register here how to
+   drop it, so it is read again from the new file after a switch. Most of the game reads localStorage live and needs none. */
+const hooks = [];
+export const onFileSwitch = (fn) => { hooks.push(fn); };
 
 /* ---------- the files ---------- */
 // read a key as file n has it (for the files panel's cards: another file's rank)
@@ -69,12 +70,16 @@ export const fileExists = (n) => !!meta.files[n] || (n === 1 && keysOf(1).length
 // the active file's card: what the title line and the panel show for it (written as the menu shows, so other files can
 // show it without loading)
 export function noteActive(info){ meta.files[meta.active] = { ...(meta.files[meta.active] || {}), ...info, at: Date.now() }; writeMeta(meta); }
-// make file n the one played (an empty one starts fresh); the caller reloads
-export function useFile(n){
-  if (!(n >= 1 && n <= FILES)) return false;
+// make file n the one played (an empty one starts fresh), at once: storage reads now come from it, and every module's
+// copy of the old file's is dropped (the menu then refreshes itself: ui/files-ui.js)
+export function switchFile(n){
+  if (!(n >= 1 && n <= FILES) || n === meta.active) return false;
   meta.active = n;
   if (!meta.files[n]) meta.files[n] = { at: Date.now(), fresh: true };
-  return writeMeta(meta);
+  if (!writeMeta(meta)) return false;
+  pre = prefix(n);
+  for (const fn of hooks){ try { fn(n); } catch(e){ console.warn('save file switch:', e); } }
+  return true;
 }
 // delete file n's progress for good (never the one being played)
 export function deleteFile(n){

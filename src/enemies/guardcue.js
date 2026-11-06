@@ -3,6 +3,7 @@
 // the difficulty and how many duels they have won), and the blade's own tells (it has read your cut; a blow turned).
 // Run on the host from enemies/duel.js updateDuel and on a co-op guest from updatePuppetDuel, so both screens match.
 
+import { onFileSwitch } from '../engine/save-files.js';
 import { G } from '../state.js';
 import { clamp } from '../utils.js';
 import { GUARD_RINGS, BLADE_CUE } from '../data/guard-rings.js';
@@ -11,7 +12,8 @@ import { noteDuelWon } from '../game/profile.js';
 
 const KEY = 'sw_duelwins';
 let wins = 0;
-try { wins = parseInt(localStorage.getItem(KEY), 10) || 0; } catch(e){}
+const readWins = () => { try { wins = parseInt(localStorage.getItem(KEY), 10) || 0; } catch(e){ wins = 0; } };
+readWins(); onFileSwitch(readWins);   // (another save file's count: engine/save-files.js)
 export const duelWins = () => wins;
 
 // a guarding duellist went down: one more duel won (the ring fades with these on Knight)

@@ -40,8 +40,6 @@
    server sends the game as hundreds of modules), but never past 60% until the game itself says it's further along */
 (function(){
   var el = document.getElementById('boot'), blade = el.querySelector('.bt-blade'), txt = el.querySelector('.bt-status');
-  // switching save files (ui/files-ui.js) reloads under this screen: it is already up, so it shows at once, no rise-in
-  try { var sw = sessionStorage.getItem('sw_file_switch'); if (sw){ sessionStorage.removeItem('sw_file_switch'); el.classList.add('again'); txt.textContent = 'Opening save file ' + sw; } } catch(e){}
   var t0 = performance.now(), files = 0, floor = 0, over = false;
   function show(){
     if (over) return;

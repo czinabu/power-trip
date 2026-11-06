@@ -188,6 +188,15 @@ on('xp', (m) => { if (asGuest()) gainXp(m.n); });
 // the shared squad's kills feed the guest's flow meter as they do the host's (player/gunner-flow.js: the trooper's BATTLE RHYTHM)
 hooks.sqk = () => { if (asHost()) send({ t: 'sqk' }); };
 on('sqk', () => { if (asGuest()) addFlow('squadKill'); });
+// a guest trooper's fire pins a foe (enemies/coverfight.js frighten): the host's AI is the one that has to crawl
+hooks.fpin = (e, s) => { if (asGuest() && e.nid != null) send({ t: 'fpin', n: e.nid, s: r2(s) }); };
+on('fpin', (m) => {
+  if (!asHost()) return;
+  const e = enemies.find(o => o.nid === m.n);
+  if (!e || e.dead || e.converted) return;
+  e.suppT = Math.max(e.suppT || 0, G.gt + (m.s || 0));
+  e.fear = 0.35; e.fearAt = G.gt;
+});
 
 /* ---------------- the marksman's laser sight and the lancer's lunge line (sent at the pose rate per foe) ---------------- */
 const due = (e, key) => { const now = performance.now(); if (now - (e[key] || 0) < 50) return false; e[key] = now; return true; };

@@ -28,6 +28,8 @@
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
 //          perfectString (a string struck fully in rhythm into its finisher)
+//          the guns' signature moves (player/gun-moves.js): quickdraw gunKata tagBurst plant overcharge tripleTap sweep
+//          steadyBreath coveringFire
 //   alt    a second event that also passes the step (sparDown: a sparring partner beaten to its last sliver)
 //   of     with ev 'kill': only foes of this type count · stance / weapon: only while in that saber form / loadout
 //   air    only counts off the ground · grip: only while the saber is held in this grip ('reverse')
@@ -387,6 +389,9 @@ export const LESSONS = {
         { sec: 'THE BLASTER', say: 'A clean shot ends the fight before it starts. Aim for the head.',
           keys: 'LMB', do: 'Land 3 headshots on the targets', ev: 'headshot', need: 3, respawn: true, mark: [0, -6],
           spawn: dummies([[-4, -14], [0, -15], [4, -14]]) },
+        { say: 'Draw fast. The first shot out of the holster lands like a headshot, wherever it hits. Put it away, draw, fire.',
+          keys: '4 · 1 · LMB', do: 'Holster (4), then draw (1) and fire at once: 2 quickdraws', ev: 'quickdraw', need: 2, respawn: true,
+          spawn: dummies([[-3, -12], [3, -12]]) },
         { say: 'A hot barrel is a dead hunter. Clear the heat before it locks.',
           keys: 'LMB · R', do: 'Fire, then vent your heat', ev: 'vent', need: 1 },
         { say: 'The gauntlet shield returns what is sent. Raise it to their fire.',
@@ -464,6 +469,9 @@ export const LESSONS = {
         { sec: 'SIDEARMS', say: 'One blaster is for precision: the headshot, and the shield on the same arm. Two blasters are for close work: hold the trigger and they pour fire, but there is no shield behind them.',
           keys: '1 · HOLD LMB', do: 'Draw the dual blasters and drop the 3 targets up close', ev: 'kill', weapon: 'dual', need: 3, grant: 'dual', kit: { sidearm: 'dual' }, respawn: true,
           spawn: dummies([[-1.6, -5.4], [0, -6], [1.6, -5.4]]) },
+        { say: 'Never stop shooting. Dive, or dodge in the air, with the trigger held: both guns stay true, and every bolt bites harder. Gun kata.',
+          keys: 'SHIFT · HOLD LMB', do: 'Fire through a dive or an air dodge: 2 gun katas', ev: 'gunKata', need: 2, respawn: true,
+          spawn: dummies([[-3, -8], [0, -9], [3, -8]]) },
         { say: 'You carry one sidearm. The other waits in the armory: each time a run hands you a gun, you choose which to carry.',
           keys: '1', do: 'Draw the single blaster again', kit: { sidearm: 'single' }, poll: 'single', need: 0.3 },
       ] },
@@ -474,10 +482,15 @@ export const LESSONS = {
           say: 'The carbine. Three bolts a pull, steady from the hip. Each burst climbs: bring it back down onto them.',
           keys: '2 · LMB', do: 'With the pulse carbine, drop the 3 targets at range', ev: 'kill', weapon: 'carbine', need: 3, respawn: true,
           spawn: dummies([[-4, -14], [0, -15], [4, -14]]) },
+        { needs: 'carbine', say: 'Put a whole burst on one of them and it is tagged. Your rocket and your gadgets find a tag on their own, and hit it harder.',
+          keys: 'LMB', do: 'Land all three bolts of a burst on one target to tag it', ev: 'tagBurst', need: 1, respawn: true,
+          spawn: dummies([[0, -11]]) },
         { needs: 'repeater', sec: 'THE REPEATER', give: { unlocked: { repeater: true } }, kit: { primary: 'repeater' },
           say: 'The repeater must wind up. Hold the trigger and keep it on them. When it cooks, it cooks for a while: vent before it locks.',
           keys: '2 · HOLD LMB', do: 'With the heavy repeater, cut down the 5 targets', ev: 'kill', weapon: 'repeater', need: 5, respawn: true,
           spawn: dummies([[-3, -9], [-1.5, -10], [0, -9], [1.5, -10], [3, -9]]) },
+        { needs: 'repeater', say: 'Once it is spun up, brace and plant your feet. You cannot walk, but the spin holds, the cone closes, and every bolt punches through into the one behind.',
+          keys: 'HOLD LMB · HOLD RMB', do: 'Spin the repeater up, then hold RMB to plant', ev: 'plant', need: 1 },
       ] },
     { id: 'flame', group: 'more', kit: 'flame', name: 'THE FLAMETHROWER', sub: 'Fire for a crowd that will not listen',
       done: 'Fire clears the way. Mind the gadget power it burns.',
@@ -506,6 +519,9 @@ export const LESSONS = {
         { needs: 'disruptor', sec: 'THE DISRUPTOR', give: { unlocked: { disruptor: true }, up: { darksaber: false } }, say: 'The disruptor. One shot, nothing left. It ends a fight from afar.',
           keys: '3 · LMB', do: 'With the disruptor, drop the 2 far targets', ev: 'kill', weapon: 'disruptor', need: 2, respawn: true,
           spawn: dummies([[-4, -16], [4, -16]]) },
+        { needs: 'disruptor', say: 'Hold the trigger in the scope and the charge builds. Let go when it is full: the shot goes through every one of them in its line.',
+          keys: 'HOLD RMB · HOLD LMB', do: 'Overcharge a shot through the line of targets', ev: 'overcharge', need: 1, respawn: true,
+          spawn: dummies([[0, -10], [0, -13], [0, -16]]) },
         { needs: 'darksaber', sec: 'THE DARKSABER', give: { unlocked: { disruptor: false, dark: true }, up: { darksaber: true } }, say: 'The Darksaber. It is not the blade that is strong, but the one who wields it.',
           keys: '3 · LMB', do: 'With the Darksaber, cut down 3 targets', ev: 'kill', weapon: 'darksaber', need: 3, respawn: true,
           spawn: dummies(CIRCLE) },
@@ -543,6 +559,8 @@ export const LESSONS = {
           spawn: dummies([[-4, -14], [0, -15], [4, -14]]) },
         { say: 'Bring it up to your eye when it counts. The cone closes and the reticle settles.',
           keys: 'HOLD RMB · LMB', do: 'Aim in and drop a target', ev: 'kill', need: 1, respawn: true, spawn: dummies([[0, -15]]) },
+        { say: 'All three bolts on one of them and the burst\'s heat comes back to you. Every one of those on the head adds a bonus hit. Triple tap.',
+          keys: 'HOLD RMB · LMB', do: 'Land a whole burst on one target: 2 triple taps', ev: 'tripleTap', need: 2, respawn: true, spawn: dummies([[0, -12]]) },
         { say: 'Run it hot. When it locks, wait for the beat and hit R: do it right and the coils clear at once.',
           keys: 'LMB · R', do: 'Overheat the rifle, then vent it with R (on the beat clears it at once)', ev: 'vent', need: 1 },
       ] },
@@ -554,6 +572,9 @@ export const LESSONS = {
           spawn: dummies([[-5, -10], [5, -10], [0, -12]]) },
         { say: 'They fire out of a roll. Never stop shooting.',
           keys: 'SHIFT · LMB', do: 'Roll, firing as you come up', ev: 'dash', need: 1 },
+        { say: 'On the move they are covering fire: anything you hit while you roll or run for the next cover is pinned, and the rest keep their heads down.',
+          keys: 'SHIFT · LMB', do: 'Roll and hit a target on the way: covering fire', ev: 'coveringFire', need: 1, respawn: true,
+          spawn: dummies([[-3, -9], [3, -9]]) },
       ] },
     { id: 'cover', group: 'basics', name: 'IN COVER', sub: 'Take cover, lean out, roll to the next',
       done: 'Out in the open, that armour will not save you. Behind a wall, it will.',
@@ -577,6 +598,18 @@ export const LESSONS = {
         { say: 'Now all of it, on a live target.',
           keys: 'LMB · G · E', do: 'Take down the trooper', ev: 'kill', of: 'blaster', need: 1,
           spawn: [{ type: 'blaster', at: [9, 6], rooted: true }] },
+      ] },
+    { id: 'modules', group: 'more', any: ['modAuto', 'modScope'], name: 'DC-15 MODULES', sub: 'The auto barrel\'s sweep and the marksman\'s steady breath',
+      done: 'One rifle, three jobs. Know which one the fight wants.',
+      steps: [
+        { needs: 'modAuto', sec: 'THE AUTO BARREL', give: { unlocked: { modAuto: true } },
+          say: 'Fit the auto barrel. Hold the trigger and drag it across their line: everything it touches after the first one is pinned.',
+          keys: '1 · HOLD LMB', do: 'Sweep the line: hit 3 targets in one hold of the trigger', ev: 'sweep', need: 1, respawn: true,
+          spawn: dummies([[-4, -11], [-2, -11.5], [0, -12], [2, -11.5], [4, -11]]) },
+        { needs: 'modScope', sec: 'THE MARKSMAN SCOPE', give: { unlocked: { modScope: true } },
+          say: 'Fit the scope. In it, stand still and you hold your breath: the aim stops dead. The next shot hits harder and goes through. Then you have to breathe.',
+          keys: '1 · HOLD RMB · LMB', do: 'Hold your breath in the scope and land the shot', ev: 'steadyBreath', need: 1, respawn: true,
+          spawn: dummies([[0, -16], [0, -19]]) },
       ] },
   ],
 };

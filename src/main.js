@@ -342,3 +342,7 @@ import { optionOpen as lookOpen } from './game/wardrobe.js';
 import { captureRun as captureCampaignRun } from './game/saves.js';
 import { SIDE_QUESTS as SIDE_LIST } from './data/side-quests.js';
 Object.assign(window.GAME, { CUSTOMIZE: CUSTOMIZE_ROWS, optionOpen: lookOpen, captureRun: captureCampaignRun, SIDE_QUESTS: SIDE_LIST });
+import * as GUN_MOVES_RT from './player/gun-moves.js';
+import { GUN_MOVES as GUN_MOVES_DATA } from './data/gun-moves.js';
+import { crosshairRay as XRAY } from './player/aim.js';
+Object.assign(window.GAME, { gunMoves: { ...GUN_MOVES_RT, DATA: GUN_MOVES_DATA, ray: XRAY } });   // the guns' signature moves and mastery (player/gun-moves.js), for tests

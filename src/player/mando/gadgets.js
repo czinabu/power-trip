@@ -24,6 +24,7 @@ import { sweepHit, distToBody, chestPos } from '../../enemies/bodyshape.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 import { trainAbility } from '../../game/upgrades.js';
 import { gauntletPoint, palmPoints } from '../../fx/palms.js';
+import { tagTarget, tagMul, isTagged, moveOf } from '../gun-moves.js';
 
 // BACTA STIM (G) — the Mando's mirror of Force Mend: a quick injector channel that restores the same big chunk of
 // vitality (reuses the mendT channel + mendComplete). Steep Force + long cooldown; locked against HUNTER'S CREED.
@@ -52,8 +53,10 @@ export function mandoRocket(){
     new THREE.MeshStandardMaterial({ color: 0xb8c2cc, metalness: 0.6, roughness: 0.4 }));
   m.position.copy(origin); m.quaternion.setFromUnitVectors(V3(0,1,0), dir);
   scene.add(m);
-  rockets.push({ mesh: m, dir: dir.clone(), speed: A.speed, life: 3 });
-  if (hooks.pbolt) hooks.pbolt({ mesh: m, dir, speed: A.speed }, 0xff8a2a, 2.4);   // co-op: the partner sees it fly
+  const home = tagTarget(origin, A.speed * 3);   // TAG BURST: it homes onto a tagged foe (player/gun-moves.js)
+  rockets.push({ mesh: m, dir: dir.clone(), speed: A.speed, life: 3, home });
+  if (hooks.pbolt) hooks.pbolt({ mesh: m, dir, speed: A.speed }, 0xff8a2a, 2.4);
+  if (home) floater(home.group.position.clone().setY(home.group.position.y + 2.9), 'LOCKED', '#ffb84a');   // co-op: the partner sees it fly
   // launch FEEL: muzzle smoke + flash, a back-kick of recoil, a screen punch
   muzzleFlash(origin, dir, 0xffb04a, 0.7);
   for (let n = 0; n < 3; n++) puff(origin.clone().addScaledVector(dir, 0.2 + n*0.3), 0x8a8580, 0.3 + n*0.08, 0.35, V3(rand(-1,1), rand(0.5,1.5), rand(-1,1)), { delay: n*0.03, op: 0.8 });
@@ -78,7 +81,7 @@ function rocketExplode(pos, big, at){
   for (const e of enemies){
     if (e.dead || e.converted || e.state === 'spawn') continue;
     const d = distToBody(e, pos);   // the blast reaches the body, not just the feet
-    if (d < radius){ const kd = TMP.subVectors(e.group.position, pos).setY(0).normalize().clone(); damageEnemy(e, A.dmg * (1 - d/radius*0.4) * dmgMul, kd, A.knock); flinchEnemy(e, kd, big ? 0.9 : 0.6); if (!big && !at) tutEvent('rocketHit', e); }
+    if (d < radius){ const kd = TMP.subVectors(e.group.position, pos).setY(0).normalize().clone(); damageEnemy(e, A.dmg * (1 - d/radius*0.4) * dmgMul * (at ? 1 : tagMul(e)), kd, A.knock); flinchEnemy(e, kd, big ? 0.9 : 0.6); if (!big && !at) tutEvent('rocketHit', e); }
   }
   if (shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(pos) < radius + 1){
     damageBoss(A.dmg * dmgMul);
@@ -128,6 +131,12 @@ export function updateRockets(dt){
   for (let i = rockets.length-1; i >= 0; i--){
     const rk = rockets[i]; rk.life -= dt;
     rk.prev = (rk.prev || new THREE.Vector3()).copy(rk.mesh.position);
+    if (rk.home && isTagged(rk.home)){   // a tagged foe draws it in (TAG BURST)
+      const tp = chestPos(rk.home);
+      TMP.set(tp.x - rk.mesh.position.x, tp.y - rk.mesh.position.y, tp.z - rk.mesh.position.z).normalize();
+      rk.dir.lerp(TMP, Math.min(1, dt * moveOf('carbine').turn)).normalize();
+      rk.mesh.quaternion.setFromUnitVectors(V3(0,1,0), rk.dir);
+    }
     rk.mesh.position.addScaledVector(rk.dir, rk.speed * dt);
     // a hot exhaust trail — a flickering cel flame at the nozzle and a rope of ink-rimmed smoke left hanging
     rk.trailT = (rk.trailT || 0) - dt;
@@ -156,7 +165,7 @@ export function whistlingBirds(){
   // DISTRIBUTE the swarm — assign each bird a DIFFERENT nearby foe (round-robin), so they only pile onto one
   // target if there's only one in range
   const foes = enemies.filter(e => !e.dead && !e.converted && e.state !== 'spawn')
-    .sort((a, b) => a.group.position.distanceTo(pp) - b.group.position.distanceTo(pp)).slice(0, A.count);
+    .sort((a, b) => (isTagged(b) - isTagged(a)) || a.group.position.distanceTo(pp) - b.group.position.distanceTo(pp)).slice(0, A.count);   // (TAG BURST: tagged foes first)
   if (shared.boss && shared.boss.hp > 0 && foes.length < A.count) foes.push(shared.boss);
   // the swarm leaves the launcher on his left vambrace (fx/palms.js) in a fan, then each bird finds its mark
   const gp = gauntletPoint();
@@ -205,7 +214,7 @@ export function updateBirds(dt){
       blastMarks(p, abil('birds').radius * 0.45);   // scorched plates, some torn off (enemies/scars.js)
       sfx(rand(1600,2200), 0.06, 'sine', 0.04, 700); S.boom(p, 0.25);
       const bdmg = A.dmg * player.up.dmg * (player.up.rocketDmg || 1);
-      for (const e of enemies){ if (e.dead || e.converted || e.state === 'spawn') continue; const d = distToBody(e, p); if (d < A.radius){ const kd = TMP.subVectors(e.group.position, p).setY(0).normalize().clone(); damageEnemy(e, bdmg, kd, A.knock); flinchEnemy(e, kd, 0.3); } }
+      for (const e of enemies){ if (e.dead || e.converted || e.state === 'spawn') continue; const d = distToBody(e, p); if (d < A.radius){ const kd = TMP.subVectors(e.group.position, p).setY(0).normalize().clone(); damageEnemy(e, bdmg * tagMul(e), kd, A.knock); flinchEnemy(e, kd, 0.3); } }
       if (shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(p) < A.radius) damageBoss(bdmg);
       scene.remove(bd.mesh); birds.splice(i,1);
     }
@@ -217,6 +226,8 @@ export function updateBirds(dt){
    held between minRange and range (aimed at the sky, it goes as far as it can). */
 const DETO_G = 26;
 function detoTarget(A, from){
+  const tg = tagTarget(from, A.range);   // TAG BURST: a tagged foe in range is where it lands (player/gun-moves.js)
+  if (tg){ const c = chestPos(tg); return V3(c.x, Math.max(0.16, c.y - 0.6), c.z); }
   const aim = mandoAimPoint(), ray = mandoAimRay();
   const o = ray.origin, d = ray.direction, floor = 0;   // (the floor it rests on: updateDetos)
   let to;
@@ -273,7 +284,7 @@ export function updateDetos(dt){
       burst(p, 0x6a6a6a, 8, 8, 8, 1.1);
       flashLight(0xffa040, 9, A.radius*2.6, p, 0.3);
       const ddmg = A.dmg * player.up.dmg * (player.up.rocketDmg || 1);
-      for (const e of enemies){ if (e.dead || e.converted || e.state === 'spawn') continue; const d = distToBody(e, p); if (d < A.radius){ const kd = TMP.subVectors(e.group.position, p).setY(0).normalize().clone(); damageEnemy(e, ddmg * (1 - d/A.radius*0.4), kd, A.knock); flinchEnemy(e, kd, 0.6); } }
+      for (const e of enemies){ if (e.dead || e.converted || e.state === 'spawn') continue; const d = distToBody(e, p); if (d < A.radius){ const kd = TMP.subVectors(e.group.position, p).setY(0).normalize().clone(); damageEnemy(e, ddmg * (1 - d/A.radius*0.4) * tagMul(e), kd, A.knock); flinchEnemy(e, kd, 0.6); } }
       if (shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(p) < A.radius + 1){ damageBoss(ddmg); if (shared.boss.hp > 0 && (shared.boss.state === 'windup' || shared.boss.state === 'lightning' || shared.boss.state === 'chase')) bossStagger(); }
       for (const b of barrels){ if (b.mesh.position.distanceTo(p) < A.radius && b.fuse < 0) b.fuse = 0.15; }
       scene.remove(g.mesh); detos.splice(i,1);

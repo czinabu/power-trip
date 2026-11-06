@@ -7,7 +7,7 @@
 //   · A NEW GUN in a run, for a slot that's already full (game/armory.js grantGun) — the fight freezes and the hero
 //     picks which of the two to carry, like the Jedi's meditation. Its own #armory panel, over the fight.
 
-import { G, shared } from '../state.js';
+import { G, shared, isTrooper } from '../state.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { MUSIC } from '../audio/music.js';
@@ -16,13 +16,18 @@ import { setKit, setArmoryPickHook } from '../game/armory.js';
 import { autosave } from '../game/autosave.js';
 import { refreshSandboxScope, storyReached } from '../game/sandbox-unlocks.js';
 import { coopRun } from '../net/run.js';
+import { TROOPER_ARMORY } from '../data/trooper.js';
+import { GUN_ORDER } from '../data/gun-moves.js';
+import { moveBlock, tileRank } from './gun-moves-ui.js';
+import { gunId } from '../player/gun-moves.js';
 
 const menuPanel = document.getElementById('forms');
 const runPanel = document.getElementById('armory');
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
 export const ARMORY_ORDER = ['single', 'dual', 'carbine', 'repeater'];
-const HUE = { single: 0xffb84a, dual: 0xffd24a, carbine: 0x8fe8ff, repeater: 0xff8a4a };
+const HUE = { single: 0xffb84a, dual: 0xffd24a, carbine: 0x8fe8ff, repeater: 0xff8a4a, disruptor: 0x7fe0ff };
+const slotName = (W) => W.slot ? KIT_LABEL[W.slot] : 'SIGNATURE · 3';
 const LOCK = '<svg class="fm-lock-ic" viewBox="0 0 16 16" width="14" height="14" role="img" aria-label="Locked"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 let ctx = null;   // { mode: 'prefight' | 'codex' | 'pick', panel, edit, known, kit, focus, note, fresh, onGo }
@@ -48,30 +53,34 @@ function slotRow(){
   (ctx.mode === 'prefight' ? '' : '<div class="fm-slot empty"><span class="n">3 · SIGNATURE</span>' + (weaponOwned(sig) ? esc(MANDO_WEAPONS[sig].name) : 'AT THE FORGE') + '</div>') + '</div>';
 }
 function tile(id){
-  const W = MANDO_WEAPONS[id], C = ARMORY_CODEX[id] || {}, carried = ctx.kit[W.slot] === id;
-  return '<div class="fm-tile' + (ctx.edit ? ' pick' : '') + (carried ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-gun="' + id + '" style="--c:' + hex(HUE[id]) + '">' +
-    '<div class="fm-no">' + esc(KIT_LABEL[W.slot]) + (carried ? '<span class="fm-in">CARRIED</span>' : id === ctx.fresh ? '<span class="fm-in">NEW</span>' : '') + '</div>' +
-    '<b>' + esc(W.name) + '</b><div class="fm-best">' + esc(C.tag || '') + '</div></div>';
+  if (ctx.trooper) return trooperTile(id);
+  const W = MANDO_WEAPONS[id], C = ARMORY_CODEX[id] || {}, carried = W.slot ? ctx.kit[W.slot] === id : signatureWeapon() === id;
+  return '<div class="fm-tile' + (ctx.edit && W.slot ? ' pick' : '') + (carried ? ' in' : '') + (id === ctx.focus ? ' sel' : '') + '" data-gun="' + id + '" style="--c:' + hex(HUE[id]) + '">' +
+    '<div class="fm-no">' + esc(slotName(W)) + (carried ? '<span class="fm-in">CARRIED</span>' : id === ctx.fresh ? '<span class="fm-in">NEW</span>' : '') + '</div>' +
+    '<b>' + esc(W.name) + '</b><div class="fm-best">' + esc(C.tag || '') + '</div>' + tileRank(id) + '</div>';
 }
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="fm-detail empty">Select a gun to see what it is good and bad at.</div>';
+  if (ctx.trooper) return trooperDetail(id);
   const W = MANDO_WEAPONS[id], C = ARMORY_CODEX[id] || {};
-  return '<div class="fm-detail" style="--c:' + hex(HUE[id]) + '"><div class="fm-no">' + esc(KIT_LABEL[W.slot]) + ' · ' + esc(C.tag || '') + '</div><b>' + esc(W.name) + '</b>' +
+  return '<div class="fm-detail" style="--c:' + hex(HUE[id]) + '"><div class="fm-no">' + esc(slotName(W)) + ' · ' + esc(C.tag || '') + '</div><b>' + esc(W.name) + '</b>' +
     (C.lore ? '<p class="fm-lore">' + esc(C.lore) + '</p>' : '') +
     (C.best ? '<div class="fm-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
     '<ul class="fm-pros">' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>';
+    '<ul class="fm-cons">' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' + moveBlock(id) + '</div>';
 }
 function section(slot){
+  if (slot === 'signature') return ctx.known.includes('disruptor') ? '<div class="fm-sec">SIGNATURE</div><div class="fm-tiles">' + tile('disruptor') + '</div>' : '';
   const ids = ARMORY_ORDER.filter(id => MANDO_WEAPONS[id].slot === slot && ctx.known.includes(id));
   return ids.length ? '<div class="fm-sec">' + (slot === 'primary' ? 'PRIMARIES' : 'SIDEARMS') + '</div><div class="fm-tiles">' + ids.map(tile).join('') + '</div>' : '';
 }
 function lockedRow(){
-  const l = ARMORY_ORDER.filter(id => !ctx.known.includes(id));
-  return l.length ? '<div class="fm-sec">NOT FOUND YET</div><div class="fm-chips">' + l.map(id => '<div class="fm-chip" title="Not found yet"><span>' + KIT_LABEL[MANDO_WEAPONS[id].slot] + '</span>' + LOCK + '</div>').join('') + '</div>' : '';
+  const l = (ctx.trooper ? GUN_ORDER.trooper : ARMORY_ORDER).filter(id => !ctx.known.includes(id));
+  return l.length ? '<div class="fm-sec">NOT FOUND YET</div><div class="fm-chips">' + l.map(id => '<div class="fm-chip" title="Not found yet"><span>' + (ctx.trooper ? TROOPER_ARMORY[id].slot : KIT_LABEL[MANDO_WEAPONS[id].slot]) + '</span>' + LOCK + '</div>').join('') + '</div>' : '';
 }
 function render(){
+  if (ctx.trooper){ renderTrooper(); return; }
   const title = ctx.mode === 'prefight' ? 'BEFORE THE FIGHT' : ctx.mode === 'pick' ? 'A NEW GUN' : 'THE ARMORY';
   const head = ctx.known.length + (ctx.known.length === 1 ? ' gun' : ' guns') + ' in the armory';
   const actions = ctx.mode === 'prefight' ? '<div class="fm-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>'
@@ -80,13 +89,34 @@ function render(){
     '<div class="howto-head"><div class="howto-title">' + title + '</div><div class="rm-sub">' + head + '</div>' + (ctx.mode === 'pick' ? '' : '<div class="howto-x" data-x="1">✕</div>') + '</div>' +
     '<div class="fm-sec">YOUR LOADOUT</div>' + slotRow() +
     (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + '</div>' : '') +
-    '<div class="fm-body"><div>' + section('sidearm') + section('primary') + '</div>' + detail() + '</div>' + lockedRow() + actions + '</div>';
+    '<div class="fm-body"><div>' + section('sidearm') + section('primary') + (ctx.mode === 'codex' ? section('signature') : '') + '</div>' + detail() + '</div>' + lockedRow() + actions + '</div>';
+}
+
+/* ---------- the ARC trooper's guns: read only, each DC-15 module and the DC-17s with its move and mastery ---------- */
+const trooperOwned = (id) => !TROOPER_ARMORY[id].unlock || !!(G.unlocked && G.unlocked[TROOPER_ARMORY[id].unlock]);
+function trooperTile(id){
+  const T = TROOPER_ARMORY[id], inHand = G.mode !== 'menu' && gunId() === id;
+  return '<div class="fm-tile' + (id === ctx.focus ? ' sel' : '') + '" data-gun="' + id + '" style="--c:' + hex(T.col) + '">' +
+    '<div class="fm-no">' + esc(T.slot) + (inHand ? '<span class="fm-in">IN HAND</span>' : '') + '</div>' +
+    '<b>' + esc(T.name) + '</b><div class="fm-best">' + esc(T.tag) + '</div>' + tileRank(id) + '</div>';
+}
+function trooperDetail(id){
+  const T = TROOPER_ARMORY[id];
+  return '<div class="fm-detail" style="--c:' + hex(T.col) + '"><div class="fm-no">' + esc(T.slot) + ' · ' + esc(T.tag) + '</div><b>' + esc(T.name) + '</b>' +
+    '<p class="fm-lore">' + esc(T.lore) + '</p><div class="fm-best">BEST AGAINST · ' + esc(T.best) + '</div>' + moveBlock(id) + '</div>';
+}
+function renderTrooper(){
+  const n = ctx.known.length;
+  ctx.panel.innerHTML = '<div class="howto-panel fm-compact hero-mando">' +
+    '<div class="howto-head"><div class="howto-title">THE ARMORY</div><div class="rm-sub">' + n + (n === 1 ? ' gun' : ' guns') + ' · a signature move and mastery each</div><div class="howto-x" data-x="1">✕</div></div>' +
+    (ctx.note ? '<div class="fm-note">' + esc(ctx.note) + '</div>' : '') +
+    '<div class="fm-body"><div><div class="fm-sec">YOUR GUNS</div><div class="fm-tiles">' + ctx.known.map(tile).join('') + '</div></div>' + detail() + '</div>' + lockedRow() + '</div>';
 }
 
 /* ---------- picking: a gun goes into its own slot ---------- */
 function pick(id){
   ctx.focus = id;
-  if (ctx.edit && MANDO_WEAPONS[id]) ctx.kit = { ...ctx.kit, [MANDO_WEAPONS[id].slot]: id };
+  if (ctx.edit && MANDO_WEAPONS[id] && MANDO_WEAPONS[id].slot) ctx.kit = { ...ctx.kit, [MANDO_WEAPONS[id].slot]: id };
   render();
 }
 
@@ -103,7 +133,15 @@ export function openArmoryPrefight(go){
   render(); menuPanel.classList.add('open');
 }
 export function openArmoryCodex(){
-  const known = ARMORY_ORDER.filter(id => weaponOwned(id));
+  if (isTrooper()){
+    const known = GUN_ORDER.trooper.filter(trooperOwned);
+    ctx = { mode: 'codex', trooper: true, panel: menuPanel, edit: false, known, kit: {},
+      note: 'Each gun has one move only it does, and ranks I to III earned by using it.' };
+    ctx.focus = G.mode !== 'menu' && known.includes(gunId()) ? gunId() : known[0];
+    render(); menuPanel.classList.add('open');
+    return;
+  }
+  const known = [...ARMORY_ORDER, 'disruptor'].filter(id => weaponOwned(id));
   ctx = { mode: 'codex', panel: menuPanel, edit: false, known, kit: { ...kitOf() },
     note: G.sandbox ? 'Change your guns in the sandbox panel (B).' : G.training || G.mission ? '' : 'Each time the run hands you a gun for a full slot, you choose which to carry.' };
   ctx.focus = ctx.kit.primary || ctx.kit.sidearm;

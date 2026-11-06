@@ -30,10 +30,21 @@ export function chapterLooks(id){
     out.push({ key: 'promote-' + rank, hud: '' });   // its own card (ui/ability-card.js, data/ability-cards.js)
     rest = fresh.filter(f => f.o.unlock !== id || f.row.kind === 'color');   // (the kit is on the card; its colours are news)
   }
-  if (rest.length){
-    const names = rest.map(({ row, o }) => row.kind === 'color' ? o.name + ' ' + row.label.toLowerCase() : cap(row.label) + ': ' + o.name);
-    const shown = names.slice(0, 3).join(' · ') + (names.length > 3 ? ' · +' + (names.length - 3) + ' more' : '');
-    out.push({ key: 'looks', name: rest.length === 1 ? 'NEW LOOK' : rest.length + ' NEW LOOKS', sub: shown + ' · in CUSTOMIZE', hud: '', kicker: 'CUSTOMIZER' });
-  }
+  if (rest.length) out.push(looksEntry(rest));
   return out;
+}
+// the one banner naming a chapter's new looks (it keeps the list, so a look shown some other way can be taken off it)
+function looksEntry(rest){
+  const names = rest.map(({ row, o }) => row.kind === 'color' ? o.name + ' ' + row.label.toLowerCase() : cap(row.label) + ': ' + o.name);
+  const shown = names.slice(0, 3).join(' · ') + (names.length > 3 ? ' · +' + (names.length - 3) + ' more' : '');
+  return { key: 'looks', name: rest.length === 1 ? 'NEW LOOK' : rest.length + ' NEW LOOKS', sub: shown + ' · in CUSTOMIZE', hud: '', kicker: 'CUSTOMIZER', fresh: rest };
+}
+// chapterLooks' entries less the looks in `skip` ('row:option': the Armorer's piece, game/armorer.js, has its own beat)
+export function looksLess(list, skip){
+  if (!skip || !skip.length) return list;
+  return list.flatMap(u => {
+    if (u.key !== 'looks' || !u.fresh) return [u];
+    const rest = u.fresh.filter(({ row, o }) => !skip.includes(row.id + ':' + o.id));
+    return rest.length ? [looksEntry(rest)] : [];
+  });
 }

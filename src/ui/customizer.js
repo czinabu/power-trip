@@ -23,6 +23,7 @@ import { earnText } from '../data/saber-parts.js';
 import { openWorkbench, closeWorkbench, workbenchOpen } from './workbench.js';
 import { openKitBench, closeKitBench, kitBenchOpen } from './kitbench.js';
 import { pageTabs, pageTabClick } from './page-tabs.js';
+import { armorerHooks } from '../game/armorer.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
@@ -146,6 +147,7 @@ export function refreshWornLook(){
   restyleShowcase(picks);
   return true;
 }
+armorerHooks.refit = refreshWornLook;   // the Armorer's new piece goes on at once (game/armorer.js)
 // the trooper goes by TROOPER until his promotion, then ARC TROOPER (game/wardrobe.js): every place the menu names him
 export function syncHeroNames(){
   const n = heroName('trooper');

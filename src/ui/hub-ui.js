@@ -35,7 +35,7 @@ let station = null, forging = false;
 // the forge's workbench and customizer: DONE goes straight back to the forge
 // (looked at a moment later: the customizer's own SABER WORKBENCH link closes it to open the bench, still at the forge)
 const backToForge = () => setTimeout(() => {
-  if (!forging || workbenchOpen() || kitBenchOpen()) return;
+  if (!forging || workbenchOpen() || kitBenchOpen() || overlay.classList.contains('customizing')) return;   // (or turned to another tab of it: ui/page-tabs.js)
   forging = false; if (G.fromHub && G.mode === 'menu') goTemple();
 }, 0);
 document.addEventListener('customizer-closed', backToForge);

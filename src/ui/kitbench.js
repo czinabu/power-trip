@@ -17,6 +17,7 @@ import { optionOpen, refreshWorn } from '../game/wardrobe.js';
 import { profileOf, partsOwned, partsTotal, runLive } from '../game/profile.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
+import { pageTabs, pageTabClick } from './page-tabs.js';
 import { restyleShowcase, focusShowcase, spinShowcase, showcaseRifle, showcaseKit } from './showcase.js';
 
 const overlay = document.getElementById('overlay');
@@ -87,6 +88,7 @@ function render(keep = false){
   const W = WORDS[hero], live = runLive(), have = partsOwned(hero), all = partsTotal(hero);
   panel.className = 'kb-' + hero;
   panel.innerHTML = `<div class="kb-panel">
+    ${pageTabs(hero, 'bench')}
     <div class="kb-head"><div><small>${W.kicker}</small><h2>${BENCH_NAME[hero]}</h2></div><div class="kb-x" id="kbclose">CLOSE</div></div>
     <div class="kb-meter"><span>${W.count}</span><div class="kb-bar"><i style="width:${all ? Math.round(have / all * 100) : 0}%"></i></div><b>${have} / ${all}</b></div>
     <p class="kb-note">${W.note}</p>
@@ -138,6 +140,7 @@ panel.addEventListener('click', (e) => {
   e.stopPropagation();   // never launches the game
   const t = e.target, tile = t.closest('[data-opt]');
   if (tile) return fit(tile.dataset.row, tile.dataset.opt);
+  if (pageTabClick(e)) return;   // APPEARANCE: back to the customizer (ui/customizer.js)
   if (t.closest('#kbclose') || t.closest('#kbdone')) return closeKitBench();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && kitBenchOpen()) closeKitBench(); });

@@ -150,6 +150,14 @@ for (const hero of HEROES){
     check(await station(...at('bench'), 'CUSTOMIZE YOUR HERO'), `${hero}: the forge bench offers the customizer`);
     await page.waitForTimeout(500);
     check(await page.evaluate(() => document.getElementById('overlay').classList.contains('customizing')), `${hero}: the customizer opens`);
+    // APPEARANCE | SABER (LOCKER, FORGE): the tab turns to the hero's bench and back, still at the forge (ui/page-tabs.js)
+    await page.click('#czpage [data-pg="bench"]');
+    await page.waitForTimeout(300);
+    check(await page.evaluate(() => { const o = document.getElementById('overlay');
+      return !o.classList.contains('customizing') && (document.getElementById('workbench').classList.contains('open') || o.classList.contains('kitbench')); }), `${hero}: the bench tab opens the hero's bench`);
+    await page.click('.pg-tabs [data-pg="look"]:not(#czpage *)');
+    await page.waitForTimeout(300);
+    check(await page.evaluate(() => GAME.G.mode === 'menu' && document.getElementById('overlay').classList.contains('customizing')), `${hero}: the appearance tab comes back to the customizer, not the forge`);
     await page.click('#czdone');
     check(await inHub(P.forge), `${hero}: DONE goes back to the forge`);
     if (hero === 'jedi'){

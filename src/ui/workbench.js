@@ -1,8 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE SABER WORKBENCH: its own screen, opened from SABER on the main menu (or the customizer's link). (The trooper's and
 // the Mando's benches are ui/kitbench.js: the same button opens theirs.) The saber lies in
-// pieces on a lamp-lit bench (ui/bench-stage.js); this is the panel beside it: a tray for each slot (the kyber crystal,
-// the emitter, the grip, the pommel) holding the parts you've earned, the fitted crystal's ATTUNEMENT read out as its
+// pieces on a lamp-lit bench (ui/bench-stage.js); this is the panel beside it: a rail of the slots (the kyber crystal,
+// the emitter, the grip, the pommel) and the open slot's parts, earned ones first (ui/bench-panel.js), the fitted crystal's ATTUNEMENT read out as its
 // gain and its cost, and TEST IGNITION, which slides the pieces home and lights the blade. Parts and their sources are
 // data/saber-parts.js; what you've earned is your profile's (game/profile.js); the build is saved with the customizer's
 // picks (player/mesh.js sw_look), so it is the saber you carry in every mode and the one a co-op partner sees.
@@ -18,6 +18,7 @@ import { loadPicks, savePicks } from '../player/mesh.js';
 import { openBench, setBenchSaber, igniteBench, spinBench } from './bench-stage.js';
 import { openKitBench } from './kitbench.js';
 import { pageTabs, pageTabClick } from './page-tabs.js';
+import { slotRail, slotBody, lockFold, keepScroll, putScroll } from './bench-panel.js';
 
 const panel = document.getElementById('workbench');
 const btn = document.getElementById('wbBtn');
@@ -28,7 +29,7 @@ const TRAYS = [['saber', 'KYBER CRYSTAL', 'The heart of the blade. It sets the c
 const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const chapterName = (id) => { const c = chapterOrder(null, 'jedi').find(x => x.id === id); return c ? forHero(c.title, 'jedi') : id.toUpperCase(); };
-let picks = {}, lit = false;
+let picks = {}, lit = false, slot = 'saber', showShut = false;   // (the open slot, and whether the parts still to earn are shown)
 
 const row = (id) => ROWS.find(r => r.id === id);
 const fitted = (id) => wornOption('jedi', row(id), picks.jedi || {});
@@ -37,39 +38,44 @@ function partLine(rowId, o){
   const b = BENCH.find(r => r.id === rowId), p = b && b.parts.find(x => x.id === o.id);
   return p ? p.line : '';
 }
-function tray([id, label, sub], n){
-  const R = row(id), cur = fitted(id), prof = profileOf('jedi');
-  const tiles = R.options.map(o => {
-    const shut = !optionOpen('jedi', R, o), e = o.earn && earnProgress(prof, o.earn);
-    const where = shut ? earnText(o.earn, chapterName) + (e && e.need > 1 ? ' · ' + Math.min(e.have, e.need) + '/' + e.need : '') : partLine(id, o);
-    const sw = id === 'saber' ? `<i class="wb-sw" style="--c:${hex(swatchOf(o))}"></i>` : '';
-    return `<div class="wb-part${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${id}" data-opt="${o.id}">`
-      + `<b>${sw}${esc(o.name)}</b><em>${o === cur ? 'FITTED' : shut ? 'LOCKED' : ''}</em><span>${esc(where)}</span></div>`;
-  }).join('');
-  return `<section class="wb-tray"><header><i>${String(n + 1).padStart(2, '0')}</i><h3>${label}</h3></header><p>${sub}</p><div class="wb-parts">${tiles}</div></section>`;
+// a part's tile: fitted, earned or still to earn (with how, and how far along)
+function tile(id, R, o, cur, prof){
+  const shut = !optionOpen('jedi', R, o), e = o.earn && earnProgress(prof, o.earn);
+  const where = shut ? earnText(o.earn, chapterName) + (e && e.need > 1 ? ' · ' + Math.min(e.have, e.need) + '/' + e.need : '') : partLine(id, o);
+  const sw = id === 'saber' ? `<i class="wb-sw" style="--c:${hex(swatchOf(o))}"></i>` : '';
+  return { shut, where, frac: e && e.need ? Math.min(e.have, e.need) / e.need : 0, name: o.name,
+    html: `<div class="wb-part${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${id}" data-opt="${o.id}">`
+      + `<b>${sw}${esc(o.name)}</b><em>${o === cur ? 'FITTED' : shut ? 'LOCKED' : ''}</em><span>${esc(where)}</span></div>` };
 }
+// the open slot: the parts earned as a grid, the rest folded under them (ui/bench-panel.js)
+function tray(id){
+  const [, , sub] = TRAYS.find(t => t[0] === id), R = row(id), cur = fitted(id), prof = profileOf('jedi');
+  const all = R.options.map(o => tile(id, R, o, cur, prof)), open = all.filter(t => !t.shut), shut = all.filter(t => t.shut);
+  return slotBody(sub, open.map(t => t.html).join(''),
+    lockFold(shut, shut.map(t => t.html).join(''), showShut, 'More parts come from duels, the masters\' trials, story missions, challenges and survival waves.'));
+}
+const slots = () => TRAYS.map(([id, label]) => { const R = row(id); return { id, label, fitted: fitted(id).name, have: R.options.filter(o => optionOpen('jedi', R, o)).length, all: R.options.length }; });
 function readout(){
   const c = crystalOf(fitted('saber').id), [gain, cost] = c.ds.split(' · ');
   return `<div class="wb-att"><div class="wb-att-h"><b>ATTUNEMENT</b><span>${esc(c.att)}</span></div>`
     + (c.fx.length ? `<div class="wb-fx"><i>GAIN</i>${esc(gain)}</div><div class="wb-fx cost"><i>COST</i>${esc(cost)}</div>` : `<div class="wb-fx"><i>—</i>${esc(c.ds)}</div>`)
     + `<p>A crystal trades one small edge for another. The grip, emitter and pommel change how the saber looks, not how it fights.</p></div>`;
 }
-// keep: hold the panel's scroll across the redraw (a pick made far down the trays), not jump back to the top
+// keep: hold the parts pane's scroll across the redraw (a pick made far down a slot), not jump back to the top
 function render(keep = false){
-  const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
+  const was = keep ? keepScroll(panel) : 0;
   const live = runLive();
-  panel.innerHTML = `<div class="wb-panel">
+  panel.innerHTML = `<div class="wb-panel bp">
     ${pageTabs('jedi', 'bench')}
     <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
     <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
-    <p class="wb-note">More parts come from duels, the masters' trials, story missions, challenges and survival waves.</p>
     ${live ? '<p class="wb-live">A run is on: the saber is built between runs. Look over it here, and fit new parts from the main menu.</p>' : ''}
-    <div class="wb-trays${live ? ' wb-locked' : ''}">${TRAYS.map(tray).join('')}</div>
-    ${readout()}
-    <div class="wb-actions"><div class="wb-btn" id="wbtest">${lit ? 'TAKE APART' : 'TEST IGNITION'}</div><div class="wb-btn main" id="wbdone">DONE</div></div>
-    <div class="wb-hint">Drag the bench to turn the hilt. Esc to finish.</div>
+    <div class="bp-split">${slotRail(slots(), slot)}<div class="bp-parts${live ? ' wb-locked' : ''}">${tray(slot)}</div></div>
+    <div class="bp-foot">${readout()}
+      <div class="wb-actions"><div class="wb-btn" id="wbtest">${lit ? 'TAKE APART' : 'TEST IGNITION'}</div><div class="wb-btn main" id="wbdone">DONE</div></div>
+      <div class="wb-hint">Drag the bench to turn the hilt. Esc to finish.</div></div>
   </div>`;
-  if (was) panel.firstElementChild.scrollTop = was;
+  putScroll(panel, was);
 }
 
 export function openWorkbench(){
@@ -108,6 +114,9 @@ panel.addEventListener('click', (e) => {
   e.stopPropagation();   // never launches the game
   const t = e.target, tile = t.closest('[data-opt]');
   if (tile) return fit(tile.dataset.row, tile.dataset.opt);
+  const sl = t.closest('[data-slot]');
+  if (sl){ if (sl.dataset.slot !== slot){ slot = sl.dataset.slot; S.uiClick(); render(); } return; }   // another slot (ui/bench-panel.js)
+  if (t.closest('[data-bpfold]')){ showShut = !showShut; S.uiClick(); render(true); return; }   // the parts still to earn: shown or folded
   if (pageTabClick(e)) return;   // APPEARANCE: back to the customizer (ui/customizer.js)
   if (t.closest('#wbclose') || t.closest('#wbdone')) return closeWorkbench();
   if (t.closest('#wbtest')){

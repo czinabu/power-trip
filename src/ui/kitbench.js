@@ -3,8 +3,8 @@
 // (ui/workbench.js), opened from the main menu's bench button (LOCKER / FORGE, where the Jedi's says SABER), the
 // customizer's link, or a hub's forge station (ui/hub-ui.js). The hero stands on the showcase turntable (ui/showcase.js)
 // wearing every pick as it's made, in the bench's own room (ui/kit-stage.js: a Kamino armory bay, the Armorer's cave)
-// instead of the customizer's sky; this is the panel beside it: a tray for each row of the hero's bench
-// (data/trooper-locker.js, data/beskar-forge.js) holding the parts earned, and the sidegrades read out as gain and cost.
+// instead of the customizer's sky; this is the panel beside it: a rail of the hero's bench slots
+// (data/trooper-locker.js, data/beskar-forge.js) and the open slot's parts, earned ones first (ui/bench-panel.js), and the sidegrades read out as gain and cost.
 // What you've earned is your profile's (game/profile.js); the build is saved with the customizer's picks (player/mesh.js
 // sw_look), so it is what you wear and carry in every mode and what a co-op partner sees.
 
@@ -18,6 +18,7 @@ import { profileOf, partsOwned, partsTotal, runLive } from '../game/profile.js';
 import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
 import { pageTabs, pageTabClick } from './page-tabs.js';
+import { slotRail, slotBody, lockFold, keepScroll, putScroll } from './bench-panel.js';
 import { restyleShowcase, focusShowcase, spinShowcase, showcaseRifle, showcaseKit } from './showcase.js';
 
 const overlay = document.getElementById('overlay');
@@ -42,7 +43,8 @@ const WORDS = {
 };
 const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-let hero = 'trooper', picks = {};
+let hero = 'trooper', picks = {}, showShut = false;
+const slot = { trooper: null, mando: null };   // each bench's open slot, and whether the parts still to earn are shown
 
 const rowsOf = () => CUSTOMIZE[hero].filter(r => r.bench);
 const row = (id) => CUSTOMIZE[hero].find(r => r.id === id);
@@ -57,19 +59,24 @@ function whereLocked(o){
   const c = chapterOrder(null, hero).find(ch => ch.id === o.unlock);
   return c ? 'ACT ' + ROMAN[c.act] + ' · ' + forHero(c.title, hero) : 'THE CAMPAIGN';
 }
-function tray(R, n){
-  const W = WORDS[hero], b = benchRow(R.id), cur = fitted(R.id);
-  const tiles = R.options.map(o => {
-    const shut = !optionOpen(hero, R, o), p = partOf(R.id, o.id) || {};
-    const where = shut ? whereLocked(o) : R.side ? (p.fx && p.fx.length || p.role ? p.ds : 'No sidegrade') : (p.line || '');
-    const col = R.kind === 'color' ? swatchOf(o) : p.col;
-    const sw = col != null ? `<i class="kb-sw" style="--c:${hex(col)}"></i>` : '';
-    const tag = o === cur ? W.fitted : shut ? W.locked : '';
-    return `<div class="kb-tag${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${R.id}" data-opt="${o.id}">`
-      + `<b>${sw}${esc(o.name)}</b>${tag ? `<em>${tag}</em>` : ''}<span>${esc(where)}</span></div>`;
-  }).join('');
-  return `<section class="kb-row${R.side ? ' kb-side' : ''}"><h3><i>${String(n + 1).padStart(2, '0')}</i>${esc(R.label)}</h3><p>${esc(b.sub || '')}</p><div class="kb-tags">${tiles}</div></section>`;
+// a part's tile: fitted, earned, or still to earn (with how, and how far along)
+function tile(R, o, cur){
+  const W = WORDS[hero], shut = !optionOpen(hero, R, o), p = partOf(R.id, o.id) || {};
+  const where = shut ? whereLocked(o) : R.side ? (p.fx && p.fx.length || p.role ? p.ds : 'No sidegrade') : (p.line || '');
+  const col = R.kind === 'color' ? swatchOf(o) : p.col;
+  const sw = col != null ? `<i class="kb-sw" style="--c:${hex(col)}"></i>` : '';
+  const tag = o === cur ? W.fitted : shut ? W.locked : '', e = o.earn && earnProgress(profileOf(hero), o.earn);
+  return { shut, where, name: o.name, frac: e && e.need ? Math.min(e.have, e.need) / e.need : 0,
+    html: `<div class="kb-tag${o === cur ? ' on' : ''}${shut ? ' shut' : ''}" data-row="${R.id}" data-opt="${o.id}">`
+      + `<b>${sw}${esc(o.name)}</b>${tag ? `<em>${tag}</em>` : ''}<span>${esc(where)}</span></div>` };
 }
+// the open slot: the parts earned as a grid, the rest folded under them (ui/bench-panel.js)
+function tray(R){
+  const b = benchRow(R.id), cur = fitted(R.id), all = R.options.map(o => tile(R, o, cur));
+  const open = all.filter(t => !t.shut), shut = all.filter(t => t.shut);
+  return slotBody(b.sub || '', open.map(t => t.html).join(''), lockFold(shut, shut.map(t => t.html).join(''), showShut, WORDS[hero].note));
+}
+const slots = () => rowsOf().map(R => ({ id: R.id, label: R.label, fitted: fitted(R.id).name, have: R.options.filter(o => optionOpen(hero, R, o)).length, all: R.options.length }));
 // the sidegrades fitted, as gain and cost
 function readout(){
   const W = WORDS[hero], sides = rowsOf().filter(r => r.side).map(R => ({ R, p: partOf(R.id, fitted(R.id).id) }));
@@ -82,22 +89,21 @@ function readout(){
   };
   return `<div class="kb-load"><h4>${W.loadout}</h4>${sides.map(one).join('')}<p>${W.side}</p></div>`;
 }
-// keep: hold the panel's scroll across the redraw (a pick made far down the trays), not jump back to the top
+// keep: hold the parts pane's scroll across the redraw (a pick made far down a slot), not jump back to the top
 function render(keep = false){
-  const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
+  const was = keep ? keepScroll(panel) : 0;
   const W = WORDS[hero], live = runLive(), have = partsOwned(hero), all = partsTotal(hero);
+  if (!rowsOf().some(R => R.id === slot[hero])) slot[hero] = rowsOf()[0].id;
   panel.className = 'kb-' + hero;
-  panel.innerHTML = `<div class="kb-panel">
+  panel.innerHTML = `<div class="kb-panel bp">
     ${pageTabs(hero, 'bench')}
     <div class="kb-head"><div><small>${W.kicker}</small><h2>${BENCH_NAME[hero]}</h2></div><div class="kb-x" id="kbclose">CLOSE</div></div>
     <div class="kb-meter"><span>${W.count}</span><div class="kb-bar"><i style="width:${all ? Math.round(have / all * 100) : 0}%"></i></div><b>${have} / ${all}</b></div>
-    <p class="kb-note">${W.note}</p>
     ${live ? '<p class="kb-live">A run is on: your kit is changed between runs. Look it over here, and fit new parts from the main menu.</p>' : ''}
-    ${readout()}
-    <div class="kb-rows${live ? ' kb-locked' : ''}">${rowsOf().map(tray).join('')}</div>
-    <div class="kb-foot"><div class="kb-btn" id="kbdone">${W.done}</div><div class="kb-hint">${W.hint}</div></div>
+    <div class="bp-split">${slotRail(slots(), slot[hero])}<div class="bp-parts${live ? ' kb-locked' : ''}">${tray(row(slot[hero]))}</div></div>
+    <div class="bp-foot">${readout()}<div class="kb-foot"><div class="kb-btn" id="kbdone">${W.done}</div><div class="kb-hint">${W.hint}</div></div></div>
   </div>`;
-  if (was) panel.firstElementChild.scrollTop = was;
+  putScroll(panel, was);
 }
 
 // open the hero's bench (the trooper's locker or the Mando's forge). The Jedi's is the saber workbench (ui/workbench.js)
@@ -140,6 +146,9 @@ panel.addEventListener('click', (e) => {
   e.stopPropagation();   // never launches the game
   const t = e.target, tile = t.closest('[data-opt]');
   if (tile) return fit(tile.dataset.row, tile.dataset.opt);
+  const sl = t.closest('[data-slot]');
+  if (sl){ if (sl.dataset.slot !== slot[hero]){ slot[hero] = sl.dataset.slot; S.uiClick(); render(); } return; }   // another slot (ui/bench-panel.js)
+  if (t.closest('[data-bpfold]')){ showShut = !showShut; S.uiClick(); render(true); return; }   // the parts still to earn: shown or folded
   if (pageTabClick(e)) return;   // APPEARANCE: back to the customizer (ui/customizer.js)
   if (t.closest('#kbclose') || t.closest('#kbdone')) return closeKitBench();
 });

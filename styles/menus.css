@@ -1352,7 +1352,12 @@ body.wb-open #overlay{background:none}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .md{margin-top:5px}
 /* a group reads as a list, not a wall of tiles: quiet plates, the picked one's gold edge on the left */
 #modeselect .mgroups .modeopt{background:rgba(8,18,33,.5)}
-#modeselect .mgroups .modeopt.sel{background:linear-gradient(90deg,rgba(54,42,10,.55),rgba(8,18,33,.4));border-color:var(--edge);border-left:3px solid var(--gold)}
+/* the top level marks no pick: the temple alone wears the gold brackets, as the way in; the lists under the groups
+   still mark the mode last picked */
+#modeselect .mgroups .modeopt.sel{background:rgba(8,18,33,.5);border-color:var(--edge)}
+#modeselect .mgroups .modeopt.sel::before,#modeselect .mgroups .modeopt.sel::after{opacity:0}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{border-color:rgba(255,210,74,.7)}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple::before,#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple::after{opacity:1;border-color:var(--gold)}
 .msub-head{display:flex;align-items:center;gap:14px;margin-bottom:2px}
 .msub-head .msub-back{padding:7px 12px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .msub-t{font:700 20px/1 var(--font-display);letter-spacing:2.5px;color:var(--gold)}

@@ -35,6 +35,11 @@ import { killCam, killCamOn } from '../engine/killcam.js';
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
 /* opts.shove: a blade's blow (data/config.js player.saberShove): whatever it floors or kills goes no faster than this
    across the ground, and only a little up: a heavy stagger and a short shove, not a launch. */
+/* opts.slide: a Force shove (Force Push and Pull, the saber lock's Force shove). Whatever it is too light to floor (or can
+   never be floored: champions, final bosses) it still SKIDS across the ground and reels (shoveSlide, below) instead of
+   standing put. A number is the most ground it may cover, skidding or thrown (a Pull stops short of the hero). */
+const SLIDE_THROW = 0.45;   // about the ground a floored foe covers per point of knock (its throw, bounce and settle)
+const slideCap = (v, opts) => opts && typeof opts.slide === 'number' ? Math.min(v, opts.slide / SLIDE_THROW) : v;
 /* opts.ally: a squadmate's bolt (allies/squad.js). It lands as plain damage: no opening bonus, no hitstop or shake, and a
    kill it makes pays SQUAD.killXp of the XP and feeds no streak, Focus, lifesteal or boon (data/allies.js). */
 // how fast a floored or killed foe leaves across the ground: a blade's shove is capped (opts.shove), anything else is not
@@ -61,7 +66,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.dead) return;
   if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
     if (opts && opts.ally) return;
-    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield);
+    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide);
     if (dmg > 0 && !tick){
       spawnHitSpark(opts && opts.at ? opts.at : V3(e.group.position.x, e.group.position.y + 1.3, e.group.position.z), e.t.eye, 0.8);
       G.hitstop = Math.max(G.hitstop, 0.03); G.shake = Math.max(G.shake, 0.14);
@@ -118,7 +123,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
   }
   // EXECUTIONER boon — a hit that would leave a normal foe under 22% finishes it outright (not bosses/champions)
-  if (player.boon && player.boon.exec && !byAlly && !tick && knockDir && !e.warbringer && !e.champion && e.maxHp && (e.hp - dmg) > 0 && (e.hp - dmg) < e.maxHp*0.22){
+  if (player.boon && player.boon.exec && !byAlly && !tick && knockDir && dmg > 0 && !e.warbringer && !e.champion && e.maxHp && (e.hp - dmg) > 0 && (e.hp - dmg) < e.maxHp*0.22){
     dmg = e.hp; floater(V3(e.group.position.x, e.group.position.y+1.7, e.group.position.z), 'EXECUTE', '#ff7a7a');
   }
   // a JET TROOPER caught by a big blast (see blastKnock in data/enemies.js) doesn't get knocked about: its pack goes up
@@ -150,8 +155,10 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
         G.shake   = Math.max(G.shake,   0.12 + power*0.13);
       }
     }
-    floater(p, Math.round(dmg), byAlly ? '#8ea2b4' : e.hp <= 0 ? '#ffd24a' : '#bfe8ff');
-    S.impact(cp, power);   // voiced by what landed it: saber burn, blaster pop, or a thump
+    if (dmg > 0 || !(opts && opts.slide)){   // (a Force Pull's haul does no damage: no number, no thump)
+      floater(p, Math.round(dmg), byAlly ? '#8ea2b4' : e.hp <= 0 ? '#ffd24a' : '#bfe8ff');
+      S.impact(cp, power);
+    }   // voiced by what landed it: saber burn, blaster pop, or a thump
   }
   if (e.sparring && e.hp < 1){ e.hp = 1; tutEvent('sparDown', e); }   // TRAINING: a sparring partner takes the blow but never falls (beating it down still counts)
   if (e.hpFloor && e.hp < e.hpFloor) e.hp = e.hpFloor;   // MISSIONS: a fleeing quarry breaks away at this, it doesn't fall
@@ -182,7 +189,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
           e.fallYaw = side * T.spin;
         }
       }
-      e.vel.copy(d.multiplyScalar(shoveCap((knockPow||14) * (e.t.heavy ? 0.5 : 1), opts)));
+      e.vel.copy(d.multiplyScalar(slideCap(shoveCap((knockPow||14) * (e.t.heavy ? 0.5 : 1), opts), opts)));
       e.vel.y = (opts && opts.shove ? rand(...CFG.player.saberShove.lift) : rand(5, 9)) * (e.t.heavy ? 0.6 : 1);
     }
     if (byAlly){
@@ -222,16 +229,18 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
   } else if (opts && opts.launch === false){
     // no launch: the caller decides how it reels (a flinch, a shove, a stagger)
+  } else if (opts && opts.slide && knockDir && !tick && (e.noFloor || knockPow <= (e.t.heavy ? 26 : 16))){
+    shoveSlide(e, knockDir, knockPow, typeof opts.slide === 'number' ? opts.slide : Infinity);   // a Force shove under the knockdown bar: a skid on its feet, not a launch
   } else if (knockDir && knockPow > 16 && !e.t.heavy && !e.noFloor){
     // a LIVE knockdown — controlled tip-back, stops acting, then gets up (NOT the free-spin death ragdoll).
     // A JET TROOPER drops out of the air too, and the crash breaks its jetpack (ai.js knockdown).
     e.state = 'knockdown'; e.st = 0.7;
-    e.vel.copy(knockDir.clone().multiplyScalar(shoveCap(knockPow, opts)));
+    e.vel.copy(knockDir.clone().multiplyScalar(slideCap(shoveCap(knockPow, opts), opts)));
     e.vel.y = opts && opts.shove ? rand(...CFG.player.saberShove.lift) : rand(4, 7);
   } else if (knockDir && e.t.heavy && !e.noFloor){
     if (knockPow > 26){   // only truly heavy blows (Strong stance, Slam, Repulse) floor a brute
       e.state = 'knockdown'; e.st = 0.95;   // brutes stay down a touch longer
-      e.vel.copy(knockDir.clone().multiplyScalar(shoveCap(knockPow * 0.5, opts)));
+      e.vel.copy(knockDir.clone().multiplyScalar(slideCap(shoveCap(knockPow * 0.5, opts), opts)));
       e.vel.y = opts && opts.shove ? 3 : 4.5;
     } else {
       e.group.position.addScaledVector(knockDir, 0.8);  // otherwise brutes only stagger
@@ -240,7 +249,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
   }
   // the Jedi's front kick (config kickStagger): a short step back and a stagger, never a launch (its knock sits under the knockdown bar)
-  if (knockDir && knockPow === CFG.player.kickStagger.knock && !e.dead && !tick && !byAlly){
+  if (knockDir && knockPow === CFG.player.kickStagger.knock && !e.dead && !tick && !byAlly && !(opts && opts.slide)){
     const K = CFG.player.kickStagger;
     e.group.position.addScaledVector(knockDir.clone().setY(0).normalize(), K.step * (e.t.heavy ? 0.4 : 1));
     staggerEnemy(e, knockDir.x, knockDir.z, 'STAGGERED');
@@ -250,6 +259,29 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (player.boon && player.boon.echo && !byAlly && !tick && knockDir && !e.dead && !e._echoing && dmg > 0){
     e._echoing = true; damageEnemy(e, dmg*0.4, knockDir, 0, false, false); e._echoing = false;
   }
+}
+
+/* SHOVE SLIDE — a Force shove too light to floor the foe (data/config.js abilities.shove): it skids back along `dir`,
+   `knock` × perKnock metres (less for a brute, far less for a champion or final boss), easing to a stop over a few
+   tenths (enemies/ai.js runs e.skid, so pillars and the arena's edge still stop it), and reels for `stun` s. A brute
+   mid-swing keeps swinging; a champion or final boss never reels, and a move that can't be broken (e.hyper) isn't moved. */
+export function shoveSlide(e, dir, knock, most = Infinity){
+  if (!e || e.dead || e.converted || e.hyper || !dir) return;
+  if (e.state === 'lock' || e.state === 'grasped' || e.state === 'stasis' || e.state === 'spawn' || e.state === 'yield') return;
+  const C = CFG.abilities.shove, tough = !!(e.champion || e.warbringer || e.noFloor);
+  const d = dir.clone().setY(0); if (d.lengthSq() < 1e-6) return; d.normalize();
+  const dist = Math.min(most, Math.max(0, knock) * C.perKnock * (tough ? C.champ : e.t.heavy ? C.heavy : 1));
+  if (dist < 0.05) return;
+  e.skid = d.multiplyScalar(dist * C.decay);   // a decaying velocity: v0 / decay is the ground it covers
+  if (!tough){
+    const swinging = e.state === 'windup' || e.state === 'strike';
+    if (!(e.t.heavy && swinging) && e.state !== 'stagger' && e.state !== 'knockdown' && e.state !== 'getup'){
+      if (swinging){ e.volley = false; if (e.aimLine) e.aimLine.visible = false; easeWeaponHome(e.group, 0.016); if (e.group.userData.bodyMat) e.group.userData.bodyMat.emissiveIntensity = 0; }
+      if (e.state !== 'recover' || e.st < C.stun){ e.state = 'recover'; e.st = C.stun; }
+    }
+  }
+  const p = e.group.position;
+  burst(V3(p.x, p.y + 0.15, p.z), 0x9a9080, 5, 2.5, 1.5, 0.5);   // dust kicked up at the feet as it goes
 }
 
 /* HIT REACTION — the body takes the blow: it rocks away from where the hit came from (back from the front, sideways from

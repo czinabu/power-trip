@@ -1062,7 +1062,7 @@ function winLock(label, knock, exact){
   e.st += 0.4 + (K.open || 0); e.posture = 0;
   drainBreath(e, DUEL.breath.lock);   // a bind lost takes the wind out of it
   tutEvent('guardBreak', e);   // winning the bind breaks its guard too
-  if (knock) damageEnemy(e, 8, V3(dx / dl, 0, dz / dl), knock);
+  if (knock) damageEnemy(e, 8, V3(dx / dl, 0, dz / dl), knock, false, false, exact ? { slide: true } : undefined);   // (a Force shove too light to floor it still skids it back, as a push's does)
   player.riposteT = CFG.player.riposteTime + 0.3; player.ripLine = null;
   clashFlash(cp, 0xffd24a, true);
   clashSparks(cp, 0xffe27a, 6, { dir: V3(dx / dl, 0.2, dz / dl), cone: 0.8 });

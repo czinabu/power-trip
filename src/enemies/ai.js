@@ -74,6 +74,7 @@ function wallBetween(ax, az, b){
 
 const CORPSE = 1.4;   // seconds a body lies (the last 0.6 of them sinking away) before it is cleared
 const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1, yield: 1, spared: 1 };   // states that own the whole body
+const NO_SKID = { ragdoll: 1, knockdown: 1, fade: 1, spawn: 1, lock: 1, grasped: 1, stasis: 1, yield: 1, spared: 1 };   // states a shove's skid stops in (they place the body themselves)
 const LUNGING = { lungewind: 1, lunge: 1 };
 const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1, yield: 1, spared: 1 };   // (yield, spared: on its knees, game/alignment.js)   // states the legs don't stand in (enemies/gait.js)
 // turn toward a heading at a capped rate (the hero's turning weight, data/movement.js MOVE.turnRate)
@@ -743,6 +744,18 @@ export function updateEnemies(dt){
       const flyH = clamp(heroFor(e).pos.y + 1.5, 2.4, 9) + Math.sin(G.gt*2 + i) * 0.22;
       g.position.y = dampToward(g.position.y, flyH, dt, 4);
       if (g.userData.thrusters){ const fl = 0.7 + Math.abs(Math.sin(G.gt*18 + i)) * 0.5; for (const th of g.userData.thrusters) th.material.opacity = fl; }
+    }
+    // SHOVED: a Force shove too light to floor it skids it back on its feet, easing to a stop (damage.js shoveSlide).
+    // Run before the solids below, so a pillar or crate in the way stops the skid
+    if (e.skid){
+      if (e.dead || NO_SKID[e.state]) e.skid = null;
+      else {
+        g.position.x += e.skid.x * dt; g.position.z += e.skid.z * dt;
+        const k = Math.exp(-CFG.abilities.shove.decay * dt);
+        e.skid.x *= k; e.skid.z *= k;
+        if (e.skid.x * e.skid.x + e.skid.z * e.skid.z < 0.04) e.skid = null;
+        else if (!e.t.fly && Math.random() < dt * 14) burst(V3(g.position.x + rand(-0.2, 0.2), g.position.y + 0.08, g.position.z + rand(-0.2, 0.2)), 0x9a9080, 1, 1.2, 0.8, 0.4);   // the feet drag a trail of dust
+      }
     }
     // grounded, living foes can't walk through solid pillars/crates — they path around (skip while airborne-knocked /
     // flying). climb=true lets them MOUNT shallow steps (the temple dais) so they pursue you up it; the support

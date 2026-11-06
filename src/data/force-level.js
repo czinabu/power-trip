@@ -39,7 +39,7 @@ export const FORCE_LEVELS = [   // (`stage` keeps pace with the store, data/stor
 export const POWER_GROWTH = {
   push:    { nm: 'FORCE PUSH',      arrive: 1, mul: { knock: 0.06, range: 0.03, angle: 0.02 }, show: ['knock', 'shove'] },
   palm:    { nm: 'FORCE STRIKES',   arrive: 1, mul: { dmg: 0.05, knock: 0.05, range: 0.02, reach: 0.02, radius: 0.02 }, show: ['dmg', 'damage'] },
-  pull:    { nm: 'FORCE PULL',      arrive: 2, add: { pwr: 0.04 }, cap: { pwr: 1 }, mul: { range: 0.03 }, show: ['range', 'reach'] },
+  pull:    { nm: 'FORCE PULL',      arrive: 2, mul: { range: 0.03 }, show: ['range', 'reach'] },   // (its haul is Push's shove, grown with Push's: data/mastery.js abilAt)
   grasp:   { nm: 'FORCE GRASP',     arrive: 2, mul: { throwDmg: 0.07, bumpDmg: 0.07, maxT: 0.04, range: 0.03, multiAngle: 0.02 }, show: ['throwDmg', 'hurl'] },
   throw:   { nm: 'SABER THROW',     arrive: 4, mul: { dmg: 0.07, range: 0.03 }, show: ['dmg', 'damage'] },
   barrier: { nm: 'FORCE BARRIER',   arrive: 4, mul: { dur: 0.04, castKnock: 0.06, expireKnock: 0.06, knockR: 0.03 }, add: { dr: 0.01 }, cap: { dr: 0.9 }, show: ['dur', 'duration'] },

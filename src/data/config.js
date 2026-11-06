@@ -95,8 +95,12 @@ export const CFG = {
   abilities: {
     // BASIC powers — cheap, available from the start
     push:   { cost: 20, cd: 1.4,  range: 15, angle: 1.15, dmg: 2,  knock: 12 },   // pure UTILITY — a hard interrupting SHOVE, near-zero damage. cd 0.9→1.4: it also reflects every bolt in the cone, so it was a near-constant shield from wave 1
+    // a push too light to floor a foe (rank 0, or the far edge of the cone) still SHOVES it: it skids back `perKnock` m per
+    // point of knock (12 at point-blank: ~2 m) and reels `stun` s, without leaving its feet. Brutes skid `heavy` of that,
+    // champions and final bosses `champ` (and never reel). enemies/damage.js shoveSlide, run in enemies/ai.js
+    shove:  { perKnock: 0.14, heavy: 0.4, champ: 0.3, stun: 0.4, decay: 7 },
     dash:   { speed: 30, time: 0.34 },  // dash grants i-frames + a flip · its Force cost, charges and roll live in data/mobility.js
-    pull:   { cost: 30, cd: 3.0,  range: 18, angle: 1.2, pwr: 0.4 },   // pwr: how hard the yank hauls them in (a short tug at first; mastery raises it to 1)
+    pull:   { cost: 30, cd: 3.0,  range: 18, angle: 1.2, near: 2.2 },   // it hauls them in exactly as hard as a Push at the same rank shoves them away (player/jedi/force.js pullKnock), never closer than `near` m
     // ADVANCED powers — expensive, earned as the legend grows. The mightiest eat most of the bar.
     throw:  { cost: 38, cd: 5.0,  range: 16, dmg: 22, speed: 24 },
     slam:   { cost: 64, cd: 5.5,  radius: 10, dmg: 7, knock: 21,      // JUMP ATTACK — the wave is an AOE knockdown for breathing room…
@@ -104,7 +108,7 @@ export const CFG = {
               bigWave: 0, bigScale: 1.6 },                            // bigWave (mastery rank II): a double-jump dive lands a bigScale-wider wave
     // FORCE GRASP — hold the Pull key: after `hold` seconds the foe in your aim locks into your grasp. DARK LORD'S GRIP
     // (store) holds up to `multi` at once, picked in a wider `multiAngle` cone; each extra body adds multiCost to cost and drain
-    grasp:  { hold: 0.35, multi: 3, multiAngle: 0.75, multiCost: 0.5, cost: 26, drain: 18, maxT: 5, dist: 4.2, range: 16, angle: 0.5,
+    grasp:  { pullRank: 1, hold: 0.35, multi: 3, multiAngle: 0.75, multiCost: 0.5, cost: 26, drain: 18, maxT: 5, dist: 4.2, range: 16, angle: 0.5,
               throwSpeed: 30, throwDmg: 18, yankDmg: 4, bumpDmg: 8, bumpKnock: 20, bumpSpeed: 4.5,
               shieldMul: 1.25, shieldMin: 9, shieldPad: 0.3 },   // HUMAN SHIELD (enemies/bolts.js): what a hostile bolt that meets a held body does to it, and how far past its hitbox a limp body still catches one
     // the late ULTIMATES are deliberately TAXING — big Force cost + long cooldown so they're a deliberate beat, never spam

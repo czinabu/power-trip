@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { CFG } from '../../data/config.js';
-import { abil, healFrac } from '../../data/mastery.js';
+import { abil, abilAt, masteryRank, healFrac } from '../../data/mastery.js';
 import { scene } from '../../engine/renderer.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { V3, clamp, rand, TMP } from '../../utils.js';
@@ -60,6 +60,16 @@ export function pushKnock(d, A = abil('push')){
   return A.knock * (1 - (d / A.range) * 0.5) * forcePower();
 }
 
+/* how hard Force Pull hauls a foe `d` m away in: Push's shove at Pull's own mastery rank (data/mastery.js abilAt), so the
+   two move a foe the same distance at the same rank (a skid under the knockdown bar, a floor and a throw over it),
+   falling off as a Push's does (to half at the edge of Push's reach, and half beyond). pullRoom is how far it may come: it stops `near` m short of the hero
+   instead of flying through them (enemies/damage.js caps the skid or the throw to it). */
+export function pullKnock(d, A = abil('pull')){
+  const P = abilAt('push', masteryRank('pull'));   // (falling off over Push's reach, so a foe at the same distance moves the same; past it, half)
+  return P.knock * Math.max(0.5, 1 - (d / P.range) * 0.5) * forcePower();
+}
+export const pullRoom = (d, A = abil('pull')) => Math.max(0.05, d - A.near);
+
 export function forcePush(){
   const A = abil('push');
   const st = stance();
@@ -89,7 +99,7 @@ export function forcePush(){
     if (d < 0.05) TMP.copy(f);
     TMP.normalize();
     const close = flow && d < FL.near;
-    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), pushKnock(d, A) * (close ? FL.knockMul : 1));
+    damageEnemy(e, (A.dmg + (close ? FL.dmg : 0)) * forcePower(), TMP.clone(), pushKnock(d, A) * (close ? FL.knockMul : 1), false, false, { slide: true });   // (too light to floor it: it skids back, damage.js shoveSlide)
     pushed++;
     tutEvent('pushHit', e);
   }
@@ -383,15 +393,8 @@ export function forcePull(){
     TMP.normalize();
     const ep = e.group.position;
     sparks(V3(ep.x, ep.y + 1.5, ep.z), stance().blade, 4, d * 2.4, { dir: TMP.clone().negate(), cone: 0.15, life: 0.3, grav: 0, stretch: 4 });   // yanked: streaks toward you
-    if (e.t.heavy){
-      e.group.position.addScaledVector(TMP, -2.5 * A.pwr);   // brutes only stumble closer
-      e.state = 'recover'; e.st = 0.5;
-    } else {
-      e.state = 'knockdown'; e.st = 0.7;
-      e.vel.copy(TMP.multiplyScalar(-clamp(d*1.9, 9, 26) * A.pwr));
-      e.vel.y = 4.5;
-      e.flash = 0.1;
-    }
+    // hauled in exactly as hard as a Push at this rank shoves it away, only never past you (pullKnock, pullRoom)
+    damageEnemy(e, 0, TMP.clone().negate(), pullKnock(d, A), false, false, { slide: pullRoom(d, A) });
     n++;
   }
   // the Force reaching out and closing: ripple rings collapsing back into the reaching palm (both, holstered), which

@@ -6,7 +6,7 @@
 // your blade for a saber strike, and the slide key (Z) drops it. A short tap of C is still the plain Force Pull.
 
 import { growPower, floorCost, baseCost } from '../../data/force-level.js';
-import { abil } from '../../data/mastery.js';
+import { abil, masteryRank } from '../../data/mastery.js';
 import { CFG } from '../../data/config.js';
 import { S } from '../../audio/sfx.js';
 import { V3, clamp, TMP } from '../../utils.js';
@@ -21,7 +21,8 @@ import { palmPoints, castHands } from '../../fx/palms.js';
 import { castGesture, forcePull } from './force.js';
 import { tryAttack } from './combat.js';
 import { forceStrike } from './palm.js';
-import { trainAbility } from '../../game/upgrades.js';
+import { trainAbility, onPowerRank } from '../../game/upgrades.js';
+import { queueAbilityCards } from '../../ui/ability-card.js';
 
 const A = () => growPower('grasp', Object.assign({}, CFG.abilities.grasp));   // grown by the Force Level (data/force-level.js)
 // the survival cost cuts on top, never below the cost floor (data/force-level.js): `n` bodies held scale the base with it
@@ -57,11 +58,16 @@ function toughInAim(){
   return bossInAim(aim, g.range, cosLim, 0.16) ? shared.boss : null;
 }
 
+/* the Grasp opens once Force Pull is mastered to CFG.abilities.grasp.pullRank (game/upgrades.js rankUp shows its card).
+   The sandbox hands it over with Pull, as it does the rest of the kit */
+onPowerRank((id, rank) => { if (id === 'pull' && rank === CFG.abilities.grasp.pullRank && !G.sandbox) queueAbilityCards([{ key: 'grasp' }]); });   // its card
+export const graspOpen = () => !!G.unlocked.pull && (masteryRank('pull') >= CFG.abilities.grasp.pullRank || !!G.sandbox);
+
 /* C pressed. Held: start charging the grasp. Already holding someone: a tap YANKS them in. */
 export function pullPress(){
   if (G.mode !== 'play') return;
   if (player.grasp){ yank(); return; }
-  if (!G.unlocked.pull){ forcePull(); return; }   // the base Pull handles its own refusal
+  if (!graspOpen()){ forcePull(); return; }   // no Grasp yet: C is the plain Pull, on the press (the base Pull handles its own refusal)
   player.graspCharge = { t: 0, targets: [] };
 }
 /* C released before the grasp locked: that was a tap, so it's the plain Pull */

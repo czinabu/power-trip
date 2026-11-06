@@ -5,6 +5,8 @@ import { stanceUnlocked } from './stances.js';
 import { FORMS, FORM_PATH } from './forms.js';
 import { chapterOrder } from './campaign.js';
 import { G, player } from '../state.js';
+import { masteryRank } from './mastery.js';
+import { CFG } from './config.js';
 import { maxHp } from '../player/helpers.js';
 import { setStanceHud } from '../player/jedi/stance.js';
 import { switchWeapon } from '../player/mando/weapons.js';
@@ -128,7 +130,7 @@ export const JEDI_STORE = [
   { id:'repulse', force:8, tier:3, stage:6, chapter:'mustafar', cost:300, fork:'j_ult', ico:'❂', nm:'FORCE REPULSE', ds:'360° concussive knockback blast · R',
     owned:()=>!!G.unlocked.repulse, buy(){ G.unlocked.repulse = true; } },
   // LATE (after wave 8) — not a fork: the Force Grasp takes several foes at once
-  { id:'graspMulti', force:9, tier:4, stage:7, chapter:'chase', cost:380, avail:()=>!!G.unlocked.pull, ico:'⟲', nm:"DARK LORD'S GRIP", ds:'Hold C to grasp up to 3 foes at once · F hurls them all',
+  { id:'graspMulti', force:9, tier:4, stage:7, chapter:'chase', cost:380, avail:()=>!!G.unlocked.pull && masteryRank('pull') >= CFG.abilities.grasp.pullRank, ico:'⟲', nm:"DARK LORD'S GRIP", ds:'Hold C to grasp up to 3 foes at once · F hurls them all',
     owned:()=>!!player.up.graspMulti, buy(){ player.up.graspMulti = true; } },
   // FINAL (after wave 9) — supercharges whichever ULTIMATE you chose (only the matching one shows).
   { id:'judgeUp',   force:10, tier:5, stage:8, chapter:'spearhead', cost:620, final:true, avail:()=>!!G.unlocked.judge,   ico:'⚡', nm:'STORM OF JUDGEMENT', ds:'Judgement strikes +3 more foes, ×1.9 damage',

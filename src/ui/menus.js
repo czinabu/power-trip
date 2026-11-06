@@ -39,7 +39,7 @@ import { autosave } from '../game/autosave.js';
 import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
-import { loadInto } from './loading.js';
+import { loadInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
@@ -728,6 +728,8 @@ document.addEventListener('pointerlockchange', () => {
   if (locked){
     shared.lockFallback = false;
     shared.lockWorked = true;
+    // the lock landing while a hub wing loads (the waystone click's request): the load unpauses when it's in, not this
+    if (loadingNow() && G.mode === 'play' && G.hub){ overlay.style.display = 'none'; return; }
     beginPlay();
   } else if (!shared.lockFallback){
     overlay.style.display = 'flex';

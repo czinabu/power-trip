@@ -19,11 +19,11 @@ import { SABER_LIGHT, FIST } from './model/weapons.js';
 import { glow } from '../engine/renderer.js';
 import * as THREE from 'three';
 
-/* Where each stowed weapon hangs: a rig socket (model/rig.js) and its position + rotation there. The hilts clip on
-   upright at the left hip; the blasters drop barrel-down into the thigh holsters; the rifle rides the pack. */
+/* Where each stowed weapon hangs: a rig socket (model/rig.js) and its position + rotation there. The hilts hang
+   upside down at the left hip, clipped on by the pommel, the emitter down and tipped a touch forward and out; the blasters drop barrel-down into the thigh holsters; the rifle rides the pack. */
 const STOW = {
-  saber:     { socket: 'belt', pos: [0, -0.04, 0],      rot: [0.25, 0, 0.18] },
-  darksaber: { socket: 'belt', pos: [0, -0.04, 0],      rot: [0.25, 0, 0.18] },
+  saber:     { socket: 'belt', pos: [0, -0.15, 0.01],   rot: [Math.PI - 0.25, 0, 0.18] },
+  darksaber: { socket: 'belt', pos: [0, -0.15, 0.01],   rot: [Math.PI - 0.25, 0, 0.18] },
   pistolR:   { socket: 'hipR', pos: [0.02, -0.1, 0.02], rot: [Math.PI / 2, 0, 0] },
   pistolL:   { socket: 'hipL', pos: [-0.02, -0.1, 0.02], rot: [Math.PI / 2, 0, 0] },
   rifle:     { socket: 'back', pos: [-0.24, -0.42, -0.3], rot: [-Math.PI / 2, 0, -0.32, 'ZXY'] },   // slung up the pack's left side, muzzle over the shoulder
@@ -134,7 +134,7 @@ function lightFromBelt(){
 function stepReach(dt){
   if (player.stowPend && !player.reach){
     if (!bladeUnlit()){ player.stowPend = false; return; }
-    if (!flourishing() && player.grounded && !player.dashT) { player.stowPend = false; startReach(-1); }
+    if (!flourishing()) { player.stowPend = false; startReach(-1); }   // (running, sprinting, mid-jump or mid-dash alike: put out means on the belt)
   }
   const R = player.reach; if (!R) return;
   R.t += dt;

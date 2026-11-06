@@ -139,6 +139,7 @@ import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import './ui/profile-ui.js';
 import * as PROFILE from './game/profile.js';
+import * as NGPLUS from './data/ngplus.js';   // NEW GAME+ (window.GAME.NGPLUS, for the tests)
 import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import './net/foefire.js';
@@ -247,7 +248,7 @@ function tick(){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
+window.GAME = { PROFILE, NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,
@@ -333,3 +334,9 @@ import { clearSquad } from './allies/squad.js';
 Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
 window.GAME.squad.clearSquad = clearSquad;
 Object.assign(window.GAME, { hub: { startHub, goWing, hubs: HUBS, get wings(){ return curHub().wings; }, get id(){ return GAME.G.hubId; }, welcome: { get state(){ return welcomeState(); }, get stops(){ return welcomeStops(); }, get target(){ return welcomeState().target; }, forget: forgetWelcome, open: replayWelcome, tour: replayTour }, launch: hubLaunch } });   // the hubs (game/hub.js), for tests and shots: wings are the current hub's
+// the post-game (data/ngplus.js, game/profile.js): what the NEW GAME+ smoke suite (tools/smoke/ngplus.mjs) reads
+import { CUSTOMIZE as CUSTOMIZE_ROWS } from './data/customize.js';
+import { optionOpen as lookOpen } from './game/wardrobe.js';
+import { captureRun as captureCampaignRun } from './game/saves.js';
+import { SIDE_QUESTS as SIDE_LIST } from './data/side-quests.js';
+Object.assign(window.GAME, { CUSTOMIZE: CUSTOMIZE_ROWS, optionOpen: lookOpen, captureRun: captureCampaignRun, SIDE_QUESTS: SIDE_LIST });

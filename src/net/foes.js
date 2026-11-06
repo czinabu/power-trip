@@ -34,7 +34,8 @@ import { showBanner } from '../ui/banners.js';
 import { MUSIC } from '../audio/music.js';
 import { playerPos } from '../player/helpers.js';
 import { missionSnap, coopMissionSync, endMission, takeOverMission, startCoopMission } from '../game/mission.js';
-import { followChapter } from '../game/campaign.js';
+import { followChapter, chapters } from '../game/campaign.js';
+import { chapterMutators } from '../data/ngplus.js';
 import { damageBoss, bossStagger, bossStun, makeBossPuppet, dropBossPuppet } from '../boss/boss.js';
 import { net, on, send, connected } from './session.js';
 import { calmSnap, calmSync } from '../game/aftermath.js';
@@ -79,7 +80,7 @@ function snapshot(){
     bu.bodyMat ? bu.bodyMat.emissive.getHex() : 0, bu.bodyMat ? r2(bu.bodyMat.emissiveIntensity) : 0,
     bs.hero && !bs.hero.local ? [r2(bs.hero.pos.x), r2(bs.hero.pos.z)] : [r2(playerPos().x), r2(playerPos().z)],
     bu.pivot ? r2(bu.pivot.rotation.x) : 0, bu.pivot ? r2(bu.pivot.rotation.z) : 0] : null;   // (his shoulder: the cut he's swinging, boss/boss.js bossCut)
-  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission && !G.zone ? missionSnap() : undefined, zn: G.zone || undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, wf: G.waveFrom, ar: G.arenaRot, as: shared.arenaScale || 1, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
+  return { t: 'e', run: 1, boss, k: runKind(), ms: G.mission && !G.zone ? missionSnap() : undefined, zn: G.zone || undefined, lv: G.levelIdx, ch: G.chapter, a2: G.actTwo, sh: G.chapter >= 0 ? (G.storyHero || G.hero) : undefined, st: G.chapter >= 0 ? G.story : undefined, ng: G.chapter >= 0 && G.ngPlus > 0 ? G.ngPlus : undefined, wf: G.waveFrom, ar: G.arenaRot, as: shared.arenaScale || 1, w: G.endless ? G.endlessWave : G.wave, wt: G.waveTotal, ph: shared.levelPhase, af: calmSnap(), mut: G.mut, list };
 }
 
 function hostTick(){
@@ -244,7 +245,7 @@ on('e', (m) => {
   }
   const ch = m.ch ?? -1;
   const changed = !coopRun.on || coopRun.w !== m.w || coopRun.ar !== m.ar || coopRun.k !== m.k || coopRun.lv !== m.lv || coopRun.ch !== ch || coopRun.mid !== (m.ms ? m.ms.id : m.zn ? 'zone:' + m.zn : '');
-  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : m.zn ? 'zone:' + m.zn : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, wf: m.wf || 0, ar: m.ar, as: m.as || 1, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
+  Object.assign(coopRun, { on: true, k: m.k || 'e', mid: m.ms ? m.ms.id : m.zn ? 'zone:' + m.zn : '', lv: m.lv || 0, ch, a2: m.a2 || null, sh: m.sh || null, ng: m.ng | 0, wf: m.wf || 0, ar: m.ar, as: m.as || 1, w: m.w, wt: m.wt, ph: m.ph, mut: m.mut });
   if (changed) runChanged();
   // this guest fell out of the shared fight without the host's run ending (died and retried, restarted): it was playing its
   // own foes and waves. Back in: its own foes go, and the host's take their place
@@ -261,7 +262,7 @@ on('e', (m) => {
     && ((m.k === 'm' && m.ms && G.missionId === m.ms.id) || (m.k === 'c' && ch >= 0 && G.chapter === ch))){
     for (const e of enemies) removeEnemy(e);
     enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
-    if (m.k === 'm') startCoopMission(m.ms.id); else { G.storyHero = m.sh || null; followChapter(ch, m.a2); }
+    if (m.k === 'm') startCoopMission(m.ms.id); else { G.storyHero = m.sh || null; G.ngPlus = m.ng | 0; followChapter(ch, m.a2); }
     G.coopGuest = true;
     showBanner('', 'BACK IN THE HOST\'S FIGHT', 2.0);
   }
@@ -278,7 +279,8 @@ on('e', (m) => {
   } else if (m.k === 'c'){   // the campaign: the host's chapter (a stretch of a level's waves, or a mission), or its level and wave
     if (G.endless || (G.mission && G.chapter < 0)){ endGuest(); return; }
     if (ch >= 0){
-      if (G.chapter !== ch){ dropPuppets(); G.storyHero = m.sh || null; followChapter(ch, m.a2); }   // (the host's story: its chapters, maps and words)
+      if (G.chapter !== ch){ dropPuppets(); G.storyHero = m.sh || null; G.ngPlus = m.ng | 0; followChapter(ch, m.a2); }   // (the host's story: its chapters, maps and words; its NEW GAME+ tier and so its mutators)
+      else if ((m.ng | 0) !== (G.ngPlus | 0)){ G.ngPlus = m.ng | 0; G.ngMuts = chapterMutators((chapters()[ch] || {}).id, G.ngPlus); }   // (joined mid-chapter before the tier was heard)
     } else if (G.levelIdx !== m.lv || G.chapter >= 0){ dropPuppets(); startLevel(m.lv, { resume: true }); G.coopGuest = true; showBanner('', 'THE HOST MOVES ON', 1.6); }
     if (G.mission){ if (m.ms) coopMissionSync(m.ms); }   // a mission chapter: shown the host's objectives
     else if (m.ph === 'fighting' && (shared.levelPhase !== 'fighting' || G.wave !== m.w)) coopCampaignWave(m.w, m.wt);

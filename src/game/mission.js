@@ -103,6 +103,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   def = spreadDef(def);   // on a map built wider than it was laid out, its points move with the map (world/spread.js)
   const title = typeof def.title === 'object' ? heroKey(def.title) : def.title;
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
+  if (!ch) G.ngMuts = def.muts ? [...def.muts] : [];   // a veteran side mission's mutators (data/side-quests.js `muts`, data/ngplus.js); a chapter's are its own (game/campaign.js)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,
                      chapter: ch, title, kick: ch ? ch.kicker : (def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along

@@ -35,6 +35,7 @@
     "smoke:temple": "node tools/smoke/temple.mjs",
     "smoke:coop-temple": "node tools/smoke/coop-temple.mjs",
     "smoke:side": "node tools/smoke/side-quests.mjs",
+    "smoke:ngplus": "node tools/smoke/ngplus.mjs",
     "smoke:alignment": "node tools/smoke/alignment.mjs",
     "smoke:coop-citadel": "HOST=trooper node tools/smoke/coop-temple.mjs",
     "perf:hitch": "node tools/smoke/hitch.mjs",

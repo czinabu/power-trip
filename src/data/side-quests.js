@@ -20,6 +20,8 @@
 //             startFrom: n takes the source objective n's `start` (where a retry of it begins)
 //   legs      (a chase) how many of the source's pursuit legs its route keeps
 //   escort / quarry (optional) replace the source mission's own (who you walk, who you chase)
+//   post      a VETERAN side mission (the post-game): it waits for the hero's campaign to be beaten, as NEW GAME+ does
+//   muts      the mutators it always runs with (data/ngplus.js NG_MUTATORS), shown on its card
 //   choice    (light and dark, data/alignment.js) asked on a card once it is won, the first time only: { title, lines,
 //             options: [{ key, side: 'light' | 'dark', label, line }] }. It moves the hero's meter, and nothing else
 
@@ -141,6 +143,50 @@ export const SIDE_QUESTS = [
                  { key: 'take', side: 'dark', label: 'TAKE THE BLADE', line: 'Its anger hums in your hand. It knows the way you fight now.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 ];
+// ---- THE VETERAN CALLS: the post-game's own side missions, once the hero's campaign is beaten. Each carries mutators ----
+SIDE_QUESTS.push(
+  { slug: 'long-trench', title: 'THE LONG TRENCH', place: 'THE ICE FRONT ON HOTH', threat: 5, rank: 0, post: true, from: 'icefront', muts: ['ironhide', 'marksmen'],
+    blurb: 'hold the old trench line against a veteran regiment',
+    ask: 'The regiment that broke the Hoth line is back on the ice, and they have learned. A listening post is still in the old trenches. Hold the line while it gets out.',
+    take: [
+      { i: 0, title: 'HOLD THE FORWARD TRENCH', doneLine: 'THE FIRST RUSH BREAKS', doneSub: 'They are regrouping for another.',
+        say: all('Veterans, all of them: hard to put down, and their bolts come fast. Hold the forward trench and keep your head below the lip.'),
+        task: all('Hold the forward trench') },
+      { i: 2, title: 'HOLD THE REAR TRENCH', doneLine: 'THE POST IS OUT', doneSub: 'The regiment pulls back into the snow.',
+        say: all('The post is pulling out. Fall back to the rear trench and give them the time.'),
+        task: all('Hold the rear trench until the post is away') },
+    ],
+    done: all('The listening post is clear of the ice. Whatever that regiment came back for, it did not get.'),
+    reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
+
+  { slug: 'forge-rekindled', title: 'THE FORGE REKINDLED', place: 'THE MUSTAFAR FORGE', threat: 5, rank: 0, post: true, from: 'forge', muts: ['frenzy', 'vanguard'],
+    blurb: 'blow the rebuilt forge before its new masters arm themselves',
+    ask: 'Someone has lit the Mustafar forge again, and its new guard are the best the Empire has left. Charge the feeds, then hold the lane until it goes up.',
+    take: [
+      { i: 0, title: 'CHARGE THE FORGE', consoleName: 'FEED', doneLine: 'THE CHARGES ARE SET', doneSub: 'Get clear before the clock runs out.',
+        say: all('Elites on every feed, and they hit hard. Set a charge on each, and do not stand in the open while you do it.'),
+        task: all('Stand at each feed to set a charge') },
+      { i: 1, title: 'HOLD THE WAY OUT', doneLine: 'THE FORGE GOES UP', doneSub: 'This time it stays down.',
+        say: all('The charges are on the clock. Hold the lane, fall back ahead of the heat, and let nothing near them.'),
+        task: all('Hold each stand, and fall back ahead of the heat') },
+    ],
+    done: all('The forge is slag again. Whoever lit it will have to find somewhere else to arm.'),
+    reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
+
+  { slug: 'wreckers-toll', title: 'THE WRECKERS\' TOLL', place: 'THE STARSHIP GRAVEYARD OF JAKKU', threat: 5, rank: 0, post: true, from: 'graveyard', muts: ['volatile', 'berserk'],
+    blurb: 'beat a wrecking crew to the cores, then hold out in the storm',
+    ask: 'A wrecking crew is stripping the graveyard, and they wire their own people to blow when they fall. There are cores out there worth saving. Get to them first.',
+    take: [
+      { i: 0, title: 'SALVAGE THE CORES', doneLine: 'EVERY CORE RECOVERED', doneSub: 'The crew is coming for them.',
+        say: all('They come fast, and they burst when they drop. Pull the cores out of the wrecks, and do not finish anyone at arm\'s length.'),
+        task: all('Stand at each wreck to pull its core') },
+      { i: 1, title: 'HOLD THE FREIGHTER', doneLine: 'ENGINES HOT', doneSub: 'Off the sand, cores and all.',
+        say: all('The freighter needs a minute. Hold the camp. The storm will hide them until they are close.'),
+        task: all('Hold the camp while the freighter warms up') },
+    ],
+    done: all('The cores are aboard, and the wreckers are scattered over the dunes.'),
+    reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
+);
 export const SIDE_BY_ID = Object.fromEntries(SIDE_QUESTS.map(q => [SIDE_PREFIX + q.slug, q]));
 
 const clone = (v) => JSON.parse(JSON.stringify(v));   // missions are plain data
@@ -170,6 +216,7 @@ export function sideQuest(id){
     quarry: objectives.some(o => o.kind === 'pursuit' || o.quarry) ? q.quarry || src.quarry : undefined,
     route: q.legs && src.route ? src.route.slice(0, q.legs) : src.route,
     voice: SIDE_VOICE,
+    muts: q.muts ? [...q.muts] : [], veteran: !!q.post,   // (data/ngplus.js: game/mission.js puts them on as it starts)
     objectives,
     done: q.done,
   };

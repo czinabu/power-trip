@@ -67,6 +67,11 @@
 #campsaves{display:none;gap:6px;margin-top:6px}
 #setup.camp #campsaves{display:flex}
 #campsaves .btn{flex:1 1 0;white-space:nowrap;padding:8px 6px;font-size:12px;letter-spacing:1.5px;background:rgba(8,18,33,.45)}
+/* NEW GAME+ (ui/saves-ui.js): under the save buttons, once the hero has beaten the campaign; a first click arms it */
+#campNgBtn{display:block;margin-top:6px;padding:8px 10px;font-size:12px;letter-spacing:2px;color:var(--gold);border-color:rgba(255,210,74,.5);background:rgba(40,30,8,.4);text-align:center}
+#setup:not(.camp) #campNgBtn,#overlay.vpicking #campNgBtn{display:none!important}
+#campNgBtn .ng-sub{display:block;margin-top:3px;font:500 10.5px/1.35 var(--font-ui);letter-spacing:.4px;color:var(--ink-soft);white-space:normal}
+#campNgBtn.armed{background:rgba(255,210,74,.14);border-color:var(--gold)}
 #modeselect .modeopt:not(.major) .mt{font-size:15px}
 /* ---------- THE TITLE SCREEN'S TWO STEPS (ui/menus.js showMenuStep): MODE first, then HERO + DIFFICULTY + BEGIN ---------- */
 #modestep,#herostep{display:flex;flex-direction:column;gap:10px;animation:rise .25s var(--ease)}
@@ -185,6 +190,7 @@
 .msn.arc.sel{border-color:rgba(90,210,255,.7);background:linear-gradient(90deg,rgba(10,40,60,.85),rgba(8,20,32,.7))}
 .msn.arc .mk{display:flex;gap:4px;margin-top:5px}
 .msn-tag.tw{color:var(--gold);border-color:rgba(255,210,74,.5)}
+.msn-tag.mut{border-color:currentColor;opacity:.9;margin-left:4px}
 .msn-tag{font:700 9px/1 var(--font-ui);letter-spacing:1.5px;color:var(--ink-dim);border:1px solid var(--edge-mid);border-radius:4px;padding:2px 4px}
 .modeopt .md .ok{color:var(--xp)}
 .modeopt{--bc:var(--gold);flex:1;padding:10px 12px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.7);cursor:pointer;
@@ -914,6 +920,11 @@ html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-t
 :is(#chapcard,#meditate,#lessonboard) .cc-roster li.now .n{color:var(--cc)}
 :is(#chapcard,#meditate,#lessonboard) .cc-btns{margin-top:22px;display:flex;gap:12px}
 :is(#chapcard,#meditate,#lessonboard) .cc-hint{margin-top:10px;font-size:12px;letter-spacing:1.6px;color:var(--ink-faint)}
+/* NEW GAME+ (data/ngplus.js): the tier and the chapter's mutators, on a strip over the briefing (game/campaign.js ngStrip) */
+#chapcard .cc-ng{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 14px;padding:7px 10px;border:1px solid rgba(255,210,74,.45);border-radius:6px;background:rgba(255,210,74,.07);font:700 11px/1.3 var(--font-ui);letter-spacing:1.6px}
+#chapcard .cc-ng b{color:var(--gold);margin-right:4px}
+#chapcard .cc-ng span{white-space:nowrap}
+#chapcard .cc-ng span i{font-style:normal;font-weight:500;letter-spacing:.4px;color:var(--ink-soft);margin-left:5px;text-transform:none}
 :is(#chapcard,#meditate,#lessonboard) .cc-unlock{margin-top:18px;font:600 13px/1.4 var(--font-ui);letter-spacing:1.5px;color:var(--gold)}
 #meditate .md-slots{margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 #meditate .md-slot{cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--edge-mid);border-radius:var(--r);background:var(--panel-solid);

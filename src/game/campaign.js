@@ -30,6 +30,7 @@ import { resetSet } from './onset.js';
 import { startCalm, guestCalm, endCalm } from './aftermath.js';
 import { pad } from '../engine/gamepad.js';
 import { PAD_GLYPHS } from '../data/gamepad.js';
+import { chapterMutators, mutatorById, NG_WORDS } from '../data/ngplus.js';
 
 const ROMAN = ['I', 'II', 'III'];
 export const chapters = () => chapterOrder(G.actTwo);
@@ -45,6 +46,7 @@ export function chapterLabel(pos = G.chapter){
 /* ---------- starting and moving through the run ---------- */
 // BEGIN CAMPAIGN: a fresh build on chapter 1
 export function startCampaign(){
+  if (G.ngNext != null){ G.ngPlus = G.ngNext; G.ngNext = null; }   // NEW GAME+ (data/ngplus.js), armed by its button; a restart keeps the run's tier
   G.actTwo = null; G.storyHero = null;   // (the story is this hero's own: data/campaign.js storyHero; the ARC trooper's opens on its prologue)
   resetStory();   // (and nothing in it has been chosen yet: game/choices.js)
   G.levelIdx = 0; G.waveTotal = -1;   // (as a fresh build starts: a prologue's checkpoint is taken before its build resets)
@@ -56,6 +58,7 @@ export function startChapter(pos, opts = {}){
   const c = chapterAt(pos);
   if (!c) return;
   G.chapter = pos; G.chapterClosed = null;   // (set again when it closes: game/flow.js chapterClosed)
+  G.ngMuts = chapterMutators(c.id, G.ngPlus);   // a NEW GAME+ chapter's mutators (data/ngplus.js): the same for a retry, a reload and every co-op player
   refreshWorn();   // the looks the last chapter unlocked go on as this one starts (the trooper's ARC kit: game/look-unlocks.js)
   endCalm(true);   // (a calm still running from the last chapter, or a retry from inside one: game/aftermath.js)
   resetSet(pos, !!opts.retry);   // the story's voice that stayed on set (game/onset.js): back behind the hero on a retry of this chapter
@@ -176,8 +179,14 @@ function beginHint(what){
   return '<div class="cc-hint"><span class="kbonly">Press Space or click ' + what + '</span><span class="padonly">Press ' +
     '<kbd class="pg" data-b="A">' + PAD_GLYPHS[pad.family].A + '</kbd> ' + what + '</span></div>';
 }
+// NEW GAME+: the tier and this chapter's mutators, on a strip over the briefing (data/ngplus.js)
+export function ngStrip(){
+  if (!(G.ngPlus > 0)) return '';
+  const muts = G.ngMuts.map(mutatorById).filter(Boolean);
+  return '<div class="cc-ng"><b>' + esc(NG_WORDS.strip(G.ngPlus)) + '</b>' + muts.map(m => '<span style="color:' + m.col + '" title="' + esc(m.tip) + '">' + esc(m.name) + '<i>' + esc(m.tip) + '</i></span>').join('') + '</div>';
+}
 function head(c, pos){
-  return '<div class="cc-act">ACT ' + ROMAN[c.act] + ' · ' + esc(actTitle(c.act)) + '</div>' +
+  return ngStrip() + '<div class="cc-act">ACT ' + ROMAN[c.act] + ' · ' + esc(actTitle(c.act)) + '</div>' +
     '<div class="cc-num">' + chapterNo(pos) + (c.trial ? ' · TRIAL' : '') + '</div>' +
     '<h1 class="cc-title">' + esc(chapterTitle(c)) + '</h1><div class="cc-world">' + esc(c.world) + '</div>';
 }

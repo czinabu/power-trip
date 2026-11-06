@@ -48,8 +48,11 @@ export function buildGarrisonArena(L){
   const picture = m => { m.userData.passThrough = true; m.castShadow = false; return m; };
 
   // ---- the CELL BLOCK's walls (gaps where the doors go) ----
-  const wx = (x0, x1, z) => { K.box((x0 + x1) / 2, z, (x1 - x0) / 2, T, H, wall); K.deco(new THREE.BoxGeometry(x1 - x0, 0.2, T * 2 + 0.2), wallD, (x0 + x1) / 2, H + 0.1, z); };
-  const wz = (z0, z1, x) => { K.box(x, (z0 + z1) / 2, T, (z1 - z0) / 2, H, wall); K.deco(new THREE.BoxGeometry(T * 2 + 0.2, 0.2, z1 - z0), wallD, x, H + 0.1, (z0 + z1) / 2); };
+  // (each wall's cap is part of the wall's mesh, so a wider build moves the two as one: world/spread.js stretches a long
+  //  piece that stands up high, and a cap on its own would run on past the wall it sits on)
+  const capped = (m, geo) => { const c = new THREE.Mesh(geo, wallD); c.position.y = H / 2 + 0.1; c.castShadow = c.receiveShadow = true; m.add(c); };
+  const wx = (x0, x1, z) => capped(K.box((x0 + x1) / 2, z, (x1 - x0) / 2, T, H, wall), new THREE.BoxGeometry(x1 - x0, 0.2, T * 2 + 0.2));
+  const wz = (z0, z1, x) => capped(K.box(x, (z0 + z1) / 2, T, (z1 - z0) / 2, H, wall), new THREE.BoxGeometry(T * 2 + 0.2, 0.2, z1 - z0));
   wx(-21.3, -15.3, 2); wx(-12.7, 12.7, 2); wx(15.3, 21.3, 2);   // the front: door 0 at x −14, door 4 at x 14
   wx(-21.3, 21.3, 16);
   wz(2, 16, -21); wz(2, 16, 21);

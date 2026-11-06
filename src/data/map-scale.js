@@ -8,7 +8,15 @@
    64 → 84 m). Their levels (data/missions.js, data/campaign-trooper.js) carry the new widths. */
 export const SPREAD = {
   jungle: 76, shipyard: 64, garrison: 60, frigate: 56, kamino: 60, chipworks: 60, warcamp: 64, canyon: 64, relay: 64,
+  // the Mandalorian's story maps, grown the same way (see GROW)
+  outpost: 60, covert: 60, barge: 60, holdfast: 60, citadel: 64,
 };
+
+/* GROW — layout: the width (m) it is always built at, at the least, whatever width the level or chapter asks for (world/arena.js
+   grownLevel). The Mandalorian's story maps were laid out 60 m across, a courtyard a jetpack crosses in two seconds; they
+   are built at the ARC trooper's scale instead, pulled apart by SPREAD, in every mode that builds them (story, survival,
+   sandbox, co-op). A co-op room for more heroes still grows on top (data/coop.js ROOM). */
+export const GROW = { outpost: 80, covert: 80, barge: 80, holdfast: 80, citadel: 80 };
 
 /* COVER FILL — real cover (something to put your back to: TROOPER.cover, player/trooper/cover.js) laid into the holes
    of a map, after its own builder and before the perches and the pathing grid (world/coverfill.js). It looks for the
@@ -30,6 +38,12 @@ export const COVER_FILL = {
   warcamp:   { style: 'sandbags',  hole: 4.5, max: 24 },
   canyon:    { style: 'rocks',     hole: 4.5, max: 24 },
   relay:     { style: 'barricade', hole: 4.5, max: 24 },
+  // the Mandalorian's story (grown to the trooper's scale: GROW above)
+  outpost:   { style: 'stone',     hole: 4.5, max: 22 },
+  covert:    { style: 'rocks',     hole: 4.5, max: 22 },
+  barge:     { style: 'crates',    hole: 4.5, max: 20 },
+  holdfast:  { style: 'logs',      hole: 4.5, max: 22 },
+  citadel:   { style: 'barricade', hole: 4.5, max: 20 },
   // the trooper's sandbox room
   hangar:    { style: 'crates',    hole: 5.5, max: 10 },
   // survival's rotation (the campaign arenas every hero fights on)

@@ -71,8 +71,12 @@ export function buildFrigateArena(L){
   }
   for (const sx of [-1, 1]) for (const z of [0, 7, 16]) K.box(sx * 8, z, 1.0, 1.9, 0.7, wall, { climbable: true });   // cots
   { const [cx, cz] = FRIGATE_SPOTS.core;   // the core: a data column in a ring of console desks
-    K.column(cx, cz, 1.0, 6, metalD, { seg: 10, taper: 1 });
+    // the data column runs up through every deck of the ship (26 m): screens climb it, a lit ring at each deck it passes
+    K.column(cx, cz, 1.0, 26, metalD, { seg: 10, taper: 0.8 });
     for (let k = 0; k < 6; k++) picture(K.deco(new THREE.BoxGeometry(0.15, 3.6, 0.15), screen, cx + Math.cos(k) * 1.02, 3.6, cz + Math.sin(k) * 1.02));
+    for (let y = 8; y < 26; y += 5){ const r = 1.0 - 0.2 * y / 26;
+      picture(K.deco(new THREE.TorusGeometry(r + 0.06, 0.08, 4, 18), screen, cx, y, cz, Math.PI / 2));
+      for (let k = 0; k < 4; k++) picture(K.deco(new THREE.BoxGeometry(0.12, 2.2, 0.12), screen, cx + Math.cos(k * 1.57 + y) * (r + 0.02), y + 1.6, cz + Math.sin(k * 1.57 + y) * (r + 0.02))); }
     for (const [dx, dz, ry] of [[0, -3, 0], [2.6, 1.6, -2.1], [-2.6, 1.6, 2.1]]){
       K.box(cx + dx, cz + dz, dz ? 0.5 : 1.3, dz ? 1.3 : 0.5, 1.5, wallD);
       picture(K.deco(new THREE.PlaneGeometry(1.0, 0.45), screen, cx + dx * 0.85, 1.7, cz + dz * 0.85, -0.6, ry, 0));

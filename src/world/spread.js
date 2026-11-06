@@ -66,13 +66,18 @@ export function spreadBuilt(S, W, mark){
     }
     items.push({ x0: c.x - ex, x1: c.x + ex, z0: c.z - ez, z1: c.z + ez, move: (dx, dz) => { c.x += dx; c.z += dz; } });
   }
-  // ---- structures: footprints that touch are one cluster (union–find) ----
-  const n = items.length, up = items.map((_, k) => k);
+  // ---- structures: footprints that touch are one cluster (union–find). Dressing that stands past the authored
+  // edge (a forest wall, a canyon's rock faces, a rail of posts) never joins one: a ring of it round the map touching
+  // end to end would be one cluster centred on the middle, left where it was and so standing in the grown floor ----
+  const n = items.length, up = items.map((_, k) => k), lim = W / 2;
+  const past = it => Math.max(Math.abs(it.x0 + it.x1), Math.abs(it.z0 + it.z1)) / 2 > lim;
   const root = k => { while (up[k] !== k){ up[k] = up[up[k]]; k = up[k]; } return k; };
   for (let a = 0; a < n; a++){
     const A = items[a];
+    if (past(A)) continue;
     for (let b = a + 1; b < n; b++){
       const B = items[b];
+      if (past(B)) continue;
       if (A.x0 - TOUCH > B.x1 || B.x0 - TOUCH > A.x1 || A.z0 - TOUCH > B.z1 || B.z0 - TOUCH > A.z1) continue;
       const ra = root(a), rb = root(b); if (ra !== rb) up[ra] = rb;
     }

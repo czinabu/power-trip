@@ -18,7 +18,8 @@
 //
 // Built: the prologue, Act I (the yards, the garrison, the frigate, the Captain's drill), Act II (Kamino, Kast's line on
 // Hoth, the chip foundry, the Marshal's war camp) and Act III (the hunt up the canyon, the assault on the relay spire,
-// the broadcast and the Marshal), with one choice at the end (TROOPER_CHOICES) and an epilogue for each answer.
+// the broadcast and the Marshal), with three choices (TROOPER_CHOICES: the Halcyon's list, Captain Vorn at the foundry,
+// the Marshal at the end) and an epilogue that reads them.
 
 import { PURGE } from './allies.js';
 
@@ -194,7 +195,9 @@ export const TROOPER_CHAPTERS = {
     brief: ['The shipment went to the Marshal\'s war camp, on a plateau at the edge of nowhere. His whole company is there.',
             'Take his gate, hold it, and get to his command post. Whatever he is planning, it is written down up there.'],
     lines: {
-      chapter: ['His company is forming up. Our old company, brother, painted black.'],
+      chapter: ['His company is forming up. Our old company, brother, painted black.',
+                { by: 'vorn', took: say(VANT, 'Vorn says the gate guns cycle every twelve seconds. First useful thing he has said.'),
+                  left: say(VANT, 'No inside man this time. We find the gate\'s weak spot the hard way.') }],
       duel: [rival(MARSHAL, 'You were always a step behind me, brother. Today too.')],
       // the second promotion (game/wardrobe.js PROMOTIONS): ARC, in the Captain's old ARC kit (game/look-unlocks.js)
       clear: ['He has the Captain.',
@@ -246,8 +249,23 @@ export const TROOPER_CHAPTERS = {
 // the win screen's line under VICTORY (game/summary.js)
 export const TROOPER_VICTORY = 'THE ORDER WAS NEVER GIVEN';
 
-// THE CHOICE (game/choices.js): what becomes of the Marshal, asked after his fall
+// THE CHOICES (game/choices.js): asked on a card after a chapter is cleared (`after`), or after the Marshal falls (`after:
+// 'end'`). Each moves the trooper's meter (data/alignment.js CHOICE_WEIGHT: MERCY or RUTHLESS), and the words pick by them.
 export const TROOPER_CHOICES = [
+  { id: 'halcyon', after: 'refuge', default: 'warned', title: 'THE HALCYON\'S LIST',
+    who: CAPT,
+    lines: ['The core has every number in our batch, brother. Two hundred deserters out on the Rim, and the purge companies are reading this same list.',
+            'We can stay on the console and warn every one of them, with the purge ship a jump behind us. Or we take our own files and go, and the rest take their chances.'],
+    options: [
+      { key: 'warned', label: 'WARN THEM ALL', line: 'You stay on the console until the last warning goes out. The purge ship drops in as the gunship clears the bay.' },
+      { key: 'left', label: 'TAKE OURS AND GO', line: 'You pull the squad\'s files and wipe the console behind you. The rest of the batch is on its own.' } ] },
+  { id: 'vorn', after: 'jakku', default: 'took', title: 'CAPTAIN VORN',
+    who: VANT,
+    lines: ['Vorn is on his knees by the burning line. He is one of us, chip and all, and he has the Marshal\'s shipping list in his hand.',
+            'He says he will hand it over for a seat on the gunship. We take him, chip and all. Or we take the list and leave him to the fire.'],
+    options: [
+      { key: 'took', label: 'TAKE HIM WITH US', line: 'Vorn rides in the back of the gunship, cuffed, and does not say a word all the way out.' },
+      { key: 'left', label: 'LEAVE HIM TO IT', line: 'You take the list out of his hand. The foundry roof comes down behind you.' } ] },
   { id: 'marshal', after: 'end', default: 'home', title: 'THE MARSHAL',
     who: CAPT,
     lines: ['He is down. His chip is still in his head, and it is still listening.',
@@ -264,6 +282,12 @@ export const TROOPER_EPILOGUE = {
   lines: [{ by: 'marshal',
             home: 'The Marshal woke up three days after Patch took the chip out. He did not remember the last eight years, and he cried when he saw you. He works the docks with us now. Some nights he still hears it.',
             ended: 'We buried the Marshal on Kamino, in the rain, where we were made. Brisk said the words. Nobody else could.' },
+          { by: 'halcyon',
+            warned: 'Forty-one brothers from our batch answered the Halcyon\'s warning. Some of them crew the ship now. Some just send word that they are still alive.',
+            left: 'Nobody else from our batch ever found us. Brisk checks the purge lists every month. He has stopped saying the names out loud.' },
+          { by: 'vorn',
+            took: 'Patch took Vorn\'s chip out too, in the end. He keeps the ship\'s books, and he still apologises to Brisk every morning.',
+            left: 'Nobody talks about the foundry. Vant still has the shipping list, folded in his armour.' },
           'The band has its own ship now, and nobody on it takes an order they did not choose.',
           'Kast came to the yards last week. She says the signal under the spire was older than the chips, and older than the Republic, and that it was not finished.',
           'A Jedi heard the same signal on Jedha. A Mandalorian heard it out past the Rim. Something is coming, brother. When it does, nobody gives us the order. We choose.'],

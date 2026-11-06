@@ -10,7 +10,8 @@ in the project files (`hero-ui/hero-ui-direction.html`).
 - `styles/heroes/tokens.css` fills the `--hx-*` tokens per hero (and a neutral "house" set on `:root`).
   Components read only these tokens, so a new surface works for every hero.
 - `styles/heroes/ink.css` holds the rules every hero shares. Area files: `tracker.css` (objectives, HOLD O, the run
-  line), `briefing.css` (chapter card, lesson board), `screens.css` (pause, results).
+  line), `briefing.css` (chapter card, lesson board), `screens.css` (pause, results), `profile.css` (the profile page,
+  which wears the look of the hero tab it shows).
 
 ## The looks
 

@@ -17,6 +17,7 @@ import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
 import { openBench, setBenchSaber, igniteBench, spinBench } from './bench-stage.js';
 import { openKitBench } from './kitbench.js';
+import { pageTabs, pageTabClick } from './page-tabs.js';
 
 const panel = document.getElementById('workbench');
 const btn = document.getElementById('wbBtn');
@@ -58,6 +59,7 @@ function render(keep = false){
   const was = keep && panel.firstElementChild ? panel.firstElementChild.scrollTop : 0;
   const live = runLive();
   panel.innerHTML = `<div class="wb-panel">
+    ${pageTabs('jedi', 'bench')}
     <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
     <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
     <p class="wb-note">More parts come from duels, the masters' trials, story missions, challenges and survival waves.</p>
@@ -106,6 +108,7 @@ panel.addEventListener('click', (e) => {
   e.stopPropagation();   // never launches the game
   const t = e.target, tile = t.closest('[data-opt]');
   if (tile) return fit(tile.dataset.row, tile.dataset.opt);
+  if (pageTabClick(e)) return;   // APPEARANCE: back to the customizer (ui/customizer.js)
   if (t.closest('#wbclose') || t.closest('#wbdone')) return closeWorkbench();
   if (t.closest('#wbtest')){
     lit = igniteBench();

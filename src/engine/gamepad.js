@@ -299,7 +299,7 @@ function slide(dir){
   return true;
 }
 const panelUp = () => ['howto', 'settings', 'saves', 'coop', 'roadmap', 'forms', 'codex'].some(id => document.getElementById(id).classList.contains('open')) ||
-  sandboxOpen() || /\b(confirming|newconfirming|asktrain|customizing)\b/.test(overlay.className);
+  sandboxOpen() || /\b(confirming|newconfirming|asktrain|customizing|kitbench)\b/.test(overlay.className) || document.body.classList.contains('wb-open');   // (the benches: B closes them, ui/workbench.js, ui/kitbench.js)
 
 function menu(btn, down, lx, ly, ry, dt){
   // keep the ring on something real as screens and panels come and go (back to where it was when a panel closes)
@@ -315,6 +315,10 @@ function menu(btn, down, lx, ly, ry, dt){
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }
   }
   if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — jump between the sandbox panel's sections (ui/sandbox-ui.js)
+  else if (down(4) || down(5)){   // LB / RB — APPEARANCE | SABER: turn between the customizer and the hero's bench (ui/page-tabs.js)
+    const tab = [...document.querySelectorAll('.pg-tabs [data-pg="' + (down(5) ? 'bench' : 'look') + '"]')].find(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+    if (tab && !tab.classList.contains('on')) tab.click();
+  }
   if (down(1)){   // B — back: close what's on top, or resume from the pause screen
     if (panelUp() || (ovUp() && ((/\bst-menu\b/.test(overlay.className) && /\b(mpage|step-hero|mgrp)\b/.test(overlay.className)) || /\bvpicking\b/.test(overlay.className)))){ sendKey('escape', true); sendKey('escape', false); }   // (the Missions page, the hero step or an open STORY / FREEPLAY list: back to the modes; the results screen's CHANGE panel: closed, ui/missions-ui.js and ui/menus.js)
     else if (ovUp() && overlay.classList.contains('st-pause')){ sendKey('tab', true); sendKey('tab', false); }

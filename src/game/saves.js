@@ -84,7 +84,7 @@ export function restoreRun(run){
   attune();   // (a save from another crystal takes that one off and puts the fitted one on: game/saber-bench.js)
   player.boon = clone(run.boon) || {}; player.boons = clone(run.boons) || {}; player.skills = clone(run.skills) || {};
   player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = !!run.phoenixReady;
-  player.focus = 0; player.focusHitT = 0; player._focusTier = 0;
+  player.focus = 0; player.focusHitT = 0; player._focusTier = 0; player.flow = 0; player.flowReady = false; player._flowTier = 0; player.flowSig = null;
   if (run.stats){ const { elapsed, ...st } = run.stats; G.stats = { ...st, startGt: G.gt - (elapsed || 0), summary: null }; }
 }
 

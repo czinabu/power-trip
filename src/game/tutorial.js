@@ -210,6 +210,7 @@ function beginStep(i){
   }
   if (s.grant === 'jet1' && !(player.up.jetTier >= 1)){ player.up.jetTier = 1; applyJetTier(); player.jet = player.jetMax; }
   if (s.grant === 'dual') G.unlocked = { ...(G.unlocked || {}), dual: true };
+  if (s.grant === 'flow'){ player.flow = 100; player.flowIdle = 0; }   // a full HUNTER'S EYE / BATTLE RHYTHM for the signature's lesson (player/gunner-flow.js)
   if (s.kit && T.hero === 'mando'){   // the guns the step is about go on 1 / 2 (data/mando.js), handed over for it
     for (const slot in s.kit) if (s.kit[slot]) G.unlocked = { ...(G.unlocked || {}), [s.kit[slot]]: true };
     setKit({ ...kitOf(), ...s.kit });

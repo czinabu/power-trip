@@ -97,6 +97,7 @@ export const PAD_CONTROLS = {
     ]},
     { title: 'GADGETS', rows: [
       ['{f}', 'Flamethrower', 'Unlocks after wave 2 · hold to keep it burning · with a prompt up (TALK, a temple station), interacts instead'],
+      ['{t}', 'Dead Eye', 'With HUNTER\'S EYE full (the amber bar over vitality): time slows, up to three heads near the reticle are tagged and he puts a bolt through each · Fills with headshots, beskar ricochets, kills in the air and takedowns; a hit you take knocks it back · STEADY: a tighter cone · ON THE HUNT: the jetpack refuels faster · full: DEAD EYE'],
       ['{q}', 'Wrist rocket', 'From the start'],
       ['{x}', 'Grappling hook', 'Earned with XP · or Jetpack Slam'],
       ['{v}', 'Whistling Birds', 'Earned with XP · or the Thermal Detonator, thrown onto the crosshair: aim lower to drop it close, higher to send it far'],
@@ -124,6 +125,7 @@ export const PAD_CONTROLS = {
       ['{e}', 'Rifle bash', 'A shove with the stock: staggers whoever is right in front and cracks a duellist\'s guard'],
       ['{h}', 'Squad orders', 'TAP: on a trooper, the squad attacks it · on open ground, they move there · tap again to bring them back on you · HOLD: the command wheel (the world slows): {RS} picks · ATTACK, GRENADE and SUPPRESS cost COMMAND POINTS, earned by your kills and the squad\'s · SUPPRESS pins the foes round the crosshair: they crawl and slow their shots · ATTACK sends two round the target\'s sides to FLANK it: they hit it harder from there'],
       ['{f}', 'Interact', 'In a lull, walk up to someone on your side and face them (a squadmate, the one you escort, the people you are getting out): when TALK comes up under the crosshair, TAP for a line from them · optional, nothing waits on it · in the temple, opens the station you are at · {f} only interacts while a prompt is up: anywhere else it is your grenade or charge'],
+      ['{y}', 'Coordinated Fire', 'With BATTLE RHYTHM full (the blue bar over vitality): mark the foe at the reticle and every squadmate in reach puts a heavy bolt into it on your call · Fills with perfect vents, pinning foes, flanking shots, the squad\'s kills and dashing cover to cover under fire; a hit in the open breaks it, in cover far less · STEADY: suppression shakes your aim half as much · IN STEP: command points come in faster · full: COORDINATED FIRE'],
       ['{t}', 'Battlefield call', 'For COMMAND POINTS · a squadmate down: REINFORCE gets everyone up now · otherwise a SUPPLY DROP lands beside you: grenades, coolant and a patch-up', 1],
       ['{n}', 'Ping', 'Co-op: marks the spot or the foe under your crosshair for the other players'],
       ['HOLD {o}', 'Objective', 'What to do now, which step it is (objective 2 of 5, wave 3 of 4, step 4 of 9) and how far through you are, while held · works in every mode, the fight carries on underneath'],

@@ -49,6 +49,7 @@ let fInteract = false;   // this F press went to a prompt (see the keydown below
 import { pingHere } from '../net/ping.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
+import { flowSignature } from '../player/gunner-flow.js';
 
 const inputActive = () => !G.cutscene && !G.cardUp && !G.sbPlan && (document.pointerLockElement === renderer.domElement || (shared.lockFallback && G.mode === 'play'));   // (a cutscene takes no fight input)
 document.addEventListener('mousemove', (e) => {
@@ -189,6 +190,7 @@ document.addEventListener('keydown', (e) => {
   if (k === '5' && !e.repeat) toggleBlade();     // IGNITE / RETRACT: the blade out and the hilt clipped on the belt, at ease (any fight move lights it again)
   if (k === 'n' && !e.repeat) pingHere();   // PING: mark the spot or foe under the crosshair for the other players (net/ping.js)
   if (k === 'h' && !e.repeat) wheelKeyDown();   // SQUAD ORDERS: tap for the smart order, hold for the command wheel (allies/wheel.js)
+  if (isGunner() && flowSignature(k, e.repeat)) return;   // T (the Mando's DEAD EYE) · Y (the trooper's COORDINATED FIRE): player/gunner-flow.js
   if (isTrooper()) trooperKey(k, e.repeat);   // the clone trooper's keys (player/trooper/kit.js)
   else if (isGunner()){
     if (k === 'shift' && !e.repeat) mandoShift();        // combat roll / rocket boost / air dodge (mando/mobility.js); held in the air it boosts

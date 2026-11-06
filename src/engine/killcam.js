@@ -41,7 +41,7 @@ function calm(pp, except){
 }
 
 const MOVE = ['w', 'a', 's', 'd', ' '];
-/* ASK FOR ONE — kind: 'last' | 'duel' | 'boss'; foe: the one that fell (its body is framed with the hero) */
+/* ASK FOR ONE — kind: 'last' | 'duel' | 'takedown' | 'flank' | 'boss'; foe: the one that fell (its body is framed with the hero) */
 export function killCam(kind, foe){
   const D = K.kinds[kind];
   if (!D || G.killCam === false || G.mode !== 'play' || G.cutscene || G.paused || G.sbPlan || G.sbMenu) return false;

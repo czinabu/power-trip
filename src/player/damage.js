@@ -39,6 +39,7 @@ import { refundCharge, airGuardLost, airParryOk, airDamageMul, airborneInCombat,
 import { noteDamage, noteDefense } from '../game/readout.js';
 import { heroCanGoDown, downHero, hitDownedHero, heroCanSitOut, sitOut } from '../game/revive.js';
 import { coopRun } from '../net/run.js';
+import { flowHurt } from './gunner-flow.js';
 
 const MELEE_REACH_UP = 1.7;   // a melee foe can't strike you if you're perched higher than this above their feet
 const AWAY_GRACE = 800;   // ms (wall clock) after a co-op menu closes before a blow can land (the fight ran on while it was open)
@@ -322,7 +323,8 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   noteDamage(dmg, fromPos, opts, chip, silent);
   G.waveDmg = (G.waveDmg || 0) + dmg; if (!chip) G.waveHits = (G.waveHits || 0) + 1;   // a blocked blow's chip doesn't spoil a flawless wave
   player.lastHurt = G.gt;
-  if (!isGunner() && !chip) player.focus = (player.focus || 0) * FOCUS.hitLoss;   // FORCE FOCUS — a clean trade is broken when you're hit (not by block chip)
+  if (!isGunner() && !chip) player.focus = (player.focus || 0) * FOCUS.hitLoss;
+  if (isGunner() && !chip && dmg > 0) flowHurt();   // the gunners' flow meters (player/gunner-flow.js)   // FORCE FOCUS — a clean trade is broken when you're hit (not by block chip)
   if (fromPos){ player.hitFrom = V3(fromPos.x, 1.4, fromPos.z); player.dmgIndT = 1.0; }   // THREAT — point the damage arc at the source
   // HIT REACTION — a blow that lands knocks the swing loose and slows your feet for a beat. A short immunity after
   // each flinch stops a pack from stun-locking you, and Djem So's armored commitment shrugs off light hits mid-swing.

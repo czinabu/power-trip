@@ -11,6 +11,7 @@ import { JET_CEILING } from '../../data/map-rules.js';
 import { MANDO } from '../../data/mando.js';
 import { _look, _lh } from './weapons.js';
 import { thrust, jetIgnite } from '../../fx/ink.js';
+import { flowJetMul } from '../gunner-flow.js';
 
 export function updateMandoFlight(dt, pp, f, r){
   // JETPACK — its OWN limited fuel (player.jet). Drains fast in the air, recovers on the ground.
@@ -53,7 +54,7 @@ export function updateMandoFlight(dt, pp, f, r){
     thrust(dt, 0.4);
   } else {
     // recover fuel — a trickle in the air, fast on the ground (so you can't fly/hover forever)
-    player.jet = Math.min(player.jetMax, player.jet + (player.grounded ? MANDO.jetRegenGround : MANDO.jetRegen) * dt);
+    player.jet = Math.min(player.jetMax, player.jet + (player.grounded ? MANDO.jetRegenGround : MANDO.jetRegen) * flowJetMul() * dt);   // (HUNTER'S EYE: player/gunner-flow.js)
   }
   // DIRECTIONAL BOOST — HOLD SHIFT in the air to drive HARD where you're moving/facing; look DOWN to DIVE. This
   // is the committed, momentum-building, fuel-hungry thrust (the ground SHIFT tap is a dodge, handled on keydown).

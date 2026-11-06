@@ -38,6 +38,7 @@ import { S } from '../audio/sfx.js';
 import { net, on, send, sendTo, guestSlots, connected } from './session.js';
 import { hooks } from './run.js';
 import { puppetOf, runKind } from './foes.js';
+import { addFlow } from '../player/gunner-flow.js';
 
 const asHost = () => net.role === 'host' && connected() && !!runKind() && !G.coopGuest;
 const asGuest = () => net.role === 'guest' && connected() && G.coopGuest;
@@ -184,6 +185,9 @@ on('pw', (m) => {
 /* ---------------- shared XP: a kill pays both heroes ---------------- */
 hooks.xp = (n) => { if (asHost() && n > 0) send({ t: 'xp', n: Math.round(n) }); };
 on('xp', (m) => { if (asGuest()) gainXp(m.n); });
+// the shared squad's kills feed the guest's flow meter as they do the host's (player/gunner-flow.js: the trooper's BATTLE RHYTHM)
+hooks.sqk = () => { if (asHost()) send({ t: 'sqk' }); };
+on('sqk', () => { if (asGuest()) addFlow('squadKill'); });
 
 /* ---------------- the marksman's laser sight and the lancer's lunge line (sent at the pose rate per foe) ---------------- */
 const due = (e, key) => { const now = performance.now(); if (now - (e[key] || 0) < 50) return false; e[key] = now; return true; };

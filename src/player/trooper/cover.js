@@ -20,6 +20,7 @@ import { sfx } from '../../audio/sfx.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 import { findLedge, startMantle } from '../parkour.js';
 import { fireTrigger } from '../mando/weapons.js';
+import { flowSuppMul, flowCoverTaken, flowCoverLeft } from '../gunner-flow.js';
 
 const C = TROOPER.cover, A = TROOPER.armor, SH = TROOPER.suppress.onHero;
 
@@ -79,6 +80,7 @@ export function takeCover(f, quiet){
   const pp = playerPos();
   player.cover = { c: f.c, box: f.box, nx: f.nx, nz: f.nz, half: f.half, s0: f.s0, s: f.box ? clamp(f.s, f.s0 - f.half + C.edge, f.s0 + f.half - C.edge) : 0,
                    ang: f.ang, low: f.low, top: f.top, peek: 0, side: 1, edge: 0, leaveT: 0, at: G.gt };
+  flowCoverTaken();   // cover to cover, or into it under fire: BATTLE RHYTHM (player/gunner-flow.js)
   player.moveVel.set(0, 0, 0); player.slideT = 0; player.wallRun = null;
   if (player.flip && (player.flip.kind === 'slide' || player.flip.kind === 'dive')) player.flip = null;
   player.shotQ = false;
@@ -92,6 +94,7 @@ export function takeCover(f, quiet){
 export function leaveCover(){
   if (!player.cover) return;
   player.cover = null; player.shotQ = false;
+  flowCoverLeft();
 }
 // C (pad L3): in cover, out of it; beside cover, into it; at a run with cover ahead, a slide that settles in behind it
 export function coverKey(){
@@ -224,7 +227,7 @@ export function suppressHero(amt){
   player.suppAt = G.gt;
 }
 const suppK = () => clamp(((player.supp || 0) - SH.from) / (1 - SH.from), 0, 1);
-export const heroSuppSpread = () => isTrooper() ? 1 + suppK() * SH.spread : 1;
+export const heroSuppSpread = () => isTrooper() ? 1 + suppK() * SH.spread * flowSuppMul() : 1;   // (BATTLE RHYTHM steadies it: player/gunner-flow.js)
 export const heroSuppSlow = () => isTrooper() ? 1 - suppK() * (1 - SH.slow) : 1;
 let vig = null;
 export function updateHeroSupp(dt){

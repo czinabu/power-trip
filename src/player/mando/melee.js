@@ -24,6 +24,7 @@ import { tutEvent } from '../../game/tutor-bus.js';
 import { masteryXp } from '../../game/progression.js';
 import { diffWindow } from '../../data/difficulty.js';
 import { mandoShielding } from './weapons.js';
+import { flowTakedown } from '../gunner-flow.js';
 
 const DOWNED = { stagger: 1, knockdown: 1, getup: 1 };
 const NO_LAUNCH = { launch: false };
@@ -464,6 +465,7 @@ function landTakedown(e, dir){
   floater(V3(g.position.x, g.position.y + 1.6, g.position.z), 'TAKEDOWN', '#c9a6ff');
   S.heavy(ip); S.punch(ip, 1.6); sfx(2200, 0.1, 'square', 0.04, 800);
   if (G.stats) G.stats.takedowns = (G.stats.takedowns || 0) + 1;
+  flowTakedown(e);   // HUNTER'S EYE, and the kill cam's execution shot (player/gunner-flow.js)
 }
 
 /* ---------------- jet charge (W + E): burn in and shoulder-check through a guard ---------------- */

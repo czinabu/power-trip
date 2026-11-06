@@ -40,6 +40,7 @@ import { noteDefense } from '../game/readout.js';
 import { allySweep, hurtAlly, isFodder } from '../allies/squad.js';
 import { civSweep } from '../game/civilians.js';
 import { hooks } from '../net/run.js';
+import { addFlow, flowShotHit } from '../player/gunner-flow.js';
 
 /* ============================================================
    PROJECTILES — blaster bolts & boss orbs
@@ -231,6 +232,7 @@ export function updateBolts(dt){
         S.boltParry(b.mesh.position); floater(pp, 'RICOCHET!', '#ffd08a');
         if (G.stats) G.stats.parries++; noteDefense('parries', null, { src: b.src }); masteryXp('boltParry');
         addFocus(FOCUS.gainParry);
+        addFlow('ricochet');   // HUNTER'S EYE (player/gunner-flow.js)
       } else if (d < 2.5 && shielding){
         // GAUNTLET SHIELD — catch the bolt on the disc and HURL it back at the nearest threat. Costs stamina per catch.
         player.stam = Math.max(0, player.stam - 5 * player.up.blockStam);
@@ -293,11 +295,11 @@ export function updateBolts(dt){
             const hp = headPos(e, HIT);
             spawnHitSpark(V3(hp.x, hp.y + 0.1, hp.z), 0xffd24a, 1.5);
             floater(V3(hp.x, hp.y + 0.45, hp.z), 'HEADSHOT', '#ffd24a');
-            if (b.playerShot) tutEvent('headshot');
+            if (b.playerShot){ tutEvent('headshot'); addFlow('head'); }   // HUNTER'S EYE (player/gunner-flow.js; the Mando's table only)
             sfx(1900, 0.08, 'square', 0.05, 420); S.blastHit(b.mesh.position, 1.4); G.hitstop = Math.max(G.hitstop, 0.04); G.shake = Math.max(G.shake, 0.18);
           }
           damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
-          if (b.playerShot && isTrooper()) foeShotHit(e);
+          if (b.playerShot && isTrooper()){ foeShotHit(e); flowShotHit(e, b.dir); }   // (BATTLE RHYTHM: a flank)
           markHit(e.group, b.mesh.position, b.dir, 'scorch', { heavy: dmg >= 30 });   // a scorch where it struck; a helmet cracks (enemies/scars.js)
           if (!isHead) boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
           if (b.playerShot){ if (G.stats) G.stats.shotsHit++; hitMarker(e.dead ? 'kill' : (isHead ? 'head' : 'hit')); }

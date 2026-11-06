@@ -50,7 +50,8 @@
 //   respawn put a dummy back when one falls before the step is done
 //   loadout  (Jedi) swap the three forms as the step starts · give: { unlocked: {…}, up: {…} } hands over gear or a
 //          power for the step (a store fork's other half is switched off: X and V each fire one of a pair)
-//   grant  'jet1' fits Jetpack Booster I (a real run earns it by wave 3) · 'dual' hands the Mando his second blaster
+//   grant  'jet1' fits Jetpack Booster I (a real run earns it by wave 3) · 'dual' hands the Mando his second blaster ·
+//          'flow' fills the gunner's flow meter (Hunter's Eye / Battle Rhythm) for its signature move's step (deadEye)
 //   toast  a mastery id (data/mastery.js): as the step passes, the corner note its rank I would show in a real fight, the
 //          training's preview of how a power grows by use
 
@@ -393,6 +394,9 @@ export const LESSONS = {
         { say: 'Shield and blaster share one gauntlet. The moment you fire, the shield drops on its own, and it comes back half a second after your last shot. Shield up, wait for your gap, then shoot.',
           keys: 'HOLD RMB · LMB', do: 'Shoot down the trooper: firing lowers your shield, so pick your moment', ev: 'kill', of: 'blaster', need: 1,
           spawn: [{ type: 'blaster', at: [9, 6], rooted: true }] },
+        { say: 'Every clean shot sharpens your eye: headshots, ricochets, a kill on the wing. When the eye is full, the hunt slows for you. Take all three before they know it.',
+          keys: 'T', do: 'With HUNTER\'S EYE full, press T for Dead Eye and drop the targets', ev: 'deadEye', need: 1, grant: 'flow', respawn: true,
+          spawn: dummies([[-5, -13], [0, -15], [5, -13]]) },
       ] },
     { id: 'beskar', group: 'basics', name: 'BESKAR', sub: 'The parry: send their fire home, with any gun',
       done: 'The shield takes fire. Beskar gives it back.',

@@ -11,6 +11,9 @@
             last   the last foe of a fight falls (nothing left and nothing waiting to come in)
             duel   a saber finisher kills a duellist, a champion or the Warbringer, with nobody else close
             boss   a boss goes down (his minions and shots are already cleared by then)
+            takedown  the Mandalorian's vibroblade takedown kills (player/gunner-flow.js), with nobody else close
+            flank  the ARC trooper drops a foe from its flank or while it's pinned, or with his squad's
+                   COORDINATED FIRE (player/gunner-flow.js), with nobody else close
             per kind: dur (s, real time) · slow (the world's speed through the hold) · dist (m, lens out to the side)
             · back (m, lens back behind the hero along the line) · up (m, lens height off the hero's feet) · look (m,
             aim height) · fov (° narrower) · orbit (rad the lens drifts round over the shot)
@@ -27,6 +30,8 @@ export const KILLCAM = {
   kinds: {
     last: { dur: 1.35, slow: 0.3,  dist: 4.4, back: 0.35, up: 1.05, look: 1.05, fov: 6, orbit: 0.32 },
     duel: { dur: 1.2,  slow: 0.28, dist: 4.0, back: 0.3,  up: 1.0,  look: 1.1,  fov: 7, orbit: 0.28 },
+    takedown: { dur: 1.15, slow: 0.28, dist: 3.4, back: 0.25, up: 0.85, look: 0.95, fov: 8, orbit: 0.3 },
+    flank: { dur: 1.2, slow: 0.3, dist: 4.6, back: 0.4, up: 1.15, look: 1.1, fov: 6, orbit: 0.26 },
     boss: { dur: 2.1,  slow: 0.3,  dist: 6.2, back: 0.6,  up: 1.4,  look: 1.6,  fov: 5, orbit: 0.4 },
   },
   blend: { in: 0.22, out: 0.45, cut: 0.18 },

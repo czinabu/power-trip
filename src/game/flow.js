@@ -213,7 +213,7 @@ export function startLevel(idx, opts){
                   fireRate: 1, fuelEff: 1, flameDmg: 1, flameRange: 1, rocketDmg: 1, rocketR: 1, braceDR: 0, aim: 0, darksaber: false, abilityCostMul: 1,
                   jetTier: 0, jetPow: 0.62, fjTier: 0, cellTier: 0, heatCap: 1, heatCool: 1 };
     player.boon = {}; player.boons = {}; player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = false;   // ROGUELITE BOONS
-    player.focus = 0; player.focusHitT = 0; player._focusTier = 0;   // FORCE FOCUS meter
+    player.focus = 0; player.focusHitT = 0; player._focusTier = 0; player.flow = 0; player.flowReady = false; player._flowTier = 0; player.flowSig = null;   // FORCE FOCUS meter
     player.skills = {};
     G.skillPoints = 0; G.skillSpent = 0;
     // RUN STATS — drive the end-of-run summary + score. Reset only on a fresh campaign (idx 0).

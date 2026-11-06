@@ -36,6 +36,7 @@ import { launchAtRocket } from './gadgets.js';
 import { gunLook, TROOPER } from '../../data/trooper.js';
 import { coverHoldsFire, coverShotMul, heroSuppSpread } from '../trooper/cover.js';
 import { addFlow, flowSpreadMul } from '../gunner-flow.js';
+import { shotMove, gunBurstStart, gunDrawn, gunHeatMul, gunSwayMul, updateGunMoves, overchargeStart, overchargeTick, overchargeShot, coveringShake } from '../gun-moves.js';
 
 /* ============================================================
    MANDALORIAN — jetpack, dual blasters, flamethrower, wrist rockets
@@ -77,6 +78,7 @@ export function switchWeapon(name){
   player.heat = 0; player.overheat = false; player.ventT = 0; player.fireCd = 0.12; player.fireCdL = 0;
   player.spin = 0; player.burstLeft = 0; player.burstQ = false; player.gunSlow = 1;
   syncWeaponMesh();
+  gunDrawn(name);   // the pistol out of the holster opens its QUICKDRAW (player/gun-moves.js)
   floater(playerPos(), W.name, '#bfe8ff');
   sfx(420, 0.07, 'square', 0.05, 240); sfx(220, 0.08, 'triangle', 0.04, 110);
   if (name === 'darksaber') S.ignite('dark'); else if (was === 'darksaber' && !shared.darkProj && !wasUnlit) S.retract('dark');   // the Darksaber's snap-hiss
@@ -165,7 +167,7 @@ function addTwinHeat(W, side){
   syncTwin();
   const k = side > 0 ? 'R' : 'L';
   // each pistol fires every other shot, so it takes twice the per-shot heat: the pair runs as hot as the old one bar
-  player['h' + k] = Math.min(1, (player['h' + k] || 0) + 2 * (W.heat || 0.1) * (player.up.heatMul || 1) / (player.up.heatCap || 1));
+  player['h' + k] = Math.min(1, (player['h' + k] || 0) + 2 * (W.heat || 0.1) * (player.up.heatMul || 1) * gunHeatMul() / (player.up.heatCap || 1));
   player.heatDelay = HEAT_COOL_DELAY;
   if (player['h' + k] >= 0.999 && !player['o' + k]){
     player['h' + k] = 1; player['o' + k] = true;
@@ -179,7 +181,7 @@ function addTwinHeat(W, side){
 // add heat for one shot; returns true if that shot just tripped the overheat lock
 function addHeat(W, side){
   if (W.fire === 'twin' && side) return addTwinHeat(W, side);
-  player.heat = Math.min(1, player.heat + (W.heat || 0.1) * (player.up.heatMul || 1) / (player.up.heatCap || 1));   // POWER CELLS hold more (game/progression.js)
+  player.heat = Math.min(1, player.heat + (W.heat || 0.1) * (player.up.heatMul || 1) * gunHeatMul() / (player.up.heatCap || 1));   // (a gun's mastery rank II, a planted repeater: player/gun-moves.js)   // POWER CELLS hold more (game/progression.js)
   player.heatDelay = HEAT_COOL_DELAY;   // restart the cool-delay every shot
   if (player.heat >= 0.999){ player.overheat = true; player.heat = 1; player.overheatAt = G.gt; player.ventTried = false; player.burstLeft = 0;
     if (isTrooper()) floater(playerPos().clone().setY(playerPos().y + 2.6), 'R IN THE BEAT: VENT', '#bfe8ff'); sfx(90, 0.22, 'sawtooth', 0.08, 40); sfx(160, 0.16, 'square', 0.06, 70); floater(playerPos(), 'OVERHEAT!', '#ff7a3a'); G.shake = Math.max(G.shake, 0.2); return true; }
@@ -205,6 +207,7 @@ export function spawnBlasterBolt(origin, dir, dmg, color, scale, W, opts){
     b.playerShot = true;   // tag for accuracy tracking
     if (W.flinch != null) b.flinch = W.flinch;   // how hard it rocks the foe it hits (enemies/bolts.js)
     if (hooks.pbolt && !opts.quiet) hooks.pbolt(b, color, scale); }   // (opts.quiet: the caller sends it, player/gunner-flow.js)   // co-op: the partner sees it fly
+  if (b && opts.tag) Object.assign(b, opts.tag);   // the gun's signature move rides the bolt (player/gun-moves.js)
   if (G.stats) G.stats.shotsFired++;
   // muzzle flash fires every shot, drawn at the barrel of whichever gun is nearest the bolt's origin — pooled Ink
   // sprites, no per-shot PointLight (a light here would churn the light count; big blasts use flashLight()).
@@ -268,7 +271,7 @@ export function fireTrigger(){
   }
   if (W.fire === 'fists'){ mandoMelee(); return; }                     // HOLSTERED — the close-quarters string, same as E
   if (W.fire === 'rifle'){
-    if (player.zoom){ if (!player.overheat && player.fireCd <= 0) fireRifle(W); }   // scoped → it's a rifle
+    if (player.zoom){ if (!player.overheat && player.fireCd <= 0 && !(player.dCharge > 0)) overchargeStart(); }   // scoped → it's a rifle: the shot goes as the trigger is let go, OVERCHARGED if held (player/gun-moves.js)
     else spearStab(W);                                                              // hip → electric spear stab
     return;
   }
@@ -287,7 +290,7 @@ export function fireTrigger(){
     return;
   }
   player.burstQ = false;
-  if (W.fire === 'burst'){ player.burstLeft = W.burst; player.burstT = 0; burstRound(W); return; }   // the rest of the burst: updateMandoCombat
+  if (W.fire === 'burst'){ player.burstLeft = W.burst; player.burstT = 0; gunBurstStart(W); burstRound(W); return; }   // (TAG BURST / TRIPLE TAP track the burst's bolts)   // the rest of the burst: updateMandoCombat
   fireBlaster(W);
 }
 // THE TWIN DC-17s (the trooper) — semi-automatic: each click of LMB fires the other pistol (right, left, right…), each
@@ -343,11 +346,14 @@ function fireBlaster(W, hand){
   const spd01 = clamp(hsp / (MANDO.airSpeedMax || 22), 0, 1);
   // a SLIDE is a steady firing line (parkour.js): no speed bloom, and shots out of any parkour move hit harder
   const inacc = player.slideT > 0 ? 0 : spd01 * 0.7 + (player.boosting ? 1.0 : (!player.grounded && !player.hovering ? 0.35 : 0));
-  const dmg = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * coverShotMul() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
+  const dmg0 = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * coverShotMul() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
   const foMin = steadyAim ? Math.min(1, (W.foMin || 1) + 0.25) : W.foMin;   // bracing stretches effective range
   const baseSpread = steadyAim ? W.braceSpread : W.hipSpread;
   const spread = (baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028)) * heroSuppSpread() * flowSpreadMul();   // (HUNTER'S EYE steadies it: player/gunner-flow.js) boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
-  const opts = { spread, foMin, to: aim };
+  const mv = shotMove(W, steadyAim);   // the gun's SIGNATURE MOVE and mastery (player/gun-moves.js)
+  const opts = { spread: mv.spread != null ? mv.spread : spread, foMin, to: aim, tag: mv.tag };
+  const dmg = dmg0 * mv.dmg;
+  if (mv.tag && mv.tag.covering) coveringShake(playerPos(), aim);
   const col = W.col || (steadyAim ? 0xffd24a : 0xffb84a);   // braced bolts glint hotter (a long gun, or the trooper's guns, fire their own colour)
   if (hand){   // one named pistol (the trooper's twin DC-17s)
     const o = muzzleOrigin(hand);
@@ -384,7 +390,10 @@ function fireRifle(W){
   player.aiming = 0.8;
   const aim = mandoAimPoint();
   const o = muzzleOrigin(0.06);
-  spawnBlasterBolt(o, V3(aim.x-o.x, aim.y-o.y, aim.z-o.z).normalize(), W.dmg * player.up.dmg, 0x7fe0ff, 2.0, W, { to: aim });
+  const mv = shotMove(W, true), oc = overchargeShot();   // OVERCHARGE: a held trigger (player/gun-moves.js)
+  const tag = { ...(mv.tag || {}), ...(oc ? { pierce: oc.pierce, over: true } : {}) };
+  spawnBlasterBolt(o, V3(aim.x-o.x, aim.y-o.y, aim.z-o.z).normalize(), W.dmg * player.up.dmg * mv.dmg * (oc ? oc.dmg : 1), oc ? 0xbff4ff : 0x7fe0ff, oc ? 2.8 : 2.0, W, { to: aim, tag });
+  if (oc){ G.hitstop = Math.max(G.hitstop, 0.08); sfx(60, 0.3, 'sawtooth', 0.08, 30); }
   // the wake hangs along the bolt's real line: from the rifle's barrel tip (where the bolt now leaves) to the aimed point,
   // not from the shoulder origin (that skewed the rings off the crosshair, worst on near targets)
   const mz = gunMuzzle(o).clone();
@@ -526,6 +535,8 @@ export function updateMandoCombat(dt, f, r){
   } else player.spin = Math.max(0, player.spin - dt * 2);
   if (player.repeaterSpin) player.repeaterSpin.rotation.z += dt * player.spin * 40;
   player.gunSlow = CW.slow && player.firing && !player.overheat ? CW.slow : 1;
+  updateGunMoves(dt, CW);   // the guns' signature moves: PLANT holds the spin and his feet, STEADY BREATH, the tags (player/gun-moves.js)
+  if (overchargeTick(dt) === 'fire' && !player.overheat && player.fireCd <= 0) fireRifle(CW);
   updateBeskar(dt);
   if (player.stabCdT > 0) player.stabCdT -= dt;
   if (player.missileT > 0) player.missileT -= dt;
@@ -553,7 +564,8 @@ export function updateMandoCombat(dt, f, r){
     const hsp = Math.hypot(vx, vz);
     const spd01 = clamp(hsp / (MANDO.airSpeedMax || 22), 0, 1);
     const steady = (player.blockHeld || player.zoom) && !player.boosting;
-    const swayAmp = steady ? 1.0 : (4 + spd01 * 9 + (player.boosting ? 6 : 0));   // ramps with speed; biggest while BOOSTING (SHIFT)
+    let swayAmp = steady ? 1.0 : (4 + spd01 * 9 + (player.boosting ? 6 : 0));   // ramps with speed; biggest while BOOSTING (SHIFT)
+    swayAmp *= gunSwayMul();   // STEADY BREATH: dead still while he holds it (player/gun-moves.js)
     player.aimSway = swayAmp;   // shared with the reticle bloom in updateHud
     const sx = (Math.sin(G.gt*2.3) + Math.sin(G.gt*1.07)*0.6) * swayAmp;
     const sy = (Math.cos(G.gt*1.9) + Math.sin(G.gt*0.73)*0.5) * swayAmp * 0.7;

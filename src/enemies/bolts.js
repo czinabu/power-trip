@@ -41,6 +41,7 @@ import { allySweep, hurtAlly, isFodder } from '../allies/squad.js';
 import { civSweep } from '../game/civilians.js';
 import { hooks } from '../net/run.js';
 import { addFlow, flowShotHit } from '../player/gunner-flow.js';
+import { gunHitDmg, gunHitAfter } from '../player/gun-moves.js';
 
 /* ============================================================
    PROJECTILES — blaster bolts & boss orbs
@@ -272,7 +273,8 @@ export function updateBolts(dt){
       if (b.playerShot && isTrooper()) suppressFoes(b);   // the ARC trooper's fire pins what it tears past (enemies/coverfight.js)
       for (const e of enemies){
         if (e.dead || e.converted) continue;
-        if (b.ally && !isFodder(e) && b.mark !== e) continue;   // a squadmate's fire leaves the duellists to you, unless you ordered it on one (data/allies.js)
+        if (b.ally && !isFodder(e) && b.mark !== e) continue;
+        if (b.hitSet && b.hitSet.has(e)) continue;   // a piercing shot is already through this one (player/gun-moves.js)   // a squadmate's fire leaves the duellists to you, unless you ordered it on one (data/allies.js)
         const h = sweepHit(e, PREV, b.mesh.position, BOLT_R);
         if (h && (!hit || h.t < hit.t)){ hit = h; foe = e; }
       }
@@ -291,18 +293,20 @@ export function updateBolts(dt){
           let dmg = boltDamage(b);   // range falloff
           const isHead = hit.head;
           if (isHead){
-            dmg *= champHeadMul(e) ?? HEADSHOT_MULT;   // (a named gunman against the trooper keeps his head down: enemies/coverfight.js)
+            dmg *= (b.breath ? null : champHeadMul(e)) ?? HEADSHOT_MULT;   // (STEADY BREATH finds the head even of a gunman keeping it down)   // (a named gunman against the trooper keeps his head down: enemies/coverfight.js)
             const hp = headPos(e, HIT);
             spawnHitSpark(V3(hp.x, hp.y + 0.1, hp.z), 0xffd24a, 1.5);
             floater(V3(hp.x, hp.y + 0.45, hp.z), 'HEADSHOT', '#ffd24a');
             if (b.playerShot){ tutEvent('headshot'); addFlow('head'); }   // HUNTER'S EYE (player/gunner-flow.js; the Mando's table only)
             sfx(1900, 0.08, 'square', 0.05, 420); S.blastHit(b.mesh.position, 1.4); G.hitstop = Math.max(G.hitstop, 0.04); G.shake = Math.max(G.shake, 0.18);
           }
-          damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
+          if (b.playerShot) dmg = gunHitDmg(b, e, isHead, dmg);   // the gun's signature move (player/gun-moves.js: QUICKDRAW)
+          damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;
+          if (b.pierce > 0){ b.pierce--; (b.hitSet || (b.hitSet = new Set())).add(e); kill = false; }   // OVERCHARGE, PLANT, STEADY BREATH: on into the next body   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
           if (b.playerShot && isTrooper()){ foeShotHit(e); flowShotHit(e, b.dir); }   // (BATTLE RHYTHM: a flank)
           markHit(e.group, b.mesh.position, b.dir, 'scorch', { heavy: dmg >= 30 });   // a scorch where it struck; a helmet cracks (enemies/scars.js)
           if (!isHead) boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
-          if (b.playerShot){ if (G.stats) G.stats.shotsHit++; hitMarker(e.dead ? 'kill' : (isHead ? 'head' : 'hit')); }
+          if (b.playerShot){ if (G.stats) G.stats.shotsHit++; hitMarker(e.dead ? 'kill' : (isHead ? 'head' : 'hit')); gunHitAfter(b, e, isHead); }
         }
       } else if (bossT >= 0){
         b.mesh.position.lerpVectors(PREV, b.mesh.position, bossT);

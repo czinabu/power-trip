@@ -64,6 +64,7 @@ import { storyBeat, clearComms, commsBusy } from './story.js';
 import { stageHolds } from '../ui/hud-stage.js';
 import { setFoeLook } from '../enemies/look.js';
 import { queueSecrets } from './secrets.js';
+import { resetGunMoves } from '../player/gun-moves.js';
 
 /* ============================================================
    LEVEL / WAVE FLOW
@@ -141,6 +142,7 @@ export function startLevel(idx, opts){
   player.darkT = 0; player.darkApplied = false; if (player.darksaberMesh) player.darksaberMesh.visible = false;
   player.zoom = false; player.aiming = 0; player.recoilKick = 0; player.stabT = 0; player.stabQ = false; player.stabCdT = 0; player.missileT = 0; player.heat = 0; player.overheat = false; player.ventT = 0;
   player.spin = 0; player.burstLeft = 0; player.burstQ = false; player.gunSlow = 1; player.beskarT = 0; player.beskarLockT = 0; player.beskarPose = 0;   // the repeater's spin, a carbine burst, the beskar parry
+  resetGunMoves();   // the guns' signature moves: a plant, a held breath, a charge, the tags (player/gun-moves.js)
   player.jet = player.jetMax;
   // a fresh campaign starts with the basic blasters; mid-campaign keep the equipped (if still unlocked)
   if (fresh || !weaponUnlocked(player.weapon)) player.weapon = G.hero === 'trooper' ? 'rifle' : 'single';
@@ -207,6 +209,7 @@ export function startLevel(idx, opts){
     G.waveTotal = -1; G.mandoChoiceShown = false;
     G.xp = 0; G.xpEarned = 0; G.skillPoints = 0; G.powerLv = {}; G.mastery = {}; G.seenTypes = {}; resetUpgrades();
     G.forceLevel = 1; G.formRank = {}; G.formUse = {}; G.formSince = {};   // the Jedi's Force Level and form mastery (data/force-level.js)
+    G.gunRank = {}; G.gunUse = {}; G.gunMoves = {};   // the gunners' gun mastery (data/gun-moves.js)
     G.boonOffer = null; G.boonPicked = false;
     player.up = { dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
                   atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,

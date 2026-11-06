@@ -40,7 +40,7 @@ function snapshotRun(){
     unlocked: clone(G.unlocked), stanceUnlocked: clone(G.stanceUnlocked), formFork: G.formFork || null, mandoChoiceShown: G.mandoChoiceShown,
     xp: G.xp, xpEarned: G.xpEarned, skillPoints: G.skillPoints, skillSpent: G.skillSpent,
     powerLv: clone(G.powerLv), mastery: clone(G.mastery), masteryUse: clone(G.masteryUse),
-    forceLevel: G.forceLevel, formRank: clone(G.formRank), formUse: clone(G.formUse), formSince: clone(G.formSince), xpPoints: G.xpPoints, seenTypes: clone(G.seenTypes),
+    forceLevel: G.forceLevel, formRank: clone(G.formRank), formUse: clone(G.formUse), formSince: clone(G.formSince), gunRank: clone(G.gunRank), gunUse: clone(G.gunUse), gunMoves: clone(G.gunMoves), xpPoints: G.xpPoints, seenTypes: clone(G.seenTypes),
     up: clone(player.up), phoenixReady: !!player.phoenixReady, boon: clone(player.boon), boons: clone(player.boons), skills: clone(player.skills),
     stats: G.stats ? { ...clone({ ...G.stats, summary: null }), elapsed: G.gt - (G.stats.startGt || 0) } : null,
     // saved as its chapter closes (the unlock screen's TRAIN, game/meditation.js): the trial is won, so the run picks up at
@@ -77,7 +77,7 @@ export function restoreRun(run){
   G.xp = run.xp || 0; G.xpEarned = run.xpEarned || 0; G.skillPoints = run.skillPoints || 0; G.skillSpent = run.skillSpent || 0;
   G.powerLv = clone(run.powerLv) || {}; G.mastery = clone(run.mastery) || {}; G.seenTypes = clone(run.seenTypes) || {};
   G.masteryUse = clone(run.masteryUse) || {};
-  G.forceLevel = run.forceLevel || 1; G.formRank = clone(run.formRank) || {}; G.formUse = clone(run.formUse) || {}; G.formSince = clone(run.formSince) || {};   // (an older save: level 1, recomputed by checkUnlocks on load)
+  G.forceLevel = run.forceLevel || 1; G.formRank = clone(run.formRank) || {}; G.formUse = clone(run.formUse) || {}; G.formSince = clone(run.formSince) || {}; G.gunRank = clone(run.gunRank) || {}; G.gunUse = clone(run.gunUse) || {}; G.gunMoves = clone(run.gunMoves) || {};   // (an older save: level 1, recomputed by checkUnlocks on load)
   G.xpPoints = run.xpPoints;   // (undefined on an older save: game/upgrades.js starts counting from its XP)
   G.boonOffer = null; G.boonPicked = false;
   Object.assign(player.up, clone(run.up));

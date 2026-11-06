@@ -123,6 +123,9 @@ export const ARMORY_CODEX = {
   repeater: { tag: 'SUPPRESSION', best: 'Crowds, brutes and shields', lore: 'A heavy repeating blaster off a dead gunner\'s emplacement. It has to wind up, and then it does not stop.',
               pros: ['Spins up to the highest fire rate of any gun', 'Every bolt rocks the foe it hits', 'Holds a crowd back on its own'],
               cons: ['Slow to wind up, wide cone, heavy recoil', 'You walk slower while it fires', 'Cooks fast, and an overheat or a vent costs a long beat'] },
+  disruptor: { tag: 'SIGNATURE', best: 'Far targets, elites, and a line of them', lore: 'A disruptor rifle the Armorer forges for him. In the scope it ends a fight from afar; from the hip its prongs are a spear.',
+              pros: ['One heavy shot in the scope (hold RMB)', 'Unscoped, an electric spear that stuns', 'Overcharged, it tears through a whole line'],
+              cons: ['Slow to fire again', 'Cooks after a couple of shots'] },
 };
 const _gunOwned = { single: () => true, dual: () => !!G.unlocked.dual, carbine: () => !!G.unlocked.carbine, repeater: () => !!G.unlocked.repeater,
   disruptor: () => !!G.unlocked.disruptor, darksaber: () => !!player.up.darksaber, fists: () => true };

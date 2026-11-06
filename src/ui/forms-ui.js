@@ -427,4 +427,4 @@ document.addEventListener('keydown', (e) => {
   else if ((e.key === 'Delete' || e.key === 'Backspace') && ctx && ctx.edit){ e.preventDefault(); clearSlot(ctx.slot); }   // empty the picked slot
   else if (/^[1-3]$/.test(e.key) && ctx && ctx.edit && +e.key <= LOADOUT_SLOTS){ ctx.slot = +e.key - 1; ctx.focus = ctx.loadout[ctx.slot] || ctx.focus; render(); }   // pick a slot
 }, true);
-document.getElementById('formsBtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (G.hero === 'mando') openArmoryCodex(); else openCodex(); });
+document.getElementById('formsBtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (G.hero === 'mando' || G.hero === 'trooper') openArmoryCodex(); else openCodex(); });

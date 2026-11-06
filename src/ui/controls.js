@@ -165,6 +165,7 @@ const TIPS = {
     '<b>Gadget power</b> (bottom-left bar) fuels flame, rockets and other gadgets.',
     'The reticle turns <b>gold</b> when a target is under it.',
     '<b>Hunter\'s Eye</b> (the amber bar over vitality) fills with headshots, ricochets, kills on the wing and takedowns. Full, <b>T</b> is <b>Dead Eye</b>: time slows and you drop up to three heads.',
+    'Every gun has a <b>signature move</b> of its own: the pistol\'s quickdraw, the dual blasters\' gun kata, the carbine\'s tag burst, the repeater\'s plant and the disruptor\'s overcharge. Each gun earns <b>ranks I to III</b> by use. The <b>ARMORY</b> on the pause screen shows how.',
     'Tap <b>RMB</b> just as a bolt reaches you for a <b>beskar parry</b>: it ricochets straight back at the shooter. It works with any gun.',
     'You carry two guns: a <b>sidearm</b> on 1 and a <b>primary</b> on 2. When a run hands you a gun for a full slot, you choose which to carry.',
     'Hold RMB with the single blaster to raise a shield that deflects bolts. Firing drops it; it comes back half a second after you stop. Press E behind it to cut with the vibroblade and bash with the shield, which keeps it up but spends stamina.',
@@ -177,6 +178,7 @@ const TIPS = {
     'Your squad of clones holds ground while you lead: tap the <b>middle mouse button</b> (or H) on a foe to focus it, hold it for every order.',
     '<b>Specialists:</b> Hammer\'s rotary pins whatever it hits, Patch the medic (with Field Medic) patches you and gets the downed up, and Tally the scout picks off the far line.',
     '<b>Battle Rhythm</b> (the blue bar over vitality) fills with perfect vents, pins, flanks, the squad\'s kills and dashes from cover to cover. Full, <b>Y</b> is <b>Coordinated Fire</b>: your squad puts one volley into the foe you mark.',
+    'Every gun has a <b>signature move</b>: the DC-15 burst\'s triple tap, the auto barrel\'s sweep, the marksman\'s steady breath and the DC-17s\' covering fire. Each earns <b>ranks I to III</b> by use. The <b>ARMORY</b> on the pause screen shows how.',
     '<b>Command points</b> (the gold bar over your squad) come from kills. Spend them on the orders that matter and on <b>T</b>: reinforcements or a supply drop.',
   ],
 };

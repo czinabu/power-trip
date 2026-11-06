@@ -43,6 +43,18 @@ export const RIFLE_MOD_ORDER = ['burst', 'auto', 'marksman'];
   R.mods = {};
   for (const k of RIFLE_MOD_ORDER) if (k !== 'burst') R.mods[k] = { ...R, ...RIFLE_MODS[k], mods: null, mod: k, name: 'DC-15 · ' + RIFLE_MODS[k].label, short: 'DC-15 · ' + RIFLE_MODS[k].label.split(' ')[0] }; }
 export const TROOPER_WEAPON_ORDER = ['rifle', 'pistols', 'launcher'];
+// THE ARMORY PAGE's words for each of his guns (ui/armory-ui.js: the trooper's side). Each DC-15 module is its own entry,
+// since each has its own signature move and mastery (data/gun-moves.js). `unlock` as RIFLE_MODS.
+export const TROOPER_ARMORY = {
+  burst:    { name: 'DC-15 · BURST', slot: 'RIFLE · 1', tag: 'THE STANDARD', col: 0x4aa8ff,
+              best: 'Troopers at any range, heads above cover', lore: 'The stock DC-15: three bolts a pull, and every clone learns it first.' },
+  auto:     { name: 'DC-15 · AUTO BARREL', slot: 'RIFLE · 1 AGAIN', tag: 'SUPPRESSION', col: 0x6ab8ff, unlock: 'modAuto',
+              best: 'Crowds, and pinning a line so the squad can move', lore: 'A barrel built to keep firing. Lighter bolts, and a lot of them.' },
+  marksman: { name: 'DC-15 · MARKSMAN', slot: 'RIFLE · 1 AGAIN', tag: 'PRECISION', col: 0xa8ecff, unlock: 'modScope',
+              best: 'Officers, snipers, anything far off', lore: 'A scope and a heavy cell. One shot, placed.' },
+  pistols:  { name: 'TWIN DC-17s', slot: 'SIDEARMS · 2', tag: 'ON THE MOVE', col: 0x6ab8ff,
+              best: 'Close work, and fire on the way to the next cover', lore: 'A pistol in each hand, firing in turn. They shoot straight out of a roll.' },
+};
 // the trooper's guns borrow the Mando's held-weapon models and poses for now: the rifle is the carbine's model on the
 // long-gun mount, the pistols the dual blasters (player/animation.js, holster.js, model/weapons.js)
 export const GUN_LOOK = { rifle: 'carbine', pistols: 'dual', launcher: 'repeater' };

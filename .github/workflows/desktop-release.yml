@@ -1,7 +1,7 @@
 # Publishes a new version of the Windows desktop app as a GitHub Release. Installed copies (PowerTrip-…-setup.exe) find it
 # the next time they start, download it in the background and install it when the game is closed; the portable .exe
 # says a new version is out and links here.
-# It runs by itself every night (09:00 UTC) and releases only if main has changed since the last release; to release
+# It runs by itself every 3 hours and releases only if main has changed since the last release; to release
 # right away, run it from the Actions tab: "Desktop release" -> Run workflow (on main).
 # Each release is numbered <major>.<minor>.<this workflow's run number>, so every one is newer than the last.
 # The website, Vercel previews and the main check don't depend on any of this.
@@ -10,7 +10,7 @@ name: Desktop release
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 9 * * *'   # nightly; skipped when nothing was merged since the last release
+    - cron: '0 */3 * * *'   # every 3 hours; skipped when nothing was merged since the last release
 
 permissions:
   contents: write   # create the release and upload the .exe files
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   changed:
-    # the nightly run releases only when main has moved on from the last release's commit (Run workflow always releases)
+    # the scheduled run releases only when main has moved on from the last release's commit (Run workflow always releases)
     runs-on: ubuntu-24.04
     outputs:
       go: ${{ steps.check.outputs.go }}

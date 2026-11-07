@@ -72,7 +72,7 @@ export function buildLife(T, L, os){
   clearLife();
   const E = T.life === false ? null : lifeFor(L.layout);
   if (!E) return;
-  const grp = new THREE.Group(); grp.userData.noBake = true;
+  const grp = new THREE.Group(); grp.userData.noBake = true; grp.userData.noSolid = true;   // (it flies: never collision, world/autosolid.js)
   shared.arenaGroup.add(grp);
   const half = L.arena / 2;
   Object.assign(S, { on: true, grp, half, t: 0, craft: [], birds: [], lights: null, birdIM: null });

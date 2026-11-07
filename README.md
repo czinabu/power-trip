@@ -12,7 +12,7 @@ npm run dev        # play at the printed localhost URL; reloads instantly as you
 npm run build      # writes dist/index.html, one self-contained file you can double-click or share
 npm run smoke      # after a build: plays both heroes headlessly for a short fight, fails on any error
 npm run smoke:maps # after a build: a short fight on each battle map (sandbox and survival), and what each one costs to draw
-npm run smoke:collision # every map, unbaked: fails on any prop you could walk, sink or fall through (no build needed)
+npm run smoke:collision # every map, hub wing and zone, unbaked: fails on any prop you could walk, sink or fall through (no build needed)
 npm run smoke:training # after a build: the training grounds for both heroes, fresh and story-done: the lesson board, no spoilers, lessons run through
 ```
 

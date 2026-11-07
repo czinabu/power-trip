@@ -5,7 +5,8 @@
 
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
-import { enemies } from '../state.js';
+import { enemies, solids } from '../state.js';
+import { dropSolids } from '../world/autosolid.js';
 import { playerPos } from '../player/helpers.js';
 import { players, targetable } from '../player/players.js';
 import { pad, padKeys } from '../engine/gamepad.js';
@@ -65,6 +66,7 @@ export function pulseMarker(m, dt, gt){
 }
 export function removeMarker(m){
   scene.remove(m);
+  dropSolids(m.userData.solids);   // (a console's own collider goes with it)
   m.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
 }
 // a waist-high terminal with a lit screen, under a beacon; setMarkerColor recolours screen and beam together
@@ -78,6 +80,11 @@ export function makeConsole(x, z, yaw, color, y = 0){
   const top = new THREE.Group(); top.add(body, screen); top.rotation.y = yaw || 0;
   m.add(top);
   m.userData.con = true; m.userData.yaw = yaw || 0;
+  // the terminal is solid (you stand at it, not in it): its footprint, turned to its yaw, as the box round it
+  const c = Math.abs(Math.cos(yaw || 0)), s = Math.abs(Math.sin(yaw || 0)), hx = 0.45 * c + 0.275 * s, hz = 0.45 * s + 0.275 * c;
+  const box = { x, z, hx, hz, h: (y || 0) + 1.1, box: true };
+  if (y) box.y0 = y;   // (up on a deck: solid from the deck up, like the deck's own slab)
+  solids.push(box); m.userData.solids = [box];
   return m;
 }
 

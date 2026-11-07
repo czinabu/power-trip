@@ -17,7 +17,7 @@ const GAME_SECONDS = +(process.env.SMOKE_SECONDS || 10);
 const REAL_LIMIT_MS = 120000;
 if (!existsSync(path.join(root, 'dist/index.html'))){ console.error('dist/index.html missing: run `npm run build` first'); process.exit(1); }
 
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 let failed = false;
 
 // [hero, mode, map]; the survival run starts its rotation on the map's slot

@@ -1,9 +1,10 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// COLLISION SMOKE TEST — serves the game's sources (Vite dev server), builds every arena layout unbaked and audits it
-// (tools/collision-audit.js): fails on any prop in the play space you would walk through, sink into, or fall through
-// from above. Then it drops the hero onto a few of the shapes the audit can't judge by eye (a hill at a battle map's
+// COLLISION SMOKE TEST — serves the game's sources (Vite dev server), builds every arena layout (every map, the hubs'
+// wings, the open zone) the way the game does, unbaked, and audits it (tools/collision-audit.js): fails on any prop in
+// the play space you would walk through, sink into, or fall through from above. Each map's line counts the auto
+// colliders (world/autosolid.js) it needed: a builder needing many should give its props their own. Then it drops the hero onto a few of the shapes the audit can't judge by eye (a hill at a battle map's
 // edge, a dome on a spaceport roof, a market awning, the transport's wing) and checks the body stands on them.
-//   npm run smoke:collision          (MAPS=grassland,pursuit audits only those layouts)
+//   npm run smoke:collision          (MAPS=grassland,pursuit audits only those layouts; RAW=1 without the auto colliders)
 
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
@@ -27,10 +28,10 @@ try {
   await page.goto(url);
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 60000 });
   const maps = process.env.MAPS ? process.env.MAPS.split(',') : undefined;
-  const result = await page.evaluate(async maps => (await import('/tools/collision-audit.js')).auditMaps({ maps }), maps);
+  const result = await page.evaluate(async ([maps, raw]) => (await import('/tools/collision-audit.js')).auditMaps({ maps, raw }), [maps, !!process.env.RAW]);
   for (const r of result){
     if (r.error){ check(false, `${r.id}: ${r.error}`); continue; }
-    check(!r.misses.length && !r.ledges.length, `${r.id}: ${r.solids} solids, ${r.misses.length} props to walk through, ${r.ledges.length} to fall through`);
+    check(!r.misses.length && !r.ledges.length, `${r.id}: ${r.solids} solids (${r.auto} auto, ${r.autoMs} ms), ${r.misses.length} props to walk through, ${r.ledges.length} to fall through`);
     for (const m of r.misses) console.log(`    walk-through ${m.prop}${m.backdrop ? ' (backdrop)' : ''}: ${m.area} m², sinks ${m.sink} m (worst at x ${m.at[0]}, z ${m.at[1]}, top ${m.at[2]})`);
     for (const m of r.ledges) console.log(`    fall-through ${m.prop}: ${m.area} m², top ${m.top}`);
   }

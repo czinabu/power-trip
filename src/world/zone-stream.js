@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { shared, solids, pillars } from '../state.js';
 import { camera, scene } from '../engine/renderer.js';
 import { bakeArena } from './ink.js';
+import { autoSolids } from './autosolid.js';
 import { propOwner, dropProps } from './camblock.js';
 import { KINDS, zoneMats, meshKit } from './zones/zone-kit.js';
 import { planJedha } from './zones/jedha-plan.js';
@@ -34,11 +35,11 @@ export const zoneStreaming = () => ZS.on;
 /* world/arena.js: build an open zone's arena (its floor, sky and backdrop are the world's, built by buildWorld already).
    opts.raw (the collision audit): every chunk, unbaked */
 export function buildZoneArena(L, opts = {}){
-  RAW = !!opts.raw;
+  RAW = !!opts.raw || !!shared.auditBuild;
   const Z = zoneByLayout(L.layout), plan = Z && planOf(L.layout, Z);
   if (!plan) return;
   ZS.on = true; ZS.Z = Z; ZS.size = Z.size; ZS.chunk = Z.chunk; ZS.n = Math.ceil(Z.size / Z.chunk);
-  ZS.M = zoneMats(L.pal || {}); ZS.ink = L.ink ?? 0.045; ZS.built = 0; ZS.extra = []; ZS.stats = { builds: 0, drops: 0, ms: 0 };
+  ZS.M = zoneMats(L.pal || {}); ZS.ink = L.ink ?? 0.045; ZS.built = 0; ZS.extra = []; ZS.stats = { builds: 0, drops: 0, ms: 0, autoMs: 0 };
   // every chunk's list of pieces (a piece belongs to the chunk its middle stands in)
   const half = Z.size / 2;
   ZS.chunks = [];
@@ -55,6 +56,20 @@ export function buildZoneArena(L, opts = {}){
     if (p.t === 'column' || p.t === 'tower' || p.t === 'minaret') pillars.push({ x: p.x, z: p.z, r: p.r, h: p.h });   // (wall-kick posts)
     if (p.sky){ K.mesh(p, KS); continue; }
     chunkAt(p.x, p.z).pieces.push(p);
+  }
+  // the auto colliders (world/autosolid.js) for the whole zone, worked out now from each chunk's meshes (built, read and
+  // thrown away), so the city collides and paths everywhere from the first frame, like its own solids
+  if (!shared.noAutoSolids){
+    const t0 = performance.now();
+    for (const c of ZS.chunks){
+      if (!c.pieces.length) continue;
+      const g = new THREE.Group(), K = meshKit(g, ZS.M);
+      for (const p of c.pieces) KINDS[p.t].mesh(p, K);
+      c.auto = autoSolids(g);
+      if (shared.autoSolids) shared.autoSolids.push(...c.auto);
+      g.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    }
+    ZS.stats.autoMs = performance.now() - t0;
   }
   shared.arenaGroup.add(sky);   // (baked with the arena: it never leaves)
   ZS.root = new THREE.Group(); ZS.root.name = 'zone-chunks'; ZS.root.userData.noBake = true;   // (each chunk bakes itself as it's built)
@@ -121,4 +136,4 @@ export function updateZoneStream(force, x, z){
 }
 /* every chunk at once (tests and the collision audit) */
 export function buildAllChunks(){ for (const c of ZS.chunks) buildChunk(c); }
-export const zoneStreamInfo = () => ({ on: ZS.on, chunks: ZS.chunks.length, built: ZS.built, builds: ZS.stats.builds, drops: ZS.stats.drops, lastMs: +ZS.stats.ms.toFixed(1), pieces: ZS.chunks.reduce((a, c) => a + c.pieces.length, 0) });
+export const zoneStreamInfo = () => ({ on: ZS.on, chunks: ZS.chunks.length, built: ZS.built, builds: ZS.stats.builds, drops: ZS.stats.drops, lastMs: +ZS.stats.ms.toFixed(1), autoMs: +(ZS.stats.autoMs || 0).toFixed(1), pieces: ZS.chunks.reduce((a, c) => a + c.pieces.length, 0) });

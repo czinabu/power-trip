@@ -122,7 +122,7 @@ export const TROOPER = {
   },
   // JUMP: no pack under him. A short, heavy hop (× CFG.player.jumpVel) that falls harder than it rose (× gravity): enough to
   // vault, climb and clear a step, never a bound. No wall-runs, no wall-kicks. In the air the keys only nudge him.
-  jump: { vel: 0.7, fall: 1.7, airControl: 0.3 },
+  jump: { vel: 0.7, fall: 1.7, airControl: 0.3, diveWindow: 0.7 },   // `diveWindow`: SPACE again within this many s of the hop is the combat dive
   // SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it
   sprint: { mul: 1.4 },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.

@@ -95,7 +95,7 @@ export const PAD_BINDS = {
   // kit on it. D-pad down (the Mando's holster) is the frag grenade: the trooper never holsters.
   trooper: {
     base: {
-      A:  { key: ' ', label: 'Jump', note: 'A short hop: run and jump at low cover to vault it · in low cover, vaults it · no jetpack' },
+      A:  { key: ' ', label: 'Jump', note: 'A short hop: run and jump at low cover to vault it · in low cover, vaults it · again off the hop: the combat dive · no jetpack' },
       B:  { key: 'shift', label: 'Sprint', note: 'Hold it and push forward · L3 at a sprint slides you into the cover ahead' },
       X:  { key: 'r', label: 'Vent', note: 'Overheated: press it in the beat for a perfect vent · too early or late and it jams' },
       Y:  { key: 'f', label: 'Ion grenade / breach charge', note: 'Whichever you earned · with a prompt up (TALK, a temple station), interacts instead' },

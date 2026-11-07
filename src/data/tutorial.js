@@ -546,6 +546,8 @@ export const LESSONS = {
           keys: 'W · SPACE', do: 'Run right up to a crate in the crate row on the west lane and press SPACE at its edge', ev: 'vault', need: 1, mark: [-11, 8] },
         { say: 'When they shoot, be somewhere else. Fast.',
           keys: 'HOLD SHIFT · W', do: 'Sprint (hold SHIFT and run forward)', poll: 'sprint', need: 1.5 },
+        { say: 'And when they have you dead to rights, get flat. Jump, then jump again: you dive.',
+          keys: 'SPACE · SPACE', do: 'Combat dive: SPACE, then SPACE again off the hop', ev: 'dash', need: 2 },
         { say: 'Keep your muzzle on the target and your feet moving.',
           keys: 'ALT + A / D / S', do: 'Strafe: press ALT (or hold it, with Settings · STRAFE on HOLD) and sidestep or backpedal while you keep facing the crosshair', poll: 'strafe', need: 1.5 },
         { say: 'Low bar at the slide gate, back by the door. Slide it.',

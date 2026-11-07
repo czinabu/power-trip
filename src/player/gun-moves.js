@@ -146,6 +146,7 @@ function kataNow(M){
 function coveringNow(M){
   if (!isTrooper()) return false;
   if (player.slideT > 0 || G.gt - (player.sprintT ?? -9) < 0.7) return true;   // (the trooper's sprint and slide: player/trooper/sprint.js)
+  if (player.dodgeKind === 'dive' && G.gt - (player.rollAt ?? -9) < 0.7) return true;   // (his dive off a hop: the Mando's dive, player/movement.js)
   if (inCover()) return false;
   const left = player.flowCoverLeft, sp = Math.hypot(player.moveVel.x, player.moveVel.z);
   return !!left && G.gt - left.t < M.move && sp > 2.5;

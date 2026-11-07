@@ -435,7 +435,7 @@ function reactSpring(e, g, dt){
 
 /* ---------------- both: once a frame ---------------- */
 let waitShown = false, fightEndAt = -1e9;
-const POPUP_BEAT = 1.6;   // s of quiet after a fight before its pop-ups come up
+const POPUP_BEAT = 0.6;   // s of quiet after a fight before its pop-ups come up
 export function updateFoes(){
   hostTick();
   coopRun.live = coopLive();

@@ -493,7 +493,6 @@ body.fovpreview .set-tip{display:none}
 .pg-tabs span.on kbd{display:none}
 #czpage .pg-tabs{background:rgba(8,18,33,.7);border-radius:var(--r) var(--r) 0 0}   /* (readable over the hero, where a phone stacks the two) */
 body:not(.pad-ps) .pg-tabs .pg-ps,body.pad-ps .pg-tabs .pg-xb{display:none}
-.wb-panel .pg-tabs{--pg-ink:var(--wb-ink);--pg-dim:var(--wb-faint);--pg-acc:var(--wb-amber);--pg-line:var(--wb-line);font-family:var(--wb-mono);font-size:12px;margin:-4px 0 0}
 .kb-panel .pg-tabs{--pg-ink:var(--k-ink);--pg-dim:var(--k-faint);--pg-acc:var(--k-acc);--pg-line:color-mix(in srgb,var(--k-faint) 45%,transparent);margin:-4px 0 0}
 .kb-mando .pg-tabs{font-family:Georgia,'Times New Roman',serif;letter-spacing:3px}
 #overlay:not(.st-menu) #wbBtn{display:none}

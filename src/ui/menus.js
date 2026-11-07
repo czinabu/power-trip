@@ -171,7 +171,7 @@ export function setOverlayState(state){
   if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
   if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
   _ovState = state;
-  hubWords(); refreshGroups();
+  hubWords(); refreshGroups(); refreshContinue(state);
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming', 'exitconfirming');
   overlay.classList.add('st-' + state);
   document.body.classList.toggle('in-menu', state === 'menu');
@@ -229,6 +229,40 @@ function fitMenu(){
 window.addEventListener('resize', queueFit);
 new MutationObserver(queueFit).observe(overlay, { attributes: true, attributeFilter: ['class'] });   // customizing on and off
 
+/* CONTINUE — the title screen's first tile, when this save file has somewhere to go back to: one click puts you where you
+   left off. What was last played from the title (the campaign, Act IV or the hub; a run started from the hub counts as
+   the hub, since that is where it comes back to) is kept per save file. It skips the Forms page and the training offer:
+   the run's own loadout is already saved, as RESUME and a retry do. */
+const LAST_PLAY = 'sw_last_play';
+function noteLastPlay(){
+  const m = G.fromHub || G.modeSel === 'temple' ? 'temple' : G.modeSel === 'campaign' || G.modeSel === 'gate' ? G.modeSel : null;
+  if (m) try { localStorage.setItem(LAST_PLAY, m); } catch(e){}
+}
+function continueTarget(){
+  let last = null; try { last = localStorage.getItem(LAST_PLAY); } catch(e){}
+  if (last === 'gate' && gateOpen() && gateRun()) return 'gate';
+  if (last === 'temple') return 'temple';
+  if (canResume()) return 'campaign';
+  return null;
+}
+function refreshContinue(state = _ovState){
+  const el = document.getElementById('mode-continue'); if (!el) return;
+  const to = state === 'menu' && G.mode === 'menu' && !G.coopJoin ? continueTarget() : null;
+  el.hidden = !to;
+  if (!to) return;
+  document.getElementById('contMd').textContent = to === 'temple' ? 'Back to ' + nextHub().name + ' · ' + heroName(G.hero)
+    : to === 'gate' ? 'Act IV · ' + resumeProgressOf(gateRun())
+    : (resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + heroName(G.hero)).split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
+}
+document.getElementById('mode-continue').addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit();
+  const to = continueTarget(); if (!to) return refreshContinue();
+  if (to === 'campaign') pickUpSavedRun();
+  if (!setModeSel(to)) return;
+  G.missionKit = null;
+  launch();
+});
+document.addEventListener('campaignmark', () => refreshContinue());   // (the hero or the saved run changed)
 function beginPlay(){
   overlay.style.display = 'none';
   document.getElementById('banner').style.opacity = '0';
@@ -248,6 +282,7 @@ function beginPlay(){
   const from = G.mode, stillWanted = () => G.mode === from && overlay.style.display !== 'flex';
   if (G.mode === 'menu' || G.mode === 'victory'){
     G.paused = true;
+    if (G.mode === 'menu' && !G.coopJoin) noteLastPlay();
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.modeSel === 'temple'){ startHub(G.hubWing); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
@@ -777,6 +812,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.repeat || e.defaultPrevented || G.mode !== 'menu' || _ovState !== 'menu' || overlay.style.display === 'none') return;
   if (panelOpen() || /\b(customizing|newconfirming|confirming|asktrain)\b/.test(overlay.className)) return;
   if (document.activeElement && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(document.activeElement.tagName)) return;
+  const cont = document.getElementById('mode-continue');
+  if (cont && cont.offsetParent && _step === 'mode' && !_group){ e.preventDefault(); cont.click(); return; }   // the modes step: CONTINUE, when it's there
   const go = document.getElementById('goText'); if (!go || !go.offsetParent) return;   // (only where the button shows: not on the modes step)
   e.preventDefault(); audioInit(); beginFromMenu();
 });

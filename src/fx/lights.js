@@ -2,7 +2,7 @@
 // Pooled transient VFX point lights (flashLight).
 
 import * as THREE from 'three';
-import { scene } from '../engine/renderer.js';
+import { scene, frameOnce } from '../engine/renderer.js';
 import { vfx } from '../state.js';
 
 /* ---------- POOLED VFX point-lights ---------- ADDING or REMOVING a light at runtime changes the scene's light
@@ -54,6 +54,7 @@ export function holdLightCount(){
 }
 // before every draw of the scene (three.js counts the lights right after this)
 scene.onBeforeRender = () => {
+  if (frameOnce.on){ if (frameOnce.lights) return; frameOnce.lights = true; }   // (the frame's later passes: already settled, engine/renderer.js)
   if (held < 0) held = pointLights(true);   // from the first draw (the title screen's warm-up), so the menu builds at the same count
   let extra = pointLights() - held;
   for (let i = 0; i < VFX_LIGHT_MAX && extra < 0; i++) if (!vfxLights[i].visible){ vfxLights[i].visible = true; extra++; }

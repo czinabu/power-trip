@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Entry point: imports every module in the original load order, then runs the main loop (tick) and exposes window.GAME.
 
+import './engine/fastmath.js';     // first of all: a fast Math.hypot (engine/fastmath.js)
 import './engine/save-files.js';   // before anything reads localStorage: the active save file's keys (engine/save-files.js)
 import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
 { const bv = document.getElementById('buildver'); if (bv && typeof __BUILD_LABEL__ !== 'undefined') bv.textContent = __BUILD_LABEL__; }   // build label on the main menu (vite.config.js)
@@ -14,7 +15,7 @@ import { STANCES } from './data/stances.js';
 import { ENEMY_TYPES } from './data/enemies.js';
 import { LEVELS } from './data/levels.js';
 import { BOSS_CFG, BOSS_MANDO } from './data/bosses.js';
-import { camera, composer, renderer, scene } from './engine/renderer.js';
+import { camera, composer, renderer, scene, drawFrame } from './engine/renderer.js';
 import { cycleQuality, qualityGovernor } from './engine/quality.js';
 import { audioInit } from './audio/sfx.js';
 import { MUSIC } from './audio/music.js';
@@ -165,6 +166,7 @@ continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINU
 const clock = new THREE.Clock();
 function tick(){
   requestAnimationFrame(tick);
+  solidsChanged();   // the collision queries read the solids afresh once a frame (world/collision.js)
   const rawDt = Math.min(clock.getDelta(), 0.05);
   let dt = rawDt;
   updateWheel();   // the squad's command wheel: opens on a held H and slows the world while it's up (allies/wheel.js)
@@ -249,7 +251,7 @@ function tick(){
   // lags the blade the eye sees (fx/trail.js)
   updateTrail(fxDt);
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
-  if (showcaseActive()) renderShowcase(rawDt); else { leaveShowcase(); composer.render(); }
+  if (showcaseActive()) renderShowcase(rawDt); else { leaveShowcase(); drawFrame(); }
   bootFrame();   // the loading screen lifts once the first frames are drawn (ui/boot.js)
   qualityGovernor(!showcaseActive() && !G.paused && !G.skillSelect && !G.cutscene && G.mode === 'play');
 }
@@ -311,7 +313,7 @@ Object.assign(window.GAME, { FORMS, setLoadout });
 
 /* every map's level, for the art capture tool (tools/shots/maps.mjs): build any arena in place and frame it */
 import { buildArena } from './world/arena.js';
-import { findClearSpawn, edgeSpawn } from './world/collision.js';
+import { findClearSpawn, edgeSpawn, solidsChanged } from './world/collision.js';
 import { TRAINING_LEVELS } from './data/tutorial.js';
 import { SANDBOX_LEVELS } from './data/sandbox.js';
 import { MISSIONS } from './data/missions.js';

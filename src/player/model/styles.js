@@ -185,6 +185,32 @@ function inkSurface(m, metal, rough, rimK = 1, kind = 0){
   return m;
 }
 
+/* STYLED-SHAPE CACHE — the crease pass (prep) and the ink hull (outlineGeo) are most of what building a model costs, and
+   models are built from fresh geometry every time (a design's parts are made on the spot), with most parts repeating
+   across a model's looks, across models and across rebuilds. A finished shape is kept by its CONTENT (every attribute
+   and the index, hashed), so an identical part never runs the pass twice. The results are shared: nothing changes a
+   styled geometry in place (the NPC bake merges copies: enemies/kit.js strip; a hero's meshes draw it as it is). */
+const STYLED = new Map(), HULLS = new Map();
+function hashArray(a, h1, h2){
+  const v = a.BYTES_PER_ELEMENT === 4 ? new Uint32Array(a.buffer, a.byteOffset, a.length) : a;   // (floats by their bits)
+  for (let i = 0; i < v.length; i++){ const x = v[i]; h1 = Math.imul(h1 ^ x, 0x01000193); h2 = Math.imul(h2 + x, 0x5bd1e995) ^ (h2 >>> 15); }
+  return [h1, h2];
+}
+function geoKey(g, posOnly = false){
+  let h = [0x811c9dc5, 0x9747b28c];
+  const names = posOnly ? ['position'] : Object.keys(g.attributes).sort();
+  let sig = '';
+  for (const n of names){
+    const at = g.attributes[n];
+    if (!at || at.isInterleavedBufferAttribute) return 'u' + g.uuid;   // (not hashable as a plain array: never shared)
+    sig += n + at.itemSize + (at.normalized ? 'n' : '') + at.count + ',';
+    h = hashArray(at.array, h[0], h[1]);
+  }
+  if (g.index){ sig += 'i' + g.index.count; h = hashArray(g.index.array, h[0], h[1]); }
+  if (!posOnly) for (const gr of g.groups) sig += 'g' + gr.start + '.' + gr.count + '.' + gr.materialIndex;
+  return sig + ':' + (h[0] >>> 0).toString(36) + (h[1] >>> 0).toString(36);
+}
+
 export function makeStyle(name = 'ink', colors = {}){
   const cfg = STYLE_DEFS[name] || STYLE_DEFS.forged;
   const mats = new Map();
@@ -222,6 +248,10 @@ export function makeStyle(name = 'ink', colors = {}){
 
   function prep(g){
     if (g.userData.styled) return g.userData.styled;
+    // the same part built again (every model builds fresh geometry, and most parts repeat across a model's looks and
+    // across models): the crease pass already done for an identical shape is reused (geoKey)
+    const key = !cfg.gradient && !cfg.jitter ? cfg.label + ':' + geoKey(g) : null;
+    if (key && STYLED.has(key)) return (g.userData.styled = STYLED.get(key));
     let out = g;
     if (cfg.gradient) bakeGradient(out, cfg.gradient);
     if (cfg.jitter){
@@ -242,16 +272,20 @@ export function makeStyle(name = 'ink', colors = {}){
       for (let i = 0; i < n.count; i++) if (!(n.getX(i) ** 2 + n.getY(i) ** 2 + n.getZ(i) ** 2 > 1e-6)) n.setXYZ(i, 0, 1, 0);
     }
     g.userData.styled = out;
+    if (key) STYLED.set(key, out);
     return out;
   }
 
   function outlineGeo(g){
     if (g.userData.hull) return g.userData.hull;
+    const key = geoKey(g, true);   // (positions only: the hull keeps nothing else)
+    if (HULLS.has(key)) return (g.userData.hull = HULLS.get(key));
     const c = g.clone();
     for (const k of Object.keys(c.attributes)) if (k !== 'position') c.deleteAttribute(k);
     const m = mergeVertices(c, 1e-4);
     m.computeVertexNormals();
     g.userData.hull = m;
+    HULLS.set(key, m);
     return m;
   }
 

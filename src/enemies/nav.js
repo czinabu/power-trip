@@ -75,17 +75,25 @@ function topOf(list, x, z){
   }
   return g;
 }
-/* distance from a point to the nearest real solid (0 inside one) */
+/* distance from a point to the nearest real solid (0 inside one). The grid build asks this of every cell against every
+   solid (a battle map: a hundred thousand cells), so the walls are packed flat once per build (packWalls) and compared
+   squared: a wall further off along z than the best so far is passed over before any square root */
+let W_N = 0, W_BOX = new Uint8Array(0), W_X = new Float64Array(0), W_Z = new Float64Array(0), W_HX = new Float64Array(0), W_HZ = new Float64Array(0);
+function packWalls(){
+  const list = solids.filter(c => !c.climbable && !c.y0);   // steps and hills are walked over (a tall step: nav.ledge), an overhead slab under
+  W_N = list.length;
+  if (W_X.length < W_N){ W_BOX = new Uint8Array(W_N); W_X = new Float64Array(W_N); W_Z = new Float64Array(W_N); W_HX = new Float64Array(W_N); W_HZ = new Float64Array(W_N); }
+  list.forEach((c, i) => { W_BOX[i] = c.box ? 1 : 0; W_X[i] = c.x; W_Z[i] = c.z; W_HX[i] = c.box ? c.hx : c.r; W_HZ[i] = c.box ? c.hz : c.r; });
+}
 function clearanceAt(x, z){
-  let best = 99;
-  for (const c of solids){
-    if (c.climbable || c.y0) continue;   // steps and hills are walked over (a tall step: nav.ledge), an overhead slab under
-    let d;
-    if (c.box){
-      const dx = Math.max(Math.abs(x - c.x) - c.hx, 0), dz = Math.max(Math.abs(z - c.z) - c.hz, 0);
-      d = Math.hypot(dx, dz);
-    } else d = Math.max(0, Math.hypot(x - c.x, z - c.z) - c.r);
-    if (d < best) best = d;
+  let best = 99, b2 = 99 * 99;
+  for (let i = 0; i < W_N; i++){
+    const dz = Math.max(Math.abs(z - W_Z[i]) - W_HZ[i], 0);
+    if (dz * dz >= b2) continue;
+    let d2;
+    if (W_BOX[i]){ const dx = Math.max(Math.abs(x - W_X[i]) - W_HX[i], 0); d2 = dx * dx + dz * dz; }
+    else { const ex = x - W_X[i], ez = z - W_Z[i], d = Math.max(0, Math.sqrt(ex * ex + ez * ez) - W_HX[i]); d2 = d * d; }
+    if (d2 < b2){ b2 = d2; best = Math.sqrt(d2); }
   }
   return best;
 }
@@ -157,6 +165,7 @@ export function buildNav(){
   nav.near = new Uint16Array(N); nav.stamp = 0;
   const edge = nav.half - 1, edgeZ = nav.halfZ - 1;   // clampToArena keeps bodies inside this rectangle
   buckets = solids.length >= BUCKET_FROM && nav.half >= 100 ? bucketSolids() : null;   // (only an open zone: every other map keeps the exact scan)
+  if (!buckets) packWalls();
   const clearOf = buckets ? clearanceBucketed : clearanceAt;
   tallSteps = solids.filter(c => c.climbable && !c.mound && !c.y0 && c.h > CLIMB);   // the only steps that can wall a cell
   const steps = solids.filter(c => c.climbable && !c.y0);   // (only climbables and hills are ground: the rest are walls)

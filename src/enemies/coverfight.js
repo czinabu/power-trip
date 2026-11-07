@@ -18,6 +18,7 @@ import { segBlockedTall, spotBlocked } from '../world/collision.js';
 import { floater } from '../fx/floaters.js';
 import { tacticsRamp } from './tactics.js';
 import { throwGrenade, lobClear } from './grenades.js';
+import { noteGrenade } from './director.js';
 import { players } from '../player/players.js';
 import { addFlow } from '../player/gunner-flow.js';
 import { hooks } from '../net/run.js';
@@ -225,6 +226,7 @@ function champGrenade(e, hero, dist){
   if (segBlockedTall(g.x, g.z, hp.x, hp.z, GRENADE.overCover) || !lobClear(from, at)) return;   // a wall in the way, not cover: no lob over or through it (enemies/grenades.js)
   const fx = { ...e, t: { ...e.t, fuse: CH.fuse, dmg: CH.nadeDmg * (e.t.dmgMul || 1), blastR: CH.nadeR } };
   throwGrenade(fx, from, at, false);
+  noteGrenade(hero);   // the grenadiers give it room (enemies/director.js)
   floater(V3(g.x, g.y + 2.8, g.z), 'DETONATOR', '#ffb060');
 }
 export function dropCover(e){ if (e.cv) e.cv = null; e.cvHold = false; }

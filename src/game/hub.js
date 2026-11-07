@@ -39,6 +39,18 @@ export const hubIdFor = () => hubOf(net.role === 'guest' && connected() ? hostHe
 export const curHub = () => HUBS[G.hubId] || HUBS.temple;
 export const hubWing = () => { const H = curHub(); return H.wings[G.hubWing] || H.wings[H.start]; };
 
+// THE SPOT YOU LEFT: a station page that goes by way of the title screen (the forge's benches, the customizer, the mission
+// list, EVERY MODE, MAIN MENU) lets the hub go while it's up. Coming back from it with no run played in between puts you
+// back exactly where you stood, facing the way you faced, not at the wing's door: only a place you pick (a wing on the
+// map, a door, the ship, a run) moves you. ui/menus.js keeps the spot as the hub is left and forgets it when a run begins.
+let kept = null;
+export function keepHubSpot(){
+  if (!G.hub || G.mode !== 'play') return;
+  const p = playerPos();
+  kept = { hubId: G.hubId, wing: G.hubWing, x: p.x, y: p.y, z: p.z, yaw: G.yaw, face: player.faceYaw, pitch: G.pitch };
+}
+export function forgetHubSpot(){ kept = null; }
+
 /* into the hub: `wing` (its start by default), arriving through the door from `from` when walking between wings */
 export function startHub(wing, from){
   const was = G.hub;
@@ -49,6 +61,8 @@ export function startHub(wing, from){
   const Hb = curHub();
   G.hubWing = Hb.wings[wing] ? wing : Hb.start;
   const W = hubWing();
+  const back = !from && kept && kept.hubId === hubId && kept.wing === G.hubWing ? kept : null;   // (back from a menu: the spot you left)
+  kept = null;
   startLevel(0, { level: W.level, hub: true });
   carryStoryKit();   // the forms, powers and guns this hero's story has earned, in hand here too (game/carry.js)
   G.waveTotal = 0;
@@ -60,11 +74,14 @@ export function startHub(wing, from){
     const [ox, oz] = SIDE_OUT[side], H = shared.arenaHalf;
     x = ox * (H - HUB.arrive); z = oz * (H - HUB.arrive); yaw = Math.atan2(-ox, -oz);
   }
-  // a co-op party spreads out side by side, each in their seat
-  const seat = net.status === 'connected' ? net.slot : 0;
-  if (seat){ const rx = -Math.cos(yaw), rz = Math.sin(yaw), o = (seat % 2 ? 1 : -1) * Math.ceil(seat / 2) * 2.6; x += rx * o; z += rz * o; }
-  const s = findClearSpawn(x, z, CFG.player.radius + 0.8);
-  playerPos().set(s.x, 0, s.z); G.yaw = player.faceYaw = yaw; G.pitch = 0.08;
+  if (back){ playerPos().set(back.x, back.y, back.z); G.yaw = back.yaw; player.faceYaw = back.face; G.pitch = back.pitch; }
+  else {
+    // a co-op party spreads out side by side, each in their seat
+    const seat = net.status === 'connected' ? net.slot : 0;
+    if (seat){ const rx = -Math.cos(yaw), rz = Math.sin(yaw), o = (seat % 2 ? 1 : -1) * Math.ceil(seat / 2) * 2.6; x += rx * o; z += rz * o; }
+    const s = findClearSpawn(x, z, CFG.player.radius + 0.8);
+    playerPos().set(s.x, 0, s.z); G.yaw = player.faceYaw = yaw; G.pitch = 0.08;
+  }
   player.vel.set(0, 0, 0); player.moveVel.set(0, 0, 0); player.vy = 0;
   arrivedAt = performance.now(); moving = false; near = null; shownKey = '';
   // the host coming back into the temple from a run calls the party back with them
@@ -75,7 +92,7 @@ export function startHub(wing, from){
 /* walk through a door (or take the fast travel) to another wing: it loads behind the loading screen, in place of this one */
 export async function goWing(to, viaDoor){
   if (!G.hub || moving || !HUBS[hubIdFor()].wings[to]) return;
-  moving = true;
+  moving = true; kept = null;   // (a place picked: its own arrival, never a spot left before)
   const from = viaDoor ? G.hubWing : null;
   G.paused = true;
   let built = false;

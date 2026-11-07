@@ -2,8 +2,8 @@
 // YOUR HERO'S PROFILE, as data (game/profile.js keeps it, ui/profile-ui.js shows it). Edit the words and numbers freely.
 //
 // Each hero has one persistent profile on this device: it is not part of a save slot and NEW GAME leaves it, so who you
-// became outlives any one run. It holds a RANK on the hero's own ladder, the RANK XP that climbs it, and (the Jedi) the
-// FORCE TREE picks made with Insight.
+// became outlives any one run. It holds a RANK on the hero's own ladder and the RANK XP that climbs it. The rank opens
+// cards on the hero's TREE for good; a run spends its Training points on them (ui/profile-ui.js treeCol).
 //
 // THE GUARDRAIL: a rank opens BREADTH, never raw numbers. What it unlocks is more choice on the run's own upgrade page
 // (extra skill cards at the same one-point price as the rest, so a run is never stronger for having them, only
@@ -12,15 +12,12 @@
 //
 //   TRACKS   each hero's ladder. A rank asks for `xp` (total rank XP) and, optionally, `trials` (all three trial chapters
 //            cleared, in any run), `won` (the hero's campaign beaten) or `chapter` (that chapter cleared: the trooper's
-//            promotions, which the campaign already hands out, game/wardrobe.js PROMOTIONS). `insight` (the Jedi) is how
-//            many Force Tree picks each rank brings.
+//            promotions, which the campaign already hands out, game/wardrobe.js PROMOTIONS).
 //   RANK_XP  what each thing the game already counts is worth. Only real fights pay: training and the sandbox never do.
 //   JEDI_TREE the Force Tree's own nodes, by branch and tier (the run's PADAWAN / KNIGHT / MASTER tiers, data/skills.js).
-//            A node is learned once with Insight and from then on is one more card the run's upgrade page can deal. A tier's
-//            nodes wait for the rank of the same name.
-//   BRANCH   where each of the run's own skill cards (data/skills.js SKILLS) sits on the tree, and FORK_BRANCH the store's
-//            fork picks (data/store.js), shown on the tree with the side you took last.
-//   RANK_SKILLS the Mando's and the trooper's lighter track: each rank simply opens its card, no tree to fill in.
+//            A tier's nodes open for good with the rank of the same name, and from then on a run can train them.
+//   BRANCH   where each of the run's own skill cards (data/skills.js SKILLS) sits on the Jedi's tree; TREES has every hero's.
+//   RANK_SKILLS the Mando's and the trooper's rank cards: each rank opens its card on their tree.
 //   `gives`  (the TOP rank) the LEGENDARY parts and looks it opens, as rows for its card and the profile page. Looks only:
 //            the parts themselves are the benches' (data/saber-parts.js `earn: { top }`), and NEW GAME+ has more.
 
@@ -60,7 +57,6 @@ export const TRACKS = {
       { id: 'grandmaster', nm: 'GRAND MASTER', xp: 5000, won: true, line: 'Lead what is left of the Order. Beat the campaign, then keep going.',
         gives: [['LEGENDARY CRYSTAL', 'GRAND MASTER\'S'], ['LEGENDARY HILT', 'GRAND MASTER'], ['NEW LOOK', 'COUNCIL WHITE ROBES']] },
     ],
-    insight: [1, 1, 1, 1],
   },
   mando: {
     name: 'THE CLAN', unit: 'CLAN STANDING',
@@ -96,18 +92,36 @@ export const BRANCHES = [
 // the run's own skill cards (data/skills.js SKILLS), on the branch they belong to
 export const BRANCH = {
   flow: 'control', rip: 'control', ascend: 'control',
-  swift: 'sense', focus: 'sense', endure: 'sense', bulw: 'sense',
-  vit: 'combat', edge: 'combat', jugg: 'combat', vamp: 'combat', storm: 'combat', unstop: 'combat',
+  swift: 'sense', focus: 'sense', bulw: 'sense',
+  vit: 'combat', edge: 'combat', endure: 'combat', jugg: 'combat', vamp: 'combat', storm: 'combat', unstop: 'combat',
 };
-// the store's forks (data/store.js `fork`; f7 is Form VII's, game/meditation.js), shown on their branch with your last pick
-export const FORK_BRANCH = [
-  { fork: 'j_arm', branch: 'combat', tier: 1, nm: 'SABER THROW or FORCE BARRIER', ids: ['throw', 'barrier'] },
-  { fork: 'j_util', branch: 'sense', tier: 2, nm: 'JUMP ATTACK or FORCE MEND', ids: ['jslam', 'mend'] },
-  { fork: 'j_ult', branch: 'control', tier: 3, nm: 'JUDGEMENT or REPULSE', ids: ['judge', 'repulse'] },
-  { fork: 'f7', branch: 'combat', tier: 3, nm: 'JUYO or VAAPAD', ids: ['juyo', 'vaapad'] },
-];
-
-
+// EVERY HERO'S TREE (ui/profile-ui.js treeCol): each card the run can train, on a branch, by tier. The same tree is the
+// Profile's between runs (what's open, what's locked and why) and the upgrade page at a chapter's close (spend Training
+// points on it). The light and dark cards (data/alignment.js) are their own branch, THE PATH, at the tree's far side.
+// At most three cards share a branch's tier, so the tree reads on a phone.
+export const TREES = {
+  jedi: { nm: 'FORCE TREE', branches: BRANCHES, of: BRANCH },
+  mando: { nm: 'CLAN TREE', branches: [
+    { id: 'armor', nm: 'ARMOR', line: 'Defense' },
+    { id: 'arsenal', nm: 'ARSENAL', line: 'Weapons' },
+    { id: 'jet', nm: 'JETPACK', line: 'Speed & gadgets' },
+  ], of: {
+    plating: 'armor', grit: 'armor', gam: 'armor', creed: 'armor', super: 'armor', theway: 'armor',
+    trigger: 'arsenal', optics: 'arsenal', rangefinder: 'arsenal', ord: 'arsenal', incend: 'arsenal', arsenal: 'arsenal',
+    thrust: 'jet', fleet: 'jet', tribe: 'jet', marshal: 'jet',
+  } },
+  trooper: { nm: 'GAR TREE', branches: [
+    { id: 'armor', nm: 'ARMOR', line: 'Defense' },
+    { id: 'fire', nm: 'FIREPOWER', line: 'Weapons' },
+    { id: 'squad', nm: 'SQUAD', line: 'Your squad' },
+  ], of: {
+    tplate: 'armor', cardio: 'armor', drill: 'armor', cool: 'armor', arcvet: 'armor',
+    marks: 'fire', demo: 'fire', discipline: 'fire', vent: 'fire', firepower: 'fire', doctrine: 'fire',
+    lead: 'squad', tactics: 'squad', brothers: 'squad',
+  } },
+};
+// a card's branch on its hero's tree ('path' for a light or dark card)
+export const branchOf = (hero, s) => s.align ? 'path' : s.branch || (TREES[hero] || TREES.jedi).of[s.id] || null;
 // each one is a card in the run's own shape (data/skills.js), with `prof` (its tree id) and `branch`. Budgets match the
 // run's cards of the same tier (one point each): a sidegrade that leans another way, never a bigger number.
 export const JEDI_TREE = [
@@ -147,12 +161,6 @@ export const RANK_SKILLS = {
       fl: 'Advanced Recon Commando. Every word of it.', apply(){ player.up.forceRegen *= 1.2; player.up.ordnance = (player.up.ordnance || 1) * 1.25; player.up.dr = 1 - (1 - (player.up.dr || 0)) * 0.92; } },
   ],
 };
-
-// YOUR DECK (the profile page, between runs): the cards the run's upgrade page deals from, chosen per hero from every card
-// you own. Ten in all, so many from each tier. A deck that runs dry mid-run (every card in it trained to the top, or
-// waiting on a tier) is topped up from the rest, so a hand is never short. No deck set: it deals from everything.
-export const DECK_QUOTA = { 1: 4, 2: 3, 3: 3 };
-export const DECK_SIZE = DECK_QUOTA[1] + DECK_QUOTA[2] + DECK_QUOTA[3];
 
 // how each rank-up reads on its card at a chapter's close (kicker, then the lines)
 export const RANK_CARD = {

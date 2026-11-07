@@ -28,7 +28,7 @@ import { loadingNow } from './loading.js';
 import { doorFading } from '../world/doorway.js';
 import { popupUp, popupHooks } from './popups.js';
 
-export const FORCE_TOAST = { calm: 0.9, calmLead: 0.35, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up (one that leads: s after the cutscene) · s it stays · s it fades over · s before the power it brought opens its card
+export const FORCE_TOAST = { calm: 0.5, calmLead: 0.35, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up (one that leads: s after the cutscene) · s it stays · s it fades over · s before the power it brought opens its card
 
 let el = null, wait = null, calmT = 0, hideT = 0, goneT = 0, leadT = 0;
 const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
@@ -64,7 +64,7 @@ popupHooks.lull = () => !inCombat() && !storySpeaking() && !commsShowing();
 // a rise that leads (a chapter's close) comes up the moment the cutscene hands the hero back, over the walk-off talk;
 // a lone one waits for the talk and the fight to be done
 const lull = () => inPlay() && (wait.lead ||
-  (!storySpeaking() && !commsShowing() && !G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted) && !inCombat()));
+  (!storySpeaking() && !commsShowing() && !G.spawnQueue.length && !bossUp() && !enemies.some(e => !e.dead && !e.converted)));   // (not the 3 s combat linger as well: with the field clear it came up after the hero had run on)
 
 // game/flow.js, every frame of play
 let lastT = 0;

@@ -85,6 +85,9 @@ export function startChapter(pos, opts = {}){
 }
 // after a death: the chapter again from its checkpoint (a wave chapter from its first wave, or the boss)
 export function retryChapter(){ startChapter(G.chapter, { retry: true }); }
+// RESTART CHAPTER (the pause and end screens): this chapter again from its opening, as it was first reached. The run stays
+// where it is in the story, so CONTINUE CAMPAIGN still picks it up here (it used to start the whole campaign over)
+export function restartChapter(){ startChapter(G.chapter); }
 // a loaded save: back on its chapter, with the card to say where the story was. A save from before the chapters
 // (it knew only the level) picks up on the chapter that opens that level.
 export function resumeChapter(run){

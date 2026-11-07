@@ -1,5 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// The upgrade page: one tab-free page at a chapter's close (every few waves in survival), never mid-chapter.
+// The upgrade page: one page at a chapter's close (every few waves in survival), never mid-chapter. It is the PROFILE's own
+// panel showing the hero's tree (ui/profile-ui.js openRunTree): Training points rank its open cards up for this run. This
+// file fills in the page's head and its other sections (survival's boons and powers, the story's new powers, mastery),
+// which sit in the panel's left column.
 
 import { renderer } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
@@ -25,45 +28,9 @@ import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { rollBoons, pickBoon } from '../game/boons.js';
-import { noteFork, treePath, inDeck, deckOf } from '../game/profile.js';
-import { BRANCH, BRANCHES } from '../data/profile.js';
-import { ALIGN_WORDS } from '../data/alignment.js';
+import { noteFork } from '../game/profile.js';
+import { openRunTree, refreshRunTree, closeRunTree } from './profile-ui.js';
 
-let progFreeCards = [];   // the 3 free-upgrade cards chosen for this visit (stable across re-renders)
-function rollFreeCards(){
-  const SET = skillSet();
-  // YOUR DECK (the profile page, set between runs): the hand deals from it, and only when it runs dry from the rest
-  const all = SET.filter(skillEligible), pool = all.filter(s => inDeck(s)), spare = all.filter(s => !inDeck(s));
-  const pick = [];
-  // SUSTAIN CHOICE must be VISIBLE the same wave as its store counterpart (Bacta Stim / Force Mend), not just
-  // eligible. Pass 58 synced the two `avail()` gates to the same wave stage, but the skill-tree offer is a random
-  // draw of 3 from the whole eligible pool — a player could keep buying other cards for several waves while Creed/
-  // Vampiric Blade sits eligible but simply never gets rolled, then buy the always-visible store item with no idea
-  // the tradeoff card ever existed. PIN it into the offer instead of leaving it to chance, every wave it's eligible,
-  // until the player resolves the choice (buying either one makes the loser ineligible and it drops out normally).
-  const sustainId = isGunner() ? 'creed' : 'vamp';
-  const sustainIdx = pool.findIndex(s => s.id === sustainId);
-  if (sustainIdx >= 0){ pick.push(pool[sustainIdx]); pool.splice(sustainIdx, 1); }
-  // NEWEST TIER GUARANTEED — one card always comes from the highest tier you've opened, so a fresh DISCIPLINE or
-  // MASTER tier shows up the visit it unlocks instead of hiding behind random Padawan draws.
-  pool.sort(() => Math.random() - 0.5);
-  const top = Math.max(0, ...pool.map(s => s.tier));
-  if (pick.length < 3 && !pick.some(s => s.tier === top)){
-    const i = pool.findIndex(s => s.tier === top);
-    if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
-  }
-  // YOUR PATH (the Force Tree, ui/profile-ui.js): the Jedi's chosen branch always has a card in the hand, when it has one to deal
-  const path = !isGunner() && treePath(), onPath = (s) => (s.branch || BRANCH[s.id]) === path;
-  if (path && pick.length < 3 && !pick.some(onPath)){
-    const i = pool.findIndex(onPath);
-    if (i >= 0){ pick.push(pool[i]); pool.splice(i, 1); }
-  }
-  while (pick.length < 3 && pool.length) pick.push(pool.shift());
-  spare.sort(() => Math.random() - 0.5);
-  while (pick.length < 3 && spare.length) pick.push(spare.shift());
-  pick.sort((a, b) => a.tier - b.tier);
-  progFreeCards = pick;
-}
 // open the upgrade page, if there is anything on it to take (skill points earned since the last one come from
 // game/upgrades.js earnWavePoint). Returns whether it opened; with nothing to take the run simply goes on.
 export function openSkillTree(){
@@ -76,15 +43,14 @@ export function openSkillTree(){
   for (const n of grantedNow) storeAbilityCard(n);
   if (grantedNow.length){ if (isGunner()) syncMandoChips(); else syncJediChips(); }
   offerFreeForks();
-  rollFreeCards();
   if (!somethingToTake()){
     if (grantedNow.length) upToast('NEW POWER', grantedNow.map(n => n.nm).join(' · '), 'mast');
     return false;
   }
   G.skillSelect = true;
-  renderProgress();
   document.getElementById('skilltree').style.display = 'flex';
-  document.getElementById('skilltree').querySelector('.st-scroll').scrollTop = 0;
+  openRunTree({ train: chooseUpgrade, points: () => G.skillPoints || 0, next: nextPointWords });
+  renderProgress();
   document.getElementById('banner').style.opacity = '0';
   document.exitPointerLock();      // free the cursor so the cards are clickable
   return true;
@@ -107,7 +73,7 @@ const popFork = (n) => freeFork(n) && storeSet().filter(m => m.fork === n.fork &
 function takeFork(n){
   if (!storeAvail(n)) return;
   n.buy();
-  noteFork(n.fork, n.id);   // (the side taken, shown on the Force Tree: game/profile.js)
+  noteFork(n.fork, n.id);   // (the side taken, kept on the profile: game/profile.js)
   if (isGunner()) syncMandoChips(); else syncJediChips();
   floater(playerPos(), n.nm + '!', n.final ? '#ff9a6a' : '#7fe0a8');
   burst(playerPos().clone().setY(1.6), n.final ? 0xff7a4a : 0x7fe0a8, 14, 6, 5);
@@ -116,7 +82,7 @@ function takeFork(n){
 function somethingToTake(){
   const xp = G.xp || 0;
   if (G.boonOffer && G.boonOffer.length) return true;
-  if ((G.skillPoints || 0) > 0 && progFreeCards.length) return true;
+  if ((G.skillPoints || 0) > 0 && skillSet().some(skillEligible)) return true;
   if (grantedNow.length) return true;   // (shown once, so the story's gift doesn't pass unseen)
   if (storeSet().some(n => storeAvail(n) && !popFork(n) && xp >= storeCost(n))) return true;
   return !!G.endless && ENDLESS_POWERS.some(p => (!p.avail || p.avail()) && xp >= powerCost(p));
@@ -130,9 +96,7 @@ function pickNextBoon(id){
 function card(opts){
   const c = document.createElement('div');
   c.className = 'card' + (opts.cls || '') + (opts.afford ? '' : ' cant');
-  // opts.src: small chips beside the tag saying where a Training card came from (its Profile deck, path, tree or rank)
-  c.innerHTML = (opts.src && opts.src.length ? '<div class="c-tags"><span class="c-tag">' + opts.tag + '</span>' + opts.src.map(x => '<span class="c-src ' + x[0] + '">' + x[1] + '</span>').join('') + '</div>'
-    : '<div class="c-tag">' + opts.tag + '</div>') + '<div class="c-ico">' + icon(opts.ico) + '</div>' +
+  c.innerHTML = '<div class="c-tag">' + opts.tag + '</div><div class="c-ico">' + icon(opts.ico) + '</div>' +
     '<div class="c-nm">' + opts.nm + '</div><div class="c-ds">' + opts.ds + '</div>' + (opts.extra || '') +
     (opts.cost ? '<div class="' + (opts.costCls || 'c-cost') + '">' + opts.cost + '</div>' : '') +
     (!opts.afford && opts.why ? '<div class="c-why">' + opts.why + '</div>' : '');
@@ -248,42 +212,8 @@ export function renderProgress(){
     mast.appendChild(row);
   }
   hide('mastsec', !mast.children.length);
-  // ---- TRAINING (spend SKILL POINTS) — a separate track, never gated by ability choice ----
-  const wrap = document.getElementById('skillcards');
-  wrap.innerHTML = '';
-  document.getElementById('freehdr').textContent = isTrooper() ? 'GAR TRAINING' : mando ? 'WEAPON UPGRADES' : 'TRAINING';
-  // what training opens next — "DISCIPLINE opens after 1 more" — so the tier gate reads as a goal, not a mystery
-  // where the hand came from: YOUR DECK and YOUR PATH, set on the Profile between runs (ui/profile-ui.js; rollFreeCards above)
-  const deck = deckOf(), path = !mando && treePath(), W = ALIGN_WORDS[G.hero] || ALIGN_WORDS.jedi;
-  const srcOf = (s) => [
-    s.prof && ['tree', 'FORCE TREE'], s.rank && ['rank', 'RANK CARD'], s.align && ['al-' + s.align, W[s.align]],
-    path && (s.branch || BRANCH[s.id]) === path && ['path', '★ PATH'],
-    deck && !inDeck(s) && ['out', 'NOT IN DECK'],
-  ].filter(Boolean);
-  const spent = G.skillSpent || 0, nextT = [2, 3].find(t => spent < TIER_REQ[t] || !tierStoryOpen(t));
-  const gate = !nextT ? '' : !tierStoryOpen(nextT) ? ' · ' + tierName(nextT) + ' opens in Act ' + (TIER_CHAPTER[nextT] === 'mustafar' ? 'III' : 'II')
-    : ' · ' + tierName(nextT) + ' opens after ' + (TIER_REQ[nextT] - spent) + ' more';
-  document.getElementById('freehelp').textContent = (sp > 0
-    ? 'Spend training points · ' + sp + ' to spend'
-    : 'Spend training points · ' + (storyRun() ? 'every ' + XP_PER_POINT + ' XP earns one' : 'you earn one each wave cleared')) + gate +
-    ' · ' + (deck ? 'dealt from your Profile deck' : 'dealt from your Profile cards') + (path ? ' (★ ' + ((BRANCHES.find(b => b.id === path) || {}).nm || '') + ' always offered)' : '');
-  for (const s of progFreeCards){
-    const r = skillRank(s.id);
-    const spent = r >= s.max;
-    const lockedOut = !spent && s.avail && !s.avail();   // a rival pick (e.g. the heal path) closed this off
-    const pips = s.max > 1 ? '<div class="pips">' + '<i class="on"></i>'.repeat(r) + '<i></i>'.repeat(s.max - r) + '</div>' : '';
-    const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
-    const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO TRAINING POINTS';
-    wrap.appendChild(card({
-      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier), src: srcOf(s),
-      ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
-      extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
-      cost: '1 TRAINING POINT', costCls: 'c-pick',
-      afford: sp > 0 && !spent && !lockedOut, why,
-      onClick: () => chooseUpgrade(s),
-    }));
-  }
-  if (!progFreeCards.length) wrap.innerHTML = '<div class="empty">Nothing left to train. You have mastered every discipline on offer.</div>';
+  // ---- TRAINING is the tree beside all this (ui/profile-ui.js treeCol), redrawn with what's left to spend ----
+  refreshRunTree();
   document.getElementById('sthint').textContent = (storyRun() ? 'Unspent training points carry over' : sp > 0 ? 'Unspent XP and training points carry over' : 'Unspent XP carries over') +
     (G.endless ? ' · this page opens every ' + SURVIVAL_EVERY + ' waves' : ' · this page opens when a chapter ends');
 }
@@ -292,7 +222,7 @@ function buyStore(n){
   if (!G.skillSelect || !storeAvail(n) || (G.xp||0) < cost) return;
   G.xp -= cost;
   n.buy();
-  if (n.fork) noteFork(n.fork, n.id);   // (the side taken, shown on the Force Tree: game/profile.js)
+  if (n.fork) noteFork(n.fork, n.id);   // (the side taken, kept on the profile: game/profile.js)
   storeAbilityCard(n);
   if (isGunner()) syncMandoChips(); else syncJediChips();
   document.getElementById('xpval').textContent = G.xp;
@@ -303,20 +233,27 @@ function buyStore(n){
 }
 function chooseUpgrade(s){
   // respect skillEligible (incl. s.avail) so a card that got LOCKED OUT after a rival pick can't still be clicked
-  if (!G.skillSelect || (G.skillPoints||0) <= 0 || !skillEligible(s)) return;
+  if (!G.skillSelect || (G.skillPoints||0) <= 0 || !skillEligible(s)) return false;
   player.skills[s.id] = skillRank(s.id) + 1;
   G.skillSpent++; G.skillPoints--;
   s.apply();
   floater(playerPos(), s.nm + '!', s.tier === 3 ? '#ffd24a' : '#ffe27a');
   burst(playerPos().clone().setY(1.6), s.tier === 3 ? 0xffd24a : 0x7fd4ff, s.tier*6, 5, 4);
   S.reward(s.tier === 3 ? 2 : 1);
-  if (G.skillPoints > 0) rollFreeCards();   // more points to spend: a fresh hand of three
   renderProgress();
+  return true;
+}
+// how the next Training point comes, in words (the tree says it when there are none left to spend)
+function nextPointWords(){
+  const spent = G.skillSpent || 0, nextT = [2, 3].find(t => spent < TIER_REQ[t] || !tierStoryOpen(t));
+  const how = storyRun() ? 'The next one comes in ' + (XP_PER_POINT - xpTowardPoint()) + ' XP.' : 'You earn one each wave cleared.';
+  return how + (nextT && tierStoryOpen(nextT) ? ' ' + tierName(nextT) + ' opens after ' + (TIER_REQ[nextT] - spent) + ' more trained.' : '');
 }
 export function closeProgress(){
   if (!G.skillSelect) return;
   G.skillSelect = false; grantedNow = [];
   document.getElementById('skilltree').style.display = 'none';
+  closeRunTree();
   if (!shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
   // a clear "you're patched up" beat as you drop back in — green motes + a RECOVERED floater
   const pp0 = playerPos();

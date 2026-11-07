@@ -7,6 +7,7 @@ import { G, enemies } from '../state.js';
 import { fwd, playerPos } from '../player/helpers.js';
 import { navDist, navClass } from './nav.js';
 import { GRENADE } from '../data/tactics.js';
+import { grenades } from './grenades.js';
 import { assignApproach } from './tactics.js';
 import { players, localPlayer } from '../player/players.js';
 import { duelOf } from './bubble.js';
@@ -117,7 +118,21 @@ export function rangedSlotFree(t, hero = localPlayer){
     : c === 'grenade' ? (late ? GRENADE.slotsLate : GRENADE.slots)
     : (late ? ENGAGE.rangedSlotsLate : ENGAGE.rangedSlots);
   if (duelOf(hero)) cap = Math.min(cap, BUBBLE.rangedSlots[c]);   // a hero in a duel: fewer guns on them (data/duel-bubble.js)
-  return n < cap;
+  if (n >= cap) return false;
+  if (c === 'grenade' && !grenadeFree(hero, late)) return false;
+  return true;
+}
+// DETONATOR PACING — however many grenadiers there are, the throws at one hero come one at a time with room to breathe
+// between them, and only a couple are ever burning down around them at once (data/tactics.js GRENADE.gap / maxLive)
+const lastNade = new WeakMap();
+export function noteGrenade(hero = localPlayer){ lastNade.set(hero, G.gt); }
+function grenadeFree(hero, late){
+  if (G.gt - (lastNade.get(hero) ?? -99) < (late ? GRENADE.gapLate : GRENADE.gap)) return false;
+  const hp = hero.pos;
+  if (!hp) return true;
+  let live = 0;
+  for (const g of grenades) if (!g.friendly && !g.vel && Math.hypot(g.ring.position.x - hp.x, g.ring.position.z - hp.z) < GRENADE.liveR) live++;
+  return live < GRENADE.maxLive;
 }
 
 // is this spot behind the camera? swings wound up there get a longer, fairer tell

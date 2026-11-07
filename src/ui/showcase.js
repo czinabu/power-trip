@@ -13,7 +13,7 @@ import { kitSet, kitSets } from './kit-stage.js';
 import { applySaberGrip, setSaberStaff, setSaberDual, syncOffSaber, setPistolLook, setLongGun, setRifleMod } from '../player/model/weapons.js';
 import { settleCloth, stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
-import { wornLook, loadPicks, disposeTree } from '../player/mesh.js';
+import { wornLook, loadPicks } from '../player/mesh.js';
 import { heroName } from '../game/wardrobe.js';
 import { STANCES, SWING_PATTERNS, stanceUnlocked } from '../data/stances.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP } from '../data/poses.js';
@@ -222,8 +222,21 @@ function updateCpuSkin(){
     dst.needsUpdate = true;
   }
 }
+/* THE PICK HITCH: disposing the old figure's materials at once dropped every shader program it used to no users, so
+   three.js deleted them, and the new figure (the same materials, rebuilt) compiled and linked them all over again: a
+   dozen programs, a second or more of a stalled main thread on every option picked (the title music stuttering with
+   it). The old figure's materials are kept until the new one has been drawn and warmed (warmStand), so its programs
+   are found in the cache instead; only its geometry goes at once. */
+const retired = [];
+function retire(vis){
+  vis.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) retired.push(o.material); });
+}
+function flushRetired(keep = 0){   // (keep: the newest few left, while the stand hasn't warmed the figure yet)
+  const drop = retired.splice(0, Math.max(0, retired.length - keep));
+  for (const m of drop) for (const x of [].concat(m)) x.dispose();
+}
 function build(picks){
-  if (fig.vis){ fig.group.remove(fig.vis); disposeTree(fig.vis); }
+  if (fig.vis){ fig.group.remove(fig.vis); retire(fig.vis); if (retired.length > 4000) flushRetired(2000); }
   fig.group.add(buildHeroModel(fig, wornLook(picks)));
   cpuSkin(fig.vis);
   fig.blade.light.intensity = 2.2;   // the saber's real light floods a close-up; keep it low so the model reads
@@ -274,6 +287,7 @@ function warmStand(){
   dress(was, false);
   for (let i = 0; i < _snap.length; i += 4){ const o = _snap[i]; o.position.copy(_snap[i + 1]); o.quaternion.copy(_snap[i + 2]); o.scale.copy(_snap[i + 3]); }
   _snap.length = 0;
+  flushRetired();   // the new figure holds its programs now: the old one's materials can go
 }
 build(loadPicks());
 // the customizer restyles the figure on the stand as each option is picked

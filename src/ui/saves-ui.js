@@ -10,6 +10,7 @@ import { sandboxUnlocked } from '../game/sandbox.js';
 import { reloadLook } from './customizer.js';
 import { overlay, goHome, refreshMenu, setModeSel, setMission, setDiff, beginFromMenu, survivalUnlocked, showMenuStep } from './menus.js';
 import { openMissionPage } from './missions-ui.js';
+import { forgetHubSpot } from '../game/hub.js';
 import { ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS, NG_WORDS } from '../data/ngplus.js';
 
@@ -74,6 +75,7 @@ function load(i){
   if (midRun() && armed !== 'load' + i){ armed = 'load' + i; return render(); }   // leaving a live run asks first
   closeSaves();
   if (G.mode !== 'menu') goHome();
+  forgetHubSpot();   // (a loaded file walks into its hub afresh)
   loadSlotProgress(d);
   setHero(d.hero === 'mando' || d.hero === 'trooper' ? d.hero : 'jedi');   // (a trooper save without ?trooper loads as the Mando: player/hero.js)
   if (d.diff) setDiff(d.diff);

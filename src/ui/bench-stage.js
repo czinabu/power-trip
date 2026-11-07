@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { composer, renderPass, scene, camera, bloomPass, standPost, hemi } from '../engine/renderer.js';
 import { inkRim } from '../player/model/styles.js';
 import { buildSaberModel } from '../player/model/index.js';
-import { wornLook, disposeTree } from '../player/mesh.js';
+import { wornLook } from '../player/mesh.js';
 import { STANCES } from '../data/stances.js';
 import { G } from '../state.js';
 
@@ -94,8 +94,16 @@ for (const dx of [-0.42, 0.2]){   // (under the grip, either side of the hand)
 }
 function colorOf(look){ return look.jedi.saber != null ? look.jedi.saber : ((STANCES[G.stance] || {}).blade ?? 0x35c8ff); }
 // (re)build the saber from these picks, laid along the table with the emitter towards the right
+// (the old saber's materials go one rebuild later, not at once: disposed right away, their shader programs were left
+// with no users and deleted, and the new saber, the same materials rebuilt, compiled them all again: a hitch per pick)
+let oldMats = [];
 export function setBenchSaber(picks){
-  if (bench.saber){ crystal.removeFromParent(); ring.removeFromParent(); bench.saber.group.removeFromParent(); disposeTree(bench.saber.group); }
+  if (bench.saber){
+    crystal.removeFromParent(); ring.removeFromParent(); bench.saber.group.removeFromParent();
+    for (const m of oldMats) m.dispose();
+    oldMats = [];
+    bench.saber.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) oldMats.push(...[].concat(o.material)); });
+  }
   const look = wornLook(picks), w = buildSaberModel(look), col = colorOf(look);
   w.light.parent.remove(w.light);
   w.group.scale.setScalar(SCALE);

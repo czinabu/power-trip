@@ -40,7 +40,7 @@ import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHe
 import { startGate, gateOpen, gateBeaten } from '../game/gate.js';
 import { storyHero } from '../data/campaign.js';
 import { autosave } from '../game/autosave.js';
-import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
+import { startCampaign, joinCampaign, closeCard, chapterLabel, restartChapter } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { startZone } from '../game/zone.js';
@@ -49,7 +49,7 @@ import { loadInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
-import { startHub, setPartyHooks, curHub, hubIdFor } from '../game/hub.js';
+import { startHub, setPartyHooks, curHub, hubIdFor, keepHubSpot, forgetHubSpot } from '../game/hub.js';
 import { HUBS } from '../data/hub.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 // the temple's station panel (ui/hub-ui.js registers its closer: it imports this file, so this one can't import it)
@@ -187,7 +187,7 @@ export function setOverlayState(state){
   document.getElementById('templeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub ? 'inline-flex' : 'none';   // a run started from the temple goes back to it
   document.getElementById('templeHomeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub && G.hubWing === SHIP_WING ? 'inline-flex' : 'none';   // (from the ship: or skip it, down the ramp into the hub)
   document.getElementById('stepTemple').style.display = state === 'menu' && G.fromHub ? '' : 'none';
-  document.getElementById('restartBtn').textContent = state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
+  document.getElementById('restartBtn').textContent = G.chapter >= 0 && state !== 'victory' ? '↻ RESTART CHAPTER' : state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('pzTrain').style.display = state === 'pause' && G.training ? '' : 'none';   // the pause screen's TRAINING label
@@ -256,7 +256,7 @@ function beginPlay(){
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.modeSel === 'temple'){ const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
-      G.hub = false;
+      G.hub = false; forgetHubSpot();   // (a run: coming back from it is a fresh arrival, not the spot left for it)
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; G.ngPlus = coopRun.ng | 0; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
@@ -807,8 +807,9 @@ document.addEventListener('pointerlockchange', () => {
     else setOverlayState('menu');
   }
 });
-// RESTART RUN — wipe progress and drop back into level 1 from scratch
+// RESTART — the mode again from its start; in the campaign that is this chapter's start (a won campaign's starts it over)
 function restartRun(toTraining, after){
+  const won = G.mode === 'victory';
   overlay.style.display = 'none';
   _endPick = null; overlay.classList.remove('vpicking');
   document.getElementById('restartBtn').style.display = 'none';
@@ -822,7 +823,7 @@ function restartRun(toTraining, after){
   G.paused = true;
   loadInto(() => {
     G.paused = false;
-    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0){ if (storyHero() === 'gate') startGate(); else startCampaign(); } else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0 && !won) restartChapter(); else if (G.chapter >= 0){ if (storyHero() === 'gate') startGate(); else startCampaign(); } else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
     if (after) after();
   });
   if (!shared.lockFallback) requestLock();
@@ -854,6 +855,7 @@ export function goHome(){
   closeSandboxPanel(false); closeHubPanel(false);
   leaveSetup(false);   // the sandbox's battle setup, if it's up (game/battlesim.js)
   closeCard(true);
+  keepHubSpot();   // (from the hub: ENTER it again and you're back where you stood, game/hub.js)
   document.getElementById('skilltree').style.display = 'none';
   G.skillSelect = false; G.sbMenu = false;
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
@@ -925,6 +927,7 @@ export function launchNow(){
 // leave the temple for the title screen (a station that opens a menu page, or launches a mode through it). The temple's
 // build stays where it is until the next mode replaces it; the menu draws its own stage, not the arena
 function leaveHub(){
+  keepHubSpot();   // (closing the page and walking back in: the spot you left, game/hub.js)
   closeHubPanel(false);
   G.fromHub = true; G.hub = false; G.mode = 'menu'; G.paused = false; G.skillSelect = false; G.sbMenu = false;
   G.ngPlus = 0;   // (the temple is between runs: a campaign from here is a first run unless NEW GAME+ arms one)

@@ -5,12 +5,12 @@
 // (a chapter's close, a mission won, a mastery rank, a duel, a survival wave), from every mode that is a real fight, and in
 // co-op each browser feeds its own player's profile.
 //
-// CO-OP AND THE HUB: profileCard() is the small public face of a profile (hero, rank, tree, deck) that net/partner.js sends with
+// CO-OP AND THE HUB: profileCard() is the small public face of a profile (hero, rank, lean) that net/partner.js sends with
 // each hello, so every player sees the others' ranks; the Tython hub will read the same card for everyone standing in it.
 
 import { onFileSwitch } from '../engine/save-files.js';
 import { G } from '../state.js';
-import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD, BRANCHES, BRANCH, DECK_QUOTA } from '../data/profile.js';
+import { TRACKS, RANK_XP, TRIALS, JEDI_TREE, RANK_SKILLS, RANK_CARD } from '../data/profile.js';
 import { ALIGN, ALIGN_RANK } from '../data/alignment.js';
 import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
@@ -29,7 +29,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catch(e){} }
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
-                       picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {},
+                       forks: {}, fresh: false, parts: null, sides: {}, secrets: {},
                        align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 },
                        top: 0, ng: { best: 0, runs: 0 }, raids: 0, raidLog: {} });
 
@@ -112,11 +112,9 @@ function rankCard(hero, r){
   const R = track(hero).ranks[r], book = RANK_CARD[hero], lines = book && book.lines[R.id];
   if (!lines) return null;
   const rows = [];
-  const ins = insightAt(hero, r) - insightAt(hero, r - 1);
-  if (ins > 0) rows.push(['FORCE TREE', '+' + ins + ' INSIGHT']);
   for (const s of RANK_SKILLS[hero] || []) if (s.rank === R.id) rows.push(['NEW TRAINING CARD', s.nm]);
   const tier = TIER_OF_RANK[hero] && TIER_OF_RANK[hero][R.id];
-  if (tier) rows.push(['FORCE TREE', 'TIER ' + ['', 'I', 'II', 'III'][tier] + ' NODES OPEN']);
+  if (tier) rows.push(['FORCE TREE', 'TIER ' + ['', 'I', 'II', 'III'][tier] + ' CARDS OPEN']);
   for (const g of R.gives || []) rows.push(g);   // the top rank's legendary parts and looks (data/profile.js TRACKS `gives`)
   return { key: 'rank-' + R.id, hud: '', card: { kicker: book.kicker, name: R.nm, lines: [...lines, 'Your rank stays with you in every mode, run and co-op game. Open PROFILE to see it.'], rows } };
 }
@@ -261,7 +259,7 @@ function tally(field){
 }
 export const noteSquadRevive = () => tally('revives');
 export const noteSquadWave = () => tally('squadWaves');
-// the side of a fork the run took (ui/store-ui.js buyStore; Form VII's at its meditation), shown on the Force Tree
+// the side of a fork the run took (ui/store-ui.js buyStore; Form VII's at its meditation), kept for the open zones' gates (game/zone-gate.js)
 export function noteFork(fork, id){
   if (G.hero !== 'jedi' || !fork || !id) return;
   const p = profileOf('jedi');
@@ -270,81 +268,38 @@ export function noteFork(fork, id){
 }
 
 /* ---------- the Force Tree (the Jedi) ---------- */
-// a tree tier's nodes wait for a rank: FOUNDATION for Padawan, DISCIPLINE for Knight, CAPSTONE for Master
+// THE TREE IS RANK-OPENED: a tier's own Force Tree cards open for good with the rank of the same name (FOUNDATION for
+// Padawan, DISCIPLINE for Knight, CAPSTONE for Master). The run then spends its Training points on them, on the same tree
+// (ui/profile-ui.js treeCol). There is nothing else to spend between runs.
 const RANK_OF_TIER = { 1: 'padawan', 2: 'knight', 3: 'master' };
 const TIER_OF_RANK = { jedi: { knight: 2, master: 3 } };
 export const tierRank = (tier) => RANK_OF_TIER[tier];
-function insightAt(hero, r){
-  const ins = track(hero).insight;
-  if (!ins || r < 0) return 0;
-  return ins.slice(0, r + 1).reduce((a, b) => a + b, 0);
-}
-export const insightTotal = (hero = 'jedi') => insightAt(hero, rankIndex(hero));
-export const insightLeft = (hero = 'jedi') => insightTotal(hero) - profileOf(hero).picks.length;
-export const nodeLearned = (id) => profileOf('jedi').picks.includes(id);
-export function nodeState(n){
-  if (nodeLearned(n.prof)) return 'learned';
-  if (!hasRank('jedi', RANK_OF_TIER[n.tier])) return 'rank';
-  return insightLeft('jedi') > 0 ? 'open' : 'insight';
-}
-export function learnNode(id){
-  const n = JEDI_TREE.find(x => x.prof === id);
-  if (!n || runLive() || nodeState(n) !== 'open') return false;
-  profileOf('jedi').picks.push(id); save();
-  return true;
-}
-// the tree's picks back to Insight, free: a rank opens choices, so changing your mind costs nothing
-export function resetTree(){ if (runLive()) return; const p = profileOf('jedi'); p.picks = []; if (p.deck) p.deck = p.deck.filter(id => !JEDI_TREE.some(n => n.id === id)); save(); }
-// your PATH: the branch the upgrade page always deals one card from, when it has one to deal (ui/store-ui.js rollFreeCards)
-export const treePath = () => profileOf('jedi').path || null;
-export function setPath(id){ if (runLive()) return; const p = profileOf('jedi'); p.path = BRANCHES.some(b => b.id === id) && p.path !== id ? id : null; save(); }
+export const nodeState = (n) => hasRank('jedi', RANK_OF_TIER[n.tier]) ? 'learned' : 'rank';
 
-// may the run's upgrade page deal this card? A tree node once learned; a Mando or trooper rank card once its rank is held
+// may the run train this card? A Force Tree card once its tier's rank is held; a rank card once its rank is held; a light
+// or dark card while the hero leans its way at its rank
 export function owns(hero, s){
   if (s.align) return hero === (s.hero || 'jedi') && alignOpen(s);
-  if (s.prof) return hero === 'jedi' && nodeLearned(s.prof);
+  if (s.prof) return hero === 'jedi' && nodeState(s) === 'learned';
   if (s.rank) return hasRank(hero, s.rank);
   return true;
 }
 export const profileOpens = (s) => owns(G.hero, s);
 
-/* ---------- YOUR DECK: chosen between runs, dealt from in the run (ui/store-ui.js rollFreeCards) ----------
-   null is no deck: the page deals from every card you own. The page passes the hero's card set in (data/skills.js,
-   data/trooper-progression.js), so this file stays clear of the run's own modules. */
-// a run is on: the deck, the tree and the path are set between runs (the menu, the results, and later the Tython hub)
-export const runLive = () => G.mode === 'play';
-export const deckOf = (hero = G.hero) => profileOf(hero).deck || null;
-export const inDeck = (s, hero = G.hero) => { const d = deckOf(hero); return !d || d.includes(s.id); };
-export const deckCount = (hero, set, tier) => { const d = deckOf(hero) || []; return set.filter(s => s.tier === tier && d.includes(s.id)).length; };
-export function toggleDeck(hero, set, id){
-  const p = profileOf(hero), s = set.find(x => x.id === id);
-  if (runLive() || !p.deck || !s || !owns(hero, s)) return false;
-  if (p.deck.includes(id)) p.deck = p.deck.filter(x => x !== id);
-  else if (deckCount(hero, set, s.tier) < DECK_QUOTA[s.tier]) p.deck.push(id);
-  else return false;
-  save(); return true;
+// a run is on (the menu, the results, and the hubs: the temple, the citadel, the ship... are no run, game/flow.js startLevel)
+export const runLive = () => G.mode === 'play' && !G.hub;
+// the run that's on, in words, for the profile's and the benches' locked notes
+export function runName(){
+  if (G.zone) return 'an open zone';
+  if (G.endless) return 'a Survival run';
+  if (G.sandbox) return 'the Sandbox';
+  if (G.training) return 'Training';
+  if (G.mission) return 'a mission';
+  if (G.chapter >= 0) return 'a story chapter';
+  return 'a run';
 }
-// a first deck to start from: per tier, your path's cards, then the tree's and the ranks' own, then the rest in order
-export function suggestDeck(hero, set){
-  const path = hero === 'jedi' && treePath(), d = [];
-  const score = (s) => (path && (s.branch || BRANCH[s.id]) === path ? 0 : 2) + (s.prof || s.rank ? 0 : 1);
-  for (const t of [1, 2, 3]){
-    const mine = set.map((s, i) => ({ s, i })).filter(x => x.s.tier === t && owns(hero, x.s)).sort((a, b) => score(a.s) - score(b.s) || a.i - b.i);
-    d.push(...mine.slice(0, DECK_QUOTA[t]).map(x => x.s.id));
-  }
-  return d;
-}
-export function setDeck(hero, ids){
-  if (runLive()) return false;
-  profileOf(hero).deck = Array.isArray(ids) ? [...ids] : null; save(); return true;
-}
-// owning less than you chose (a tree reset, a profile reset): the deck keeps only what's still yours
-export function pruneDeck(hero, set){
-  const p = profileOf(hero);
-  if (!p.deck) return;
-  const keep = p.deck.filter(id => { const s = set.find(x => x.id === id); return s && owns(hero, s); });
-  if (keep.length !== p.deck.length){ p.deck = keep; save(); }
-}
+// how a locked note ends: where the choices open again
+export const liveNote = (what) => 'You\'re in ' + runName() + '. ' + what + ' between runs: finish or quit it, and it opens on the menu or back at your hub.';
 
 /* ---------- LIGHT AND DARK: the meter (data/alignment.js; game/alignment.js feeds it) ---------- */
 // -100 (the dark) to +100 (the light). Real fights only: training and the sandbox are practice
@@ -399,7 +354,7 @@ export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes
 // the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable
 export function profileCard(hero = G.hero){
   const p = profileOf(hero);
-  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: hero === 'jedi' ? [...p.picks] : [], d: p.deck ? [...p.deck] : null, a: Math.round(p.align || 0) };
+  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: [], d: null, a: Math.round(p.align || 0) };
 }
 // a card heard from another player: kept to what it should hold
 export function cleanCard(c){

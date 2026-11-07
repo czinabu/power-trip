@@ -97,7 +97,7 @@ function coopRevives(){
 }
 
 on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from || 0); P.mate.name = nameOf(P.slot); hearCard(P, m.rk); build(P, m.picks, m.hero); addPlayer(P.mate); });
-// each player's PROFILE CARD (game/profile.js profileCard: hero, rank, Force Tree), with their hello and now and then after:
+// each player's PROFILE CARD (game/profile.js profileCard: hero, rank, lean), with their hello and now and then after:
 // shown on their name tag, and kept on their entry for whatever reads the room (the hub, partnerCards)
 function hearCard(P, c){ if (c !== undefined) P.mate.card = cleanCard(c); }
 // where each partner is (their worldKey: 'hub:hall', 'survival:0'...), for the temple's map (ui/hub-ui.js) and the co-op panel

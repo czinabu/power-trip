@@ -50,10 +50,10 @@ check(await page.evaluate(() => !document.querySelector('[data-act="save"][data-
 await page.click('#savesclose');
 await page.click('#homeBtn'); await page.click('#homeYes');
 
-// NEW GAME wipes progress but keeps the slot, and the hero's PROFILE (game/profile.js: rank, rank XP, Force Tree)
+// NEW GAME wipes progress but keeps the slot, and the hero's PROFILE (game/profile.js: rank, rank XP, the lean)
 await page.evaluate(() => localStorage.setItem('sw_camp_jedi', '1'));
-await page.evaluate(() => { GAME.PROFILE.profileOf('jedi').xp = 1234; GAME.PROFILE.setPath('sense'); });
-const profXp = () => page.evaluate(() => { GAME.PROFILE.reloadProfile(); const p = GAME.PROFILE.profileOf('jedi'); return p.xp === 1234 && p.path === 'sense'; });
+await page.evaluate(() => { GAME.PROFILE.profileOf('jedi').xp = 1234; GAME.PROFILE.shiftAlign(20, 'jedi', 'test', true); });
+const profXp = () => page.evaluate(() => { GAME.PROFILE.reloadProfile(); const p = GAME.PROFILE.profileOf('jedi'); return p.xp === 1234 && p.align === 20; });
 await page.$eval('#campNewBtn', el => el.click()); await shot('04-new-confirm');
 await page.click('#newYes');
 await page.click('#trainNo');   // a fresh start offers the training grounds first, as on a first run

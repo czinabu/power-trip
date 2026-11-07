@@ -80,6 +80,24 @@ export function throwGrenade(e, from, at, friendly){
   if (!friendly && hooks.gren) hooks.gren(e, from, at);   // co-op: thrown on the other screen too
   if (friendly) sfx(320, 0.12, 'triangle', 0.05, 180); else tellSound('area');
 }
+// THE WIND-UP TELL — a grenadier reaching for a detonator: a spark at its hand and a sharp double click (the pin), a
+// beat before the throw, so a lob from the side of the screen is heard coming before its ring goes down
+export function grenadeTell(e, hero){
+  const g = e.group.position;
+  burst(V3(g.x, g.y + 2.3, g.z), TELLS.area.accent, 6, 3, 3, 0.7);
+  if (hero && hero.local === false) return;   // (aimed at the partner: their screen hears it)
+  sfx(2200, 0.03, 'square', 0.035, 1800); setTimeout(() => sfx(2600, 0.03, 'square', 0.035, 2200), 70);
+}
+// what a blast does to a hero `pp` caught at it: full at the heart, GRENADE.edge of it at the rim, and a shove, not a launch.
+// Shared by the host's blast and the co-op guest's (net/foefire.js), so both screens hurt the same
+export function grenadeHurt(dmg, pos, R, pp){
+  const d = Math.hypot(pp.x - pos.x, pp.z - pos.z);
+  return dmg * (1 - (1 - GRENADE.edge) * clamp(d / R, 0, 1));
+}
+export function grenadeKnock(pos, pp){
+  const kd = TMP.subVectors(pp, pos).setY(0); if (kd.lengthSq() < 0.01) kd.set(rand(-1, 1), 0, rand(-1, 1));
+  kd.normalize(); player.vel.addScaledVector(kd, GRENADE.knock); if (GRENADE.lift) player.vy = Math.max(player.vy, GRENADE.lift);
+}
 export function clearGrenades(){
   for (const g of grenades) scene.remove(g.ball, g.ring, g.fill);
   grenades.length = 0;
@@ -156,11 +174,8 @@ function explode(n){
   const pp = playerPos();
   if (Math.hypot(pp.x - pos.x, pp.z - pos.z) < n.R && pp.y < 3.2 && !blastCovered(pos, pp.x, pp.y, pp.z)){   // (a wall between takes the blast)   // a dash through it is a perfect dodge (hurtPlayer)
     screenFlash('radial-gradient(ellipse at center, rgba(255,170,60,.32), transparent 60%)', 0.5, 0.25);
-    const res = hurtPlayer(n.dmg * enemyDmgScale(), pos, false, false, false, { unblockable: true, blast: true });
-    if (res === 'hit'){
-      const kd = TMP.subVectors(pp, pos).setY(0); if (kd.lengthSq() < 0.01) kd.set(rand(-1, 1), 0, rand(-1, 1));
-      kd.normalize(); player.vel.addScaledVector(kd, 11); player.vy = Math.max(player.vy, 5);
-    }
+    const res = hurtPlayer(grenadeHurt(n.dmg * enemyDmgScale(), pos, n.R, pp), pos, false, false, false, { unblockable: true, blast: true });
+    if (res === 'hit') grenadeKnock(pos, pp);
   }
 }
 

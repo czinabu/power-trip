@@ -318,7 +318,7 @@ function menu(btn, down, lx, ly, ry, dt){
     if (focus){ if (focus.tagName === 'INPUT') focus.focus(); else focus.click(); }
   }
   if (sandboxOpen() && (down(4) || down(5))) document.dispatchEvent(new CustomEvent('sb-tab', { detail: down(5) ? 1 : -1 }));   // LB / RB — jump between the sandbox panel's sections (ui/sandbox-ui.js)
-  else if (down(4) || down(5)){   // LB / RB — APPEARANCE | SABER: turn between the customizer and the hero's bench (ui/page-tabs.js)
+  else if (down(4) || down(5)){   // LB / RB — APPEARANCE | LOCKER / FORGE: turn between the customizer and a gunner's bench (ui/page-tabs.js)
     const tab = [...document.querySelectorAll('.pg-tabs [data-pg="' + (down(5) ? 'bench' : 'look') + '"]')].find(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
     if (tab && !tab.classList.contains('on')) tab.click();
   }

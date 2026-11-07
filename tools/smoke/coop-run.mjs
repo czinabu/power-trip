@@ -72,13 +72,19 @@ try {
   await guest.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); GAME.damageEnemy(e, 15, null, 0, false, false); }, target);
   await host.waitForFunction(([n, hp]) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || e.hp < hp; }, [target, hp0], poll);
   // a foe's shot: the host fires one at where the guest stands; the guest flies its own copy, takes the hit itself, and the host's copy is dropped
-  const gp = await guest.evaluate(() => { const p = GAME.player.group.position; return [p.x, p.y, p.z, GAME.player.hp]; });
-  await host.evaluate(([x, y, z, n]) => {
-    const e = GAME.enemies.find(o => o.nid === n), m = new GAME.camera.position.constructor(x + 7, y + 1.4, z), d = new m.constructor(-1, 0, 0);
-    GAME.fireBolt(m, d, 14, 9, false, true, e);
-  }, [...gp.slice(0, 3), target]);
-  await guest.waitForFunction((hp) => GAME.player.hp < hp, gp[3], poll);
-  await host.waitForFunction(() => !GAME.bolts.some(b => b.bid), null, poll);
+  // (the guest can be shoved off the spot by the foes crowding it while the shot is in the air, so it is aimed afresh
+  // at where the guest stands, up to three times; the shot flies on the GAME's clock: game-wait.mjs)
+  let gp;
+  for (let shot = 0; ; shot++){
+    gp = await guest.evaluate(() => { const p = GAME.player.group.position; return [p.x, p.y, p.z, GAME.player.hp]; });
+    await host.evaluate(([x, y, z, n]) => {
+      const e = GAME.enemies.find(o => o.nid === n), m = new GAME.camera.position.constructor(x + 7, y + 1.4, z), d = new m.constructor(-1, 0, 0);
+      GAME.fireBolt(m, d, 14, 9, false, true, e);
+    }, [...gp.slice(0, 3), target]);
+    const hit = await waitGame(guest, (hp) => GAME.player.hp < hp, gp[3], { clock: host, gameSeconds: 6, what: 'the foe\'s shot hurting the guest' }).then(() => true, (e) => { if (shot >= 2) throw e; return false; });
+    if (hit) break;
+  }
+  await waitGame(host, () => !GAME.bolts.some(b => b.bid), null, { what: 'the host dropping its copy of the shot' });
   // a melee blow: sent to the guest, taken there, and answered
   const hp1 = await guest.evaluate(() => GAME.player.hp);
   await host.evaluate(([x, y, z, n]) => { const e = GAME.enemies.find(o => o.nid === n); GAME.coopHooks.hurt(e, 6, { x: x + 1, y, z }, 'melee', true); }, [...gp.slice(0, 3), target]);

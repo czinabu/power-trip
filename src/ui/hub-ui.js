@@ -13,6 +13,10 @@ import { hubLaunch, hubLaunchZone, hubToMenu, hubOpenPanel, survivalUnlocked, jo
 import { sandboxUnlocked } from '../game/sandbox.js';
 import { canResume } from '../game/saves.js';
 import { gateOpen } from '../game/gate.js';
+import { RAIDS, MODS, raidMods, raidIdFor, today, nextRotationIn, raidsOpen } from '../data/raids.js';
+import { benchOf } from '../data/hero-benches.js';
+import { earnProgress } from '../data/saber-parts.js';
+import { profileOf, raidsWon, raidWonOn } from '../game/profile.js';
 import { randomArcadeId } from '../data/arcade.js';
 import { openMissionPage } from './missions-ui.js';
 import { openCustomizer } from './customizer.js';
@@ -59,6 +63,9 @@ const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The
   () => askParty(tierName(t), () => { G.resumeRun = null; G.ngNext = t; hubLaunch('campaign'); }))] : []; };
 // ACT IV · THE SITH GATE (game/gate.js): the shared campaign after the three, for the whole party
 const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign');
+// THE RAID TABLE (data/raids.js): the raid page, at the temple's own table in the council chamber, and a button for it
+// on every hub's mission table (a trooper or a Mando host takes the party to their own hub)
+const raidButton = () => B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV');
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
 
 function options(s){
@@ -83,6 +90,7 @@ function options(s){
       return [
         B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
         gateButton(),
+        raidButton(),
         ...ngButton(),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
@@ -109,6 +117,7 @@ function options(s){
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
         gateButton(),
+        raidButton(),
         ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
@@ -138,6 +147,7 @@ function hubToMissions(){ G.modeSel = 'mission'; document.getElementById('mode-m
 function render(){
   if (ready) return renderReady();
   if (station.act === 'welcome') return renderWelcome();
+  if (station.act === 'raid') return renderRaid();
   if (station.act === 'travel') return renderMap();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
@@ -203,6 +213,44 @@ new MutationObserver((ms) => {
   if (!station || station.act !== 'travel') return;
   for (const m of ms) if (m.target.classList && m.target.classList.contains('hm-wing') && m.target.classList.contains('padfocus')){ showWing(m.target.dataset.w); return; }
 }).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+/* ---------------- THE RAID TABLE (data/raids.js) ----------------
+   The raid, its day of modifiers (and when the next deal comes), each hero's job in it with yours marked, who comes along
+   (the squad steps in for a party of one or two), the rare parts it hands your hero and how far you are toward each, and
+   BEGIN. In a party only the host begins it, with the usual ready check; a guest sees the same page. Drawn in the hero's
+   own look (styles/heroes/raid.css, the --hx-* tokens). */
+const HERO_TAG = { jedi: 'JEDI', mando: 'MANDALORIAN', trooper: 'ARC TROOPER' };
+const escH = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function untilNext(){ const m = Math.ceil(nextRotationIn() / 60000), h = Math.floor(m / 60); return h ? h + 'h ' + (m % 60) + 'm' : m + 'm'; }
+function renderRaid(){
+  const R = RAIDS.kharel, day = today(), mods = raidMods(R.id, day), open_ = raidsOpen(), hero = G.hero;
+  const heroes = party() ? 1 + templeGuests().length : 1, mates = R.allies[Math.min(4, heroes) - 1] || 0;
+  const won = raidsWon(hero), todayDone = raidWonOn(R.id, day, hero), prof = profileOf(hero);
+  const parts = benchOf(hero).flatMap(r => r.parts.filter(p => p.earn && p.earn.raids).map(p => ({ p, row: r.label, e: earnProgress(prof, p.earn) })));
+  const list = [];
+  if (guest()){
+    if (coopRun.on) list.push(B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()));
+    list.push(B('THE HOST BEGINS IT', 'In a party the host starts the raid, and everyone in ' + curHub().home.toLowerCase() + ' goes in together.', null));
+  } else list.push(B('BEGIN THE RAID', heroes > 1 ? heroes + ' heroes · the party goes in together' : 'Alone, with ' + mates + ' of the squad beside you', () => askParty('THE RAID', () => hubLaunch('mission', raidIdFor(R.id, day))), open_ ? null : 'Beat Act IV to open the raid table'));
+  const role = (h) => { const r = R.roles[h]; return '<div class="rd-role rd-' + h + (h === hero ? ' you' : '') + '"><i>' + HERO_TAG[h] + (h === hero ? ' · YOU' : '') + '</i><b>' + r.job + '</b><span>' + escH(r.line) + '</span></div>'; };
+  const part = (x) => { const got = x.e.have >= x.e.need;
+    return '<div class="rd-part' + (got ? ' got' : '') + '"><i>' + escH(x.row) + '</i><b>' + escH(x.p.name) + '</b><span>' + (got ? 'YOURS' : 'WIN ' + x.e.need + ' RAID' + (x.e.need === 1 ? '' : 'S') + ' · ' + Math.min(x.e.have, x.e.need) + '/' + x.e.need) + '</span>' +
+      (got ? '' : '<u><s style="width:' + Math.round(Math.min(1, x.e.have / x.e.need) * 100) + '%"></s></u>') + '</div>'; };
+  panel.innerHTML = '<div class="hb-box rd-box hero-' + hero + '">' +
+    '<div class="rd-head"><div class="hb-k">' + hubWing().name + ' · THE RAID TABLE</div><div class="rd-t">' + R.name + '</div>' +
+      '<div class="rd-w">' + R.title + ' · ' + R.place + '</div></div>' +
+    '<p class="rd-blurb">' + escH(R.blurb) + (open_ ? '' : ' <b>Beat Act IV, as any hero, to open it.</b>') + '</p>' +
+    '<div class="rd-sec"><span>Today\'s modifiers</span><em>New in ' + untilNext() + (todayDone ? ' · beaten today ✓' : '') + '</em></div>' +
+    '<div class="rd-mods">' + mods.map(m => '<div class="rd-mod" style="--mc:' + MODS[m].col + '"><b>' + MODS[m].name + '</b><span>' + escH(MODS[m].line) + '</span></div>').join('') + '</div>' +
+    '<div class="rd-sec"><span>Every hero a job</span><em>Any hero can do any of them</em></div>' +
+    '<div class="rd-roles">' + ['jedi', 'mando', 'trooper'].map(role).join('') + '</div>' +
+    '<div class="rd-sec"><span>Rare parts · ' + HERO_TAG[hero] + '</span><em>' + won + ' raid' + (won === 1 ? '' : 's') + ' won</em></div>' +
+    '<div class="rd-parts">' + parts.map(part).join('') + '</div>' +
+    '<div class="rd-party">' + (heroes > 1 ? heroes + ' heroes in the party' + (mates ? ', and ' + mates + ' of the squad' : '') + '. He grows with the party.' : 'Alone: ' + mates + ' of the squad come with you, to hold the line and get you up.') + '</div>' +
+    '<div class="hb-list rd-go">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + (i === 0 && b.go ? ' rd-main' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
+    '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
+  panel._list = list;
+}
 
 /* ---------------- THE WELCOME (game/hub-welcome.js) ----------------
    WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW

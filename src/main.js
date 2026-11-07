@@ -357,3 +357,5 @@ import * as CREED_RT from './game/creed.js';
 import { MANDO_SKILLS } from './data/skills.js';
 import { PATH_TREE, PATH_WORDS } from './data/alignment.js';
 Object.assign(window.GAME, { creed: { ...CREED_RT, MANDO_SKILLS, TROOPER_SKILLS, PATH_TREE, PATH_WORDS } });   // the gunners' light and dark cards (game/creed.js), for tests
+import * as RAIDS_RT from './data/raids.js';
+Object.assign(window.GAME, { raids: RAIDS_RT });   // the raids (data/raids.js): what the raid smoke suite (tools/smoke/raid.mjs) reads

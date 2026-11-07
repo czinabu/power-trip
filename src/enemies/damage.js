@@ -33,6 +33,7 @@ import { MERCY } from '../data/alignment.js';
 import { killCam, killCamOn } from '../engine/killcam.js';
 import { addFlow, flowKill } from '../player/gunner-flow.js';
 import { mutOn } from '../data/ngplus.js';
+import { roleTags, takesRoles } from '../boss/roles.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -69,7 +70,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.dead) return;
   if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
     if (opts && opts.ally) return;
-    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide);
+    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide, takesRoles(e) && !tick ? roleTags(e, opts) : 0);   // (a raid boss: what kind of blow it was, seen from here: boss/roles.js)
     if (!tick && e.hp > 0 && dmg >= e.hp) flowKill(e, knockDir);   // (a blow that will kill it feeds the guest's own flow meter: player/gunner-flow.js)
     if (dmg > 0 && !tick){
       spawnHitSpark(opts && opts.at ? opts.at : V3(e.group.position.x, e.group.position.y + 1.3, e.group.position.z), e.t.eye, 0.8);

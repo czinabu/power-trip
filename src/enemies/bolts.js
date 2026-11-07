@@ -196,7 +196,7 @@ export function updateBolts(dt){
       }
       if (d < abil('barrier').radius && near && player.barrierT > 0){
         // FORCE BARRIER auto-deflects bolts from any angle back into the crowd — no aim, no timing
-        b.friendly = true; b.speed *= 1.3; b.dmg = 20;
+        b.friendly = true; b.deflected = true; b.speed *= 1.3; b.dmg = 20;
         const tgt = nearestEnemyInCone(40, -1);
         if (tgt && tgt !== shared.boss) b.dir.subVectors(tgt.group.position, b.mesh.position).setY(0).normalize();
         else b.dir.negate();
@@ -210,7 +210,7 @@ export function updateBolts(dt){
         const dsm = stance().deflectStamMul || 0;
         if (spinSend && !parried) tutEvent('spinSend');
         if (!parried && !spinSend && (guardSend || dsm)){ player.stam = Math.max(0, player.stam - (guardSend ? 7 * (stance().blockStamMul || 1) : 0) - 3 * dsm); player.stamDelay = stamDelay(); }
-        b.friendly = true; b.speed *= 1.4; b.dmg = parried ? 42 : 22 * (stance().deflectDmg || 1);   // (Shien sends its deflects home harder)
+        b.friendly = true; b.deflected = true; b.speed *= 1.4; b.dmg = parried ? 42 : 22 * (stance().deflectDmg || 1);   // (Shien sends its deflects home harder)
         // it leaves from the blade itself (it was caught a touch early, so the catch reads at the saber, not in the air)
         if (bladePointNear(b.mesh.position, HIT)) b.mesh.position.copy(HIT);
         redirect(b, parried);
@@ -239,7 +239,7 @@ export function updateBolts(dt){
         // GAUNTLET SHIELD — catch the bolt on the disc and HURL it back at the nearest threat. Costs stamina per catch.
         player.stam = Math.max(0, player.stam - 5 * player.up.blockStam);
         player.stamDelay = stamDelay();
-        b.friendly = true; b.speed *= 1.35; b.dmg = Math.max(8, Math.round(b.dmg * 0.85));
+        b.friendly = true; b.deflected = true; b.speed *= 1.35; b.dmg = Math.max(8, Math.round(b.dmg * 0.85));
         const tgt = nearestEnemyInCone(40, -1);
         if (tgt && tgt !== shared.boss) b.dir.subVectors(tgt.group.position, b.mesh.position).setY(0).normalize();
         else b.dir.negate();
@@ -302,7 +302,7 @@ export function updateBolts(dt){
             sfx(1900, 0.08, 'square', 0.05, 420); S.blastHit(b.mesh.position, 1.4); G.hitstop = Math.max(G.hitstop, 0.04); G.shake = Math.max(G.shake, 0.18);
           }
           if (b.playerShot) dmg = gunHitDmg(b, e, isHead, dmg) * creedHitMul(e);   // the gun's signature move (player/gun-moves.js: QUICKDRAW); NO QUARTER, NO PRISONERS (game/creed.js)
-          damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;
+          damageEnemy(e, dmg, b.dir, 6, false, false, b.deflected || b.playerShot ? { deflected: !!b.deflected, shot: !!b.playerShot } : undefined); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;   // (deflected, shot: what a raid boss's sunder bar reads, boss/roles.js)
           if (b.pierce > 0){ b.pierce--; (b.hitSet || (b.hitSet = new Set())).add(e); kill = false; }   // OVERCHARGE, PLANT, STEADY BREATH: on into the next body   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
           if (b.playerShot && isTrooper()){ foeShotHit(e); flowShotHit(e, b.dir); }   // (BATTLE RHYTHM: a flank)
           markHit(e.group, b.mesh.position, b.dir, 'scorch', { heavy: dmg >= 30 });   // a scorch where it struck; a helmet cracks (enemies/scars.js)

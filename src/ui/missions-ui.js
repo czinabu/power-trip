@@ -21,6 +21,7 @@ import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName
 import { SIDE_QUESTS, SIDE_PREFIX, SIDE_BY_ID, isSideId } from '../data/side-quests.js';
 import { rankIndex, track, sideLock } from '../game/profile.js';
 import { mutatorById } from '../data/ngplus.js';
+import { isRaidId, raidsOpen } from '../data/raids.js';
 // a veteran side mission's mutators, as small coloured tags on its card
 const mutTags = (ids) => (ids || []).map(id => { const m = mutatorById(id); return m ? `<span class="msn-tag mut" style="color:${m.col}">${m.name}</span>` : ''; }).join('');
 import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
@@ -36,8 +37,8 @@ const trialSeen = (id) => !MISSIONS[id] || !MISSIONS[id].trial || HEROES().some(
 // a mission stays locked and unspoiled until the campaign has cleared it (game/sandbox-unlocks.js)
 // a side mission (data/side-quests.js) opens at its rank, the same as at the temple's CALLS FOR AID stone
 const sideOpen = (id) => !!SIDE_BY_ID[id] && !sideLock(SIDE_BY_ID[id]);   // (a veteran one waits for the campaign beaten: game/profile.js sideLock)
-export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open
-const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
+export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : isRaidId(id) ? !!missionById(id) && raidsOpen() : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open; a raid once Act IV is beaten (data/raids.js)
+const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) || isRaidId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
 
 /* the page has two faces: the title screen's MISSIONS (side missions and the story's acts) and its ARCADE (the board
@@ -47,7 +48,7 @@ let _arcade = false, _lastStory = null;
 export const arcadePageOpen = () => missionPageOpen() && _arcade;
 export function setMission(id){
   if (!shown(id)) id = Object.keys(MISSIONS).find(shown) || 'refuge';
-  if (!isArcadeId(id)){ _lastStory = id; try { localStorage.setItem('sw_mission_story', id); } catch(e){} }
+  if (!isArcadeId(id) && !isRaidId(id)){ _lastStory = id; try { localStorage.setItem('sw_mission_story', id); } catch(e){} }
   G.missionId = id; try { localStorage.setItem('sw_mission', id); } catch(e){}
   for (const el of listEl.querySelectorAll('.msn')) el.classList.toggle('sel', el.dataset.mission === id);
   refreshInfo();
@@ -173,6 +174,7 @@ function render(){
 function refreshInfo(){
   if (isSideId(G.missionId)) return sideInfo(G.missionId);
   if (isArcadeId(G.missionId)) return arcadeInfo(missionById(G.missionId));
+  if (isRaidId(G.missionId)){ const r = missionById(G.missionId); if (r && infoEl) infoEl.innerHTML = `<div class="mpi-t">${r.title}<span class="msn-tag">RAID</span></div><div class="mpi-w">${r.place}</div><div class="mpi-b">Played from the raid table at the temple, the citadel or the covert.</div>`; return; }
   const m = MISSIONS[G.missionId]; if (!m || !infoEl) return;
   if (!missionOpen(m.id)){
     const ch = missionChapterNo(m.id);

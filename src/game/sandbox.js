@@ -14,7 +14,7 @@ import { spawnEnemy } from '../enemies/spawn.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { findClearSpawn } from '../world/collision.js';
 import { spawnBoss } from '../boss/boss.js';
-import { dropFinale } from '../boss/finale.js';
+import { dropFinale, spawnFinale } from '../boss/finale.js';
 import { spawnChampion } from './survival.js';
 import { startLevel, syncJediChips, syncMandoChips } from './flow.js';
 import { showBanner } from '../ui/banners.js';
@@ -160,9 +160,9 @@ export function sandboxSpawn(id){
     return findClearSpawn(x, z, 0.9);
   };
   if (!foeOffered(id)) return;
-  if (id === 'boss'){
+  if (id === 'boss' || id === 'raid'){
     if (bossUp()){ showBanner('', 'ONE BOSS AT A TIME', 1.2); return; }
-    const b = spawnBoss();
+    const b = id === 'raid' ? spawnFinale('kharel', { x: p.x + fx * 10, z: p.z + fz * 10 }) : spawnBoss();   // (the raid boss: Darth Kharel, his sunder bar and all)
     const s = spot(0, 1);
     if (b) b.group.position.set(s.x, 0, s.z);
     return;

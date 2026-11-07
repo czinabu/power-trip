@@ -13,7 +13,8 @@
 // A WING: its level (what buildArena reads: each hub's layouts share a prefix, world/arena.js hands them to its builder),
 //   its doors and its stations. A station's `act` is what tapping F at it does (ui/hub-ui.js options): x, z in metres
 //   from the wing's middle. The acts: travel, council (every mode), training, sparring (sandbox), proving (survival),
-//   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner).
+//   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner), raid (the
+//   raid page: data/raids.js; every hub's mission table carries it too).
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
 import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
@@ -48,6 +49,7 @@ const TEMPLE_WINGS = {
     stations: [
       { id: 'table', x: 0, z: 0, name: 'COUNCIL TABLE', act: 'council', r: 9 },
       { id: 'waystone', x: 9, z: 24, name: 'WAYSTONE', act: 'travel' },
+      { id: 'raid', x: -9, z: 24, name: 'THE RAID TABLE', act: 'raid' },   // the raids (data/raids.js), once Act IV is beaten
     ],
   },
   training: {

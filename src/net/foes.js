@@ -99,13 +99,13 @@ function hostTick(){
 // the guest's blows, applied here exactly as if this browser's hero had struck them
 on('hits', (m) => {
   if (net.role !== 'host') return;
-  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade, shield, slide] of m.h || []){
+  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade, shield, slide, roles] of m.h || []){
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
     MERC.guest = true; MERC.struck = false;   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
     const pinned = e.suppT > G.gt;   // (the guest's KILL CONFIRMED asks: game/creed.js)
-    try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined } : undefined); }   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
+    try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide || e.fin ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined, rt: roles || 0 } : undefined); }   // (rt: a raid boss's role tags from the guest's screen, boss/roles.js)   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
     finally { MERC.guest = false; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (e.dead) sendTo(m.from, { t: 'kb', p: pinned ? 1 : 0, x: +e.group.position.x.toFixed(1), z: +e.group.position.z.toFixed(1) });   // the killing blow was theirs: their kill cards pay out there

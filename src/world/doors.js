@@ -11,6 +11,7 @@ import { buildNav } from '../enemies/nav.js';
 export function resetDoors(){ shared.doors = []; }
 export function addDoor(mesh, solid, at){
   mesh.userData.noBake = true;   // (world/ink.js: a baked mesh couldn't be hidden)
+  solid.live = true;             // (it vanishes when breached: the lintel's auto collider mustn't stand on it, world/autosolid.js)
   (shared.doors || (shared.doors = [])).push({ mesh, solid, at, open: false });
 }
 export const doorAt = (k) => shared.doors && shared.doors[k];

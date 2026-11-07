@@ -49,7 +49,7 @@ function bucketOf(list){
         const k = i * 100003 + j; let a = m.get(k); if (!a) m.set(k, a = []); a.push(c);
       }
   };
-  for (const c of list) add(c);
+  for (const c of list) if (!c.live) add(c);   // (a solid that can vanish, an opened door or a ship that lifts off, holds nothing up)
   return { near: (x, z) => m.get(Math.floor(x / BUCKET) * 100003 + Math.floor(z / BUCKET)) || NONE, add };
 }
 const NONE = [];

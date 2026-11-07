@@ -202,6 +202,7 @@ export function buildGunship(x, z, c = {}){
     const d0 = i * 1.07, d1 = d0 + 1.07, slope = Math.sin(0.36), run = Math.cos(0.36);
     list.push({ x, z: z - L - (d0 + d1)/2 * run, hx: 1.1, hz: 1.07 * run / 2, h: B - d0 * slope, box: true, climbable: true });
   }
+  for (const s of list) s.live = true;   // (it lifts off: nothing else's collider may rest on it, world/autosolid.js)
   solids.push(...list);
   return { group: g, ramp, glow, hatch, solids: list };
 }

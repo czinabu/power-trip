@@ -71,6 +71,20 @@ try {
     return { moved: Math.hypot(p.x - c.x, p.z - c.z), ceil: (await import('/src/world/collision.js')).ceilHit };
   });
   check(under.moved < 1e-6 && under.ceil === Infinity, `walking under the crane's beam: shoved ${under.moved.toFixed(2)} m, head ${under.ceil === Infinity ? 'clear' : 'bonked'}`);
+  // WALK THROUGH IT — a breached door's gap is clear: the kill house's doors, all opened, let a body stand where each stood
+  const doors = await page.evaluate(async () => {
+    const { buildArena } = await import('/src/world/arena.js');
+    const { collideSolids } = await import('/src/world/collision.js');
+    const { shared } = await import('/src/state.js');
+    const { setDoorsOpen } = await import('/src/world/doors.js');
+    buildArena((await import('/tools/collision-audit.js')).levelFor('garrison'));
+    setDoorsOpen(shared.doors.length);
+    return shared.doors.map(d => {
+      const at = [d.solid.x, d.solid.z], p = { x: at[0], y: 0, z: at[1] }, top = collideSolids(p, 0.55, true);
+      return { at: at.map(v => +v.toFixed(1)), moved: +Math.hypot(p.x - at[0], p.z - at[1]).toFixed(2), top: +top.toFixed(2) };
+    });
+  });
+  for (const d of doors) check(d.moved < 0.05 && d.top < 0.05, `the kill house's door at ${d.at}, breached: shoved ${d.moved} m, standing at ${d.top}`);
 } catch (e){
   check(false, 'the collision run: ' + (e.stack || e.message));
 }

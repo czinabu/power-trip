@@ -47,7 +47,7 @@ for (const run of RUNS){
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-trooper', el => el.click());
     if (await page.evaluate(() => GAME.G.hero) !== 'trooper') throw new Error('the trooper card did not pick the trooper');
-    if (mode === 'mission'){ await page.$eval('#mode-mission', el => el.click()); await page.click('#msn-' + mission); }
+    if (mode === 'mission'){ await page.$eval('#mode-mission', el => el.click()); await page.$eval('#msn-' + mission, el => el.click()); }   // (its act's fold can be shut: the card is picked as a click on it would)
     else await page.$eval('#mode-' + mode, el => el.click());
     const tap = async sel => { if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {}); };
     let started = false;
@@ -60,7 +60,8 @@ for (const run of RUNS){
       await page.keyboard.press('b');
       await page.click('[data-n="3"]').catch(() => {}); await page.click('[data-foe="grunt"]').catch(() => {});
       await page.click('#sbsquadadd').catch(() => {});
-      await page.click('#sbdone').catch(() => {});
+      await page.click('#sbclose');   // (the footer's BACK TO THE FLOOR is hidden on a screen this small: ✕ closes it the same way)
+      if (await page.evaluate(() => GAME.G.sbMenu)) throw new Error('the sandbox panel did not close');
     }
     await page.evaluate(breach => { const { G } = GAME;
       for (const k of ['scan', 'bshield', 'medic', 'artillery', 'launcher', 'strafe', breach ? 'breach' : 'ion']) G.unlocked[k] = true;

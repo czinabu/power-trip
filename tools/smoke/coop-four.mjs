@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-four
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -14,7 +15,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9021, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 30000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -33,7 +34,7 @@ async function open(name){
 }
 const connected = (page) => page.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
 const play = async (page) => {
-  for (let i = 0; i < 6 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){
+  for (let i = 0; i < 40 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){   // (four pages loading a level at once can take a while)
     if (await page.isVisible('#goText')) await page.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
     await page.waitForTimeout(800);
@@ -70,7 +71,7 @@ try {
     await page.waitForFunction(() => { const a = GAME.partnerInfo().all; return a.length === 3 && a.every(p => p.shown && p.posed); }, null, poll)
       .catch(async () => { throw new Error(name + ' does not see three posed partners: ' + JSON.stringify(await page.evaluate(() => GAME.partnerInfo().all))); });
   // the host's foes are on every guest's screen
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   for (const g of guests) await g.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   if (await guests[2].evaluate(() => GAME.enemies.some(e => !e.net))) throw new Error('a guest is running foes of its own');
   // a blow lands on exactly the guest it was meant for: the second one

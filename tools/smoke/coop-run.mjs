@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-run
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -14,7 +15,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9018, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 30000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -59,7 +60,7 @@ try {
   if (!(await guest.evaluate(() => GAME.G.coopGuest))) throw new Error('the guest did not join the host\'s run');
   // the host's foes appear on the guest as puppets with the same numbers
   const ids = (page, puppets) => page.evaluate((p) => GAME.enemies.filter(e => !!e.net === p).map(e => e.nid).sort((a, b) => a - b), puppets);
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   await guest.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   const [h, g] = [await ids(host, false), await ids(guest, true)];
   const shared = g.filter(n => h.includes(n));
@@ -71,13 +72,19 @@ try {
   await guest.evaluate((n) => { const e = GAME.enemies.find(o => o.nid === n); GAME.damageEnemy(e, 15, null, 0, false, false); }, target);
   await host.waitForFunction(([n, hp]) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || e.hp < hp; }, [target, hp0], poll);
   // a foe's shot: the host fires one at where the guest stands; the guest flies its own copy, takes the hit itself, and the host's copy is dropped
-  const gp = await guest.evaluate(() => { const p = GAME.player.group.position; return [p.x, p.y, p.z, GAME.player.hp]; });
-  await host.evaluate(([x, y, z, n]) => {
-    const e = GAME.enemies.find(o => o.nid === n), m = new GAME.camera.position.constructor(x + 7, y + 1.4, z), d = new m.constructor(-1, 0, 0);
-    GAME.fireBolt(m, d, 14, 9, false, true, e);
-  }, [...gp.slice(0, 3), target]);
-  await guest.waitForFunction((hp) => GAME.player.hp < hp, gp[3], poll);
-  await host.waitForFunction(() => !GAME.bolts.some(b => b.bid), null, poll);
+  // (the guest can be shoved off the spot by the foes crowding it while the shot is in the air, so it is aimed afresh
+  // at where the guest stands, up to three times; the shot flies on the GAME's clock: game-wait.mjs)
+  let gp;
+  for (let shot = 0; ; shot++){
+    gp = await guest.evaluate(() => { const p = GAME.player.group.position; return [p.x, p.y, p.z, GAME.player.hp]; });
+    await host.evaluate(([x, y, z, n]) => {
+      const e = GAME.enemies.find(o => o.nid === n), m = new GAME.camera.position.constructor(x + 7, y + 1.4, z), d = new m.constructor(-1, 0, 0);
+      GAME.fireBolt(m, d, 14, 9, false, true, e);
+    }, [...gp.slice(0, 3), target]);
+    const hit = await waitGame(guest, (hp) => GAME.player.hp < hp, gp[3], { clock: host, gameSeconds: 6, what: 'the foe\'s shot hurting the guest' }).then(() => true, (e) => { if (shot >= 2) throw e; return false; });
+    if (hit) break;
+  }
+  await waitGame(host, () => !GAME.bolts.some(b => b.bid), null, { what: 'the host dropping its copy of the shot' });
   // a melee blow: sent to the guest, taken there, and answered
   const hp1 = await guest.evaluate(() => GAME.player.hp);
   await host.evaluate(([x, y, z, n]) => { const e = GAME.enemies.find(o => o.nid === n); GAME.coopHooks.hurt(e, 6, { x: x + 1, y, z }, 'melee', true); }, [...gp.slice(0, 3), target]);
@@ -140,7 +147,8 @@ try {
     e.ng[1] = 1; e.ng[6] = 0;   // guard up on its line, squared up to the guest
     g.rotation.y = Math.atan2(p.x - g.position.x, p.z - g.position.z);
     e.dp.dodge = 0; e.dp.parry = 0;   // (no dice: an agile duellist may otherwise slip the blow before its guard turns it)
-    const r = GAME.duel.duelDefend(e, ['L', 'R', 'H', 'Lo'][e.ng[0]], 'punch', false); e.dpKey = ''; return r;
+    const rnd = Math.random; Math.random = () => 0;   // (no dice either way: a low rank's sealed guard can be beaten, foeform.js sealOf)
+    try { const r = GAME.duel.duelDefend(e, ['L', 'R', 'H', 'Lo'][e.ng[0]], 'punch', false); e.dpKey = ''; return r; } finally { Math.random = rnd; }
   }, dn);
   if (turned !== 'block') throw new Error('the guest\'s blow on the duellist\'s guarded line was not turned: ' + turned);
   await host.waitForFunction(([n, p0]) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || e.posture > p0 || e.state === 'stagger'; }, [dn, post0], poll);

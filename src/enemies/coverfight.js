@@ -13,7 +13,7 @@
 import { G, enemies, shared, solids } from '../state.js';
 import { rand, clamp, V3 } from '../utils.js';
 import { TROOPER } from '../data/trooper.js';
-import { COVER_FIGHT as CF } from '../data/tactics.js';
+import { COVER_FIGHT as CF, GRENADE } from '../data/tactics.js';
 import { segBlockedTall, spotBlocked } from '../world/collision.js';
 import { floater } from '../fx/floaters.js';
 import { tacticsRamp } from './tactics.js';
@@ -222,7 +222,7 @@ function champGrenade(e, hero, dist){
   if (G.gt < (e.nadeT || 0) || (e.sitT || 0) < CH.sitFor) return;
   e.nadeT = G.gt + rand(CH.nade[0], CH.nade[1]);
   const g = e.group.position, hp = hero.pos, from = V3(g.x, g.y + 2.2, g.z), at = V3(hp.x + rand(-0.8, 0.8), 0, hp.z + rand(-0.8, 0.8));
-  if (!lobClear(from, at)) return;   // a wall in the way, not cover: no lob through it (enemies/grenades.js)
+  if (segBlockedTall(g.x, g.z, hp.x, hp.z, GRENADE.overCover) || !lobClear(from, at)) return;   // a wall in the way, not cover: no lob over or through it (enemies/grenades.js)
   const fx = { ...e, t: { ...e.t, fuse: CH.fuse, dmg: CH.nadeDmg * (e.t.dmgMul || 1), blastR: CH.nadeR } };
   throwGrenade(fx, from, at, false);
   floater(V3(g.x, g.y + 2.8, g.z), 'DETONATOR', '#ffb060');

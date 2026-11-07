@@ -63,6 +63,7 @@ export const GRENADE = {
   pushedDmg: 55, pushedKnock: 20,   // ...and one a Jedi pushed back into them
   pushSpeed: 22,          // a Force-pushed detonator flies back this fast
   slots: 1, slotsLate: 2, // grenadiers winding up a throw at once
+  overCover: 2.6,         // a thrower lobs over cover up to this tall (m); past a taller wall it can't see you, so it goes round
 };
 
 /* LANCER LUNGE — from `min`..`max` away, with you in sight and in front of the camera, a lancer can plant and lunge.

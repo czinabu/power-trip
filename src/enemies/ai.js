@@ -16,7 +16,7 @@ import { fireBolt } from './bolts.js';
 import { damageBoss } from '../boss/boss.js';
 import { spawnGroundShock } from '../fx/vfx.js';
 import { tellFx } from '../fx/tells.js';
-import { segBlockedBySolids, clampToArena, collideSolids } from '../world/collision.js';
+import { segBlockedBySolids, segBlockedTall, clampToArena, collideSolids } from '../world/collision.js';
 import { hurtPlayer } from '../player/damage.js';
 import { blockedOnBlade } from '../player/jedi/clash.js';
 import { enemyDmgScale } from '../game/survival.js';
@@ -246,9 +246,9 @@ export function updateEnemies(dt){
         if (t.ranged && !t.fly && !e.converted){
           exposed = vsTrooper(hero) && tgtPos === hp && !onAlly ? heroExposedFrom(g.position.x, g.position.z, hero)   // (over low cover he shows when he rises: enemies/coverfight.js)
                                                          : !segBlockedBySolids(g.position.x, g.position.z, tgtPos.x, tgtPos.z);
-          // a grenadier is happy to lob from cover, as long as the lob sails over it: through a tall wall it can't
-          // throw at all (enemies/grenades.js lobClear), so it hides and then flanks like any trooper
-          lobOk = exposed || !t.grenade || !tgtPos || lobClear(LOB_FROM.set(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), tgtPos);
+          // a grenadier is happy to lob from behind cover, over cover: never over a wall too tall to see past
+          // (GRENADE.overCover), nor one the lob would strike (enemies/grenades.js lobClear). Then it flanks like any trooper
+          lobOk = exposed || !t.grenade || !tgtPos || !segBlockedTall(g.position.x, g.position.z, tgtPos.x, tgtPos.z, GRENADE.overCover) && lobClear(LOB_FROM.set(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), tgtPos);
           e.hideT = (exposed || (t.grenade && lobOk)) ? 0 : (e.hideT || 0) + dt;
         }
         // out of firing range there's nothing to hide from yet: advance. Once a trooper gives up hiding it commits to

@@ -12,7 +12,7 @@ import { audioInit, S } from '../audio/sfx.js';
 import {
   profileOf, track, rankNeeds, trialsPassed, insightLeft, insightTotal, nodeState, nodeLearned, learnNode, resetTree, treePath, setPath,
   seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
-  owns, runLive, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck, alignOf, alignStage, leanOf, alignOpen,
+  owns, runLive, liveNote, deckOf, deckCount, toggleDeck, suggestDeck, setDeck, pruneDeck, alignOf, alignStage, leanOf, alignOpen,
   ngBest, ngNextTier, hasRank, cardsSeen, seeCards,
 } from '../game/profile.js';
 import { tierName, MAX_TIER } from '../data/ngplus.js';
@@ -218,7 +218,7 @@ function treeDetail(n){
   if (n.fork) return forkDetail(n);
   const st = nodeState(n), R = track('jedi').ranks.find(r => r.id === tierRank(n.tier));
   const act = st === 'learned' ? '<p class="pf-got">✓ LEARNED: runs can deal it</p>'
-    : runLive() ? '<p class="pf-note">A run is on. Learn cards between runs.</p>'
+    : runLive() ? '<p class="pf-note">' + liveNote('Learn cards') + '</p>'
     : st === 'open' ? '<span class="btn pf-add pf-learn" data-learn="' + n.prof + '">LEARN · 1 INSIGHT</span>'
     : st === 'rank' ? '<ul class="pf-unlock"><span>TO UNLOCK</span><li><i>○</i>Reach ' + esc(R ? R.nm : 'a higher rank') + ' <em>(you: ' + esc(track('jedi').ranks[profileOf('jedi').rank].nm) + ')</em></li></ul>'
     : '<p class="pf-lock">' + LOCK + 'NO INSIGHT LEFT: the next rank gives more</p>';
@@ -278,7 +278,7 @@ function treeCol(){
   const root = '<div class="pf-froot' + (anyLearned ? ' lit' : '') + '" ' + at(50, TREE_ROW.root) + '><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><b>' + left + '</b><em>INSIGHT<br>TO SPEND</em></span></div>';
   return `<div class="pf-col pf-right">
     ${viewTabs('jedi')}
-    <div class="pf-th pf-fth"><p class="pf-note${live ? ' pf-live-note' : ''}">${live ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Tap a card, then learn it. Your path\'s branch always has a card on offer in runs.'}</p><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
+    <div class="pf-th pf-fth"><p class="pf-note${live ? ' pf-live-note' : ''}">${live ? liveNote('Change your tree and path') : 'Each rank gives Insight. Tap a card, then learn it. Your path\'s branch always has a card on offer in runs.'}</p><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
     <div class="pf-split pf-tsplit"><div class="pf-ftree">${ranks}<svg class="pf-flinks" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads.join('')}${nodes.join('')}</div>${treeDetail(pick)}</div>
   </div>`;
 }
@@ -354,7 +354,7 @@ function detail(h, s){
   const set = SET_OF[h], mine = owns(h, s), deck = deckOf(h), live = runLive(), inD = deck && deck.includes(s.id);
   const full = deck && deckCount(h, set, s.tier) >= DECK_QUOTA[s.tier];
   const act = !mine ? (s.align ? unlockSteps(h, s) : '<p class="pf-lock">' + LOCK + esc(lockWhy(h, s)) + '</p>')
-    : live ? (inD ? '<p class="pf-got">✓ IN YOUR DECK</p>' : '<p class="pf-note">A run is on. Change your deck between runs.</p>')
+    : live ? (inD ? '<p class="pf-got">✓ IN YOUR DECK</p>' : '<p class="pf-note">' + liveNote('Change your deck') + '</p>')
     : !deck ? '<p class="pf-note">Unlocked: runs can deal it. BUILD A DECK to choose which ones.</p>'
     : inD ? '<p class="pf-got">✓ IN YOUR DECK</p><span class="btn" data-deck="' + s.id + '">TAKE OUT</span>'
     : full ? '<p class="pf-lock">This tier\'s ' + DECK_QUOTA[s.tier] + ' slots are full. Take one out first.</p>'

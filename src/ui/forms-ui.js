@@ -82,16 +82,17 @@ function liveView(){
   return { lv: forceLevel(), rank: formRank, pts: practise ? (id) => (G.formUse && G.formUse[id]) || 0 : null,
     waits: (id) => G.formSince && G.formSince[id] != null && (G.waveTotal || 0) < G.formSince[id] + FORM_RANKS.gap * (formRank(id) + 1),
     has: (k) => !!(G.unlocked && G.unlocked[k]), powerRank: masteryRank,
+    grasp: !!(G.unlocked && G.unlocked.pull) && (masteryRank('pull') >= GRASP_RANK || !!G.sandbox),   // (as player/jedi/grasp.js graspOpen)
     why: G.sandbox ? 'Sandbox: set the level, the ranks and your three in its panel (B)' : G.training ? 'Level and ranks as far as the story has reached' : '' };
 }
 function savedView(run){
   const fr = run.formRank || {}, fu = run.formUse || {}, un = run.unlocked || {}, pm = run.mastery || {};
   return { lv: Math.max(1, Math.min(FORCE_MAX, run.forceLevel || 1)), rank: (id) => fr[id] || 0, pts: (id) => fu[id] || 0, waits: () => false,
-    has: (k) => !!un[k], powerRank: (id) => pm[id] || 0, why: 'Saved run · ' + resumeLabel() };
+    has: (k) => !!un[k], powerRank: (id) => pm[id] || 0, grasp: !!un.pull && (pm.pull || 0) >= GRASP_RANK, why: 'Saved run · ' + resumeLabel() };
 }
 function storyView(){
   const b = bestRanks();
-  return { lv: storyForceLevel(), rank: (id) => b[id] || 0, pts: null, waits: () => false, has: null, powerRank: () => 0,
+  return { lv: storyForceLevel(), rank: (id) => b[id] || 0, pts: null, waits: () => false, has: null, powerRank: () => 0, grasp: storyReached('pull'),
     why: 'As far as the story has reached · best ranks from any run' };
 }
 const shareOf = (id) => shareAt(id, ctx.view.rank(id));
@@ -120,7 +121,9 @@ function powerCost(id, steps){
 const SEEN = { pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'jslam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
 // a power is shown once the story has handed it out (in this run, or any) and the Force Level has reached it: one
 // still locked behind a level is never named, it waits in the sealed tile with the powers not met yet
-const powerKnown = (id) => (!SEEN[id] || !!(ctx.view.has && ctx.view.has(OWNED[id])) || storyReached(SEEN[id])) && ctx.view.lv >= POWER_GROWTH[id].arrive;
+// The Grasp is Pull's rank I: until it opens it isn't named, on its tile or in Pull's ranks.
+const GRASP_RANK = CFG.abilities.grasp.pullRank;
+const powerKnown = (id) => id === 'grasp' ? !!ctx.view.grasp && ctx.view.lv >= POWER_GROWTH.grasp.arrive : (!SEEN[id] || !!(ctx.view.has && ctx.view.has(OWNED[id])) || storyReached(SEEN[id])) && ctx.view.lv >= POWER_GROWTH[id].arrive;
 
 /* SHOW NUMBERS on the mastery pages: off by default, so the page reads as forms, ranks and powers. On, it adds the Force
    share, each power's gain and cost and the key to them, and the rank maths (styles/menus.css .fm-nums). Remembered. */
@@ -310,11 +313,13 @@ function powerOf(id){
     const cut = Math.round((1 - costMulFor(Math.max(0, v.lv - MOVE_ARRIVE.jump) * share)) * 100);
     return { nm: 'FORCE JUMP & DASH', arrive: 1, known: true, open: true, held: true, gain: '', cost: null, cut, r: 0, m: null };
   }
-  const g = POWER_GROWTH[id], open = v.lv >= g.arrive, held = !v.has || !OWNED[id] || v.has(OWNED[id]);
+  const g = POWER_GROWTH[id], open = v.lv >= g.arrive, held = id === 'grasp' ? !!v.grasp : !v.has || !OWNED[id] || v.has(OWNED[id]);
   const steps = Math.max(0, v.lv - g.arrive) * share, m = POWER_MASTERY[id] || null;
   return { nm: g.nm, arrive: g.arrive, known: powerKnown(id), open, held, gain: open && held ? growthGain(id, v.lv, share) : '', cost: powerCost(id, steps),
     cut: Math.round((1 - costMulFor(steps)) * 100), r: m ? v.powerRank(id) : 0, m };
 }
+// a rank's line as the page shows it (data/mastery.js keeps a little HTML in them), the Grasp kept unnamed until it opens
+const rankDs = (id, ds) => { const t = ds.replace(/&amp;/g, '&'); return id === 'pull' && !ctx.view.grasp ? t.replace(/Unlocks FORCE GRASP \(hold C\)/, 'Unlocks a new power').replace(/wider grasp/, 'wider cone') : t; };
 const powerState = (P) => !P.open ? 'Opens at Force Level ' + P.arrive : !P.held ? 'Not in your kit' : 'Ready';
 function powerTile(id){
   const P = powerOf(id);
@@ -335,7 +340,7 @@ function powerDetail(){
     '<b>' + esc(P.nm) + '</b><em class="' + (live ? 'ok' : '') + '">' + powerState(P) + '</em></div></div><div class="mx-dbody">' + stats +
     (live ? '<p class="mx-share">In <b style="--c:' + bladeOf(fid) + '">' + esc(FORMS[fid].name) + '</b> your powers draw on <em>' + pctOf(share) + '</em> of your Force Level. Pick another form to compare.</p>' : '') +
     (m ? '<div class="mx-k">POWER MASTERY</div>' + rankTrack(['BASE'].concat(m.ranks.map((_, i) => 'RANK ' + ROMAN[i + 1])), P.r, 0) +
-      '<ul class="mx-ranks">' + m.ranks.map((k, i) => '<li class="' + (i < P.r ? 'got' : '') + '"><span>' + ROMAN[i + 1] + '</span>' + esc(k.ds) + '</li>').join('') + '</ul>' +
+      '<ul class="mx-ranks">' + m.ranks.map((k, i) => '<li class="' + (i < P.r ? 'got' : '') + '"><span>' + ROMAN[i + 1] + '</span>' + esc(rankDs(id, k.ds)) + '</li>').join('') + '</ul>' +
       '<p class="mx-fine">Power mastery is earned on the upgrade screen with points and uses.</p>' : '') +
     (id === 'move' ? '<p class="mx-where">Force Jump, Dash and the double jump: no strength to grow, but ' + (P.cut ? 'they cost ' + P.cut + '% less Force from your Force Level.' : 'each Force Level makes them a little cheaper.') + '</p>' : '') + '</div></div>';
 }

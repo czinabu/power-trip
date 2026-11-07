@@ -25,6 +25,8 @@ import { MOBILITY } from '../data/mobility.js';
 import { forceToastHolds, fadeForceToast } from '../ui/force-toast.js';
 import { loadingNow } from '../ui/loading.js';
 import { doorState } from '../world/doorway.js';
+import { FAMILIES, FORM_FAMILY } from '../data/foe-forms.js';
+import { famIcon } from '../ui/icons.js';
 
 const el = document.getElementById('meditate');
 const pending = [];   // form ids learned and not yet shown
@@ -89,6 +91,11 @@ export function repickForms(list){
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
 const hex = (c) => '#' + ('000000' + c.toString(16)).slice(-6);
 const formLine = (id) => esc(STANCES[id].syn);
+// the screen wears the mastery pages' holocron look (styles/heroes/mastery.css, styles/heroes/meditation.css)
+let fresh = false;   // a new face of the screen snaps in; a tap that redraws the same face must not replay it
+const panel = (cls, body, style = '') => { const e = fresh ? ' enter' : ''; fresh = false;
+  return '<div class="mx md-panel ' + cls + e + '" data-hero="jedi"' + (style ? ' style="' + style + '"' : '') + '>' + body + '</div>'; };
+const famTag = (id) => { const f = FAMILIES[FORM_FAMILY[id]]; return '<span class="mx-fam" style="--fc:' + (f ? f.color : 'var(--hx-soft)') + '">' + famIcon(id, 12, 'mx-fam-ic') + (f ? f.name : 'NEUTRAL') + '</span>'; };
 
 function open(){
   const learned = pending.splice(0);
@@ -114,12 +121,13 @@ function close(quiet){
 function forkVoice(){ const c = G.chapter >= 0 && chapterOrder(G.actTwo)[G.chapter]; return c ? storyVoice(undefined, c) : 'MASTER VAEL'; }
 const forkLine = () => G.chapter >= 0 && storyHero() === 'jedi' ? storyWords(JEDI_FORK_LINE) : null;
 function renderFork(ids){
-  el.innerHTML = '<div class="cc-inner hero-jedi"><div class="cc-act">FORM VII</div>' +
-    '<h1 class="cc-title">THE SEVENTH FORM</h1>' +
-    '<div class="cc-voice"><div class="cc-who">' + forkVoice() + '</div><p>Few Jedi ever reach the seventh form, and none walk both of its roads. Juyo lets the fury in. Vaapad takes it from the one who attacks you. Choose, and the other road closes for good.</p>' +
+  fresh = true;
+  el.innerHTML = panel('md-fork', '<div class="mx-k md-kick">FORM VII</div><h1 class="md-title">THE SEVENTH FORM</h1>' +
+    '<div class="md-voice"><div class="mx-k">' + forkVoice() + '</div><p>Few Jedi ever reach the seventh form, and none walk both of its roads. Juyo lets the fury in. Vaapad takes it from the one who attacks you. Choose, and the other road closes for good.</p>' +
     (forkLine() ? '<p>' + forkLine() + '</p>' : '') + '</div>' +
-    '<div class="cc-pick">' + ids.map(id => '<div class="cc-opt" data-fork="' + id + '" style="--c:' + hex(STANCES[id].blade) + '"><b>' + FORMS[id].name + '</b><span>' + formLine(id) + '</span></div>').join('') + '</div>' +
-    '<div class="cc-hint">The choice holds for the rest of this run</div></div>';
+    '<div class="md-roads">' + ids.map(id => '<div class="mx-tile md-road" data-fork="' + id + '" style="--c:' + hex(STANCES[id].blade) + '"><i class="mx-blade big"></i>' +
+      '<div class="md-rn"><div class="mx-tt"><span>' + formTitle(id) + '</span></div><b>' + FORMS[id].name + '</b><div class="mx-tf">' + famTag(id) + '</div><p>' + formLine(id) + '</p></div></div>').join('') + '</div>' +
+    '<p class="mx-fine md-hint">The choice holds for the rest of this run</p>');
 }
 
 /* ---------- the unlock screen: each form learned, what it is good and bad at, the hero performing it ---------- */
@@ -127,32 +135,32 @@ function renderFork(ids){
 const canTrain = () => G.chapter >= 0 && !G.endless && !coopLive();
 function startCards(ids){
   learnedNow = ids; cards = ids.slice();
-  if (!cards.length){ phase = 'slots'; renderSlots([]); return; }
+  if (!cards.length){ phase = 'slots'; fresh = true; renderSlots([]); return; }
   renderUnlock();
 }
 function renderUnlock(){
   const id = cards[0], F = FORMS[id], C = FORM_CODEX[id] || {};
-  phase = 'unlock';
+  phase = 'unlock'; fresh = true;
   el.classList.add('unlock');
   const train = canTrain();
-  el.innerHTML = '<div class="cc-inner hero-jedi" style="--c:' + hex(STANCES[id].blade) + '"><div class="cc-act">STANCE UNLOCKED' +
-      (learnedNow.length > 1 ? '<span class="su-count">' + (learnedNow.length - cards.length + 1) + ' / ' + learnedNow.length + '</span>' : '') + '</div>' +
-    '<h1 class="cc-title">' + esc(F.name) + '</h1>' +
-    '<div class="cc-world">' + formTitle(id) + ' · ' + esc(F.tag) + '</div>' +
-    '<p class="su-lore">' + esc(C.lore || '') + (C.who ? ' <i>' + esc(C.who) + '</i>' : '') + '</p>' +
-    (C.best ? '<div class="su-best">BEST AGAINST · ' + esc(C.best) + '</div>' : '') +
-    '<div class="su-cols"><div class="good"><h4>GOOD AT</h4><ul>' + (C.pros || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>' +
-    '<div class="bad"><h4>BAD AT</h4><ul>' + (C.cons || []).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div></div>' +
-    '<div class="cc-btns">' + (train ? '<div class="btn" data-train="' + id + '">TRAIN IN ' + esc(F.name.toUpperCase()) + '</div>' : '') +
+  const list = (xs, cls) => '<ul class="mx-pc">' + (xs || []).map(t => '<li class="' + cls + '">' + esc(t) + '</li>').join('') + '</ul>';
+  el.innerHTML = panel('md-unlock', '<div class="mx-k md-kick">STANCE UNLOCKED' +
+      (learnedNow.length > 1 ? '<em>' + (learnedNow.length - cards.length + 1) + ' / ' + learnedNow.length + '</em>' : '') + '</div>' +
+    '<div class="mx-dh md-head"><i class="mx-blade big"></i><div class="mx-dn"><div class="mx-k">' + formTitle(id) + ' · ' + esc(F.tag) + '</div><b class="md-title">' + esc(F.name) + '</b>' + famTag(id) + '</div></div>' +
+    '<p class="mx-lore">' + esc(C.lore || '') + (C.who ? ' <i>' + esc(C.who) + '</i>' : '') + '</p>' +
+    (C.best ? '<div class="md-best"><span>BEST AGAINST</span>' + esc(C.best) + '</div>' : '') +
+    '<div class="mx-ctrs"><div class="mx-ctr up"><span>GOOD AT</span>' + list(C.pros, 'up') + '</div><div class="mx-ctr dn"><span>BAD AT</span>' + list(C.cons, 'dn') + '</div></div>' +
+    '<div class="mx-actions">' + (train ? '<div class="btn" data-train="' + id + '">TRAIN IN ' + esc(F.name.toUpperCase()) + '</div>' : '') +
       '<div class="btn primary go" data-next="1">CONTINUE</div></div>' +
-    '<div class="su-note">' + (train ? 'Training saves your run: CONTINUE CAMPAIGN picks it up where you left off.' : 'Its lesson is waiting in Training, from the main menu.') + '</div></div>';
+    '<p class="mx-fine md-hint">' + (train ? 'Training saves your run: CONTINUE CAMPAIGN picks it up where you left off.' : 'Its lesson is waiting in Training, from the main menu.') + '</p>',
+    '--c:' + hex(STANCES[id].blade));
   previewStance(id);
 }
 function nextCard(){
   cards.shift();
   if (cards.length) return void renderUnlock();
   el.classList.remove('unlock'); previewStance(null);
-  phase = 'slots'; renderSlots(learnedNow);
+  phase = 'slots'; fresh = true; renderSlots(learnedNow);
 }
 
 /* ---------- the loadout ---------- */
@@ -163,23 +171,30 @@ function renderSlots(learned = learnedNow){
     for (const id of learned) if (draft.includes(null) && !draft.includes(id)) draft = cleanLoadout(draft.map((d, i) => i === draft.indexOf(null) ? id : d));   // a new form takes an empty slot to start with
     slot = Math.max(0, draft.indexOf(null));
   }
-  const k = known();
+  const k = known(), filled = draft.filter(Boolean).length;
   const head = learned.length
-    ? '<div class="cc-act">FORM LEARNED</div><h1 class="cc-title">' + learned.map(id => esc(FORMS[id].name)).join(' · ') + '</h1>' +
-      '<div class="cc-world">' + learned.map(id => formTitle(id) + ' · ' + formLine(id)).join('<br>') + '</div>'
-    : '<div class="cc-act">MEDITATION</div><h1 class="cc-title">YOUR FORMS</h1>';
-  el.innerHTML = '<div class="cc-inner hero-jedi">' + head +
-    '<div class="cc-voice"><div class="cc-who">MEDITATION</div><p>Choose the three forms you carry into the fight. You can change them again ' + (G.endless ? 'between waves' : 'at the start of each chapter') + ', from the pause screen\'s Forms page.</p></div>' +
-    '<div class="md-slots">' + Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
-      const id = draft[i], x = id && draft.filter(Boolean).length > 1;   // ✕ empties a slot (the last form stays)
-      return '<div class="md-slotw"><div class="md-slot' + (i === slot ? ' sel' : '') + (id ? '' : ' empty') + (x ? ' has-x' : '') + '" data-slot="' + i + '"' + (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '>' +
-        '<span class="n">' + (i + 1) + '</span>' + (id ? esc(FORMS[id].name) : 'EMPTY') + '</div>' +
-        (x ? '<div class="fm-clear" data-clear="' + i + '" title="Empty this slot" aria-label="Empty slot ' + (i + 1) + '">✕</div>' : '') + '</div>';
-    }).join('') + '</div>' +
-    '<div class="md-forms">' + k.map(id => '<div class="md-form' + (draft.includes(id) ? ' in' : '') + (learned.includes(id) ? ' new' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
-      '<b>' + esc(FORMS[id].name) + '</b><i>' + formTitle(id) + ' · ' + esc(FORMS[id].tag) + '</i></div>').join('') + '</div>' +
-    '<div class="cc-btns"><div class="btn primary go" data-go="1">RISE</div></div>' +
-    '<div class="cc-hint">Pick a slot, then a form for it · ✕ leaves a slot empty · Enter to rise</div></div>';
+    ? '<div class="mx-k md-kick">FORM LEARNED</div><h1 class="md-title">' + learned.map(id => esc(FORMS[id].name)).join(' · ') + '</h1>' +
+      '<div class="md-sub">' + learned.map(id => formTitle(id) + ' · ' + formLine(id)).join('<br>') + '</div>'
+    : '<div class="mx-k md-kick">MEDITATION</div><h1 class="md-title">YOUR FORMS</h1>';
+  // YOUR THREE first and framed in the accent, the slots side by side; then a tile for each form known
+  const slots = Array.from({ length: LOADOUT_SLOTS }, (_, i) => {
+    const id = draft[i], x = id && filled > 1;   // ✕ empties a slot (the last form stays)
+    return '<div class="mx-slotw"><div class="mx-slot edit' + (i === slot ? ' sel' : '') + (id ? '' : ' empty') + '" data-slot="' + i + '"' + (id ? ' style="--c:' + hex(STANCES[id].blade) + '"' : '') + '>' +
+      '<kbd>' + (i + 1) + '</kbd>' + (id ? '<i class="mx-blade"></i><b>' + esc(FORMS[id].name) + '</b>' + famIcon(id, 12, 'mx-fam-ic') : '<b>EMPTY</b>') + '</div>' +
+      (x ? '<span class="mx-clear" data-clear="' + i + '" title="Empty this slot" aria-label="Empty slot ' + (i + 1) + '">✕</span>' : '') + '</div>';
+  }).join('');
+  const tiles = k.map(id => {
+    const at = draft.indexOf(id), nu = learned.includes(id);
+    return '<div class="mx-tile' + (at >= 0 ? ' in' : '') + (nu ? ' fresh' : '') + '" data-form="' + id + '" style="--c:' + hex(STANCES[id].blade) + '">' +
+      (nu ? '<span class="mx-badge">NEW</span>' : '') + '<i class="mx-blade"></i><div class="mx-tt"><span>' + formTitle(id) + '</span>' +
+      (at >= 0 ? '<kbd class="mx-slotb" title="In slot ' + (at + 1) + '">' + (at + 1) + '</kbd>' : '') + '</div>' +
+      '<b>' + esc(FORMS[id].name) + '</b><div class="mx-tf">' + famTag(id) + '</div></div>';
+  }).join('');
+  el.innerHTML = panel('md-slotsp', head +
+    '<div class="mx-card mx-three"><div class="mx-k">YOUR THREE<em>pick a slot, then a form for it · change them again ' + (G.endless ? 'between waves' : 'at the start of each chapter') + ' from the pause screen\'s Forms page</em></div>' +
+      '<div class="mx-slots md-slots">' + slots + '</div></div>' +
+    '<div class="mx-k md-gk">FORMS YOU KNOW</div><div class="mx-grid md-grid">' + tiles + '</div>' +
+    '<div class="mx-actions"><span class="mx-fine md-hint">✕ leaves a slot empty · Enter to rise</span><div class="btn primary go" data-go="1">RISE</div></div>');
 }
 // put a form in the selected slot (one already slotted swaps places with it, and Form V / VII keep to one variant)
 function pick(id){

@@ -281,6 +281,8 @@ import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, sta
 import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
+import { queueMeditation } from './game/meditation.js';
+Object.assign(window.GAME, { meditation: { queue: queueMeditation } });   // a form learned in a run: the unlock card and the loadout (game/meditation.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
 Object.assign(window.GAME, { popups: { push: pushPopup, up: popupUp, waiting: popupsWaiting, toast: upToast, banner: showBanner, cfg: POPUPS } });   // one pop-up at a time (ui/popups.js), for tests
 Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget });   // the story's voice lines (game/story.js), for tests

@@ -42,6 +42,7 @@ import { setMood, MOOD } from '../world/atmosphere.js';
 import { storyBeat } from '../game/story.js';
 import { gainXp } from '../game/progression.js';
 import { victory } from '../game/summary.js';
+import { bossDown } from '../game/autosave.js';
 import { meetBoss } from '../game/codex.js';
 import { hooks } from '../net/run.js';
 import { hurtPlayer } from '../player/damage.js';
@@ -414,6 +415,7 @@ const DEFEAT = {
     F.over = true;
     e.ward = 0; e.hpFloor = 0; e.legMode = 'off'; e.upperMode = 'off';
     if (G.stats) G.stats.bossKilled = true;
+    bossDown();   // the game saves (game/autosave.js)
     gainXp(D.xp);
     G.slowmo = D.slowmo; G.slowmoT = Math.max(G.slowmoT, D.slowT);
     G.shake = 1.2; G.hitstop = Math.max(G.hitstop, 0.16);
@@ -506,7 +508,7 @@ export function finaleNet(m){
       const pe = puppetOfNid(guestNet.n); if (D.look.phase && pe) D.look.phase(pe, m.p, true); }
     return;
   }
-  if (m.k === 'down'){ MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
+  if (m.k === 'down'){ bossDown(); MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
   if (D && D.look.netFx) D.look.netFx(m, puppetOfNid(m.n));
 }
 const guestNet = { n: null, id: null, phase: 1, mods: null };

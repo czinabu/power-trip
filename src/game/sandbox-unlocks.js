@@ -1,13 +1,15 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE SANDBOX'S UNLOCKS: the sandbox opens once Act I of the campaign is cleared (with either hero), and offers only
+// THE SANDBOX'S UNLOCKS: the sandbox opens once Act I of the campaign is cleared (with any hero), and offers only
 // what the story has shown so far: the foes met, the powers and forms the run could have earned, the worlds visited.
-// Beating the campaign with either hero opens everything. Nothing here is a list to keep in sync by hand: it is all
+// Beating the campaign with any hero opens everything. Nothing here is a list to keep in sync by hand: it is all
 // read from the chapters (data/campaign.js), their levels and missions, and the progression tables (data/store.js).
 //
 // Progress is the set of chapter ids cleared, per hero (localStorage sw_camp_ch_<hero>, kept by the save slots like
-// the other sw_camp_ keys). The sandbox offers what either hero has reached.
+// the other sw_camp_ keys). The sandbox offers what any hero has reached (the ARC trooper's story lays its chapters over
+// the same slots, so its progress counts too).
 
 import { G, isGunner } from '../state.js';
+import { onFileSwitch } from '../engine/save-files.js';
 import { raidsOpen } from '../data/raids.js';
 import { CHAPTERS as ALL_CHAPTERS, chapterOrder, chapterNo, storyMissions } from '../data/campaign.js';
 import { LEVELS } from '../data/levels.js';
@@ -19,18 +21,18 @@ import { JEDI_AUTO, MANDO_AUTO, JEDI_STORE, MANDO_STORE } from '../data/store.js
 import { STORE_TIER_STAGE } from './progression.js';
 import { FORCE_LEVELS, FORCE_MAX } from '../data/force-level.js';
 
-const HEROES = ['jedi', 'mando'];
+const HEROES = ['jedi', 'mando', 'trooper'];
 const CHAPTERS = ALL_CHAPTERS.filter(c => !c.story);   // the story every hero shares (a story's own chapter, the ARC trooper's prologue, isn't a gate)
 const key = (hero) => 'sw_camp_ch_' + hero;
 function read(hero){
   try { const v = JSON.parse(localStorage.getItem(key(hero))); if (Array.isArray(v)) return v; } catch(e){}
   return [];
 }
-// the campaign beaten with either hero (game/summary.js victory) opens everything
+// the campaign beaten with any hero (game/summary.js victory) opens everything
 export function sandboxFull(){
   try { return HEROES.some(h => localStorage.getItem('sw_camp_' + h) === '1'); } catch(e){ return false; }
 }
-// every chapter id either hero has cleared
+// every chapter id any hero has cleared
 function cleared(){ return new Set(HEROES.flatMap(read)); }
 const actOneDone = (done) => CHAPTERS.filter(c => c.act === 0).every(c => done.has(c.id));
 export function sandboxUnlocked(){ return sandboxFull() || actOneDone(cleared()); }
@@ -81,6 +83,7 @@ function missionFoes(m, out, depth = 0){
 }
 
 let scope = null;
+onFileSwitch(() => { scope = null; });   // (another save file: its own story, read afresh)
 // work out what's open from the chapters cleared; game/sandbox.js calls this as the sandbox starts
 export function refreshSandboxScope(){
   const full = sandboxFull(), done = cleared();

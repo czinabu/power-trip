@@ -48,6 +48,12 @@ export function zoneLock(key, hero){
 }
 
 /* ---------- the kit (game/flow.js checkUnlocks asks this in a zone, for every auto-unlock and Force Level) ---------- */
+// THE SAVE CARRIES INTO EVERY MODE: away from the campaign (whose run keeps its own build) and a zone (which hands out this
+// and nothing else), a mode that hands out a kit of its own also hands over everything this hero's story has earned, by
+// the same rule as a zone: a lone mission, an arcade contract, a raid and a side mission (on top of their stage's kit),
+// survival (from its first wave, and it still climbs from there) and the hub. The training grounds and the sandbox
+// already follow the story (game/sandbox-unlocks.js). Co-op: each screen carries its own hero's save, never the host's.
+export const storyCarries = () => G.chapter < 0 && !G.zone && !G.training && !G.sandbox && (!!G.mission || !!G.endless || !!G.hub);
 // a form a chapter of another story stands in for (FORM_PATH `alt`): counts only when this hero reached it that way,
 // i.e. they have none of their own story's chapters of that act (a Jedi guest in a Mando or trooper story)
 const ownActChapters = (hero, act) => CHAPTERS.filter(c => c.story === hero && c.act === act && !c.prologue);

@@ -5,7 +5,7 @@
 // Act II the card asks which pair of chapters comes first.
 
 import { refreshWorn } from './wardrobe.js';
-import { autosave } from './autosave.js';
+import { autosave, saveAtClose } from './autosave.js';
 import { G, shared, heroKey } from '../state.js';
 import { MISSIONS } from '../data/missions.js';
 import { renderer } from '../engine/renderer.js';
@@ -128,11 +128,12 @@ function chapterCleared(){
   storyBeat('clear', { quiet: !!G.mission });   // a mission's clear lines are already on its Chapter complete card (game/mission.js)
   // a story whose last chapter is a mission (the trooper's broadcast): clearing it ends the campaign, as the last boss does
   if (c && !chapterAt(G.chapter + 1)){ victory(); return; }
-  if (G.coopGuest){ checkUnlocks(1600, true); guestCalm(openSkillTree); return; }   // (after the host's calm, if it has one: game/aftermath.js; a guest's new powers show at the close too)
+  if (G.coopGuest){ checkUnlocks(1600, true); saveAtClose(); guestCalm(openSkillTree); return; }   // (its own save at the close: its progress, the host's run stays the host's)   // (after the host's calm, if it has one: game/aftermath.js; a guest's new powers show at the close too)
   // after a duel or a hold: a calm walk back to the rally point first (game/aftermath.js), then the voice's last word, the
   // upgrade screen and the road on (game/flow.js)
   if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6; }
   checkUnlocks(1600, true);   // the powers and forms this chapter hands over: their screens now, at its end (not as the next chapter opens)
+  saveAtClose();   // the chapter won (its boss with it) is saved now, with what it handed over (game/autosave.js)
 }
 // the 'travel' beat ran out (game/flow.js): the next chapter, or Act II's pick when it's due
 export function nextChapter(){

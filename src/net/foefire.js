@@ -40,6 +40,7 @@ import { net, on, send, sendTo, guestSlots, connected } from './session.js';
 import { hooks } from './run.js';
 import { puppetOf, runKind } from './foes.js';
 import { addFlow } from '../player/gunner-flow.js';
+import { bossDown } from '../game/autosave.js';
 
 const asHost = () => net.role === 'host' && connected() && !!runKind() && !G.coopGuest;
 const asGuest = () => net.role === 'guest' && connected() && G.coopGuest;
@@ -239,7 +240,7 @@ on('mdone', () => { if (asGuest()) coopMissionDone(); });
 // a final boss's bar, phases and move effects (boss/finale.js): the host's fight, shown on the guest's screen
 hooks.fin = (m) => { if (asHost()) send({ t: 'fin', ...m }); };
 on('fin', (m) => { if (asGuest()) finaleNet(m); });
-on('bdead', () => { if (asGuest() && G.mode === 'play'){ if (shared.boss && shared.boss.net) { /* the puppet falls with the snapshot */ } victory(); } });
+on('bdead', () => { if (asGuest() && G.mode === 'play'){ if (shared.boss && shared.boss.net) { /* the puppet falls with the snapshot */ } bossDown(); victory(); } });   // (the guest's own save too: game/autosave.js)
 
 /* ---------------- warnings ---------------- */
 hooks.tell = (kind, pos, radius, dur) => {

@@ -142,10 +142,10 @@ export function gunBurstStart(W){
 function kataNow(M){
   return (player.dodgeKind === 'dive' || player.dodgeKind === 'airdodge') && G.gt - (player.dashStartT ?? -9) < M.after;
 }
-// rolling, or on the move between cover (COVERING FIRE)
+// sliding, straight out of a sprint, or on the move between cover (COVERING FIRE)
 function coveringNow(M){
   if (!isTrooper()) return false;
-  if (player.dodgeKind === 'dive' && G.gt - (player.rollAt ?? -9) < 0.7) return true;   // (the trooper's roll is the Mando's dive on the ground)
+  if (player.slideT > 0 || G.gt - (player.sprintT ?? -9) < 0.7) return true;   // (the trooper's sprint and slide: player/trooper/sprint.js)
   if (inCover()) return false;
   const left = player.flowCoverLeft, sp = Math.hypot(player.moveVel.x, player.moveVel.z);
   return !!left && G.gt - left.t < M.move && sp > 2.5;

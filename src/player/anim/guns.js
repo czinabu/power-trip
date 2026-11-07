@@ -21,10 +21,13 @@ const REX = {
   R: { hand: new THREE.Vector3(0.33, 0.42, 0.2), dir: new THREE.Vector3(0.08, 1, 0.12).normalize(), up: new THREE.Vector3(0.2, 0, -1).normalize() },
   L: { hand: new THREE.Vector3(-0.29, -0.4, 0.09), dir: new THREE.Vector3(-0.03, -0.95, 0.3).normalize(), up: new THREE.Vector3(0, 0.3, 1).normalize() },
 };
+// ON THE RUN both come up: the off hand's pistol raised by its shoulder as the gun hand's is (REX.R, mirrored)
+const REX_RUN_L = { hand: new THREE.Vector3(-0.33, 0.42, 0.2), dir: new THREE.Vector3(-0.08, 1, 0.12).normalize(), up: new THREE.Vector3(-0.2, 0, -1).normalize() };
+const _restL = { hand: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3() };
 const _u = new THREE.Vector3();
 
 /* per-gun live state: how "drawn" it is (0 hip → 1 aimed), smoothed so the draw is a fast snap, the re-holster slow */
-const draw = { R: 0, L: 0, rifle: 0 };
+const draw = { R: 0, L: 0, rifle: 0, run: 0 };
 
 /* the reticle point (world) → a unit aim direction from a shoulder, in chest space */
 function aimFrom(chest, shoulder, worldPoint, out){
@@ -64,9 +67,18 @@ export function rexRest(R, pistols){
    shoulder back toward the target and the head turns to it, while the legs keep running the other way. The single
    blaster always shoots back with the gun hand; dual blasters shoot back with whichever hand is on the target's
    side (player.backHand, which weapons.js fires from). mode.rex: the trooper's DC-17s rest Rex's way (REX above)
-   instead of at the hips. */
+   instead of at the hips; mode.run (the trooper on the run or at a sprint) brings the off hand's up beside the other. */
 export function pistolPose(dt, R, player, worldAim, dual, mode = {}){
-  const { braced, backRun, rex } = mode;
+  const { braced, backRun, rex, run } = mode;
+  draw.run += ((run ? 1 : 0) - draw.run) * Math.min(1, dt * (run ? 9 : 5));
+  let restL = REX.L;
+  if (rex && draw.run > 0.001){
+    const k = draw.run * draw.run * (3 - 2 * draw.run);
+    _restL.hand.copy(REX.L.hand).lerp(REX_RUN_L.hand, k);
+    _restL.dir.copy(REX.L.dir).lerp(REX_RUN_L.dir, k).normalize();
+    _restL.up.copy(REX.L.up).lerp(REX_RUN_L.up, k).normalize();
+    restL = _restL;
+  }
   const hot = braced || player.firing || player.aiming > 0 || player.zoom;
   const twoGuns = dual && !backRun;
   player.backHand = backRun && dual ? backHand(R, worldAim, player.backHand) : 'R';
@@ -87,7 +99,7 @@ export function pistolPose(dt, R, player, worldAim, dual, mode = {}){
   if (dual){
     const aimL = aimFrom(R.chest, R.armL.sh.position, worldAim, _aim);
     if (backRun) overShoulder(aimL, -1);
-    pistolArm(R, R.armL, player.pistols.L, aimL, draw.L, backRun ? (backL ? rec : 0) : fired > 0 ? rec : rec * 0.3, POLE_L, rex ? REX.L : null);
+    pistolArm(R, R.armL, player.pistols.L, aimL, draw.L, backRun ? (backL ? rec : 0) : fired > 0 ? rec : rec * 0.3, POLE_L, rex ? restL : null);
   } else if (braced){
     // shield arm: forearm up across the chest, fist forward, behind the gauntlet's energy disc
     solveArm(R.armL, _h.set(-0.14, 0.08, 0.42), POLE_L);

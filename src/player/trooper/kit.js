@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE CLONE ARC TROOPER's own kit: the input map, the frag grenade, the rifle bash and the combat roll.
+// THE CLONE ARC TROOPER's own kit: the input map, the frag grenade and the rifle bash. SHIFT is his sprint
+// (player/trooper/sprint.js, read by locomotion.js): the dive is the Mando's.
 // Its guns (the DC-15 burst rifle and the twin DC-17s) fire through the Mando's gun code (mando/weapons.js), since both
 // are gunners; the tuning is data/trooper.js.
 
@@ -14,7 +15,6 @@ import { spawnHitSpark } from '../../fx/vfx.js';
 import { palmPoints } from '../../fx/palms.js';
 import { fwd, playerPos } from '../helpers.js';
 import { mandoWeapon, mandoAimPoint, mandoAimRay, switchWeapon, fireTrigger, startReload, syncWeaponMesh } from '../mando/weapons.js';
-import { mandoDive } from '../mando/mobility.js';
 import { trySlide } from '../parkour.js';
 import { throwGrenade } from '../../enemies/grenades.js';
 import { damageEnemy, flinchEnemy } from '../../enemies/damage.js';
@@ -26,7 +26,7 @@ import { tutEvent } from '../../game/tutor-bus.js';
 import { trooperPowerKey, updateTrooperPowers, resetTrooperPowers } from './abilities.js';
 import { battlefieldCall, updateCalls, resetCalls } from '../../allies/calls.js';
 import { resetCommand } from './command.js';
-import { coverKey, coverTrigger, leaveCover, settleIntoCover, updateHeroSupp, resetCover, inCover } from './cover.js';
+import { coverKey, coverTrigger, settleIntoCover, coverAhead, slideIntoCover, updateHeroSupp, resetCover, inCover } from './cover.js';
 
 /* ---------- INPUT (engine/input.js hands the trooper's presses here) ---------- */
 // LMB: the rifle's burst (or its module: held for the auto barrel), or the next pistol. RMB: aim (the steady stance): a
@@ -40,8 +40,7 @@ export function trooperMouseDown(button){
   if (button === 2 && !(player.gbT > 0)){ player.blockHeld = true; if (mandoWeapon().scope) player.zoom = true; }
 }
 export function trooperKey(k, repeat){
-  if (k === 'shift' && !repeat) trooperRoll();
-  if (G.mode !== 'play') return;
+  if (G.mode !== 'play') return;   // (SHIFT is held for the sprint: locomotion.js reads it)
   if (k === 'c' && !repeat && !coverKey()) trySlideToCover();   // COVER beside cover (cover.js); else a SLIDE out of a run, firing as you go
   if (k === 'g' && !repeat) fragGrenade();
   if (k === 'e' && !repeat) rifleBash();
@@ -80,31 +79,25 @@ export function swapModule(){
   tutEvent('module');
 }
 
-/* ---------- COMBAT ROLL (SHIFT) — the Mando's combat dive, on the ground only: no pack to light. Out of cover it's the
-   way to the next one: a roll that ends beside cover settles into it (updateTrooperKit) ---------- */
-export function trooperRoll(){
-  if (G.mode !== 'play' || player.mantle || player.hang || player.flip) return;
-  const onGround = player.grounded || (G.gt - (player.lastGroundT ?? -9) < 0.12 && player.vy <= 0.5);
-  if (!onGround) return;
-  const wasIn = inCover();
-  leaveCover();
-  mandoDive();
-  player.toCover = { kind: 'roll', at: G.gt, from: wasIn };
-}
-// a slide out of a run that ends beside cover settles into it
+/* ---------- THE SLIDE (C at a run or a sprint, nothing beside him) — and the way into the next cover ---------- */
 function trySlideToCover(){
   trySlide();
   if (player.slideT > 0) player.toCover = { kind: 'slide', at: G.gt };
 }
-// after a roll or a slide: the moment it has spent itself, cover in reach takes him in
+// through the skid: a cover face coming up ahead turns it into the SLIDE INTO COVER (cover.js), easing out right on the
+// face; spent with cover in reach, it settles in
 function updateToCover(){
   const q = player.toCover;
   if (!q) return;
   const C = TROOPER.cover, age = G.gt - q.at;
   if (age > 2 || inCover()){ player.toCover = null; return; }
-  const done = q.kind === 'slide' ? !(player.slideT > 0) || Math.hypot(player.moveVel.x, player.moveVel.z) < 2.5
-                                  : age > 0.45 && !player.flip && Math.hypot(player.vel.x, player.vel.z) < 3.5;
-  if (done && player.grounded){ settleIntoCover(q.kind === 'slide' ? C.slideReach : C.rollReach); player.toCover = null; }
+  const sp = Math.hypot(player.moveVel.x, player.moveVel.z);
+  if (player.slideT > 0 && player.grounded && sp > 2.5){
+    const g = coverAhead(playerPos(), V3(player.moveVel.x / sp, 0, player.moveVel.z / sp), Math.min(C.slideAhead, sp * 0.5));
+    if (g){ player.toCover = null; slideIntoCover(g, sp); return; }
+  }
+  const done = !(player.slideT > 0) || sp < 2.5;
+  if (done && player.grounded){ settleIntoCover(C.slideReach); player.toCover = null; }
 }
 
 

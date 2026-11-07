@@ -96,14 +96,14 @@ export const PAD_BINDS = {
   trooper: {
     base: {
       A:  { key: ' ', label: 'Jump', note: 'A short hop: run and jump at low cover to vault it · in low cover, vaults it · no jetpack' },
-      B:  { key: 'shift', label: 'Combat roll', note: 'Any way you push the stick, invulnerable through the throw · a roll that ends by cover settles in' },
+      B:  { key: 'shift', label: 'Sprint', note: 'Hold it and push forward · L3 at a sprint slides you into the cover ahead' },
       X:  { key: 'r', label: 'Vent', note: 'Overheated: press it in the beat for a perfect vent · too early or late and it jams' },
       Y:  { key: 'f', label: 'Ion grenade / breach charge', note: 'Whichever you earned · with a prompt up (TALK, a temple station), interacts instead' },
       RB: { key: 'q', label: 'Recon scan', note: 'Marks every foe nearby' },
       RT: { mouse: 0, label: 'Fire', note: 'DC-15: a burst (the auto barrel: hold) · twin DC-17s: each pull fires the other pistol' },
       LT: { mouse: 2, label: 'Aim', note: 'A tight cone and a steady reticle · the marksman scope raises the scope' },
       LB: { key: 'alt', label: 'Strafe', note: 'Hold: stay square to the crosshair and open the LB powers · tap: strafe on / off (Settings · STRAFE)' },
-      L3: { key: 'c', label: 'Take cover', note: 'Beside cover: back to it (the stick slides along it, LT leans out to aim, again to leave) · at a run with none beside you: the slide' },
+      L3: { key: 'c', label: 'Take cover', note: 'Beside cover: back to it (the stick slides along it, LT leans out to aim, again to leave) · at a run or a sprint with cover ahead: a slide into it · with none near: the slide' },
       R3: { key: 'e', label: 'Rifle bash', note: 'Staggers whoever is in front and cracks a duellist\'s guard' },
       LEFT:  { key: '1', label: 'DC-15 rifle', note: 'Again with the rifle in hand: its next module' },
       UP:    { key: '2', label: 'Twin DC-17s' },

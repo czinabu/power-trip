@@ -53,7 +53,7 @@ export const TROOPER_ARMORY = {
   marksman: { name: 'DC-15 · MARKSMAN', slot: 'RIFLE · 1 AGAIN', tag: 'PRECISION', col: 0xa8ecff, unlock: 'modScope',
               best: 'Officers, snipers, anything far off', lore: 'A scope and a heavy cell. One shot, placed.' },
   pistols:  { name: 'TWIN DC-17s', slot: 'SIDEARMS · 2', tag: 'ON THE MOVE', col: 0x6ab8ff,
-              best: 'Close work, and fire on the way to the next cover', lore: 'A pistol in each hand, firing in turn. They shoot straight out of a roll.' },
+              best: 'Close work, and fire on the way to the next cover', lore: 'A pistol in each hand, firing in turn. They shoot straight out of a sprint or a slide.' },
 };
 // the trooper's guns borrow the Mando's held-weapon models and poses for now: the rifle is the carbine's model on the
 // long-gun mount, the pistols the dual blasters (player/animation.js, holster.js, model/weapons.js)
@@ -89,8 +89,8 @@ export const TROOPER = {
   /* COVER (C, pad L3: player/trooper/cover.js). No jetpack, no blade, thin plate: he lives behind things. C beside a
      crate, wall or pillar puts his back to it; A/D slides along it; held aim (RMB) or the trigger LEANS him out to
      shoot (over LOW cover he rises, round TALL cover he steps out at the edge); let go and he ducks back. C again, a
-     roll, a jump (over low cover: a vault) or walking away leaves it. A slide or a roll that ends beside cover settles in.
-       reach   C finds a face this close (body centre to face, m) · `slideReach` / `rollReach` at the end of a slide / roll
+     jump (over low cover: a vault) or walking away leaves it. C at a run or a sprint with cover ahead slides him into it.
+       reach   C finds a face this close (body centre to face, m)
        minH    a solid at least this tall over the feet is cover · below `tallH` it's LOW (crouch behind, rise to shoot)
        hug     body centre to the face while in it · `move` the shuffle along it (× run speed) · `edge` how far in from
                a box's end he can shuffle; past it he's at the EDGE of tall cover, where he can lean round it
@@ -98,10 +98,15 @@ export const TROOPER = {
                this long after the last shot · `rise` s to come up / duck down
        hidden  damage × from in front of the cover while ducked · `peekDr` while leaning out to shoot · from the side or
                behind (a flank) the cover does nothing
-       leave   s of walking straight away from the face before he steps out of it */
-  cover: { reach: 1.75, slideReach: 2.4, rollReach: 2.2, minH: 0.95, tallH: 1.85, hug: 0.66, move: 0.55, edge: 0.35,
-           lean: 0.75, peek: 0.5, rise: 0.14, hidden: 0.3, peekDr: 0.45, front: 0.25, leave: 0.22 },
-  /* ARMOUR: clone plate, not beskar. Out in the open (not in cover, not rolling) every hit lands `open` × as hard;
+       leave   s of walking straight away from the face before he steps out of it · `offEnd` s of pushing on past a
+               bare end of it (nothing carries the face on) before he walks off it
+       slideMin  over this speed (m/s), C with cover `slideAhead` m ahead is a SLIDE INTO COVER, leaving at no less than
+               `slideSpeed` and easing out onto the face · `slideReach` cover this near the end of a plain slide takes him in
+       snap    s the step onto the face takes, from wherever C was pressed · `minR` a column thinner than this is a pole,
+               not cover */
+  cover: { reach: 1.75, slideReach: 2.4, slideMin: 4, slideAhead: 7, slideSpeed: 10, minH: 0.95, tallH: 1.85, hug: 0.66, move: 0.55, edge: 0.35,
+           lean: 0.75, peek: 0.5, rise: 0.14, hidden: 0.3, peekDr: 0.45, front: 0.25, leave: 0.22, offEnd: 0.5, snap: 0.16, minR: 0.35 },
+  /* ARMOUR: clone plate, not beskar. Out in the open (not in cover) every hit lands `open` × as hard;
      in cover the face does the soaking (cover.hidden / peekDr above). The signature fork moves both: data/trooper-progression.js */
   armor: { open: 1.22 },
   /* SUPPRESSION, both ways.
@@ -118,6 +123,8 @@ export const TROOPER = {
   // JUMP: no pack under him. A short, heavy hop (× CFG.player.jumpVel) that falls harder than it rose (× gravity): enough to
   // vault, climb and clear a step, never a bound. No wall-runs, no wall-kicks. In the air the keys only nudge him.
   jump: { vel: 0.7, fall: 1.7, airControl: 0.3 },
+  // SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it
+  sprint: { mul: 1.4 },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.
   // Each spends ability energy (the bar under vitality) and has a cooldown; mastery ranks (data/mastery.js) retune them.
   // RECON SCAN (Q): a pulse that marks every foe within `range` for `time` s: marked foes take `mark`× damage from

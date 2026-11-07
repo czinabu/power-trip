@@ -27,7 +27,18 @@ export function mapLayout(Hb){
       at[to] = [cx + ox * d, cz + oz * d]; todo.push(to);
     }
   }
-  // (a wing no door reaches: set off to the east of everything, so it still has a button)
+  // (a wing no door reaches, like a hub's ship whose ramp leads out into one wing: beside the wing it leads to, on the first
+  // side with room, else set off to the east of everything, so it still has a button)
+  const clear = (x, z, h) => Object.keys(at).every(o => Math.abs(at[o][0] - x) >= half(o) + h + GAP * 0.5 || Math.abs(at[o][1] - z) >= half(o) + h + GAP * 0.5);
+  for (const id of Hb.order){
+    if (at[id]) continue;
+    const to = Object.values(Hb.wings[id].doors || {}).find(t => at[t]);
+    if (!to) continue;
+    for (const [ox, oz] of [[0, -1], [1, 0], [-1, 0], [0, 1]]){
+      const d = half(to) + GAP + half(id), x = at[to][0] + ox * d, z = at[to][1] + oz * d;
+      if (clear(x, z, half(id))){ at[id] = [x, z]; break; }
+    }
+  }
   let east = Math.max(...Object.keys(at).map(id => at[id][0] + half(id)));
   for (const id of Hb.order) if (!at[id]){ at[id] = [east + GAP + half(id), 0]; east += GAP + 2 * half(id); }
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
@@ -70,6 +81,7 @@ function glyph(s){
     case 'quests': return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.5" style="fill:var(--hm-c5)"/>`, 2.2];
     case 'ship': case 'shuttle': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
     case 'raid': return [`<circle cx="${n(x)}" cy="${n(z)}" r="2" fill="none" stroke="#b46bff" stroke-width=".9"/><circle cx="${n(x)}" cy="${n(z)}" r=".7" fill="#b46bff"/>`, 2.8];   // the raid table's gate-ring
+    case 'galaxy': return [`<circle cx="${n(x)}" cy="${n(z)}" r="${n(Math.min(4, r * 0.7))}" fill="none" style="stroke:${BLUE}" stroke-width=".7"/><circle cx="${n(x)}" cy="${n(z)}" r="1.1" style="fill:${GOLD}"/>`, Math.min(4, r * 0.7) + 1.4];   // a ship's galaxy table
     case 'bounties': return [`<rect x="${n(x - 3.5)}" y="${n(z - 1.2)}" width="7" height="2.4" style="fill:${GOLD}"/>`, 2];
   }
   return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.6" style="fill:${BLUE}"/>`, 2.2];
@@ -91,6 +103,8 @@ const ART = {
   fire: (h) => `<circle cx="0" cy="0" r="${n(h * 0.2)}" style="fill:${FIRE}" opacity=".25"/><circle cx="0" cy="0" r="${n(h * 0.1)}" style="fill:${FIRE}" opacity=".6"/>`,
   // racks along the walls, as in an armory
   racks: (h) => { let o = ''; for (const x of [-0.86, 0.86]) for (const z of [-0.5, 0, 0.5]) o += `<rect x="${n(x * h - h * 0.04)}" y="${n(z * h - h * 0.13)}" width="${n(h * 0.08)}" height="${n(h * 0.26)}" style="fill:${STONE}" opacity=".4"/>`; return o; },
+  // a hero's ship (data/hero-ships.js): the hull's outline round the cabin, the nose forward (north), the ramp aft
+  hull: (h) => `<path d="M${n(-h * 0.42)} ${n(h * 0.92)}L${n(-h * 0.92)} ${n(h * 0.5)}L${n(-h * 0.92)} ${n(-h * 0.4)}L${n(-h * 0.34)} ${n(-h * 0.96)}L${n(h * 0.34)} ${n(-h * 0.96)}L${n(h * 0.92)} ${n(-h * 0.4)}L${n(h * 0.92)} ${n(h * 0.5)}L${n(h * 0.42)} ${n(h * 0.92)}Z" fill="none" style="stroke:${STONE}" stroke-width=".8" opacity=".6"/>`,
 };
 
 /* the map's markup: `here` the wing you're in, `you` { x, z, yaw, half } where you stand in it, `who(id)` the party

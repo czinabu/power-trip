@@ -29,6 +29,8 @@ import { hostHero } from '../net/partner.js';
 import { setHubInteract, INTERACT_KEY } from './interact.js';
 import { stepTempleFolk } from '../world/arenas/tython-folk.js';
 import { welcomeArrive, updateWelcome } from './hub-welcome.js';
+import { SHIP_WING, shipOf } from '../data/hero-ships.js';
+import { partnerWorlds } from '../net/partner.js';
 
 let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
 const prompt = () => document.getElementById('hubp');
@@ -42,7 +44,7 @@ export function startHub(wing, from){
   const was = G.hub;
   G.partyRun = false;   // (a guest back in the temple: the next run it follows sets it again)
   const hubId = hubIdFor();
-  if (hubId !== G.hubId) from = null;   // (a different hub from the last: no door back to arrive through)
+  if (hubId !== G.hubId){ from = null; if (net.role === 'guest' && connected() && hostAboard()) wing = SHIP_WING; }   // (a different hub from the last: no door back to arrive through; a guest joining a host aboard their ship boards it too)
   G.hubId = hubId;
   const Hb = curHub();
   G.hubWing = Hb.wings[wing] ? wing : Hb.start;
@@ -52,7 +54,9 @@ export function startHub(wing, from){
   G.waveTotal = 0;
   let [x, z, yaw] = W.spawn;
   const side = from && doorSide(Hb.wings, G.hubWing, from);
-  if (side){
+  const outAt = from === SHIP_WING && !side && shipOf(hubId).exit === G.hubWing && shipOf(hubId).outAt;   // (down the ship's ramp: at the foot of it)
+  if (outAt) [x, z, yaw] = outAt;
+  else if (side){
     const [ox, oz] = SIDE_OUT[side], H = shared.arenaHalf;
     x = ox * (H - HUB.arrive); z = oz * (H - HUB.arrive); yaw = Math.atan2(-ox, -oz);
   }
@@ -131,12 +135,26 @@ export function updateHub(dt){
   }
   // co-op: the host's hero calls a different hub home (they swapped hero, or this guest arrived before hearing who they
   // play): over to the host's hub, at its start
-  if (net.role === 'guest' && connected() && hubIdFor() !== G.hubId){ goWing(HUBS[hubIdFor()].start); return; }
+  if (net.role === 'guest' && connected() && hubIdFor() !== G.hubId){ goWing(hostAboard() ? SHIP_WING : HUBS[hubIdFor()].start); return; }
   // co-op: the host has set off on a run, and this guest is in the hub: follow them in
   if (followT > 0 && (followT -= dt) <= 0){ followT = 0; if (followHost && coopRun.on && net.role === 'guest') followHost(); }
 }
 
 /* ---------------- the party ---------------- */
+// THE SHIP AS THE LOBBY (data/hero-ships.js): the host aboard their ship (a guest arriving then lands aboard too), and the
+// host calling the party aboard from the galaxy map: every guest walking the hub is taken to the ship
+const hostAboard = () => { const h = partnerWorlds().find(p => p.slot === 0); return !!h && h.world === 'hub:' + hubIdFor() + ':' + SHIP_WING; };
+export const shipAboard = () => partnerWorlds().filter(p => p.world === 'hub:' + G.hubId + ':' + SHIP_WING);
+export function callAboard(){
+  if (net.role !== 'host' || !connected()) return false;
+  send({ t: 'shipcall' });
+  return true;
+}
+on('shipcall', () => {
+  if (net.role !== 'guest' || !G.hub || G.mode !== 'play' || G.hubWing === SHIP_WING) return;
+  showBanner('ALL ABOARD', 'The host is calling the party aboard ' + shipOf(hubIdFor()).name.replace(/^THE /, 'the '), 1.8);
+  setTimeout(() => { if (G.hub && G.hubWing !== SHIP_WING && net.status === 'connected') goWing(SHIP_WING); }, 1200);
+});
 let followHost = null, backToTemple = null;
 export function setPartyHooks(follow, back){ followHost = follow; backToTemple = back; }   // ui/menus.js
 export const runLabel = () => !coopRun.on ? '' : coopRun.k === 'z' ? (ZONES[coopRun.mid.slice(ZONE_PREFIX.length)] || ZONES.jedha).name : coopRun.k === 'm' ? (coopRun.mid.startsWith('arcade:') ? 'A CHALLENGE' : coopRun.mid.startsWith('raid:') ? 'THE RAID · ' + missionTitle(coopRun.mid) : missionTitle(coopRun.mid)) : coopRun.k === 'c' ? 'THE CAMPAIGN' : 'SURVIVAL';

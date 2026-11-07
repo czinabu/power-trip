@@ -18,6 +18,7 @@
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
 import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
+import { HERO_SHIPS, SHIP_WING } from './hero-ships.js';   // each hub's ship: one more wing, boarded from its pad (data/hero-ships.js)
 
 export const HUB = {
   doorHalf: 5.5,   // metres either side of a door's middle that count as walking through it
@@ -107,7 +108,7 @@ const TEMPLE_WINGS = {
   },
 };
 
-export const HUBS = {
+const HUB_LIST = {
   temple: { name: 'THE HIDDEN TEMPLE', place: 'TYTHON', home: 'THE TEMPLE', room: 'WING',
     tile: 'Walk the temple on Tython, gather your party and pick a mission together',
     travel: 'Travel to any wing of the temple.',
@@ -121,6 +122,9 @@ export const HUBS = {
     travel: 'Travel to any hall of the covert.',
     start: 'forge', order: COVERT_ORDER, wings: COVERT_WINGS },
 };
+// every hub's SHIP (data/hero-ships.js): one more wing of it, last on its map's list, boarded at its pad or hangar
+for (const [id, H] of Object.entries(HUB_LIST)) if (HERO_SHIPS[id]){ H.wings = { ...H.wings, [SHIP_WING]: HERO_SHIPS[id].wing }; H.order = [...H.order, SHIP_WING]; }
+export const HUBS = HUB_LIST;
 // which hub each hero calls home (a hero without one of their own uses the temple)
 export const HERO_HUB = { jedi: 'temple', trooper: 'kamino', mando: 'covert' };
 export const hubOf = (hero) => HUBS[HERO_HUB[hero]] ? HERO_HUB[hero] : 'temple';

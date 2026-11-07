@@ -11,10 +11,15 @@
    'none' leaves a map alone (the indoor rooms, which have walls and a roof between you and the outside). */
 export const OUTSKIRTS_STYLE = {
   archive: 'none', dojo: 'none', hangar: 'none', throne: 'none', frigate: 'none', jedhaNight: 'none',
+  // the hubs' wings are halls under a roof (the temple's, the cloning citadel's, the covert's), and the crystal cave
+  tyHall: 'none', tyCouncil: 'none', tyTraining: 'none', tyArchive: 'none', tyForge: 'none',
+  kmDeck: 'none', kmWar: 'none', kmRange: 'none', kmHalls: 'none', kmArmory: 'none',
+  mfForge: 'none', mfClan: 'none', mfPit: 'none', mfVault: 'none', mfHangar: 'none',
   jungle: 'forest', holdfast: 'forest',
-  canyon: 'rocks', refuge: 'rocks', warcamp: 'rocks', hall: 'rocks', forge: 'rocks', approach: 'rocks', sith: 'rocks',
+  canyon: 'rocks', refuge: 'rocks', warcamp: 'rocks', hall: 'rocks', forge: 'rocks', approach: 'rocks', sith: 'rocks', sithGate: 'rocks',
   garrison: 'city', relay: 'city', shipyard: 'city', chipworks: 'city', citadel: 'city', covert: 'city', foundry: 'city',
-  plains: 'city', prison: 'city', temple: 'city', pens: 'city', kamino: 'city', barge: 'city',
+  plains: 'city', prison: 'city', temple: 'city', pens: 'city', barge: 'city', meltworks: 'city',
+  kamino: 'stilts',
   outpost: 'town',
 };
 
@@ -30,5 +35,8 @@ export const OUTSKIRTS = {
   city:   { from: 1, to: 4.2, clear: 16, cell: 24, block: [0.55, 0.8], h: [14, 68], fill: 0.78, avenue: 12, lamp: 16, setback: 0.35, beacon: 0.25 },
   town:   { from: 1, to: 3.6, clear: 14, cell: 18, block: [0.45, 0.75], h: [4, 12], fill: 0.62, avenue: 10, lamp: 0, setback: 0.2, beacon: 0, domes: 0.35 },
   forest: { from: 1, to: 3.6, clear: 12, cell: 11, h: [16, 44], fill: 0.72 },
-  rocks:  { from: 1, to: 3.8, clear: 14, cell: 20, h: [6, 40], fill: 0.5 },
+  // rocks climb into ranges toward the horizon, tall enough to show over a map's own ring of cliffs
+  rocks:  { from: 1, to: 4.4, clear: 14, cell: 22, h: [8, 110], fill: 0.55 },
+  // Kamino: more of the city's stilt towers standing out of the sea, saucer decks on top
+  stilts: { from: 1, to: 4.2, clear: 20, cell: 30, h: [14, 52], fill: 0.5 },
 };

@@ -16,7 +16,7 @@
      lit      night maps only (theme fog dark enough): share of storey-panels on buildings over litH m that carry a lit
               window slot, in the theme's lamp colour; 0 turns them off
      litH     a box at least this tall gets lit windows */
-export const DETAIL = { minH: 3.4, panel: 2.6, storey: 3.3, line: 0.05, seam: 0.26, jitter: 0.12, lit: 0.16, litH: 7 };
+export const DETAIL = { minH: 3.4, panel: 2.6, storey: 3.3, line: 0.05, seam: 0.26, jitter: 0.12, lit: 0.12, litH: 7 };
 
 /* AERIAL PERSPECTIVE (world/atmosphere.js): the far distance fades toward the sky's horizon glow and never into near
    black, so silhouettes layer back instead of the world ending in a dark wall a few dozen metres out.

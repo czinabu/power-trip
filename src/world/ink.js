@@ -152,7 +152,7 @@ export const PROP_SHADE = { jitter: 0.16, foot: 0.68, footH: 1.6, crown: 0.1, cr
 
 /* SCALE DETAIL (data/depth.js DETAIL): the big man-made blocks' panel seams, storey courses and, at night, a few lit
    window slots, drawn in world metres on their upright faces. bakeArena marks which props take it (aDet.x: 0 none,
-   1 seams, 2 seams and windows; aDet.y: the prop's foot, so courses count up from its base). Seams fade out where a
+   1 seams, 2 seams and windows at night, 3 windows by day too (dark slots, a few lit after dark: userData.windows); aDet.y: the prop's foot, so courses count up from its base). Seams fade out where a
    panel shrinks to a few pixels, so the far skyline never shimmers. SCALE_U is set per arena (world/atmosphere.js) */
 export const SCALE_U = { lamp: { value: new THREE.Color(0xffc070) }, lit: { value: 0 } };
 const f3 = v => v.toFixed(3);
@@ -169,7 +169,7 @@ const SCALE_GLSL = `
     float seam = max(ln.x, ln.y) * fade;
     float h = fract(sin(dot(id, vec2(12.9898, 78.233)) + vPropK * 91.7) * 43758.5453);
     diffuseColor.rgb *= (1.0 - seam * ${f3(DETAIL.seam)}) * (1.0 + (h - 0.5) * ${f3(DETAIL.jitter)} * fade);
-    if (vDet.x > 1.5 && id.y >= 1.0 && uLit > 0.0){
+    if (vDet.x > 1.5 && id.y >= 1.0 && (uLit > 0.0 || vDet.x > 2.5)){   // (3: the outskirts' buildings, windows by day too)
       float h2 = fract(h * 17.31 + 0.13);
       vec2 w = abs(fc - vec2(0.5, 0.55));
       float inWin = (1.0 - smoothstep(0.2, 0.2 + px.x / cs.x, w.x)) * (1.0 - smoothstep(0.13, 0.13 + px.y / cs.y, w.y));
@@ -310,7 +310,7 @@ function detailOf(o, g){
   if (o.geometry.type === 'BoxGeometry' && !o.userData.noDetail){
     g.computeBoundingBox();
     const b = g.boundingBox, h = b.max.y - b.min.y, w = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
-    if (h >= DETAIL.minH && w >= DETAIL.panel * 0.6){ k = h >= DETAIL.litH && w >= DETAIL.panel * 1.5 ? 2 : 1; foot = b.min.y; }
+    if (h >= DETAIL.minH && w >= DETAIL.panel * 0.6){ k = h >= DETAIL.litH && w >= DETAIL.panel * 1.5 ? (o.userData.windows ? 3 : 2) : 1; foot = b.min.y; }
   }
   for (let i = 0; i < n; i++){ a[i * 2] = k; a[i * 2 + 1] = foot; }
   return new THREE.BufferAttribute(a, 2);

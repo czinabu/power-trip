@@ -372,7 +372,7 @@ const BUILD = {
         if (Math.abs(cx) < av + bw / 2 + 2 || Math.abs(cz) < av + bd / 2 + 2) continue;   // the avenues out stay open
         const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.65, 1.3);
         const col = cols[R() < 0.5 ? 0 : 1];
-        put(grp, new THREE.BoxGeometry(bw, h, bd), mat(col), cx, h / 2, cz);
+        put(grp, new THREE.BoxGeometry(bw, h, bd), mat(col), cx, h / 2, cz).userData.windows = true;
         if (R() < S.setback){ const h2 = h * rand2(R, 0.2, 0.45); put(grp, new THREE.BoxGeometry(bw * 0.6, h2, bd * 0.6), mat(cols[1]), cx, h + h2 / 2, cz); }
         else put(grp, new THREE.BoxGeometry(bw + 0.5, 0.7, bd + 0.5), mat(roof), cx, h + 0.35, cz);   // a parapet
         if (S.domes && R() < S.domes) put(grp, new THREE.SphereGeometry(Math.min(bw, bd) * 0.32, 10, 5, 0, PI * 2, 0, PI / 2), mat(roof), cx, h, cz);
@@ -390,6 +390,18 @@ const BUILD = {
           put(grp, new THREE.BoxGeometry(0.22, 6, 0.22), mat(dim(cols[1], 0.6)), lx, 3, lz).userData.noOutline = true;
           put(grp, new THREE.BoxGeometry(0.9, 0.22, 0.9), glowMat(lamp), lx, 6.1, lz);
         }
+      }
+    } else if (o.style === 'stilts'){
+      const pod = list.find(b => b.kind === 'pods') || {};
+      const cols = [pod.color ?? pal.wall ?? 0xd8dee4, pod.color2 ?? pal.wallD ?? 0x8a98a6], glow = pod.glow ?? lamp;
+      for (let x = -ext; x <= ext; x += S.cell) for (let z = -ext; z <= ext; z += S.cell){
+        const cx = x + (R() - 0.5) * S.cell * 0.6, cz = z + (R() - 0.5) * S.cell * 0.6;
+        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.7, 1.2), r = h * rand2(R, 0.2, 0.32);
+        if (!out(cx, cz, r) || R() > S.fill) continue;
+        for (const [lx, lz] of [[-0.45, -0.45], [0.45, -0.45], [0, 0.5]]) put(grp, new THREE.CylinderGeometry(r * 0.06, r * 0.08, h, 6), mat(cols[1]), cx + lx * r, h / 2 - 2, cz + lz * r);
+        put(grp, new THREE.CylinderGeometry(r, r * 0.8, r * 0.28, 14), mat(cols[0]), cx, h, cz);
+        put(grp, new THREE.SphereGeometry(r * 0.55, 12, 5, 0, PI * 2, 0, PI / 2), mat(cols[0]), cx, h + r * 0.14, cz);
+        put(grp, new THREE.CylinderGeometry(r * 1.002, r * 1.002, r * 0.06, 14), glowMat(glow), cx, h, cz).userData.noOutline = true;   // the band of lit ports
       }
     } else if (o.style === 'forest'){
       const bark = pal.bark ?? 0x3a2e22, leaf = [pal.leaf ?? 0x24402a, pal.leafD ?? 0x1a3020];

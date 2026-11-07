@@ -11,7 +11,7 @@ import { G, shared, player, bolts, enemies } from '../state.js';
 import { V3 } from '../utils.js';
 import { scene } from '../engine/renderer.js';
 import { fireBolt } from '../enemies/bolts.js';
-import { throwGrenade, grenades } from '../enemies/grenades.js';
+import { throwGrenade, grenades, grenadeHurt, grenadeKnock } from '../enemies/grenades.js';
 import { staggerEnemy } from '../enemies/damage.js';
 import { endLunge, paintLungeLine } from '../enemies/tactics.js';
 import { updateAimLine } from '../enemies/specials.js';
@@ -141,7 +141,7 @@ hooks.blast = (pos, r, dmg, kind) => {
 };
 
 // the knock a blast gives (flat speed, lift) by kind: bomber, warbringer slam, volatile elite, grenade
-const KNOCK = { a: [16, 6], s: [15, 7], v: [0, 0], g: [11, 5] };
+const KNOCK = { a: [16, 6], s: [15, 7], v: [0, 0] };   // (a grenade's: enemies/grenades.js grenadeKnock)
 
 on('blast', (m) => {
   if (!asGuest()) return;
@@ -154,9 +154,10 @@ on('blast', (m) => {
   const inside = grenade ? Math.hypot(pp.x - m.x, pp.z - m.z) < m.r && pp.y < 3.2 && !blastCovered(pos, pp.x, pp.y, pp.z)   // (a detonator's blast stops on a wall between, as on the host: enemies/grenades.js)
                          : pp.distanceTo(pos) < m.r && player.dashT <= 0;
   if (!inside) return;
-  const res = grenade ? hurtPlayer(m.d, pos, false, false, false, { unblockable: true, blast: true }) : hurtPlayer(m.d, pos);
+  const res = grenade ? hurtPlayer(grenadeHurt(m.d, pos, m.r, pp), pos, false, false, false, { unblockable: true, blast: true }) : hurtPlayer(m.d, pos);
+  if (grenade){ if (res === 'hit') grenadeKnock(pos, pp); return; }   // (the same shove as on the host: enemies/grenades.js)
   const [push, lift] = KNOCK[m.k] || [0, 0];
-  if (push && (!grenade || res === 'hit')){
+  if (push){
     const kx = pp.x - m.x, kz = pp.z - m.z, l = Math.hypot(kx, kz) || 1;
     player.vel.x += kx / l * push; player.vel.z += kz / l * push; player.vy = Math.max(player.vy, lift);
   }

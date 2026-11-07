@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { camera } from '../engine/renderer.js';
 import { clamp } from '../utils.js';
 import { shared, G, enemies, player } from '../state.js';
+import { playerPos } from '../player/helpers.js';
+import { grenades } from '../enemies/grenades.js';
 
 /* THREAT AWARENESS — project a world point to screen space; return the on-screen flag, a clamped edge position, and
    the CSS rotation (0°=up, clockwise) for an arrow pointing toward it. Powers the damage arc + off-screen markers. */
@@ -43,6 +45,13 @@ export function renderThreats(){
     if (col) threats.push({ pos: e.group.position, col });
   }
   if (shared.boss && shared.boss.hp > 0) threats.push({ pos: shared.boss.group.position, col: '#ff5a5a' });
+  // a live detonator coming down on you out of view: point at its landing mark (enemies/grenades.js)
+  const pp = playerPos();
+  for (const n of grenades){
+    if (n.friendly || n.vel) continue;
+    const m = n.ring.position;
+    if (Math.hypot(m.x - pp.x, m.z - pp.z) < n.R + 2.5) threats.push({ pos: m, col: '#ffae2a' });
+  }
   // a hold's lane that's lit: a wave is about to step out of it (game/lanes.js)
   if (shared.incoming) for (const pos of shared.incoming) threats.push({ pos, col: '#ff4a2a' });
   // --- where a SURGE is coming in: one pale marker per direction for foes that arrived in the last few seconds

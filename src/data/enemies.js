@@ -56,7 +56,7 @@ export const ENEMY_TYPES = {
   // GRENADIER — lobs THERMAL DETONATORS over cover onto where you stand. A ring marks the landing spot the moment it
   // throws, and fills as the fuse burns: step out of it. Cover doesn't save you; moving does. A Jedi can PUSH a live
   // detonator back into the squad.
-  grenadier: { hp: 58, speed: 4.8, dmg: 26, range: 21,  windup: 0.85, recover: 2.3,
+  grenadier: { hp: 58, speed: 4.8, dmg: 26, range: 21,  windup: 0.85, recover: 2.6,
              scale: 1.0,  color: 0x6d6a5a, eye: 0xff8a2a, model: 'grenadier', weapon: 'deto', ranged: true, grenade: true, blastR: 3.6, fuse: 1.15, score: 3 },
   // PURGE LANCER — an electro-pike gap-closer. From mid range it plants its feet, marks a LINE on the ground at you and
   // LUNGES down it. The line locks late: sidestep or dash out of it, or parry the point (a held block can't stop it).

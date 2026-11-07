@@ -58,12 +58,19 @@ export const GRENADE = {
   flight: [0.55, 1.15],   // seconds in the air (longer for a longer throw)
   arc: 6,                 // apex height above the higher end of the throw
   scatter: 0.9,           // landing spread around where you stood
-  lead: 0.35,             // seconds of your movement it leads by (a strafing target still has to move out)
+  lead: 0.2,              // seconds of your movement it leads by (a strafing target still has to move out, but it no longer lands in your path)
   foeDmg: 14, foeKnock: 9,      // what a stray one does to the squad (a flinch, not a knockdown)
   pushedDmg: 55, pushedKnock: 20,   // ...and one a Jedi pushed back into them
   pushSpeed: 22,          // a Force-pushed detonator flies back this fast
-  slots: 1, slotsLate: 2, // grenadiers winding up a throw at once
+  slots: 1, slotsLate: 1, // grenadiers winding up a throw at once (was 2 late: two detonators landing together was the worst of it)
   overCover: 2.6,         // a thrower lobs over cover up to this tall (m); past a taller wall it can't see you, so it goes round
+  // FAIRNESS — a pack of grenadiers shouldn't bury you in detonators (enemies/director.js rangedSlotFree)
+  gap: 2.4, gapLate: 1.7, // seconds after one detonator is thrown at a hero before the next grenadier may start winding up
+  maxLive: 2,             // ...and never more than this many live ones burning down around one hero at once
+  liveR: 7,               // (what counts as "around you": a landing mark this close)
+  edge: 0.5,              // the blast is full strength at its heart, this much at the rim: half out of the ring is half the hurt
+  knock: 7, lift: 0,      // the shove a blast gives the hero (was 11 and a 5 m/s pop into the air: a launch, then a mid-air hit)
+  rearWindup: 1.35,       // a throw wound up behind the camera takes this much longer, like a swing does
 };
 
 /* LANCER LUNGE — from `min`..`max` away, with you in sight and in front of the camera, a lancer can plant and lunge.

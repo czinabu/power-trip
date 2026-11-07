@@ -59,7 +59,7 @@ for (const hero of HEROES){
 
     // THE SHIP: each hub has one that flies to Jedha, at its own station
     { const [w, x, z] = SHIP[hubId];
-      await page.evaluate((w) => GAME.hub.goWing(w), w);
+      await page.evaluate((w) => { if (GAME.G.hubWing !== w) GAME.hub.goWing(w); }, w);   // (the trooper starts on the deck: no reload under their feet)
       check(await until((w) => GAME.G.hub && GAME.G.hubWing === w && !GAME.G.paused, w), `${hero}: to the ${w}, where the ship to Jedha is`);
       await stand(x, z); await frames();
       await page.keyboard.press('f');

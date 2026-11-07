@@ -32,6 +32,7 @@ import { zoneLock } from '../game/zone-gate.js';
 import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML } from './hub-map.js';
+import { optHTML, listHTML, headHTML } from './hub-cards.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
@@ -54,6 +55,7 @@ const party = () => net.status === 'connected';
 // a button: [label, line under it, what it does, locked reason]
 const B = (t, d, go, lock) => ({ t, d, go, lock });
 
+// (each option is a card in the hero's look: ui/hub-cards.js)
 // the open zones (data/zones.js): a button for each, from the mode tables and the maps
 // NEW GAME+ (data/ngplus.js), once this hero has beaten the campaign: the story again at the next tier, the profile kept
 const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The story again with your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter',
@@ -148,9 +150,9 @@ function render(){
   if (station.act === 'travel') return renderMap();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
-  panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
-    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb) + '</div>' + partyLine +
-    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
+  panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
+      station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb, partyLine) +
+    listHTML(list, station.act) +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;
 }
@@ -188,7 +190,7 @@ function renderMap(){
     '<div class="hb-d">' + Hb.travel + '</div>' + partyLine + '</div>' +
     '<div class="hm-body">' + mapHTML(Hb, G.hubId, here, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, who, wingIdx) +
     '<div class="hm-side"><div class="hm-info"></div>' +
-    '<div class="hb-list">' + extra.map((b, i) => '<div class="hb-o" data-i="' + (Hb.order.length + i) + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="hb-list">' + extra.map((b, i) => optHTML(b, Hb.order.length + i)).join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div></div></div>';
   panel._list = list;
   showWing(null);
@@ -225,7 +227,7 @@ function renderWelcome(){
   panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +
     '<div class="hw-say"><span>' + esc(C.hello) + '</span><b>' + esc(C.guide) + '</b></div>' +
     '<div class="hw-rows">' + C.rows.map(r => '<div class="hw-row"><div class="hw-l">' + esc(r.label) + '</div><div class="hw-n">' + esc(r.name) + '<em>' + esc(r.where) + '</em></div><div class="hw-d">' + esc(r.d) + '</div></div>').join('') + '</div>' +
-    '<div class="hb-list hw-go">' + list.map((b, i) => '<div class="hb-o' + (i ? '' : ' hw-main') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="hb-list hw-go">' + list.map((b, i) => optHTML(b, i, { main: !i, cls: i ? '' : 'hw-main', ic: i ? 'door' : 'compass' })).join('') + '</div>' +
     '<div class="hw-again">' + esc(C.again) + '</div></div>';
   panel._list = list;
 }
@@ -280,8 +282,8 @@ function renderReady(){
       list.push(B('NOT YET', 'Tell the host you need a moment', () => answer(false)));
     }
   }
-  panel.innerHTML = '<div class="hb-box"><div class="hb-k">THE PARTY</div><div class="hb-t">READY CHECK</div><div class="hb-d">' + line + '</div>' +
-    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.d === 'READY' ? ' ready' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+  panel.innerHTML = '<div class="hb-box hb-a-ready">' + headHTML('THE PARTY', 'READY CHECK', line) +
+    '<div class="hb-list">' + list.map((b, i) => optHTML(b, i, { cls: b.d === 'READY' ? 'ready' : '', main: b.go && (b.t === 'READY' || b.t === 'GO NOW'), ic: b.go ? (b.t === 'NOT YET' ? 'door' : 'check') : 'party' })).join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">' + (R.host ? 'CALL IT OFF' : 'CLOSE') + '</div></div>';
   panel._list = list;
 }

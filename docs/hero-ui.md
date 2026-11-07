@@ -11,7 +11,9 @@ in the project files (`hero-ui/hero-ui-direction.html`).
   Components read only these tokens, so a new surface works for every hero.
 - `styles/heroes/ink.css` holds the rules every hero shares. Area files: `tracker.css` (objectives, HOLD O, the run
   line), `briefing.css` (chapter card, lesson board), `screens.css` (pause, results), `profile.css` (the profile page,
-  which wears the look of the hero tab it shows), `menus.css` (settings, controls, load / save, save files, co-op, codex,
+  which wears the look of the hero tab it shows), `mastery.css` (the Jedi's FORMS & MASTERY and the gunners' ARMORY,
+  laid out like the profile: who you are on the left, a grid of tiles, one thing's detail beside it in short tabs; the
+  parts they share are in `ui/mastery-kit.js`), `menus.css` (settings, controls, load / save, save files, co-op, codex,
   roadmap, the sandbox panel and battle setup, the confirms, and the title screen).
 - Menus: inside a menu the old tokens (`--ink`, `--accent`, `--edge`, ...) point at the hero's `--hx-*` ones, so the
   older rules recolour on their own; `menus.css` then paints only (no sizes or layout), so phones and the pad ring keep

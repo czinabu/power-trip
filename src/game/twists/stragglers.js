@@ -13,6 +13,7 @@ import { sfx } from '../../audio/sfx.js';
 import { heroIn, makeBeacon, removeMarker } from '../objectives.js';
 import { makeEvacuee } from '../../world/arenas/refuge.js';
 import { CIV } from '../civilians.js';
+import { animateCivilian } from '../../enemies/civilian.js';
 
 const kindOf = (o) => (o && o.evacuees && o.evacuees.kind) || (isMando() ? 'foundling' : 'youngling');
 function child(o, i, x, z){
@@ -26,12 +27,14 @@ export default {
     const S = TW.s, c = S.cur;
     // the one that froze: huddled and shaking, then running for the line once you've reached it
     if (c && c.state === 1){
-      c.m.rotation.set(0.35, Math.atan2(-c.x, -c.z), Math.sin(G.gt * 22) * 0.05);
+      c.m.rotation.set(0.12, Math.atan2(-c.x, -c.z), Math.sin(G.gt * 22) * 0.03);
       c.m.position.y = 0;
+      animateCivilian(c.m, c.an || (c.an = {}), dt, false, 1);   // crouched, arms over the head (enemies/civilian.js)
     } else if (c && c.state === 2){
       const [bx, bz] = tw.back, dx = bx - c.m.position.x, dz = bz - c.m.position.z, l = Math.hypot(dx, dz);
       c.t += dt;
-      if (l > 0.4){ const st = Math.min(l, dt * 4.6); c.m.position.x += dx / l * st; c.m.position.z += dz / l * st; c.m.rotation.set(0, Math.atan2(dx, dz), 0); c.m.position.y = Math.abs(Math.sin(c.t * 14)) * 0.08; }
+      if (l > 0.4){ const st = Math.min(l, dt * 4.6); c.m.position.x += dx / l * st; c.m.position.z += dz / l * st; c.m.rotation.set(0, Math.atan2(dx, dz), 0); c.m.position.y = 0; }
+      animateCivilian(c.m, c.an || (c.an = {}), dt, false, 0);   // running for the line on its own legs
       if ((l <= 0.4 || c.t > 5) && !ctx.guest){ unprop(c.m); S.cur = null; S.i++; }
     }
     if (ctx.guest) return;

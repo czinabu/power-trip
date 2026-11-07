@@ -7,6 +7,7 @@ import { arenaBuilt } from '../world/arena.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { SQUAD, TURNED, PURGE, DRILL, MARSHAL } from '../data/allies.js';
 import { buildEnemyMesh, variantsOf, facesOf } from '../enemies/mesh.js';
+import { buildCivilian, CIV_PREWARM } from '../enemies/civilian.js';
 import { lookPool } from '../data/foe-looks.js';
 import { MAGISTRATE, MARSHAL_BOSS } from '../data/bosses.js';
 import { CAST_IDS } from '../data/saber-cast.js';
@@ -111,6 +112,7 @@ for (const roster of Object.values(SQUAD.roster)) for (const d of roster) jobs.p
 for (const look of CAST_IDS) jobs.push(() => buildEnemyMesh(ENEMY_TYPES.acolyte, { look }));   // the saber cast's named faces (data/saber-cast.js)
 jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES[MAGISTRATE.type], ...MAGISTRATE.dress }));
 jobs.push(() => buildEnemyMesh({ ...ENEMY_TYPES[MARSHAL_BOSS.type], ...MARSHAL_BOSS.dress }));   // the Marshal as the trooper's final boss   // the Iron Magistrate in his own model (Darth Vexis is a cast look above: data/saber-cast.js)
+for (const [kind, i] of CIV_PREWARM) jobs.push(() => buildCivilian(kind, i));   // the people a mission saves (enemies/civilian.js)
 const run = job => { try { job(); } catch(e){} };
 const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 1500 }) : f => setTimeout(f, 60);
 function next(){

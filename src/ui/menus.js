@@ -64,6 +64,9 @@ export const overlay = document.getElementById('overlay');
    the primary button's label and which blocks show (hero/mode setup only where picking makes sense). */
 let _ovState = 'menu';
 let _deadAt = 0;   // when the fallen screen came up (its R to retry waits a moment)
+// (declared up here: setOverlayState runs while this file is still loading, and reads them: HOME BY ITSELF below)
+const HOME_IN = 10;
+let _homeT = 0, _homeLeft = 0;
 export const isMenuState = () => _ovState === 'menu';
 /* THE RESULTS SCREEN'S CHANGE PANEL — the victory screen leads with the results and the next run's actions; the mode,
    hero and difficulty pickers fold away behind one line (NEXT: CHALLENGE · ONE ON ONE · JEDI · KNIGHT   CHANGE) and open
@@ -1032,8 +1035,6 @@ export function goTemple(auto){
 /* HOME BY ITSELF — a run started from the hub (the temple, the citadel, the covert, a ship's galaxy map) ends on its results
    screen with the way home as the main button, and goes home on its own after a short count unless the player does
    anything on the screen first (reads the readout, opens CHANGE, scrolls). A co-op guest follows the host instead */
-const HOME_IN = 10;
-let _homeT = 0, _homeLeft = 0;
 const homeBound = () => G.fromHub && !G.hub && !G.coopWasGuest && G.mode === 'victory';
 const homeWord = () => 'RETURN TO ' + ((G.hubId && HUBS[G.hubId]) || nextHub()).home + (_homeLeft > 0 ? ' · ' + _homeLeft : '');
 function armHome(){

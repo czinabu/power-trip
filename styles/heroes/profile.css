@@ -378,3 +378,60 @@
 #profile[data-hero="mando"] .pf-rp i{width:10px;height:5px;transform:skewX(-18deg)}
 #profile[data-hero="mando"] .pf-dcard>.pf-new{top:3px;left:3px}
 #profile[data-hero="trooper"] .pf-new{background:var(--hx-plate-white);color:#101315}
+
+/* the FORCE TREE drawn as a tree (the Jedi's look; ui/profile-ui.js treeCol). Links: an ink underlay, then the line in
+   its state: lit gold once the card under it is learned, a live blue dash while it's ready, the hero's hairline when
+   shut, dashed for the run's picks */
+#profile .pf-ftree{background:radial-gradient(ellipse 60% 34% at 50% 4%,rgba(232,196,106,.10),transparent 70%),var(--hx-paper);
+  box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-lu{stroke:var(--hx-ink);stroke-width:7}
+#profile .pf-ln{stroke:var(--hx-line);stroke-width:2.5;opacity:.5}
+#profile .pf-ln:is(.lit,.ready,.pick){opacity:1}
+#profile .pf-ln.lit{stroke:var(--hx-accent);stroke-width:3;filter:drop-shadow(0 0 3px var(--hx-accent)) drop-shadow(0 0 8px rgba(232,196,106,.55))}
+#profile .pf-ln.path{stroke:var(--hx-accent-hi)}
+#profile .pf-ln.ready{stroke:var(--hx-live);stroke-dasharray:7 7;filter:drop-shadow(0 0 4px var(--hx-live));animation:pfflow 1.1s linear infinite}
+#profile .pf-ln.pick{stroke:var(--hx-soft);stroke-dasharray:3 6}
+#profile .pf-ln.dash{stroke-dasharray:3 6;animation:none}
+@keyframes pfflow{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){ #profile .pf-ln.ready{animation:none} }
+#profile .pf-ftier{color:var(--hx-dim);font-family:var(--hx-label);transform:translateY(-50%) rotate(180deg)}
+#profile .pf-ftier.on{color:var(--hx-accent)}
+/* the root: THE FORCE, with the Insight left beside it */
+#profile .pf-froot .pf-orb{color:var(--hx-accent-hi)}
+#profile .pf-froot.lit .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink),0 0 22px rgba(232,196,106,.6)}
+#profile .pf-froot .pf-tl b{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:22px;color:var(--hx-accent-hi)}
+#profile .pf-froot .pf-tl em{font:600 10px/1.15 var(--hx-label);font-style:normal;letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+/* a branch's name plate, where its trunk starts */
+#profile .pf-fhead{background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-fhead.path{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink),0 0 16px rgba(232,196,106,.25)}
+#profile .pf-fhead b{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:16px;letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+#profile .pf-fhead .pf-bl{font-family:var(--hx-label);color:var(--hx-live)}
+#profile .pf-fhead .btn{padding:5px 8px;font-size:10px;white-space:nowrap}
+#profile .pf-fhead.path .pf-path{color:var(--hx-on-accent);background:var(--hx-accent)}
+/* the cards: locked dim, ready ringed live blue and pulsing, learned solid gold and glowing */
+#profile .pf-tnode .pf-orb{background:var(--hx-paper-solid);transition:transform .12s}
+#profile .pf-tnode:hover .pf-orb,#profile .pf-tnode:focus-visible .pf-orb{transform:scale(1.08)}
+#profile .pf-tnode .pf-tl>*{background:var(--hx-paper)}
+#profile .pf-tnode .pf-tl b{color:var(--hx-text)}
+#profile .pf-tnode .pf-tl em{color:var(--hx-dim);font-family:var(--hx-label)}
+#profile .pf-tnode.t-rank .pf-orb,#profile .pf-tnode.t-insight .pf-orb{opacity:.6}
+#profile .pf-tnode.t-rank .pf-tl b,#profile .pf-tnode.t-insight .pf-tl b{color:var(--hx-soft)}
+#profile .pf-tnode.t-open .pf-orb{color:var(--hx-live);box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 14px rgba(111,200,255,.55);animation:pfready 1.8s ease-in-out infinite}
+#profile .pf-tnode.t-open .pf-tl em{color:var(--hx-live)}
+#profile .pf-tnode.t-learned .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink),0 0 18px rgba(232,196,106,.55)}
+#profile .pf-tnode.t-learned .pf-tl em{color:var(--hx-accent)}
+#profile .pf-tnode.sel .pf-orb{outline:2px solid var(--hx-accent-hi);outline-offset:5px}
+#profile .pf-tnode.sel .pf-tl b{color:var(--hx-accent-hi)}
+@keyframes pfready{50%{box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 22px rgba(111,200,255,.85)}}
+@media (prefers-reduced-motion:reduce){ #profile .pf-tnode.t-open .pf-orb{animation:none} }
+/* the run's picks: small diamonds */
+#profile .pf-tfork .pf-orb.pf-fk,#profile .pf-fdetail .pf-fk{border-radius:0;transform:rotate(45deg);color:var(--hx-soft);box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
+#profile .pf-tfork .pf-orb .ic,#profile .pf-fdetail .pf-fk .ic{transform:rotate(-45deg)}
+#profile .pf-tfork:hover .pf-orb.pf-fk{transform:rotate(45deg) scale(1.08)}
+#profile .pf-tfork .pf-tl b{font-size:10px;color:var(--hx-soft)}
+#profile .pf-tfork.sel .pf-orb{outline-offset:4px}
+#profile .pf-fdetail .pf-fk{width:36px;height:36px;margin:5px}
+#profile .pf-fopts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+#profile .pf-fopts li{display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-fopts b{font:600 12px/1.2 var(--font-ui);letter-spacing:.06em;color:var(--hx-text)}
+#profile .pf-fopts span{font:500 12px/1.35 var(--font-body);color:var(--hx-soft)}

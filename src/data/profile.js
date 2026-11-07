@@ -89,9 +89,9 @@ export const TRACKS = {
 
 /* ---- THE FORCE TREE: three branches over the run's three tiers ---- */
 export const BRANCHES = [
-  { id: 'control', nm: 'CONTROL', line: 'The Force itself: deeper wells, cheaper powers.' },
-  { id: 'sense', nm: 'SENSE', line: 'Reading the fight: parries, footwork, breath.' },
-  { id: 'combat', nm: 'COMBAT', line: 'The blade: harder, faster, longer.' },
+  { id: 'control', nm: 'CONTROL', line: 'Force' },
+  { id: 'sense', nm: 'SENSE', line: 'Defense' },
+  { id: 'combat', nm: 'COMBAT', line: 'Blade' },
 ];
 // the run's own skill cards (data/skills.js SKILLS), on the branch they belong to
 export const BRANCH = {

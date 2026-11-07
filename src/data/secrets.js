@@ -17,6 +17,7 @@
 // with its own page.
 
 import { JEDHA_LIFE } from './zone-jedha.js';
+import { RUINS_LIFE } from './zone-ruins.js';
 
 export const SECRET_KINDS = {
   holocron: { name: 'HOLOCRON', verb: 'TAKE THE HOLOCRON', col: 0x7fd8ff, found: 'HOLOCRON FOUND' },
@@ -63,7 +64,8 @@ export const SECRET_MAPS = {
   approach:   { cave: true },
   meltworks:  { cave: true, meditate: true },
   ironroad:   { meditate: true },
-  zoJedha:    { spots: JEDHA_LIFE.secrets },   // the open zone (data/zones.js): three of each, set by hand
+  zoJedha:    { spots: JEDHA_LIFE.secrets },   // the open zones (data/zones.js): three of each, set by hand
+  zoRuins:    { spots: RUINS_LIFE.secrets },
 };
 
 // THE HOLOCRONS' PAGES (the codex's HOLOCRONS tab): who left it, and what it says. `lines` are the recording's own words
@@ -117,4 +119,14 @@ export const HOLOCRONS = [
   { id: 'holo-firstlight', name: 'THE HOLOCRON OF THE FIRST LIGHT', kicker: 'THE TEMPLE OF THE FIRST LIGHT',
     lore: 'Older than the dome above it: the temple\'s founders, speaking in a dialect nobody uses now.',
     lines: ['We did not build this place. We found the light already here, and built walls round it to keep the wind off.', 'Whoever you are, you are not the first to stand here afraid. Sit. The light is patient.'] },
+  // the ruins of the Sith gate's (the second open zone: data/zone-ruins.js)
+  { id: 'holo-warden', name: 'THE LAST WARDEN\'S HOLOCRON', kicker: 'THE BARROW FIELD',
+    lore: 'Left on a barrow by the last of the Jedi who buried Kharel, before they walked back through the gate and shut it.',
+    lines: ['We have buried him. We could not kill him. Nobody tell the younglings the difference.', 'Build the temple over the door. Teach them to keep the temple. In a thousand years they will have forgotten why. Good.'] },
+  { id: 'holo-hymnal', name: 'THE CANTOR\'S HYMNAL', kicker: 'THE CHOIR\'S CLOISTER',
+    lore: 'A Choir recording, hidden in a cloister wall: a cantor teaching the hymn to new initiates, a line at a time.',
+    lines: ['Do not try to understand the words. Only sing them. Understanding comes later, when he wakes.', 'He hears every one of you. Sing louder. The dead are listening, and so is he.'] },
+  { id: 'holo-burial', name: 'THE BURIAL RECORD', kicker: 'THE TOMB OF KHAREL',
+    lore: 'Sealed into the tomb\'s plinth by the Jedi who laid the first stone over his grave.',
+    lines: ['Darth Kharel, the Unburied. Two hundred of us came through the gate. Thirty-one will go home.', 'If you are reading this, the tomb is open. Then he is walking, and you are already late.'] },
 ];

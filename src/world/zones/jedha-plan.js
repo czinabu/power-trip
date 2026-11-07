@@ -14,18 +14,12 @@
 // Raised ground a foe walks on is only ever CLIMBABLE steps (under STEP_UP each): the nav grid is flat, so a roof or a
 // tower top is somewhere only a hero can reach, like the gantries on the campaign maps.
 
-import { seeded } from '../arenas/kit.js';
+import { planContext, fillLots } from './plan-kit.js';
 
 /* a piece: { t: its kind (world/zones/zone-kit.js KINDS), x, z, ...its own fields, s: its own seed for decoration that
    changes no solid, sky: built once into the skyline (seen from anywhere) instead of with its chunk } */
 export function planJedha(Z){
-  const R = seeded(Z.seed), pieces = [], reserved = [];
-  const rr = (a, b) => a + R() * (b - a);
-  const put = (p) => { p.s = (R() * 1e9) | 0; pieces.push(p); return p; };
-  // ground kept clear of houses: streets, squares, the landmarks and every waystone
-  const keep = (x0, z0, x1, z1) => reserved.push({ x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1) });
-  const keepC = (x, z, r) => keep(x - r, z - r, x + r, z + r);
-  const clear = (x0, z0, x1, z1, pad = 0) => !reserved.some(k => x0 < k.x1 + pad && x1 > k.x0 - pad && z0 < k.z1 + pad && z1 > k.z0 - pad);
+  const ctx = planContext(Z.seed), { R, rr, put, keep, keepC, pieces } = ctx;
 
   /* ---------------- the streets ---------------- */
   keep(-7.5, -58, 7.5, 118);      // the Pilgrim Way
@@ -120,45 +114,6 @@ export function planJedha(Z){
   // how tall each district builds, and how many roofs have fallen in
   const STYLE = { gate: [5, 9, 0.05], silent: [4, 8, 0.32], cistern: [5, 10, 0.12], square: [7, 12, 0.08], bazaar: [5, 9, 0.05],
     garrison: [6, 10, 0.1], workings: [3.5, 6, 0.4], temple: [6, 10, 0.2], shrines: [4, 6, 0.3] };
-  const lot = (x0, z0, x1, z1, depth) => {
-    const w = x1 - x0, d = z1 - z0;
-    if ((w > 17 || d > 17) && depth < 7){   // cut it in two, along its long side, with an alley between now and then
-      const alley = R() < 0.45 ? rr(3, 4.4) : 0;
-      if (w >= d){ const m = x0 + w * rr(0.38, 0.62); lot(x0, z0, m - alley / 2, z1, depth + 1); lot(m + alley / 2, z0, x1, z1, depth + 1); }
-      else { const m = z0 + d * rr(0.38, 0.62); lot(x0, z0, x1, m - alley / 2, depth + 1); lot(x0, m + alley / 2, x1, z1, depth + 1); }
-      return;
-    }
-    if (w < 4.5 || d < 4.5) return;
-    const inset = 0.6, a0 = x0 + inset, b0 = z0 + inset, a1 = x1 - inset, b1 = z1 - inset;
-    if (!clear(a0, b0, a1, b1, 0.8)) return;
-    const cx = (a0 + a1) / 2, cz = (b0 + b1) / 2, dist = districtOf(Z, cx, cz), st = STYLE[dist] || [5, 9, 0.1];
-    if (R() < 0.07){ put({ t: 'crates', x: cx, z: cz, n: 2, yaw: 0 }); return; }   // a yard
-    const hx = (a1 - a0) / 2, hz = (b1 - b0) / 2, ruined = R() < st[2];
-    const h = ruined ? rr(2.4, 4.2) : rr(st[0], st[1]);
-    const p = put({ t: 'house', x: cx, z: cz, hx, hz, h, ruined, tone: R() * 3 | 0 });
-    if (!ruined && R() < 0.22 && Math.min(hx, hz) > 3) p.dome = Math.min(hx, hz) * rr(0.45, 0.7);
-    if (!ruined && R() < 0.3) p.bits = Array.from({ length: 1 + (R() * 2 | 0) }, () => [rr(-hx * 0.6, hx * 0.6), rr(-hz * 0.6, hz * 0.6), rr(0.5, 1), rr(0.6, 1.2)]);   // roof clutter: [dx, dz, half-size, height]
-    // a lower annex on one side: the way up onto the roofs (a jump from it reaches the roof's edge)
-    if (!ruined && R() < 0.35){
-      const side = R() * 4 | 0, ah = Math.min(h - 1.6, rr(1.6, 2.4)), aw = rr(1.2, 1.8);
-      const ax = side === 0 ? cx + hx + aw : side === 1 ? cx - hx - aw : cx, az = side === 2 ? cz + hz + aw : side === 3 ? cz - hz - aw : cz;
-      const ahx = side < 2 ? aw : Math.min(hx * 0.6, 2.4), ahz = side < 2 ? Math.min(hz * 0.6, 2.4) : aw;
-      if (clear(ax - ahx, az - ahz, ax + ahx, az + ahz, 0.4) && ah > 1){ p.annex = { x: ax, z: az, hx: ahx, hz: ahz, h: ah }; keep(ax - ahx, az - ahz, ax + ahx, az + ahz); }
-    }
-    // an awning over a door on a side that faces a street (a cloth one-way ledge: jump up through it, land on it)
-    if (!ruined && R() < 0.4){
-      const side = R() * 4 | 0, o = [[1, 0], [-1, 0], [0, 1], [0, -1]][side];
-      const ax = cx + o[0] * (hx + 0.9), az = cz + o[1] * (hz + 0.9);
-      if (!clear(ax - 1, az - 1, ax + 1, az + 1, 0) || R() < 0.5) p.awn = { side, cloth: R() * 4 | 0 };
-    }
-    keep(a0, b0, a1, b1);   // (after the annex looked for room beside it)
-  };
-  // fill each district's whole square: anything reserved is skipped lot by lot
-  for (const d of Z.districts) lot(d.x0 + 4, d.z0 + 4, d.x1 - 4, d.z1 - 4, 0);
+  fillLots(Z, ctx, STYLE);
   return { pieces };
-}
-
-function districtOf(Z, x, z){
-  for (const d of Z.districts) if (x >= d.x0 && x < d.x1 && z >= d.z0 && z < d.z1) return d.id;
-  return null;
 }

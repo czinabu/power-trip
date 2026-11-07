@@ -53,8 +53,10 @@
     "smoke:desktop": "node tools/smoke/desktop.mjs",
     "smoke:zone": "node tools/smoke/zone.mjs",
     "smoke:zone-life": "node tools/smoke/zone-life.mjs",
+    "smoke:zone-ruins": "node tools/smoke/zone-ruins.mjs",
     "smoke:coop-zone-party": "node tools/smoke/coop-zone-party.mjs",
     "smoke:coop-zone": "node tools/smoke/coop-zone.mjs",
+    "smoke:coop-zone-ruins": "node tools/smoke/coop-zone-ruins.mjs",
     "smoke:gate": "node tools/smoke/gate.mjs",
     "smoke:raid": "node tools/smoke/raid.mjs",
     "smoke:coop-raid": "node tools/smoke/coop-raid.mjs"

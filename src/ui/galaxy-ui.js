@@ -48,12 +48,15 @@ function worldOfMission(){
 const missionsOn = (w, hero) => [...worldOfMission()].filter(([id, wid]) => wid === w.id && MISSIONS[id] && missionForHero(MISSIONS[id], hero) && (!MISSIONS[id].trial || missionDone(id, hero) || missionOpen(id))).map(([id]) => id);
 const sidesOn = (w) => SIDE_QUESTS.filter(q => (w.sides || []).includes(q.slug));
 
+// a world's open zones (data/hero-ships.js `zones`, or an older single `zone`)
+const zonesOf = (w) => (w.zones || (w.zone ? [w.zone] : [])).filter(k => ZONES[k]);
+
 /* what can be played on a world, for the hero in hand: [{ kind, b }] (b a panel option) */
 function worldEntries(w, ctx){
   const hero = G.hero, out = [], guest = ctx.guest;
-  if (w.zone && ZONES[w.zone]){
-    const Z = ZONES[w.zone];
-    out.push({ kind: 'zone', b: ctx.B('OPEN ZONE · ' + Z.place, Z.blurb, guest ? null : () => ctx.askParty(Z.name, () => ctx.zone(w.zone)), zoneLock(w.zone)) });
+  for (const k of zonesOf(w)){
+    const Z = ZONES[k];
+    out.push({ kind: 'zone', b: ctx.B('OPEN ZONE · ' + Z.place, Z.blurb, guest ? null : () => ctx.askParty(Z.name, () => ctx.zone(k)), zoneLock(k)) });
   }
   if (w.raid && RAIDS[w.raid]) out.push({ kind: 'raid', b: ctx.raidButton() });
   for (const id of missionsOn(w, hero)){
@@ -79,7 +82,7 @@ export function galaxyPanel(ctx){
   // the worlds: each a button that picks it (the panel stays up)
   const counts = (w) => {
     const ms = missionsOn(w, G.hero).length, ss = sidesOn(w).length;
-    return { ms, ss, z: !!(w.zone && ZONES[w.zone]), r: !!(w.raid && RAIDS[w.raid]) };
+    return { ms, ss, z: zonesOf(w).length > 0, r: !!(w.raid && RAIDS[w.raid]) };
   };
   let lanes = '';
   const at = Object.fromEntries(GALAXY.map(w => [w.id, w]));

@@ -16,6 +16,7 @@
 import { G } from '../state.js';
 import { ZONES } from '../data/zones.js';
 import { CHAPTERS, chapterOrder, chapterNo } from '../data/campaign.js';
+import { GATE_CHAPTERS } from '../data/campaign-gate.js';
 import { FORM_PATH, FORMS } from '../data/forms.js';
 import { profileOf } from './profile.js';
 import { chapterEarned, campaignBeaten } from './wardrobe.js';
@@ -31,15 +32,25 @@ export function heroCleared(id, hero){
 const beaten = (hero) => { try { return !!profileOf(hero).won || campaignBeaten(hero); } catch(e){ return campaignBeaten(hero); } };
 
 /* ---------- the gate ---------- */
+// an Act IV chapter (data/campaign-gate.js) opens a zone only once it is closed itself: beating your own story opens Act
+// IV, not what lies past its chapters
+const gateChapter = (id) => GATE_CHAPTERS.some(c => c.id === id);
+function gateCleared(id, hero){ try { const p = profileOf(hero); return !!((p.cleared && p.cleared[id]) || (p.missions && p.missions[id])); } catch(e){ return false; } }   // (closed in Act IV, or won from the Missions page)
 export function zoneOpen(key, hero){
   const Z = ZONES[key]; if (!Z) return false;
-  return !Z.opensAfter || heroCleared(Z.opensAfter, heroOf(hero));
+  if (!Z.opensAfter) return true;
+  return gateChapter(Z.opensAfter) ? gateCleared(Z.opensAfter, heroOf(hero)) : heroCleared(Z.opensAfter, heroOf(hero));
 }
 // the hub's locked line for a zone not open yet: 'Finish Act I of your campaign (chapter 4, TRIAL OF THE WALL)' (null when it's open)
 export function zoneLock(key, hero){
   hero = heroOf(hero);
   if (zoneOpen(key, hero)) return null;
-  const id = ZONES[key].opensAfter, list = chapterOrder(null, hero), at = list.findIndex(c => c.id === id), c = list[at];
+  const id = ZONES[key].opensAfter;
+  if (gateChapter(id)){   // 'Clear chapter 1 of Act IV, THE GATE WAKES'
+    const at = GATE_CHAPTERS.findIndex(c => c.id === id), c = GATE_CHAPTERS[at];
+    return 'Clear chapter ' + (at + 1) + ' of Act IV, ' + (typeof c.title === 'object' ? (c.title[hero] || c.title.jedi) : c.title);
+  }
+  const list = chapterOrder(null, hero), at = list.findIndex(c => c.id === id), c = list[at];
   if (!c) return 'Play further into your campaign';
   const last = !list.some((d, i) => i > at && d.act === c.act);   // the act's last chapter: say the act
   const title = typeof c.title === 'object' ? (c.title[hero] || c.title.jedi) : c.title;

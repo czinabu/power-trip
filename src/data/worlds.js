@@ -1135,6 +1135,37 @@ export const ZONE_WORLDS = {
     beats: { fog: 0xd0a878, fill: 1.02, tint: 0xffd0a0 },
     sound: 'temple',
   },
+  // THE RUINS OF THE SITH GATE: the dead city on the gate's far side, under a violet storm-dusk that isn't quite a sky,
+  // a pale rift where a sun should be. Black-violet stone lit cool and bright enough to read every street; the haze
+  // closes in violet over the far ends, the obelisks, the gate's ring and the Sith colossi past the cliffs standing out
+  zoRuins: {
+    sky: { top: 0x0e0a1c, horizon: 0x6a4a82, below: 0x2a2230, bands: 7, stars: 90,
+      sun: { el: 0.3, az: -2.2, color: 0xe8d8ff, halo: 0x9a6ad8, size: 30, kind: 'moon' },
+      clouds: { color: 0x4e3a66, under: 0x221a30, count: 16, lo: 0.35, hi: 0.9 },
+      ridges: [{ color: 0x2a1e3a, h: 0.1, rough: 0.12, spiky: 1.3, seed: 41 }, { color: 0x1e1628, h: 0.06, rough: 0.16, spiky: 1.7, seed: 12 }] },
+    fog: 0x4a405a, fogStart: 0.2, fogEnd: 0.52,
+    haze: { len: 520, max: 0.72 },
+    light: { sun: 0xe8e0f4, sunI: 1.6, dir: [-20, 40, 26], hemiSky: 0xa8a2c4, hemiGround: 0x3e3640, fill: 1.0, rim: 0xb46bff, rimI: 0.75 },
+    floor: { kind: 'flagstone', base: 0x646068, seed: 23 },
+    outer: 0x3c3842,
+    pal: { stone: 0x837e88, stone2: 0x75707c, stone3: 0x8e8a92, stoneD: 0x4e4a54, trim: 0x9a8ea8, roof: 0x3e3846, dome: 0x5a4a74,
+      wall: 0x6e6a74, wallD: 0x56525e, cloth1: 0x5e2c70, cloth2: 0x2a2232, cloth3: 0x8a2a3e, cloth4: 0xb8b2c4, wood: 0x3e322c,
+      recess: 0x120c18, rock: 0x58545e, rockD: 0x3c3844, imp: 0x403a4a, impD: 0x2c2834, red: 0x9a4aff, metal: 0x5e5a68,
+      hull: 0xc8ccd2, gold: 0xa8946a, statue: 0x5e5a66, statueD: 0x36323c, lamp: 0xe0d0ff, kyber: 0xb46bff, beacon: 0xff3a5a,
+      water: 0x1e1230, crystal: 0xff3a52, gate: 0xb46bff, fire: 0xc07aff },
+    backdrop: [
+      // the dead city goes on past the cliffs, dark and roofless, and the black rock rises round it
+      { kind: 'mesas', count: 11, r: [2.0, 2.6], h: [26, 44], w: [20, 36], color: 0x2e2638, color2: 0x26202e },
+      { kind: 'spires', count: 16, r: [1.7, 2.5], h: [22, 40], color: 0x2a2232, color2: 0x342a3e },
+      { kind: 'colonnade', count: 12, r: [1.2, 1.3], h: [40, 56], radius: [2.4, 3], broken: 0.4, lintel: 0.3, glow: 0xb46bff, color: 0x2a2232, color2: 0x342a3e },
+      // TOWERING (world/towering.js): Kharel's colossi, standing over the cliffs, blades point-down and eyes lit
+      { kind: 'colossi', az: [-0.7, -2.4, 1.2], r: 1.9, h: [82, 96], color: 0x2a2432, color2: 0x342c3e, dark: 0x0c0810, metal: 0x3a3444, blade: 0xff3a3a, eyes: 0xb46bff },
+    ],
+    ambient: { kind: 'ash', color: 0xc8b0f0, count: 130, size: 0.24, opacity: 0.45 },
+    mist: { color: 0x54466a, count: 24, size: 10, opacity: 0.12 },
+    beats: { fog: 0x3a3048, fill: 1.04, tint: 0xd0b8f0 },
+    sound: 'plains',
+  },
 };
 
 // THE HERO SHIPS (data/hero-ships.js, world/arenas/hero-ship.js): a cabin in orbit. Deep space past the canopy (the world

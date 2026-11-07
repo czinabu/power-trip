@@ -845,7 +845,7 @@ export function goHome(){
   G.skillSelect = false; G.sbMenu = false;
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
   document.getElementById('runsummary').style.display = 'none';
-  startLevel(0);   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would
+  startLevel(0, { sweep: true });   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would (no checkpoint: nothing is being played)
   G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.fromHub = false;
   G.ngPlus = 0; G.ngNext = null;   // (a NEW GAME+ run is over: CONTINUE brings its tier back from the save, game/saves.js restoreRun)
   overlay.style.display = 'flex';

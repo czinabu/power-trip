@@ -14,6 +14,7 @@ import { ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS, NG_WORDS } from '../data/ngplus.js';
 
 const panel = document.getElementById('saves');
+const LOAD_MODES = ['campaign', 'gate', 'mission', 'endless', 'training', 'sandbox', 'temple'];   // (the menu's mode tiles)
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let mode = 'load';    // 'save' (from pause) or 'load'
 let armed = null;     // the one button waiting on a second click to confirm: 'save1', 'load2', 'del0'…
@@ -48,7 +49,7 @@ function render(){
   }
   html += '<p class="sv-note">' + (mode === 'save'
     ? 'A save keeps your wins, unlocks, bests and look. Saved mid-campaign, it also keeps your upgrades, and loading it starts that level again.'
-    : 'Loading puts you on the main menu with that save\'s progress. A campaign saved mid-run picks up at the start of its level.') + '</p>';
+    : 'Loading puts you back where that save was made, with its progress. A campaign saved mid-run picks up at the start of its chapter, or past it if it was saved as the chapter closed.') + '</p>';
   document.getElementById('svlist').innerHTML = html;
 }
 
@@ -81,8 +82,11 @@ function load(i){
   clearParked(); try { localStorage.removeItem('sw_newgame_at'); } catch(e){}   // (the loaded progress is the one the menu follows now: game/saves.js latestRun)
   reloadLook();
   refreshMenu();   // the locks follow the loaded wins before the mode is picked again
-  let m = d.run ? 'campaign' : (d.modeSel || 'campaign');
-  if ((m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked())) m = 'campaign';
+  // back to the mode it was saved in: the campaign for a run saved mid-story, else the mission, survival, hub… it was made
+  // in (its campaign run, if it carries one, waits behind it for CONTINUE CAMPAIGN)
+  let m = d.run && !d.away ? 'campaign' : (d.modeSel || 'campaign');
+  if (m === 'zone') m = 'temple';   // (Jedha is reached from the hub)
+  if (!LOAD_MODES.includes(m) || (m === 'endless' && !survivalUnlocked()) || (m === 'sandbox' && !sandboxUnlocked())) m = 'campaign';
   setModeSel(m);
   if (m === 'mission') openMissionPage(); else showMenuStep('hero');   // straight to where the save's BEGIN / CONTINUE is
   if (!G.resumeRun) document.getElementById('ovsub').textContent = (i === AUTO ? 'AUTOSAVE' : 'SAVE ' + (i + 1)) + ' LOADED';

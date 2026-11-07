@@ -124,6 +124,37 @@ for (let i = 0; i < 80 && !(await page.evaluate((c) => GAME.G.chapter > c, ch0))
 }
 check(await page.evaluate((c) => GAME.G.chapter === c + 1 && GAME.G.mode === 'play', ch0), 'the loaded close rolls on into the next chapter');
 
+
+// A SAVE MADE AWAY FROM THE STORY keeps the story's place, and loads back where it was made
+const home = async () => { await page.evaluate(() => { document.getElementById('overlay').style.display = 'flex'; GAME.G.paused = true; GAME.setOverlayState('pause'); }); await page.click('#homeBtn'); await page.click('#homeYes'); await page.waitForTimeout(1200); };
+await page.evaluate(() => GAME.startChapter(5)); await page.waitForTimeout(2500);
+const story = await page.evaluate(() => GAME.G.chapter);
+await home();
+await page.evaluate(() => localStorage.setItem('sw_mission_pursuit_jedi', '1'));
+await page.$eval('#mode-mission', el => el.click()); await page.evaluate(() => document.getElementById('msn-pursuit').click()); await page.$eval('#goText', el => el.click());
+await fightNow(); await playing();
+// a hand save from the mission's pause screen
+await page.evaluate(() => { document.getElementById('overlay').style.display = 'flex'; GAME.G.paused = true; GAME.setOverlayState('pause'); });
+await page.click('#saveBtn'); await page.click('[data-act="save"][data-i="0"]'); await page.click('#savesclose');
+check(await page.evaluate((c) => { const d = JSON.parse(localStorage.getItem('sw_save_0')); return d && d.away && d.run && d.run.chapter === c && d.modeSel === 'mission'; }, story), 'a save made in a mission keeps the campaign\'s place');
+// the boss down there: the autosave keeps it too
+await page.evaluate(() => { GAME.G.paused = false; document.getElementById('overlay').style.display = 'none'; GAME.spawnChampion(); });
+await until(() => GAME.enemies.some(e => e.warbringer && !e.dead), null, 15000);
+await page.evaluate(() => { localStorage.removeItem('sw_save_auto'); const e = GAME.enemies.find(e => e.warbringer && !e.dead); GAME.damageEnemy(e, 1e6, null, 0); });
+await until(() => !!localStorage.getItem('sw_save_auto'), null, 8000).catch(() => false);
+await home();
+check(await page.evaluate((c) => { const d = JSON.parse(localStorage.getItem('sw_save_auto') || 'null'); return d && d.where.startsWith('MISSION') && d.run && d.run.chapter === c; }, story), 'going back to the menu leaves the mission\'s autosave as it was');
+// a fresh page: LOAD GAME on the autosave goes back to that mission, the campaign still waiting behind it
+await boot();
+await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act="load"][data-i="auto"]'); await page.waitForTimeout(800);
+check(await page.evaluate(() => GAME.G.modeSel === 'mission' && GAME.G.missionId === 'pursuit'), 'loading it goes back to the mission it was made in');
+await page.$eval('#mode-campaign', el => el.click()); await page.waitForTimeout(400);
+check(await page.evaluate((c) => document.getElementById('goText').textContent === 'CONTINUE CAMPAIGN' && GAME.G.resumeRun && GAME.G.resumeRun.chapter === c, story), 'and CONTINUE CAMPAIGN is still on the story\'s chapter, not the first');
+// the hand save the same way
+await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act="load"][data-i="0"]'); await page.waitForTimeout(800);
+await page.$eval('#mode-campaign', el => el.click()); await page.waitForTimeout(400);
+check(await page.evaluate((c) => GAME.G.resumeRun && GAME.G.resumeRun.chapter === c, story), 'the hand save from the mission keeps the story\'s chapter too');
+
 for (const e of errors) console.error(e);
 if (errors.length) process.exitCode = 1;
 await browser.close();

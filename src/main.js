@@ -16,7 +16,7 @@ import { ENEMY_TYPES } from './data/enemies.js';
 import { LEVELS } from './data/levels.js';
 import { BOSS_CFG, BOSS_MANDO } from './data/bosses.js';
 import { camera, composer, renderer, scene, drawFrame } from './engine/renderer.js';
-import { cycleQuality, qualityGovernor } from './engine/quality.js';
+import { cycleQuality, qualityGovernor, frameStart, resolutionInfo } from './engine/quality.js';
 import { audioInit } from './audio/sfx.js';
 import { MUSIC } from './audio/music.js';
 import { updateAudio } from './audio/director.js';
@@ -166,6 +166,7 @@ continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINU
 const clock = new THREE.Clock();
 function tick(){
   requestAnimationFrame(tick);
+  if (!frameStart()) return;   // the FRAME RATE cap holds this one back (engine/quality.js)
   solidsChanged();   // the collision queries read the solids afresh once a frame (world/collision.js)
   const rawDt = Math.min(clock.getDelta(), 0.05);
   let dt = rawDt;
@@ -281,7 +282,7 @@ import { arenaInfo } from './world/arena.js';
 import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
-Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene }, killcam: { KC, killCam } });
+Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene, resolution: resolutionInfo }, killcam: { KC, killCam } });
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 Object.assign(window.GAME, { gate: { start: startGate, open: gateOpen, veteranKit, finale: () => shared.finale } });   // ACT IV (game/gate.js), for tests

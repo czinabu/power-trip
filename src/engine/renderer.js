@@ -45,7 +45,7 @@ composer.addPass(renderPass);
 /* AMBIENT OCCLUSION — soft contact shadow in corners, under props and where a body meets the floor, so nothing
    floats. HIGH quality only (it draws the scene a second time for depth and normals). Only solid surfaces take part:
    glows, blades, particles, sprites, see-through props and the ink hulls (back faces) are left out, so a saber or a
-   muzzle flash never darkens the floor around it. It runs at CSS-pixel resolution and fades out with distance, so
+   muzzle flash never darkens the floor around it. It runs at half resolution (below) and fades out with distance, so
    the fogged backdrop isn't smudged. */
 export const aoPass = new GTAOPass(scene, camera, innerWidth, innerHeight);
 aoPass.updateGtaoMaterial({ radius: 0.7, distanceExponent: 1.5, thickness: 1.2, scale: 1.25, samples: 12 });
@@ -70,8 +70,11 @@ function beyondAO(o){
 }
 aoPass.overrideVisibility = function(){ this.scene.traverseVisible(o => { if (noAO(o) || beyondAO(o)){ o.visible = false; _aoHidden.push(o); } }); };
 aoPass.restoreVisibility = function(){ for (const o of _aoHidden) o.visible = true; _aoHidden.length = 0; };
+/* HALF RESOLUTION: the composer hands each pass its size in device pixels. The AO is soft and denoised, so it's worked
+   out at half the CSS-pixel resolution (or of the device's, when the resolution scale has it under one pixel per CSS
+   pixel): a quarter of the pixels, the blend spreads it back over the full frame */
 const _aoSize = aoPass.setSize.bind(aoPass);
-aoPass.setSize = (w, h) => { const k = 1 / Math.max(1, renderer.getPixelRatio()); _aoSize(Math.round(w * k), Math.round(h * k)); };
+aoPass.setSize = (w, h) => { const k = 0.5 / Math.max(1, renderer.getPixelRatio()); _aoSize(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))); };
 // the stock blend multiplies the AO in everywhere: this one fades it out from aoFade.near to aoFade.far metres
 export const aoFade = { near: 18, far: 46 };
 Object.assign(aoPass.blendMaterial.uniforms, { tDepth: { value: aoPass.depthTexture }, cameraNear: { value: 0.1 }, cameraFar: { value: 400 },
@@ -133,6 +136,10 @@ export const shaftPass = new ShaderPass({
 shaftPass.enabled = false;
 composer.addPass(shaftPass);
 export const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.82, 0.55, 0.78);
+/* the bloom's own chain starts at half the size it's given: given CSS pixels rather than device pixels, a high-DPI screen
+   blurs a quarter of the pixels (the glow is a blur, it looks the same), and a 1x screen keeps the look it was tuned on */
+{ const _bloomSize = bloomPass.setSize.bind(bloomPass);
+  bloomPass.setSize = (w, h) => { const k = 1 / Math.max(1, renderer.getPixelRatio()); _bloomSize(Math.max(2, Math.round(w * k)), Math.max(2, Math.round(h * k))); }; }
 composer.addPass(bloomPass);
 /* SCENE GLOW — the bloom and the blade lights are tuned for a dark arena. In a bright one (pale stone, ice, snow) the
    sunlit floor already sits near the bloom threshold, so the bloom hazes the whole view, and a blade's light lifts a

@@ -3,7 +3,7 @@
 
 import { heroName, refreshWorn } from '../game/wardrobe.js';
 import { renderer } from '../engine/renderer.js';
-import { cycleQuality, resetQuality } from '../engine/quality.js';
+import { cycleQuality, resetQuality, FRAME_CAPS, frameCapNow, setFrameCap, autoResNow, setAutoRes, fpsCounterNow, setFpsCounter } from '../engine/quality.js';
 import { audioInit, setMasterVol, setMusicVol, setSfxVol, S } from '../audio/sfx.js';
 import { AE } from '../audio/engine.js';
 import { shared, G, player, isGunner, isTrooper } from '../state.js';
@@ -895,6 +895,10 @@ document.querySelectorAll('.fsctl').forEach((el) => el.addEventListener('click',
 document.getElementById('continueBtn').addEventListener('click', (e) => { e.stopPropagation(); closeProgress(); });
 // GRAPHICS selector on the overlay — cycle quality without resuming/launching (stop the click bubbling to the overlay)
 document.getElementById('gfxctl').addEventListener('click', (e) => { e.stopPropagation(); cycleQuality(); });
+// FRAME RATE (cap), RESOLUTION (auto scaling) and FPS COUNTER: engine/quality.js keeps them and their labels
+document.getElementById('fpscapctl').addEventListener('click', (e) => { e.stopPropagation(); setFrameCap(FRAME_CAPS[(FRAME_CAPS.indexOf(frameCapNow()) + 1) % FRAME_CAPS.length]); });
+document.getElementById('resctl').addEventListener('click', (e) => { e.stopPropagation(); setAutoRes(!autoResNow()); });
+document.getElementById('fpsctl').addEventListener('click', (e) => { e.stopPropagation(); setFpsCounter(!fpsCounterNow()); });
 
 /* ============================================================
    THE HIDDEN TEMPLE (game/hub.js): its stations launch modes, open pages, and runs come back to it

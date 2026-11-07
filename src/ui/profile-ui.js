@@ -252,7 +252,8 @@ function lockSteps(h, s){
 }
 // where everything sits. Wide: the branches side by side under THE ROOT. Narrow (a phone): each branch its own block,
 // stacked, full width. x in % of the tree's width, y in px; the links are one SVG stretched over it
-function treeLayout(h, narrow){
+// keep (a phone, at a chapter's close): only these cards, in rows of three under their plate, so what you can train is all there is
+function treeLayout(h, narrow, keep = null){
   const B = branchesOf(h), set = SET_OF[h], pos = [], heads = [];
   const of = (b, t) => {
     const list = set.filter(s => branchOf(h, s) === b && s.tier === t);
@@ -271,6 +272,18 @@ function treeLayout(h, narrow){
       x0 += w;
     });
     H = ROWS[3] + 58;
+  } else if (keep){
+    let y0 = 0;
+    B.forEach((b) => {
+      const list = [1, 2, 3].flatMap(t => of(b.id, t)).filter(keep);
+      heads.push({ b, x: 50, y: y0 + 26, w: 100, none: !list.length });
+      for (let i = 0; i < list.length; i += 3){
+        const L = list.slice(i, i + 3), t = i / 3 + 1;
+        L.forEach((s, k) => pos.push({ s, b: b.id, t, x: 100 * (k + 1) / (L.length + 1), y: y0 + 26 + 90 * t, sw: 100 / 3 }));
+      }
+      y0 += 26 + (list.length ? 90 * Math.ceil(list.length / 3) + 50 : 46);
+    });
+    H = y0 - 14;
   } else {
     let y0 = 0;
     B.forEach((b) => {
@@ -292,7 +305,10 @@ const ROWS = [60, 136, 214, 292];   // the wide tree's rows: the branch plates, 
 const narrowNow = () => window.matchMedia('(max-width:760px)').matches;
 let lastNarrow = null;
 function treeCol(h){
-  const narrow = narrowNow(), L = treeLayout(h, narrow), run = inRun(h);
+  const narrow = narrowNow(), run = inRun(h);
+  // a phone at a chapter's close lists only what you can train (or have trained), unless SHOW ALL is on
+  const trim = run && narrow && !showAll, live = (s) => { const N = nodeOf(h, s); return N.r > 0 || N.st === 'open' || N.st === 'nopts'; };
+  const L = treeLayout(h, narrow, trim ? live : null);
   lastNarrow = narrow;
   const info = new Map(L.pos.map(p => [p.s, nodeOf(h, p.s)]));
   const pick = (L.pos.find(p => p.s.id === treeSel[h]) || L.pos.find(p => info.get(p.s).st === 'open') || L.pos.find(p => info.get(p.s).st === 'have') || L.pos[0] || {}).s;
@@ -315,7 +331,7 @@ function treeCol(h){
       '<span class="pf-orb">' + icon(s.ico) + (N.st === 'lock' ? '<i class="pf-lk">' + LOCK + '</i>' : N.st === 'max' ? '<i class="pf-in">✓</i>' : '') + '</span>' +
       '<span class="pf-tl"><b>' + esc(s.nm) + '</b>' + (run && s.max > 1 && (N.r > 0 || ['open', 'nopts', 'max'].includes(N.st)) ? pipsOf(s, N.r) : '<em>' + N.tag + '</em>') + '</span></span>';
   }).join('');
-  const heads = L.heads.map(hd => '<div class="pf-fhead' + (hd.b.id === 'path' ? ' pf-fpath' : '') + '" style="left:' + hd.x + '%;top:' + hd.y + 'px;width:calc(' + hd.w + '% - 12px)"><b>' + esc(hd.b.nm) + '</b><span class="pf-bl">' + esc(hd.b.line) + '</span></div>').join('');
+  const heads = L.heads.map(hd => '<div class="pf-fhead' + (hd.b.id === 'path' ? ' pf-fpath' : '') + '" style="left:' + hd.x + '%;top:' + hd.y + 'px;width:calc(' + hd.w + '% - 12px)"><b>' + esc(hd.b.nm) + '</b><span class="pf-bl">' + esc(hd.none ? 'Nothing to train here yet' : hd.b.line) + '</span></div>').join('');
   const ranks = narrow ? '' : [1, 2, 3].map(t => '<span class="pf-ftier" style="top:' + ROWS[t] + 'px">' + tierWord(t) + '</span>').join('');
   const root = narrow ? '' : '<div class="pf-froot' + (run ? ' lit' : '') + '" style="left:50%;top:' + rootY + 'px"><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><em>' + esc(TREES[h].nm) + '</em></span></div>';
   const note = 'Every card you can train in a run. Your rank and your lean open more of them for good. In a run, Training points rank them up at each chapter\'s close.';
@@ -323,10 +339,12 @@ function treeCol(h){
     ${run ? '' : viewTabs(h)}
     ${run ? '' : '<p class="pf-note pf-tnote">' + note + '</p>'}
     ${treeDetail(h, pick)}
-    <div class="pf-ftree${narrow ? ' narrow' : ''}" style="height:${L.H}px">${ranks}<svg class="pf-flinks" viewBox="0 0 1000 ${L.H}" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads}${nodes}</div>
+    <div class="pf-ftree${narrow ? ' narrow' : ''}${run ? ' pf-runtree' : ''}" style="height:${L.H}px">${ranks}<svg class="pf-flinks" viewBox="0 0 1000 ${L.H}" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads}${nodes}</div>
+    ${run && narrow ? '<span class="btn pf-showall" data-showall="1">' + (showAll ? 'SHOW ONLY WHAT I CAN TRAIN' : 'SHOW ALL CARDS') + '</span>' : ''}
   </div>`;
 }
 const treeSel = {};   // per hero: the tree card whose detail shows
+let showAll = false;   // a phone at a chapter's close: every card on the tree, not only the trainable ones
 
 /* ---------- PATHS: the two sides drawn as two chains of three, the meter over them, one card's detail beside ---------- */
 // what moves each hero's meter, in a line
@@ -430,7 +448,7 @@ function runPartsOf(st){
 export function openRunTree(hooks){
   const st = document.getElementById('skilltree');
   flushSeen();
-  runMode = hooks; hero = HERO_NAME[G.hero] ? G.hero : 'jedi'; treeSel[hero] = null;
+  runMode = hooks; hero = HERO_NAME[G.hero] ? G.hero : 'jedi'; treeSel[hero] = null; showAll = false;
   runPartsOf(st);
   st.classList.add('pfrun');
   if (panel.parentNode !== st) st.appendChild(panel);
@@ -479,6 +497,7 @@ panel.addEventListener('click', (e) => {
   const tr = t.closest('[data-train]'), nd = !tr && t.closest('[data-node]');
   if (tr && runMode){ const s = SET_OF[hero].find(x => x.id === tr.dataset.train); if (s && runMode.train(s)) treeSel[hero] = s.id; return render(); }
   if (nd){ treeSel[hero] = nd.dataset.node; return render(); }
+  if (t.closest('[data-showall]')){ showAll = !showAll; return render(); }
   if (runMode) return;   // (the upgrade page: its own cards and CONTINUE take their own clicks)
   const vt = t.closest('[data-view]'), cd = t.closest('[data-card]'), rk = t.closest('[data-rank]');
   if (vt){ if (vt.dataset.view !== view) flushSeen(); view = vt.dataset.view; return render(); }

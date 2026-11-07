@@ -507,3 +507,9 @@
   #profile.pf-inrun .pf-body{overflow-y:auto}
   #profile.pf-inrun .pf-body>*{flex:none;min-height:auto}
 }
+/* at a chapter's close the cards you can't train now step well back, so the few you can are what you see */
+#profile .pf-runtree .pf-tnode:not(.t-open):not(.t-nopts):not(.ranked):not(.t-max){opacity:.38}
+#profile .pf-runtree .pf-tnode:not(.t-open):not(.t-nopts):not(.ranked):not(.t-max):is(:hover,.sel){opacity:.85}
+#profile .pf-runtree .pf-tnode:not(.t-open):not(.t-nopts):not(.ranked):not(.t-max) .pf-orb{animation:none}
+#profile .pf-runtree .pf-ln.dim{opacity:.22}
+#profile .pf-showall{display:block;margin:6px auto 0;width:max-content}

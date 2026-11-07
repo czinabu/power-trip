@@ -23,7 +23,11 @@ renderer.toneMappingExposure = 1.04;   // moodier, more filmic contrast
 document.body.appendChild(renderer.domElement);
 
 export const scene = new THREE.Scene();
-export const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 4000);   // far: the backdrop stands up to a kilometre or two out (world/backdrop.js)
+/* far: the backdrop stands up to a kilometre or two out (world/backdrop.js). near: depth precision scales with it, and
+   with the far land that far out a 0.1 m near plane left too few depth steps out there (far walls and their windows
+   flickered through each other). 0.2 doubles it everywhere; the follow camera keeps 0.35 m off any prop (world/camblock.js),
+   so nothing it frames ever comes that close */
+export const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.2, 4000);
 
 /* post-processing: scene → ambient occlusion → bloom (sabers, bolts and embers glow) → tone map → colour grade.
    ANTIALIASING: the canvas's own antialias does nothing once the scene is drawn into the composer's buffers, so the

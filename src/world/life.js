@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rand } from '../utils.js';
 import { shared } from '../state.js';
+import { camera } from '../engine/renderer.js';
 import { LIFE } from '../data/life.js';
 import { WORLD } from '../data/worlds.js';
 import { farHaze } from './ink.js';
@@ -155,6 +156,7 @@ export function updateLife(dt){
   if (!S.on || !S.grp) return;
   S.t += dt;
   // traffic
+  const pxK = 0.75 * 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(240, innerHeight);   // metres per 0.75 px, per metre out
   for (const c of S.craft){
     let yaw;
     if (c.cross){
@@ -174,7 +176,9 @@ export function updateLife(dt){
     c.im.setMatrixAt(c.i, _m.compose(_p, _q, _s.set(1, 1, 1)));
     if (!S.lights) continue;
     // running lights: a head lamp at the nose and a tail light, small enough to read as points at range
-    const len = c.big ? 10 : 4.6, sz = c.big ? 0.9 : 0.5;
+    // never under about a pixel and a half across: a smaller light falls between pixels and blinks on and off (the
+    // bloom turning each blink into a flash) as it flies, so a far craft's lamps grow just enough to hold steady
+    const len = c.big ? 10 : 4.6, sz = Math.max(c.big ? 0.9 : 0.5, _p.distanceTo(camera.position) * pxK);
     _v.set(0, 0, len).applyQuaternion(_q).add(_p);
     S.lights.setMatrixAt(c.li, _m.compose(_v, _q, _s.setScalar(sz)));
     _l.set(0, c.big ? 2.8 : 0.4, -len * 0.75).applyQuaternion(_q).add(_p);

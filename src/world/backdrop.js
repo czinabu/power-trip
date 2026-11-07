@@ -16,20 +16,27 @@ const PI = Math.PI;
 // seeded random so a theme's backdrop is the same every rebuild
 function rng(seed){ let s = seed >>> 0 || 1; return () => ((s = Math.imul(s ^ (s >>> 15), 1 | s) + 0x6D2B79F5 >>> 0) % 100000) / 100000; }
 
+/* DECALS (o.decal / glowMat(c, true)): windows, lit bands and ports that sit a few centimetres proud of a wall. The
+   backdrop stands hundreds of metres out, where the depth buffer can no longer tell a few centimetres apart, so a plain
+   plane there flickers in and out of the wall behind it as the camera moves. A polygon offset pulls the decal forward
+   by a few depth steps (whatever a step is worth at that distance), so it always wins against its own wall. */
+const decal = m => { m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -4; return m; };
 const matCache = new Map();
 function mat(color, o = {}){
-  const id = color + '|' + (o.e || 0) + '|' + (o.ei || 0);
+  const id = color + '|' + (o.e || 0) + '|' + (o.ei || 0) + (o.decal ? '|d' : '');
   if (!matCache.has(id)){
     const m = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
     if (o.e){ m.emissive = new THREE.Color(o.e); m.emissiveIntensity = o.ei ?? 1; }
+    if (o.decal) decal(m);
     matCache.set(id, m);
   }
   return matCache.get(id);
 }
 const glowCache = new Map();
-function glowMat(color){
-  if (!glowCache.has(color)) glowCache.set(color, new THREE.MeshBasicMaterial({ color, toneMapped: false }));
-  return glowCache.get(color);
+function glowMat(color, isDecal = false){
+  const id = color + (isDecal ? '|d' : '');
+  if (!glowCache.has(id)){ const m = new THREE.MeshBasicMaterial({ color, toneMapped: false }); glowCache.set(id, isDecal ? decal(m) : m); }
+  return glowCache.get(id);
 }
 
 function put(grp, geo, m, x, y, z, rx = 0, ry = 0, rz = 0, s){
@@ -123,13 +130,15 @@ const BUILD = {
     for (const a of angles(o.count, R, o.skip)){
       const r = half * (o.r[0] + R()*(o.r[1] - o.r[0])), [x, z] = P(a, r);
       const h = o.h[0] + R()*(o.h[1] - o.h[0]), w = 2.5 + R()*4, n0 = grp.children.length;
-      const t = put(grp, new THREE.BoxGeometry(w, h, w*(0.7 + R()*0.6)), mat(R() < 0.5 ? o.color : o.color2 || o.color), x, h/2, z, 0, -a, 0);
+      const d = w*(0.7 + R()*0.6);
+      const t = put(grp, new THREE.BoxGeometry(w, h, d), mat(R() < 0.5 ? o.color : o.color2 || o.color), x, h/2, z, 0, -a, 0);
       if (R() < 0.5) put(grp, new THREE.CylinderGeometry(0.15, w*0.3, h*0.25, 4), mat(o.color), x, h + h*0.12, z, 0, -a, 0);
       if (o.windows){
         const rows = Math.floor(h / 4);
         for (let k = 0; k < rows; k++) if (R() < 0.55){
-          const wm = new THREE.Mesh(new THREE.PlaneGeometry(w*0.8, 0.5), glowMat(o.windows));
-          wm.position.set(0, -h/2 + 2 + k*4, -(w*(0.35)) - 0.6); wm.rotation.y = PI; t.add(wm);
+          // on the face toward the arena, just proud of it (placed from the width, a deep tower's windows sat inside it or flush with it and flickered)
+          const wm = new THREE.Mesh(new THREE.PlaneGeometry(w*0.8, 0.5), glowMat(o.windows, true));
+          wm.position.set(0, -h/2 + 2 + k*4, -d/2 - 0.05); wm.rotation.y = PI; t.add(wm);
         }
       }
       keepOut(since(grp, n0));
@@ -336,7 +345,7 @@ const BUILD = {
         if (o.windows){   // rows of lit (or dark) windows on the face toward the arena
           const fx = -nx, fz = -nz, face = nz ? sx : sz;
           for (let y = 3.5; y < h - 2; y += 4) for (let t = -face/2 + 1.5; t < face/2 - 1; t += 2.6) if (R() < (o.lit ?? 0.35)){
-            const wm = put(grp, new THREE.PlaneGeometry(1.1, 1.6), mat(o.windows, { e: o.windows, ei: 1.1 }), x + (nz ? t : fx * (sx/2 + 0.05)), y, z + (nz ? fz * (sz/2 + 0.05) : t), 0, nz ? (fz > 0 ? 0 : PI) : fx * PI/2, 0);
+            const wm = put(grp, new THREE.PlaneGeometry(1.1, 1.6), mat(o.windows, { e: o.windows, ei: 1.1, decal: true }), x + (nz ? t : fx * (sx/2 + 0.05)), y, z + (nz ? fz * (sz/2 + 0.05) : t), 0, nz ? (fz > 0 ? 0 : PI) : fx * PI/2, 0);
             wm.userData.noOutline = true;
           }
         }
@@ -401,7 +410,7 @@ const BUILD = {
         for (const [lx, lz] of [[-0.45, -0.45], [0.45, -0.45], [0, 0.5]]) put(grp, new THREE.CylinderGeometry(r * 0.06, r * 0.08, h, 6), mat(cols[1]), cx + lx * r, h / 2 - 2, cz + lz * r);
         put(grp, new THREE.CylinderGeometry(r, r * 0.8, r * 0.28, 14), mat(cols[0]), cx, h, cz);
         put(grp, new THREE.SphereGeometry(r * 0.55, 12, 5, 0, PI * 2, 0, PI / 2), mat(cols[0]), cx, h + r * 0.14, cz);
-        put(grp, new THREE.CylinderGeometry(r * 1.002, r * 1.002, r * 0.06, 14), glowMat(glow), cx, h, cz).userData.noOutline = true;   // the band of lit ports
+        put(grp, new THREE.CylinderGeometry(r * 1.002, r * 1.002, r * 0.06, 14), glowMat(glow, true), cx, h, cz).userData.noOutline = true;   // the band of lit ports
       }
     } else if (o.style === 'forest'){
       const bark = pal.bark ?? 0x3a2e22, leaf = [pal.leaf ?? 0x24402a, pal.leafD ?? 0x1a3020];

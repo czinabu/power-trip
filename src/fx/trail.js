@@ -29,12 +29,12 @@ import { spawnHitSpark } from './vfx.js';
    running doesn't smear a held saber); the player's swings always do; a thrown blade (owner tagged trailAlways)
    always does. The leading edge burns white-hot and cools to the blade colour as it fades, banded like the toon ramp.
    Each form leaves its own trail: Ataru short and whippy, Djem So long and heavy, the darksaber a dark cold edge. */
-const glowTrailMat = new THREE.MeshBasicMaterial({
+export const glowTrailMat = new THREE.MeshBasicMaterial({
   color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide,
   blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true });
 // the darksaber can't glow additively (its blade is black): its streak is drawn as ink, a near-black smear with a
 // white crackling edge, alpha-blended so the dark actually shows
-const darkTrailMat = new THREE.MeshBasicMaterial({
+export const darkTrailMat = new THREE.MeshBasicMaterial({
   color: 0xffffff, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false, vertexColors: true });
 const TRAIL = {   // life (s) · core (how hot the leading edge burns) · base (how far up the blade the streak reaches full strength)
   shiicho:   { life: 0.22, core: 0.65, base: 0.12 },   // broad, sweeping arcs

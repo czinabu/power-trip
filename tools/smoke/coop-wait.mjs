@@ -12,7 +12,7 @@ import path from 'path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=127.0.0.1&peerport=9023';
 const server = PeerServer({ port: 9023, host: '127.0.0.1', path: '/' });
-const browser = await chromium.launch({ ...(process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {}), args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
 const poll = { timeout: 30000, polling: 250 };
 const SHOTS = process.env.SHOTS;

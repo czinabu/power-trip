@@ -268,7 +268,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       let hostiles = 0;
       for (const o of enemies) if (!o.dead && !o.converted) hostiles++;
       // the last of the fight down: THE KILL CAM (engine/killcam.js), or with it off (or no room for it) the old slow-mo dip
-      if (hostiles === 0 && G.spawnQueue.length === 0 && !killCam('last', e) && !killCamOn()){ G.slowmo = 0.3; G.slowmoT = 0.5; }
+      // (a co-op guest's kill, applied here for them, never moves this hero's lens)
+      if (hostiles === 0 && G.spawnQueue.length === 0 && !guest && !killCam('last', e) && !killCamOn()){ G.slowmo = 0.3; G.slowmoT = 0.5; }
     }
     if (!e.converted) flowKill(e, knockDir);   // the gunners' flow meters (player/gunner-flow.js): after the last-foe beat, so it keeps its shot
   } else if (opts && opts.launch === false){

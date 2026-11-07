@@ -29,7 +29,7 @@ import { addFocus, FOCUS } from './focus.js';
 import { addFury } from './fury.js';
 import { throwOffSaber } from './offthrow.js';
 import { addPosture } from '../../enemies/duel.js';
-import { killCam } from '../../engine/killcam.js';
+import { killCam, bigFoe, lastFoe } from '../../engine/killcam.js';
 
 const FIN = FINISHER;
 const isDark = () => isGunner() && player.weapon === 'darksaber';
@@ -87,6 +87,7 @@ function slip(e){
   sfx(520, 0.08, 'triangle', 0.05, 260);
 }
 
+let lastFinCam = -1e9;
 /* START — called by tryAttack (jedi/combat.js) before a plain cut. Returns true when the attack became a finisher. */
 export function tryFinisher(){
   if (player.fin) return true;
@@ -95,7 +96,11 @@ export function tryFinisher(){
   if (Math.random() < slipChance(e)){ slip(e); return false; }
   const form = finisherForm(), D = finisherDef(form);
   const total = D.beats.reduce((s, b) => s + b.dur, 0);
-  player.fin = { e, form, def: D, i: 0, tough: toughFoe(e), total, at: G.gt };
+  // THE FINISHER CAMERA (the push in and the slow motion on the killing blow) is kept for the big ones: a big foe or the
+  // last of the fight, and never two back to back (data/finishers.js FINISHER.camCd). An ordinary one plays in the normal view
+  const cam = (bigFoe(e) || lastFoe(e)) && G.gt - lastFinCam >= FIN.camCd;
+  if (cam) lastFinCam = G.gt;
+  player.fin = { e, form, def: D, i: 0, tough: toughFoe(e), total, at: G.gt, cam };
   hold(e, total + FIN.hold);
   // the string is spent: the next attack after it starts a fresh one; a riposte waiting is folded into it
   player.comboStep = 2; player.queuedAtk = false; player.riposteT = 0; player.flowRun = 0;
@@ -189,7 +194,7 @@ export function finisherStrike(sw){
         if (b.fx === 'kneel' && !e.t.heavy && !e.dead) e.buckle = 0.4;   // the blow drives its knees down (enemies/gait.js)
         scarBody(e.group, f, sw.dir, true);
       }
-      beatFx(e, f, b, last, st);
+      beatFx(e, f, b, last, st, F.cam);
     }
   }
   edge(b, sw, e, st);
@@ -197,12 +202,13 @@ export function finisherStrike(sw){
     tutEvent('saberFinisher', e);
     if (G.stats) G.stats.finishers = (G.stats.finishers || 0) + 1;
     addFocus(FOCUS.gainFin * 2);
-    // a duellist, a champion or the Warbringer cut down: THE KILL CAM, if nobody else is close (engine/killcam.js)
-    if (e !== shared.boss && e.dead && (e.dp || F.tough)) killCam('duel', e);
+    // a big foe cut down (engine/killcam.js bigFoe): THE KILL CAM, if nobody else is close
+    // (a co-op guest's foe is the host's: it counts as down the moment this blow kills it here, enemies/damage.js netBlow)
+    if (e !== shared.boss && (e.dead || (e.net && e.netKillT === G.gt))) killCam('duel', e);
   }
 }
 
-function beatFx(e, f, b, last, st){
+function beatFx(e, f, b, last, st, cam){
   const gp = e.group.position, ip = V3(gp.x - f.x * 0.4, gp.y + (last ? 1.2 : 1.4), gp.z - f.z * 0.4);
   const col = isDark() ? 0xc9a6ff : (st.blade || 0x9fd8ff);
   if (b.fx === 'bind'){
@@ -220,9 +226,9 @@ function beatFx(e, f, b, last, st){
     S.heavy();
     return;
   }
-  // the killing blow: a held breath, the camera in close, a white flash
+  // the killing blow: a held breath, a white flash, and on a big one the camera in close and the slow motion
   G.hitstop = Math.max(G.hitstop, 0.15); G.shake = Math.max(G.shake, 1.0);
-  if (G.finSlow !== false){ G.slowmo = Math.min(G.slowmo, FIN.slowmo.k); G.slowmoT = Math.max(G.slowmoT, FIN.slowmo.t); }
+  if (cam && G.finSlow !== false){ G.slowmo = Math.min(G.slowmo, FIN.slowmo.k); G.slowmoT = Math.max(G.slowmoT, FIN.slowmo.t); }
   clashFlash(ip, 0xffffff, true);
   inkBurst(ip, col);
   screenFlash('radial-gradient(ellipse at center, rgba(255,240,200,.28), transparent 60%)', 0.6, 0.25);

@@ -40,11 +40,25 @@ function calm(pp, except){
   return true;
 }
 
+/* WHAT COUNTS AS A BIG KILL — the shot is for the moments that matter, never every kill: a boss, an elite, a champion,
+   the Warbringer, a rank IV duellist, a heavy (the brute), or the last foe of the fight */
+export const bigFoe = (e) => !!(e && (e === shared.boss || e.boss || e.elite || e.champion || e.warbringer || e.rank === 'master' || (e.t && e.t.heavy)));
+// nothing else hostile left and nothing waiting to come in (a co-op guest's puppets never count: the host keeps the waves)
+export function lastFoe(e){
+  if (!e || e.net || e.converted || G.spawnQueue.length) return false;
+  if (shared.boss && shared.boss !== e && shared.boss.hp > 0) return false;
+  for (const o of enemies) if (o !== e && !o.dead && !o.converted) return false;
+  return true;
+}
+const PICKY = { duel: 1, takedown: 1, flank: 1 };   // the kinds that only fire on a big foe (or a special move)
+
 const MOVE = ['w', 'a', 's', 'd', ' '];
-/* ASK FOR ONE — kind: 'last' | 'duel' | 'takedown' | 'flank' | 'boss'; foe: the one that fell (its body is framed with the hero) */
-export function killCam(kind, foe){
+/* ASK FOR ONE — kind: 'last' | 'duel' | 'takedown' | 'flank' | 'boss'; foe: the one that fell (its body is framed with the
+   hero); special: a signature move earned it (the trooper's COORDINATED FIRE), so the foe needn't be a big one */
+export function killCam(kind, foe, special = false){
   const D = K.kinds[kind];
   if (!D || G.killCam === false || G.mode !== 'play' || G.cutscene || G.paused || G.sbPlan || G.sbMenu) return false;
+  if (PICKY[kind] && !special && !bigFoe(foe) && !lastFoe(foe)) return false;   // an ordinary kill stays in the normal camera
   if (player.zoom) return false;
   if (shot && shot.kind === 'boss') return false;   // (a boss's beat is never cut over)
   const t = now();

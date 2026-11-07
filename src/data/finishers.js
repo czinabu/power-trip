@@ -15,12 +15,15 @@
                   outright, unless that was the last of it
    escape         the chance a duellist of that rank slips out of the window before the blade arrives (a broken guard
                   is a chance, not a certain kill); the attack is then a plain cut
-   slowmo / cam   the beat's dip in game speed on the killing blow, and the camera's push in (Settings: FINISHERS) */
+   slowmo / cam   the beat's dip in game speed on the killing blow, and the camera's push in (Settings: FINISHERS), on a
+                  big finisher only: a boss, an elite, a heavy, a rank IV duellist, a champion, the Warbringer, or the
+                  last foe of the fight (engine/killcam.js bigFoe / lastFoe). An ordinary finisher keeps the normal view
+   camCd          seconds after one finisher camera before the next can play (so it never fires back to back) */
 export const FINISHER = {
   reach: 3.2, cone: 0.7, hurt: 0.5, hold: 0.35,
   survive: 0.25, minor: 0.05,
   escape: { knight: 0.08, master: 0.2, champion: 0.2 },
-  slowmo: { k: 0.35, t: 0.22 }, cam: 5,
+  slowmo: { k: 0.35, t: 0.22 }, cam: 5, camCd: 6,
   // the foes a finisher can be landed on: the blade foes with a posture bar, the brute, the staff and saber duellists
   types: { grunt: 1, phalanx: 1, duelist: 1, acolyte: 1, brute: 1, lancer: 1 },
 };

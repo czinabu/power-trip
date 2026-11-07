@@ -57,9 +57,9 @@ export const SKILLS = [
     fl:'Become the tempest with a thousand edges.', apply(){ player.up.dmg *= 1.35; player.up.atkSpeed *= 1.2; } },
   { id:'ascend',ico:'✺', nm:'ASCENDANT',     tier:3, max:1, ds:'+70% Force regen · +20% knockback · restore Force',
     fl:'The Force has no bottom. Drink deeply.', apply(){ player.up.forceRegen *= 1.7; player.up.knock *= 1.2; player.force = CFG.player.maxForce; } },
-  // ---- THE FORCE TREE's own cards (data/profile.js): dealt only once your profile has learned them (game/profile.js) ----
+  // ---- THE FORCE TREE's own cards (data/profile.js): open once your rank reaches their tier (game/profile.js) ----
   ...JEDI_TREE,
-  // ---- THE TWO PATHS' cards (data/alignment.js): dealt only while you lean that way (game/profile.js alignOpen) ----
+  // ---- THE TWO PATHS' cards (data/alignment.js): open only while you lean that way (game/profile.js alignOpen) ----
   ...ALIGN_TREE,
 ];
 /* ---- MANDALORIAN creed — its own authentic upgrade path (clan, armor, jetpack, arsenal) ---- */

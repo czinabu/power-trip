@@ -223,6 +223,6 @@ onAlign((hero, moved, lean) => {
   if (!lean || G.mode !== 'play') return;
   const W = ALIGN_WORDS[hero] || ALIGN_WORDS.jedi;
   const head = lean === 'mid' ? 'BACK FROM THE EDGE' : 'YOU LEAN TO THE ' + (lean === 'light' ? W.light : W.dark);
-  const line = hero === 'jedi' ? (lean === 'mid' ? 'Balanced again: the paths\' cards wait for a lean' : 'The ' + lean + ' path\'s cards open for your deck · see PROFILE') : 'Your ' + W.title.toLowerCase().replace(/^the /, '') + ' has noticed · see PROFILE';
+  const line = hero === 'jedi' ? (lean === 'mid' ? 'Balanced again: the paths\' cards wait for a lean' : 'The ' + lean + ' path\'s cards open on your Force Tree · see PROFILE') : 'Your ' + W.title.toLowerCase().replace(/^the /, '') + ' has noticed · see PROFILE';
   upToast(head, line, 'mast');
 });

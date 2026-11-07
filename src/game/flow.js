@@ -358,7 +358,7 @@ export function checkUnlocks(bannerDelay, closing){
     const id = closeId;
     G.profClosed = G.profClosed || {};
     if (id && !G.profClosed[id]){ G.profClosed[id] = true; noteChapterCleared(id); }
-    if (G.formFork) noteFork('f7', G.formFork);   // (Form VII's pick, for the Force Tree)
+    if (G.formFork) noteFork('f7', G.formFork);   // (Form VII's pick, kept on the profile)
     rankCards = takeRankCards();
   }
   if (storyClose){

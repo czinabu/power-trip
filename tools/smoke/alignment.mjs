@@ -4,7 +4,8 @@
 //     the other's, the path's crystal is earned at its mark, the cast has lines for it, the Jedi's eyes take its colour;
 //   · MERCY in a real fight (survival): a beaten duellist yields (its blade down, on its knees), F spares it (it bows out,
 //     beaten, and the meter moves to the light), and one struck down while it kneels moves it to the dark;
-//   · the profile page shows the meter, the cards' LIGHT / DARK tags and lock reasons, and the tree's LIGHT AND DARK. SHOTS=dir writes screenshots there.
+//   · the profile page shows the meter, the tree's PATH branch and its lock reasons, and LIGHT AND DARK;
+//   · the upgrade page is the Profile's tree: a Training point ranks a card up, CONTINUE closes it. SHOTS=dir writes screenshots there.
 // Fails on any page error or console error, or a step that doesn't land where it should.
 //   npm run build && npm run smoke:alignment
 
@@ -64,29 +65,29 @@ try {
   await page.waitForSelector('#profile.open .pf-align');
   check(await page.isVisible('#profile .pf-align .pf-al-bar b'), 'the profile shows the meter');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-overview.png') });
-  await page.click('#profile .pf-vtabs [data-view="deck"]');
-  await page.click('#profile [data-filter="locked"]');
-  const darkIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard.al-dark.shut')].map(t => t.dataset.card));
+  // the tree's far branch is THE PATH: the dark cards locked, each saying to lean DARK; the light ones open
+  await page.click('#profile .pf-vtabs [data-view="tree"]');
+  const darkIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-tnode.al-dark.t-lock')].map(t => t.dataset.node));
   const lk = [];
-  for (const id of darkIds){ await page.click('#profile .pf-dcard[data-card="' + id + '"]'); lk.push(await page.evaluate(() => { const u = document.querySelector('#profile .pf-detail .pf-unlock'); return u ? u.textContent : ''; })); }
-  check(lk.length === 3 && lk.every(t => /Lean DARK past 30/.test(t)), 'LOCKED lists the three dark cards, and each says to lean DARK past 30 (' + lk.length + ')');
-  await page.click('#profile [data-filter="all"]');
-  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-light').length === 3), 'UNLOCKED shows the three light cards, tagged LIGHT');
-  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-cards.png') });
+  for (const id of darkIds){ await page.click('#profile .pf-tnode[data-node="' + id + '"]'); lk.push(await page.evaluate(() => { const u = document.querySelector('#profile .pf-detail .pf-unlock'); return u ? u.textContent : ''; })); }
+  check(lk.length === 3 && lk.every(t => /Lean DARK past 30/.test(t)), 'the tree locks the three dark cards, and each says to lean DARK past 30 (' + lk.length + ')');
+  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-tnode.al-light.t-have').length === 3), 'the tree shows the three light cards open');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-path-branch.png') });
   await page.click('#profile .pf-vtabs [data-view="sides"]');
   check(await page.evaluate(() => document.querySelectorAll('#profile .pf-sides .pf-pnode').length === 6), 'LIGHT & DARK draws its six cards');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') });
-  // the page wears the shown hero's look; a rank stop shows that rank; the FORCE TREE is chains of cards with a detail
+  // the page wears the shown hero's look; a rank stop shows that rank; the FORCE TREE holds every card, with a detail
+  const GAME_SKILLS = await page.evaluate(() => GAME.SKILLS.length);
   check(await page.evaluate(() => document.getElementById('profile').dataset.hero === 'jedi'), 'the profile wears the Jedi look');
   await page.click('#profile .pf-stop[data-rank="0"]');
   const rk = await page.evaluate(() => document.querySelector('#profile .pf-left .pf-next h4').textContent);
   check(/PADAWAN/.test(rk), 'tapping the first rank stop shows that rank (' + rk + ')');
   await page.click('#profile .pf-vtabs [data-view="tree"]');
-  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-ftree .pf-tnode:not(.pf-tfork)').length }));
-  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-ftree .pf-tnode:not(.pf-tfork)')].map(x => x.dataset.node));
+  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-ftree .pf-tnode').length }));
+  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-ftree .pf-tnode')].map(x => x.dataset.node));
   await page.click('#profile .pf-tnode[data-node="' + nodeIds[nodeIds.length - 1] + '"]');
   const td = await page.evaluate(() => ({ sel: document.querySelector('#profile .pf-tnode.sel').dataset.node, name: document.querySelector('#profile .pf-detail .pf-dh b').textContent, chains: document.querySelectorAll('#profile .pf-ftree .pf-fhead').length, lines: document.querySelectorAll('#profile .pf-flinks .pf-ln').length }));
-  check(tr.n >= 6 && td.chains === 3 && td.lines >= tr.n + 3 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws three branches off its root (' + tr.n + ' cards) and a tapped card fills the detail (' + td.name + ')');
+  check(tr.n === GAME_SKILLS && td.chains === 4 && td.lines >= tr.n + 4 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws four branches off its root, every card on it (' + tr.n + ') and a tapped card fills the detail (' + td.name + ')');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-tree.png') });
   await page.click('#pfclose');
 
@@ -123,19 +124,11 @@ try {
   const mp = await page.evaluate(() => ({ h: document.querySelector('#profile .pf-vtabs [data-view="sides"]').textContent, nodes: document.querySelectorAll('#profile .pf-sides .pf-pnode').length }));
   check(mp.h === 'HONOUR & RUTHLESS' && mp.nodes === 6, 'the Mando\'s profile has HONOUR & RUTHLESS with its six cards (' + mp.h + ', ' + mp.nodes + ')');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-creed.png') });
-  await page.click('#profile .pf-vtabs [data-view="deck"]');
-  const tags = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-dark')].map(t => t.textContent));
-  check(tags.length === 3 && tags.every(t => t === 'RUTHLESS'), 'the Mando\'s dark cards are tagged RUTHLESS (' + tags.join(', ') + ')');
-  // with a deck built, a card's detail takes it out and puts it back
-  await page.click('#profile [data-deckact="suggest"]');
-  const inId = await page.evaluate(() => { const t = document.querySelector('#profile .pf-dcard.indeck'); return t && t.dataset.card; });
-  const n0 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
-  await page.click('#profile .pf-dcard[data-card="' + inId + '"]'); await page.click('#profile .pf-detail [data-deck]');
-  const n1 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
-  await page.click('#profile .pf-detail [data-deck]');
-  const n2 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
-  check(inId && n1 === n0 - 1 && n2 === n0, 'a card\'s detail takes it out of the deck and puts it back (' + n0 + ' → ' + n1 + ' → ' + n2 + ')');
-  await page.click('#profile [data-deckact="all"]');
+  // the Mando's own tree: CLAN TREE, its three branches and THE PATH, HONOUR OR RUTHLESS
+  await page.click('#profile .pf-vtabs [data-view="tree"]');
+  const mt = await page.evaluate(() => ({ tab: document.querySelector('#profile .pf-vtabs .on').textContent, heads: [...document.querySelectorAll('#profile .pf-fhead')].map(x => x.textContent), path: document.querySelectorAll('#profile .pf-tnode:is(.al-dark,.al-light)').length, n: document.querySelectorAll('#profile .pf-tnode').length, all: GAME.MANDO_SKILLS ? GAME.MANDO_SKILLS.length : -1 }));
+  check(mt.tab === 'CLAN TREE' && mt.heads.length === 4 && /HONOUR or RUTHLESS/i.test(mt.heads[3]) && mt.path === 6 && (mt.all < 0 || mt.n === mt.all), 'the Mando\'s CLAN TREE has its branches and THE PATH (' + mt.heads.join(' | ') + ', ' + mt.n + ' cards)');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-clan-tree.png') });
   await page.click('#pfclose').catch(() => {});
   await page.evaluate(() => { for (const h of ['mando', 'trooper']) GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf(h), h, 'test', true); });
 
@@ -178,6 +171,24 @@ try {
   const st = await page.evaluate((nid) => { const e = GAME.enemies.find(o => o.nid === nid); GAME.damageEnemy(e, 9999, new GAME.camera.position.constructor(0, 0, 1), 4); return { dead: e.dead, a: GAME.PROFILE.alignOf('jedi'), struck: GAME.PROFILE.profileOf('jedi').mercy.struck }; }, y2.nid);
   check(y2.state === 'yield' && st.dead && st.a < a1 && st.struck === 1, 'striking down a kneeling foe moves the meter to the dark (' + a1 + ' → ' + st.a + ')');
 
+  // THE UPGRADE PAGE is the Profile's tree: Training points rank an open card up, CONTINUE puts the panel back
+  const up = await page.evaluate(() => {
+    const G = GAME.G; G.skillPoints = 2;
+    const opened = GAME.openSkillTree();
+    const st = document.getElementById('skilltree'), node = st.querySelector('#profile .pf-tnode.t-open');
+    return { opened, inside: !!st.querySelector('#profile.open .pf-ftree'), cont: !!st.querySelector('#profile #continueBtn'), id: node && node.dataset.node };
+  });
+  check(up.opened && up.inside && up.cont && up.id, 'the upgrade page opens as the Profile\'s tree, with CONTINUE (' + JSON.stringify(up) + ')');
+  if (up.id){
+    await page.click('#skilltree .pf-tnode[data-node="' + up.id + '"]');
+    await page.click('#skilltree [data-train]');
+    const tr2 = await page.evaluate((id) => ({ r: GAME.player.skills[id] || 0, sp: GAME.G.skillPoints, lit: !!document.querySelector('#skilltree .pf-tnode.ranked[data-node="' + id + '"]') }), up.id);
+    check(tr2.r === 1 && tr2.sp === 1 && tr2.lit, 'TRAIN spends a point and ranks the card up on the tree (' + JSON.stringify(tr2) + ')');
+    if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'upgrade-tree.png') });
+  }
+  await page.click('#continueBtn');
+  const back = await page.evaluate(() => ({ ss: GAME.G.skillSelect, home: document.getElementById('profile').parentElement.id, open: document.getElementById('profile').classList.contains('open') }));
+  check(!back.ss && back.home === 'overlay' && !back.open, 'CONTINUE closes the page and puts the Profile back (' + JSON.stringify(back) + ')');
   // ---- the look: a Jedi deep in the dark has gold eyes ----
   const eyes = await page.evaluate(() => {
     const { PROFILE: P, ALIGNMENT: A, player } = GAME;

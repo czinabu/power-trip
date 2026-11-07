@@ -31,11 +31,12 @@ import { ZONES } from '../data/zones.js';
 import { zoneLock } from '../game/zone-gate.js';
 import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
-import { mapHTML } from './hub-map.js';
+import { mapHTML, mapLayout } from './hub-map.js';
 import { optHTML, listHTML, headHTML } from './hub-cards.js';
+import { svgIcon } from './icons.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
-import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
+import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -217,20 +218,53 @@ new MutationObserver((ms) => {
    WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW
    ME AROUND (the walk to a few stations, ending at the first mission). The first visit itself puts up nothing like this:
    the guide speaks on the side panel and the walk just starts. */
+// the card stays short: the guide's first line (the rest is said on arrival), and a tile per place: what it's for, its name
+// and where (its longer line is the tile's tooltip)
+const firstLine = (t) => (String(t).match(/^.*?[.!?](?=\s|$)/) || [t])[0];
+const PLACE_ICON = [[/SIDE/, 'call'], [/MISSIONS|HUNT/, 'saga'], [/JEDHA/, 'city'], [/TRAINING/, 'target'], [/SABER|ARMOUR|KIT|GEAR/, 'forge'],
+  [/RECORDS/, 'holo'], [/AROUND/, 'map'], [/BOUNT/, 'dice']];
+const placeIcon = (label) => (PLACE_ICON.find(([re]) => re.test(label)) || [])[1] || 'spark';
 function renderWelcome(){
   const C = welcomeCard(); if (!C){ panel.innerHTML = ''; panel._list = []; return; }
+  const Hb = curHub(), L = mapLayout(Hb), p = playerPos();
   const list = [
-    B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => answerWelcome(true)),
-    B('CLOSE', 'Back to ' + C.start.toLowerCase(), () => answerWelcome(false)),
+    B('SHOW ME AROUND', 'A short walk, to your first mission', () => answerWelcome(true)),
+    B('CLOSE', '', () => answerWelcome(false)),
+    ...C.rows.map(r => B(r.label, r.d, () => guideTo(r.wing, r.id, r.d))),
   ];
-  const esc = (t) => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // the plan of the hub (ui/hub-map.js), YOU ARE HERE on it, and a numbered pin where each place stands
+  // (places close together, e.g. two of the ship's options, step aside along a row instead of sitting on top of each
+  // other: a pin is about 6% of the plan wide)
+  const placed = [], P = 7, ry = L.w / L.h;
+  for (const r of C.rows){
+    const [cx, cz] = L.at[r.wing] || [0, 0]; let x = (cx + r.x - L.x0) / L.w * 100; const y = (cz + r.z - L.z0) / L.h * 100;
+    const hit = (x, y) => placed.some(q => Math.abs(q.x - x) < P && Math.abs(q.y - y) < P * ry);
+    let n = 0, px = x, py = y;   // (out from the spot by turns: right, left, below, above, then further)
+    while (hit(px, py) && n < 24){ n++; const k = Math.ceil(n / 4), d = n % 4; px = x + (d === 1 ? k : d === 2 ? -k : 0) * P; py = y + (d === 3 ? k : d === 0 ? -k : 0) * P * ry; }
+    placed.push({ x: px, y: py });
+  }
+  const pin = (r, i) => '<i class="hw-pin" data-p="' + i + '" style="left:' + placed[i].x.toFixed(2) + '%;top:' + placed[i].y.toFixed(2) + '%"><b>' + (i + 1) + '</b></i>';
+  const plan = mapHTML(Hb, G.hubId, G.hubWing, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, () => [], () => -1).replace(/<\/div>$/, C.rows.map(pin).join('') + '</div>');
+  const tile = (r, i) => '<div class="hw-row" data-i="' + (i + 2) + '" data-p="' + i + '"><i class="hw-no">' + (i + 1) + '</i><i class="hb-ic">' + svgIcon(placeIcon(r.label)) + '</i>' +
+    '<div class="hw-n">' + esc(r.label) + '<em>' + esc(r.name) + ' · ' + esc(r.where.replace(/^.* · RIGHT HERE$/, 'RIGHT HERE')) + '</em></div><em class="hb-tag go"></em></div>';
   panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +
-    '<div class="hw-say"><span>' + esc(C.hello) + '</span><b>' + esc(C.guide) + '</b></div>' +
-    '<div class="hw-rows">' + C.rows.map(r => '<div class="hw-row"><div class="hw-l">' + esc(r.label) + '</div><div class="hw-n">' + esc(r.name) + '<em>' + esc(r.where) + '</em></div><div class="hw-d">' + esc(r.d) + '</div></div>').join('') + '</div>' +
-    '<div class="hb-list hw-go">' + list.map((b, i) => optHTML(b, i, { main: !i, cls: i ? '' : 'hw-main', ic: i ? 'door' : 'compass' })).join('') + '</div>' +
-    '<div class="hw-again">' + esc(C.again) + '</div></div>';
+    '<div class="hw-say"><span>' + esc(firstLine(C.hello)) + '</span><b>' + esc(C.guide) + '</b></div>' +
+    '<div class="hw-body"><div class="hw-plan">' + plan + '<div class="hw-info">Pick a place and a light leads you there.</div></div>' +
+    '<div class="hw-rows">' + C.rows.map(tile).join('') + '</div></div>' +
+    '<div class="hb-list hw-go">' + list.slice(0, 2).map((b, i) => optHTML(b, i, { main: !i, cls: i ? '' : 'hw-main', ic: i ? 'door' : 'compass' })).join('') + '</div></div>';
   panel._list = list;
 }
+// the welcome's tiles and pins light together, and the line under the plan says what the place is for
+function welcomePoint(i){
+  if (!station || station.act !== 'welcome') return;
+  for (const el of panel.querySelectorAll('.hw-pin,.hw-row')) el.classList.toggle('on', el.dataset.p === String(i));
+  const info = panel.querySelector('.hw-info'), b = i == null ? null : panel._list[+i + 2];
+  if (info) info.textContent = b ? b.d : 'Pick a place and a light leads you there.';
+}
+panel.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('.hw-row,.hw-pin'); if (t || station && station.act === 'welcome') welcomePoint(t ? t.dataset.p : null); });
+new MutationObserver((ms) => { for (const m of ms) if (m.target.classList && m.target.classList.contains('hw-row') && m.target.classList.contains('padfocus')){ welcomePoint(m.target.dataset.p); return; } })
+  .observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
 setWelcomeOpener(() => open({ name: 'WELCOME', act: 'welcome' }));
 setStationOpener(open);
 setHubPanelCloser(closeHubPanel);
@@ -238,8 +272,8 @@ setHubPanelCloser(closeHubPanel);
 panel.addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   if (e.target === panel || e.target.closest('[data-x]')){ closeHubPanel(); return; }
-  const o = e.target.closest('.hb-o,.hm-wing[data-i]'); if (!o) return;
-  const b = panel._list[+o.dataset.i];
+  const o = e.target.closest('.hb-o,.hm-wing[data-i],.hw-row[data-i],.hw-pin'); if (!o) return;
+  const b = panel._list[o.dataset.i != null ? +o.dataset.i : +o.dataset.p + 2];   // (a welcome pin: the place it marks)
   if (!b || !b.go){ return; }
   if (b.lock){ S.uiDeny(); o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); return; }
   if (ready){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves)

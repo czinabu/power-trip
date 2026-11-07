@@ -66,6 +66,34 @@
 #hubpanel .hw-l{color:var(--hx-live);font-family:var(--hx-label)}
 #hubpanel .hw-n{font-family:var(--hx-display);font-weight:var(--hx-display-w);color:var(--hx-text)}
 #hubpanel .hw-d{font-family:var(--hx-read);color:var(--hx-soft)}
+/* the welcome: the hub's plan with a numbered pin at each place, the places beside it as tiles (pick one and a light
+   leads there), and the guide's one line over them */
+#hubpanel .hb-box.hw-box{width:min(940px,100%)}
+#hubpanel .hw-body{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start;margin-top:4px}
+#hubpanel .hw-plan{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+#hubpanel .hw-info{align-self:stretch}
+#hubpanel .hw-plan .hm-map{height:min(46vh,400px);width:auto;min-width:0;max-width:100%;max-height:none;margin:0 auto;flex:none}
+#hubpanel .hw-plan .hm-wing{pointer-events:none;cursor:default}
+#hubpanel .hw-plan .hm-l{display:none}
+.hw-pin{position:absolute;width:17px;height:17px;margin:-8.5px 0 0 -8.5px;font-style:normal;display:grid;place-items:center;z-index:3;cursor:pointer;
+  background:var(--hx-accent);color:var(--hx-on-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 10px var(--hx-accent);transition:transform .15s}
+[data-hero="jedi"] .hw-pin{border-radius:50%}
+#hubpanel .hw-pin b{font:700 10px/1 var(--hx-label);color:var(--hx-on-accent);text-shadow:none}
+.hw-pin.on{transform:scale(1.35);animation:hwPing 1s ease-out infinite}
+@keyframes hwPing{0%{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 0 var(--hx-accent)}100%{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 14px transparent}}
+#hubpanel .hw-info{min-height:38px;padding:8px 12px;font:500 13px/1.4 var(--hx-read);color:var(--hx-soft);background:var(--hx-paper);box-shadow:inset 3px 0 0 var(--hx-live)}
+#hubpanel .hw-rows{display:flex;flex-direction:column;gap:6px;margin:0}
+#hubpanel .hw-row{flex-direction:row;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;transition:background .12s,transform .12s}
+#hubpanel .hw-row:is(:hover,.on,.padfocus){background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent);transform:translateX(3px)}
+#hubpanel .hw-no{flex:none;width:20px;height:20px;display:grid;place-items:center;font:700 11px/1 var(--hx-label);font-style:normal;color:var(--hx-on-accent);background:var(--hx-accent)}
+#hubpanel .hw-row .hb-ic{width:32px;height:32px}
+#hubpanel .hw-row .hb-ic .ic{width:18px;height:18px}
+#hubpanel .hw-n{flex:1;font-size:14px;line-height:1.1;min-width:0}
+#hubpanel .hw-n em{font-size:9.5px;letter-spacing:1.2px;margin-top:4px}
+#hubpanel .hw-row .hb-tag{position:static;margin-left:auto}
+#hubpanel .hw-go .hb-o span:empty{display:none}
+@media (max-width:700px){ #hubpanel .hw-body{grid-template-columns:1fr} #hubpanel .hw-plan .hm-map{height:34vh} }
+@media (max-height:620px){ #hubpanel .hw-plan .hm-map{height:52vh} #hubpanel .hw-row{padding:5px 8px} #hubpanel .hw-info{display:none} }
 #hubpanel .hm-side .hb-o{min-height:0}
 #hubpanel .hm-side .hb-ic{width:32px;height:32px}
 #hubpanel .hm-side .hb-ic .ic{width:19px;height:19px}

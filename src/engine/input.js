@@ -44,6 +44,7 @@ import { diffWindow } from '../data/difficulty.js';
 import { toggleHolster, toggleBlade, wakeBlade } from '../player/holster.js';
 import { strikePress, strikeRelease, holsteredKick } from '../player/jedi/palm.js';
 import { wheelKeyDown, wheelKeyUp, wheelLook, wheelPickMate, wheelCancel, wheelOpen } from '../allies/wheel.js';
+import { giveOrder } from '../allies/squad.js';
 import { interactTap } from '../game/interact.js';
 let fInteract = false;   // this F press went to a prompt (see the keydown below)
 import { pingHere } from '../net/ping.js';
@@ -192,6 +193,7 @@ document.addEventListener('keydown', (e) => {
   if (k === '5' && !e.repeat) toggleBlade();     // IGNITE / RETRACT: the blade out and the hilt clipped on the belt, at ease (any fight move lights it again)
   if (k === 'n' && !e.repeat) pingHere();   // PING: mark the spot or foe under the crosshair for the other players (net/ping.js)
   if (k === 'h' && !e.repeat) wheelKeyDown();   // SQUAD ORDERS: tap for the smart order, hold for the command wheel (allies/wheel.js)
+  if (k === 'j' && !e.repeat && G.mode === 'play' && !G.paused && !G.hub) giveOrder('stance');   // the squad's stance: FREE ENGAGE ⇄ FOLLOW ME (allies/squad.js; on a pad, the wheel)
   if (isGunner() && flowSignature(k, e.repeat)) return;   // T (the Mando's DEAD EYE) · Y (the trooper's COORDINATED FIRE): player/gunner-flow.js
   if (isTrooper()) trooperKey(k, e.repeat);   // the clone trooper's keys (player/trooper/kit.js)
   else if (isGunner()){

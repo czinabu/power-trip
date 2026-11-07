@@ -112,8 +112,9 @@
 .mx-bar i{display:block;height:100%;background:var(--hx-accent)}
 
 /* ---------- the tiles ---------- */
-.mx-tile{position:relative;min-width:0;display:flex;flex-direction:column;gap:5px;padding:11px 12px 11px 20px;cursor:pointer;
+.mx-tile{position:relative;min-width:0;display:flex;flex-direction:column;gap:5px;padding:11px 12px 11px 20px;
   background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.mx-tile:not(.sealed){cursor:pointer}   /* (a sealed tile is never a pick, so the controller's ring passes it by: engine/gamepad.js clickSel) */
 .mx-tile:hover{background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
 .mx-tile.sel{background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
 .mx-tile :is(.mx-tt,.mx-tf,.mx-tr){display:flex;align-items:center;gap:6px;min-width:0}

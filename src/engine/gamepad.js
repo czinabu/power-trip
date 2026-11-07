@@ -327,7 +327,7 @@ function menu(btn, down, lx, ly, ry, dt){
     if (ovUp() && overlay.classList.contains('st-pause') && !panelUp()){ sendKey('tab', true); sendKey('tab', false); }
     else if (ovUp() && !panelUp()) document.getElementById('goText').click();
     else if (G.cutscene) skipScene();   // a cutscene (game/cutscene.js)
-    else if (G.cardUp){ const go = document.querySelector('#chapcard.open .go'); if (go) go.click(); }   // the chapter card's BEGIN (game/campaign.js)
+    else if (G.cardUp){ const go = document.querySelector('#chapcard.open .go, #meditate.open .go, #armory.open [data-go]'); if (go) go.click(); }   // the chapter card's BEGIN (game/campaign.js), the meditation's CONTINUE / RISE (game/meditation.js), the new gun's CARRY (ui/armory-ui.js)
     else if (G.skillSelect) document.getElementById('continueBtn').click();
   }
   // RIGHT STICK — scroll a long panel (Controls, the roadmap, the upgrade screen)

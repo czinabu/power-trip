@@ -3,6 +3,7 @@
 // to a slot from the pause screen, starts over with NEW GAME, then loads the slot back and checks CONTINUE CAMPAIGN
 // returns to that level with the same build. Also saves during a story mission and loads it back onto that mission.
 //   npm run build && npm run smoke:saves            (SHOTS=<dir> also saves screenshots of the menus)
+// (a save carried into every mode, and the autosaves as bosses fall and chapters close: tools/smoke/save-carry.mjs)
 
 import { chromium } from 'playwright';
 import { fileURLToPath, pathToFileURL } from 'url';

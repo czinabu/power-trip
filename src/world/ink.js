@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { registerProp, fadeTex, FADE_W } from './camblock.js';
+import { DETAIL } from '../data/depth.js';
 
 export const INK = 0x07060a;   // the model outline colour
 
@@ -118,19 +119,23 @@ export function seeThrough(src, shade = false){
   m.onBeforeCompile = (sh, r) => {
     prev.call(src, sh, r);
     sh.uniforms.uSeeTex = SEE.tex; sh.uniforms.uSeeAmt = SEE.amt;
-    sh.vertexShader = `attribute float aProp;\nuniform sampler2D uSeeTex;\nvarying float vSee;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\n' : ''}` + sh.vertexShader
+    if (shade){ sh.uniforms.uLamp = SCALE_U.lamp; sh.uniforms.uLit = SCALE_U.lit; }
+    sh.vertexShader = `attribute float aProp;\nuniform sampler2D uSeeTex;\nvarying float vSee;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nattribute vec2 aDet;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\n' : ''}` + sh.vertexShader
       .replace('#include <project_vertex>', `#include <project_vertex>
   int sid = int(floor(aProp + 0.5));
   vSee = sid < 0 ? 0.0 : texelFetch(uSeeTex, ivec2(sid % ${FADE_W}, sid / ${FADE_W}), 0).r;${shade ? `
   vPropK = fract(sin(float(sid) * 12.9898 + 4.1) * 43758.5453);
-  vPropY = (modelMatrix * vec4(transformed, 1.0)).y;` : ''}`);
-    sh.fragmentShader = `varying float vSee;\nuniform float uSeeAmt;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\n' : ''}` + sh.fragmentShader
+  vPropY = (modelMatrix * vec4(transformed, 1.0)).y;
+  vDet = aDet; vDetW = (modelMatrix * vec4(transformed, 1.0)).xyz; vDetN = normalize(mat3(modelMatrix) * objectNormal);` : ''}`);
+    sh.fragmentShader = `varying float vSee;\nuniform float uSeeAmt;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\nuniform vec3 uLamp;\nuniform float uLit;\nfloat vWin = 0.0;\n' : ''}` + sh.fragmentShader
       .replace('void main() {', `void main() {
   if (vSee > 0.0 && vSee * uSeeAmt > fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))))) discard;`);
     if (shade) sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
   diffuseColor.rgb *= (1.0 + (vPropK - 0.5) * ${PROP_SHADE.jitter.toFixed(3)})
     * mix(${PROP_SHADE.foot.toFixed(3)}, 1.0, smoothstep(0.0, ${PROP_SHADE.footH.toFixed(2)}, vPropY))
-    * (1.0 + ${PROP_SHADE.crown.toFixed(3)} * smoothstep(${PROP_SHADE.crownY[0].toFixed(1)}, ${PROP_SHADE.crownY[1].toFixed(1)}, vPropY));`);
+    * (1.0 + ${PROP_SHADE.crown.toFixed(3)} * smoothstep(${PROP_SHADE.crownY[0].toFixed(1)}, ${PROP_SHADE.crownY[1].toFixed(1)}, vPropY));
+${SCALE_GLSL}`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  totalEmissiveRadiance += uLamp * vWin;`);
   };
   m.customProgramCacheKey = () => key + '|see' + (shade ? 's' : '');
   seeCache.set(id, m);
@@ -144,6 +149,34 @@ export function seeThrough(src, shade = false){
            floor instead of floating, even on tiers without ambient occlusion
    crown   tall things lighten a little toward the sky between crownY metres: skylines lift off the walls below */
 export const PROP_SHADE = { jitter: 0.16, foot: 0.68, footH: 1.6, crown: 0.1, crownY: [5, 26] };
+
+/* SCALE DETAIL (data/depth.js DETAIL): the big man-made blocks' panel seams, storey courses and, at night, a few lit
+   window slots, drawn in world metres on their upright faces. bakeArena marks which props take it (aDet.x: 0 none,
+   1 seams, 2 seams and windows at night, 3 windows by day too (dark slots, a few lit after dark: userData.windows); aDet.y: the prop's foot, so courses count up from its base). Seams fade out where a
+   panel shrinks to a few pixels, so the far skyline never shimmers. SCALE_U is set per arena (world/atmosphere.js) */
+export const SCALE_U = { lamp: { value: new THREE.Color(0xffc070) }, lit: { value: 0 } };
+const f3 = v => v.toFixed(3);
+const SCALE_GLSL = `
+  if (vDet.x > 0.5 && abs(vDetN.y) < 0.35){
+    float du = abs(vDetN.x) > abs(vDetN.z) ? vDetW.z : vDetW.x;
+    vec2 q = vec2(du, vDetW.y - vDet.y);
+    vec2 cs = vec2(${f3(DETAIL.panel)}, ${f3(DETAIL.storey)});
+    vec2 cell = q / cs, fc = fract(cell), id = floor(cell);
+    vec2 dm = (0.5 - abs(fc - 0.5)) * cs;   // metres to the nearest seam, each way
+    vec2 px = max(fwidth(q), vec2(1e-4));
+    vec2 ln = 1.0 - smoothstep(vec2(${f3(DETAIL.line)}), vec2(${f3(DETAIL.line)}) + px, dm);
+    float fade = 1.0 - smoothstep(0.08, 0.35, max(px.x / cs.x, px.y / cs.y) * 4.0);
+    float seam = max(ln.x, ln.y) * fade;
+    float h = fract(sin(dot(id, vec2(12.9898, 78.233)) + vPropK * 91.7) * 43758.5453);
+    diffuseColor.rgb *= (1.0 - seam * ${f3(DETAIL.seam)}) * (1.0 + (h - 0.5) * ${f3(DETAIL.jitter)} * fade);
+    if (vDet.x > 1.5 && id.y >= 1.0 && (uLit > 0.0 || vDet.x > 2.5)){   // (3: the outskirts' buildings, windows by day too)
+      float h2 = fract(h * 17.31 + 0.13);
+      vec2 w = abs(fc - vec2(0.5, 0.55));
+      float inWin = (1.0 - smoothstep(0.2, 0.2 + px.x / cs.x, w.x)) * (1.0 - smoothstep(0.13, 0.13 + px.y / cs.y, w.y));
+      vWin = step(h2, uLit) * inWin;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.35, inWin * (1.0 - step(h2, uLit)) * 0.6);
+    }
+  }`;
 
 /* FAR HAZE — the backdrop stands hundreds of metres out, far past where the arena's fog goes solid. Its materials swap
    the scene fog for aerial perspective: from the fog's near distance the haze builds toward `max` over `len` metres
@@ -230,6 +263,7 @@ export function bakeArena(group, width = 0.045, far = false){
       : new THREE.BufferAttribute(Uint32Array.from({ length: sg.attributes.position.count }, (_, i) => i), 1));
     g.applyMatrix4(o.matrixWorld);
     g.setAttribute('aProp', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(registerProp(o)), 1));
+    g.setAttribute('aDet', detailOf(o, g));
     const key = mat.uuid + (o.castShadow ? 's' : '') + (o.userData.noOutline || src.side === THREE.DoubleSide ? 'n' : '');
     if (!buckets.has(key)) buckets.set(key, { mat, geos: [], shadow: o.castShadow, outline: !key.endsWith('n') });
     buckets.get(key).geos.push(g);
@@ -266,6 +300,20 @@ export function bakeArena(group, width = 0.045, far = false){
     group.add(m); calls++;
   }
   return { meshes: baked.length, calls };
+}
+
+/* which baked props take the scale detail (SCALE_GLSL): box shapes at least DETAIL.minH tall (walls, towers, pillars,
+   hulls). Round things (rocks, trunks, domes), low cover and anything flagged userData.noDetail stay plain */
+function detailOf(o, g){
+  const n = g.attributes.position.count, a = new Float32Array(n * 2);
+  let k = 0, foot = 0;
+  if (o.geometry.type === 'BoxGeometry' && !o.userData.noDetail){
+    g.computeBoundingBox();
+    const b = g.boundingBox, h = b.max.y - b.min.y, w = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
+    if (h >= DETAIL.minH && w >= DETAIL.panel * 0.6){ k = h >= DETAIL.litH && w >= DETAIL.panel * 1.5 ? (o.userData.windows ? 3 : 2) : 1; foot = b.min.y; }
+  }
+  for (let i = 0; i < n; i++){ a[i * 2] = k; a[i * 2 + 1] = foot; }
+  return new THREE.BufferAttribute(a, 2);
 }
 
 /* a glow that can merge: opaque plain colour on an ordinary, visible mesh nobody moves or draws specially (anything the

@@ -23,6 +23,7 @@ import { playOpening, resetScenes, playScene } from './cutscene.js';
 import { recordChapters } from './sandbox-unlocks.js';
 import { choiceAfter, choose, resetStory, storyChoices, answer, storyWords } from './choices.js';
 import { alignChoice, askGuests, setOwnChoice } from './alignment.js';
+import { groupVote, castVote, openVote } from './group-choice.js';
 import { ALIGN_WORDS } from '../data/alignment.js';
 import { victory } from './summary.js';
 import { JEDI_ACT_TWO_WARN, JEDI_EPILOGUE_SCENE } from '../data/campaign-jedi.js';
@@ -179,6 +180,12 @@ export function closeCard(quiet){
   if (!shared.lockFallback){ try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){} }
   releaseUnlockBanners();
 }
+// redraw the open card in place (a group choice's count and result: game/group-choice.js)
+function paintCard(html, go){
+  if (!cardUp()) return openCard(html, go);
+  card.innerHTML = html; onGo = go;
+  for (const b of card.querySelectorAll('[data-go]')) b.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); if (onGo) onGo(b.dataset.go); });
+}
 const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
 // where this chapter sits in its act: a pip per chapter (cleared, this one, ahead), how far in ('2 OF 5 IN THIS ACT') and
 // what's next
@@ -264,18 +271,26 @@ function showPick(pos, sandboxOpened){
 }
 // A STORY'S CHOICE (game/choices.js): the question, who asks it and the two answers. A click picks (no Enter: it has to
 // be meant). then: what follows once it's made (the next chapter, or the epilogue). Each pick moves this player's own
-// light and dark (game/alignment.js); in co-op the host's decides the story, and every guest is asked too (`own`: their
-// pick moves only their own meter)
+// light and dark (game/alignment.js). In co-op it's a GROUP CHOICE (game/group-choice.js): everyone is asked at once
+// (`own`: a guest's copy), the card waits for every pick, shows them all, and a roll settles a split. The winner is the
+// story on every screen; the host saves it
 function showChoice(ch, then, own = false){
-  const c = chapterAt(G.chapter);
-  if (!own) askGuests(ch.id);
-  askChoice({ kicker: 'ACT ' + ROMAN[c ? c.act : 2] + ' · A CHOICE', title: ch.title, lines: storyWords(ch.lines), who: ch.who || storyVoice(undefined, chapterAt(G.chapter)),
-    options: ch.options, hint: own ? 'The host\'s pick decides the story. Yours moves your own ' + alignWords() : 'This choice stays with you for the rest of the story, and moves your ' + alignWords() },
+  const c = chapterAt(G.chapter), group = groupVote();
+  if (!own){ askGuests(ch.id); openVote(ch.id); }
+  const hint = group ? 'Everyone picks at once. If you differ, a roll decides the story. Your own pick moves your own ' + alignWords()
+    : 'This choice stays with you for the rest of the story, and moves your ' + alignWords();
+  askChoice({ kicker: 'ACT ' + ROMAN[c ? c.act : 2] + ' · ' + (group ? 'A GROUP CHOICE' : 'A CHOICE'), title: ch.title, lines: storyWords(ch.lines), who: ch.who || storyVoice(undefined, chapterAt(G.chapter)),
+    options: ch.options, hint, keep: group },
     (k) => {
-      if (!own) choose(ch.id, k);
-      alignChoice(ch.id, k);
-      if (!own) autosave('choice');
-      if (then) then();
+      alignChoice(ch.id, k);   // (this player's own pick, whatever the group's comes to)
+      const settle = (win) => {
+        if (G.coopGuest){ choose(ch.id, win); if (cardUp()) closeCard(!own); if (then) then(); return; }   // (the host's run carries it too: net/foes.js)
+        choose(ch.id, win);
+        autosave('choice');
+        if (cardUp()) closeCard(true);
+        if (then) then();
+      };
+      if (group) castVote(ch, k, paintCard, settle); else settle(k);
     }, own);
 }
 const alignWords = () => { const W = ALIGN_WORDS[G.hero] || ALIGN_WORDS.jedi; return W.light.toLowerCase() + ' and ' + W.dark.toLowerCase(); };
@@ -294,7 +309,8 @@ function choiceClear(){
 }
 function whenChoiceClear(fn){ (function wait(){ if (G.mode !== 'play' || choiceClear()) fn(); else setTimeout(wait, 300); })(); }   // (the last one each screen asks itself: campaignWon)
 // ANY CHOICE CARD: the campaign's, and a side mission's (game/mission.js). onPick(key) once one is clicked; `resume`
-// takes the pointer back after (in a fight), else the card closes quietly
+// takes the pointer back after (in a fight), else the card closes quietly. `keep`: the card stays up after the pick (a
+// group choice draws its count on it)
 export function askChoice(q, onPick, resume = false){
   openCard('<div class="cc-inner cc-choice hero-' + G.hero + '">' +
     '<div class="cc-act">' + esc(q.kicker) + '</div><h1 class="cc-title">' + esc(q.title) + '</h1>' +
@@ -303,7 +319,7 @@ export function askChoice(q, onPick, resume = false){
     '<div class="cc-hint">' + esc(q.hint || '') + '</div>' +
     '</div>', (k) => {
       if (!q.options.some(o => o.key === k)) return;
-      S.reward(1); closeCard(!resume); onPick(k);
+      S.reward(1); if (!q.keep) closeCard(!resume); onPick(k);
     });
   MUSIC.unlockSting();
 }
@@ -322,7 +338,7 @@ export function campaignWon(then){
   // a last look at the hero (game/cutscene.js), then the card. Each screen plays its own in co-op (both get here). A story's
   // last choice (the Jedi's: what becomes of Vexis) comes first; a co-op guest takes the host's
   const scene = () => { if (G.mode !== 'play' || !playScene('epilogue', { onDone: card, share: false, lines: own && own.lines() })) card(); };
-  // (a co-op guest is asked it too, on its own card: its pick moves its own meter, the host's decides the story)
+  // (a co-op guest asks it too, on its own card: a group choice, game/group-choice.js)
   const last = G.coopGuest ? storyChoices(storyHero()).find(ch => ch.after === 'end') : choiceAfter(storyHero(), 'end');
   setTimeout(() => whenChoiceClear(() => { if (last && G.mode === 'play') showChoice(last, scene, !!G.coopGuest); else scene(); }), 1200);
 }

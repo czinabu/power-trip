@@ -146,6 +146,7 @@ import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
 import { updateWaits } from './net/waits.js';
 import { updateWaiting, waitingUp } from './ui/waiting.js';
+import { voteState } from './game/group-choice.js';
 import './net/foefire.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
@@ -291,7 +292,7 @@ import { queueAbilityCards, abilityCardUp } from './ui/ability-card.js';
 Object.assign(window.GAME, { meditation: { queue: queueMeditation }, abilityCards: { queue: queueAbilityCards, up: abilityCardUp } });   // a form learned in a run: the unlock card and the loadout (game/meditation.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
 Object.assign(window.GAME, { popups: { push: pushPopup, up: popupUp, waiting: popupsWaiting, toast: upToast, banner: showBanner, cfg: POPUPS } });   // one pop-up at a time (ui/popups.js), for tests
-Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget, goThrough, doorDark, waitingUp });   // the story's voice lines (game/story.js), for tests
+Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget, goThrough, doorDark, waitingUp, voteState });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
 Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });

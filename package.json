@@ -21,6 +21,7 @@
     "smoke:saves": "node tools/smoke/saves.mjs",
     "smoke:save-carry": "node tools/smoke/save-carry.mjs",
     "smoke:coop-run": "node tools/smoke/coop-run.mjs",
+    "smoke:coop-choice": "node tools/smoke/coop-choice.mjs",
     "smoke:coop-campaign": "node tools/smoke/coop-campaign.mjs",
     "smoke:coop-boss": "node tools/smoke/coop-boss.mjs",
     "smoke:coop-duo": "node tools/smoke/coop-duo.mjs",

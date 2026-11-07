@@ -7,7 +7,7 @@
 import { G, player, isTrooper } from '../state.js';
 import { ordersFor, COMMAND } from '../data/allies.js';
 import { orderCost, commandPoints } from '../player/trooper/command.js';
-import { allies, giveOrder, squadOrder, orderLabel, grenadeLeft, squadFormation } from './squad.js';
+import { allies, giveOrder, squadOrder, orderLabel, grenadeLeft, squadFormation, squadStance } from './squad.js';
 import { sfx } from '../audio/sfx.js';
 
 const W = { down: false, downAt: 0, open: false, x: 0, y: 0, sel: -1, who: null };
@@ -92,7 +92,7 @@ function close(){
 /* ---------- THE PICTURE ---------- */
 function build(){
   el = document.createElement('div'); el.id = 'sqwheel';
-  const ORDERS = builtFor = list(), R = 150, n = ORDERS.length;
+  const ORDERS = builtFor = list(), n = ORDERS.length, R = n > 8 ? 162 : 150;
   el.innerHTML = '<div class="sw-ring"></div>' + ORDERS.map((o, i) => {
     const a = i / n * Math.PI * 2, x = Math.sin(a) * R, y = -Math.cos(a) * R;
     return '<div class="sw-o" data-i="' + i + '" style="transform:translate(calc(-50% + ' + x.toFixed(1) + 'px), calc(-50% + ' + y.toFixed(1) + 'px))">' +
@@ -107,7 +107,7 @@ function render(){
     const o = ORDERS[i], cost = orderCost(o.id), broke = cost > commandPoints();
     d.classList.toggle('on', i === W.sel);
     const em = d.querySelector('em');
-    em.textContent = o.id === 'grenade' && gl > 0 ? Math.ceil(gl) + 'S' : cost ? cost + ' CP' : o.id === 'formation' ? (squadFormation() === 'wide' ? '→ STACK' : '→ SPREAD') : '';
+    em.textContent = o.id === 'grenade' && gl > 0 ? Math.ceil(gl) + 'S' : cost ? cost + ' CP' : o.id === 'formation' ? (squadFormation() === 'wide' ? '→ STACK' : '→ SPREAD') : o.id === 'stance' ? (squadStance() === 'free' ? '→ FOLLOW ME' : '→ FREE ENGAGE') : '';
     d.classList.toggle('cool', (o.id === 'grenade' && gl > 0) || broke);   // (the trooper: short of COMMAND POINTS)
   });
   const o = W.sel >= 0 ? ORDERS[W.sel] : null;

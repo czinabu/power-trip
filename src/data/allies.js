@@ -145,6 +145,7 @@ export const ORDERS = [
   { id: 'formation', name: 'SPREAD / STACK', note: 'Wide formation, or tight on you',             icon: '⇔' },
   { id: 'cover',     name: 'TAKE COVER',     note: 'Behind the nearest wall: hit less, fire slower', icon: '▙' },
   { id: 'hold',      name: 'HOLD HERE',      note: 'Stop where they stand',                       icon: '■' },
+  { id: 'stance',    name: 'ENGAGE / FOLLOW', note: 'FREE ENGAGE: in a fight they take cover and flank, then regroup · FOLLOW ME: they hold the formation', icon: '◇' },
 ];
 // the ARC trooper's wheel: SUPPRESS takes SPREAD / STACK's place (the trooper's squad stays spread)
 export const SUPPRESS_ORDER = { id: 'suppress', name: 'SUPPRESS', note: 'Pin the foes round the crosshair: they slow and hold their fire', icon: '≋' };
@@ -166,6 +167,18 @@ export const COMMAND = {
   coverEvery: 2.5,           // it checks its cover still covers this often, as the fight moves (s): if so it stays put
   coverNear: 12,             // cover further than this from you counts against a spot (m)
   coverShot: 3,              // ...and a spot with a foe in sight from it counts for it (m of walking it's worth)
+};
+
+/* FREE ENGAGE (allies/squad.js, the squad's stance; J or the wheel toggles it, FOLLOW ME is the other): on ON ME, once
+   the rank and file are on the attack within `aggro` m of the hero, each rifle leaves the formation for a fighting spot
+   of its own: out on a flank of the hero's line to the fight (`angles` rad round the foes, by formation slot, `dist` m
+   off them), hard by cover that faces the foes when there is some there, and with a shot. Never further than `leash` m
+   from the hero (past `snap` m they drop it and come), a spot kept at least `hold` s and looked at again every `every` s
+   (sooner if the fight moves `moved` m or the shot is gone). Calm for `calm` s, they regroup on the hero. In cover there
+   they take `coverTake` of the harm (TAKE COVER's own trade: no slower fire, a lighter shield) */
+export const ENGAGE = {
+  aggro: 30, angles: [0.85, 0.85, 1.3, 1.3], dist: [9, 15], search: 6, leash: 20, snap: 30,
+  hold: 2.5, every: 0.9, moved: 6, calm: 2.2, coverBonus: 4, noShot: 8, coverTake: 0.7,
 };
 
 // the revive rules (game/revive.js): who can be downed instead of dying, and how getting up works

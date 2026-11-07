@@ -207,7 +207,7 @@ function mandoTurn(face, lambda, dt){
 // to shoot over it he comes back up. Behind tall cover he only sinks a little, weight off the shoulder on the face
 function coverCrouch(){
   const v = player.cover;
-  if (!v) return 0;
+  if (!v || (v.slideDur && v.blend < 1)) return 0;   // (sliding in: the skid has the body; the crouch eases in after it)
   const k = 1 - Math.min(1, v.peek * 1.25);
   return v.low ? clamp(DIM.hipY - Math.max(0.42, v.top - 0.55), 0.2, 0.55) * k : 0.12 * k;
 }
@@ -944,7 +944,8 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     // GUNSLINGER — blasters at the hip until he shoots, then up one-handed down the aim line; the disruptor shouldered
     const aimPt = mandoAimPoint();   // also refreshes the reticle lock state (player.lockOn)
     if (twoH) riflePose(dt, R, player, aimPt);
-    else pistolPose(dt, R, player, aimPt, w === 'dual', { braced: player.blockHeld, backRun: player.backRun, rex: isTrooper() });   // (the trooper's DC-17s rest Rex's way: one up, one down)
+    else pistolPose(dt, R, player, aimPt, w === 'dual', { braced: player.blockHeld, backRun: player.backRun, rex: isTrooper(),
+      run: isTrooper() && player.grounded && (player.sprinting || Math.hypot(player.moveVel.x, player.moveVel.z) > CFG.player.speed * 0.6) });   // (the trooper's DC-17s rest Rex's way: one up, one down; on the run both up)
   } else {
     mandoAimPoint();
   }

@@ -18,6 +18,7 @@ import { MOVE } from '../data/movement.js';
 import { tryVault, findLedge, startMantle, requestRoll, hangClimb, wallBeside } from './parkour.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
+import { mandoDive } from './mando/mobility.js';
 import { inCombat, formMob, groundRoll, rollRedash, spendCharge, airborneInCombat } from './mobility.js';
 import { forceCostMul, floorCost } from '../data/force-level.js';
 
@@ -107,9 +108,14 @@ export function doJump(){
   const onGround = player.grounded || coyote;
   if (isTrooper() && player.cover){ if (coverJump()) return; }   // in cover: SPACE vaults low cover, or steps off tall cover into a hop (trooper/cover.js)
   if (onGround && !player.blockHeld && tryVault(playerPos())) return;   // running at low cover: up and over it
-  // THE ARC TROOPER: a short, heavy hop off the ground and nothing in the air (no wall-kick, no pack): data/trooper.js jump
+  // THE ARC TROOPER: a short, heavy hop off the ground, and off it only the dive (no wall-kick, no pack): data/trooper.js jump
   if (isTrooper()){
-    if (onGround){ player.vy = CFG.player.jumpVel * TROOPER.jump.vel; player.grounded = false; player.lastJumpT = G.gt; player.slideT = 0; S.jump(); }
+    if (onGround){ player.vy = CFG.player.jumpVel * TROOPER.jump.vel; player.grounded = false; player.lastJumpT = G.gt; player.slideT = 0; player.hopDived = false; S.jump(); }
+    // SPACE again off the hop: the COMBAT DIVE, flat out the way you push (or back), invulnerable through the throw
+    // (the Mando's dive on legs alone: mando/mobility.js). His one dodge, once a hop
+    else if (!player.flip && !player.mantle && !player.hang && G.gt - (player.lastJumpT ?? -9) < TROOPER.jump.diveWindow && !player.hopDived){
+      if (mandoDive()) player.hopDived = true;
+    }
     return;
   }
   if (isGunner()){

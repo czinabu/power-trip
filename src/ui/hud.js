@@ -375,7 +375,8 @@ export function updateHud(){
     document.getElementById('ab-jet').classList.toggle('cool', !!player.jetActive);
     mandoShiftSlot();
     if (isTrooper()){   // the trooper's hint chips say what its keys do
-      setText($('ab-boost').querySelector('.an'), 'ROLL');
+      const sb = $('ab-boost');   // (no jet charges and no cooldown on a sprint: it's held SHIFT)
+      setText(sb.querySelector('.an'), 'SPRINT'); sb.classList.remove('cool'); if (sb._chg) setHtml(sb._chg, '');
       if (meleeEl) setText(meleeEl.querySelector('.an'), 'BASH');
       if (braceEl) setText(braceEl.querySelector('.an'), mandoWeapon().scope ? 'SCOPE' : 'AIM');   // the marksman module raises a scope
     }

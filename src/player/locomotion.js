@@ -8,6 +8,7 @@ import { burst } from '../fx/particles.js';
 import { shared, G, keys, player, isGunner, isTrooper } from '../state.js';
 import { TROOPER } from '../data/trooper.js';
 import { updateCover, heroSuppSlow } from './trooper/cover.js';
+import { trooperSprint } from './trooper/sprint.js';
 import { strafing } from './strafe.js';
 import { MANDO, JEDI_FORCE, JUMP_HOLD_THRESH, forceJumpPow } from '../data/mando.js';
 import { stance, maxHp } from './helpers.js';
@@ -60,6 +61,7 @@ export function updateMovement(dt, pp, st, f, r){
   player.sprinting = !isGunner() && !!player.sprintOn && !!keys['w'] && (player.grounded || wasSprinting)
                      && !strafing() && !player.blockHeld && player.atkT <= 0 && !(player.flinchT > 0)
                      && !(player.landStagT > 0) && !(player.slideT > 0) && !player.mantle && !player.hang;
+  if (isTrooper()) player.sprinting = trooperSprint(moving, want, f);   // THE ARC TROOPER: hold SHIFT (player/trooper/sprint.js)
   player.walking = !isGunner() && !player.sprintOn && player.grounded;
   // PIVOT — reversing hard at speed plants the feet: you brake to a stop before the new direction takes
   if (player.pivotT > 0) player.pivotT -= dt;
@@ -120,7 +122,7 @@ export function updateMovement(dt, pp, st, f, r){
     // stop or turn back against your momentum brakes harder. In the AIR the jump keeps its takeoff momentum: WASD
     // only nudges it (no input = no steering at all), so a leap is a commitment instead of a floaty drift.
     const airborne = !player.grounded && !player.wallRun;
-    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? MOVE.sprintMul : player.walking ? MOVE.walkMul : 1) * (G.hub ? HUB.stride : 1);   // (the temple's long halls: a longer stride there, data/hub.js)
+    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? (isTrooper() ? TROOPER.sprint.mul : MOVE.sprintMul) : player.walking ? MOVE.walkMul : 1) * (G.hub ? HUB.stride : 1);   // (the temple's long halls: a longer stride there, data/hub.js)
     if (moving && !(player.pivotT > 0)) want.normalize().multiplyScalar(topSpeed);
     else if (player.pivotT > 0) want.set(0, 0, 0);   // planted: kill the old momentum first
     if (!(airborne && !moving)){

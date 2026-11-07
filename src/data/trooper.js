@@ -12,10 +12,10 @@
      col           the bolt colour (clone blue, where the Mando's run orange) */
 export const TROOPER_WEAPONS = {
   rifle:   { name: 'DC-15 RIFLE', short: 'DC-15', fire: 'burst', burst: 3, burstGap: 0.075, fireCd: 0.36, dmg: 15, dual: false, col: 0x4aa8ff,
-             heat: 0.075, cool: 0.62, overCool: 0.45, hipSpread: 0.012, braceSpread: 0.003, braceDmg: 1.1, foStart: 20, foEnd: 46, foMin: 0.55,
+             heat: 0.075, cool: 0.62, overCool: 0.45, hipSpread: 0.008, braceSpread: 0.003, braceDmg: 1.1, foStart: 20, foEnd: 46, foMin: 0.55,
              twoHand: true, vent: 0.5, adsZoom: 17, trooper: true },
   pistols: { name: 'TWIN DC-17s', short: 'DC-17s', fire: 'twin', fireCd: 0.15, twinGap: 0.07, dmg: 21, dual: true, col: 0x6ab8ff,
-             heat: 0.07, cool: 0.8, overCool: 0.52, hipSpread: 0.014, braceSpread: 0.006, braceDmg: 1, foStart: 10, foEnd: 26, foMin: 0.4,
+             heat: 0.07, cool: 0.8, overCool: 0.52, hipSpread: 0.01, braceSpread: 0.006, braceDmg: 1, foStart: 10, foEnd: 26, foMin: 0.4,
              vent: 0.5, adsZoom: 12, trooper: true },
   // the Commando's anti-armour module (key 3): one heavy rocket a pull, a long reload between, and it cooks the gun
   launcher: { name: 'AT LAUNCHER', short: 'LAUNCHER', fire: 'launcher', fireCd: 2.6, dmg: 100, radius: 3.4, knock: 26, speed: 30, dual: false, col: 0xffa04a,
@@ -33,9 +33,9 @@ export const TROOPER_WEAPONS = {
 export const RIFLE_MODS = {
   burst:    { label: 'BURST' },
   auto:     { label: 'AUTO BARREL', unlock: 'modAuto', fire: 'auto', fireCd: 0.1, dmg: 11, heat: 0.036, cool: 0.55, overCool: 0.42,
-              hipSpread: 0.022, braceSpread: 0.009, foStart: 16, foEnd: 38, size: 1.15, kick: 0.14, chatter: true },
+              hipSpread: 0.016, braceSpread: 0.009, foStart: 16, foEnd: 38, size: 1.15, kick: 0.14, chatter: true },
   marksman: { label: 'MARKSMAN SCOPE', unlock: 'modScope', fire: 'semi', fireCd: 0.8, dmg: 58, heat: 0.2, cool: 0.55, overCool: 0.42,
-              hipSpread: 0.012, braceSpread: 0, braceDmg: 1.25, foStart: 40, foEnd: 80, foMin: 0.8, scope: true, scopeFov: 28, vent: 0.6,
+              hipSpread: 0.008, braceSpread: 0, braceDmg: 1.25, foStart: 40, foEnd: 80, foMin: 0.8, scope: true, scopeFov: 28, vent: 0.6,
               size: 2.4, kick: 0.6, heavy: true, col: 0xa8ecff },
 };
 export const RIFLE_MOD_ORDER = ['burst', 'auto', 'marksman'];

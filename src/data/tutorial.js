@@ -479,7 +479,7 @@ export const LESSONS = {
       done: 'A primary for the job, a sidearm for the rest.',
       steps: [
         { needs: 'carbine', sec: 'THE CARBINE', give: { unlocked: { carbine: true } }, kit: { primary: 'carbine' },
-          say: 'The carbine. Three bolts a pull, steady from the hip. Each burst climbs: bring it back down onto them.',
+          say: 'The carbine. Three bolts a pull, steady from the hip. Each burst kicks up: put the first bolt where you want it.',
           keys: '2 · LMB', do: 'With the pulse carbine, drop the 3 targets at range', ev: 'kill', weapon: 'carbine', need: 3, respawn: true,
           spawn: dummies([[-4, -14], [0, -15], [4, -14]]) },
         { needs: 'carbine', say: 'Put a whole burst on one of them and it is tagged. Your rocket and your gadgets find a tag on their own, and hit it harder.',

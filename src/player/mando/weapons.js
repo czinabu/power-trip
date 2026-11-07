@@ -16,7 +16,8 @@ import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
 import { fwd, rightV, playerPos, maxStam } from '../helpers.js';
 import { crosshairPoint, crosshairRay, lastAim, aimFrom, inAim, bossInAim, heroCrosshair } from '../aim.js';
-import { inReach, bodyRadius, sweepHit } from '../../enemies/bodyshape.js';
+import { inReach, bodyRadius, bodyHeight, sweepHit } from '../../enemies/bodyshape.js';
+import { sweepSolids } from '../../world/collision.js';
 import { damageEnemy } from '../../enemies/damage.js';
 import { updateMandoMelee } from './melee.js';
 import { fireBolt } from '../../enemies/bolts.js';
@@ -41,10 +42,12 @@ import { shotMove, gunBurstStart, gunDrawn, gunHeatMul, gunSwayMul, updateGunMov
 /* ============================================================
    MANDALORIAN — jetpack, dual blasters, flamethrower, wrist rockets
    ============================================================ */
-// You shoot EXACTLY down the crosshair ray — NO aim assist. The bolt aims at the point on that ray where it
-// passes into an enemy's body (so it converges on whatever the crosshair is over — head, torso, arm or legs),
-// the floor or prop it meets, or a far point if the crosshair is on open sky. You must put the crosshair on the foe
-// yourself. (The ray itself is cast in player/aim.js, which every aimed ability shares.)
+// You shoot down the crosshair ray. The bolt aims at the point on that ray where it passes into an enemy's body (so
+// it converges on whatever the crosshair is over — head, torso, arm or legs), the floor or prop it meets, or a far
+// point if the crosshair is on open sky. A hair's miss off a body's edge is pulled onto it (boltMagnet below), and the
+// shot then goes out inside the gun's cone (shotSpread), which the reticle's gap draws exactly (ui/hud.js). A
+// controller also gets a light aim assist on the view itself (player/aim-assist.js). (The ray itself is cast in
+// player/aim.js, which every aimed ability shares.)
 export const _look = new THREE.Vector3(), _lh = new THREE.Vector3();   // camera look dir + its horizontal (jetpack dive thrust)
 // the reticle's ray as mandoAimPoint last cast it (origin, direction)
 export const mandoAimRay = () => crosshairRay();   // (a call, not an alias: the dev server loads aim.js after this module)
@@ -192,13 +195,21 @@ function muzzleOrigin(side){
   const pp = playerPos(), r = rightV(), f = fwd();
   return V3(pp.x + r.x*0.26*side + f.x*0.65, pp.y + 1.78, pp.z + r.z*0.26*side + f.z*0.65);
 }
+const _cu = new THREE.Vector3(), _cv = new THREE.Vector3();
 export function spawnBlasterBolt(origin, dir, dmg, color, scale, W, opts){
   W = W || {}; opts = opts || {};
   // the bolt leaves the barrel of the gun that fired it, still flying at the point the shot was aimed through
   if (opts.to){ const mz = gunMuzzle(origin); if (mz.distanceToSquared(origin) > 1e-4){ origin = mz.clone(); dir = V3(opts.to.x - origin.x, opts.to.y - origin.y, opts.to.z - origin.z).normalize(); } }
   const spr = opts.spread != null ? opts.spread : (W.hipSpread != null ? W.hipSpread : MANDO.spread);
   dir = dir.clone();
-  dir.x += rand(-1,1)*spr; dir.y += rand(-1,1)*spr*0.6; dir.z += rand(-1,1)*spr; dir.normalize();
+  if (spr > 0){
+    // a ROUND cone about the aim, even over its disc and the same width whichever way he faces (a box on the world's
+    // axes was 40% wider on a diagonal), so the reticle's gap (shotSpread, ui/hud.js) is exactly its edge
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * Math.tan(spr);
+    _cu.set(-dir.z, 0, dir.x); if (_cu.lengthSq() < 1e-6) _cu.set(1, 0, 0); _cu.normalize();
+    _cv.crossVectors(_cu, dir).normalize();
+    dir.addScaledVector(_cu, Math.cos(a) * r).addScaledVector(_cv, Math.sin(a) * r).normalize();
+  }
   fireBolt(origin, dir, MANDO.boltSpeed, dmg, true, true);
   const b = bolts[bolts.length-1];
   if (b){ b.mesh.material.color.setHex(color); b.mesh.scale.set(scale, scale*1.3, scale);
@@ -335,21 +346,56 @@ export function mandoShielding(){
   if (player.weapon !== 'single' || mandoWeapon().melee) return false;
   return !(player.shieldDropT > 0) && !(player.trigHeld && !player.overheat);
 }
-function fireBlaster(W, hand){
-  player.aiming = 0.7;
-  const aim = mandoAimPoint();
-  // You are only truly STEADY when bracing/scoping while NOT boosting — boosting (jetpack) is never steady, so
-  // flying fast + shooting is the least accurate. Movement & air add INACCURACY (bloom + recoil); bracing while
-  // standing or HOVERING removes almost all of it.
-  const steadyAim = mandoBraced() && !player.boosting;
+// You are only truly STEADY when bracing/scoping while NOT boosting — boosting (jetpack) is never steady, so
+// flying fast + shooting is the least accurate. Movement & air add INACCURACY (bloom + recoil); bracing while
+// standing or HOVERING removes almost all of it.
+const steadyNow = () => mandoBraced() && !player.boosting;
+// 0 (still) .. ~1.7 (boosting flat out): how much the hero's motion opens the cone and the kick
+function shotInacc(){
+  if (player.slideT > 0) return 0;   // a SLIDE is a steady firing line (parkour.js): no speed bloom
   const hsp = Math.hypot(player.moveVel.x + player.vel.x, player.moveVel.z + player.vel.z);
   const spd01 = clamp(hsp / (MANDO.airSpeedMax || 22), 0, 1);
-  // a SLIDE is a steady firing line (parkour.js): no speed bloom, and shots out of any parkour move hit harder
-  const inacc = player.slideT > 0 ? 0 : spd01 * 0.7 + (player.boosting ? 1.0 : (!player.grounded && !player.hovering ? 0.35 : 0));
+  return spd01 * 0.7 + (player.boosting ? 1.0 : (!player.grounded && !player.hovering ? 0.35 : 0));
+}
+/* THE CONE a shot goes out in right now (radians, its half-angle): the gun's hip or braced spread, opened by speed and
+   the jetpack, steadied by HUNTER'S EYE, shaken by suppression. The reticle's gap is drawn from this (ui/hud.js), so
+   the crosshair shows exactly where the bolts can go. (A signature move may override it per shot: gun-moves.js.) */
+export function shotSpread(W = mandoWeapon()){
+  const steady = steadyNow(), inacc = shotInacc();
+  const base = (steady ? W.braceSpread : W.hipSpread) || 0;
+  return (base + inacc * (steady ? 0.003 : 0.022)) * heroSuppSpread() * flowSpreadMul();
+}
+/* BOLT MAGNETISM — a shot that just misses a body's edge (within MAGNET.ang of it, through the crosshair) is aimed at
+   that body instead, at the height the crosshair line passes it. Small enough that you still aim; it only forgives
+   the pixel. Not through a scope (that's precision) or past MAGNET.far. */
+const MAGNET = { ang: 0.016, far: 45 };
+function boltMagnet(aim, W){
+  if (lastAim.target || player.zoom || W.scope || player.weapon === 'darksaber') return aim;
+  const ray = crosshairRay(), o = ray.origin, d = ray.direction, dh2 = d.x*d.x + d.z*d.z;
+  if (dh2 < 1e-6) return aim;
+  const blockAt = lastAim.floor ? o.distanceTo(aim) : 1e9;
+  let best = null, bestA = MAGNET.ang;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state === 'spawn' || e.dummy === 'off') continue;
+    const p = e.group.position, t = ((p.x - o.x)*d.x + (p.z - o.z)*d.z) / dh2;
+    if (t < 1.5 || t > MAGNET.far) continue;
+    const h = bodyHeight(e), y = clamp(o.y + d.y*t, p.y + 0.25, p.y + h - 0.12);
+    const vx = p.x - o.x, vy = y - o.y, vz = p.z - o.z, dist = Math.hypot(vx, vy, vz);
+    if (dist - bodyRadius(e) > blockAt) continue;   // a wall or the floor is in the way first
+    const c = clamp((vx*d.x + vy*d.y + vz*d.z) / dist, -1, 1);
+    const a = Math.acos(c) - Math.atan(bodyRadius(e) / dist);   // off the body's edge
+    if (a < bestA){ bestA = a; best = e; _mag.set(p.x, y, p.z); }
+  }
+  return best ? _mag.clone() : aim;
+}
+const _mag = new THREE.Vector3();
+function fireBlaster(W, hand){
+  player.aiming = 0.7;
+  const aim = boltMagnet(mandoAimPoint(), W);
+  const steadyAim = steadyNow(), inacc = shotInacc();
   const dmg0 = W.dmg * (steadyAim ? (W.braceDmg || 1) : 1) * player.up.dmg * momentumShot() * coverShotMul() * (player.up.brothers ? 1 + 0.04 * squadStanding() : 1);   // (the trooper's BAND OF BROTHERS)
   const foMin = steadyAim ? Math.min(1, (W.foMin || 1) + 0.25) : W.foMin;   // bracing stretches effective range
-  const baseSpread = steadyAim ? W.braceSpread : W.hipSpread;
-  const spread = (baseSpread + (steadyAim ? inacc * 0.003 : inacc * 0.028)) * heroSuppSpread() * flowSpreadMul();   // (HUNTER'S EYE steadies it: player/gunner-flow.js) boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
+  const spread = shotSpread(W);   // (HUNTER'S EYE steadies it: player/gunner-flow.js) boosting blooms the cone hard · SUPPRESSED (the trooper): the aim shakes (trooper/cover.js)
   const mv = shotMove(W, steadyAim);   // the gun's SIGNATURE MOVE and mastery (player/gun-moves.js)
   const opts = { spread: mv.spread != null ? mv.spread : spread, foMin, to: aim, tag: mv.tag };
   const dmg = dmg0 * mv.dmg;
@@ -554,29 +600,45 @@ export function updateMandoCombat(dt, f, r){
   if (player.zoom) player.aiming = 0.3;                 // holding the scope keeps you squared up
   player.recoilKick = Math.max(0, player.recoilKick - dt*3.5);
   if (player.rifleProngGlow && player.rifleProngGlow.material.opacity > 0) player.rifleProngGlow.material.opacity = Math.max(0, player.rifleProngGlow.material.opacity - dt*3);
-  // FREE-AIM DRIFT — a SMALL float toward your movement (kept subtle). The bolt always fires straight THROUGH
-  // the reticle (see mandoAimPoint), so wherever it drifts, that's where you hit.
+  // THE RETICLE stays on the screen's centre: running and strafing open its cone instead (shotSpread, drawn as the
+  // reticle's gap), so it never slides away from where the stick or mouse put it. It only WANDERS where wandering is
+  // the fantasy: BOOSTING (the jetpack is never steady) and, a little, falling or jumping without the hover. Through a
+  // SCOPE it keeps a breath of sway that STEADY BREATH stills (player/gun-moves.js). The bolt always fires straight
+  // THROUGH the reticle (mandoAimPoint), so wherever it sits, that's where you hit. A shot's CLIMB kicks it up and it
+  // settles back here on its own.
   { const vx = player.moveVel.x + player.vel.x, vz = player.moveVel.z + player.vel.z;
-    const vR = vx*r.x + vz*r.z, vF = vx*f.x + vz*f.z, k = player.zoom ? 0.12 : 1;
-    // AIM SWAY — the reticle WANDERS (and bolts fire exactly through it), so the crosshair stays HONEST but is
-    // harder to hold on target the faster you move. BRACING/scoping while standing or HOVERING steadies it hard;
-    // BOOSTING (jetpack) is never steady — flying fast and shooting is deliberately the least accurate.
-    const hsp = Math.hypot(vx, vz);
-    const spd01 = clamp(hsp / (MANDO.airSpeedMax || 22), 0, 1);
-    const steady = (player.blockHeld || player.zoom) && !player.boosting;
-    let swayAmp = steady ? 1.0 : (4 + spd01 * 9 + (player.boosting ? 6 : 0));   // ramps with speed; biggest while BOOSTING (SHIFT)
+    const spd01 = clamp(Math.hypot(vx, vz) / (MANDO.airSpeedMax || 22), 0, 1);
+    let swayAmp = player.boosting ? 4 + spd01 * 5
+      : player.zoom ? 1.0
+      : player.blockHeld ? 0
+      : (!player.grounded && !player.hovering) ? 2 : 0;
     swayAmp *= gunSwayMul();   // STEADY BREATH: dead still while he holds it (player/gun-moves.js)
-    player.aimSway = swayAmp;   // shared with the reticle bloom in updateHud
+    player.aimSway = swayAmp;
     const sx = (Math.sin(G.gt*2.3) + Math.sin(G.gt*1.07)*0.6) * swayAmp;
     const sy = (Math.cos(G.gt*1.9) + Math.sin(G.gt*0.73)*0.5) * swayAmp * 0.7;
-    const tox = clamp(vR * 1.1 * k + sx, -30, 30), toy = clamp(-vF * 0.7 * k + sy, -24, 24);
-    player.aimOff.x += (tox - player.aimOff.x) * Math.min(1, dt*5);
-    player.aimOff.y += (toy - player.aimOff.y) * Math.min(1, dt*5); }
+    player.aimOff.x += (clamp(sx, -16, 16) - player.aimOff.x) * Math.min(1, dt*5);
+    player.aimOff.y += (clamp(sy, -12, 12) - player.aimOff.y) * Math.min(1, dt*5); }
+  player.muzzleBlocked = muzzleBlocked(CW);
   updateReload(dt);
   if (player.shieldDropT > 0) player.shieldDropT -= dt;
   if (player.firing && player.darkT <= 0) firePistols();   // auto weapons spray while held
   updateFlame(dt);
   updateDark(dt);
+}
+
+/* BLOCKED — the lens rides over the shoulder and can see over cover the gun can't: a solid between the barrel and
+   what the reticle is on (the same sweep a bolt makes, enemies/bolts.js) means the shot would hit it. The reticle
+   shows it (ui/hud.js), so a shot into the crate's lip is never a surprise. Ducked in the trooper's cover he rises
+   before he shoots (trooper/cover.js), so it waits for the peek. */
+function muzzleBlocked(W){
+  if (!isGunner() || G.mode !== 'play' || W.melee || W.fire === 'fists' || W.fire === 'saber' || player.weapon === 'darksaber' || coverHoldsFire()) return false;
+  const aim = crosshairPoint(player.aimOff.x, player.aimOff.y);
+  const m = gunMuzzle(muzzleOrigin(0.06));
+  const len = m.distanceTo(aim);
+  if (len < 0.8) return false;
+  const k = (len - 0.45) / len;   // stop short of the aimed spot (it may sit on a wall itself)
+  const ex = m.x + (aim.x - m.x) * k, ey = m.y + (aim.y - m.y) * k, ez = m.z + (aim.z - m.z) * k;
+  return !!sweepSolids(m.x, m.y, m.z, ex, ey, ez, 0);
 }
 
 /* ===== BESKAR PARRY (data/mando.js BESKAR_PARRY) =====

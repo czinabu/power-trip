@@ -483,6 +483,14 @@ function setPadInvert(on){
 }
 { let v; try { v = localStorage.getItem('sw_padinv'); } catch(e){} setPadInvert(v === '1'); }
 document.getElementById('padinvctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setPadInvert(!G.padInvert); });
+// CONTROLLER AIM ASSIST for the blasters (player/aim-assist.js): on by default
+function setPadAssist(on){
+  G.padAssist = on;
+  try { localStorage.setItem('sw_padassist', on ? '1' : '0'); } catch(e){}
+  const sv = document.getElementById('padassistval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';
+}
+{ let v; try { v = localStorage.getItem('sw_padassist'); } catch(e){} setPadAssist(v !== '0'); }
+document.getElementById('padassistctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setPadAssist(!G.padAssist); });
 { const sl = document.getElementById('padsl');
   sl.addEventListener('pointerdown', (e) => e.stopPropagation());
   sl.addEventListener('click', (e) => e.stopPropagation());
@@ -649,7 +657,7 @@ const resetBox = document.getElementById('setreset');
 const setResetConfirm = (on) => resetBox.classList.toggle('confirming', on);
 function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
-  setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false);
+  setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false); setPadAssist(true);
   setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
   setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true); setMinimap(true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');

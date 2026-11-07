@@ -18,7 +18,8 @@ import { maxHp, maxStam } from '../player/helpers.js';
 import { FOCUS, focusTier } from '../player/jedi/focus.js';
 import { flowDef, flowTier, flowKeyLabel } from '../player/gunner-flow.js';
 import { furyKind } from '../player/jedi/fury.js';
-import { mandoWeapon } from '../player/mando/weapons.js';
+import { mandoWeapon, shotSpread } from '../player/mando/weapons.js';
+import { gunId, moveOf } from '../player/gun-moves.js';
 import { MUTATORS } from '../data/mutators.js';
 import { mutatorById, ROMAN as NG_ROMAN } from '../data/ngplus.js';
 // a NEW GAME+ chapter's (or a veteran side mission's) mutators, as the survival wave's tag (data/ngplus.js)
@@ -384,14 +385,14 @@ export function updateHud(){
     // DYNAMIC CROSSHAIR — line gap / colour / ring react to the situation
     const rt = document.getElementById('reticle');
     if (rt){
-      const spd = Math.hypot(player.moveVel.x + player.vel.x, player.moveVel.z + player.vel.z);
-      const adsAim = (player.blockHeld || player.zoom) && !mandoWeapon().melee;   // bracing/scoping a blaster → ADS star
-      let gap = 4 + Math.min(8, spd * 0.55) + (player.boosting ? 7 : 0) + player.recoilKick * 16;
-      // BRACING steadies the aim — SINGLE's beskar shield-brace snaps the cone in HARD (good ADS); DUAL's offensive
-      // brace only tightens a little (minor ADS — it's an aggressive stance, not a marksman's perch).
-      if (player.blockHeld && !mandoWeapon().melee) gap *= (player.weapon === 'repeater' ? 0.8 : player.weapon === 'dual' ? 0.72 : player.weapon === 'carbine' ? 0.55 : 0.45);
-      if (player.zoom) gap = 1.5;                                  // ADS pulls it in tight for precision
-      gap = clamp(gap, 1.5, 24);
+      const W = mandoWeapon(), adsAim = (player.blockHeld || player.zoom) && !W.melee;   // bracing/scoping a blaster → ADS star
+      // THE GAP IS THE CONE: the shot's real spread right now (player/mando/weapons.js shotSpread: the gun, bracing,
+      // speed, the jetpack, suppression), turned into pixels through the lens's current FOV, so the lines sit where
+      // the outermost bolt can land (and close in as the ADS zoom does). The recoil kick opens it for a beat.
+      let spr = W.melee ? 0 : shotSpread(W);
+      if (gunId() === 'repeater' && player.planted) spr *= moveOf('repeater').cone;   // PLANT (player/gun-moves.js)
+      const pxPerRad = innerHeight / 2 / Math.tan(camera.fov * Math.PI / 360);
+      const gap = clamp(Math.tan(spr) * pxPerRad + player.recoilKick * 10, 3, 90);   // (never inside the dot, so the cross reads)
       let col = '120,210,255', ringOp = 0.24, dotOp = 0.9;
       if (player.blockHeld){ col = '158,176,191'; }                // bracing → beskar-steel
       if (player.jet < 18){ col = '255,120,70'; }                  // low jet fuel → amber-red warning
@@ -405,6 +406,7 @@ export function updateHud(){
       rt.classList.toggle('reload', player.overheat);
       rt.classList.toggle('lock', !!player.lockOn);
       rt.classList.toggle('ads', adsAim);   // collapse into the tight 4-point STAR while aiming/bracing
+      rt.classList.toggle('blocked', !!player.muzzleBlocked);   // cover in front of the barrel the lens sees over (mando/weapons.js muzzleBlocked)
     }
     return;
   }

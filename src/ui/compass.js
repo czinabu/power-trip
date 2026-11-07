@@ -7,7 +7,8 @@
 //   · in the hub, each station and each door (with the wing it leads to), named when you face it;
 //   · the co-op party, each partner in their seat's colour;
 //   · the boss, and a lane that is about to send a wave (red);
-//   · in an open zone, the waypoint you set on its map (cream, with its distance: ui/zone-map.js).
+//   · the waypoint you set on a map (cream, with its distance): an open zone's (ui/zone-map.js), a story map's or a
+//     hub's (ui/area-map.js).
 // A mark past the edge of the strip sits pinned at that edge with a chevron, so it still says which way to turn.
 // Settings · COMPASS turns it off (G.compass, ui/menus.js). ui/hud.js calls renderCompass() each frame.
 
@@ -22,6 +23,7 @@ import { HUBS, SIDE_OUT } from '../data/hub.js';
 import { partnerStand } from '../net/partner.js';
 import { seatCss } from './coop-marks.js';
 import { zoneMarks } from '../game/zone.js';
+import { areaPin } from '../game/area-pin.js';
 
 const SPAN = 75;          // degrees either side of straight ahead the strip shows
 const TAPE_FROM = -180;   // the tape runs -180…540 so any heading has a full strip under it
@@ -70,9 +72,10 @@ export function compassMarks(){
     const main = calmTarget() || (G.training ? trainingTarget() : objectiveTarget());
     if (main) out.push({ x: main.x, z: main.z, kind: 'obj' });
     if (!G.training) for (const p of objectiveMarks()) if (!main || p.x !== main.x || p.z !== main.z) out.push({ x: p.x, z: p.z, kind: 'part' });
-    if (shared.boss && shared.boss.hp > 0 && shared.boss.group) out.push({ x: shared.boss.group.position.x, z: shared.boss.group.position.z, kind: 'threat' });
+    if (shared.boss && shared.boss.hp > 0 && shared.boss.group) out.push({ x: shared.boss.group.position.x, z: shared.boss.group.position.z, kind: 'threat', boss: true });
     if (shared.incoming) for (const p of shared.incoming) out.push({ x: p.x, z: p.z, kind: 'threat' });
   }
+  if (!G.zone){ const P = areaPin(); if (P) out.push({ x: P.x, z: P.z, kind: 'pin' }); }   // your waypoint, set on a story map's or a hub's full map (ui/area-map.js)
   for (const P of partnerStand()) out.push({ x: P.pos.x, z: P.pos.z, kind: 'ally', col: seatCss(P.slot) });
   return out;
 }

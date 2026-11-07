@@ -520,7 +520,7 @@ function setCompass(on){
 }
 { let v; try { v = localStorage.getItem('sw_compass'); } catch(e){} setCompass(v !== '0'); }
 document.getElementById('compassctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setCompass(!G.compass); });
-// MINIMAP — the corner map in an open zone (ui/zone-map.js); the full map on M is there either way
+// MINIMAP — the corner map in an open zone, a big story map and a hub (ui/zone-map.js, ui/area-map.js); the full map on M is there either way
 function setMinimap(on){
   G.minimap = on; try { localStorage.setItem('sw_minimap', on ? '1' : '0'); } catch(e){}
   const sv = document.getElementById('minimapval'); if (sv) sv.textContent = on ? 'ON' : 'OFF';

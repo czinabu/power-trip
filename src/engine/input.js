@@ -188,7 +188,7 @@ document.addEventListener('keydown', (e) => {
     if (e.isTrusted && !e.repeat && G.mode === 'play' && !G.paused && !G.skillSelect) toggleStrafe();   // TOGGLE mode: each press flips it (a pad's LB toggles on a tap: engine/gamepad.js)
   }
   if (k === 'p' && !e.repeat){ cycleQuality(); return; }   // graphics quality — works anywhere
-  if (k === 'm' && !e.repeat && shared.mapKey && shared.mapKey()) return;   // in an open zone M is the map (ui/zone-map.js)
+  if (k === 'm' && !e.repeat && shared.mapKey && shared.mapKey()) return;   // where there is a map (an open zone, a big story map, a hub) M is the map (ui/zone-map.js)
   if (k === 'm' && !e.isTrusted) return;   // (a controller's LB + A sends M for the map: never the music)
   if (k === 'm' && !e.repeat){ audioInit(); const on = MUSIC.toggle(); showBanner('', '♪ MUSIC ' + (on ? 'ON' : 'OFF'), 1.0); return; }   // music on/off (persists)
   if (k === ' ' && !e.repeat) doJump();

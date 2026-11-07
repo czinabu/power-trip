@@ -35,17 +35,20 @@ const MAP_GROUND = {
   fountain: (c, p, C) => { circle(c, p.x, p.z, p.r * 0.7, C.water, null); },
 };
 
-// the canvas works in metres: everything below draws with world x / z
+// the canvas works in metres: everything below draws with world x / z (inkPpm: the canvas pixels per metre being drawn at)
+let inkPpm = MAP_ART.ppm;
 function rect(c, x0, z0, x1, z1, fill, ink, w = 1){ c.beginPath(); c.rect(x0, z0, x1 - x0, z1 - z0); paint(c, fill, ink, w); }
 function circle(c, x, z, r, fill, ink, w = 1){ c.beginPath(); c.arc(x, z, r, 0, Math.PI * 2); paint(c, fill, ink, w); }
 function paint(c, fill, ink, w){
   if (fill){ c.fillStyle = fill; c.fill(); }
-  if (ink){ c.strokeStyle = ink; c.lineWidth = w / MAP_ART.ppm * 1.2; c.stroke(); }
+  if (ink){ c.strokeStyle = ink; c.lineWidth = w / inkPpm * 1.2; c.stroke(); }
 }
 
-function colours(Z){
-  const pal = (ZONE_WORLDS[Z.level.layout] || {}).pal || {};
-  const stone = pal.stone ?? 0xc29c6e, roof = pal.roof ?? 0x9c5e3a, ground = (ZONE_WORLDS[Z.level.layout] || {}).outer ?? 0xb08a5e;
+function colours(Z){ const W = ZONE_WORLDS[Z.level.layout] || {}; return mapColours(W.pal || {}, W.outer ?? 0xb08a5e); }
+/* the map's inks from a world palette (data/worlds.js pal: stone, roof, rock, water…) and the ground past its edge; the
+   area maps (ui/area-map-art.js) colour a mission's or a hub's room with it too */
+export function mapColours(pal, ground){
+  const stone = pal.stone ?? 0xc29c6e, roof = pal.roof ?? 0x9c5e3a;
   return {
     ink: '#24170d', outside: hex(mix(ground, 0x000000, 0.42)),
     ground: hex(mix(stone, 0xfff4dc, 0.38)),           // the streets: the palest thing on the map
@@ -58,6 +61,22 @@ function colours(Z){
 }
 const shade = (C, h) => h <= 1.25 ? C.low : h <= 4 ? C.mid : h <= 9 ? C.high : C.top;
 
+/* every footprint in `foot` (solids: world/collision.js shapes), lowest first, so a tower stands over the step at its
+   foot. The canvas works in world metres */
+export function inkFootprints(c, foot, C, ppm = MAP_ART.ppm){
+  inkPpm = ppm;
+  foot.sort((a, b) => (a.h || 0) - (b.h || 0));
+  for (const s of foot){
+    const h = s.h || 0;
+    if (s.mound){ c.beginPath(); c.ellipse(s.x, s.z, s.a, s.b, Math.atan2(s.sin || 0, s.cos ?? 1), 0, Math.PI * 2); paint(c, C.rock, C.ink, 1.2); continue; }
+    const fill = shade(C, h), w = h <= 1.25 ? 0.8 : 1.6;
+    if (s.box) rect(c, s.x - s.hx, s.z - s.hz, s.x + s.hx, s.z + s.hz, fill, C.ink, w);
+    else if (s.r) circle(c, s.x, s.z, s.r, fill, C.ink, w);
+  }
+}
+// (a solid that counts as a footprint: not up overhead, not a cloth awning)
+export const isFootprint = (s) => !((s.y0 || 0) >= MAP_ART.skipOver) && !s.soft;
+
 const cache = new Map();
 /* the art for zone Z from its plan ({ pieces }): { canvas, ppm, x0, z0, size } (x0 / z0: the world spot at the canvas's
    top-left corner, in metres). opts.districts: draw their borders (the full map) */
@@ -69,6 +88,7 @@ export function zoneMapArt(Z, plan, opts = {}){
   cv.width = cv.height = Math.round(size * ppm);
   const c = cv.getContext('2d'), C = colours(Z);
   c.setTransform(ppm, 0, 0, ppm, half * ppm, half * ppm);   // world metres in, the zone's middle at the canvas's middle
+  inkPpm = ppm;
   c.fillStyle = C.outside; c.fillRect(-half, -half, size, size);
   c.fillStyle = C.ground; c.fillRect(-Z.size / 2, -Z.size / 2, Z.size, Z.size);
   const pieces = (plan && plan.pieces) || [];
@@ -78,16 +98,9 @@ export function zoneMapArt(Z, plan, opts = {}){
   for (const p of pieces){
     const K = KINDS[p.t]; if (!K || p.t === 'waystone') continue;   // (the waystones are marks, drawn live)
     const out = []; K.solids(p, out);
-    for (const s of out) if (!((s.y0 || 0) >= MAP_ART.skipOver) && !s.soft) foot.push(s);
+    for (const s of out) if (isFootprint(s)) foot.push(s);
   }
-  foot.sort((a, b) => (a.h || 0) - (b.h || 0));
-  for (const s of foot){
-    const h = s.h || 0;
-    if (s.mound){ c.beginPath(); c.ellipse(s.x, s.z, s.a, s.b, 0, 0, Math.PI * 2); paint(c, C.rock, C.ink, 1.2); continue; }
-    const fill = shade(C, h), w = h <= 1.25 ? 0.8 : 1.6;
-    if (s.box) rect(c, s.x - s.hx, s.z - s.hz, s.x + s.hx, s.z + s.hz, fill, C.ink, w);
-    else if (s.r) circle(c, s.x, s.z, s.r, fill, C.ink, w);
-  }
+  inkFootprints(c, foot, C);
   if (opts.districts){
     c.strokeStyle = C.border; c.lineWidth = 1.6 / ppm; c.setLineDash([6 / ppm, 5 / ppm]);
     for (const d of Z.districts){ c.beginPath(); c.rect(d.x0, d.z0, d.x1 - d.x0, d.z1 - d.z0); c.stroke(); }

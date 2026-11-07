@@ -16,6 +16,10 @@
 //     of its secrets are still out there. M, Esc, Tab or the controller's B close it.
 //   Solo the streets hold still while the map is up, like the waystone panel (ui/zone-ui.js); in a shared zone the party
 //   plays on. Nothing here is per zone: a new zone maps itself from its plan, districts and waystones (data/zones.js).
+// THE AREA MAPS: the same two, in a big story map and in a hub's wings (ui/area-map.js says where and what they carry;
+//   ui/area-map-art.js draws the room from its collision). The minimap turns the same way and sits under the objectives
+//   list when there is one (ui/hud-stage.js); the full map has the objectives (or a hub's stations and ways out) beside it
+//   and takes a waypoint the same way (game/area-pin.js). No travel there: the hub's own TEMPLE MAP does that.
 
 import { G, shared, player, enemies } from '../state.js';
 import { renderer } from '../engine/renderer.js';
@@ -34,6 +38,9 @@ import { zoneMapArt } from './zone-map-art.js';
 import { pad, padKey } from '../engine/gamepad.js';
 import { padLayout } from '../data/gamepad.js';
 import { districtAt } from '../data/zones.js';
+import { areaMapHere, areaRange, areaMarks, areaPanel, areaLive, areaPinRow } from './area-map.js';
+import { areaMapArt } from './area-map-art.js';
+import { areaPin, setAreaPin, clearAreaPin, checkAreaPin } from '../game/area-pin.js';
 
 export const ZONE_MAP = {
   range: 46,        // m from the hero to the minimap's edge (straight up, down, left or right)
@@ -88,17 +95,42 @@ function glyph(ctx, kind, x, y, u, col, ang = 0){
     ctx.beginPath(); ctx.arc(0, -r * 0.9, r * 0.36, 0, Math.PI * 2); ctx.fillStyle = '#07060a'; ctx.fill();
   } else if (kind === 'foe'){
     ctx.beginPath(); ctx.arc(0, 0, u * 0.5, 0, Math.PI * 2); ctx.fillStyle = '#ff4a3a'; ctx.fill(); ctx.lineWidth = Math.max(1, u * 0.2); ctx.stroke();
+  } else if (kind === 'part'){   // another part of the objective (a charge, a console): the gold diamond, smaller and hollow
+    const r = u * 0.7; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath();
+    ctx.fillStyle = 'rgba(255,210,74,.45)'; ctx.fill(); ctx.stroke();
+  } else if (kind === 'spot'){   // a hub's station
+    const r = u * 0.75; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = '#f3e7c4'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2); ctx.fillStyle = '#07060a'; ctx.fill();
+  } else if (kind === 'door'){   // a way out: an arch, turned (ang) to face out through the wall it stands in
+    ctx.rotate(ang); const r = u * 0.85;
+    ctx.beginPath(); ctx.moveTo(-r, r * 0.8); ctx.lineTo(-r, -r * 0.1); ctx.arc(0, -r * 0.1, r, Math.PI, 0); ctx.lineTo(r, r * 0.8); ctx.closePath();
+    ctx.fillStyle = '#8ad8ff'; ctx.fill(); ctx.stroke();
+  } else if (kind === 'boss'){
+    const r = u * 1.05; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath();
+    ctx.fillStyle = '#ff4a3a'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.fillStyle = '#07060a'; ctx.fill();
+  } else if (kind === 'threat'){   // a lane about to send a wave
+    ctx.beginPath(); ctx.arc(0, 0, u * 0.8, 0, Math.PI * 2); ctx.strokeStyle = '#07060a'; ctx.lineWidth = Math.max(3, u * 0.55); ctx.stroke();
+    ctx.strokeStyle = '#ff4a3a'; ctx.lineWidth = Math.max(1.5, u * 0.28); ctx.stroke();
+  } else if (kind === 'mate'){   // a squadmate
+    ctx.beginPath(); ctx.arc(0, 0, u * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#7ee0a8'; ctx.fill(); ctx.lineWidth = Math.max(1, u * 0.24); ctx.stroke();
   }
   ctx.restore();
 }
 
-let miniOn = null, miniT = 0;
-export const minimapOn = () => G.mode === 'play' && !!G.zone && !!zoneDef() && G.minimap !== false && !G.cutscene;
+let miniOn = null, miniT = 0, miniArea = null;
+// which map this place has: an open zone's, a story map's or a hub's (ui/area-map.js), or none
+export const mapKind = () => G.zone ? (G.mode === 'play' && zoneDef() ? 'zone' : null) : areaMapHere() ? 'area' : null;
+export const minimapOn = () => G.mode === 'play' && G.minimap !== false && !G.cutscene && !!mapKind();
 function renderMini(dt){
   const on = minimapOn();
   if (on !== miniOn){ miniOn = on; mini.classList.toggle('on', on); document.body.classList.toggle('minimap-on', on); }
+  const area = on && !G.zone;
+  if (area !== miniArea){ miniArea = area; document.body.classList.toggle('minimap-area', area); }
+  if (area) checkAreaPin();   // (reached: it says so and goes)
   if (!on || (miniT -= dt) > 0) return;
   miniT = ZONE_MAP.every;
+  if (area) return renderAreaMini();
   const Z = zoneDef(), A = artFor(Z);
   // the canvas at the size it is shown, in device pixels
   const css = mcv.clientWidth || 160, dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(css * dpr);
@@ -140,20 +172,60 @@ function renderMini(dt){
   mN.style.left = (50 + nx / m * 50).toFixed(2) + '%'; mN.style.top = (50 + ny / m * 50).toFixed(2) + '%';
   const kc = keyChip(); if (mKey._t !== kc){ mKey._t = kc; mKey.textContent = kc; }
 }
+// the minimap in a story map or a hub's wing: the same turning square, drawn from the room's own plan
+function renderAreaMini(){
+  const A = areaMapArt();
+  const css = mcv.clientWidth || 160, dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(css * dpr);
+  if (mcv.width !== W){ mcv.width = mcv.height = W; }
+  const ctx = mctx, R = areaRange(), k = W / (2 * R), u = Math.max(4, W / 34);
+  const h = compassHeading() * Math.PI / 180, c = Math.cos(h), s = Math.sin(h);
+  const p = playerPos();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, W);
+  ctx.fillStyle = A.outside; ctx.fillRect(0, 0, W, W);   // (past the art's edge, on a long route's sides)
+  ctx.save(); ctx.translate(W / 2, W / 2); ctx.rotate(-h); ctx.scale(k / A.ppm, k / A.ppm);
+  const reach = R * 1.5 * A.ppm, sx = (p.x - A.x0) * A.ppm - reach, sz = (p.z - A.z0) * A.ppm - reach;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(A.canvas, sx, sz, reach * 2, reach * 2, -reach, -reach, reach * 2, reach * 2);
+  ctx.restore();
+  const at = (x, z) => { const [mx, my] = toMini(x - p.x, z - p.z, c, s); return [W / 2 + mx * k, W / 2 + my * k]; };
+  const inside = (q, pad = 0) => q[0] >= -pad && q[1] >= -pad && q[0] <= W + pad && q[1] <= W + pad;
+  const pin = (q) => { const dx = q[0] - W / 2, dy = q[1] - W / 2, e = W / 2 - u * 1.4, m = Math.max(Math.abs(dx), Math.abs(dy)) || 1; return m <= e ? q : [W / 2 + dx / m * e, W / 2 + dy / m * e]; };
+  for (const e of enemies){
+    if (e.dead || e.converted || !e.group || e === shared.boss) continue;
+    const ex = e.group.position.x, ez = e.group.position.z;
+    if (Math.hypot(ex - p.x, ez - p.z) > R * 1.5) continue;
+    const q = at(ex, ez); if (inside(q)) glyph(ctx, 'foe', q[0], q[1], u);
+  }
+  // the marks, the ones that matter most last (on top) and pinned to the rim when they're off it
+  const marks = areaMarks(), order = { mate: 0, spot: 1, part: 2, door: 3, threat: 4, obj: 5, pin: 6 };
+  marks.sort((a, b) => (order[a.kind] ?? 3) - (order[b.kind] ?? 3));
+  for (const m of marks){
+    if (m.kind === 'mate' || m.kind === 'spot' || m.kind === 'part'){ const q = at(m.x, m.z); if (inside(q, u)) glyph(ctx, m.kind, q[0], q[1], u); }
+    else if (m.kind === 'door'){ const q = pin(at(m.x, m.z)); glyph(ctx, 'door', q[0], q[1], u, null, Math.atan2(m.x, -m.z) - h); }
+    else if (m.kind === 'threat'){ const q = pin(at(m.x, m.z)); glyph(ctx, m.boss ? 'boss' : 'threat', q[0], q[1], u); }
+    else if (m.kind === 'obj' || m.kind === 'pin'){ const q = pin(at(m.x, m.z)); glyph(ctx, m.kind, q[0], q[1], u); }
+  }
+  for (const P of partnerStand()){ const q = pin(at(P.pos.x, P.pos.z)); glyph(ctx, 'ally', q[0], q[1], u * 0.95, seatCss(P.slot), yawBearing(P.yaw || 0) - h); }
+  glyph(ctx, 'you', W / 2, W / 2, u, '#ffffff', yawBearing(player.group.rotation.y) - h);
+  const [nx, ny] = toMini(0, -1, c, s), m = Math.max(Math.abs(nx), Math.abs(ny));
+  mN.style.left = (50 + nx / m * 50).toFixed(2) + '%'; mN.style.top = (50 + ny / m * 50).toFixed(2) + '%';
+  const kc = keyChip(); if (mKey._t !== kc){ mKey._t = kc; mKey.textContent = kc; }
+}
 
 /* ---------------- the full map ---------------- */
 const panel = document.getElementById('zonemap');
 const isOpen = () => !!panel && panel.classList.contains('open');
 export const zoneMapOpen = isOpen;
-let liveT = 0;
+let liveT = 0, openKind = null, shownArt = null;
 
-const pct = (Z, x, z) => { const A = fullArt; return [((x - A.x0) / A.size * 100).toFixed(2), ((z - A.z0) / A.size * 100).toFixed(2)]; };
+const pct = (Z, x, z) => { const A = shownArt || fullArt; return [((x - A.x0) / A.size * 100).toFixed(2), ((z - A.z0) / A.size * 100).toFixed(2)]; };
 const posStyle = (Z, x, z) => { const [l, t] = pct(Z, x, z); return 'left:' + l + '%;top:' + t + '%'; };
 const fighting = () => inCombat();
 
 function render(){
+  if (openKind === 'area') return renderArea();
   const Z = zoneDef(); if (!Z || !panel) return;
-  artFor(Z);
+  artFor(Z); shownArt = fullArt;
   const memo = zoneMemo(G.zone), here = zoneDistrict(), p = playerPos();
   const touched = Z.waystones.filter(w => memo.stones[w.id]);
   const seen = Z.districts.filter(d => memo.seen[d.id] || (here && here.id === d.id));
@@ -203,8 +275,34 @@ function render(){
   cv.getContext('2d').drawImage(A.canvas, 0, 0);
   renderLive();
 }
+// the full map of a story map or a hub's wing (ui/area-map.js): the room north up, its marks, and beside it the
+// objectives (or the stations and ways out)
+function renderArea(){
+  if (!panel) return;
+  const A = shownArt = areaMapArt(), pos = (x, z) => posStyle(null, x, z);
+  const P = areaPanel(pos);
+  panel.innerHTML = '<div class="zm-box zm-areabox">' +
+    '<div class="zm-head"><div class="zm-k">' + esc(P.kicker) + '</div><div class="zm-t">' + esc(P.title) + '</div></div>' +
+    '<div class="zm-body"><div class="zm-map"><canvas></canvas>' + P.marks + '<div class="zm-live"></div><b class="zm-north">N</b></div>' +
+    '<div class="zm-side">' + P.side + '<div class="zm-wp"></div>' +
+      '<div class="zm-legend">' + P.legend + '</div>' +
+      '<div class="btn zm-x" data-x="1">CLOSE <kbd>' + (pad.active ? (pad.family === 'ps' ? '○' : 'B') : MAP_KEY.toUpperCase()) + '</kbd></div>' +
+    '</div></div></div>';
+  const cv = panel.querySelector('canvas');
+  cv.width = cv.height = A.canvas.width;
+  cv.getContext('2d').drawImage(A.canvas, 0, 0);
+  renderLive();
+}
 // the marks that move: you, the party, a side quest's goal (redrawn a few times a second while the map is up)
 function renderLive(){
+  if (openKind === 'area'){
+    const live = panel && panel.querySelector('.zm-live'); if (!live) return;
+    const h = areaLive((x, z) => posStyle(null, x, z), (y) => yawBearing(y).toFixed(3) + 'rad');
+    if (live._h !== h){ live._h = h; live.innerHTML = h; }
+    const row = panel.querySelector('.zm-wp'), r = areaPinRow();
+    if (row && row._h !== r){ row._h = r; row.innerHTML = r; }
+    return;
+  }
   const Z = zoneDef(), live = panel && panel.querySelector('.zm-live'); if (!Z || !live) return;
   const p = playerPos();
   let h = '';
@@ -221,8 +319,9 @@ function renderLive(){
 }
 
 export function openZoneMap(){
-  if (!panel || !G.zone || G.mode !== 'play' || G.paused || G.skillSelect || G.cutscene || player.downed || !zoneDef()) return false;
-  G.skillSelect = true; G.sbMenu = true;   // holds the streets still (solo) and keeps the pause screen away while the cursor is free
+  const kind = mapKind();
+  if (!panel || !kind || G.mode !== 'play' || G.paused || G.skillSelect || G.cutscene || player.downed) return false;
+  G.skillSelect = true; G.sbMenu = true; openKind = kind;   // holds the streets still (solo) and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open'); liveT = ZONE_MAP.live;
   S.uiHover && S.uiHover();
   if (document.pointerLockElement) document.exitPointerLock();
@@ -230,7 +329,7 @@ export function openZoneMap(){
 }
 export function closeZoneMap(relock = true){
   if (!isOpen()) return;
-  panel.classList.remove('open'); panel.innerHTML = '';
+  panel.classList.remove('open'); panel.innerHTML = ''; openKind = null; shownArt = null;
   G.skillSelect = false; G.sbMenu = false;
   if (relock && !shared.lockFallback){ try { const q = renderer.domElement.requestPointerLock(); if (q && q.catch) q.catch(() => {}); } catch(e){} }
 }
@@ -241,10 +340,11 @@ function travel(id){
   travelTo(id);
 }
 
-// M: the map in an open zone (engine/input.js asks first; M is the music everywhere else). Answers true for any M in a
-// zone, so the music never flips there by accident
+// M: the map wherever there is one (engine/input.js asks first; M is the music everywhere else). Answers true for any M
+// there, so the music never flips by accident
+shared.mapHere = () => !!mapKind();   // (engine/gamepad.js: LB + VIEW is the map here)
 shared.mapKey = () => {
-  if (!G.zone || G.mode !== 'play' || !zoneDef()) return false;
+  if (!mapKind()) return false;
   if (isOpen()) closeZoneMap(); else openZoneMap();
   return true;
 };
@@ -253,18 +353,20 @@ if (panel){
   panel.addEventListener('click', (e) => {
     e.stopPropagation(); audioInit();
     if (e.target === panel || e.target.closest('[data-x]')){ closeZoneMap(); return; }
-    if (e.target.closest('[data-clear]')){ clearZonePin(); S.uiClick && S.uiClick(); renderLive(); return; }
+    if (e.target.closest('[data-clear]')){ if (openKind === 'area') clearAreaPin(); else clearZonePin(); S.uiClick && S.uiClick(); renderLive(); return; }
     const o = e.target.closest('[data-w]');
     if (o){ if (o.classList.contains('off')){ S.uiDeny && S.uiDeny(); return; } travel(o.dataset.w); return; }
     // anywhere else on the map: your waypoint there (a district's name or a giver: its own spot, so a controller can set one)
-    const t = e.target.closest('[data-px]'), m = e.target.closest('.zm-map');
-    if (!m || !fullArt) return;
+    // (on an area map, a station or a way out in the list beside it too)
+    const t = e.target.closest('[data-px]'), m = e.target.closest('.zm-map'), A = shownArt;
+    if ((!m && !(t && openKind === 'area')) || !A) return;
     let x, z;
     if (t){ x = +t.dataset.px; z = +t.dataset.pz; }
-    else { const b = m.getBoundingClientRect(); x = fullArt.x0 + (e.clientX - b.left) / b.width * fullArt.size; z = fullArt.z0 + (e.clientY - b.top) / b.height * fullArt.size; }
-    const Z = zoneDef(), h = Z.size / 2;
-    if (Math.abs(x) > h || Math.abs(z) > h){ S.uiDeny && S.uiDeny(); return; }
-    setZonePin(x, z); S.uiClick && S.uiClick(); renderLive();
+    else { const b = m.getBoundingClientRect(); x = A.x0 + (e.clientX - b.left) / b.width * A.size; z = A.z0 + (e.clientY - b.top) / b.height * A.size; }
+    const hx = openKind === 'area' ? A.hx : zoneDef().size / 2, hz = openKind === 'area' ? A.hz : hx;
+    if (Math.abs(x) > hx || Math.abs(z) > hz){ S.uiDeny && S.uiDeny(); return; }
+    if (openKind === 'area') setAreaPin(x, z); else setZonePin(x, z);
+    S.uiClick && S.uiClick(); renderLive();
   });
   document.addEventListener('keydown', (e) => {
     if (!isOpen()) return;
@@ -277,8 +379,8 @@ if (panel){
 export function updateZoneMap(dt){
   renderMini(dt);
   if (!isOpen()) return;
-  if (!G.zone || G.mode !== 'play' || G.cutscene){ closeZoneMap(false); return; }
+  if (mapKind() !== openKind || G.mode !== 'play' || G.cutscene){ closeZoneMap(false); return; }
   if ((liveT -= dt) <= 0){ liveT = ZONE_MAP.live; renderLive(); }
 }
 // (tests and the shots)
-export const zoneMapInfo = () => ({ pin: zonePin(), mini: !!miniOn, open: isOpen(), partners: partnerStand().length, pins: panel ? panel.querySelectorAll('.zm-stone').length : 0, district: (zoneDistrict() || {}).id || null, at: G.zone && zoneDef() ? (districtAt(zoneDef(), playerPos().x, playerPos().z) || {}).id || null : null });
+export const zoneMapInfo = () => ({ kind: mapKind(), areaPin: areaPin(), pin: zonePin(), mini: !!miniOn, open: isOpen(), partners: partnerStand().length, pins: panel ? panel.querySelectorAll('.zm-stone').length : 0, district: (zoneDistrict() || {}).id || null, at: G.zone && zoneDef() ? (districtAt(zoneDef(), playerPos().x, playerPos().z) || {}).id || null : null });

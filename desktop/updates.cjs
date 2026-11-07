@@ -5,11 +5,13 @@
 //     game is closed, so the next launch is the new version; a small Windows notification says it's ready
 //   - the PORTABLE .exe can't replace itself while it runs, so it only says a newer version is out; clicking the
 //     notification opens the release page to download it
-// No network, no release yet, or a dev run (npm run desktop): nothing happens and the game plays as normal.
+// Offline? It just tries again later. No network, no release yet, or a dev run (npm run desktop): nothing happens and the game plays as normal.
 
 const { app, Notification, shell } = require('electron');
 
 const REPO = 'czinabu/power-trip';
+const RECHECK_MS = 30 * 60 * 1000;   // how often a running game looks again
+let notifiedTag = null, downloaded = false;
 const RELEASES = `https://github.com/${REPO}/releases/latest`;
 
 function notify(title, body, onClick){
@@ -32,26 +34,37 @@ async function checkPortable(){
   const res = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { accept: 'application/vnd.github+json' } });
   if (!res.ok) return;
   const rel = await res.json();
-  if (rel && rel.tag_name && newer(rel.tag_name, app.getVersion()))
+  if (rel && rel.tag_name && rel.tag_name !== notifiedTag && newer(rel.tag_name, app.getVersion())){
+    notifiedTag = rel.tag_name;
     notify('Power Trip ' + rel.tag_name.replace(/^v/, '') + ' is out', 'Click to download the new version.', () => shell.openExternal(rel.html_url || RELEASES));
+  }
 }
 
+let updaterReady = false;
 function checkInstalled(){
   const { autoUpdater } = require('electron-updater');
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;   // installs silently when the game closes
-  autoUpdater.logger = null;
-  autoUpdater.on('update-downloaded', (info) =>
-    notify('Power Trip ' + info.version + ' is ready', 'It installs when you close the game.'));
-  autoUpdater.on('error', () => {});   // offline, GitHub down: try again next launch
+  if (!updaterReady){   // set up once; later checks reuse it
+    updaterReady = true;
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;   // installs silently when the game closes
+    autoUpdater.logger = null;
+    autoUpdater.on('update-downloaded', (info) => {
+      downloaded = true;
+      notify('Power Trip ' + info.version + ' is ready', 'It installs when you close the game.');
+    });
+    autoUpdater.on('error', () => {});   // offline, GitHub down: try again later
+  }
   return autoUpdater.checkForUpdates();
 }
 
 exports.startUpdateCheck = function startUpdateCheck(){
   if (!app.isPackaged || process.env.POWER_TRIP_NO_UPDATES) return;
-  setTimeout(() => {
-    const run = process.env.PORTABLE_EXECUTABLE_FILE ? checkPortable() : checkInstalled();
-    Promise.resolve(run).catch(() => {});
-  }, 5000);
+  const portable = !!process.env.PORTABLE_EXECUTABLE_FILE;
+  const check = () => {
+    if (downloaded) return;   // already waiting to install on close
+    Promise.resolve(portable ? checkPortable() : checkInstalled()).catch(() => {});
+  };
+  setTimeout(check, 5000);
+  setInterval(check, RECHECK_MS).unref();
 };
 exports.newer = newer;

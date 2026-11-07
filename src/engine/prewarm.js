@@ -18,6 +18,8 @@ import { shared, G } from '../state.js';
 import { holdLightCount } from '../fx/lights.js';
 import { seeThroughSpecimen } from '../world/charfade.js';
 import { BladeGlowMaterial } from '../fx/blade-glow.js';
+import { glowTrailMat, darkTrailMat } from '../fx/trail.js';
+import { makeStyle, MATERIALS } from '../player/model/styles.js';
 
 /* ---------- 1. SHADERS ----------
    three.js builds a shader program the first time a material variant is drawn, and again for every material when the
@@ -41,12 +43,34 @@ function buildSpecimens(){
     new BladeGlowMaterial({ opacity: 0.5 }),                                                         // every lightsaber's glow (fx/blade-glow.js)
   ];
   for (const m of mats) specimen(new THREE.Mesh(GEO, m));
+  // the saber streaks (fx/trail.js): vertex-coloured, and see-through on both sides, so each draws as two programs (back
+  // faces, then front). They used to build on the first fast swing of a session, a hitch mid-fight
+  const cgeo = GEO.clone().setAttribute('color', new THREE.BufferAttribute(new Float32Array(GEO.attributes.position.count * 4), 4));   // RGBA, as the ribbon's
+  for (const m of [glowTrailMat, darkTrailMat]) specimen(new THREE.Mesh(cgeo, m));
   specimen(new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3)),
                           new THREE.LineBasicMaterial({ color: 0xbfe8ff })));   // grapple and Darksaber lines
   specimen(buildEnemyMesh(ENEMY_TYPES.grunt));   // the skinned, outlined trooper material every foe and squadmate shares
   // the same dithered see-through, as a squadmate or a foe in front of the lens wears it (world/charfade.js): the trooper
   // build, a heavy and a saber wielder (their faces, robes and blades), so none builds its program mid-fight
   for (const t of ['grunt', 'brute', 'acolyte']) if (ENEMY_TYPES[t]) specimen(seeThroughSpecimen(buildEnemyMesh(ENEMY_TYPES[t])));
+  // the cast's armour, cloth and skin programs, skinned AND plain: a cut-off limb (enemies/scars.js makePiece) redraws a
+  // unit's materials on an unskinned copy of its gear, and a unit type the warm-up's builds above don't include can wear
+  // a kind of surface they don't. Those programs used to build mid-fight, on the first dismemberment or the first such
+  // foe of a session. One specimen of each surface program (they're shared by kind: styles.js inkSurface), both ways
+  const byKey = new Map(), take = m => { if (m && !m.transparent && m.customProgramCacheKey){ const k = m.type + m.customProgramCacheKey(); if (!byKey.has(k)) byKey.set(k, m); } };
+  const S = makeStyle('ink');
+  for (const key of Object.keys(MATERIALS)){ try { take(S.mat(key)); } catch(e){} }
+  for (const t of ['grunt', 'brute', 'acolyte']) if (ENEMY_TYPES[t]) buildEnemyMesh(ENEMY_TYPES[t]).traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) take(m); });
+  const sgeo = GEO.clone();
+  const nv = sgeo.attributes.position.count;
+  sgeo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(new Uint16Array(nv * 4), 4));
+  sgeo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(new Float32Array(nv * 4).fill(0.25), 4));
+  for (const m of byKey.values()){
+    specimen(new THREE.Mesh(GEO, m));
+    const sk = new THREE.SkinnedMesh(sgeo, m), bone = new THREE.Bone();
+    sk.add(bone); sk.bind(new THREE.Skeleton([bone]));
+    specimen(sk);
+  }
 }
 const lazy = [];   // objects that other modules build on first use: shown for the compile, then put back
 function showLazy(){

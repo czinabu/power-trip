@@ -23,12 +23,14 @@ function ramp(){
 const toonCache = new Map();
 /* a cel-shaded material for an arena surface (cached per colour/side/emissive, shared across rebuilds) */
 export function toon(color, o = {}){
-  const id = color + '|' + (o.side || 0) + '|' + (o.emissive || 0) + '|' + (o.ei || 0) + '|' + (o.map ? o.map.uuid : '');
+  const id = color + '|' + (o.side || 0) + '|' + (o.emissive || 0) + '|' + (o.ei || 0) + '|' + (o.map ? o.map.uuid : '') + (o.decal ? '|d' : '');
   if (toonCache.has(id)) return toonCache.get(id);
   const m = new THREE.MeshToonMaterial({ color, gradientMap: ramp() });
   if (o.side) m.side = o.side;
   if (o.emissive){ m.emissive = new THREE.Color(o.emissive); m.emissiveIntensity = o.ei ?? 1; }
   if (o.map) m.map = o.map;
+  // a decal (a far window sitting a few centimetres proud of its wall: world/backdrop.js) keeps its polygon offset
+  if (o.decal){ m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -4; }
   toonCache.set(id, m);
   return m;
 }
@@ -167,12 +169,20 @@ const SCALE_GLSL = `
     vec2 ln = 1.0 - smoothstep(vec2(${f3(DETAIL.line)}), vec2(${f3(DETAIL.line)}) + px, dm);
     float fade = 1.0 - smoothstep(0.08, 0.35, max(px.x / cs.x, px.y / cs.y) * 4.0);
     float seam = max(ln.x, ln.y) * fade;
-    float h = fract(sin(dot(id, vec2(12.9898, 78.233)) + vPropK * 91.7) * 43758.5453);
+    // each panel's own dice. Not the usual fract(sin(x) * 43758): with the panel's index in world metres x runs into the
+    // thousands, where sin() has too few bits left and the result changed from pixel to pixel, so the lit windows
+    // of the far city sparkled on and off as the view moved. A sin-free hash of whole numbers holds steady
+    vec3 h3 = fract(vec3(id.xyx + vec3(0.0, 0.0, floor(vPropK * 251.0 + 0.5))) * vec3(0.1031, 0.1030, 0.0973));
+    h3 += dot(h3, h3.yzx + 33.33);
+    float h = fract((h3.x + h3.y) * h3.z);
     diffuseColor.rgb *= (1.0 - seam * ${f3(DETAIL.seam)}) * (1.0 + (h - 0.5) * ${f3(DETAIL.jitter)} * fade);
     if (vDet.x > 1.5 && id.y >= 1.0 && (uLit > 0.0 || vDet.x > 2.5)){   // (3: the outskirts' buildings, windows by day too)
       float h2 = fract(h * 17.31 + 0.13);
       vec2 w = abs(fc - vec2(0.5, 0.55));
       float inWin = (1.0 - smoothstep(0.2, 0.2 + px.x / cs.x, w.x)) * (1.0 - smoothstep(0.13, 0.13 + px.y / cs.y, w.y));
+      // far off a window shrinks under a pixel and sparkles on and off as the view moves: there it eases into its
+      // average over the panel (its share of the cell, 0.4 × 0.26), so a distant lit tower glows steadily instead
+      inWin = mix(inWin, 0.104, smoothstep(0.1, 0.3, max(px.x / cs.x, px.y / cs.y)));
       vWin = step(h2, uLit) * inWin;
       diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.35, inWin * (1.0 - step(h2, uLit)) * 0.6);
     }
@@ -253,7 +263,7 @@ export function bakeArena(group, width = 0.045, far = false){
     if (src && src.isMeshBasicMaterial && staticGlow(o, group)){ glow(o); return; }
     if (!src || Array.isArray(src) || !(src.isMeshStandardMaterial || src.isMeshToonMaterial)) return;
     const mat = src.isMeshToonMaterial ? src
-      : toon(src.color.getHex(), { side: src.side, emissive: src.emissive && src.emissive.getHex(), ei: src.emissiveIntensity });
+      : toon(src.color.getHex(), { side: src.side, emissive: src.emissive && src.emissive.getHex(), ei: src.emissiveIntensity, decal: src.polygonOffset });
     const g = new THREE.BufferGeometry();
     const sg = o.geometry;
     g.setAttribute('position', sg.attributes.position.clone());

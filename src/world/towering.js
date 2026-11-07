@@ -230,7 +230,7 @@ export const TALL = {
       }
       K.put(grp, new THREE.CylinderGeometry(PR, PR * 0.7, PR * 0.35, 18), m, x, Y, z);                                        // the underside
       K.put(grp, new THREE.SphereGeometry(PR, 18, 8, 0, PI * 2, 0, PI / 2), m, x, Y + PR * 0.17, z, 0, 0, 0, [1, 0.42, 1]);   // the dome
-      if (o.glow) K.put(grp, new THREE.CylinderGeometry(PR * 1.005, PR * 1.005, Math.max(0.5, PR * 0.06), 18, 1, true), K.glowMat(o.glow), x, Y + PR * 0.12, z);
+      if (o.glow) K.put(grp, new THREE.CylinderGeometry(PR * 1.005, PR * 1.005, Math.max(0.5, PR * 0.06), 18, 1, true), K.glowMat(o.glow, true), x, Y + PR * 0.12, z);
       K.keepOut(K.since(grp, n0), legs);
     }
   },

@@ -2,6 +2,8 @@
 // SAVE CARRY SMOKE — your save comes with you into every mode, and the game saves as each boss falls:
 //   · a Jedi whose story has taught Pull, Makashi and Soresu has them in survival (from its first wave), in a lone mission
 //     whose own kit is lower, and in the hub, with no fanfare; and no form the story hasn't taught
+//   · form mastery is only ever earned: those modes fight each form at the best rank it has reached in a fight, never at a
+//     rank made up from how far the story has gone
 //   · the ARC trooper's own story counts toward the sandbox, like the other two heroes'
 //   · a Warbringer down in a lone mission writes the AUTO slot
 //   · a story chapter is saved as it closes, and that save loads back past it (its close, then the next chapter)
@@ -40,7 +42,8 @@ const kit = () => page.evaluate(() => ({ pull: !!GAME.G.unlocked.pull, su: Objec
 
 // A JEDI SAVE that has closed the siege, the archive and the first trial (Pull, Makashi, Soresu)
 await boot();
-await page.evaluate(() => { localStorage.setItem('sw_camp_ch_jedi', JSON.stringify(['prologue', 'siege', 'archive', 'trial-first'])); GAME.PROFILE.reloadProfile(); });
+// (Makashi has earned ADEPT in a fight; Soresu nothing yet)
+await page.evaluate(() => { localStorage.setItem('sw_camp_ch_jedi', JSON.stringify(['prologue', 'siege', 'archive', 'trial-first'])); localStorage.setItem('sw_formrank_jedi', JSON.stringify({ makashi: 1 })); GAME.PROFILE.reloadProfile(); });
 await boot();
 await page.$eval('#hero-jedi', el => el.click()); await page.$eval('#mode-campaign', el => el.click()); await page.click('#goText');
 await fightNow(); await playing();
@@ -53,18 +56,25 @@ check(k.pull && k.su.includes('makashi') && k.su.includes('soresu') && !k.su.inc
 check(k.loadout.includes('makashi') && k.loadout.includes('soresu'), 'survival slots the earned forms');
 check(k.lv > 1, 'survival starts at the story\'s Force Level (' + k.lv + ')');
 check(!k.banners, 'survival hands the story kit over with no meditation screens');
+const ranks = () => page.evaluate(() => ({ ...(GAME.G.formRank || {}) }));
+let fr = await ranks();
+check((fr.makashi || 0) === 1 && !fr.soresu && !fr.shiicho, 'survival fights each form at its earned rank, no more (' + JSON.stringify(fr) + ')');
 
 // A LONE MISSION whose own kit is lower (the vault: kit 1)
 await page.evaluate(() => { GAME.G.missionForms = null; GAME.startMission('vault'); });
 await page.waitForTimeout(800);
 k = await kit();
 check(k.pull && k.su.includes('makashi') && k.su.includes('soresu'), 'a low-kit mission still hands over the story\'s kit (' + JSON.stringify(k) + ')');
+fr = await ranks();
+check((fr.makashi || 0) === 1 && !fr.soresu && !fr.shiicho, 'a mission fights each form at its earned rank, no more (' + JSON.stringify(fr) + ')');
 
 // THE HUB
 await page.evaluate(() => GAME.hub.startHub());
 await page.waitForTimeout(800);
 k = await kit();
 check(k.pull && k.su.includes('makashi') && k.su.includes('soresu') && !k.su.includes('ataru'), 'the hub carries the story\'s kit (' + JSON.stringify(k) + ')');
+fr = await ranks();
+check((fr.makashi || 0) === 1 && !fr.soresu && !fr.shiicho, 'the hub shows each form at its earned rank, no more (' + JSON.stringify(fr) + ')');
 
 // A WARBRINGER DOWN in a lone mission saves at once
 await page.evaluate(() => { GAME.startMission('vault'); localStorage.removeItem('sw_save_auto'); });

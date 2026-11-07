@@ -73,8 +73,9 @@ try {
   // the host's wave clears mid-chapter: the guest gets its own clear bonus (XP toward its next skill point), no upgrade screen
   const w0 = await host.evaluate(() => GAME.G.wave), xp0 = await guest.evaluate(() => GAME.G.xpEarned || 0);
   await host.evaluate(() => { for (const e of GAME.enemies) GAME.damageEnemy(e, 99999, null, 0, false, false); GAME.G.spawnQueue.length = 0; });
-  await guest.waitForFunction((x) => (GAME.G.xpEarned || 0) > x, xp0, poll);
-  await host.waitForFunction((w) => GAME.G.wave === w + 1, w0, poll);
+  // (the wave's clear lands a short beat of GAME time after the last foe falls: game-wait.mjs)
+  await waitGame(guest, (x) => (GAME.G.xpEarned || 0) > x, xp0, { clock: host, what: 'the guest\'s clear bonus' });
+  await waitGame(host, (w) => GAME.G.wave === w + 1, w0, { what: 'the host\'s next wave' });
   if (await guest.evaluate(() => GAME.G.skillSelect)) throw new Error('the guest\'s upgrade screen opened mid-chapter');
   // the host moves on to a mission chapter: the guest follows it there, shown the host's objectives
   await guest.evaluate(() => { document.getElementById('skilltree').style.display = 'none'; GAME.G.skillSelect = false; });
@@ -108,7 +109,7 @@ try {
   await guest.waitForFunction(() => GAME.G.mode !== 'play' && !GAME.finale, null, poll);
   ok = true;
   console.log('ok   co-op campaign: the guest joined the host\'s level, shows its foes as puppets, and followed the wave clear');
-} catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ mode: GAME.G.mode, guest: GAME.G.coopGuest, lv: GAME.G.levelIdx, wave: GAME.G.wave, foes: GAME.enemies.map(e => [e.nid, !!e.net]), boss: GAME.finale ? [GAME.finale.state, GAME.finale.hp, !!GAME.finale.net] : null, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }
+} catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ mode: GAME.G.mode, guest: GAME.G.coopGuest, lv: GAME.G.levelIdx, wave: GAME.G.wave, phase: GAME.shared.levelPhase, chapter: GAME.G.chapter, gt: +GAME.G.gt.toFixed(1), foes: GAME.enemies.map(e => [e.nid, !!e.net]), boss: GAME.finale ? [GAME.finale.state, GAME.finale.hp, !!GAME.finale.net] : null, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }
 await browser.close(); server.close?.();
 if (!ok || errors.length){ console.error('FAIL co-op campaign\n' + errors.join('\n')); process.exit(1); }
 process.exit(0);

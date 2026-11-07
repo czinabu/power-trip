@@ -197,12 +197,25 @@ function recTile(p, h){
     : '<p class="pf-note">Clear a chapter or win a mission to start your record.</p>');
 }
 
-/* ---------- the Jedi's FORCE TREE: each branch a chain of cards, Padawan at the top; one card's detail beside them ---------- */
-// The branch's everyday cards are in CARDS, so the tree lists only what Insight learns, and one footnote for the in-run
-// either/or picks.
+/* ---------- the Jedi's FORCE TREE, drawn as a tree: THE FORCE at the top, a line to each branch, and down each branch its
+   cards by rank (Padawan, Knight, Master). The cards Insight learns sit on the branch's trunk; the run's either/or picks
+   (FORK_BRANCH) hang off the trunk's outer side as small diamonds. A link lights in the hero's accent once the card under
+   it is learned, and runs a live dash while that card is ready to learn. One card's detail beside the tree. ---------- */
+// The branch's everyday cards are in CARDS, so the tree holds only what Insight learns and the run's picks.
 const treeNodes = (b) => JEDI_TREE.filter(n => n.branch === b).sort((x, y) => x.tier - y.tier);
+const forkNodes = (b) => FORK_BRANCH.filter(f => f.branch === b).sort((x, y) => x.tier - y.tier);
+const forkOpt = (id) => { const s = JEDI_STORE.find(n => n.id === id); return s ? { nm: s.nm, ds: s.ds, ico: s.ico } : FORMS[id] ? { nm: FORMS[id].name, ds: 'Form ' + FORMS[id].no + ': ' + FORMS[id].tag, ico: '⚔' } : { nm: id, ds: '', ico: '✷' }; };
+const forkName = (id) => forkOpt(id).nm;
+const forkShort = (id) => forkName(id).replace(/^(FORCE|SABER) /, '');   // the tree's label: THROW / BARRIER
+function forkDetail(f){
+  const last = profileOf('jedi').forks[f.fork], B = BRANCHES.find(x => x.id === f.branch), R = track('jedi').ranks.find(r => r.id === tierRank(f.tier));
+  const opts = f.ids.map(id => { const o = forkOpt(id); return '<li><b>' + esc(o.nm) + (last === id ? ' <em class="pf-got">LAST PICK</em>' : '') + '</b><span>' + o.ds + '</span></li>'; }).join('');
+  return '<aside class="pf-detail pf-fdetail"><div class="pf-dh"><span class="pf-orb pf-fk">' + icon(forkOpt(f.ids[0]).ico) + '</span><div><b>' + esc(f.ids.map(forkName).join(' or ')) + '</b><span>RUN PICK · ' + esc(B ? B.nm : '') + '</span></div></div>' +
+    '<p>In a run you pick one of these' + (R ? ' from ' + esc(R.nm) + ' tier on' : '') + '. It costs no Insight, and you can pick the other one next run.</p><ul class="pf-fopts">' + opts + '</ul></aside>';
+}
 function treeDetail(n){
   if (!n) return detail('jedi', null);
+  if (n.fork) return forkDetail(n);
   const st = nodeState(n), R = track('jedi').ranks.find(r => r.id === tierRank(n.tier));
   const act = st === 'learned' ? '<p class="pf-got">✓ LEARNED: runs can deal it</p>'
     : runLive() ? '<p class="pf-note">A run is on. Learn cards between runs.</p>'
@@ -210,31 +223,62 @@ function treeDetail(n){
     : st === 'rank' ? '<ul class="pf-unlock"><span>TO UNLOCK</span><li><i>○</i>Reach ' + esc(R ? R.nm : 'a higher rank') + ' <em>(you: ' + esc(track('jedi').ranks[profileOf('jedi').rank].nm) + ')</em></li></ul>'
     : '<p class="pf-lock">' + LOCK + 'NO INSIGHT LEFT: the next rank gives more</p>';
   const B = BRANCHES.find(x => x.id === n.branch);
-  return '<aside class="pf-detail' + (st === 'learned' ? '' : ' shut') + '"><div class="pf-dh"><span class="pf-orb">' + icon(n.ico) + '</span><div><b>' + esc(n.nm) + '</b><span>' + TIER_NAME[n.tier] + ' · ' + esc(B ? B.nm : '') + '</span></div></div>' +
+  return '<aside class="pf-detail' + (st === 'learned' ? '' : ' shut') + '"><div class="pf-dh"><span class="pf-orb">' + icon(n.ico) + '</span><div><b>' + esc(n.nm) + '</b><span>' + esc(R ? R.nm : TIER_NAME[n.tier]) + ' · ' + esc(B ? B.nm : '') + '</span></div></div>' +
     dsHtml(n.ds) + (n.fl ? '<p class="pf-fl">' + esc(n.fl) + '</p>' : '') + '<div class="pf-dact">' + act + '</div></aside>';
 }
+// where things sit: x in % of the tree's width (a branch is a third, its trunk off-centre so the picks hang outward), y as a
+// row (the tree's height is set in the stylesheet, so the rows are fractions of it)
+const TREE_ROW = { root: 8, head: 24, 1: 44, 2: 63, 3: 82 };
 function treeCol(){
-  const path = treePath(), left = insightLeft(), forks = profileOf('jedi').forks;
-  const nm = (id) => id ? ((JEDI_STORE.find(n => n.id === id) || {}).nm || (FORMS[id] ? FORMS[id].name : id)) : '';
-  const all = BRANCHES.flatMap(B => treeNodes(B.id));
-  const pick = all.find(n => n.prof === treeSel) || all.find(n => nodeState(n) === 'open') || all[0];
-  const cols = BRANCHES.map(B => {
-    const fk = FORK_BRANCH.filter(f => f.branch === B.id).sort((x, y) => x.tier - y.tier);
-    const nodes = treeNodes(B.id).map(n => {
-      const st = nodeState(n);
-      const tag = st === 'learned' ? 'LEARNED' : st === 'open' ? 'READY · 1 INSIGHT' : st === 'rank' ? 'AT ' + esc(track('jedi').ranks.find(r => r.id === tierRank(n.tier)).nm) : 'NEEDS INSIGHT';
-      return '<div class="pf-pnode t-' + st + (st === 'learned' ? ' open' : ' shut') + (pick === n ? ' sel' : '') + '" data-node="' + n.prof + '"><span class="pf-orb">' + icon(n.ico) + (st === 'rank' ? '<i class="pf-lk">' + LOCK + '</i>' : st === 'learned' ? '<i class="pf-in">✓</i>' : '') + '</span>' +
-        '<div><b>' + esc(n.nm) + '</b><span>' + tag + '</span></div></div>';
-    }).join('');
-    const forkNote = fk.length ? '<div class="pf-fork"><span>IN A RUN YOU ALSO PICK</span>' + fk.map(f => '<b>' + esc(f.nm) + (forks[f.fork] ? ' <em>(last: ' + esc(nm(forks[f.fork])) + ')</em>' : '') + '</b>').join('') + '</div>' : '';
-    return '<div class="pf-pside pf-branch' + (path === B.id ? ' path' : '') + '"><div class="pf-bh"><b>' + B.nm + '</b><span class="btn pf-path" data-path="' + B.id + '">' + (path === B.id ? '★ PATH' : 'SET PATH') + '</span></div>' +
-      '<p class="pf-bl">' + esc(B.line) + '</p><div class="pf-chain">' + nodes + '</div>' + forkNote + '</div>';
-  }).join('');
+  const path = treePath(), left = insightLeft(), forks = profileOf('jedi').forks, live = runLive();
+  const all = BRANCHES.flatMap(B => [...treeNodes(B.id), ...forkNodes(B.id)]);
+  const keyOf = (n) => n.fork ? 'fork:' + n.fork : n.prof;
+  const pick = all.find(n => keyOf(n) === treeSel) || all.find(n => !n.fork && nodeState(n) === 'open') || all.find(n => !n.fork);
+  const links = [], nodes = [], heads = [];
+  const link = (x1, y1, x2, y2, st, cls = '') => {
+    const d = 'M' + x1 * 10 + ' ' + y1 * 10 + ' C' + x1 * 10 + ' ' + (y1 + y2) * 5 + ' ' + x2 * 10 + ' ' + (y1 + y2) * 5 + ' ' + x2 * 10 + ' ' + y2 * 10;
+    links.push('<path class="pf-lu" d="' + d + '"/><path class="pf-ln ' + st + cls + '" d="' + d + '"/>');
+  };
+  const at = (x, y) => 'style="left:' + x + '%;top:' + y + '%"';
+  const anyLearned = BRANCHES.some(B => treeNodes(B.id).some(n => nodeState(n) === 'learned'));
+  BRANCHES.forEach((B, i) => {
+    const out = i === 0 ? -1 : 1, cx = (i + .5) * 100 / 3, col = 100 / 3;
+    const tx = cx - out * col * .14, fx = cx + out * col * .27;   // the trunk, and where the picks hang
+    const tn = treeNodes(B.id), sts = tn.map(nodeState);
+    const bst = sts.includes('learned') ? 'lit' : sts.includes('open') && !live ? 'ready' : 'dim';
+    link(50, TREE_ROW.root, cx, TREE_ROW.head, path === B.id ? 'lit path' : bst);
+    heads.push('<div class="pf-fhead' + (path === B.id ? ' path' : '') + '" ' + at(cx, TREE_ROW.head) + '><b>' + B.nm + '</b><span class="pf-bl">' + esc(B.line) + '</span>' +
+      '<span class="btn pf-path" data-path="' + B.id + '">' + (path === B.id ? '★ PATH' : 'SET PATH') + '</span></div>');
+    // the trunk: head, then each card the branch learns, by rank
+    let py = TREE_ROW.head, px = cx;
+    tn.forEach((n, k) => {
+      const st = sts[k], y = TREE_ROW[n.tier];
+      const lst = st === 'learned' ? 'lit' : st === 'open' && !live ? 'ready' : 'dim';
+      link(px, py + (py === TREE_ROW.head ? 6 : 0), tx, y, lst);
+      const rk = track('jedi').ranks.find(r => r.id === tierRank(n.tier));
+      const tag = st === 'learned' ? 'LEARNED' : st === 'open' ? 'READY' : st === 'rank' ? 'AT ' + esc(rk.nm) : 'NEEDS INSIGHT';
+      nodes.push('<span class="pf-tnode t-' + st + (pick === n ? ' sel' : '') + '" data-node="' + n.prof + '" ' + at(tx, y) + ' role="button" tabindex="0" aria-label="' + esc(n.nm) + ', ' + tag + '">' +
+        '<span class="pf-orb">' + icon(n.ico) + (st === 'rank' ? '<i class="pf-lk">' + LOCK + '</i>' : st === 'learned' ? '<i class="pf-in">✓</i>' : '') + '</span>' +
+        '<span class="pf-tl"><b>' + esc(n.nm) + '</b><em>' + tag + '</em></span></span>');
+      px = tx; py = y;
+    });
+    // the run's picks, off the trunk card above them (or the head)
+    forkNodes(B.id).forEach(f => {
+      const above = tn.filter(n => n.tier < f.tier).pop(), y = TREE_ROW[f.tier];
+      const open = hasRank('jedi', tierRank(f.tier));
+      link(above ? tx : cx, above ? TREE_ROW[above.tier] : TREE_ROW.head + 6, fx, y, open ? 'pick' : 'dim', ' dash');
+      const ids = f.ids.map(forkName), last = forks[f.fork];
+      nodes.push('<span class="pf-tnode pf-tfork' + (open ? '' : ' t-rank') + (pick === f ? ' sel' : '') + '" data-node="fork:' + f.fork + '" ' + at(fx, y) + ' role="button" tabindex="0" aria-label="Run pick: ' + esc(ids.join(' or ')) + '">' +
+        '<span class="pf-orb pf-fk">' + icon(forkOpt(f.ids[0]).ico) + '</span>' +
+        '<span class="pf-tl"><b>' + f.ids.map(id => esc(forkShort(id))).join(' / ') + '</b>' + (last ? '<em>LAST: ' + esc(forkShort(last)) + '</em>' : '') + '</span></span>');
+    });
+  });
+  const ranks = [1, 2, 3].map(t => { const R = track('jedi').ranks.find(r => r.id === tierRank(t)); return '<span class="pf-ftier' + (hasRank('jedi', R.id) ? ' on' : '') + '" style="top:' + TREE_ROW[t] + '%">' + esc(R.nm) + '</span>'; }).join('');
+  const root = '<div class="pf-froot' + (anyLearned ? ' lit' : '') + '" ' + at(50, TREE_ROW.root) + '><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><b>' + left + '</b><em>INSIGHT<br>TO SPEND</em></span></div>';
   return `<div class="pf-col pf-right">
     ${viewTabs('jedi')}
-    <div class="pf-th"><span class="pf-ins"><b>${left}</b> INSIGHT TO SPEND</span><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
-    <p class="pf-note${runLive() ? ' pf-live-note' : ''}">${runLive() ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Tap a card, then learn it. Your path\'s branch always has a card on offer in runs.'}</p>
-    <div class="pf-split pf-tsplit"><div class="pf-sides pf-tree3">${cols}</div>${treeDetail(pick)}</div>
+    <div class="pf-th pf-fth"><p class="pf-note${live ? ' pf-live-note' : ''}">${live ? 'A run is on. Change your tree and path between runs.' : 'Each rank gives Insight. Tap a card, then learn it. Your path\'s branch always has a card on offer in runs.'}</p><span class="btn pf-reset" data-reset="tree">RESET TREE</span></div>
+    <div class="pf-split pf-tsplit"><div class="pf-ftree">${ranks}<svg class="pf-flinks" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads.join('')}${nodes.join('')}</div>${treeDetail(pick)}</div>
   </div>`;
 }
 
@@ -397,6 +441,8 @@ panel.addEventListener('click', (e) => {
   else if (reset && reset.dataset.reset === 'profile'){ if (armed){ resetProfile(hero); armed = false; } else armed = true; render(); }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && profileOpen()) setProfile(false); });
+// a tree node is a focusable button: Enter or Space picks it, as a tap does
+panel.addEventListener('keydown', (e) => { const nd = (e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.pf-tnode'); if (nd){ e.preventDefault(); nd.click(); } });
 btn.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setProfile(true); });
 
 /* ---------- the PROFILE button's NEW, and a rank earned away from a chapter's close ---------- */

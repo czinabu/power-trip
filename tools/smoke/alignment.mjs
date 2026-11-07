@@ -82,11 +82,11 @@ try {
   const rk = await page.evaluate(() => document.querySelector('#profile .pf-left .pf-next h4').textContent);
   check(/PADAWAN/.test(rk), 'tapping the first rank stop shows that rank (' + rk + ')');
   await page.click('#profile .pf-vtabs [data-view="tree"]');
-  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-tree3 .pf-pnode').length }));
-  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-tree3 .pf-pnode')].map(x => x.dataset.node));
-  await page.click('#profile .pf-pnode[data-node="' + nodeIds[nodeIds.length - 1] + '"]');
-  const td = await page.evaluate(() => ({ sel: document.querySelector('#profile .pf-pnode.sel').dataset.node, name: document.querySelector('#profile .pf-detail .pf-dh b').textContent, chains: document.querySelectorAll('#profile .pf-tree3 .pf-chain').length }));
-  check(tr.n >= 6 && td.chains === 3 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws three chains (' + tr.n + ' cards) and a tapped card fills the detail (' + td.name + ')');
+  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-ftree .pf-tnode:not(.pf-tfork)').length }));
+  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-ftree .pf-tnode:not(.pf-tfork)')].map(x => x.dataset.node));
+  await page.click('#profile .pf-tnode[data-node="' + nodeIds[nodeIds.length - 1] + '"]');
+  const td = await page.evaluate(() => ({ sel: document.querySelector('#profile .pf-tnode.sel').dataset.node, name: document.querySelector('#profile .pf-detail .pf-dh b').textContent, chains: document.querySelectorAll('#profile .pf-ftree .pf-fhead').length, lines: document.querySelectorAll('#profile .pf-flinks .pf-ln').length }));
+  check(tr.n >= 6 && td.chains === 3 && td.lines >= tr.n + 3 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws three branches off its root (' + tr.n + ' cards) and a tapped card fills the detail (' + td.name + ')');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-tree.png') });
   await page.click('#pfclose');
 

@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Mouse and keyboard handlers.
 
-import { aimLookScale } from './camera.js';
+import { aimLookScale, swapShoulder } from './camera.js';
 import { finParry } from '../player/jedi/finisher.js';
 import { CFG } from '../data/config.js';
 import { renderer } from './renderer.js';
@@ -68,6 +68,7 @@ document.addEventListener('mousedown', (e) => {
   if (!inputActive()) return;
   if (player.downed) return;   // down: nothing to fight with until you're back up (game/revive.js)
   if (e.button === 1){ e.preventDefault(); wheelKeyDown(); return; }   // middle mouse: SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
+  if (e.button === 3 || e.button === 4){ e.preventDefault(); swapShoulder(); return; }   // a mouse side button: SHOULDER SWAP, as K (engine/camera.js)
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
   if (e.button === 0 && G.gt < (player.lockGrace || 0)) return;   // the bind just broke: the tail of the mash is swallowed, not a stray cut
@@ -148,6 +149,7 @@ document.addEventListener('mouseup', (e) => {
   if (e.button === 0){ atkRelease(); player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
   if (e.button === 2){ player.blockHeld = false; player.zoom = false; }
   if (e.button === 1) wheelKeyUp();   // middle mouse let go: the order (allies/wheel.js)
+  if (e.button === 3 || e.button === 4) e.preventDefault();   // (a side button is the browser's Back: never leave the game on a swap)
 });
 document.addEventListener('wheel', (e) => {
   if (!inputActive()) return;
@@ -194,6 +196,7 @@ document.addEventListener('keydown', (e) => {
   if (k === '5' && !e.repeat) toggleBlade();     // IGNITE / RETRACT: the blade out and the hilt clipped on the belt, at ease (any fight move lights it again)
   if (k === 'n' && !e.repeat) pingHere();   // PING: mark the spot or foe under the crosshair for the other players (net/ping.js)
   if (k === 'h' && !e.repeat) wheelKeyDown();   // SQUAD ORDERS: tap for the smart order, hold for the command wheel (allies/wheel.js)
+  if (k === 'k' && !e.repeat) swapShoulder();   // SHOULDER SWAP, the gunners' lens to the other shoulder (engine/camera.js)
   if (k === 'j' && !e.repeat && G.mode === 'play' && !G.paused && !G.hub) giveOrder('stance');   // the squad's stance: FREE ENGAGE ⇄ FOLLOW ME (allies/squad.js; on a pad, the wheel)
   if (isGunner() && flowSignature(k, e.repeat)) return;   // T (the Mando's DEAD EYE) · Y (the trooper's COORDINATED FIRE): player/gunner-flow.js
   if (isTrooper()) trooperKey(k, e.repeat);   // the clone trooper's keys (player/trooper/kit.js)

@@ -67,6 +67,7 @@ const CONTROLS = {
       ['SHIFT (air)', 'Air dodge', 'A straight thruster kick any way you press, invulnerable for a moment, and it stops your fall · spends a jet charge (the pips on the slot) and a little fuel', 1],
       ['HOLD SHIFT', 'Boost in the air', 'Keep SHIFT held after the dodge: he lays out the way you fly, Max Payne style, guns up on the crosshair · look down to dive', 1],
       ['HOLD RMB (air)', 'Hover', 'Hold your height and strafe; let go of the keys to stop dead', 1],
+      ['K / MOUSE 4', 'Swap shoulder', 'The camera to your other shoulder · either mouse side button works too · out of a fight a long strafe the other way swaps it too, never while aiming'],
       ['ALT', 'Strafe', 'Stay square to the crosshair while you move; running away from it no longer turns your back · Settings · STRAFE: TOGGLE (the default) turns it on with one press and off with the next, HOLD strafes only while ALT is held'],
       ['C', 'Slide', 'Feet first, out of any run, aiming too · carries far, steers a little, ducks blaster fire and keeps your aim steady · jump out of it for a long hop', 1],
       ['FLOW', 'Parkour pays', 'Vaults, climbs and slides refuel the jetpack; shots right after one hit harder'],
@@ -116,6 +117,7 @@ const CONTROLS = {
       ['HOLD RMB (in cover)', 'Lean out', 'Rise over low cover or step out round the edge of tall cover to aim · let go to duck back · LMB alone pops up for the shot · ducked, fire that tears past you stops suppressing you'],
       ['SPACE x2', 'Combat dive', 'SPACE again off the hop: a dive flat out the way you press (or back), invulnerable through the throw, firing as you go'],
       ['HOLD SHIFT', 'Sprint', 'Forward, both pistols up by the shoulders · aim or fire and you drop back to a run (a shot straight out of a sprint is covering fire) · C at a sprint slides you into the cover ahead'],
+      ['K / MOUSE 4', 'Swap shoulder', 'The camera to your other shoulder · either mouse side button works too · out of a fight a long strafe the other way swaps it too, never while aiming'],
       ['ALT', 'Strafe', 'Stay square to the crosshair while you move · Settings · STRAFE: TOGGLE (the default) turns it on with one press and off with the next, HOLD strafes only while ALT is held'],
     ]},
     { title: 'FIGHT', rows: [

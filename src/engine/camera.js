@@ -12,6 +12,7 @@ import { CFG } from '../data/config.js';
 import { DUEL } from '../data/duel.js';
 import { LOCK_CAM } from '../enemies/duel.js';
 import { KC, updateKillCam } from './killcam.js';
+import { inCombat } from '../player/mobility.js';
 import * as THREE from 'three';
 /* the Jedi rig's aim point fixed to the hero (no lag): Jedi Academy draws its crosshair along the view from here, so it
    sits mid-screen at rest and rides out with the hero when a roll or a flip outruns the lens (player/aim.js) */
@@ -89,6 +90,24 @@ export function aimLookScale(){
    ease (CFG.camera.shoulderSwap seconds, in and out) instead of a slow drift, and a wall on the new side squeezes the
    offset in so the lens never ends up inside it */
 const swap = { live: false, from: 1, to: 1, t: 1, dur: 1, w: 1, mag: 1, room: 1 };
+/* WHICH SHOULDER. The swap button (K, or a mouse side button; on a pad LB + L3, the trooper's LB + D-pad left) is the
+   way to change it: a swap you didn't ask for slides the whole view about two metres mid-fight and throws your aim off
+   what you were tracking. Out of a fight the lens still follows a deliberate strafe, one way for CFG.camera.autoSwapHold
+   seconds, but never while aiming and not for a while after a swap by hand. The trooper's lean out of cover picks its
+   own side (trooper/cover.js), since that's the side he's shooting round. */
+let strafeT = 0, strafeSign = 0, manualAt = -99;
+export function swapShoulder(){
+  if (!isGunner() || G.mode !== 'play' || G.paused) return;
+  player.camSide = -(player.camSide || 1);
+  manualAt = G.gt;
+}
+function autoShoulder(lat, aiming, dt){
+  const C = CFG.camera, s = Math.abs(lat) > C.autoSwapSpeed ? Math.sign(lat) : 0;
+  if (!s || s === (player.camSide || 1) || aiming || inCombat() || G.gt - manualAt < C.autoSwapAfterManual){ strafeT = 0; strafeSign = 0; return; }
+  if (s !== strafeSign){ strafeSign = s; strafeT = 0; }
+  strafeT += dt;
+  if (strafeT >= C.autoSwapHold){ player.camSide = s; strafeT = 0; }
+}
 function shoulderOffset(pp, eyeY, rv, mag, dt){
   const C = CFG.camera, want = player.camSide || 1;
   if (!swap.live){ Object.assign(swap, { live: true, from: want, to: want, t: 1, dur: 1, w: want, mag, room: 1 }); }
@@ -263,8 +282,9 @@ export function updateCamera(dt){
     const flying = !player.grounded;
     const lat = vx*rv.x + vz*rv.z;                        // signed strafe: +right, -left
     // never CENTRED: at this distance a centred Mando sits right under the crosshair, so aiming at a head put the
-    // reticle on your own back. Stay over the right shoulder, and swap sides only on a deliberate strafe the other way
-    if (Math.abs(lat) > 2.5) player.camSide = Math.sign(lat);
+    // reticle on your own back. Stay over one shoulder; the SWAP button changes it (swapShoulder), and out of a fight a
+    // held strafe the other way does too (autoShoulder)
+    autoShoulder(lat, aiming, dt);
     const mag = player.zoom ? C.mandoShoulderScope : ads ? C.mandoShoulderAds : aiming ? C.mandoShoulderAim : flying ? C.mandoShoulderFly : C.mandoShoulder;
     ots = shoulderOffset(pp, ty + camHi0, rv, mag, dt);
     player.camOts = ots;

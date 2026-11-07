@@ -17,7 +17,7 @@ import { ABILITY_CARDS } from '../data/ability-cards.js';
 import { forceToastHolds, fadeForceToast } from './force-toast.js';
 import { storySpeaking, commsShowing } from '../game/story.js';
 import { loadingNow } from './loading.js';
-import { doorState } from '../world/doorway.js';
+import { doorFading } from '../world/doorway.js';
 
 const el = document.getElementById('abilitycard');
 const pending = [];   // unlocks learned and not yet shown
@@ -27,6 +27,8 @@ const cardOf = (u) => u.card || ABILITY_CARDS[u.key];
 export const hasAbilityCard = (u) => !!cardOf(u);
 export const abilityCardUp = () => el.classList.contains('open');
 
+// any card still to show, or up now (a chapter's next scene waits for them: game/flow.js, net/waits.js)
+export const abilityCardsPending = () => pending.length > 0 || abilityCardUp();
 export const abilityChoicePending = () => pending.some(u => u.choice) || !!(shown && shown.choice);
 
 export function queueAbilityCards(list){
@@ -44,7 +46,7 @@ export function queueAbilityChoice(pair, take){
 // game/flow.js, every frame of play: open once nothing else holds the screen
 let talkAt = 0;   // when a choice began to wait on a line of dialogue alone
 export function tickAbilityCards(){
-  if (!pending.length || abilityCardUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || loadingNow() || doorState() >= 2 || performance.now() < (shared.unlockHold || 0)){ talkAt = 0; return; }   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || abilityCardUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || loadingNow() || doorFading() || performance.now() < (shared.unlockHold || 0)){ talkAt = 0; return; }   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   // never over a line of dialogue; but a choice holds the road on (game/flow.js), so a long talk lets it through after a while
   if (storySpeaking() || commsShowing()){ const now = performance.now(); talkAt = talkAt || now; if (!pending[0].choice || now - talkAt < 12000) return; }
   talkAt = 0;

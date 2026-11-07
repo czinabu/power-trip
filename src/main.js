@@ -136,7 +136,7 @@ import { updateZoneMap, openZoneMap, closeZoneMap, zoneMapInfo } from './ui/zone
 import { HUBS, ALL_WINGS } from './data/hub.js';
 import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
-import { updateDoorway, doorState } from './world/doorway.js';
+import { updateDoorway, doorState, goThrough, doorDark } from './world/doorway.js';
 import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import './ui/profile-ui.js';
@@ -144,6 +144,8 @@ import * as PROFILE from './game/profile.js';
 import * as NGPLUS from './data/ngplus.js';   // NEW GAME+ (window.GAME.NGPLUS, for the tests)
 import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
+import { updateWaits } from './net/waits.js';
+import { updateWaiting, waitingUp } from './ui/waiting.js';
 import './net/foefire.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
@@ -221,6 +223,8 @@ function tick(){
   updateOnSet(G.paused || G.skillSelect || G.cutscene ? 0 : rawDt);   // the story's voice, staying on the field after a chapter's opening (game/onset.js)
   updateTutorial(G.paused || G.skillSelect || G.cutscene ? 0 : dt);   // the training lessons, and the unlock drills in a real run
   updateFoes();
+  updateWaits();          // who a shared run is waiting on between chapters (net/waits.js)
+  updateWaiting(rawDt);   // and the card on the dark that names them (ui/waiting.js)
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
@@ -283,10 +287,11 @@ import { openBattleSetup } from './ui/battlesim-ui.js';
 Object.assign(window.GAME, { battle: { BS: battleSim, open: openBattleSetup, enter: battleEnter, place: battlePlace, start: startBattle, replay: replayBattle, save: battleSave, load: battleLoad, clear: battleClear } });   // the sandbox's battle simulator (game/battlesim.js), for tests
 Object.assign(window.GAME, { switchWeapon, setKit, grantGun, beskarPress });   // the Mando's loadout and beskar parry (game/armory.js, mando/weapons.js), for tests   // the campaign's chapters (game/campaign.js), for tests
 import { queueMeditation } from './game/meditation.js';
-Object.assign(window.GAME, { meditation: { queue: queueMeditation } });   // a form learned in a run: the unlock card and the loadout (game/meditation.js), for tests
+import { queueAbilityCards, abilityCardUp } from './ui/ability-card.js';
+Object.assign(window.GAME, { meditation: { queue: queueMeditation }, abilityCards: { queue: queueAbilityCards, up: abilityCardUp } });   // a form learned in a run: the unlock card and the loadout (game/meditation.js), for tests
 Object.assign(window.GAME, { onSet: onSetFigures, calm: { on: calmOn, target: calmTarget, cfg: CALM_CFG } });   // the story's voice on set (game/onset.js) and the calm after a chapter (game/aftermath.js), for tests
 Object.assign(window.GAME, { popups: { push: pushPopup, up: popupUp, waiting: popupsWaiting, toast: upToast, banner: showBanner, cfg: POPUPS } });   // one pop-up at a time (ui/popups.js), for tests
-Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget });   // the story's voice lines (game/story.js), for tests
+Object.assign(window.GAME, { clearComms, commsBusy, storyBeat, comms, doorState, calmOn, calmTarget, goThrough, doorDark, waitingUp });   // the story's voice lines (game/story.js), for tests
 import { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } from './game/cutscene.js';
 Object.assign(window.GAME, { cutscene: { playScene, playOpening, playDuelIntro, playBossIntro, skipScene, sceneOn, shotInfo } });   // the cutscenes (game/cutscene.js), for tests
 Object.assign(window.GAME, { objectiveInfo, holdObjectiveView });

@@ -24,7 +24,7 @@ import { storyWords } from './choices.js';
 import { MOBILITY } from '../data/mobility.js';
 import { forceToastHolds, fadeForceToast } from '../ui/force-toast.js';
 import { loadingNow } from '../ui/loading.js';
-import { doorState } from '../world/doorway.js';
+import { doorFading } from '../world/doorway.js';
 import { FAMILIES, FORM_FAMILY } from '../data/foe-forms.js';
 import { famIcon } from '../ui/icons.js';
 
@@ -38,6 +38,8 @@ export function setTrainHook(fn){ trainHook = fn; }   // ui/menus.js: leave the 
 // a run that stops to meditate: the campaign and survival (not the training grounds, a lone mission or the sandbox)
 export const formsTaught = () => !isGunner() && !G.training && !G.sandbox && !(G.mission && G.chapter < 0);
 export const meditationUp = () => el.classList.contains('open');
+// a learned form's screen still to show, or up now (a chapter's next scene waits for it: game/flow.js, net/waits.js)
+export const meditationPending = () => pending.length > 0 || meditationUp();
 
 // the forms the hero knows, in lore order
 const known = () => Object.keys(FORMS).filter(id => FORMS[id].ready && stanceUnlocked(id) && !forkClosed(id, G.formFork));
@@ -50,7 +52,7 @@ export function queueMeditation(ids){
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickMeditation(){
-  if (!pending.length || meditationUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || loadingNow() || doorState() >= 2 || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || meditationUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || loadingNow() || doorFading() || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   if (forceToastHolds()) return;   // the Force Level's rise the chapter brought comes up first (ui/force-toast.js)
   fadeForceToast();
   open();

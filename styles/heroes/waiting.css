@@ -1,0 +1,70 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE WAITING SCREEN (#waitscreen, ui/waiting.js): the card on the dark between two chapters, in the hero's own look.
+   Reads only the --hx-* tokens (the card carries .hero-<id>), with each hero's own touch below: the Jedi's holocron
+   page with gold corner diamonds, the Mandalorian's chamfered beskar plate with an ember edge, the trooper's orders
+   readout under a hazard stripe. Above the doorway's black (z 3) and the HUD, under the cutscene, pause and upgrade screens.
+   ============================================================ */
+#waitscreen{position:fixed;inset:0;z-index:16;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;
+  pointer-events:none;opacity:0;visibility:hidden;transition:opacity .35s ease,visibility 0s .35s}
+#waitscreen.on{opacity:1;visibility:visible;transition:opacity .35s ease}
+#waitscreen .ws-card{position:relative;width:min(520px,100%);box-sizing:border-box;padding:26px 28px 22px;color:var(--hx-text);
+  background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 24px 70px rgba(0,0,0,.7);
+  animation:hxcard .3s steps(4) both}
+#waitscreen .ws-k{font:600 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-live)}
+#waitscreen .ws-t{margin:12px 0 0;font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);
+  font-size:clamp(24px,4.4vw,34px);line-height:1.08;color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink);text-wrap:balance;overflow-wrap:anywhere}
+#waitscreen .ws-rule{position:relative;height:9px;margin:14px 0 12px}
+#waitscreen .ws-rule::before{content:'';position:absolute;left:0;right:0;top:4px;height:1px;background:var(--hx-line)}
+#waitscreen .ws-rule i{position:absolute;left:0;top:0;width:9px;height:9px;background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+#waitscreen .ws-l{margin:0;font:500 14px/1.45 var(--hx-read);color:var(--hx-soft)}
+
+/* the roster: a row per player, their seat colour on the left edge */
+#waitscreen .ws-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+#waitscreen .ws-list li{display:flex;align-items:center;gap:12px;padding:9px 12px 9px 10px;background:var(--hx-paper);
+  box-shadow:inset 3px 0 0 var(--seat),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#waitscreen .ws-ic{display:flex;flex:none;width:30px;height:30px;align-items:center;justify-content:center;color:var(--hx-accent);
+  background:var(--hx-paper-2);box-shadow:0 0 0 1px var(--hx-line)}
+#waitscreen .ws-ic svg{width:18px;height:18px}
+#waitscreen .ws-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+#waitscreen .ws-who b{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:16px;line-height:1.1;
+  color:var(--hx-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#waitscreen .ws-who small{font:600 10px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#waitscreen .ws-st{flex:none;display:flex;align-items:center;gap:7px;font:600 10.5px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#waitscreen li.ok .ws-st{color:var(--hx-soft)}
+#waitscreen li.ok .ws-st svg{width:14px;height:14px;color:#6fdc8c}
+#waitscreen li.busy .ws-st{color:var(--hx-live)}
+#waitscreen .ws-dots{display:inline-flex;gap:3px}
+#waitscreen .ws-dots i{width:5px;height:5px;background:currentColor;animation:wsdot 1.2s steps(2) infinite}
+#waitscreen .ws-dots i:nth-child(2){animation-delay:.2s} #waitscreen .ws-dots i:nth-child(3){animation-delay:.4s}
+@keyframes wsdot{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* the chapter ahead, and a slow sweep along the foot of the card (something is still happening) */
+#waitscreen .ws-next{margin-top:16px;font:600 13px/1.3 var(--hx-label);letter-spacing:.08em;color:var(--hx-text)}
+#waitscreen .ws-next span{margin-right:10px;font-size:10.5px;letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#waitscreen .ws-bar{position:relative;height:3px;margin-top:18px;overflow:hidden;background:var(--hx-line)}
+#waitscreen .ws-bar i{position:absolute;top:0;bottom:0;width:30%;background:var(--hx-accent);animation:wsbar 1.8s ease-in-out infinite}
+@keyframes wsbar{0%{left:-30%}100%{left:100%}}
+
+/* ---------- each hero's own touch ---------- */
+/* the Jedi: a holocron page, gold diamonds at the head and foot */
+#waitscreen .ws-card.hero-jedi::before,#waitscreen .ws-card.hero-jedi::after{content:'';position:absolute;left:calc(50% - 5px);width:10px;height:10px;
+  background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+#waitscreen .ws-card.hero-jedi::before{top:-6px} #waitscreen .ws-card.hero-jedi::after{bottom:-6px}
+#waitscreen .hero-jedi .ws-bar i{background:var(--hx-live);box-shadow:0 0 8px var(--hx-live)}
+/* the Mandalorian: a chamfered beskar plate, the forge's ember along the top */
+#waitscreen .ws-card.hero-mando{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
+/* the trooper: an orders readout under a hazard stripe */
+#waitscreen .ws-card.hero-trooper{padding-top:32px}
+#waitscreen .ws-card.hero-trooper::before{content:'';position:absolute;left:0;right:0;top:0;height:8px;background:var(--hx-hazard)}
+#waitscreen .hero-trooper .ws-bar i{animation-timing-function:steps(8)}
+
+@media (max-width:620px){
+  #waitscreen .ws-card{padding:22px 18px 18px}
+  #waitscreen .ws-list li{flex-wrap:wrap}
+  #waitscreen .ws-st{width:100%;padding-left:42px}
+}
+@media (prefers-reduced-motion:reduce){
+  #waitscreen .ws-bar i,#waitscreen .ws-dots i{animation:none}
+  #waitscreen .ws-bar i{left:35%}
+}

@@ -713,6 +713,10 @@ export function launchCoopRun(){
 // take the pointer lock and start (or resume) play; where the lock never works, play unlocked
 function launch(){
   audioInit();
+  // a card or the upgrade page came up under the pause screen (in co-op the host can move the run on while this player is
+  // paused): it owns the cursor, so there's no lock to take. Just lift the pause screen and hand it the click; asking for
+  // the lock here would be let go at once (pointerlockchange) and leave RESUME asking for another click forever
+  if (G.mode === 'play' && G.skillSelect && overlay.style.display === 'flex'){ beginPlay(); return; }
   if (pad.active){ shared.lockFallback = true; beginPlay(); return; }   // a pad press can't take the pointer lock: play unlocked (engine/gamepad.js)
   requestLock();
   enterFullscreenIfWanted();   // after the lock request: entering fullscreen uses up the click's user gesture
@@ -813,6 +817,10 @@ function restartRun(toTraining, after){
 document.getElementById('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); restartRun(); });
 // the stance unlock screen's TRAIN button (game/meditation.js): the campaign run is kept for CONTINUE CAMPAIGN, and the
 // training opens on the lesson for the form just learned; leaving training lands back on the menu with the run waiting
+// a chapter card opening under the pause screen (the host moved a co-op run on): the scene changed, so the pause screen
+// goes and the card is in front (a panel open on it, settings or the like, is left alone: RESUME then reaches the card)
+// (an event, not a hook: game/campaign.js and this file load in a loop, and a hook set from here could be reset as it loads)
+window.addEventListener('chapcard-open', () => { if (G.mode === 'play' && overlay.style.display === 'flex' && _ovState === 'pause' && !panelOpen()) beginPlay(); });
 setTrainHook((formId) => {
   G.resumeRun = captureRun();   // (saved at the chapter's close: the trial stays won, game/saves.js resumeRun)
   trainOnForm(formId);

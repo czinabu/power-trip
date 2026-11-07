@@ -25,7 +25,7 @@ import { inCombat } from '../player/mobility.js';
 import { S } from '../audio/sfx.js';
 import { forcePulse, forgePulse, promotePulse } from '../fx/force-rise.js';
 import { loadingNow } from './loading.js';
-import { doorState } from '../world/doorway.js';
+import { doorFading } from '../world/doorway.js';
 import { popupUp, popupHooks } from './popups.js';
 
 export const FORCE_TOAST = { calm: 0.9, calmLead: 0.35, hold: 5.2, fade: 0.6, lead: 2.6 };   // s of quiet before it comes up (one that leads: s after the cutscene) · s it stays · s it fades over · s before the power it brought opens its card
@@ -57,7 +57,7 @@ export const fadeForceToast = () => { leadT = 0; hide(); };
 
 // the hero is on screen and in hand: no screen over it, no cutscene, no loading screen or fade to the next chapter
 const inPlay = () => G.mode === 'play' && !G.paused && !G.skillSelect && !G.cardUp && !G.cutscene && !coopRun.holdPopups &&
-  !loadingNow() && doorState() < 2 && performance.now() >= (shared.unlockHold || 0) &&
+  !loadingNow() && !doorFading() && performance.now() >= (shared.unlockHold || 0) &&
   !popupUp() && !popupHooks.bannerUp();   // one pop-up at a time (ui/popups.js): it waits for a corner note or a banner to go
 // the pop-up queue's lull (ui/popups.js): a reward note waits for the fight and the talk to be done
 popupHooks.lull = () => !inCombat() && !storySpeaking() && !commsShowing();
@@ -70,7 +70,7 @@ const lull = () => inPlay() && (wait.lead ||
 let lastT = 0;
 export function tickForceToast(){
   const now = performance.now(), dt = Math.min(0.25, (now - (lastT || now)) / 1000); lastT = now;   // (real time: a slow frame doesn't stretch the wait)
-  if ((G.mode !== 'play' || loadingNow() || doorState() >= 2) && forceToastUp()) hide(true);   // (the menu, a death screen, a loading screen or the fade into the next chapter: it goes)
+  if ((G.mode !== 'play' || loadingNow() || doorFading()) && forceToastUp()) hide(true);   // (the menu, a death screen, a loading screen or the fade into the next chapter: it goes)
   if (hideT && now > hideT) hide();
   if (goneT && now > goneT){ goneT = 0; if (el) el.classList.remove('on', 'out'); }
   if (!wait && later.length && !forceToastUp()) wait = later.shift();

@@ -126,6 +126,8 @@ function pick(id){
 /* ---------- open / close ---------- */
 export const armoryOpen = () => menuPanel.classList.contains('open') && !!ctx && ctx.panel === menuPanel;
 export const armoryPickUp = () => runPanel.classList.contains('open');
+// a found gun's pick still to show, or up now (a chapter's next scene waits for it: game/flow.js, net/waits.js)
+export const armoryPending = () => pendingGuns.length > 0 || armoryPickUp();
 // BEGIN on a mission: pick the two guns before the fight; `go` starts it. Nothing to choose (one gun each) goes straight in.
 export function openArmoryPrefight(go){
   const known = storyGuns();
@@ -159,7 +161,7 @@ function fightNow(){
 }
 
 /* ---------- a new gun in a run ---------- */
-const pending = [];
+const pending = [], pendingGuns = pending;
 setArmoryPickHook((id) => { if (!pending.includes(id)) pending.push(id); });
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickArmory(){

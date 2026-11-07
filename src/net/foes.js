@@ -434,7 +434,8 @@ function reactSpring(e, g, dt){
 }
 
 /* ---------------- both: once a frame ---------------- */
-let waitShown = false;
+let waitShown = false, fightEndAt = -1e9;
+const POPUP_BEAT = 1.6;   // s of quiet after a fight before its pop-ups come up
 export function updateFoes(){
   hostTick();
   coopRun.live = coopLive();
@@ -442,8 +443,12 @@ export function updateFoes(){
   // the screens that pop up by themselves (a learned form, a new ability's card, a found gun, the Force Level's rise) wait
   // for the fight to be over, alone and in co-op: they come up in the lull after it, before the next scene (game/flow.js).
   // The training grounds, the sandbox, an open zone and the hub keep foes or dummies about, and show theirs as they come
-  coopRun.holdPopups = (coopRun.live || !(G.training || G.sandbox || G.zone || G.hub)) && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 ||
+  const fight = (coopRun.live || !(G.training || G.sandbox || G.zone || G.hub)) && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 ||
     !!(shared.boss && !shared.boss.dead) || !!(shared.finale && !shared.finale.dead));
+  // (and a short beat after the last foe falls: a card on the very frame of the last kill reads as mid-fight)
+  const now = performance.now();
+  if (fight) fightEndAt = now;
+  coopRun.holdPopups = fight || now - fightEndAt < POPUP_BEAT * 1000;
   if (net.role === 'host'){
     // a grasp whose holder went quiet (left, froze) lets go
     for (const e of enemies){

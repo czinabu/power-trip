@@ -34,6 +34,7 @@ import { killCam, killCamOn } from '../engine/killcam.js';
 import { addFlow, flowKill } from '../player/gunner-flow.js';
 import { mutOn } from '../data/ngplus.js';
 import { roleTags, takesRoles } from '../boss/roles.js';
+import { pickCuts } from './scars.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -66,18 +67,56 @@ export function spareEnemy(e){
   addFocus(FOCUS.gainKill);
   return true;
 }
-export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
-  if (e.dead) return;
-  if (e.net){   // a foe the host owns (co-op): the blow goes to the host, which applies it; here only the spark and the feel
-    if (opts && opts.ally) return;
-    queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide, takesRoles(e) && !tick ? roleTags(e, opts) : 0);   // (a raid boss: what kind of blow it was, seen from here: boss/roles.js)
-    if (!tick && e.hp > 0 && dmg >= e.hp) flowKill(e, knockDir);   // (a blow that will kill it feeds the guest's own flow meter: player/gunner-flow.js)
-    if (dmg > 0 && !tick){
-      spawnHitSpark(opts && opts.at ? opts.at : V3(e.group.position.x, e.group.position.y + 1.3, e.group.position.z), e.t.eye, 0.8);
-      G.hitstop = Math.max(G.hitstop, 0.03); G.shake = Math.max(G.shake, 0.14);
-    }
+/* A CO-OP GUEST'S BLOW on one of the host's foes (a puppet here, net/foes.js). The host applies the damage and sends the
+   result back a round trip later; this screen plays the blow the moment it lands, as damageEnemy would for a foe of its
+   own: the flash, the body rocking with it, the sparks, the number, the thump, the micro-freeze, and on a blow that will
+   kill, the kill's beat. A killing saber cut picks the parts it goes through here, off this player's own blade, and the
+   host takes those same parts if the blow kills it there (enemies/scars.js pickCuts), so the cut lands where it was aimed. */
+const NET_KILL_HOLD = 0.6;   // seconds a puppet this player has just killed is taken as dead for the kill's beat (the host's word follows)
+function netBlow(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
+  if (opts && opts.ally) return;
+  const p = e.group.position, kill = !tick && dmg > 0 && e.hp > 0 && dmg >= e.hp && !(e.netKillT > G.gt - NET_KILL_HOLD);
+  let cut;
+  if (opts && opts.blade && !tick && dmg > 0 && knockDir){
+    const f = knockDir.clone().setY(0); if (f.lengthSq() > 1e-6) f.normalize();
+    const P = pickCuts(e, f, isFinisher ? 0.8 : 0.45, opts.at ? opts : undefined);
+    cut = P ? P.mask : 0;
+    if (P) e.cutHint = { dir: P.dir, n: P.n, t: G.gt };   // which way the pieces go when the host's word arrives (net/foes.js)
+  }
+  queueHit(e, dmg, knockDir, knockPow, isFinisher, tick, opts && opts.shove, opts && opts.blade, opts && opts.bodyShield, opts && opts.slide, takesRoles(e) && !tick ? roleTags(e, opts) : 0, cut);   // (a raid boss: what kind of blow it was, seen from here: boss/roles.js)
+  if (kill){ flowKill(e, knockDir); e.netKillT = G.gt; }   // (a blow that will kill it feeds the guest's own flow meter: player/gunner-flow.js)
+  if (tick){   // a flame or a held power: embers and pooled numbers, no freeze
+    e.burn = (e.burn || 0) + dmg;
+    if (e.burn >= 9){ floater(V3(p.x, p.y + 1.6, p.z), Math.round(e.burn), '#ff9a3a'); e.burn = 0; }
+    if (Math.random() < 0.5) burst(V3(p.x + rand(-0.3, 0.3), p.y + rand(0.9, 1.9), p.z + rand(-0.3, 0.3)), Math.random() < 0.5 ? 0xff7a1a : 0xffd24a, 1, 2, 3, 0.6);
     return;
   }
+  if (!(dmg > 0)) return;
+  const cp = opts && opts.at ? opts.at.clone() : V3(p.x, p.y + 1.45, p.z);   // where the blade met it (bladehit.js), else the torso
+  const col = isGunner() ? 0xffb84a : stance().blade, power = clamp(dmg / 38, 0.45, 1.7);
+  e.flash = Math.max(e.flash || 0, 0.16);
+  burst(V3(p.x, p.y + 1.4, p.z), 0x66ccff, 4, 5, 4);
+  if (knockDir){
+    const kd = knockDir.clone().setY(0); if (kd.lengthSq() > 1e-6) kd.normalize();
+    if (!kill) hitReact(e, kd, 0.18 + power * 0.22, opts && opts.fold, opts);
+    sparks(cp, 0xffffff, Math.round(2 + power * 1.5), 7 + power * 3, { dir: kd, cone: 0.8, life: 0.18, size: 0.36 });
+    sparks(cp, col, Math.round(2 + power * 1.5), 6 + power * 3, { dir: kd, cone: 1, life: 0.2, size: 0.36 });
+  }
+  spawnHitSpark(cp, col, power);
+  if (kill){
+    G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38);
+    S.kill(cp, !!e.t.heavy);
+    burst(V3(p.x, p.y + 1.2, p.z), 0xffaa44, 12, 8, 5);
+    spawnHitSpark(cp, 0xffcc55, power * 1.3);
+  } else {
+    G.hitstop = Math.max(G.hitstop, 0.02 + power * 0.028); G.shake = Math.max(G.shake, 0.12 + power * 0.13);
+  }
+  if (!(opts && opts.slide)) floater(p, Math.round(Math.min(dmg, Math.max(e.hp, 1))), kill ? '#ffd24a' : '#bfe8ff');
+  S.impact(cp, power);
+}
+export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
+  if (e.dead) return;
+  if (e.net){ netBlow(e, dmg, knockDir, knockPow, isFinisher, tick, opts); return; }   // a foe the host owns (co-op): the host applies it, here only the feel
   if (e.ward != null){ if (!e.ward && dmg > 0) return; dmg *= e.ward; }   // warded by a mission twist: untouchable (0), or taking less (game/twists/)
   if (e.dmgRule){ const r = e.dmgRule(e, dmg, tick, opts, knockDir); if (r === null) return; dmg = r; }   // a final boss's own rules on what lands (boss/finale.js)
   const byAlly = !!(opts && opts.ally);
@@ -89,7 +128,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     if (!(e.suppT > G.gt)) floater(V3(e.group.position.x, e.group.position.y + 2.2, e.group.position.z), 'PINNED', '#ffd35a');
     e.suppT = G.gt + TROOPER.command.suppress.pin;
   }
-  if (dmg > 0 && !byAlly){
+  const guest = MERC.guest;   // a co-op guest's blow, applied here for them (net/foes.js): its feel and this hero's boons are theirs, not this hero's
+  if (dmg > 0 && !byAlly && !guest){
     player.lastStrikeT = G.gt;   // a blow landed keeps you in the fight (player/mobility.js)
     if (!tick){ G.squadFocus = e; G.squadFocusT = G.gt; }   // the squad prefers the trooper you're fighting
   }
@@ -106,10 +146,11 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   // (a body held up as a HUMAN SHIELD takes its own side's fire on the back and flank, limp: no deflector, enemies/bolts.js)
   if (e.t.shield && !e.shieldBroken && knockDir && !tick && dmg > 0 && !(opts && opts.bodyShield)){
     const ang = e.group.rotation.y, efx = Math.sin(ang), efz = Math.cos(ang);
-    const dpx = playerPos().x - e.group.position.x, dpz = playerPos().z - e.group.position.z;
+    // (where the blow came from: this hero, or for a guest's blow, back along its own way)
+    const dpx = guest ? -knockDir.x : playerPos().x - e.group.position.x, dpz = guest ? -knockDir.z : playerPos().z - e.group.position.z;
     const dl = Math.hypot(dpx, dpz) || 1;
     if ((efx*dpx + efz*dpz)/dl > 0.3){   // attacker is in the shield's frontal arc
-      const guardBreak = !!isFinisher || (!isGunner() && G.stance === 'djemso') || !!(player.swing && player.swing.riposte);
+      const guardBreak = !!isFinisher || (!guest && ((!isGunner() && G.stance === 'djemso') || !!(player.swing && player.swing.riposte)));
       e.shieldHp -= dmg * (guardBreak ? 2.4 : 1.0);
       const sp = V3(e.group.position.x + efx*0.55, 1.45, e.group.position.z + efz*0.55);
       spawnHitSpark(sp, e.t.eye, 0.8);
@@ -128,7 +169,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
   }
   // EXECUTIONER boon — a hit that would leave a normal foe under 22% finishes it outright (not bosses/champions)
-  if (player.boon && player.boon.exec && !byAlly && !tick && knockDir && dmg > 0 && !e.warbringer && !e.champion && e.maxHp && (e.hp - dmg) > 0 && (e.hp - dmg) < e.maxHp*0.22){
+  if (player.boon && player.boon.exec && !byAlly && !guest && !tick && knockDir && dmg > 0 && !e.warbringer && !e.champion && e.maxHp && (e.hp - dmg) > 0 && (e.hp - dmg) < e.maxHp*0.22){
     dmg = e.hp; floater(V3(e.group.position.x, e.group.position.y+1.7, e.group.position.z), 'EXECUTE', '#ff7a7a');
   }
   // a JET TROOPER caught by a big blast (see blastKnock in data/enemies.js) doesn't get knocked about: its pack goes up
@@ -155,7 +196,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       sparks(cp, 0xffffff, Math.round(2 + power*1.5), 7 + power*3, { dir: kd, cone: 0.8, life: 0.18, size: 0.36 });
       sparks(cp, col, Math.round(2 + power*1.5), 6 + power*3, { dir: kd, cone: 1, life: 0.2, size: 0.36 });
       spawnHitSpark(cp, col, power);
-      if (e.hp > 0 && !byAlly){
+      if (e.hp > 0 && !byAlly && !guest){   // (a guest's blow freezes and shakes their screen, not this one: netBlow)
         G.hitstop = Math.max(G.hitstop, 0.02 + power*0.028);   // a micro-freeze on impact — the core of "punch"
         G.shake   = Math.max(G.shake,   0.12 + power*0.13);
       }
@@ -204,8 +245,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);
       return;
     }
-    G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05);
-    G.shake = Math.max(G.shake, 0.38);
+    if (!guest){ G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38); }
     addStreak(e.t.score);
     if (!e.converted){
       const xp = e.t.score * 4 * killBonus() * (e.elite ? 1.6 : 1);
@@ -217,7 +257,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     else if (mutOn('volatile') && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
     S.kill(cp, !!e.t.heavy);
     if (!MERC.guest) killPerks(e.suppT > G.gt, p);   // the per-kill cards: lifesteal, the paths' (game/creed.js; a co-op guest's kill pays on their screen: net/foes.js)
-    if (player.boon){
+    if (player.boon && !guest){   // (this hero's boons pay on this hero's kills)
       if (player.boon.blood) player.hp = clamp(player.hp + maxHp()*0.04, 0, maxHp());                          // BLOODTHIRST boon
       if (player.boon.momentum){ player.momentumStacks = Math.min(5, (player.momentumStacks||0)+1); player.momentumT = 5; }  // MOMENTUM boon
     }
@@ -260,7 +300,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     e.st = K.stun * (e.t.staff ? 1.3 : e.t.heavy ? 1.2 : 1);
   }
   // ECHO STRIKE boon — the blow rings out a second time for 40% (only if the first didn't kill; guarded vs recursion)
-  if (player.boon && player.boon.echo && !byAlly && !tick && knockDir && !e.dead && !e._echoing && dmg > 0){
+  if (player.boon && player.boon.echo && !byAlly && !guest && !tick && knockDir && !e.dead && !e._echoing && dmg > 0){
     e._echoing = true; damageEnemy(e, dmg*0.4, knockDir, 0, false, false); e._echoing = false;
   }
 }

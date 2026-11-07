@@ -43,7 +43,7 @@ export const DUO = {
    the long chase and the walled rooms (`keep`) keep their size. The host decides it when it builds, and its guests
    build at the host's scale (net/foes.js sends it as `as`), so every screen has the same walls. */
 export const ROOM = { from: 3, scale: 1.2, upTo: 100,
-  keep: ['hall', 'forge', 'dojo', 'throne', 'hangar', 'archive', 'prison'] };   // walled rooms (60 m since the map-size pass): their doors and paths sit on the walls
+  keep: ['hall', 'forge', 'dojo', 'throne', 'hangar', 'archive', 'prison', 'shJedi', 'shTrooper', 'shMando'] };   // walled rooms (and the heroes' ship cabins: data/hero-ships.js) (60 m since the map-size pass): their doors and paths sit on the walls
 
 /* TARGETING (enemies/targets.js) — each foe picks one hero to go after. It scores every hero by distance, plus a
    penalty for each other foe already on that hero (so a crowd splits instead of all mobbing one), minus a bonus for

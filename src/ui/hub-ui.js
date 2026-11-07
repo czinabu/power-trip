@@ -42,6 +42,8 @@ import { guidePortrait } from './hub-portrait.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
+import { SHIP_WING, shipOf } from '../data/hero-ships.js';
+import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -72,6 +74,8 @@ const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after
 // on every hub's mission table (a trooper or a Mando host takes the party to their own hub)
 const raidButton = () => B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV');
 // (each waits for the chapter that opens it, for the hero in hand: game/zone-gate.js)
+// THE SHIP (data/hero-ships.js): board it from the hub's pad or hangar, first on the station that flies to Jedha
+const boardButton = () => { const sh = shipOf(G.hubId); return B(sh.board, sh.boardLine + (party() ? ' · your party can board too' : ''), () => goWing(SHIP_WING)); };
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)));
 
 function options(s){
@@ -115,12 +119,13 @@ function options(s){
     }
     // the covert's hangar (data/hub-covert.js): the ship takes you out on the hunt, the bounty board deals a job
     case 'ship': case 'bounties': {
-      if (guest()) return options({ act: 'council' });
+      if (guest()) return s.act === 'ship' ? [boardButton(), ...options({ act: 'council' })] : options({ act: 'council' });
       if (s.act === 'bounties') return [
         B('TAKE A BOUNTY', 'A random job off the board, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
       ];
       return [
+        boardButton(),
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
         ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') })),   // (the covert's ship is its way to Jedha)
         gateButton(),
@@ -132,8 +137,8 @@ function options(s){
     }
     // a ship to an open zone (the temple's landing platform, the citadel's gunship; the covert's own ship lists it too)
     case 'shuttle': {
-      if (guest()) return options({ act: 'council' });
-      return zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') }));
+      if (guest()) return [boardButton(), ...options({ act: 'council' })];
+      return [boardButton(), ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') }))];
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
@@ -160,6 +165,7 @@ function render(){
   if (station.act === 'welcome') return renderWelcome();
   if (station.act === 'raid') return renderRaid();
   if (station.act === 'travel') return renderMap();
+  if (station.act === 'galaxy') return renderGalaxy();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
@@ -225,6 +231,26 @@ new MutationObserver((ms) => {
   for (const m of ms) if (m.target.classList && m.target.classList.contains('hm-wing') && m.target.classList.contains('padfocus')){ showWing(m.target.dataset.w); return; }
 }).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
+/* ---------------- THE GALAXY MAP (ui/galaxy-ui.js, data/hero-ships.js) ----------------
+   On board each hero's ship: every world on a drawn map, what can be played on the one picked, and the voyages (the
+   campaign, Act IV, NEW GAME+, a challenge, survival). In a party it's the lobby: who is aboard, CALL THE PARTY ABOARD
+   for the host, and the usual ready check on whatever the host launches; a guest sees the same map, and JOIN. */
+function renderGalaxy(again = false){
+  const r = galaxyPanel({ B, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons,
+    rerender: () => { if (isOpen() && station && station.act === 'galaxy') renderGalaxy(true); },
+    joinButton: () => coopRun.on ? B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()) : null,
+    everyMode: () => B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
+    survival: () => B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
+    campaign: () => B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+    challenge: () => B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
+    side: (id) => hubLaunch('mission', id), mission: (id) => hubLaunch('mission', id), zone: (k) => hubLaunchZone(k),
+    disembark: () => goWing(shipOf(G.hubId).exit) });
+  panel.innerHTML = r.html;
+  panel._list = r.list;
+  if (again){ const box = panel.querySelector('.hb-box'); if (box) box.classList.add('gx-again'); }   // (a world picked: the card stays put, no second rise)
+}
+export { galaxyPick };
+
 /* ---------------- THE RAID TABLE (data/raids.js) ----------------
    The raid, its day of modifiers (and when the next deal comes), each hero's job in it with yours marked, who comes along
    (the squad steps in for a party of one or two), the rare parts it hands your hero and how far you are toward each, and
@@ -270,7 +296,7 @@ function renderRaid(){
 // the card stays short: the guide's first line (the rest is said on arrival), and a tile per place: what it's for, its name
 // and where (its longer line is the tile's tooltip)
 const firstLine = (t) => (String(t).match(/^.*?[.!?](?=\s|$)/) || [t])[0];
-const PLACE_ICON = [[/SIDE/, 'call'], [/MISSIONS|HUNT/, 'saga'], [/JEDHA/, 'city'], [/TRAINING/, 'target'], [/SABER|ARMOUR|KIT|GEAR/, 'forge'],
+const PLACE_ICON = [[/SIDE/, 'call'], [/SHIP/, 'ship'], [/MISSIONS|HUNT/, 'saga'], [/JEDHA/, 'city'], [/TRAINING/, 'target'], [/SABER|ARMOUR|KIT|GEAR/, 'forge'],
   [/RECORDS/, 'holo'], [/AROUND/, 'map'], [/BOUNT/, 'dice']];
 const placeIcon = (label) => (PLACE_ICON.find(([re]) => re.test(label)) || [])[1] || 'spark';
 function renderWelcome(){
@@ -328,11 +354,11 @@ setHubPanelCloser(closeHubPanel);
 panel.addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   if (e.target === panel || e.target.closest('[data-x]')){ closeHubPanel(); return; }
-  const o = e.target.closest('.hb-o,.hm-wing[data-i],.hw-row[data-i],.hw-pin'); if (!o) return;
+  const o = e.target.closest('.hb-o,.hm-wing[data-i],.hw-row[data-i],.hw-pin,.gx-w[data-i]'); if (!o) return;
   const b = panel._list[o.dataset.i != null ? +o.dataset.i : +o.dataset.p + 2];   // (a welcome pin: the place it marks)
   if (!b || !b.go){ return; }
   if (b.lock){ S.uiDeny(); o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); return; }
-  if (ready){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves)
+  if (ready || b.stay){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves; a galaxy world picked just shows it)
   closeHubPanel(false);
   b.go();
   // a wing to travel to (or any pick that leaves you in the hub): take the lock back while the click still counts.

@@ -21,7 +21,7 @@ import { damageEnemy } from '../enemies/damage.js';
 import { MERC, tellGuestStruck } from '../game/alignment.js';
 import { finaleLook, finaleDress, adoptFinalePuppet, spawnFinale } from '../boss/finale.js';
 import { removeEnemy } from '../enemies/cleanup.js';
-import { severLimbs, applyCuts } from '../enemies/scars.js';
+import { severLimbs, applyCuts, champCuts } from '../enemies/scars.js';
 import { defeatLife } from '../enemies/defeat.js';
 import { makeBossBar } from '../enemies/spawn.js';
 import { updateLegs } from '../enemies/gait.js';
@@ -47,7 +47,7 @@ import { meetFoe, meetWarbringer } from '../game/codex.js';
 import { duelWon } from '../enemies/guardcue.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
-let sentAt = 0, hostSent = false, runListeners = [];
+let sentAt = 0, hitsAt = 0, hostSent = false, runListeners = [];
 const byNid = new Map();   // the guest's puppets, by the host's number for each foe
 
 // what shared run this browser is hosting: 'e' Survival, 'c' the campaign (its chapters, waves or missions), 'm' a story mission, '' none (training, the sandbox)
@@ -99,7 +99,8 @@ function hostTick(){
 // the guest's blows, applied here exactly as if this browser's hero had struck them
 on('hits', (m) => {
   if (net.role !== 'host') return;
-  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade, shield, slide, roles] of m.h || []){
+  let felled = false;
+  for (const [id, dmg, kx, kz, kpow, fin, tick, shove, blade, shield, slide, roles, cut] of m.h || []){
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
@@ -109,8 +110,14 @@ on('hits', (m) => {
     finally { MERC.guest = false; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (e.dead) sendTo(m.from, { t: 'kb', p: pinned ? 1 : 0, x: +e.group.position.x.toFixed(1), z: +e.group.position.z.toFixed(1) });   // the killing blow was theirs: their kill cards pay out there
-    if (blade && e.dead) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);   // the guest's killing cut may take limbs; the snapshot shows them to both
+    if (!e.dead) continue;
+    felled = true;
+    // the guest's killing cut takes the parts it went through on their screen (picked there off their blade: enemies/scars.js
+    // pickCuts); the snapshot shows them to everyone. (An older guest sends no pick: the cut is rolled here.)
+    if (blade && cut != null){ const mask = champCuts(e, cut | 0); if (mask && (!(e.champion || e.warbringer) || Math.random() < 0.5)) applyCuts(e, mask, V3(kx, 0, kz)); }
+    else if (blade) severLimbs(e, V3(kx, 0, kz), fin ? 0.8 : 0.4, false);
   }
+  if (felled) sentAt = 0;   // a foe the guest felled: the next snapshot goes now, so they see it fall without waiting a beat
 });
 
 // a control effect from the guest's powers (floored, thrown, staggered, frozen), put on the real foe
@@ -178,13 +185,16 @@ function applyRec(e, rec){
   e.dead = dying;
   const u = e.group.userData;
   if (u.weaponArm){ u.weaponArm.rotation.x = wA; if (wZ != null) u.weaponArm.rotation.z = wZ; u.weaponArm.rotation.y = wY || 0; }
-  if (cut) applyCuts(e, cut);   // limbs the host's saber (or the partner's) took: lift them off here too
+  if (cut){   // limbs the host's saber (or the partner's) took: lift them off here too (this player's own cut flies off the way their blade went)
+    const h = e.cutHint && G.gt - e.cutHint.t < 3 ? e.cutHint : null;
+    applyCuts(e, cut, h && h.dir, h && h.n);
+  }
   e.cutDrop = drop || 0; e.cutTwist = twist ?? null;
   e.ng = duel || null;   // its guard as the host holds it: the crescent, the posture bar, and whether it turns this player's cuts (duel.js)
   netProfile(e);         // ...and its profile, as e.dp: bolt deflection, the saber lock, the forms' bonuses against duellists
   if (rec[27]){ const [f, r] = rec[27].split('|'); e.ff = f; e.rank = r; }   // its form and rank: the counter edge and the tag (enemies/foeform.js)
   if (u.staff){ u.staff.rotation.z = sZ; if (sX != null) u.staff.rotation.x = sX; }
-  if (u.bodyMat){ u.bodyMat.emissive.setHex(em); u.bodyMat.emissiveIntensity = ei; }
+  if (u.bodyMat){ e.netEm = em; e.netEi = ei; if (!(e.flash > 0)){ u.bodyMat.emissive.setHex(em); u.bodyMat.emissiveIntensity = ei; } }   // (a blow this player just landed flashes it over the host's glow: updatePuppets)
 }
 
 function dropPuppets(){
@@ -363,6 +373,8 @@ export function updatePuppets(dt){
     if (!e.net) continue;
     sendCtl(e);   // a power or a blow here put it in a control state: the host applies it to the real foe
     const g = e.group, w = e.want;
+    if (e.hrA){ g.rotation.x -= e.hrA.x; g.rotation.z -= e.hrA.z; g.rotation.y -= e.hrA.y; e.hrA = null; }   // last frame's hit reaction off, before following the host
+    blowFeel(e, g, dt);
     // the marksman's beam and the lancer's line fade when the host stops sending them
     if (e.aimLine && performance.now() - (e.aimAt || 0) > 200) e.aimLine.visible = false;
     if (e.lungeLine && e.lungeLine.visible && performance.now() - (e.lungeAt || 0) > 200){
@@ -392,7 +404,31 @@ export function updatePuppets(dt){
     updateUpper(e, g, dt, null, e.dead || NO_FEET[e.state] ? 'off' : 'on');   // breath, glances, the wind-up twist (enemies/upper.js)
     defeatLife(e, g, dt);   // a felled foe: its knees, a droid's throes, the dropped blaster (enemies/defeat.js)
     updatePuppetDuel(e, dt);
+    reactSpring(e, g, dt);   // ...and this frame's on again, over the pose
   }
+}
+
+/* A blow this player lands on a puppet plays here at once (enemies/damage.js netBlow): the body flashes, as the host's
+   own foes do (ai.js), and rocks with the blow on the same spring, laid over the pose the host sends */
+function blowFeel(e, g, dt){
+  const m = g.userData.bodyMat;
+  if (!(e.flash > 0) || !m) return;
+  e.flash -= dt;
+  if (e.flash > 0){ m.emissive.setHex(0x66aaff); m.emissiveIntensity = 2; }
+  else if (e.netEm != null){ m.emissive.setHex(e.netEm); m.emissiveIntensity = e.netEi; }
+}
+const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1, yield: 1, spared: 1 };   // (as ai.js: states that own the whole body)
+function reactSpring(e, g, dt){
+  const r = e.hr;
+  if (!r) return;
+  if (e.dead || e.held || NO_REACT[e.state]){ r.x = r.z = r.y = r.vx = r.vz = r.vy = 0; return; }
+  if (!(r.x || r.z || r.y || r.vx || r.vz || r.vy)) return;
+  const K = 320, C = 16, h = Math.min(dt, 1 / 30);
+  r.vx += (-K * r.x - C * r.vx) * h; r.x = clamp(r.x + r.vx * h, -0.6, 0.6);
+  r.vz += (-K * r.z - C * r.vz) * h; r.z = clamp(r.z + r.vz * h, -0.5, 0.5);
+  r.vy += (-K * r.y - C * r.vy) * h; r.y = clamp(r.y + r.vy * h, -0.5, 0.5);
+  if (Math.abs(r.x) + Math.abs(r.z) + Math.abs(r.y) + Math.abs(r.vx) + Math.abs(r.vz) + Math.abs(r.vy) < 1e-3){ r.x = r.z = r.y = r.vx = r.vz = r.vy = 0; return; }
+  g.rotation.x += r.x; g.rotation.z += r.z; g.rotation.y += r.y; e.hrA = { x: r.x, z: r.z, y: r.y };
 }
 
 /* ---------------- both: once a frame ---------------- */
@@ -418,8 +454,10 @@ export function updateFoes(){
     waitShown = waiting;
   }
   if (net.role === 'guest' && connected() && hitQueue.length){
+    // a blow (a cut, a bolt, a kick) goes the frame it lands, so the host applies it, and its answer comes back, a beat
+    // sooner; a flame's or a held power's ticks are pooled and go about 20 times a second
     const now = performance.now();
-    if (now - sentAt >= NET.sendMs){ sentAt = now; send({ t: 'hits', h: hitQueue.splice(0) }); }
+    if (now - hitsAt >= NET.sendMs || hitQueue.some(h => !h[6])){ hitsAt = now; send({ t: 'hits', h: hitQueue.splice(0) }); }
   } else if (!connected()) hitQueue.length = 0;
 }
 

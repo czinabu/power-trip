@@ -28,7 +28,7 @@ import { chestPos, bodyRadius } from './bodyshape.js';
 const _m = new THREE.Matrix4(), _inv = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Vector3();
 const _c = new THREE.Vector3(), _b = new THREE.Vector3(), _w = new THREE.Vector3(), _dir = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
-const _s = new THREE.Vector3(), _qq = new THREE.Quaternion(), _dir2 = new THREE.Vector3();
+const _s = new THREE.Vector3(), _qq = new THREE.Quaternion();
 
 /* burn a cut where the hero's blade crossed `group`'s body. f: the blow's direction (the hero's facing); dirKey: the
    cut's line ('left' / 'right' sweep across, else a diagonal); heavy: a finisher or a heavy form, more upright.
@@ -324,12 +324,22 @@ function anyPart(e, champ){
    read where it is), or false for a blow there is nothing to trace for (the co-op partner's). Returns the mask taken.
    A boss is never cut (they aren't in the enemy list); a champion loses one part at most, and keeps its head. */
 export function severLimbs(e, f, chance, hit){
-  if (e.net || e.fin || !e.group || !e.group.userData) return 0;
+  if (e.net) return 0;
+  const P = pickCuts(e, f, chance, hit);
+  if (!P) return 0;
+  applyCuts(e, P.mask, P.dir, P.n);
+  return P.mask;
+}
+/* which parts a killing cut would take, without taking them: { mask, dir, n } or null. severLimbs takes them at once; a
+   co-op guest picks them off its own blade (its trace, its puppet as it sees it) and sends the mask with the blow, so
+   the host takes those same parts if the blow kills (net/foes.js) and the snapshot shows them on every screen */
+export function pickCuts(e, f, chance, hit){
+  if (e.fin || !e.group || !e.group.userData) return null;
   const champ = !!(e.champion || e.warbringer);
-  if (Math.random() >= (champ ? chance * 0.5 : chance)) return 0;
+  if (Math.random() >= (champ ? chance * 0.5 : chance)) return null;
   const T = traceOf(e, f, hit);
   const list = T ? choose(e, T, champ) : anyPart(e, champ);
-  if (!list.length) return 0;
+  if (!list.length) return null;
   let mask = list[0].L.bit;
   // the heavy blow carries on through: a second part on the same line (not one the first takes with it)
   if (!champ && chance >= 0.7 && list.length > 1 && Math.random() < chance - 0.25){
@@ -342,9 +352,15 @@ export function severLimbs(e, f, chance, hit){
     }
   }
   // the pieces go off the way the blade was going, and away from the hero
-  const dir = T ? _dir2.copy(T.dir).setY(0).normalize().multiplyScalar(0.8).add(f) : f;
-  applyCuts(e, mask, dir, T && T.n);
-  return mask;
+  const dir = T ? new THREE.Vector3().copy(T.dir).setY(0).normalize().multiplyScalar(0.8).add(f) : f.clone();
+  return { mask, dir, n: T ? T.n : null };
+}
+// a champion loses one part at most, and keeps its head and its middle (a mask picked on a guest's screen, which may not
+// know the foe for one: net/foes.js)
+export function champCuts(e, mask){
+  if (!(e.champion || e.warbringer)) return mask;
+  mask &= ~(8 | 2048);
+  return mask & -mask;
 }
 
 /* put the cuts in `mask` on `e` (the ones it doesn't wear yet). The guest calls this from the host's snapshot.

@@ -608,8 +608,11 @@ export const MUSIC = (function(){
     sweep(AC().currentTime);
     if (nextTime < AC().currentTime) nextTime = AC().currentTime + 0.05;   // fell behind (tab throttled): resync, no catch-up burst
     // look 0.25 s ahead: a heavy frame (the title screen's temple on a slower machine) can hold the main thread past a
-    // shorter window, and every step missed that way was a note dropped, the theme turning thin and quiet
-    while (nextTime < AC().currentTime + 0.25){
+    // shorter window, and every step missed that way was a note dropped, the theme turning thin and quiet.
+    // The title screen looks a full second ahead: nothing there needs the score to answer within a beat, and its own
+    // long tasks (a customizer pick rebuilding the figure, a page of the menu built, a model prewarmed) held the thread
+    // past a quarter second often enough that the theme kept stopping and restarting from wherever the clock had got to
+    while (nextTime < AC().currentTime + (want === 'menu' ? 1 : 0.25)){
       if (restUntil && nextTime >= restUntil){ restUntil = 0; step = 0; }   // the rest after a stinger is over: from the top
       if (step % 16 === 0) barTop();
       if (!restUntil) scheduleStep(nextTime);

@@ -85,3 +85,18 @@ export const FORGE = [
   { id: 'chest', label: 'CHEST KIT', kind: 'part', parts: CHEST_KIT, set: (p) => ({ parts: { chest: p.id } }), sub: 'Worn over the cuirass.' },
 ];
 export const SELF_ROW = 'forged';
+
+// THE ARMORER FORGES (game/armorer.js): the beskar you can see grow. At the close of each of these chapters of the Mando's
+// story the Armorer strikes one piece onto the armour and he wears it at once (unless he has picked something else for
+// that slot: then it waits in the forge or the customizer). Each is a [row, option] of data/customize.js's mando list,
+// opened at that chapter (`unlock`) or earned there (`earn: { chapter }`). `line` is the Armorer's, on the beat.
+export const ARMORER_FORGES = {
+  siege:          { row: 'signet',    opt: 'mudhorn',  line: 'Your clan is two now. It goes on the pauldron.' },
+  refuge:         { row: 'shoulders', opt: 'pauldrons', line: 'You held. Now your shoulders will.' },
+  'trial-acrobat':{ row: 'jetpack',   opt: 'winged',   line: 'Beskar wings, for a foundling who would rather fly.' },
+  'trial-knight': { row: 'shoulders', opt: 'heavy',    line: 'The heavy plate. You have earned the weight.' },
+  lothal:         { row: 'vambrace',  opt: 'whistler', line: 'Whistling birds. Use them sparingly.' },
+  hoth:           { row: 'vambrace',  opt: 'plated',   line: 'Heavier on the arm. Your guard will thank you.' },
+  jakku:          { row: 'helmod',    opt: 'fins',     line: 'Fins, swept back. They will know you from the ridge.' },
+  mustafar:       { row: 'chest',     opt: 'gorget',   line: 'A gorget, from the melt you walked out of. This is the Way.' },
+};

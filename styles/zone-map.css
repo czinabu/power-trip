@@ -50,6 +50,19 @@ body.minimap-on #netping{top:calc(18px + var(--mm,172px) + 36px)}
 .zm-dist{transform:translate(-50%,-50%);font:700 clamp(8px,1.55cqw,12px)/1.15 var(--font-ui);letter-spacing:.14em;color:#2a1c10;text-align:center;
   max-width:28%;text-shadow:0 0 3px rgba(255,244,220,.9),0 0 6px rgba(255,244,220,.7);pointer-events:none}
 .zm-dist.off{color:rgba(240,230,210,.75);text-shadow:0 1px 3px #000}
+.zm-dist{cursor:pointer;pointer-events:auto;padding:3px 5px}
+.zm-dist em{display:block;margin-top:3px;font:700 clamp(7px,1.2cqw,10px)/1 var(--font-ui);font-style:normal;letter-spacing:.12em;color:#3a5a8a}
+.zm-dist.done em{color:#4a6a3a}
+.zm-dist.padfocus,.zm-giver.padfocus{outline-offset:1px}
+.zm-map{cursor:crosshair}
+.zm-wpt{position:absolute;width:18px;height:22px;transform:translate(-50%,-100%);z-index:3;background:#07060a;clip-path:path('M9 0C4 0 0 4 0 9c0 6 9 13 9 13s9-7 9-13c0-5-4-9-9-9z')}
+.zm-wpt::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:17px;background:#f3e7c4;clip-path:path('M7 0C3 0 0 3 0 7c0 5 7 10 7 10s7-5 7-10c0-4-3-7-7-7zm0 4a3 3 0 1 1 0 6a3 3 0 1 1 0-6z')}
+.zm-tip{font:500 12px/1.4 var(--font-ui);color:var(--hx-dim)}
+.zm-clear b{color:#f3e7c4}
+.lg.pin{background:#f3e7c4;border-radius:50% 50% 50% 0;transform:rotate(-45deg) scale(.85)}
+#compass .cp-m.pin{--mc:#f3e7c4}
+#compass .cp-m.pin .cp-g{width:8px;height:8px;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+#compass .cp-m.pin .cp-n{color:#f3e7c4}
 .zm-dist.here{text-decoration:underline;text-underline-offset:3px}
 /* pins: the waystones (a button once touched), quest goals, people who need a hand, secrets found, you and your party */
 .zm-stone,.zm-pin{transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;z-index:2;padding:3px}
@@ -62,7 +75,7 @@ body.minimap-on #netping{top:calc(18px + var(--mm,172px) + 36px)}
 .zm-pin span{color:var(--hx-dim);background:rgba(7,6,10,.55)}
 .zm-obj{width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);background:#ffd24a;box-shadow:0 0 0 2px #07060a;z-index:3;animation:zmPulse 1.2s steps(2) infinite}
 @keyframes zmPulse{50%{box-shadow:0 0 0 2px #07060a,0 0 0 6px rgba(255,210,74,.35)}}
-.zm-giver{width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#f3e7c4;box-shadow:0 0 0 2px #07060a;display:flex;align-items:center;justify-content:center;z-index:2}
+.zm-giver{cursor:pointer;width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#f3e7c4;box-shadow:0 0 0 2px #07060a;display:flex;align-items:center;justify-content:center;z-index:2}
 .zm-giver b{font:800 11px/1 var(--font-ui);color:#07060a}
 .zm-sec{width:9px;height:9px;transform:translate(-50%,-50%) rotate(45deg);background:#6fc8ff;box-shadow:0 0 0 2px #07060a;z-index:1}
 .zm-sec.cave{background:#b38aff}

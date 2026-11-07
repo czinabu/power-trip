@@ -190,6 +190,13 @@ try {
   // a ping: the host marks what's under its crosshair, and the guest sees it in the host's seat
   await host.evaluate(() => GAME.pingHere());
   await guest.waitForFunction(() => GAME.pingInfo().some(p => p.slot === 0), null, poll);
+  // pinging it again takes it down, for the guest too (a few tries: a foe walking into the crosshair makes a new ping instead)
+  for (let i = 0; i < 4 && await host.evaluate(() => GAME.pingInfo().some(p => p.slot === 0)); i++){
+    const pt = await host.evaluate(() => GAME.G.gt);
+    await host.waitForFunction((t) => GAME.G.gt > t + 0.7, pt, poll);
+    await host.evaluate(() => GAME.pingHere());
+  }
+  await guest.waitForFunction(() => !GAME.pingInfo().some(p => p.slot === 0), null, poll);
   // the guest goes down: the host sees the revive ring under them and the chip saying how long they have
   await guest.evaluate(() => { GAME.player.downed = { bleed: 9, prog: 0.4, need: 3, by: null, t: 0 }; });
   await host.waitForFunction(() => GAME.partnerInfo().all.some(p => p.dn && p.ring && p.chip), null, poll);

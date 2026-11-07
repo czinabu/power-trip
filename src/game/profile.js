@@ -311,8 +311,21 @@ export const profileOpens = (s) => owns(G.hero, s);
 /* ---------- YOUR DECK: chosen between runs, dealt from in the run (ui/store-ui.js rollFreeCards) ----------
    null is no deck: the page deals from every card you own. The page passes the hero's card set in (data/skills.js,
    data/trooper-progression.js), so this file stays clear of the run's own modules. */
-// a run is on: the deck, the tree and the path are set between runs (the menu, the results, and later the Tython hub)
-export const runLive = () => G.mode === 'play';
+// a run is on: the deck, the tree and the path are set between runs (the menu, the results, and the hubs: the temple,
+// the citadel, the ship... are no run, game/flow.js startLevel)
+export const runLive = () => G.mode === 'play' && !G.hub;
+// the run that's on, in words, for the profile's and the benches' locked notes
+export function runName(){
+  if (G.zone) return 'an open zone';
+  if (G.endless) return 'a Survival run';
+  if (G.sandbox) return 'the Sandbox';
+  if (G.training) return 'Training';
+  if (G.mission) return 'a mission';
+  if (G.chapter >= 0) return 'a story chapter';
+  return 'a run';
+}
+// how a locked note ends: where the choices open again
+export const liveNote = (what) => 'You\'re in ' + runName() + '. ' + what + ' between runs: finish or quit it, and it opens on the menu or back at your hub.';
 export const deckOf = (hero = G.hero) => profileOf(hero).deck || null;
 export const inDeck = (s, hero = G.hero) => { const d = deckOf(hero); return !d || d.includes(s.id); };
 export const deckCount = (hero, set, tier) => { const d = deckOf(hero) || []; return set.filter(s => s.tier === tier && d.includes(s.id)).length; };

@@ -1216,6 +1216,11 @@ body.pad .kbonly{display:none}
 .fan-note{display:none;position:fixed;left:0;right:0;bottom:8px;z-index:21;text-align:center;pointer-events:none;
   font:500 11px/1.2 var(--font-ui);letter-spacing:.06em;color:var(--ink-dim);opacity:.55}
 #overlay.st-menu .fan-note{display:block}
+/* Build version (package version + commit), main menu only, bottom-right (src/ui/boot.js) */
+.build-ver{display:none;position:fixed;right:14px;bottom:8px;z-index:21;pointer-events:none;
+  font:500 11px/1.2 var(--font-ui);letter-spacing:.1em;color:var(--ink-dim);opacity:.55}
+#overlay.st-menu .build-ver:not(:empty){display:block}
+@media (max-width:760px){.build-ver{bottom:22px;right:16px}}
 /* HOW TO DO IT on the Forms page: a form's finisher and signature move as one line of key chips (ui/forms-ui.js howLine) */
 .fm-how{display:flex;flex-wrap:wrap;align-items:center;gap:4px 5px;margin-top:6px;font-size:12px;line-height:1.3;color:var(--ink-soft)}
 .fm-how>b{font:600 10px/1 var(--font-ui);letter-spacing:1.3px;color:var(--c,var(--ink-dim));margin-right:2px}
@@ -1480,8 +1485,14 @@ body.wb-open #overlay{background:none}
 #overlay.st-menu .ov-actions .btn.icbtn .bi{display:block;font-size:15px;color:var(--ink-dim)}
 #overlay.st-menu .ov-actions .btn.icbtn:is(:hover,.padfocus) .bi{color:var(--ink)}
 #overlay.st-menu .ov-actions .btn.icbtn :is(.cx-badge,.pf-badge){margin-left:0}
+/* the quiet row sizes each button to its own name (they wrap to a second row rather than squeeze), and the CODEX count and the
+   PROFILE NEW tag sit on the button's top-right corner so they never push into the next button */
+#overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){flex:1 1 auto;min-width:max-content;position:relative;padding:9px 10px;justify-content:center}
+#overlay.st-menu .ov-actions .btn.icbtn :is(.cx-badge,.pf-badge){position:absolute;top:-7px;right:-5px;margin:0;pointer-events:none;z-index:1;box-shadow:0 0 0 2px #07101c}
+#overlay.st-menu .ov-actions .btn.icbtn .pf-badge{padding:2px 4px;font-size:9px}
+#overlay.st-menu .ov-actions #exitBtn:not(.go){flex:1 1 auto;min-width:max-content}
 @media (max-width:520px){   /* a phone: the five names without their icons, three and two */
-  #overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){flex:1 1 30%;letter-spacing:1px}
+  #overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){flex:1 1 28%;letter-spacing:1px;padding:9px 8px}
   #overlay.st-menu .ov-actions .btn.icbtn .bi{display:none}
 }
 /* the arcade face of the Missions page: only its board, always out */

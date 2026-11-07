@@ -87,6 +87,7 @@ export function meditateProp(col){
   const stones = [];
   for (let i = 0; i < 4; i++){
     const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16 + (i % 2) * 0.06, 0), stone(0x8a8478));
+    s.userData.passThrough = true;   // (they float round the circle: nothing to bump into)
     g.add(s); stones.push(s);
   }
   // a pale column of light: you see it from across the map only once you are looking for it

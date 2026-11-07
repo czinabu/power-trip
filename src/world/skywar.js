@@ -191,7 +191,7 @@ export function buildSkywar(T, back){
   const E = typeof F.epic === 'object' ? F.epic : {};
   const e = E.level ?? (F.blasts === 0 ? 0.4 : 1);
   if (e <= 0) return;
-  const grp = new THREE.Group(); grp.userData.noBake = true;
+  const grp = new THREE.Group(); grp.userData.noBake = true; grp.userData.noSolid = true;   // (it flies: never collision, world/autosolid.js)
   W.grp.add(grp);
   Object.assign(SK, { on: true, F, E, e, grp, t: 0, caps: [], guns: [], wrecks: [], fires: [], later: [], embers: [],
     nextDown: rand(4, 8), nextFlak: rand(1, 2), nextHero: rand(8, 14), fighters: (F.flyers || []).some(f => f.kind === 'tie' || f.kind === 'xwing') });

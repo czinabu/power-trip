@@ -20,6 +20,7 @@
 
 import * as THREE from 'three';
 import { G, shared, solids, player, hazardZones } from '../state.js';
+import { propSolids } from '../world/autosolid.js';
 import { scene } from '../engine/renderer.js';
 import { CFG } from '../data/config.js';
 import { SECRET_MAPS, SECRET_KINDS, SECRET_TUNE as T, HOLOCRONS } from '../data/secrets.js';
@@ -159,6 +160,8 @@ function build(kind, map, c, spot){
   (shared.arenaGroup || scene).add(P.g);
   const sol = P.solids.map(s => ({ x: c.x + s.x, z: c.z + s.z, r: s.r, h: y + s.h }));
   for (const s of sol) solids.push(s);
+  // and whatever of it the boulders don't hold (the holocron's plinth, the cave's roof, a boulder's flank) (world/autosolid.js)
+  for (const s of propSolids(P.g)){ solids.push(s); sol.push(s); }
   St.list.push({ id, kind, x: c.x, z: c.z, y, face, P, solids: sol, found, page: kind === 'holocron' ? (spot ? spot.page : map.holocron) : null, sensed: false, spot: !!spot });
 }
 

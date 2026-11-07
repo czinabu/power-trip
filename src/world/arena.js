@@ -71,6 +71,7 @@ import { spreadMark, spreadBuilt } from './spread.js';
 import { fillCover } from './coverfill.js';
 import { SPREAD, GROW } from '../data/map-scale.js';
 import { buildLandmarks } from './landmarks.js';
+import { autoSolids } from './autosolid.js';
 
 /* ============================================================
    ARENA
@@ -98,6 +99,7 @@ function jetCeilingFor(L){
   let top = 0;
   for (const c of solids){
     if (c.mound || c.h > 16 || Math.abs(c.x) > hx || Math.abs(c.z) > hz) continue;
+    if (c.auto && c.y0) continue;   // (an auto slab up on a roof's edge is something to land on if you get there, not a reason to fly higher)
     if (c.box ? Math.max(c.hx, c.hz) > hx * 0.8 : false) continue;   // a ceiling beam spanning the room isn't somewhere to land
     top = Math.max(top, c.h);
   }
@@ -140,6 +142,7 @@ export function buildArena(L){
   resetDoorway();   // (the temple layout builds its doors again; a screen that went dark through them comes back up)
   shared.grassClear = null; shared.grassMounds = null; clearGrass();   // (an arena builder may set these: world/grass.js)   // cleared each rebuild; the temple layout re-assigns it (so we never flicker a stale mesh)
   pillars.length = 0;
+  shared.autoSolids = [];         // (the auto colliders laid this build: world/autosolid.js)
   solids.length = 0;              // (cleared before the world: its backdrop hills that run into the play space are ground)
 
   const T = themeFor(L);
@@ -315,14 +318,16 @@ export function buildArena(L){
     }
   }
   buildLandmarks(LP);   // the colossal pieces among the fight: a parked walker, a pylon, a forest giant (world/landmarks.js)
+  if (!shared.noAutoSolids) shared.autoSolids.push(...autoSolids(shared.arenaGroup));   // every solid-looking prop the builders left without a collider gets one (world/autosolid.js)
   shared.perches = null;
   buildPerches(LP);
   fillCover(LP);   // real cover in the open holes of the map, clear of the perches (world/coverfill.js, data/map-scale.js COVER_FILL)
+  if (!shared.noAutoSolids) shared.autoSolids.push(...autoSolids(shared.arenaGroup));   // (and the perches and cover just put down)
   shared.jetCeiling = jetCeilingFor(L);   // how high the Mando's pack climbs here (data/map-rules.js JET_CEILING)   // the second storey: raised decks round the outer ring of a campaign or story arena (world/perches.js)
   if (T) buildGrass(T, L);   // tall grass in the wind, where the world has it (world/grass.js)
   buildNav();   // the enemy pathing grid follows the new layout (enemies/nav.js)
   // INK: cel-shade every static prop and merge them into a handful of draw calls (glows and hazards stay live)
-  if (T) shared.arenaBake = bakeArena(shared.arenaGroup, T.ink ?? 0.045);
+  if (T && !shared.auditBuild) shared.arenaBake = bakeArena(shared.arenaGroup, T.ink ?? 0.045);   // (the collision audit reads every prop as its own mesh: tools/collision-audit.js)
   player.grime = 0;   // a fresh field: the soot of the last fight comes off the hero (player/model/wear.js)
   for (const f of arenaBuilt) f();
 }
@@ -347,7 +352,7 @@ function disposeArena(g){
 /* a themed world: painted sky, lights + fog (atmosphere.js), painted floor, an outer ground that runs out to the
    horizon, and the backdrop landmarks (baked here with a thicker outline so they read at distance) */
 const ORGANIC = new Set(['sand', 'snow', 'ice', 'grass', 'ash', 'basalt']);   // ground without a laid-out grid: its tile can be turned to break the repeat
-function outskirtsStyle(L, T){
+export function outskirtsStyle(L, T){
   const e = OUTSKIRTS_STYLE[L.layout], st = e && typeof e === 'object' ? e[WORLD] : e;   // (some layouts change planet with the world)
   if (st) return st;
   const kinds = new Set((T.backdrop || []).map(b => b.kind));
@@ -393,8 +398,9 @@ function buildWorld(L, T){
   const os = !roam && T.outskirts !== false ? outskirtsStyle(L, T) : 'none';
   const back = buildBackdrop(os !== 'none' ? [...(T.backdrop || []), { kind: 'outskirts', style: os, T }] : T.backdrop, L.arena/2, T.seed || 1, D/2);
   shared.arenaGroup.add(back);
+  back.userData.backdrop = true;   // (no auto colliders past the edge: world/autosolid.js)
   solids.push(...back.userData.solids);   // the edge's hills, where they run in over the play space
-  bakeArena(back, T.inkFar ?? 0.16, true);
+  if (!shared.auditBuild) bakeArena(back, T.inkFar ?? 0.16, true);
   // the backdrop stands far past the arena's fog: it takes the far haze instead (world/ink.js), glows included
   back.traverse(o => { if (o.isMesh || o.isPoints) o.material = farHaze(o.material); });
   // the HORIZON: the sky dome and the ground run out past the furthest landmark

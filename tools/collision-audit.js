@@ -1,6 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Collision audit (dev only, run by tools/smoke/collision.mjs: `npm run smoke:collision`).
-// Builds every arena layout without baking it and checks each prop the player can reach against the collision solids:
+// Builds every arena layout the way the game does (world/arena.js buildArena: the builder, the spread, the landmarks, the
+// perches, the cover pass, the outskirts and the auto colliders, world/autosolid.js), only without baking it, and checks
+// each prop the player can reach against the collision solids:
 // anything you can see standing in the play space that you would walk (or sink) through is listed, worst first.
 // A prop is sampled on a 0.4 m grid over its footprint inside the playable rectangle. At each sample a ray down finds
 // the prop's visible top and a ray up its underside; the sample is a MISS when the collision there (the highest solid
@@ -9,68 +11,21 @@
 // fly or jump onto should hold you.
 
 import * as THREE from 'three';
-import { shared, solids, pillars, hazardZones, vents, barrels } from '../src/state.js';
-import { scene } from '../src/engine/renderer.js';
-import { themeFor } from '../src/data/worlds.js';
-import { buildBackdrop } from '../src/world/backdrop.js';
+import { shared, solids } from '../src/state.js';
 import { moundY } from '../src/world/collision.js';
 import { LEVELS } from '../src/data/levels.js';
 import { BATTLE_MAPS } from '../src/data/battlemaps.js';
 import { MISSIONS } from '../src/data/missions.js';
+import { GATE_MISSIONS } from '../src/data/missions-gate.js';
 import { SANDBOX_LEVELS } from '../src/data/sandbox.js';
 import { TRAINING_LEVELS } from '../src/data/tutorial.js';
-import { buildTempleArena } from '../src/world/arenas/temple.js';
-import { buildFoundryArena } from '../src/world/arenas/foundry.js';
-import { buildPlainsArena } from '../src/world/arenas/plains.js';
-import { buildHallArena } from '../src/world/arenas/hall.js';
-import { buildForgeArena } from '../src/world/arenas/forge.js';
-import { buildRefugeArena } from '../src/world/arenas/refuge.js';
-import { buildPursuitArena } from '../src/world/arenas/pursuit.js';
-import { buildDojoArena } from '../src/world/arenas/dojo.js';
-import { buildThroneArena } from '../src/world/arenas/throne.js';
-import { buildGrasslandArena } from '../src/world/arenas/grassland.js';
-import { buildIcefrontArena } from '../src/world/arenas/icefront.js';
-import { buildGraveyardArena } from '../src/world/arenas/graveyard.js';
-import { buildArchiveArena } from '../src/world/arenas/archive.js';
-import { buildPrisonArena } from '../src/world/arenas/prison.js';
-import { buildPensArena } from '../src/world/arenas/pens.js';
-import { buildHangarArena } from '../src/world/arenas/hangar.js';
-import { buildJungleArena } from '../src/world/arenas/jungle.js';
-import { buildShipyardArena } from '../src/world/arenas/shipyard.js';
-import { buildGarrisonArena } from '../src/world/arenas/garrison.js';
-import { buildFrigateArena } from '../src/world/arenas/frigate.js';
-import { buildKaminoArena } from '../src/world/arenas/kamino.js';
-import { buildChipworksArena } from '../src/world/arenas/chipworks.js';
-import { buildWarcampArena } from '../src/world/arenas/warcamp.js';
-import { buildCanyonArena } from '../src/world/arenas/canyon.js';
-import { buildRelayArena } from '../src/world/arenas/relay.js';
-import { buildSithArena } from '../src/world/arenas/sith.js';
 import { CHAPTERS } from '../src/data/campaign.js';
 import { TROOPER_CHAPTERS } from '../src/data/campaign-trooper.js';
 import { MANDO_CHAPTERS } from '../src/data/campaign-mando.js';
-import { buildOutpostArena } from '../src/world/arenas/outpost.js';
-import { buildCovertArena } from '../src/world/arenas/covert.js';
-import { buildBargeArena } from '../src/world/arenas/barge.js';
-import { buildHoldfastArena } from '../src/world/arenas/holdfast.js';
-import { buildCitadelArena } from '../src/world/arenas/citadel.js';
-import { spreadMark, spreadBuilt } from '../src/world/spread.js';
-import { fillCover } from '../src/world/coverfill.js';
-import { buildLandmarks } from '../src/world/landmarks.js';
-import { grownLevel } from '../src/world/arena.js';
-import { SPREAD } from '../src/data/map-scale.js';
+import { HUBS } from '../src/data/hub.js';
 import { ZONES } from '../src/data/zones.js';
-import { buildZoneArena } from '../src/world/zone-stream.js';
-
-const BUILDERS = { temple: buildTempleArena, foundry: buildFoundryArena, plains: buildPlainsArena, hall: buildHallArena,
-  forge: buildForgeArena, refuge: buildRefugeArena, pursuit: buildPursuitArena, dojo: buildDojoArena, throne: buildThroneArena,
-  grassland: buildGrasslandArena, icefront: buildIcefrontArena, graveyard: buildGraveyardArena,
-  approach: buildGrasslandArena, archive: buildArchiveArena, prison: buildPrisonArena, pens: buildPensArena, hangar: buildHangarArena, sith: buildSithArena,
-  jungle: buildJungleArena, outpost: buildOutpostArena, covert: buildCovertArena, shipyard: buildShipyardArena, garrison: buildGarrisonArena, frigate: buildFrigateArena,
-  kamino: buildKaminoArena, chipworks: buildChipworksArena, warcamp: buildWarcampArena,
-  canyon: buildCanyonArena, relay: buildRelayArena,
-  barge: buildBargeArena, holdfast: buildHoldfastArena, citadel: buildCitadelArena,
-  meltworks: buildFoundryArena, ironroad: buildGrasslandArena,
-  zoJedha: (L) => buildZoneArena(L, { raw: true }) };   // an open zone: every chunk of it at once (world/zone-stream.js)
+import { buildArena } from '../src/world/arena.js';
+import { autoStats } from '../src/world/autosolid.js';
 
 const STEP = 0.4;          // sample spacing
 const SINK = 0.45;         // a visible top this far over the collision top is a miss (thin caps and trims sit under it)
@@ -87,7 +42,7 @@ function levelsByLayout(){
     if (o.layout && typeof o.layout === 'string' && o.arena && !out[o.layout]) out[o.layout] = o;
     for (const v of Object.values(o)) walk(v, depth + 1);
   };
-  walk({ ZONES, LEVELS, BATTLE_MAPS, MISSIONS, SANDBOX_LEVELS, TRAINING_LEVELS, CHAPTERS, MANDO_CHAPTERS, TROOPER_CHAPTERS });   // (a chapter can stage its level on its own arena)
+  walk({ ZONES, LEVELS, BATTLE_MAPS, MISSIONS, GATE_MISSIONS, SANDBOX_LEVELS, TRAINING_LEVELS, CHAPTERS, MANDO_CHAPTERS, TROOPER_CHAPTERS, HUBS });   // (a chapter can stage its level on its own arena)
   return out;
 }
 
@@ -121,10 +76,12 @@ function propsOf(group){
   group.updateMatrixWorld(true);
   group.traverse(o => {
     if (!o.isMesh || !o.visible || o.userData.passThrough) return;
+    for (let p = o.parent; p; p = p.parent) if (p.userData.noSolid || p.userData.passThrough || !p.visible) return;   // (the traffic overhead; pictures)
     const m = o.material;
     if (!m || Array.isArray(m) || m.side === THREE.BackSide || (m.transparent && m.opacity < 0.9)) return;
     const b = new THREE.Box3().setFromObject(o);
     if (b.max.y < 0.15) return;                                         // floor, decals, flat inlays
+    if (b.min.y > REACH) return;                                        // a dome on a far tower, the sky's own: out of anyone's reach
     if (b.max.x - b.min.x < 0.2 || b.max.z - b.min.z < 0.2) return;     // poles, wires, thin rails: nothing to stand on
     list.push({ o, b });
   });
@@ -138,28 +95,25 @@ function name(o){
 }
 
 function auditLayout(id, L, opt){
-  L = grownLevel(L);
-  scene.remove(shared.arenaGroup);
-  shared.arenaGroup = new THREE.Group();
-  shared.arenaHalf = L.arena / 2; shared.arenaHalfZ = (L.arenaZ || L.arena) / 2;
-  shared.arenaLevel = L; shared.arenaBig = L.arena > 100;
-  pillars.length = 0; solids.length = 0; hazardZones.length = 0;
-  for (const v of vents) scene.remove(v.group); vents.length = 0;
-  for (const b of barrels) scene.remove(b.mesh); barrels.length = 0;
-  const T = themeFor(L);
-  // as world/arena.js builds it: a SPREAD layout at its authored size, pulled apart to fit; then the landmarks and the cover pass
-  const authored = !(L.arenaZ && L.arenaZ !== L.arena) && SPREAD[L.layout], S = authored && L.arena > authored ? L.arena / authored : 1;
-  const mark = spreadMark(); shared.spreadAt = null; shared.doors = [];
-  if (S > 1){ shared.arenaHalf = shared.arenaHalfZ = authored / 2; }
-  BUILDERS[id]({ ...L, arena: S > 1 ? authored : L.arena, pal: (T && T.pal) || {} });
-  if (S > 1){ shared.arenaHalf = shared.arenaHalfZ = L.arena / 2; spreadBuilt(S, authored, mark); }
-  buildLandmarks({ ...L, pal: (T && T.pal) || {} });
-  fillCover({ ...L, pal: (T && T.pal) || {} });
-  if (T && T.backdrop){
-    const back = buildBackdrop(T.backdrop, L.arena/2, T.seed || 1, shared.arenaHalfZ);
-    back.userData.backdrop = true;
-    shared.arenaGroup.add(back); solids.push(...back.userData.solids);
+  // opt.raw: without the auto colliders, to see what the builders alone leave out
+  shared.auditBuild = true; shared.noAutoSolids = !!opt.raw; autoStats.ms = 0;
+  try { buildArena(L); } finally { shared.auditBuild = false; shared.noAutoSolids = false; }
+  const auto = shared.autoSolids || [];
+  return { id, solids: solids.length, auto: auto.length, autoMs: +autoStats.ms.toFixed(1), autoProps: autoReport(auto), ...auditBuilt(opt) };
+}
+
+/* the props that needed auto colliders, most covered first: [{ prop, boxes (colliders), area }] */
+function autoReport(auto){
+  const by = new Map();
+  for (const c of auto){
+    const k = c.mesh ? name(c.mesh) : '?', e = by.get(k) || { prop: k, boxes: 0, area: 0 };
+    e.boxes++; e.area += c.box ? c.hx * c.hz * 4 : Math.PI * c.r * c.r; by.set(k, e);
   }
+  return [...by.values()].map(e => ({ ...e, area: +e.area.toFixed(2) })).sort((a, b) => b.area - a.area);
+}
+
+/* audit whatever is built right now (the arena a mode or mission just put up, its props and its outskirts) */
+export function auditBuilt(opt = {}){
   const hx = shared.arenaHalf - 1, hz = shared.arenaHalfZ - 1;   // clampToArena's rectangle
   const misses = [], ledges = [];
   for (const { o, b } of propsOf(shared.arenaGroup)){
@@ -181,16 +135,16 @@ function auditLayout(id, L, opt){
         if (held < top - SINK - 0.3){ ledge++; ledgeY = Math.max(ledgeY, top); }
         continue;
       }
-      const sink = top - solidTop(x, z, 0.25);
-      if (sink > SINK){ miss++; if (sink > worst){ worst = sink; at = [+x.toFixed(1), +z.toFixed(1), +top.toFixed(1)]; } }
+      const sink = top - solidTop(x, z, opt.pad ?? 0.25);
+      if (sink > (opt.sink ?? SINK)){ miss++; if (sink > worst){ worst = sink; at = [+x.toFixed(1), +z.toFixed(1), +top.toFixed(1)]; } }
     }
     const area = miss * STEP * STEP, larea = ledge * STEP * STEP;
-    if (area >= MIN_AREA || (opt.all && area > 0)) misses.push({ prop: name(o), area: +area.toFixed(2), sink: +worst.toFixed(2), at, backdrop: isBackdrop(o) });
+    if (area >= (opt.minArea ?? MIN_AREA) || (opt.all && area > 0)) misses.push({ prop: name(o), area: +area.toFixed(2), sink: +worst.toFixed(2), at, backdrop: isBackdrop(o) });
     if (larea >= MIN_AREA * 2) ledges.push({ prop: name(o), area: +larea.toFixed(2), top: +ledgeY.toFixed(1) });
   }
   misses.sort((a, b) => b.area * b.sink - a.area * a.sink);
   ledges.sort((a, b) => b.area - a.area);
-  return { id, solids: solids.length, misses, ledges };
+  return { misses, ledges };
 }
 
 /* the level config a layout is built from (the first one in the game that uses it) */
@@ -199,12 +153,11 @@ export const levelFor = id => levelsByLayout()[id];
 /* audit every layout (or the ones named): [{ id, solids, misses: [...], ledges: [...] }]. The game must be loaded (the
    arena builders lean on its scene and data), so this runs inside the game page: `await import('/tools/collision-audit.js')`. */
 export function auditMaps(o = {}){
-  const all = levelsByLayout(), keep = shared.arenaGroup;
-  const ids = o.maps || Object.keys(BUILDERS), result = [];
+  const all = levelsByLayout();
+  const ids = o.maps || Object.keys(all), result = [];
   for (const id of ids){
     if (!all[id]){ result.push({ id, error: 'no level uses this layout' }); continue; }
     try { result.push(auditLayout(id, all[id], o)); } catch (e){ result.push({ id, error: String(e && e.stack || e) }); }
   }
-  shared.arenaGroup = keep; scene.add(keep);
-  return result;
+  return result;   // (the last layout stays built: the page is a test bench from here on)
 }

@@ -584,7 +584,7 @@ function hangar(L, K, pal, R, M){
    the belly ramp lowered at the back with the hold lit. Nose toward local +z; `ry` turns it. Toon-shaded and inked
    like the heroes, with collision as a chain of columns down the hull (the ramp is three climbable steps). */
 function huntersShip(x, z, ry, pal){
-  const g = new THREE.Group(); g.userData.noBake = true; g.position.set(x, 0, z); g.rotation.y = ry; shared.arenaGroup.add(g);
+  const g = new THREE.Group(); g.userData.noBake = true; g.userData.solidify = true; g.position.set(x, 0, z); g.rotation.y = ry; shared.arenaGroup.add(g);   // (it never leaves its pad: the auto colliders fill in round its own, world/autosolid.js)
   const hull = toon(pal.hull ?? 0x8a8e84), hullD = toon(0x6a6e68), dark = toon(pal.metalD ?? 0x30343a), bes = toon(0xc0c6cc);
   const paint = toon(0xb0542a), glass = toon(0x1e2a36, { emissive: 0x2a4a60, ei: 0.35 });
   const jet = new THREE.MeshBasicMaterial({ color: 0x8ad8ff, toneMapped: false }), hot = new THREE.MeshBasicMaterial({ color: 0xffd8a0 });

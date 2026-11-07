@@ -157,7 +157,7 @@ export function buildWarfront(T, L){
   clearWarfront();
   const F = T.warfront;
   if (!F) return;
-  const grp = new THREE.Group(); grp.userData.noBake = true;
+  const grp = new THREE.Group(); grp.userData.noBake = true; grp.userData.noSolid = true;   // (it flies: never collision, world/autosolid.js)
   shared.arenaGroup.add(grp);
   Object.assign(W, { on: true, F, grp, half: L.arena / 2, halfZ: (L.arenaZ || L.arena) / 2, cx: 0, cz: 0,
     ships: [], walkers: [], tracers: [], flashes: [], puffs: [], columns: [], later: [], nextBlast: rand(0.5, 2), nextVolley: rand(0.2, 1), t: 0 });

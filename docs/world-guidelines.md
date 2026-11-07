@@ -62,6 +62,12 @@ run). The three plans grow with the campaign:
   cover open up while heights, vaults and climbs stay what they were.
 - Every solid is axis-aligned (collision is boxes and columns). Anything visible on the floor is either solid or a
   low **climbable** step under `STEP_UP`; nothing is decoration you walk through.
+- **The auto colliders are the safety net** (`world/autosolid.js`): after every build, any solid-looking mesh in the play
+  space that the hand-placed `solids` don't hold gets colliders of its own (boxes, or one column for a round prop; a
+  slab for something overhead). Give real props their own colliders anyway; the auto ones are a staircase of boxes.
+  Mark decoration you mean to pass through with `userData.passThrough` (canopies, cloth, holograms, signs), and a live
+  prop that moves (`userData.noBake`) keeps its own collision. `npm run smoke:collision` audits every map, hub wing and
+  zone, and prints how many auto colliders each needed.
 - Vaultable cover stays under the 1.93 single-jump apex. The gantry tiers are above it on purpose.
 - Gaps between solids are wide enough for a brute (radius about 1.1); keep that when adding cover.
 - The north lane (the player's spawn side) stays clear. Enemy spawns use `edgeSpawn()` in `collision.js`, which

@@ -63,7 +63,7 @@ function planter(K, x, z, pal, R, big = 1){
   const leaf = [std(pal.leaf ?? 0x4a8a4e, 0.95), std(pal.leafD ?? 0x36703c, 0.95)];
   for (let i = 0; i < 4; i++){
     const a = R() * PI * 2, d = R() * 1.6 * big, y = 0.95 + h * (0.72 + R() * 0.3);
-    K.deco(new THREE.IcosahedronGeometry((2.2 + R() * 1.1) * big, 0), leaf[i % 2], x + Math.cos(a) * d, y, z + Math.sin(a) * d, R(), R(), R());
+    K.deco(new THREE.IcosahedronGeometry((2.2 + R() * 1.1) * big, 0), leaf[i % 2], x + Math.cos(a) * d, y, z + Math.sin(a) * d, R(), R(), R()).userData.passThrough = true;   // (the crown: leaves overhead, nothing to land on)
   }
 }
 /* a terrace past the open arches: a ledge, a balustrade, and the drop to the valley beyond (pictures past the edge) */

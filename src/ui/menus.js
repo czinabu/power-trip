@@ -51,6 +51,7 @@ import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
 import { startHub, setPartyHooks, curHub, hubIdFor } from '../game/hub.js';
 import { HUBS } from '../data/hub.js';
+import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 // the temple's station panel (ui/hub-ui.js registers its closer: it imports this file, so this one can't import it)
 let closeHubPanel = () => {};
 export function setHubPanelCloser(fn){ closeHubPanel = fn; }
@@ -93,7 +94,10 @@ function hubWords(){
   const next = nextHub(), back = G.fromHub && G.hubId ? HUBS[G.hubId] || next : next;
   const tile = document.getElementById('mode-temple');
   tile.querySelector('.mt').textContent = next.name; tile.querySelector('.md').textContent = next.tile;
-  document.getElementById('templeBtn').textContent = 'RETURN TO ' + back.home;
+  // a run launched from the hero's ship goes back aboard it (its name on the button), with the hub itself a button beside
+  const aboard = G.fromHub && G.hubWing === SHIP_WING;
+  document.getElementById('templeBtn').textContent = 'RETURN TO ' + (aboard ? shipOf(G.hubId).name : back.home);
+  document.getElementById('templeHomeBtn').textContent = 'STRAIGHT TO ' + back.home;
   document.getElementById('stepTemple').textContent = '‹ ' + back.home.replace(/^THE /, '');
   document.getElementById('coopjointemple').textContent = 'JOIN THEM IN ' + next.home;
   if (_step === 'hero' && G.modeSel === 'temple') document.getElementById('stepMode').textContent = next.name;
@@ -181,6 +185,7 @@ export function setOverlayState(state){
   if (state !== 'pause') document.getElementById('ovctx').textContent = '';
   document.getElementById('restartBtn').style.display = state === 'menu' || G.hub ? 'none' : 'inline-flex';
   document.getElementById('templeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub ? 'inline-flex' : 'none';   // a run started from the temple goes back to it
+  document.getElementById('templeHomeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub && G.hubWing === SHIP_WING ? 'inline-flex' : 'none';   // (from the ship: or skip it, down the ramp into the hub)
   document.getElementById('stepTemple').style.display = state === 'menu' && G.fromHub ? '' : 'none';
   document.getElementById('restartBtn').textContent = state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
@@ -250,7 +255,7 @@ function beginPlay(){
     G.paused = true;
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
-      if (G.modeSel === 'temple'){ startHub(G.hubWing); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
+      if (G.modeSel === 'temple'){ const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
       G.hub = false;
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
@@ -881,13 +886,19 @@ document.getElementById('homeBtn').addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   if (_ovState === 'pause' && !G.hub){ templeAsk = false; overlay.classList.add('confirming'); } else goHome();
 });
-document.getElementById('homeYes').addEventListener('click', (e) => { e.stopPropagation(); if (templeAsk){ overlay.classList.remove('confirming'); goTemple(); } else goHome(); });
-document.getElementById('homeNo').addEventListener('click', (e) => { e.stopPropagation(); overlay.classList.remove('confirming'); });
+document.getElementById('homeYes').addEventListener('click', (e) => { e.stopPropagation(); if (templeAsk){ overlay.classList.remove('confirming'); if (templeHome) offTheShip(); goTemple(); } else goHome(); });
+document.getElementById('homeNo').addEventListener('click', (e) => { e.stopPropagation(); overlay.classList.remove('confirming'); templeHome = false; });
 // RETURN TO THE TEMPLE: a run started from the temple goes back to it (from pause it asks first, as MAIN MENU does)
-let templeAsk = false;
+let templeAsk = false, templeHome = false;
 document.getElementById('templeBtn').addEventListener('click', (e) => {
-  e.stopPropagation(); audioInit();
+  e.stopPropagation(); audioInit(); templeHome = false;
   if (_ovState === 'pause'){ templeAsk = true; overlay.classList.add('confirming'); } else goTemple();
+});
+// STRAIGHT TO THE TEMPLE: a run launched from the ship, back to the hub at the foot of its ramp instead of aboard
+const offTheShip = () => { templeHome = false; if (G.hubWing === SHIP_WING){ G.hubWing = shipOf(G.hubId).exit; G.hubArrive = SHIP_WING; } };
+document.getElementById('templeHomeBtn').addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit();
+  if (_ovState === 'pause'){ templeAsk = true; templeHome = true; overlay.classList.add('confirming'); } else { offTheShip(); goTemple(); }
 });
 document.getElementById('stepTemple').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); goTemple(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('confirming')) overlay.classList.remove('confirming'); });

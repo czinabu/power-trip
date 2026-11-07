@@ -57,32 +57,66 @@ const css = (c, a) => { const k = new THREE.Color(c); return 'rgba(' + Math.roun
 
 /* ---------------- the hull ---------------- */
 const WALL_H = 4.2;   // the side walls' height, where the vault springs
-const RISE = 3.4;     // how far the vault climbs over the walls
-const NOSE = -7.5;    // z where the hold narrows into the cockpit
-const NOSE_W = 6.2;   // the cockpit's half-width
+const RISE = 3.0;     // how far the vault climbs over the walls
+const NOSE = -6.2;    // z where the hold narrows into the cockpit
+const NOSE_W = 5.2;   // the cockpit's half-width
+const FRAME = 3.2;    // the hull's frames, this far apart down the hold
 function shell({ K, M, C, H, low }){
   const g = shared.arenaGroup, off = H + 0.9, len = off * 2;
-  // the side walls: a lower band, a lit seam, an upper band leaning in toward the vault, panel ribs every few metres
+  const frames = []; for (let z = NOSE + 1.6; z < H - 0.5; z += FRAME) frames.push(z);
+  // the side walls: a kick plate, a lit seam, the wall leaning in toward the vault, the accent band
   for (const sx of [-1, 1]){
     pic(K.deco(new THREE.BoxGeometry(0.6, 2.2, len), M.hullD, sx * off, 1.1, 0));
     pic(K.deco(new THREE.BoxGeometry(0.2, 0.08, len), M.glow, sx * (off - 0.36), 2.25, 0));
     pic(K.deco(new THREE.BoxGeometry(0.6, WALL_H - 2.2, len), M.hull, sx * (off - 0.15), 2.2 + (WALL_H - 2.2) / 2, 0, 0, 0, sx * 0.12));
-    pic(K.deco(new THREE.BoxGeometry(0.7, 0.35, len), M.accent, sx * (off - 0.3), 1.6, 0));
-    for (let z = -off + 3; z < off - 1; z += low ? 6 : 3) pic(K.deco(new THREE.BoxGeometry(0.5, WALL_H, 0.35), M.metal, sx * (off - 0.5), WALL_H / 2, z));
+    pic(K.deco(new THREE.BoxGeometry(0.7, 0.3, len), M.accent, sx * (off - 0.3), 1.6, 0));
+    pic(K.deco(new THREE.BoxGeometry(0.5, 0.3, len), M.metal, sx * (off - 0.4), 0.15, 0));   // the deck's edge, a step up to the wall
+    // CONDUITS: three pipes along the top of the wall, held to each frame by a bracket
+    for (const [py, pr, mat] of [[3.2, 0.11, M.metal], [3.48, 0.08, M.accent], [3.72, 0.13, M.dark]]) pic(K.deco(new THREE.CylinderGeometry(pr, pr, len, 8), mat, sx * (off - 0.75 - (py - 3.2) * 0.22), py, 0, PI / 2));
   }
-  // the VAULT: a flattened half-barrel over the whole room, its inside lit a little so it reads, ribs across it and a run
-  // of strip lights down its crown
+  // the FRAMES: a rib up each wall and over the vault every few metres, a lamp on each, and between them the wall's
+  // fittings in turn: a lit panel, a stowage hatch, a breaker box
+  frames.forEach((z, i) => {
+    for (const sx of [-1, 1]){
+      pic(K.deco(new THREE.BoxGeometry(0.55, WALL_H + 0.3, 0.4), M.metal, sx * (off - 0.55), (WALL_H + 0.3) / 2, z, 0, 0, sx * 0.06));
+      pic(K.deco(new THREE.BoxGeometry(0.62, 0.5, 0.5), M.dark, sx * (off - 0.6), 0.25, z));
+      if (!low) live(K.deco(new THREE.BoxGeometry(0.12, 0.5, 0.18), M.glow, sx * (off - 0.86), 2.75, z));
+      const mid = z + FRAME / 2; if (mid > H - 0.8) continue;
+      const kind = (i + (sx > 0 ? 1 : 0)) % 3;
+      if (kind === 0){   // a lit panel: a frame and a screen of soft light
+        pic(K.deco(new THREE.BoxGeometry(0.2, 1.3, 2.0), M.hullD, sx * (off - 0.42), 2.9, mid, 0, 0, sx * 0.12));
+        const sc = live(K.deco(new THREE.PlaneGeometry(1.7, 1.0), glowM(C.holo, 0.35), sx * (off - 0.55), 2.9, mid, 0, sx * -PI / 2, 0)); sc.rotation.z = sx * -0.12;
+      } else if (kind === 1){   // a stowage hatch: a raised plate, its seam and a handle
+        pic(K.deco(new THREE.BoxGeometry(0.14, 1.6, 1.9), M.hullD, sx * (off - 0.3), 1.0, mid));
+        pic(K.deco(new THREE.BoxGeometry(0.16, 0.06, 1.7), M.dark, sx * (off - 0.31), 1.2, mid));
+        pic(K.deco(new THREE.BoxGeometry(0.2, 0.12, 0.5), M.trim, sx * (off - 0.4), 0.9, mid));
+      } else {   // a breaker box: a dark cabinet, a row of lit tells
+        pic(K.deco(new THREE.BoxGeometry(0.4, 0.9, 1.1), M.dark, sx * (off - 0.5), 1.2, mid));
+        if (!low) for (let k = 0; k < 4; k++) live(K.deco(new THREE.BoxGeometry(0.05, 0.08, 0.08), glowM(k % 2 ? C.holo : 0x7aff9a), sx * (off - 0.72), 1.45, mid - 0.36 + k * 0.24));
+      }
+    }
+  });
+  // the VAULT: a flattened half-barrel over the whole room, its inside lit a little so it reads, the frames' ribs over
+  // it, a cable tray down the crown with the lamps hung from it
   const vault = new THREE.Group(); vault.position.y = WALL_H; vault.scale.y = RISE / off; g.add(vault);
   const skin = std(C.hullD, 0.7, 0.2, 0.25); skin.side = THREE.BackSide;
   const barrel = pic(new THREE.Mesh(new THREE.CylinderGeometry(off, off, len, 28, 1, true, -PI / 2, PI), skin));
   barrel.rotation.x = -PI / 2; vault.add(barrel);   // (its axis along z, the half-round arching up)
-  for (let z = -off + 2; z <= off - 2; z += low ? 6 : 3){
-    const rib = pic(new THREE.Mesh(new THREE.TorusGeometry(off - 0.2, 0.22, 5, 24, PI), M.metal));
+  for (const z of frames){
+    const rib = pic(new THREE.Mesh(new THREE.TorusGeometry(off - 0.25, 0.26, 5, 24, PI), M.metal));
     rib.position.z = z; vault.add(rib);
   }
-  for (const sx of [-0.35, 0.35]){
-    const strip = pic(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, len - 6), M.glow));
-    strip.position.set(sx * off, off * 0.94, 0); vault.add(strip);
+  const crown = WALL_H + RISE - 0.35;
+  pic(K.deco(new THREE.BoxGeometry(1.4, 0.24, len - 2), M.dark, 0, crown, 0));
+  for (const sx of [-1, 1]) pic(K.deco(new THREE.CylinderGeometry(0.1, 0.1, len - 2, 8), M.metal, sx * 0.9, crown - 0.1, 0, PI / 2));
+  for (const z of frames){
+    if (z > H - 1) continue;
+    pic(K.deco(new THREE.BoxGeometry(1.0, 0.3, 0.6), M.metal, 0, crown - 0.3, z + FRAME / 2));
+    live(K.deco(new THREE.BoxGeometry(0.8, 0.06, 0.4), M.glow, 0, crown - 0.47, z + FRAME / 2));
+  }
+  for (const sx of [-0.5, 0.5]){
+    const strip = pic(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, len - 6), M.glow));
+    strip.position.set(sx * off, off * 0.86, 0); vault.add(strip);
   }
   // the end walls past the edge: the cockpit's (round the canopy) and the aft (round the ramp's opening)
   const endH = WALL_H + RISE;
@@ -91,11 +125,17 @@ function shell({ K, M, C, H, low }){
     pic(K.deco(new THREE.BoxGeometry(off - 5.6, endH, 0.6), M.hull, sx * (5.6 + (off - 5.6) / 2), endH / 2, off));
   }
   pic(K.deco(new THREE.BoxGeometry(11.2, endH - 3.4, 0.6), M.hull, 0, 3.4 + (endH - 3.4) / 2, off));   // over the ramp's mouth
-  // the floor: plates edged in trim, a lit runner down the middle from the ramp to the cockpit
+  // the DECK: plates with their seams, a grated walkway down the middle from the ramp to the cockpit, lit along its edges,
+  // and a hazard stripe where the deck meets the ramp
   const plate = std(C.floor, 0.75, 0.25);
   K.deco(new THREE.BoxGeometry(H * 2, 0.04, H * 2), plate, 0, 0.02, 0).receiveShadow = true;
-  for (let z = -H + 4; z < H; z += 4) live(K.deco(new THREE.BoxGeometry(H * 2 - 2, 0.02, 0.06), M.metal, 0, 0.05, z));
-  live(K.deco(new THREE.PlaneGeometry(1.2, H * 2 - 4), glowM(C.holo, 0.16), 0, 0.06, 1, -PI / 2));
+  for (let z = -H + 2; z < H; z += 2.6) live(K.deco(new THREE.BoxGeometry(H * 2 - 2, 0.02, 0.05), M.metal, 0, 0.05, z));
+  for (const x of [-7.5, 7.5]) live(K.deco(new THREE.BoxGeometry(0.05, 0.02, H * 2 - 2), M.metal, x, 0.05, 0));
+  const walk = std(0x2a2e34, 0.6, 0.6);
+  K.deco(new THREE.BoxGeometry(2.4, 0.06, H * 2 + NOSE), walk, 0, 0.05, (H + NOSE) / 2 + 0.2).receiveShadow = true;
+  if (!low) for (let z = NOSE + 0.4; z < H; z += 0.5) live(K.deco(new THREE.BoxGeometry(2.2, 0.02, 0.08), M.metal, 0, 0.09, z));
+  for (const sx of [-1, 1]) live(K.deco(new THREE.BoxGeometry(0.08, 0.03, H * 2 + NOSE), glowM(C.holo, 0.6), sx * 1.25, 0.08, (H + NOSE) / 2 + 0.2));
+  for (let i = 0; i < 12; i++) live(K.deco(new THREE.BoxGeometry(0.6, 0.02, 0.5), std(i % 2 ? 0x16181c : 0xd9a43a, 0.7), -5.5 + i * 1.0, 0.06, H - 0.4, 0, 0.6, 0));
 }
 
 /* ---------------- the cockpit ---------------- */
@@ -109,6 +149,14 @@ function cockpit({ K, M, C, H, R, low }){
     K.column(sx * (NOSE_W + 0.25), NOSE, 0.35, WALL_H + 1.2, M.metal, { wallKick: false, seg: 8, taper: 1 });
   }
   pic(K.deco(new THREE.BoxGeometry(NOSE_W * 2, 0.6, 0.8), M.metal, 0, WALL_H + 0.9, NOSE));   // the lintel
+  // the bulkheads' faces to the hold: a hatch frame's chamfered corners, a panel of screens and a pipe run on each
+  for (const sx of [-1, 1]){
+    pic(K.deco(new THREE.BoxGeometry(1.2, 0.4, 0.5), M.metal, sx * (NOSE_W - 0.4), WALL_H + 0.35, NOSE + 0.1, 0, 0, sx * -0.7));
+    const fx = sx * (NOSE_W + bw);
+    pic(K.deco(new THREE.BoxGeometry(bw * 1.4, 1.6, 0.12), M.dark, fx, 2.2, NOSE + 0.08));
+    for (let k = -1; k <= 1; k++){ const sc = live(K.deco(new THREE.PlaneGeometry(bw * 0.38, 1.1), M.screen, fx + k * bw * 0.45, 2.25, NOSE + 0.16)); anim(sc, (m, t) => { m.material.opacity = 0.55 + Math.sin(t * (0.8 + k * 0.3) + sx) * 0.2; }); }
+    for (const py of [0.6, 0.9]) pic(K.deco(new THREE.CylinderGeometry(0.07, 0.07, bw * 2, 6), M.metal, fx, py, NOSE + 0.12, 0, 0, PI / 2));
+  }
   // the DASH: a low curve of consoles across the nose, screens lit along its top, two SEATS in front of it
   const dz = -H + 1.6;
   K.box(0, dz, NOSE_W - 0.6, 0.7, 1.05, M.dark);
@@ -137,7 +185,7 @@ function cockpit({ K, M, C, H, R, low }){
 
 /* ---------------- the galaxy table ---------------- */
 function galaxyTable({ K, M, C, R, low }){
-  const x = 0, z = -1;
+  const x = 0, z = -0.5;
   K.column(x, z, 2.1, 0.95, M.dark, { wallKick: false, seg: 24, taper: 1 });
   K.deco(new THREE.CylinderGeometry(2.3, 2.3, 0.12, 24), M.trim, x, 1.0, z);
   live(K.deco(new THREE.RingGeometry(1.7, 2.0, 40), glowM(C.holo, 0.75), x, 1.07, z, -PI / 2));
@@ -191,7 +239,7 @@ function jediHold(o){
     K.box(sx * wx, z, 0.7, 1.6, 0.45, M.hullD, { climbable: true });
     for (const dz of [-0.8, 0.8]) K.deco(new THREE.CylinderGeometry(0.42, 0.45, 0.16, 10), M.seat, sx * wx, 0.53, z + dz);
   }
-  if (!low) for (const sx of [-1, 1]) for (const z of [-6.4, 6.6]){
+  if (!low) for (const sx of [-1, 1]) for (const z of [-5.4, 6.6]){
     K.column(sx * (wx + 0.2), z, 0.14, 1.8, M.metal, { wallKick: false, seg: 6, taper: 1 });
     live(K.deco(new THREE.SphereGeometry(0.22, 10, 8), glowM(0xffe2a8), sx * (wx + 0.2), 1.95, z));
   }
@@ -208,7 +256,7 @@ function trooperHold(o){
     }
   });
   // JUMP SEATS down both walls: a bench, a seat back each, the harness bars up over them, and grab rails overhead
-  for (const sx of [-1, 1]) for (const [z0, z1] of [[-6, -1], [6, 10]]){
+  for (const sx of [-1, 1]) for (const [z0, z1] of [[-5.2, -0.6], [5.6, 10.6]]){
     const zc = (z0 + z1) / 2, hz = (z1 - z0) / 2;
     K.box(sx * (wx + 0.3), zc, 0.5, hz, 0.55, M.metal);
     for (let z = z0 + 0.6; z < z1; z += 1.1){
@@ -220,7 +268,7 @@ function trooperHold(o){
   }
   // the unit's stripe down the floor either side of the runner, and a squad's helmets hung by the ramp
   for (const sx of [-1, 1]) live(K.deco(new THREE.PlaneGeometry(0.35, H * 2 - 6), glowM(C.accent, 0.35), sx * 2.2, 0.055, 1, -PI / 2));
-  for (let i = 0; i < 4; i++) K.deco(new THREE.SphereGeometry(0.26, 10, 8, 0, PI * 2, 0, PI * 0.62), M.hull, -wx - 0.4, 2.6, 11.2 + i * 0.7);
+  for (let i = 0; i < 4; i++) K.deco(new THREE.SphereGeometry(0.26, 10, 8, 0, PI * 2, 0, PI * 0.62), M.hull, -wx - 0.4, 2.6, 6.2 + i * 0.7);
 }
 function mandoHold(o){
   const { K, M, C, H, R, low } = o, wx = SIDE_X(H);
@@ -282,14 +330,14 @@ function outside({ C }, world){
   }
   c.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  const planet = new THREE.Mesh(new THREE.SphereGeometry(13, 40, 24), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
-  planet.position.set(-12, 5, -46); planet.rotation.z = 0.35;
+  const planet = new THREE.Mesh(new THREE.SphereGeometry(10, 40, 24), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+  planet.position.set(-9, 4, -36);   // (inside the sky dome: arena × 1.7) planet.rotation.z = 0.35;
   planet.userData.noBake = true; planet.userData.passThrough = true; planet.castShadow = false; planet.receiveShadow = false;
   g.add(planet);
   // its night side: a dark sphere offset toward us, so the world reads lit from one side
-  const shade = new THREE.Mesh(new THREE.SphereGeometry(13.1, 40, 24, 0, PI * 2, 0, PI), new THREE.MeshBasicMaterial({ color: 0x02040a, transparent: true, opacity: 0.55, fog: false, depthWrite: false }));
+  const shade = new THREE.Mesh(new THREE.SphereGeometry(10.1, 40, 24, 0, PI * 2, 0, PI), new THREE.MeshBasicMaterial({ color: 0x02040a, transparent: true, opacity: 0.55, fog: false, depthWrite: false }));
   shade.position.copy(planet.position); shade.rotation.set(0.3, 0, -1.9); shade.userData.noBake = true; shade.userData.passThrough = true; g.add(shade);
-  const halo = new THREE.Mesh(new THREE.RingGeometry(13, 14.2, 64), new THREE.MeshBasicMaterial({ color: col.clone().offsetHSL(0, 0, 0.2), transparent: true, opacity: 0.35, fog: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const halo = new THREE.Mesh(new THREE.RingGeometry(10, 11, 64), new THREE.MeshBasicMaterial({ color: col.clone().offsetHSL(0, 0, 0.2), transparent: true, opacity: 0.35, fog: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   halo.position.copy(planet.position); halo.userData.noBake = true; halo.userData.passThrough = true; g.add(halo);
   anim(planet, (m, t) => { m.rotation.y = t * 0.01; });
   void C;

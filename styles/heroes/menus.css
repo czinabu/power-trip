@@ -203,9 +203,10 @@ body.fovpreview #settings .howto-panel{background:transparent;box-shadow:none;an
    the first row and stretched its column, squeezing SAVE GAME, LOAD GAME, PROFILE, CONTROLS and CODEX to slivers. */
 #overlay.st-pause .ov-actions{grid-template-columns:repeat(6,minmax(0,1fr))}
 #overlay.st-pause #templeBtn{grid-column:1/-1;order:2;color:var(--hx-accent-hi)}
+#overlay.st-pause #templeHomeBtn{grid-column:1/-1;order:2}
 #overlay.st-pause .ov-actions .btn{min-width:0;overflow:hidden;text-overflow:ellipsis}
 [data-hero="mando"] #overlay.st-pause .ov-actions .btn:not(.go){letter-spacing:.12em}
-@media (max-width:520px){ #overlay.st-pause #templeBtn.btn{grid-column:1/-1} }
+@media (max-width:520px){ #overlay.st-pause :is(#templeBtn,#templeHomeBtn).btn{grid-column:1/-1} }
 
 /* THE PAUSE SCREEN's last generic bits: the small logo's rule and the hint row's keys */
 #overlay.st-pause .ov-head h1{color:var(--hx-dim)}

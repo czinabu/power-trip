@@ -14,6 +14,7 @@ import { shared, solids } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { toon, inkify } from '../ink.js';
+import { leg, navLight } from './ship-kit.js';
 import { COVERT_WINGS } from '../../data/hub-covert.js';
 import { SIDE_OUT } from '../../data/hub.js';
 
@@ -583,6 +584,9 @@ function hangar(L, K, pal, R, M){
    gull wings with an engine at each tip, a main thruster in the tail, a swept fin, twin cannons under the chin, and
    the belly ramp lowered at the back with the hold lit. Nose toward local +z; `ry` turns it. Toon-shaded and inked
    like the heroes, with collision as a chain of columns down the hull (the ramp is three climbable steps). */
+// ink every mesh under a group (gathered first: inkify hangs its outline under each mesh, which a live traverse would
+// then visit and ink again, and again)
+const inkAll = (grp) => { const ms = []; grp.traverse(o => { if (o.isMesh) ms.push(o); }); for (const o of ms) inkify(o, 0.04); };
 function huntersShip(x, z, ry, pal){
   const g = new THREE.Group(); g.userData.noBake = true; g.userData.solidify = true; g.position.set(x, 0, z); g.rotation.y = ry; shared.arenaGroup.add(g);   // (it never leaves its pad: the auto colliders fill in round its own, world/autosolid.js)
   const hull = toon(pal.hull ?? 0x8a8e84), hullD = toon(0x6a6e68), dark = toon(pal.metalD ?? 0x30343a), bes = toon(0xc0c6cc);
@@ -627,12 +631,25 @@ function huntersShip(x, z, ry, pal){
     part(new THREE.CylinderGeometry(0.75, 0.75, 0.2, 14), dark, ex, ey, ez - 3.05, PI / 2, 0, 0, 0);
     const noz = new THREE.Mesh(new THREE.CircleGeometry(0.6, 16), jet); noz.position.set(ex, ey, ez - 3.16); noz.rotation.y = PI; g.add(noz);
     part(new THREE.ConeGeometry(0.45, 1.0, 10), dark, ex, ey, ez + 3.6, PI / 2);
-    // a landing leg under each wing root
-    part(new THREE.CylinderGeometry(0.18, 0.22, 1.9, 6), dark, sx * 2.4, 0.95, -6.0);
-    part(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 8), dark, sx * 2.4, 0.1, -6.0);
+    // a landing leg under each wing root: strut, oleo, foot and a brace back to the hull (world/arenas/ship-kit.js)
+    { const l = leg({ dark, chrome: bes, trim: bes }, 1.95, { r: 0.18, pad: 0.65, brace: -0.9 }); l.position.set(sx * 2.4, 0, -6.0); g.add(l); inkAll(l); }
+    // a running light at each engine's nose, and the intake grille at the wing root
+    navLight(g, sx < 0 ? 0xff5a40 : 0x5aff8a, ex, ey + 1.05, ez + 2.4, 0.12);
+    for (let k = 0; k < 4; k++) part(new THREE.BoxGeometry(0.06, 0.5, 1.6), dark, sx * (2.05 + k * 0.12), 3.0, 1.2, 0, 0, sx * 0.42, 0);
+    // scuffed plates down the flank, the clan's ship well used
+    for (const [pz, py, pw, ph] of [[-5.4, 2.6, 2.2, 0.9], [-1.4, 2.3, 1.6, 0.7], [2.2, 2.8, 1.8, 0.6]]) part(new THREE.BoxGeometry(0.05, ph, pw), hullD, sx * 2.82, py, pz, 0, 0, 0, 0);
   }
-  part(new THREE.CylinderGeometry(0.2, 0.24, 1.9, 6), dark, 0, 0.95, 7.5);   // the nose leg
-  part(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 8), dark, 0, 0.1, 7.5);
+  { const l = leg({ dark, chrome: bes, trim: bes }, 1.95, { r: 0.18, pad: 0.6, brace: 0.9 }); l.position.set(0, 0, 7.5); g.add(l); inkAll(l); }   // the nose leg
+  // PANEL SEAMS across the back and down the flanks, a sensor dome and aerials on the spine, the canopy's frame
+  for (const pz of [-8.0, -4.8, -1.6, 1.6]){
+    part(new THREE.BoxGeometry(4.6, 0.06, 0.07), dark, 0, 5.08, pz, 0, 0, 0, 0);
+    for (const sx of [-1, 1]) part(new THREE.BoxGeometry(0.06, 2.6, 0.07), dark, sx * 2.82, 3.3, pz, 0, 0, 0, 0);
+  }
+  part(new THREE.SphereGeometry(0.42, 12, 8, 0, PI * 2, 0, PI / 2), bes, 0, 6.15, -4.6);
+  for (const [ax, az, al] of [[0.8, -7.4, 1.4], [-0.9, -6.9, 0.9]]) part(new THREE.CylinderGeometry(0.03, 0.03, al, 4), dark, ax, 6.15 + al / 2, az, -0.2, 0, 0, 0);
+  for (const fz of [4.0, 5.2]) part(new THREE.BoxGeometry(2.5, 0.1, 0.12), bes, 0, fz > 4.5 ? 5.25 : 5.75, fz, -0.4, 0, 0, 0);
+  for (const pz of [-6.4, -3.0, 0.2]) part(new THREE.BoxGeometry(0.9, 0.22, 0.7), dark, 0.9, 6.2, pz);   // vents and boxes on the spine
+  navLight(g, 0xffffff, 0, 7.6, -8.9, 0.1);
   // the FIN: swept back off the tail, the clan's mark in paint on it
   { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(-3.2, 3.6); sh.lineTo(-4.6, 3.6); sh.lineTo(-3.6, 0);
     const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.36, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 1 });

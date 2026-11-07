@@ -20,20 +20,20 @@ const PI = Math.PI;
 
 // every ship's cabin shares one plan, so its stations stand in the same spots on every ship: the helm forward (north, −z),
 // the galaxy table in the middle of the hold, the locker to port, the comms to starboard, the ramp aft (south)
-const ARENA = 32;
+const ARENA = 26;   // (a hold, not a hangar: wide enough for a party of four and the follow-cam, and no wider)
 const plan = (o) => ({
   name: o.wingName, short: o.short,
   blurb: o.blurb,
   level: { name: o.levelName, sub: 'The galaxy map launches any world. Walk down the ramp to leave.', arena: ARENA, layout: o.layout, waves: [], hazards: {} },
   map: ['hull'],   // what the hub map draws the room with (ui/hub-map.js ART)
   doors: { s: o.exit },   // the ramp: walk down it into the hub
-  spawn: [0, 9, PI],
+  spawn: [0, 8, PI],
   stations: [
-    { id: 'galaxy', x: 0, z: -1, name: 'GALAXY MAP', act: 'galaxy', r: 5.2 },
-    { id: 'helm', x: 0, z: -11, name: o.helm, act: 'galaxy', r: 3.2 },
-    { id: 'locker', x: -11.2, z: 3, name: o.locker, act: 'forge', r: 3.2 },
-    { id: 'comms', x: 11.2, z: 3, name: 'CALLS FOR AID', act: 'quests', r: 3.2 },
-    { id: 'console', x: 10.5, z: 11, name: o.console, act: 'travel', r: 3 },
+    { id: 'galaxy', x: 0, z: -0.5, name: 'GALAXY MAP', act: 'galaxy', r: 4.6 },
+    { id: 'helm', x: 0, z: -9.4, name: o.helm, act: 'galaxy', r: 3 },
+    { id: 'locker', x: -9.6, z: 3, name: o.locker, act: 'forge', r: 3 },
+    { id: 'comms', x: 9.6, z: 3, name: 'CALLS FOR AID', act: 'quests', r: 3 },
+    { id: 'console', x: 8.6, z: 9.4, name: o.console, act: 'travel', r: 2.8 },
   ],
 });
 

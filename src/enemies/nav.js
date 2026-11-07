@@ -13,11 +13,21 @@
 //     wave spread over a battle map) runs a slice per frame into a spare buffer and swaps in when it's done;
 //   · navSteer() is what the AI asks each frame: straight at the player when the way is open, otherwise toward the
 //     farthest cell down the field it can walk to in a straight line (smooth, not grid-zigzag).
+//
+// LEDGES: a "climbable" solid is only walked onto from within STEP_UP of its top (world/collision.js): a low step from the
+// floor, a tall one only from the step below it. The hero hops onto a waist-high crate or a broken wall stub; a foe's feet
+// can't. So every cell also knows the height of the ground it stands on (nav.top), no route or straight line climbs more
+// than a step between cells (it may DROP off any ledge: the pursuit's stair lane ends in one), and a straight-line walk
+// keeps clear of a climbable solid that rises more than a step above its own ground as it would of a wall (nav.ledge),
+// nor does a route run along the foot of one. A foe used to be sent straight at a 0.9 m rubble gap in a fort wall (or a
+// waist-high cot, a crate stack) and ground into it forever; now it walks round to the gate, and still walks up the
+// temple's ziggurat a step at a time.
 
 import { shared, solids, hazardZones, vents, enemies } from '../state.js';
 import { allies } from '../allies/squad.js';
 import { clamp } from '../utils.js';
 import { hazardContains } from '../world/hazards.js';
+import { STEP_UP, moundY } from '../world/collision.js';
 
 const CS = 0.6;                         // cell size (world units)
 const CLASSES = [0.62, 0.95];           // passable clearance: troopers, and big bodies (brutes, vital elites)
@@ -28,6 +38,7 @@ const HOT_COST = 7;                     // extra cost per cell of a warning/firi
 const IDLE_COST = 0.25;                 // a resting hazard is only mildly disliked
 const LINE_PAD = 0.12;                  // straight-line moves keep this much more room than the grid needs
 const INF = 1e9;
+let CLIMB = 0.501;                      // the most the ground may rise between two neighbouring cells on a walk (STEP_UP: set in buildNav)
 const BIG_RANGE = 46;                   // a battle map's flow field reaches this far (walking metres) from the hero
 const BUDGET = 1.5;                     // ms of a frame a fill may take; a bigger one carries on next frame
 const MARGIN = 6;                       // a fill reaches this far (walking metres) past the last body that reads it
@@ -36,6 +47,8 @@ const REACH = 3;                        // cells: navSteer's search round a body
 const nav = {
   n: 0, nz: 0, half: 0, halfZ: 0, ox: 0, oz: 0,   // cells across (x) and along (z), arena half-sizes, grid origin (−half)
   clear: null,                          // Float32Array clearance per cell
+  top: null,                            // Float32Array: the height of the ground at each cell (a step, a hill, a deck; 0 = floor)
+  ledge: null,                          // Float32Array: clearance counting the steps too tall to mount from this cell as walls
   hz: null,                             // Int16Array: hazard index + 1 per cell (0 = none); vents come after zones
   dist: [null, null],                   // Float32Array walking distance to the player, per class
   back: [null, null],                   // the spare per class, which a fill under way writes
@@ -52,16 +65,40 @@ const centre = i => nav.ox + (i + 0.5) * CS;
 const centreZ = i => nav.oz + (i + 0.5) * CS;
 const inGrid = (ix, iz) => ix >= 0 && iz >= 0 && ix < nav.n && iz < nav.nz;
 
+/* the ground a body stands on at a point: the highest climbable top (a step, a deck, a hill) over it, 0 on the floor */
+function topOf(list, x, z){
+  let g = 0;
+  for (const c of list){
+    if (!c.climbable || c.y0) continue;
+    if (c.mound){ const y = moundY(c, x, z); if (y > g) g = y; continue; }
+    if (c.h > g && (c.box ? Math.abs(x - c.x) <= c.hx && Math.abs(z - c.z) <= c.hz : Math.hypot(x - c.x, z - c.z) <= c.r)) g = c.h;
+  }
+  return g;
+}
 /* distance from a point to the nearest real solid (0 inside one) */
 function clearanceAt(x, z){
   let best = 99;
   for (const c of solids){
-    if (c.climbable || c.y0) continue;   // steps and hills are walked over, an overhead slab under
+    if (c.climbable || c.y0) continue;   // steps and hills are walked over (a tall step: nav.ledge), an overhead slab under
     let d;
     if (c.box){
       const dx = Math.max(Math.abs(x - c.x) - c.hx, 0), dz = Math.max(Math.abs(z - c.z) - c.hz, 0);
       d = Math.hypot(dx, dz);
     } else d = Math.max(0, Math.hypot(x - c.x, z - c.z) - c.r);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/* distance to the nearest step too tall to mount from ground `level` (the list is short: tallSteps) */
+let tallSteps = [];
+function ledgeClear(list, x, z, level){
+  let best = 99;
+  for (const c of list){
+    if (!c.climbable || c.mound || c.y0 || c.h <= level + CLIMB) continue;
+    let d;
+    if (c.box){ const dx = Math.max(Math.abs(x - c.x) - c.hx, 0), dz = Math.max(Math.abs(z - c.z) - c.hz, 0); d = Math.hypot(dx, dz); }
+    else d = Math.max(0, Math.hypot(x - c.x, z - c.z) - c.r);
     if (d < best) best = d;
   }
   return best;
@@ -75,7 +112,7 @@ function bucketSolids(){
   const hx = nav.half, hz = nav.halfZ, bn = Math.ceil(hx * 2 / BUCKET), bz = Math.ceil(hz * 2 / BUCKET);
   const b = { n: bn, nz: bz, cells: Array.from({ length: bn * bz }, () => []) };
   for (const c of solids){
-    if (c.climbable || c.y0) continue;
+    if (c.y0) continue;   // (climbable steps too: the ground's height, nav.top, is read through the buckets)
     const ex = (c.box ? c.hx : c.r) + BUCKET_CAP, ez = (c.box ? c.hz : c.r) + BUCKET_CAP;
     const i0 = Math.max(0, Math.floor((c.x - ex + hx) / BUCKET)), i1 = Math.min(bn - 1, Math.floor((c.x + ex + hx) / BUCKET));
     const j0 = Math.max(0, Math.floor((c.z - ez + hz) / BUCKET)), j1 = Math.min(bz - 1, Math.floor((c.z + ez + hz) / BUCKET));
@@ -83,11 +120,16 @@ function bucketSolids(){
   }
   return b;
 }
-function clearanceBucketed(x, z){
+const bucketAt = (x, z) => {
   const b = buckets, i = Math.floor((x + nav.half) / BUCKET), j = Math.floor((z + nav.halfZ) / BUCKET);
-  if (i < 0 || j < 0 || i >= b.n || j >= b.nz) return 0;
+  return i < 0 || j < 0 || i >= b.n || j >= b.nz ? null : b.cells[j * b.n + i];
+};
+function clearanceBucketed(x, z){
+  const cell = bucketAt(x, z);
+  if (!cell) return 0;
   let best = BUCKET_CAP;
-  for (const c of b.cells[j * b.n + i]){
+  for (const c of cell){
+    if (c.climbable) continue;
     let d;
     if (c.box){ const dx = Math.max(Math.abs(x - c.x) - c.hx, 0), dz = Math.max(Math.abs(z - c.z) - c.hz, 0); d = Math.hypot(dx, dz); }
     else d = Math.max(0, Math.hypot(x - c.x, z - c.z) - c.r);
@@ -100,9 +142,12 @@ function clearanceBucketed(x, z){
 export function buildNav(){
   nav.half = shared.arenaHalf; nav.halfZ = shared.arenaHalfZ || shared.arenaHalf;   // a long arena (the pursuit route) is deeper than it is wide
   nav.ox = -nav.half; nav.oz = -nav.halfZ;
+  CLIMB = STEP_UP + 1e-3;   // (read here, not at load: collision.js and the enemies import each other)
   nav.n = Math.ceil((nav.half * 2) / CS); nav.nz = Math.ceil((nav.halfZ * 2) / CS);
   const N = nav.n * nav.nz;
   nav.clear = new Float32Array(N);
+  nav.top = new Float32Array(N);
+  nav.ledge = new Float32Array(N);
   nav.hz = new Int16Array(N);
   nav.dist = [new Float32Array(N).fill(INF), new Float32Array(N).fill(INF)];
   nav.back = [new Float32Array(N), new Float32Array(N)];   // the field a fill is writing (swapped in when it's done)
@@ -113,9 +158,14 @@ export function buildNav(){
   const edge = nav.half - 1, edgeZ = nav.halfZ - 1;   // clampToArena keeps bodies inside this rectangle
   buckets = solids.length >= BUCKET_FROM && nav.half >= 100 ? bucketSolids() : null;   // (only an open zone: every other map keeps the exact scan)
   const clearOf = buckets ? clearanceBucketed : clearanceAt;
+  tallSteps = solids.filter(c => c.climbable && !c.mound && !c.y0 && c.h > CLIMB);   // the only steps that can wall a cell
+  const steps = solids.filter(c => c.climbable && !c.y0);   // (only climbables and hills are ground: the rest are walls)
+  const groundOf = buckets ? (x, z) => { const cell = bucketAt(x, z); return cell ? topOf(cell, x, z) : 0; } : (x, z) => steps.length ? topOf(steps, x, z) : 0;
   for (let iz = 0; iz < nav.nz; iz++) for (let ix = 0; ix < nav.n; ix++){
     const x = centre(ix), z = centreZ(iz), k = iz * nav.n + ix;
+    const level = nav.top[k] = groundOf(x, z);
     nav.clear[k] = (Math.abs(x) > edge || Math.abs(z) > edgeZ) ? 0 : clearOf(x, z);
+    nav.ledge[k] = nav.clear[k] > 0 && tallSteps.length ? Math.min(nav.clear[k], ledgeClear(buckets ? bucketAt(x, z) || [] : tallSteps, x, z, level)) : nav.clear[k];
     let h = 0;
     for (let i = 0; i < hazardZones.length && !h; i++) if (hazardContains(hazardZones[i], x, z)) h = i + 1;
     for (let i = 0; i < vents.length && !h; i++){
@@ -171,7 +221,7 @@ const NB = [[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,Math.SQRT2],[1,-1,Math.SQRT2]
 
 /* A fill runs as a JOB: it writes into a spare buffer a slice per frame (BUDGET ms), and the finished field swaps in
    whole, so what the foes read is always a complete field and no frame pays for a whole one. */
-const job = { on: false, cls: 0, d: null, W: [], hot: new Uint8Array(64), left: 0, limit: 0 };
+const job = { on: false, cls: 0, d: null, W: [], hot: new Uint8Array(64), left: 0, limit: 0, seedR: 0 };
 let gotScratch = new Uint8Array(64);
 function beginFill(cls, px, pz, hot){
   const d = nav.back[cls], need = CLASSES[cls], n = nav.n, C = nav.clear;
@@ -190,7 +240,7 @@ function beginFill(cls, px, pz, hot){
       if (g > R || g >= d[k]) continue;
       d[k] = g; push(d, k);
     }
-    if (nav.heapN) break;
+    if (nav.heapN){ job.seedR = R; break; }
   }
   nav.done.fill(0);
   // the bodies that will read this field (copied: the live list is gathered afresh while the job runs): once the
@@ -215,7 +265,7 @@ function beginFill(cls, px, pz, hot){
 // work the job for up to `budget` ms; true once the field is finished and in use
 function runFill(budget){
   const cls = job.cls, d = job.d, need = CLASSES[cls], n = nav.n, C = nav.clear, W = job.W, got = gotScratch, hot = job.hot;
-  const done = nav.done, near = nav.near, stamp = nav.stamp, hzc = nav.hz, D1 = CS, D2 = CS * Math.SQRT2;
+  const done = nav.done, near = nav.near, stamp = nav.stamp, hzc = nav.hz, D1 = CS, D2 = CS * Math.SQRT2, T = nav.top, LG = nav.ledge;
   const closed = w => C[W[w+1]*n + W[w]] < need;
   const t0 = performance.now();
   let pops = 0;
@@ -233,12 +283,18 @@ function runFill(budget){
       }
       if (!job.left) job.limit = Math.min(nav.range, dk + MARGIN);
     }
+    // a cell at the foot of a step too tall to mount (a waist-high crate, a wall stub) is somewhere a foe ends up (it
+    // dropped off the top, or was knocked there) and walks out of, never a lane to walk along: it leads on only to the
+    // tops a foe drops from. (Round the hero it's the end of the walk: no rule there.)
+    const foot = LG[k] < need && dk > job.seedR;
     for (let q = 0; q < 8; q++){
       const ox = NBX[q], oz = NBZ[q], jx = ix + ox, jz = iz + oz;
       if (jx < 0 || jz < 0 || jx >= n || jz >= nav.nz) continue;
       const j = k + oz*n + ox;
       if (C[j] < need || done[j]) continue;
       if (q >= 4 && (C[k + ox] < need || C[k + oz*n] < need)) continue;   // no cutting a corner
+      if (T[k] - T[j] > CLIMB) continue;   // a foe walks j → k: never up more than a step (it drops down any ledge)
+      if (foot && T[j] - T[k] <= CLIMB) continue;
       let step = q < 4 ? D1 : D2;
       const h = hzc[j];
       if (h) step += (hot[h] ? HOT_COST : IDLE_COST) * CS;
@@ -320,7 +376,7 @@ function openPoint(cls, x, z){
   const ix = cellOf(x), iz = cellOfZ(z);
   if (!inGrid(ix, iz)) return false;
   const k = iz*nav.n + ix;
-  if (nav.clear[k] - Math.hypot(x - centre(ix), z - centreZ(iz)) < CLASSES[cls] + LINE_PAD) return false;
+  if (nav.ledge[k] - Math.hypot(x - centre(ix), z - centreZ(iz)) < CLASSES[cls] + LINE_PAD) return false;   // (a tall step is a wall here)
   return !(nav.hz[k] && nav.hotNow && nav.hotNow[nav.hz[k]]);
 }
 
@@ -329,12 +385,23 @@ function openPoint(cls, x, z){
 export function navLineClear(ax, az, bx, bz, cls, short = 0){
   if (!nav.n) return true;
   const L = Math.hypot(bx - ax, bz - az), steps = Math.ceil(L / (CS * 0.5)), end = L > 0 ? 1 - short / L : 0;
+  let level = groundAt(ax, az);
   for (let s = 1; s <= steps; s++){
     const t = s / steps;
     if (t > end) break;
-    if (!openPoint(cls, ax + (bx - ax)*t, az + (bz - az)*t)) return false;
+    const x = ax + (bx - ax)*t, z = az + (bz - az)*t;
+    if (!openPoint(cls, x, z)) return false;
+    const g = groundAt(x, z);
+    if (g - level > CLIMB) return false;   // a ledge too tall to step up
+    level = g;
   }
   return true;
+}
+
+/* the ground height the grid holds at a point (0 off the grid) */
+function groundAt(x, z){
+  const ix = cellOf(x), iz = cellOfZ(z);
+  return inGrid(ix, iz) ? nav.top[iz*nav.n + ix] : 0;
 }
 
 /* walking distance to the player from here (falls back to Infinity off the field) */
@@ -362,7 +429,7 @@ export function navSteer(x, z, px, pz, cls, out){
     for (let r = 1; r <= 3 && best >= INF; r++)
       for (let oz = -r; oz <= r; oz++) for (let ox = -r; ox <= r; ox++){
         const jx = ix + ox, jz = iz + oz;
-        if (!inGrid(jx, jz)) continue;
+        if (!inGrid(jx, jz) || nav.top[jz*n + jx] - nav.top[iz*n + ix] > CLIMB) continue;
         const v = d[jz*n + jx] + Math.hypot(ox, oz) * CS;
         if (v < best){ best = v; bx = jx; bz = jz; }
       }
@@ -376,12 +443,16 @@ export function navSteer(x, z, px, pz, cls, out){
     return false;
   }
   // walk downhill up to 10 cells, then aim at the farthest one still reachable in a straight line
+  const need = CLASSES[cls];
   let cx = ix, cz = iz, aimX = centre(ix), aimZ = centreZ(iz);
   for (let s = 0; s < 10; s++){
     let best = d[cz*n + cx], nx = -1, nz = -1;
     for (const [ox, oz] of NB){
       const jx = cx + ox, jz = cz + oz;
       if (!inGrid(jx, jz)) continue;
+      const dh = nav.top[jz*n + jx] - nav.top[cz*n + cx];
+      if (dh > CLIMB) continue;   // nearer the hero, but up a ledge it can't step
+      if (nav.ledge[jz*n + jx] < need && dh >= -CLIMB) continue;   // nor along the foot of one (only a drop lands there)
       const v = d[jz*n + jx];
       if (v < best){ best = v; nx = jx; nz = jz; }
     }
@@ -485,6 +556,8 @@ export function navRoute(ax, az, bx, bz, cls = 0, budget = 5000){
       const j = k + oz*n + ox;
       if (!cellOpen(cls, j) || R.seen[j] === gen * 2 + 1) continue;
       if (q >= 4 && (!cellOpen(cls, k + ox) || !cellOpen(cls, k + oz*n))) continue;   // no cutting a corner
+      if (nav.top[j] - nav.top[k] > CLIMB) continue;   // nor climbing a ledge
+      if (nav.ledge[j] < CLASSES[cls] && nav.top[k] - nav.top[j] <= CLIMB && j !== t) continue;   // nor along the foot of one (only dropping into it)
       let ng = gk + (q < 4 ? CS : CS * Math.SQRT2);
       if (nav.hz[j] && nav.hotNow && nav.hotNow[nav.hz[j]]) ng += HOT_COST * CS;
       if (R.seen[j] >= gen * 2 && ng >= R.g[j]) continue;

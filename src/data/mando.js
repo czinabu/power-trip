@@ -62,28 +62,29 @@ export const MANDO = {
 // foStart/foEnd = distance where damage starts/finishes falling off · foMin = min damage mult (bracing also lifts this).
 // kick = recoil per shot (the hand and the reticle jump) · climb = how far each shot walks the reticle up (px) ·
 // flinch = how hard a bolt rocks the foe it hits · size = the bolt's thickness · col = its colour.
+// adsZoom = degrees the view narrows while braced (aim down sights) · scopeFov = the view through a scope (engine/camera.js).
 // `slot`: the LOADOUT slot the gun goes in (KIT_SLOTS below) — a SIDEARM on 1, a PRIMARY on 2. `twoHand` guns are
 // shouldered (one long-gun model at a time: player/model/weapons.js); only the disruptor has a `scope` on RMB.
 // BRACING is the core skill: it tightens the cone hard, boosts damage, and stretches your effective range.
 export const MANDO_WEAPONS = {
   single:    { name: 'BLASTER PISTOL', short: 'PISTOL', slot: 'sidearm', fire: 'semi', fireCd: 0.15, dmg: 32, dual: false, heat: 0.115, cool: 0.6, overCool: 0.46,
-               hipSpread: 0.008, braceSpread: 0.002, braceDmg: 1.08, foStart: 18, foEnd: 44, foMin: 0.5, kick: 0.3, vent: 0.45 },   // bolts track the reticle; the SWAY is the difficulty
+               hipSpread: 0.008, braceSpread: 0.002, braceDmg: 1.08, foStart: 18, foEnd: 44, foMin: 0.5, kick: 0.3, adsZoom: 18, vent: 0.45 },   // bolts track the reticle; the SWAY is the difficulty
   dual:      { name: 'DUAL BLASTERS', short: 'DUAL', slot: 'sidearm', fire: 'auto', fireCd: 0.11, dmg: 13, dual: true,  heat: 0.066, cool: 0.66, overCool: 0.5,
-               hipSpread: 0.02, braceSpread: 0.006, braceDmg: 1.12, foStart: 8, foEnd: 24, foMin: 0.35, kick: 0.18, vent: 0.6 },    // a touch looser, but still honest to the reticle
+               hipSpread: 0.02, braceSpread: 0.006, braceDmg: 1.12, foStart: 8, foEnd: 24, foMin: 0.35, kick: 0.18, adsZoom: 12, vent: 0.6 },    // a touch looser, but still honest to the reticle
   // PULSE CARBINE — the mid-range primary: three-round bursts that walk up the target (pull the reticle back down
   // between bursts), accurate even from the hip, shorter falloff than the pistol, no shield behind it
   carbine:   { name: 'PULSE CARBINE', short: 'CARBINE', slot: 'primary', fire: 'burst', burst: 3, burstGap: 0.068, fireCd: 0.36, dmg: 21, heat: 0.046, cool: 0.72, overCool: 0.55,
                hipSpread: 0.011, braceSpread: 0.003, braceDmg: 1.1, foStart: 22, foEnd: 52, foMin: 0.55, kick: 0.17, climb: 3.2, flinch: 0.5,
-               size: 1.25, col: 0x8fe8ff, twoHand: true, vent: 0.55 },
+               size: 1.25, col: 0x8fe8ff, twoHand: true, adsZoom: 17, vent: 0.55 },
   // HEAVY REPEATER — the crowd shredder: it SPINS UP while the trigger is held (spin.from → spin.to seconds between
   // shots over spin.up s; it winds back down over spin.down once you let go), heavy recoil and a wide cone, every bolt
   // rocks the foe, he walks slower while it fires (slow), and it cooks fast: an overheat or a vent costs a long beat
   repeater:  { name: 'HEAVY REPEATER', short: 'REPEATER', slot: 'primary', fire: 'auto', fireCd: 0.055, dmg: 15, heat: 0.021, cool: 0.4, overCool: 0.26,
                hipSpread: 0.03, braceSpread: 0.011, braceDmg: 1.06, foStart: 14, foEnd: 36, foMin: 0.45, kick: 0.24, climb: 0.9, flinch: 0.25,
-               size: 1.7, col: 0xff8a4a, twoHand: true, spin: { from: 0.22, to: 0.055, up: 1.1, down: 1.4 }, slow: 0.55, vent: 1.1 },
+               size: 1.7, col: 0xff8a4a, twoHand: true, spin: { from: 0.22, to: 0.055, up: 1.1, down: 1.4 }, slow: 0.55, adsZoom: 9, vent: 1.1 },
   disruptor: { name: 'DISRUPTOR', short: 'DISRUPTOR', fire: 'rifle', fireCd: 0.7, dmg: 150, dual: false, heat: 0.42, cool: 0.5, overCool: 0.4,
                hipSpread: 0, braceSpread: 0, braceDmg: 1, foStart: 999, foEnd: 999, foMin: 1, vent: 0.7,
-               twoHand: true, scope: true, stabDmg: 38, stabRange: 5.2, stabStun: 2.0,   // pinpoint sniper; else a fast electric spear
+               twoHand: true, scope: true, scopeFov: 22, stabDmg: 38, stabRange: 5.2, stabStun: 2.0,   // pinpoint sniper; else a fast electric spear
                // the stab: the whole move (s), the share of it where the prongs land (chamber → drive), the gap to the next
                // jab (a click inside the last stretch queues it), and the lunge
                stabTime: 0.34, stabHit: 0.3, stabCd: 0.38, stabQueue: 0.14, stabLunge: 9 },

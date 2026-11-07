@@ -120,7 +120,7 @@ export function spreadBuilt(S, W, mark){
   for (let i = mark.vents; i < vents.length; i++){ const p = vents[i].group.position, [x, z] = at(p.x, p.z); p.x = x; p.z = z; }
   for (let i = mark.zones; i < hazardZones.length; i++){ const h = hazardZones[i], [x, z] = at(h.cx, h.cz); h.cx = x; h.cz = z; }
   const doors = shared.doors || [];
-  for (let i = mark.doors; i < doors.length; i++){ const d = doors[i]; if (d.at) d.at = at(d.at[0], d.at[1]); }
+  for (let i = mark.doors; i < doors.length; i++){ const d = doors[i]; if (d.at) d.at = d.solid ? [d.solid.x, d.solid.z] : at(d.at[0], d.at[1]); }   // (a door stands in its own solid, which moved with its wall)
 }
 
 /* number pairs in a mission's data that are not places on the floor (angles, timings, ranges) */

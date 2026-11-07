@@ -99,7 +99,8 @@ export function buildGarrisonArena(L){
   K.box(0, 13.4, 2.2, 0.7, 1.0, metal);                         // B: the interrogation table
   K.box(-4.2, 4.4, 0.8, 0.8, 1.6, crate); K.box(4.2, 4.4, 0.8, 0.8, 1.6, crate);
   for (const x of [-5.6, 5.6]){ K.box(x, 15.3, 0.6, 0.5, 2.4, metalD); picture(K.deco(new THREE.PlaneGeometry(0.8, 0.6), screen, x, 1.7, 14.78, 0, Math.PI, 0)); }   // B: console banks
-  K.box(10.2, 5, 0.9, 0.9, 1.6, crate);                         // C: crates and the jailer's desk
+  K.box(11.5, 7, 0.9, 0.9, 1.6, crate);                         // C: crates and the jailer's desk (the crate by the east wall's door: it
+                                                                //  moves with that wall when the block spreads, so it never lands in door 4's mouth)
   K.box(10.6, 13.6, 1.2, 0.6, 1.1, metal);
   for (const x of [-14, 0, 14]) for (const z of [5, 13]) picture(K.deco(new THREE.BoxGeometry(1.4, 0.08, 0.4), lamp, x, H - 0.2, z));   // ceiling strips (no ceiling: on the wall tops' line)
 

@@ -226,6 +226,21 @@ export const S = {
   mend: () => FX.mend(),
   mendDone: () => FX.mendDone(),
   forceRise: () => FX.forceRise(),   // the Force Level rises (ui/force-toast.js)
+  // the Armorer strikes a new piece onto the Mando's beskar (game/armorer.js): two hammer rings on hot metal and a hiss
+  forge: () => {
+    T({ type: 'triangle', f: 1180, f2: 1120, g: 0.09, d: 0.9, verb: 0.4, fm: { r: 2.76, i: 0.6, i2: 0.05 } });
+    N({ g: 0.12, d: 0.05, filt: { type: 'bandpass', f: 3200, q: 2 } });
+    T({ type: 'triangle', f: 1240, f2: 1180, g: 0.07, d: 0.8, at: 0.32, verb: 0.4, fm: { r: 2.76, i: 0.5, i2: 0.05 } });
+    N({ at: 0.32, g: 0.09, d: 0.05, filt: { type: 'bandpass', f: 3400, q: 2 } });
+    N({ at: 0.55, color: 'pink', g: 0.06, a: 0.05, d: 0.7, filt: { type: 'highpass', f: 2600 } });
+  },
+  // the trooper's promotion (game/promotion.js): a short brass call, three notes up
+  promote: () => {
+    T({ type: 'sawtooth', f: 392, g: 0.05, d: 0.18, filt: { type: 'lowpass', f: 1800 } });
+    T({ type: 'sawtooth', f: 523, g: 0.05, d: 0.18, at: 0.16, filt: { type: 'lowpass', f: 1900 } });
+    T({ type: 'sawtooth', f: 659, g: 0.06, d: 0.6, at: 0.32, filt: { type: 'lowpass', f: 2100 }, verb: 0.3 });
+    T({ type: 'sine', f: 131, g: 0.08, d: 0.5, at: 0.32 });
+  },
   // ── movement ──
   dash: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.1, a: 0.02, d: 0.17, filt: { type: 'bandpass', f: 700, f2: 2300, q: 1.4 } }); },
   jump: () => { if (tooSoon('dash', 0.06)) return; N({ color: 'pink', g: 0.06, a: 0.015, d: 0.12, filt: { type: 'bandpass', f: 500, f2: 1400, q: 1.2 } }); },

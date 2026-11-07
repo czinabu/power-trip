@@ -20,6 +20,7 @@ import { TROOPER_ARMORY } from '../data/trooper.js';
 import { GUN_ORDER } from '../data/gun-moves.js';
 import { moveBlock, tileRank } from './gun-moves-ui.js';
 import { gunId } from '../player/gun-moves.js';
+import { forceToastHolds } from './force-toast.js';
 
 const menuPanel = document.getElementById('forms');
 const runPanel = document.getElementById('armory');
@@ -160,7 +161,7 @@ const pending = [];
 setArmoryPickHook((id) => { if (!pending.includes(id)) pending.push(id); });
 // game/flow.js, every frame of play: open once nothing else holds the screen
 export function tickArmory(){
-  if (!pending.length || armoryPickUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0)) return;   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
+  if (!pending.length || armoryPickUp() || G.mode !== 'play' || coopRun.holdPopups || G.paused || G.skillSelect || G.cardUp || G.cutscene || performance.now() < (shared.unlockHold || 0) || forceToastHolds()) return;   // (and after the Armorer's beat: ui/force-toast.js)   // (a chapter's close: after its CHAPTER COMPLETE beat, game/flow.js checkUnlocks)
   const id = pending.shift();
   const known = ARMORY_ORDER.filter(w => weaponOwned(w));
   ctx = { mode: 'pick', panel: runPanel, edit: true, known, kit: { ...kitOf() }, fresh: id, focus: id,

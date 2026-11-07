@@ -13,13 +13,17 @@
 //
 // Every mode that climbs the level: the story (solo, and each co-op screen for its own hero: coopRun.holdPopups holds it
 // through a shared fight), survival. The training grounds, the sandbox and a lone mission set the level up front: no beat.
+//
+// THE GUNNERS' BEATS ride the same rules, in their own look (`kind`): the Mando's ARMORER FORGES (game/armorer.js: the new
+// piece struck onto the beskar) and the trooper's PROMOTION (game/promotion.js: the rank, its insignia and the order it
+// brings). One beat at a time: a second kind waits for the first to go.
 
 import { G, shared, enemies, bossUp } from '../state.js';
 import { coopRun } from '../net/run.js';
 import { storySpeaking, commsShowing } from '../game/story.js';
 import { inCombat } from '../player/mobility.js';
 import { S } from '../audio/sfx.js';
-import { forcePulse } from '../fx/force-rise.js';
+import { forcePulse, forgePulse, promotePulse } from '../fx/force-rise.js';
 import { loadingNow } from './loading.js';
 import { doorState } from '../world/doorway.js';
 import { popupUp, popupHooks } from './popups.js';
@@ -36,15 +40,18 @@ export const FIRST_LINE = 'Your Force Level climbs with the story: the powers yo
 // the form chip: its blade colour, and how much of the level it channels
 export const formChip = (r) => r.form ? '<span class="ft-form" style="--c:' + hex(r.blade) + '"><i></i>' + esc(r.form) + ' channels <b>' + r.share + '%</b></span>' : '';
 
-// a rise is waiting: two before the first is shown fold into one (the higher level, and everything either grew)
+// a rise is waiting: two before the first is shown fold into one (the higher level, and everything either grew); a beat
+// of another kind (the forge, a promotion) queues behind it
+const later = [];
 export function queueForceToast(r){
-  if (wait) r = { ...r, first: r.first || wait.first, lead: r.lead || wait.lead, grew: [...new Set([...wait.grew, ...r.grew])] };
+  if (wait && (wait.kind || 'force') !== (r.kind || 'force')){ later.push(r); return; }
+  if (wait && !r.kind) r = { ...r, first: r.first || wait.first, lead: r.lead || wait.lead, grew: [...new Set([...wait.grew, ...r.grew])] };
   wait = r;
 }
-export function clearForceToast(){ wait = null; calmT = 0; leadT = 0; hide(true); }
+export function clearForceToast(){ wait = null; later.length = 0; calmT = 0; leadT = 0; hide(true); }
 export const forceToastUp = () => !!(el && el.classList.contains('on'));
 // ui/ability-card.js: a power's card holds while the rise that brought it is still to come, or has only just come up
-export const forceToastHolds = () => !!(wait && wait.lead) || (forceToastUp() && performance.now() < leadT);
+export const forceToastHolds = () => !!(wait && wait.lead) || later.some(x => x.lead) || (forceToastUp() && performance.now() < leadT);
 // a card opened over it: it goes
 export const fadeForceToast = () => { leadT = 0; hide(); };
 
@@ -66,6 +73,7 @@ export function tickForceToast(){
   if ((G.mode !== 'play' || loadingNow() || doorState() >= 2) && forceToastUp()) hide(true);   // (the menu, a death screen, a loading screen or the fade into the next chapter: it goes)
   if (hideT && now > hideT) hide();
   if (goneT && now > goneT){ goneT = 0; if (el) el.classList.remove('on', 'out'); }
+  if (!wait && later.length && !forceToastUp()) wait = later.shift();
   if (!wait) return;
   calmT = lull() ? calmT + dt : 0;   // it has to stay quiet for a moment: not the instant a line or a foe is done
   if (calmT < (wait.lead ? FORCE_TOAST.calmLead : FORCE_TOAST.calm)) return;
@@ -78,7 +86,9 @@ function show(r){
     el = document.createElement('div'); el.id = 'forcetoast';
     document.body.appendChild(el);   // (not in the HUD: a talk on the set hides that, and the rise still shows)
   }
-  el.innerHTML = '<div class="ft-glow"></div><div class="ft-rays"></div>' +
+  el.className = r.kind ? 'ft-' + r.kind : '';
+  el.innerHTML = r.kind === 'forge' ? forgeHtml(r) : r.kind === 'promote' ? promoteHtml(r) :
+    '<div class="ft-glow"></div><div class="ft-rays"></div>' +
     '<div class="ft-k">' + (r.max ? 'THE FORCE AT ITS FULLEST' : 'THE FORCE GROWS') + '</div>' +
     '<div class="ft-t">FORCE LEVEL <b>' + r.lv + '</b></div><div class="ft-rule"></div>' +
     '<div class="ft-l">' + esc(growLine(r)) + '</div>' +
@@ -98,8 +108,22 @@ function hide(now){
   goneT = performance.now() + FORCE_TOAST.fade * 1000;
 }
 
+// THE ARMORER FORGES: the piece's name struck on a beskar plate, its slot, the Armorer's line, and where it is now
+function forgeHtml(r){
+  return '<div class="ft-k">THE ARMORER FORGES</div><div class="ft-t">' + esc(r.name) + '</div><div class="ft-w">' + esc(r.what) + '</div>' +
+    '<div class="ft-l">' + esc(r.line) + '</div><div class="ft-x">' + esc(r.note) + '</div>';
+}
+// A PROMOTION: the rank, its insignia (a bar for each rank held), the order it brings, and what he wears for it
+function promoteHtml(r){
+  return '<div class="ft-k">PROMOTED</div><div class="ft-t">' + esc(r.rank) + '</div>' +
+    '<div class="ft-ins">' + '<i></i>'.repeat(r.bars || 1) + '</div>' +
+    (r.perk ? '<div class="ft-perk"><b>' + esc(r.perk) + '</b><span>' + esc(r.sub || '') + '</span></div>' : '') +
+    (r.line ? '<div class="ft-x">' + esc(r.line) + '</div>' : '');
+}
 // the pulse, the swell and the meter's badge: the rise felt, as the note comes up
 function celebrate(r){
+  if (r.kind === 'forge'){ try { forgePulse(); } catch(e){} S.forge(); return; }
+  if (r.kind === 'promote'){ try { promotePulse(); } catch(e){} S.promote(); return; }
   try { forcePulse(r.blade); } catch(e){}
   S.forceRise();
   const m = document.getElementById('fpmeter');

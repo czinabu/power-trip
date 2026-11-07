@@ -18,7 +18,7 @@ import { showBanner } from '../ui/banners.js';
 import { playerPos, maxHp } from '../player/helpers.js';
 import { findClearSpawn } from '../world/collision.js';
 import { TROOPER } from '../data/trooper.js';
-import { canPay, spendCP } from '../player/trooper/command.js';
+import { canPay, spendCP, callCost } from '../player/trooper/command.js';
 import { allies, reinforceSquad, squadDown } from './squad.js';
 
 const K = TROOPER.command;
@@ -35,11 +35,11 @@ export function battlefieldCall(){
 export const callNext = () => squadDown() > 0 ? 'reinforce' : 'supply';
 
 function reinforce(){
-  const R = K.reinforce;
-  if (!canPay(R.cost, 'REINFORCE')) return false;
+  const R = K.reinforce, cost = callCost(R.cost);
+  if (!canPay(cost, 'REINFORCE')) return false;
   const n = reinforceSquad();
   if (!n) return false;
-  spendCP(R.cost); readyAt = G.gt + R.cd;
+  spendCP(cost); readyAt = G.gt + R.cd;
   showBanner('', 'REINFORCEMENTS · ' + n + ' BACK ON THE LINE', 1.2);
   sfx(520, 0.12, 'triangle', 0.05, 880); sfx(780, 0.18, 'triangle', 0.04, 1180);
   for (const a of allies) if (n) burst(V3(a.group.position.x, 1.2, a.group.position.z), 0x7bffae, 6, 4, 3);
@@ -49,8 +49,9 @@ function reinforce(){
 function supplyDrop(){
   const D = K.supply;
   if (crate){ showBanner('', 'SUPPLIES ALREADY INBOUND', 0.8); return false; }
-  if (!canPay(D.cost, 'SUPPLY DROP')) return false;
-  spendCP(D.cost); readyAt = G.gt + D.cd;
+  const cost = callCost(D.cost);
+  if (!canPay(cost, 'SUPPLY DROP')) return false;
+  spendCP(cost); readyAt = G.gt + D.cd;
   const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
   const at = findClearSpawn(pp.x + fx * 2.2 + fz * 1.2, pp.z + fz * 2.2 - fx * 1.2, 0.8);
   const g = new THREE.Group();

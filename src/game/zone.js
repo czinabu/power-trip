@@ -50,7 +50,7 @@ function storyKit(){
   if (kept){ G.formFork = kept; (G.stanceUnlocked = G.stanceUnlocked || {})[kept] = true; }
   G.waveTotal = zoneDepth(); checkUnlocks();   // (the depth sets how practised the forms are and which guns a Mando carries)
 }
-const ZN = { key: null, Z: null, district: null, named: null, distT: 0, near: null, shownKey: '', arrived: 0 };
+const ZN = { key: null, Z: null, district: null, named: null, distT: 0, near: null, shownKey: '', arrived: 0, pin: null };
 let el = null;
 const prompt = () => el || (el = document.getElementById('zonep'));
 
@@ -84,7 +84,7 @@ function hookUp(){
 export function startZone(key = 'jedha', opts = {}){
   const Z = ZONES[key]; if (!Z) return false;
   hookUp();
-  ZN.key = key; ZN.Z = Z; ZN.district = null; ZN.named = null; ZN.distT = 0; ZN.near = null; ZN.shownKey = '';
+  ZN.key = key; ZN.Z = Z; ZN.district = null; ZN.named = null; ZN.distT = 0; ZN.near = null; ZN.shownKey = ''; ZN.pin = null;
   G.missionForms = null; G.missionKit = null;   // (not the forms or guns last picked on the Missions page: the zone's kit is your story's)
   startLevel(0, { level: Z.level, mission: true, zone: key });
   storyKit();
@@ -108,6 +108,13 @@ function land([x, z, yaw]){
   updateZoneStream(true, s.x, s.z);   // the streets round the new spot, before the next frame
   regroupSquad();   // (the trooper's clones come along: allies/squad.js)
 }
+
+/* ---------------- your own waypoint (set on the full map: ui/zone-map.js) ---------------- */
+// one per player: a mark on the compass and the minimap until you reach it (or clear it, or set another)
+const PIN_REACH = 6;   // m: close enough to the waypoint that it has done its job
+export const zonePin = () => ZN.pin;
+export function setZonePin(x, z){ ZN.pin = ZN.Z ? { x, z } : null; return ZN.pin; }
+export function clearZonePin(){ ZN.pin = null; }
 
 /* ---------------- waystones ---------------- */
 export const stonesTouched = () => ZN.Z ? ZN.Z.waystones.filter(w => zoneMemo(ZN.key).stones[w.id]) : [];
@@ -166,6 +173,7 @@ export function updateZone(dt){
     const first = noteZone(ZN.key, 'seen', d.id);
     showBanner(d.name, first ? d.line : '', first ? 3.4 : 1.8, { kicker: d.kicker });
   }
+  if (ZN.pin && Math.hypot(ZN.pin.x - p.x, ZN.pin.z - p.z) < PIN_REACH){ ZN.pin = null; floater(V3(p.x, 2.6, p.z), 'WAYPOINT REACHED', '#f3e7c4'); }
   // waystones: walk up to touch one, F at it to travel
   ZN.near = null;
   for (const w of ZN.Z.waystones){
@@ -186,11 +194,12 @@ export function updateZone(dt){
   }
 }
 
-/* the compass's marks (ui/compass.js): every waystone, the touched ones bright, and the district landmarks */
+/* the compass's marks (ui/compass.js): every waystone, the touched ones bright, the side quests, and your own waypoint */
 export function zoneMarks(){
   if (!G.zone || !ZN.Z) return [];
   const memo = zoneMemo(ZN.key);
-  return [...ZN.Z.waystones.map(w => ({ x: w.x, z: w.z, kind: memo.stones[w.id] ? 'spot' : 'part', label: w.name })), ...zoneQuestMarks()];
+  return [...ZN.Z.waystones.map(w => ({ x: w.x, z: w.z, kind: memo.stones[w.id] ? 'spot' : 'part', label: w.name })), ...zoneQuestMarks(),
+    ...(ZN.pin ? [{ x: ZN.pin.x, z: ZN.pin.z, kind: 'pin' }] : [])];
 }
 export const zoneLabel = (key) => (ZONES[key] || ZONES.jedha).name;
 export { ZONE_PREFIX };

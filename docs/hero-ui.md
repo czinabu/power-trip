@@ -10,7 +10,13 @@ in the project files (`hero-ui/hero-ui-direction.html`).
 - `styles/heroes/tokens.css` fills the `--hx-*` tokens per hero (and a neutral "house" set on `:root`).
   Components read only these tokens, so a new surface works for every hero.
 - `styles/heroes/ink.css` holds the rules every hero shares. Area files: `tracker.css` (objectives, HOLD O, the run
-  line), `briefing.css` (chapter card, lesson board), `screens.css` (pause, results).
+  line), `briefing.css` (chapter card, lesson board), `screens.css` (pause, results), `profile.css` (the profile page,
+  which wears the look of the hero tab it shows), `menus.css` (settings, controls, load / save, save files, co-op, codex,
+  roadmap, the sandbox panel and battle setup, the confirms, and the title screen).
+- Menus: inside a menu the old tokens (`--ink`, `--accent`, `--edge`, ...) point at the hero's `--hx-*` ones, so the
+  older rules recolour on their own; `menus.css` then paints only (no sizes or layout), so phones and the pad ring keep
+  working. A new panel joins by adding its id to the selector lists there. The title screen wears the hero on the stand
+  (the last one picked); the POWER TRIP logo and the boot screen keep the house look.
 
 ## The looks
 
@@ -42,5 +48,7 @@ in the project files (`hero-ui/hero-ui-direction.html`).
 1. Chapter card, objective tracker, HOLD O, pause, results. **Done.**
 2. The live HUD: vitals and meters, the ability and stance/loadout cluster (bottom right), banners, captions,
    compass, squad panel, co-op chips, and the vitals' fight fade.
-3. Menus: main menu (follows the hero on the stand), mission list, ability cards, codex, profile, store; house look
-   for settings, controls, saves, roadmap; the forge, workbench and hub maps onto the shared tokens.
+3. Menus: profile **done**; settings, controls, saves, save files, co-op, codex, roadmap, sandbox, battle setup,
+   confirms and the title screen in each hero's look **done** (settings, controls, saves and the roadmap follow the
+   hero too, not the house look). Still to do: the forms and mastery pages, the hub and zone panels, ability cards,
+   the store; the forge, workbench and hub maps onto the shared tokens.

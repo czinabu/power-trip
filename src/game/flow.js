@@ -1,7 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Level and wave flow: startLevel, startWave, updateFlow, ability unlock gates.
 
-import { chapterLooks } from './look-unlocks.js';
+import { chapterLooks, looksLess } from './look-unlocks.js';
+import { forgeBefore, forgeAfter } from './armorer.js';
+import { promotionBeat, KIT_CARD } from './promotion.js';
 import { noteChapterCleared, takeRankCards, noteFork } from './profile.js';
 import { attune } from './saber-bench.js';
 import { autosave } from './autosave.js';
@@ -288,11 +290,17 @@ export function checkUnlocks(bannerDelay, closing){
   // level0/wave2; Mando's FLAMETHROWER + WRIST ROCKET both land at stage0) and the old single-`announce` version
   // only ever showed the FIRST one found, leaving the other granted but silently un-announced — no banner, ever.
   const announce = [];
-  let forceUp = 0, forceWas = 1;
+  let forceUp = 0, forceWas = 1, promoted = null;
+  const storyClose = closing && G.chapter >= 0, closeId = storyClose ? (chapterOrder(G.actTwo)[G.chapter] || {}).id : null;
+  const forging = storyClose && forgeBefore(closeId);   // the Mando's beskar: the piece this chapter forges (game/armorer.js)
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
       const reached = G.zone ? zoneReached(u) : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage;   // (an open zone: what this hero's story has handed out, game/zone-gate.js)
-      if (reached && !u.has()){ u.grant(); announce.push(u); }
+      if (!reached || u.has()) continue;
+      u.grant();
+      // a rank's order, at its chapter's close: it rides the promotion's ceremony (game/promotion.js), not a banner
+      if (u.promo && storyClose && u.chapter === closeId) promoted = u;
+      else announce.push(u.promo ? { ...u, kicker: 'ORDERS' } : u);
     }
     syncTrooperChips();
   } else if (isGunner()){
@@ -340,14 +348,29 @@ export function checkUnlocks(bannerDelay, closing){
     rise.lead = closing || announce.some(u => !u.form && hasAbilityCard(u));   // (a chapter's close: before its forms, its upgrade page and its picks too)
     queueForceToast(rise);
   }
-  if (closing && G.chapter >= 0) announce.push(...chapterLooks((chapterOrder(G.actTwo)[G.chapter] || {}).id));   // its new looks (game/look-unlocks.js)
   // your profile (game/profile.js): the chapter counts toward your rank, once a run; a rank it raises you to is its own card
-  if (closing && G.chapter >= 0){
-    const id = (chapterOrder(G.actTwo)[G.chapter] || {}).id;
+  let rankCards = [];
+  if (storyClose){
+    const id = closeId;
     G.profClosed = G.profClosed || {};
     if (id && !G.profClosed[id]){ G.profClosed[id] = true; noteChapterCleared(id); }
     if (G.formFork) noteFork('f7', G.formFork);   // (Form VII's pick, for the Force Tree)
-    announce.push(...takeRankCards());
+    rankCards = takeRankCards();
+  }
+  if (storyClose){
+    const looks = chapterLooks(closeId);   // its new looks (game/look-unlocks.js)
+    // THE TROOPER'S PROMOTION: a ceremony with the order it brings (game/promotion.js); the kit ranks keep their card after it
+    const promo = looks.find(u => /^promote-/.test(u.key)), rank = promo && promo.key.slice(8);
+    const beat = rank && promotionBeat(rank, promoted);
+    if (beat){ queueForceToast(beat); if (!KIT_CARD[rank]) looks.splice(looks.indexOf(promo), 1); }
+    else if (promoted) announce.push({ ...promoted, kicker: 'ORDERS' });
+    // THE ARMORER FORGES: the Mando's new piece, struck on and worn now (game/armorer.js); its own card and look line go
+    const forged = forgeAfter(forging);
+    if (forged){
+      queueForceToast(forged);
+      rankCards = rankCards.filter(u => !forged.covers.some(k => u.key === 'part-mando-' + k));
+    }
+    announce.push(...looksLess(looks, forged ? forged.covers : []), ...rankCards);
   }
   if (G.cardUp){ heldUnlocks.push(...announce); return; }   // a chapter card is up: they wait for it to close (releaseUnlockBanners)
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)

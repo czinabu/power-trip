@@ -6,7 +6,8 @@
 //     the calm after a chapter, the training grounds' beacon), and the objective's other parts fainter;
 //   · in the hub, each station and each door (with the wing it leads to), named when you face it;
 //   · the co-op party, each partner in their seat's colour;
-//   · the boss, and a lane that is about to send a wave (red).
+//   · the boss, and a lane that is about to send a wave (red);
+//   · in an open zone, the waypoint you set on its map (cream, with its distance: ui/zone-map.js).
 // A mark past the edge of the strip sits pinned at that edge with a chevron, so it still says which way to turn.
 // Settings · COMPASS turns it off (G.compass, ui/menus.js). ui/hud.js calls renderCompass() each frame.
 
@@ -108,7 +109,7 @@ export function renderCompass(){
   let n = 0;
   marks.forEach((k, i) => {
     const r = rels[i], d = Math.hypot(k.x - pp.x, k.z - pp.z);
-    if (k.kind !== 'obj' && k.kind !== 'ally' && d < 2.5) return;   // standing on it: no need to point
+    if (k.kind !== 'obj' && k.kind !== 'pin' && k.kind !== 'ally' && d < 2.5) return;   // standing on it: no need to point
     const edge = Math.abs(r) > SPAN;
     if (edge && (k.kind === 'part' || k.kind === 'spot' || k.kind === 'door')) return;   // only the things that matter pin to the edge
     const m = markEl(n++), x = (Math.max(-SPAN, Math.min(SPAN, r)) + SPAN) / (2 * SPAN) * 100;
@@ -117,7 +118,7 @@ export function renderCompass(){
     m.style.left = x.toFixed(2) + '%';
     m.style.display = '';
     if (k.col && m._col !== k.col){ m._col = k.col; m.style.setProperty('--mc', k.col); }
-    setText(m.lastChild, k.kind === 'obj' ? (d >= 7 ? Math.round(d) + ' m' : '') : i === named ? k.label + (d >= 7 ? ' · ' + Math.round(d) + ' m' : '') : '');
+    setText(m.lastChild, k.kind === 'obj' || k.kind === 'pin' ? (d >= 7 ? Math.round(d) + ' m' : '') : i === named ? k.label + (d >= 7 ? ' · ' + Math.round(d) + ' m' : '') : '');
   });
   for (let i = n; i < pool.length; i++) if (pool[i].style.display !== 'none') pool[i].style.display = 'none';
 }

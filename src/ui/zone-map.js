@@ -11,7 +11,9 @@
 //     have walked into are named and the rest lie under a haze, every waystone is pinned, the secrets you have found are
 //     marked where you found them, and the side quests and your party are on it live. A waystone you have touched is a
 //     button: pick it on the map or in the list beside it to travel there (as at a waystone, game/zone.js travelTo),
-//     anywhere but in the middle of a fight. M, Esc, Tab or the controller's B close it.
+//     anywhere but in the middle of a fight. Click anywhere else on it (or pick a district or a giver) to set your own
+//     WAYPOINT: a cream pin on the compass and the minimap until you get there. Each district you've found says how many
+//     of its secrets are still out there. M, Esc, Tab or the controller's B close it.
 //   Solo the streets hold still while the map is up, like the waystone panel (ui/zone-ui.js); in a shared zone the party
 //   plays on. Nothing here is per zone: a new zone maps itself from its plan, districts and waystones (data/zones.js).
 
@@ -20,7 +22,7 @@ import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { playerPos } from '../player/helpers.js';
 import { inCombat } from '../player/mobility.js';
-import { zoneDef, zoneDistrict, travelTo } from '../game/zone.js';
+import { zoneDef, zoneDistrict, travelTo, zonePin, setZonePin, clearZonePin } from '../game/zone.js';
 import { zoneGivers, zoneQuestMarks } from '../game/zone-quests.js';
 import { secretsPlaced } from '../game/secrets.js';
 import { zoneMemo } from '../game/profile.js';
@@ -80,6 +82,10 @@ function glyph(ctx, kind, x, y, u, col, ang = 0){
   } else if (kind === 'giver'){
     const r = u * 0.85; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = '#f3e7c4'; ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#07060a'; ctx.fillRect(-u * 0.12, -r * 0.6, u * 0.24, r * 0.75); ctx.fillRect(-u * 0.12, r * 0.28, u * 0.24, u * 0.24);
+  } else if (kind === 'pin'){   // your own waypoint: a cream map pin
+    const r = u * 0.85; ctx.beginPath(); ctx.arc(0, -r * 0.9, r, Math.PI * 0.85, Math.PI * 0.15); ctx.lineTo(0, r * 0.9); ctx.closePath();
+    ctx.fillStyle = '#f3e7c4'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -r * 0.9, r * 0.36, 0, Math.PI * 2); ctx.fillStyle = '#07060a'; ctx.fill();
   } else if (kind === 'foe'){
     ctx.beginPath(); ctx.arc(0, 0, u * 0.5, 0, Math.PI * 2); ctx.fillStyle = '#ff4a3a'; ctx.fill(); ctx.lineWidth = Math.max(1, u * 0.2); ctx.stroke();
   }
@@ -125,6 +131,7 @@ function renderMini(dt){
     if (m.kind === 'spot'){ const q = at(m.x, m.z); if (inside(q, u)) glyph(ctx, 'giver', q[0], q[1], u); }
     else if (m.kind === 'obj'){ const q = pin(at(m.x, m.z)); glyph(ctx, 'obj', q[0], q[1], u); }
   }
+  { const P = zonePin(); if (P){ const q = pin(at(P.x, P.z)); glyph(ctx, 'pin', q[0], q[1], u); } }   // your waypoint
   // the party, pinned to the rim when they're far
   for (const P of partnerStand()){ const q = pin(at(P.pos.x, P.pos.z)); glyph(ctx, 'ally', q[0], q[1], u * 0.95, seatCss(P.slot), yawBearing(P.yaw || 0) - h); }
   glyph(ctx, 'you', W / 2, W / 2, u, '#ffffff', yawBearing(player.group.rotation.y) - h);
@@ -159,11 +166,15 @@ function render(){
     const known = seen.includes(d);
     const [l, t] = pct(Z, d.x0, d.z0), [r, b] = pct(Z, d.x1, d.z1);
     if (!known) marks += '<i class="zm-fog" style="left:' + l + '%;top:' + t + '%;width:' + (r - l).toFixed(2) + '%;height:' + (b - t).toFixed(2) + '%"></i>';
-    marks += '<span class="zm-dist' + (known ? '' : ' off') + (here && here.id === d.id ? ' here' : '') + '" style="' + posStyle(Z, (d.x0 + d.x1) / 2, (d.z0 + d.z1) / 2) + '">' +
-      (known ? esc(d.name.replace(/^THE /, '')) : 'UNEXPLORED') + '</span>';
+    // a district you've found says how many of its secrets are still out there (never where)
+    const inD = secrets.filter(s => districtAt(Z, s.x, s.z) === d), left = inD.filter(s => !s.found).length;
+    const sec = known && inD.length ? '<em>' + (left ? left + (left === 1 ? ' SECRET' : ' SECRETS') + ' LEFT' : 'ALL SECRETS FOUND') + '</em>' : '';
+    const cx = (d.x0 + d.x1) / 2, cz = d.z0 + (d.z1 - d.z0) * 0.32;   // (the name sits high in its district, clear of the waystone by its middle)
+    marks += '<span class="zm-dist' + (known ? '' : ' off') + (here && here.id === d.id ? ' here' : '') + (left ? '' : ' done') + '" data-px="' + cx + '" data-pz="' + cz + '" style="' + posStyle(Z, cx, cz) + '">' +
+      (known ? esc(d.name.replace(/^THE /, '')) : 'UNEXPLORED') + sec + '</span>';
   }
   for (const s of found) marks += '<i class="zm-sec ' + esc(s.kind) + '" style="' + posStyle(Z, s.x, s.z) + '" title="' + esc(SEC_NAME[s.kind] || 'SECRET') + ' · FOUND"></i>';
-  for (const g of zoneGivers()) if (!g.done) marks += '<i class="zm-giver" style="' + posStyle(Z, g.x, g.z) + '"><b>!</b></i>';
+  for (const g of zoneGivers()) if (!g.done) marks += '<i class="zm-giver" data-px="' + g.x.toFixed(1) + '" data-pz="' + g.z.toFixed(1) + '" style="' + posStyle(Z, g.x, g.z) + '"><b>!</b></i>';
   for (const w of Z.waystones){
     const known = !!memo.stones[w.id];
     marks += '<div class="' + (known ? 'zm-stone' : 'zm-pin') + (w.gate ? ' gate' : '') + '"' + (known ? ' data-w="' + esc(w.id) + '"' : '') + ' style="' + posStyle(Z, w.x, w.z) + '">' +
@@ -179,9 +190,10 @@ function render(){
       '<div class="zm-here"><span>YOU ARE IN</span><b>' + esc(here ? here.name : Z.name) + '</b></div>' +
       '<div class="zm-tally"><span><b>' + touched.length + '</b> / ' + Z.waystones.length + ' WAYSTONES</span><span><b>' + seen.length + '</b> / ' + Z.districts.length + ' DISTRICTS</span>' +
         (secrets.length ? '<span><b>' + found.length + '</b> / ' + secrets.length + ' SECRETS</span>' : '') + '</div>' +
+      '<div class="zm-wp"></div>' +
       '<div class="zm-h">TRAVEL' + (fight ? '<em>NOT IN A FIGHT</em>' : '') + '</div>' +
       '<div class="zm-list">' + (travel || '<div class="zm-none">Walk up to a waystone to touch it.</div>') + '</div>' +
-      '<div class="zm-legend"><span><i class="lg you"></i>YOU</span><span><i class="lg stone"></i>WAYSTONE</span><span><i class="lg obj"></i>QUEST GOAL</span><span><i class="lg giver"></i>NEEDS A HAND</span><span><i class="lg sec"></i>SECRET FOUND</span>' +
+      '<div class="zm-legend"><span><i class="lg you"></i>YOU</span><span><i class="lg stone"></i>WAYSTONE</span><span><i class="lg obj"></i>QUEST GOAL</span><span><i class="lg giver"></i>NEEDS A HAND</span><span><i class="lg sec"></i>SECRET FOUND</span><span><i class="lg pin"></i>WAYPOINT</span>' +
         (partnerStand().length ? '<span><i class="lg ally"></i>PARTY</span>' : '') + '</div>' +
       '<div class="btn zm-x" data-x="1">CLOSE <kbd>' + (pad.active ? (pad.family === 'ps' ? '○' : 'B') : MAP_KEY.toUpperCase()) + '</kbd></div>' +
     '</div></div></div>';
@@ -198,8 +210,14 @@ function renderLive(){
   let h = '';
   for (const m of zoneQuestMarks()) if (m.kind === 'obj') h += '<i class="zm-obj" style="' + posStyle(Z, m.x, m.z) + '"></i>';
   for (const P of partnerStand()) h += '<i class="zm-you ally" style="' + posStyle(Z, P.pos.x, P.pos.z) + ';--c:' + seatCss(P.slot) + ';--a:' + yawBearing(P.yaw || 0).toFixed(3) + 'rad"><span>' + esc(P.name || '') + '</span></i>';
+  const P = zonePin();
+  if (P) h += '<i class="zm-wpt" style="' + posStyle(Z, P.x, P.z) + '"></i>';
   h += '<i class="zm-you" style="' + posStyle(Z, p.x, p.z) + ';--a:' + yawBearing(player.group.rotation.y).toFixed(3) + 'rad"><span>YOU</span></i>';
   if (live._h !== h){ live._h = h; live.innerHTML = h; }
+  const row = panel.querySelector('.zm-wp');
+  const r = P ? '<div class="zm-go zm-clear" data-clear="1"><b>WAYPOINT · ' + Math.round(Math.hypot(P.x - p.x, P.z - p.z)) + ' m</b><span>On your compass and minimap · pick to clear it</span></div>'
+              : '<div class="zm-tip">' + (pad.active ? 'Pick a district or someone who needs a hand' : 'Click anywhere on the map') + ' to set a waypoint.</div>';
+  if (row && row._h !== r){ row._h = r; row.innerHTML = r; }
 }
 
 export function openZoneMap(){
@@ -235,9 +253,18 @@ if (panel){
   panel.addEventListener('click', (e) => {
     e.stopPropagation(); audioInit();
     if (e.target === panel || e.target.closest('[data-x]')){ closeZoneMap(); return; }
-    const o = e.target.closest('[data-w]'); if (!o) return;
-    if (o.classList.contains('off')){ S.uiDeny && S.uiDeny(); return; }
-    travel(o.dataset.w);
+    if (e.target.closest('[data-clear]')){ clearZonePin(); S.uiClick && S.uiClick(); renderLive(); return; }
+    const o = e.target.closest('[data-w]');
+    if (o){ if (o.classList.contains('off')){ S.uiDeny && S.uiDeny(); return; } travel(o.dataset.w); return; }
+    // anywhere else on the map: your waypoint there (a district's name or a giver: its own spot, so a controller can set one)
+    const t = e.target.closest('[data-px]'), m = e.target.closest('.zm-map');
+    if (!m || !fullArt) return;
+    let x, z;
+    if (t){ x = +t.dataset.px; z = +t.dataset.pz; }
+    else { const b = m.getBoundingClientRect(); x = fullArt.x0 + (e.clientX - b.left) / b.width * fullArt.size; z = fullArt.z0 + (e.clientY - b.top) / b.height * fullArt.size; }
+    const Z = zoneDef(), h = Z.size / 2;
+    if (Math.abs(x) > h || Math.abs(z) > h){ S.uiDeny && S.uiDeny(); return; }
+    setZonePin(x, z); S.uiClick && S.uiClick(); renderLive();
   });
   document.addEventListener('keydown', (e) => {
     if (!isOpen()) return;
@@ -254,4 +281,4 @@ export function updateZoneMap(dt){
   if ((liveT -= dt) <= 0){ liveT = ZONE_MAP.live; renderLive(); }
 }
 // (tests and the shots)
-export const zoneMapInfo = () => ({ mini: !!miniOn, open: isOpen(), partners: partnerStand().length, pins: panel ? panel.querySelectorAll('.zm-stone').length : 0, district: (zoneDistrict() || {}).id || null, at: G.zone && zoneDef() ? (districtAt(zoneDef(), playerPos().x, playerPos().z) || {}).id || null : null });
+export const zoneMapInfo = () => ({ pin: zonePin(), mini: !!miniOn, open: isOpen(), partners: partnerStand().length, pins: panel ? panel.querySelectorAll('.zm-stone').length : 0, district: (zoneDistrict() || {}).id || null, at: G.zone && zoneDef() ? (districtAt(zoneDef(), playerPos().x, playerPos().z) || {}).id || null : null });

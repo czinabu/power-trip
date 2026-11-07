@@ -59,20 +59,85 @@ try {
   check(m.dawn, 'reaching 50 light earns the Dawnlight crystal');
   check(m.pairs, 'all six path cards are on the run\'s card list');
 
-  // the profile page: the meter row, the cards' LIGHT / DARK tags and lock reasons, the tree's LIGHT AND DARK
+  // the profile page: the meter, the cards' LIGHT / DARK tiles and what unlocks them, the LIGHT & DARK tab
   await page.click('#pfBtn');
   await page.waitForSelector('#profile.open .pf-align');
   check(await page.isVisible('#profile .pf-align .pf-al-bar b'), 'the profile shows the meter');
-  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-meter.png') });
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-overview.png') });
+  await page.click('#profile .pf-vtabs [data-view="deck"]');
   await page.click('#profile [data-filter="locked"]');
-  const lk = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard')].filter(c => c.querySelector('.pf-tier-k.al-dark')).map(c => c.querySelector('.pf-lock') && c.querySelector('.pf-lock').textContent));
-  check(lk.length === 3 && lk.every(t => t === 'NEEDS DARK ALIGNMENT'), 'LOCKED lists the dark cards, each NEEDS DARK ALIGNMENT (' + lk.join(', ') + ')');
+  const darkIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard.al-dark.shut')].map(t => t.dataset.card));
+  const lk = [];
+  for (const id of darkIds){ await page.click('#profile .pf-dcard[data-card="' + id + '"]'); lk.push(await page.evaluate(() => { const u = document.querySelector('#profile .pf-detail .pf-unlock'); return u ? u.textContent : ''; })); }
+  check(lk.length === 3 && lk.every(t => /Lean DARK past 30/.test(t)), 'LOCKED lists the three dark cards, and each says to lean DARK past 30 (' + lk.length + ')');
   await page.click('#profile [data-filter="all"]');
-  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-light').length === 3), 'ALL CARDS shows the three light cards, tagged LIGHT');
-  await page.click('#profile [data-view="tree"]');
-  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-sides .pf-node').length === 6), 'the Force Tree lists LIGHT AND DARK\'s six cards');
-  if (SHOTS){ await page.$eval('#profile .pf-sides-h', el => el.scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') }); }
+  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-light').length === 3), 'UNLOCKED shows the three light cards, tagged LIGHT');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-cards.png') });
+  await page.click('#profile .pf-vtabs [data-view="sides"]');
+  check(await page.evaluate(() => document.querySelectorAll('#profile .pf-sides .pf-pnode').length === 6), 'LIGHT & DARK draws its six cards');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-sides.png') });
+  // the page wears the shown hero's look; a rank stop shows that rank; the FORCE TREE is chains of cards with a detail
+  check(await page.evaluate(() => document.getElementById('profile').dataset.hero === 'jedi'), 'the profile wears the Jedi look');
+  await page.click('#profile .pf-stop[data-rank="0"]');
+  const rk = await page.evaluate(() => document.querySelector('#profile .pf-left .pf-next h4').textContent);
+  check(/PADAWAN/.test(rk), 'tapping the first rank stop shows that rank (' + rk + ')');
+  await page.click('#profile .pf-vtabs [data-view="tree"]');
+  const tr = await page.evaluate(() => ({ n: document.querySelectorAll('#profile .pf-tree3 .pf-pnode').length }));
+  const nodeIds = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-tree3 .pf-pnode')].map(x => x.dataset.node));
+  await page.click('#profile .pf-pnode[data-node="' + nodeIds[nodeIds.length - 1] + '"]');
+  const td = await page.evaluate(() => ({ sel: document.querySelector('#profile .pf-pnode.sel').dataset.node, name: document.querySelector('#profile .pf-detail .pf-dh b').textContent, chains: document.querySelectorAll('#profile .pf-tree3 .pf-chain').length }));
+  check(tr.n >= 6 && td.chains === 3 && td.sel === nodeIds[nodeIds.length - 1] && td.name, 'the FORCE TREE draws three chains (' + tr.n + ' cards) and a tapped card fills the detail (' + td.name + ')');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-tree.png') });
   await page.click('#pfclose');
+
+  // ---- THE GUNNERS' PATHS: the Mando's HONOUR / RUTHLESS and the trooper's MERCY / RUTHLESS (data/alignment.js) ----
+  const gp = await page.evaluate(() => {
+    const { PROFILE: P, creed: C } = GAME, out = {};
+    for (const [h, set, top] of [['mando', C.MANDO_SKILLS, 'alor'], ['trooper', C.TROOPER_SKILLS, 'commander']]){
+      const tree = C.PATH_TREE[h], o = out[h] = {};
+      o.inSet = tree.every(n => set.includes(n));
+      o.mirrored = [1, 2, 3].every(t => tree.filter(n => n.tier === t && n.align === 'light').length === 1 && tree.filter(n => n.tier === t && n.align === 'dark').length === 1);
+      const pr = P.profileOf(h), owns = (side) => tree.filter(n => n.align === side && P.owns(h, n)).length;
+      P.shiftAlign(40, h, 'test', true); pr.rank = 0;
+      o.lightLow = owns('light'); o.darkLow = owns('dark');   // (only the FOUNDATION card at the first rank)
+      pr.rank = P.track(h).ranks.findIndex(r => r.id === top);
+      o.light = owns('light'); o.dark = owns('dark');
+      o.jediGets = tree.some(n => P.owns('jedi', n));
+      P.shiftAlign(-80, h, 'test', true);
+      o.light2 = owns('light'); o.dark2 = owns('dark');
+    }
+    return out;
+  });
+  for (const h of ['mando', 'trooper']){
+    const o = gp[h];
+    check(o.inSet && o.mirrored, h + ': six path cards on its card list, a light and a dark at every tier');
+    check(o.lightLow === 1 && o.darkLow === 0, h + ': leaning light at the first rank opens only the FOUNDATION light card (' + o.lightLow + ')');
+    check(o.light === 3 && o.dark === 0 && !o.jediGets, h + ': at the top rank all three light cards open, none of the dark (' + o.light + '/' + o.dark + ')');
+    check(o.light2 === 0 && o.dark2 === 3, h + ': swinging to the dark closes the light cards and opens the dark (' + o.light2 + '/' + o.dark2 + ')');
+  }
+  // the Mando's profile page: the cards tagged RUTHLESS, and the HONOUR AND RUTHLESS section
+  await page.click('#pfBtn');
+  await page.waitForSelector('#profile.open', { timeout: 5000 }).catch(() => {});
+  await page.click('#profile [data-h="mando"]');
+  await page.click('#profile .pf-vtabs [data-view="sides"]');
+  const mp = await page.evaluate(() => ({ h: document.querySelector('#profile .pf-vtabs [data-view="sides"]').textContent, nodes: document.querySelectorAll('#profile .pf-sides .pf-pnode').length }));
+  check(mp.h === 'HONOUR & RUTHLESS' && mp.nodes === 6, 'the Mando\'s profile has HONOUR & RUTHLESS with its six cards (' + mp.h + ', ' + mp.nodes + ')');
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'profile-creed.png') });
+  await page.click('#profile .pf-vtabs [data-view="deck"]');
+  const tags = await page.evaluate(() => [...document.querySelectorAll('#profile .pf-dcard .pf-tier-k.al-dark')].map(t => t.textContent));
+  check(tags.length === 3 && tags.every(t => t === 'RUTHLESS'), 'the Mando\'s dark cards are tagged RUTHLESS (' + tags.join(', ') + ')');
+  // with a deck built, a card's detail takes it out and puts it back
+  await page.click('#profile [data-deckact="suggest"]');
+  const inId = await page.evaluate(() => { const t = document.querySelector('#profile .pf-dcard.indeck'); return t && t.dataset.card; });
+  const n0 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
+  await page.click('#profile .pf-dcard[data-card="' + inId + '"]'); await page.click('#profile .pf-detail [data-deck]');
+  const n1 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
+  await page.click('#profile .pf-detail [data-deck]');
+  const n2 = await page.evaluate(() => GAME.PROFILE.deckOf('mando').length);
+  check(inId && n1 === n0 - 1 && n2 === n0, 'a card\'s detail takes it out of the deck and puts it back (' + n0 + ' → ' + n1 + ' → ' + n2 + ')');
+  await page.click('#profile [data-deckact="all"]');
+  await page.click('#pfclose').catch(() => {});
+  await page.evaluate(() => { for (const h of ['mando', 'trooper']) GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf(h), h, 'test', true); });
 
   // ---- MERCY, in survival ----
   await page.evaluate(() => { GAME.PROFILE.shiftAlign(-GAME.PROFILE.alignOf('jedi'), 'jedi', 'test', true); });   // back to balanced
@@ -126,6 +191,7 @@ try {
   check(eyes.plain && eyes.dark !== eyes.plain && eyes.light !== eyes.plain && eyes.dark !== eyes.light, 'the eyes take the side you lean to (' + eyes.plain + ' · dark ' + eyes.dark + ' · light ' + eyes.light + ')');
   // ---- the dark path's card cuts its own powers' cost ----
   check(await page.evaluate(() => { const { SKILLS, player } = GAME; SKILLS.find(s => s.id === 'wrath').apply(); return player.up.costOf.judge === 0.85 && player.up.costOf.grasp === 0.85; }), 'WRATH cuts Judgement and the Grip by 15%');
+
 } catch(e){ check(false, e.message); }
 for (const e of errors) check(false, e);
 await browser.close();

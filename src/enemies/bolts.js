@@ -42,6 +42,7 @@ import { civSweep } from '../game/civilians.js';
 import { hooks } from '../net/run.js';
 import { addFlow, flowShotHit } from '../player/gunner-flow.js';
 import { gunHitDmg, gunHitAfter } from '../player/gun-moves.js';
+import { creedHitMul } from '../game/creed.js';
 
 /* ============================================================
    PROJECTILES — blaster bolts & boss orbs
@@ -300,7 +301,7 @@ export function updateBolts(dt){
             if (b.playerShot){ tutEvent('headshot'); addFlow('head'); }   // HUNTER'S EYE (player/gunner-flow.js; the Mando's table only)
             sfx(1900, 0.08, 'square', 0.05, 420); S.blastHit(b.mesh.position, 1.4); G.hitstop = Math.max(G.hitstop, 0.04); G.shake = Math.max(G.shake, 0.18);
           }
-          if (b.playerShot) dmg = gunHitDmg(b, e, isHead, dmg);   // the gun's signature move (player/gun-moves.js: QUICKDRAW)
+          if (b.playerShot) dmg = gunHitDmg(b, e, isHead, dmg) * creedHitMul(e);   // the gun's signature move (player/gun-moves.js: QUICKDRAW); NO QUARTER, NO PRISONERS (game/creed.js)
           damageEnemy(e, dmg, b.dir, 6); flinchEnemy(e, b.dir, b.flinch || 0.4); kill = true;
           if (b.pierce > 0){ b.pierce--; (b.hitSet || (b.hitSet = new Set())).add(e); kill = false; }   // OVERCHARGE, PLANT, STEADY BREATH: on into the next body   // bolts make foes recoil (a heavy gun's, or a ricochet, harder)
           if (b.playerShot && isTrooper()){ foeShotHit(e); flowShotHit(e, b.dir); }   // (BATTLE RHYTHM: a flank)

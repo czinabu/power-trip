@@ -110,15 +110,26 @@ for (const hero of HEROES){
     // THE MAPS (ui/zone-map.js): the minimap is up, M opens the full map (never the music), a touched waystone on it
     // travels, Esc closes it, and a controller's LB + VIEW (an untrusted M) opens it too
     check(await page.evaluate(() => GAME.zoneMap.info().mini && getComputedStyle(document.getElementById('minimap')).display !== 'none'), `${hero}: the minimap is up in the zone`);
+    await until(() => document.getElementById('boot').hidden, null, 10000);   // (the loading screen from the last travel has lifted)
     await page.keyboard.press('m');
     check(await until(() => GAME.zoneMap.info().open && GAME.G.skillSelect, null, 5000), `${hero}: M opens the full map`);
     check(await page.evaluate(() => !/MUSIC/.test(document.getElementById('banner').textContent)), `${hero}: M in the zone leaves the music alone`);
     check(await page.evaluate(() => GAME.zoneMap.info().pins >= 2), `${hero}: the touched waystones are pinned on the map`);
+    // a waypoint: click the map, it is on the compass, and walking up to it clears it
+    const mb = await page.locator('#zonemap .zm-map').boundingBox();
+    await page.mouse.click(mb.x + mb.width * 0.5, mb.y + mb.height * 0.62);   // (the Pilgrim Way, south of the square)
+    const pin = await page.evaluate(() => GAME.zoneMap.info().pin);
+    check(!!pin && Math.abs(pin.x) < 20 && pin.z > 10 && pin.z < 60, `${hero}: a click on the map sets a waypoint there (${pin ? pin.x.toFixed(0) + ', ' + pin.z.toFixed(0) : 'none'})`);
+    check(await page.evaluate(() => /SECRETS? LEFT|ALL SECRETS FOUND/.test(document.getElementById('zonemap').textContent)), `${hero}: a found district says how many secrets it has left`);
     const goWork = page.locator('#zonemap .zm-go', { hasText: 'KYBER WORKINGS' }).first();
     check(await goWork.count() > 0, `${hero}: the map lists the touched waystones to travel to`);
     if (await goWork.count()) await goWork.click(); else await page.evaluate(() => GAME.zone.travelTo('workings'));
     check(await until(() => !GAME.G.paused && !GAME.G.skillSelect && Math.hypot(GAME.player.group.position.x + 62, GAME.player.group.position.z + 57) < 6, null, 30000), `${hero}: travel from the map lands at the waystone`);
     await frames();
+    check(await page.evaluate(() => !!document.querySelector('#compass .cp-m.pin')), `${hero}: the waypoint is on the compass`);
+    if (pin){ await stand(pin.x, pin.z + 2); await frames(0.5); }
+    check(await until(() => !GAME.zoneMap.info().pin, null, 5000), `${hero}: reaching the waypoint clears it`);
+    await stand(-62, -57.5, 0); await frames();
     await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true })));
     check(await until(() => GAME.zoneMap.info().open, null, 5000), `${hero}: the controller's map button opens it`);
     await page.keyboard.press('Escape');

@@ -15,6 +15,7 @@ import { SQUAD } from './allies.js';
 import { TROOPER } from './trooper.js';
 import { switchWeapon } from '../player/mando/weapons.js';
 import { RANK_SKILLS } from './profile.js';
+import { TROOPER_ALIGN_TREE } from './alignment.js';
 import { recordFork } from '../game/wardrobe.js';
 // the path's kit is his from the signature chapter's close (game/wardrobe.js, game/look-unlocks.js)
 const wearFork = (id) => recordFork(id);
@@ -36,6 +37,19 @@ export const TROOPER_AUTO = [
     has:()=>!!G.unlocked.modAuto, grant(){ G.unlocked.modAuto = true; } },
   { key:'modScope', stage:4, chapter:'mustafar', hud:'1', name:'DC-15 MARKSMAN SCOPE · 1 AGAIN TO SWAP',
     has:()=>!!G.unlocked.modScope, grant(){ G.unlocked.modScope = true; } },
+  // THE PROMOTIONS' ORDERS (game/promotion.js): each rank the story gives him (game/wardrobe.js PROMOTIONS) hands over
+  // something for the fight, on his command points (player/trooper/command.js), so it works the same on a co-op guest's
+  // screen. In the story it comes with the rank's ceremony at that chapter's close; elsewhere with the stage, as a banner
+  { key:'rankSgt', promo:'sergeant', stage:1, chapter:'siege', hud:'', name:'SQUAD LEADER', sub:'Every fight starts with +15 command points',
+    has:()=>(player.up.cpStart || 0) >= 15, grant(){ player.up.cpStart = Math.max(player.up.cpStart || 0, 15); } },
+  { key:'rankLt', promo:'lieutenant', stage:2, chapter:'refuge', hud:'', name:'QUICK ORDERS', sub:'ATTACK, GRENADE and SUPPRESS cost 20% fewer command points',
+    has:()=>(player.up.orderCostMul || 1) <= 0.8, grant(){ player.up.orderCostMul = 0.8; } },
+  { key:'rankCpt', promo:'captain', stage:3, chapter:'trial-first', hud:'T', name:'CAPTAIN\'S CALL', sub:'Supply drops and reinforcements cost 25% fewer command points',
+    has:()=>(player.up.callCostMul || 1) <= 0.75, grant(){ player.up.callCostMul = 0.75; } },
+  { key:'rankCdr', promo:'commander', stage:5, chapter:'trial-knight', hud:'', name:'COMMAND AUTHORITY', sub:'Kills earn 20% more command points',
+    has:()=>(player.up.cpGainMul || 1) >= 1.2, grant(){ player.up.cpGainMul = 1.2; } },
+  { key:'rankArc', promo:'arc', stage:7, chapter:'mustafar', hud:'', name:'ARC LEADERSHIP', sub:'Command points hold up to 130, and every fight starts with +15 more',
+    has:()=>(player.up.cpMaxAdd || 0) >= 30, grant(){ player.up.cpMaxAdd = 30; player.up.cpStart = (player.up.cpStart || 0) + 15; } },
   // the company finds him: one more clone on the line from here on (allies/squad.js trooperSquad)
   { key:'squad3', stage:4, chapter:'hoth', hud:'MMB', name:'HAMMER JOINS · SQUAD OF 3',
     has:()=>(player.up.squadExtra || 0) >= 1, grant(){ player.up.squadExtra = 1; if (squadSize() < SQUAD.max) addSquadmate(); } },
@@ -98,4 +112,6 @@ export const TROOPER_SKILLS = [
     fl:'No one gets left behind. Not again.', apply(){ player.up.reviveMul = (player.up.reviveMul || 1) * 0.33; player.up.brothers = 1; } },
   // ---- the service ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
   ...RANK_SKILLS.trooper,
+  // ---- MERCY AND RUTHLESS (data/alignment.js): dealt only while you lean that way (game/profile.js alignOpen) ----
+  ...TROOPER_ALIGN_TREE,
 ];

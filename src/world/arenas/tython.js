@@ -16,6 +16,7 @@ import { buildSanctum, shelfFaces } from '../sanctum.js';
 import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
 import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { templeFolk } from './tython-folk.js';
+import { put, turned, radiusAt, seamRing, profile, plan, engine, leg, navLight } from './ship-kit.js';
 
 /* the dispatcher: world/arena.js hands every ty* layout here */
 export function buildTythonArena(L){
@@ -215,54 +216,89 @@ function landing(L, K, pal, R){
   for (const [x, z] of [[-26, -26], [26, -26]]) planter(K, x, z, pal, R, 0.8);
   void g;
 }
-/* the PILGRIM SHUTTLE: a long pale hull on three legs, swept wings, a tall fin, two engines glowing low at its back and the
-   ramp down at the rear (south, +z), lit inside. At (x, z) on a floor at `y0`; its nose points north */
+// a collider's mesh taken away, its collision kept (the bake would draw a hidden mesh)
+const unseen = (m) => { if (m && m.parent) m.parent.remove(m); return m; };
+/* the PILGRIM SHUTTLE: a long pale hull turned like a seed, a glazed cockpit over the nose, swept wings with a fin at
+   each tip, a tall fin over the tail, two engines slung either side of the ramp and glowing while it idles, and three
+   legs. The ramp is down at the rear (south, +z), the hold lit. At (x, z) on a floor at `y0`; its nose points north.
+   Built from the ship kit (world/arenas/ship-kit.js); its collision is a few plain boxes and columns round the hull */
 function shuttle(K, pal, x, z, y0 = 0){
-  const hull = std(0xe8e2d4, 0.55, 0.2), hullD = std(0xa8a294, 0.6, 0.3), metal = std(0x6a6e74, 0.45, 0.6);
-  const stripe = std(pal.cloth ?? 0x2e6a8a, 0.6, 0.1), gold = std(pal.trim ?? 0xd8b860, 0.4, 0.6);
-  const glass = new THREE.MeshStandardMaterial({ color: 0x1a2a38, roughness: 0.1, metalness: 0.6, emissive: 0x0a2a3a, emissiveIntensity: 0.6 });
+  const hull = std(0xebe5d6, 0.5, 0.2), hullD = std(0xb4ad9c, 0.55, 0.3), panel = std(0xd8d1c0, 0.55, 0.2), metal = std(0x6a6e74, 0.4, 0.65);
+  const dark = std(0x2a2d32, 0.6, 0.4), chrome = std(0xc8ccd2, 0.25, 0.9), seam = std(0x8a8476, 0.7, 0.2);
+  const stripe = std(pal.cloth ?? 0x2e6a8a, 0.55, 0.15), gold = std(pal.trim ?? 0xd8b860, 0.35, 0.65);
+  stripe.side = THREE.DoubleSide; gold.side = THREE.DoubleSide;
+  const glass = new THREE.MeshStandardMaterial({ color: 0x14222e, roughness: 0.08, metalness: 0.8, emissive: 0x0a2a3a, emissiveIntensity: 0.5 });
   const gy = y0 + 1.3;   // the hull's belly, up on its gear
-  // the body: one solid block (you walk round it, not under), dressed with a rounded top and the nose
-  K.box(x, z, 2.6, 5.2, 3.0, hull, { y: gy });
-  K.slab(x, z, 2.6, 5.2, 0, gy + 3.0);   // (from the floor up: nothing gets under the belly)
-  K.deco(new THREE.BoxGeometry(4.2, 0.8, 9.6), hull, x, gy + 3.4, z + 0.2);   // the roof, stepped in
-  K.deco(new THREE.BoxGeometry(2.6, 0.5, 6), hullD, x, gy + 4.0, z + 1.2);
-  const nose = K.deco(new THREE.ConeGeometry(2.6, 4.2, 16, 1, false), hull, x, gy + 1.7, z - 7.3, -PI / 2, 0, 0); nose.scale.set(1, 1, 0.66);
-  K.slab(x, z - 6.6, 1.8, 1.6, 0, gy + 3.0);
-  K.deco(new THREE.BoxGeometry(3.2, 0.9, 1.6), glass, x, gy + 3.1, z - 4.6, -0.5, 0, 0).userData.noOutline = true;   // the cockpit glass
-  K.deco(new THREE.BoxGeometry(5.3, 0.4, 10.5), stripe, x, gy + 1.5, z);   // the Order's stripe along both flanks
-  K.deco(new THREE.BoxGeometry(5.35, 0.12, 10.6), gold, x, gy + 1.8, z);
-  // the WINGS: swept back from the hull's middle, each a slab you could land on, tipped with a running light
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.userData.passThrough = true; shared.arenaGroup.add(g);   // (a picture: its collision is below)
+  const m = { body: hull, trim: gold, dark, chrome };
+  // the FUSELAGE: turned, an oval a little flatter than it is wide, cut off square at the tail where the ramp drops
+  const prof = [[-9.9, 0.04], [-9.5, 0.55], [-8.7, 1.15], [-7.3, 1.75], [-5.6, 2.15], [-3.5, 2.45], [0, 2.6], [3.5, 2.55], [5.3, 2.3], [6.0, 2.0], [6.02, 0.04]];
+  const SX = 1, SY = 0.66, cy = gy + 2.6 * SY;
+  put(g, turned(prof, SX, SY, 32), hull, 0, cy, 0);
+  put(g, new THREE.BoxGeometry(2.6, 0.3, 11), hullD, 0, gy + 0.18, -0.4);   // the keel along the belly
+  // the Order's colours: a band round the nose, a stripe down each flank with a gold line over it
+  { const band = put(g, turned([[-8.3, radiusAt(prof, -8.3) + 0.03], [-7.6, radiusAt(prof, -7.6) + 0.03]], SX, SY, 32), stripe, 0, cy, 0); band.userData.noOutline = true; }
   for (const sx of [-1, 1]){
-    const wing = K.deco(new THREE.BoxGeometry(6.4, 0.5, 3.6), hullD, x + sx * 5.6, gy + 1.2, z + 1.4, 0, sx * 0.32, sx * -0.12);
-    wing.userData.passThrough = true;
-    K.slab(x + sx * 5.4, z + 1.4, 3.0, 1.8, gy + 1.0, gy + 1.4);
-    const tipL = live(K.deco(new THREE.SphereGeometry(0.2, 8, 6), glowM(sx < 0 ? 0xff5a40 : 0x5aff8a), x + sx * 8.7, gy + 1.3, z + 2.4));
-    anim(tipL, (o, t) => { o.visible = Math.sin(t * 3 + sx) > -0.2; });
+    put(g, new THREE.BoxGeometry(0.08, 0.42, 8.6), stripe, sx * 2.6, cy - 0.15, 0.2);
+    put(g, new THREE.BoxGeometry(0.08, 0.1, 8.6), gold, sx * 2.6, cy + 0.17, 0.2);
   }
-  // the FIN over the tail
-  K.deco(new THREE.BoxGeometry(0.35, 2.4, 2.6), hullD, x, gy + 5.2, z + 3.6, 0.4, 0, 0);
-  K.deco(new THREE.BoxGeometry(0.4, 0.4, 2.2), stripe, x, gy + 6.0, z + 4.0, 0.4, 0, 0);
-  // two ENGINES either side of the ramp, their glow breathing while it idles
+  // panel seams round the hull, and a row of hatches down the spine
+  for (const sz of [-6.4, -3.5, 1.2, 4.6]) seamRing(g, prof, sz, SX, SY, seam, cy, 0.035);
+  for (const sz of [-1.6, 0.6, 2.8]) put(g, new THREE.BoxGeometry(1.1, 0.06, 1.4), panel, 0, cy + 2.6 * SY + 0.02, sz);
+  // the COCKPIT: a long glazed canopy over the nose, framed, with a sensor blister ahead of it
+  { const can = put(g, new THREE.SphereGeometry(1.35, 24, 14, 0, PI * 2, 0, PI / 2), glass, 0, cy + 0.82, -5.7); can.scale.set(1.0, 0.62, 1.9); can.userData.noOutline = true;
+    put(g, new THREE.BoxGeometry(0.12, 0.12, 4.6), metal, 0, cy + 1.66, -5.7, 0.04);
+    for (const fz of [-6.9, -5.7, -4.5]){ const k = 1 - Math.pow((fz + 5.7) / 2.6, 2); const r = put(g, new THREE.TorusGeometry(1.35 * Math.sqrt(k), 0.06, 4, 20, PI), metal, 0, cy + 0.82, fz); r.scale.set(1, 0.62, 1); }
+    put(g, new THREE.SphereGeometry(0.32, 12, 8), chrome, 0, cy - 0.5, -9.0); }
+  // the SPINE over the hold, rising into the FIN over the tail (the Order's stripe up its edge)
+  put(g, profile([[-3.4, 0], [-1.6, 0.45], [4.2, 0.62], [6.0, 0.3], [6.0, 0]], 1.3, 0.3), hullD, 0, cy + 2.6 * SY - 0.25, 0);
+  put(g, profile([[2.4, 0], [5.1, 3.3], [6.4, 3.3], [6.2, 0]], 0.34, 0.1), hull, 0, cy + 2.6 * SY + 0.1, 0);
+  put(g, profile([[4.85, 2.9], [5.1, 3.3], [6.4, 3.3], [6.35, 2.9]], 0.38, 0.06), stripe, 0, cy + 2.6 * SY + 0.1, 0);
+  live(navLight(g, 0xff5a40, 0, cy + 2.6 * SY + 3.5, 5.8, 0.1));
+  // the WINGS: swept back from the hull's middle, a little drooped, a fin and a running light at each tip
   for (const sx of [-1, 1]){
-    K.deco(new THREE.CylinderGeometry(0.95, 1.1, 2.8, 14), metal, x + sx * 2.9, gy + 1.0, z + 4.6, PI / 2, 0, 0);
-    const glow = live(K.deco(new THREE.CircleGeometry(0.8, 16), glowM(0x8ad8ff, 0.85), x + sx * 2.9, gy + 1.0, z + 6.05));
-    anim(glow, (o, t) => { o.material.opacity = 0.6 + Math.sin(t * 2.2 + sx) * 0.2; });
-    K.column(x + sx * 2.9, z + 4.6, 1.1, gy + 2.0, metal, { wallKick: false, seg: 10, taper: 1 }).visible = false;   // (their collision)
+    const w = new THREE.Group(); w.position.set(0, gy + 1.05, 0); w.rotation.z = sx * -0.05; g.add(w);
+    const P = [[2.0, -1.8], [8.7, 2.6], [9.0, 4.0], [2.0, 5.0]].map(([a, b]) => [a * sx, b]);
+    put(w, plan(P, 0.38, 0.12), hullD, 0, 0, 0);
+    put(w, plan([[3.0, -0.9], [8.5, 2.7], [8.62, 3.1], [3.0, -0.35]].map(([a, b]) => [a * sx, b]), 0.42, 0.06), stripe, 0, 0, 0);
+    put(w, plan([[3.0, 2.0], [7.6, 3.5], [7.6, 4.25], [3.0, 4.4]].map(([a, b]) => [a * sx, b]), 0.4, 0.04), panel, 0, 0, 0);   // the flap
+    put(w, profile([[2.5, 0], [3.5, 1.5], [4.3, 1.5], [4.25, 0]], 0.22, 0.06), hull, sx * 8.85, 0.1, 0);
+    put(w, profile([[2.5, 0], [3.0, -0.6], [3.9, -0.6], [4.2, 0]], 0.2, 0.05), hull, sx * 8.85, -0.1, 0);
+    const tip = live(navLight(w, sx < 0 ? 0xff5a40 : 0x5aff8a, sx * 8.95, 0.05, 2.5, 0.16));
+    anim(tip, (o, t) => { o.visible = Math.sin(t * 3 + sx) > -0.2; });
   }
-  // the GEAR: three legs and their feet
-  for (const [lx, lz] of [[0, -5.6], [-1.9, 3.4], [1.9, 3.4]]){
-    K.deco(new THREE.CylinderGeometry(0.18, 0.22, gy - y0 + 0.2, 6), metal, x + lx, y0 + (gy - y0) / 2, z + lz);
-    K.deco(new THREE.CylinderGeometry(0.5, 0.55, 0.16, 10), metal, x + lx, y0 + 0.08, z + lz);
+  // two ENGINES slung either side of the ramp on short pylons, their glow breathing while it idles
+  for (const sx of [-1, 1]){
+    const e = engine(m, { r: 1.0, len: 4.0, glowCol: 0x8ad8ff, ring: metal }); e.group.position.set(sx * 3.05, gy + 1.15, 4.4); g.add(e.group);
+    live(e.glow); anim(e.glow, (o, t) => { o.material.opacity = 0.6 + Math.sin(t * 2.2 + sx) * 0.2; });
+    put(g, new THREE.BoxGeometry(1.0, 0.5, 2.6), hullD, sx * 2.35, gy + 1.5, 4.0);
+    put(g, new THREE.BoxGeometry(0.06, 0.3, 3.2), stripe, sx * 4.07, gy + 1.15, 4.0);
   }
-  // the RAMP down from the hold at the rear, toward the way you come in, lit from inside; two low steps under it to climb
-  const rz0 = z + 5.2, rz1 = z + 9.4, rl = Math.hypot(rz1 - rz0, gy - y0);
-  const ramp = K.deco(new THREE.BoxGeometry(2.6, 0.18, rl), hullD, x, (gy + y0) / 2, (rz0 + rz1) / 2, -Math.atan2(gy - y0, rz1 - rz0) * -1, 0, 0);
-  ramp.rotation.x = Math.atan2(gy - y0, rz1 - rz0); ramp.userData.passThrough = true;
-  K.box(x, z + 8.3, 1.3, 1.1, 0.4, hullD, { y: y0, climbable: true }).visible = false;
-  K.box(x, z + 6.3, 1.3, 1.0, 0.85, hullD, { y: y0, climbable: true }).visible = false;
-  for (const sx of [-1, 1]) live(K.deco(new THREE.BoxGeometry(0.08, 0.08, rl), glowM(0x8ad8ff, 0.9), x + sx * 1.2, (gy + y0) / 2 + 0.12, (rz0 + rz1) / 2, Math.atan2(gy - y0, rz1 - rz0), 0, 0));
-  live(K.deco(new THREE.PlaneGeometry(2.4, 2.4), glowM(0xfff0d0, 0.9), x, gy + 1.3, z + 5.25));   // the lit hold
+  // the GEAR: a nose leg and two mains, each with its oleo and a brace up to the hull
+  for (const [lx, lz, bz] of [[0, -5.6, -0.8], [-1.9, 2.4, 0.8], [1.9, 2.4, 0.8]]){
+    const l = leg(m, gy - y0 + 0.25, { r: 0.15, pad: 0.5, brace: bz }); l.position.set(lx, y0, lz); g.add(l);
+  }
+  // the RAMP down from the hold at the tail, side rails and its two rams, lit from inside
+  const rz0 = 6.0, rz1 = 9.8, rl = Math.hypot(rz1 - rz0, gy - y0), ang = Math.atan2(gy - y0, rz1 - rz0);
+  put(g, new THREE.BoxGeometry(2.4, 0.18, rl), hullD, 0, (gy + y0) / 2, (rz0 + rz1) / 2, ang);
+  for (let k = 1; k < 6; k++){ const f = k / 6; put(g, new THREE.BoxGeometry(2.2, 0.05, 0.1), metal, 0, gy - (gy - y0) * f + 0.12, rz0 + (rz1 - rz0) * f, ang); }
+  for (const sx of [-1, 1]){
+    put(g, new THREE.BoxGeometry(0.12, 0.5, rl), hullD, sx * 1.22, (gy + y0) / 2 + 0.2, (rz0 + rz1) / 2, ang);
+    live(put(g, new THREE.BoxGeometry(0.06, 0.06, rl), glowM(0x8ad8ff, 0.9), sx * 1.15, (gy + y0) / 2 + 0.47, (rz0 + rz1) / 2, ang));
+    put(g, new THREE.CylinderGeometry(0.07, 0.07, 1.6, 6), chrome, sx * 0.9, gy + 0.2, rz0 + 0.8, 0.9);
+  }
+  live(put(g, new THREE.PlaneGeometry(2.3, 2.1), glowM(0xfff0d0, 0.92), 0, gy + 1.15, rz0 + 0.04));   // the lit hold
+  put(g, new THREE.BoxGeometry(2.7, 0.18, 0.2), metal, 0, gy + 2.25, rz0 + 0.06);
+  // COLLISION: the hull solid from the floor up (you walk round it, not under), the nose, the wings overhead slabs, the
+  // engines' columns, and two low hidden steps up the ramp
+  K.slab(x, z - 0.2, 2.6, 6.0, 0, gy + 3.4);
+  K.slab(x, z - 7.6, 1.6, 1.8, 0, gy + 2.6);
+  for (const sx of [-1, 1]){
+    K.slab(x + sx * 5.6, z + 1.8, 3.2, 1.8, gy + 0.8, gy + 1.5);
+    unseen(K.column(x + sx * 3.05, z + 4.4, 1.1, gy + 2.2, metal, { wallKick: false, seg: 10, taper: 1 }));
+  }
+  unseen(K.box(x, z + 8.7, 1.2, 1.0, 0.4, hullD, { y: y0, climbable: true }));
+  unseen(K.box(x, z + 7.0, 1.2, 0.8, 0.85, hullD, { y: y0, climbable: true }));
 }
 
 /* ---------------- THE TRAINING WING ---------------- */

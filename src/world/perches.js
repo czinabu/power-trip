@@ -124,7 +124,7 @@ function fit(x, z, sx, sz, pts, spawn){
 const pick = (pal, keys, fb) => { for (const k of keys) if (pal[k] != null) return pal[k]; return fb; };
 
 export function buildPerches(L){
-  if (!L.layout || PERCH.skip.includes(L.layout) || /^(ty|km|mf)[A-Z]/.test(L.layout)) return 0;   // (nor the hubs: no fight there)
+  if (!L.layout || PERCH.skip.includes(L.layout) || /^(ty|km|mf|sh)[A-Z]/.test(L.layout)) return 0;   // (nor the hubs or the hero ships: no fight there)
   if (L.arena > 100 || (L.arenaZ && L.arenaZ > L.arena)) return 0;   // the battle maps and the long route
   if (highGround() >= PERCH.enough) return 0;
   const half = shared.arenaHalf, at = shared.spreadAt, pts = at ? missionPoints(L.layout).map(([x, z, r]) => [...at(x, z), r]) : missionPoints(L.layout);   // (a spread map's points move with it: world/spread.js)

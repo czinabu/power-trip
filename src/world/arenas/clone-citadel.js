@@ -15,6 +15,7 @@ import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hub
 import { buildEnemyMesh } from '../../enemies/mesh.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toon } from '../ink.js';
+import { put, profile, plan, engine, navLight } from './ship-kit.js';
 
 /* the dispatcher: world/arena.js hands every km* layout here */
 export function buildCloneCitadel(L){
@@ -318,13 +319,17 @@ function showTrooper(x, z, yaw, o = {}){
   g.position.set(x, o.y || 0, z); g.rotation.y = yaw; shared.arenaGroup.add(g);
   return g;
 }
-/* a GUNSHIP on its pad: an original Republic dropship. A rounded troop bay with its side doors open, a glazed nose, swept
-   wings with an engine at each tip and a ball turret at each root, twin tail fins. `yaw` a quarter turn (0: nose to −z).
-   The bay is solid to its roof, the wings overhead slabs you walk under and can land on */
+/* a GUNSHIP on its pad: an original Republic dropship, built from the ship kit (world/arenas/ship-kit.js). A troop bay
+   pressed out from its side profile with rounded edges, a glazed nose framed in panes, a side door open on each flank,
+   shoulder wings with an engine at each tip and a ball turret at each root, a tail boom over the rear ramp with twin
+   canted fins, a chin gun, skids on struts. `yaw` a quarter turn (0: nose to −z). The bay is solid to its roof, the
+   wings overhead slabs you walk under and can land on */
 function gunship(K, M, pal, x, z, yaw, o = {}){
   const g = new THREE.Group(); g.position.set(x, o.y || 0, z); g.rotation.y = yaw; shared.arenaGroup.add(g);
-  const hull = std(0xe2e4e2, 0.55, 0.15), mark = M.red, dark = M.metalD, glass = std(0x1e3a54, 0.2, 0.6, 0.15);
-  const add = (geo, mat, px, py, pz, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+  if (!o.live) g.userData.passThrough = true;   // (a picture: its collision is the boxes at the bottom)
+  const hull = std(0xe4e6e4, 0.5, 0.15), hullD = std(0xb8bec4, 0.55, 0.25), mark = M.red, dark = M.metalD;
+  const glass = std(0x1a3248, 0.12, 0.7, 0.12), chrome = std(0xc8ccd2, 0.25, 0.9), seam = std(0x9aa2aa, 0.7, 0.2);
+  const m = { body: hull, trim: hullD, dark, chrome };
   if (o.y){ g.rotation.z = o.tilt || 0; }
   // the pad under it: a ring of hazard paint, lit at four points
   if (!o.y){
@@ -333,54 +338,71 @@ function gunship(K, M, pal, x, z, yaw, o = {}){
   const ring = new THREE.Mesh(new THREE.RingGeometry(7.6, 8.2, 48), std(0xd8b040, 0.6)); ring.rotation.x = -PI / 2; ring.position.set(x, 0.13, z); pic(ring); shared.arenaGroup.add(ring);
   for (let i = 0; i < 4; i++){ const a = i / 4 * PI * 2 + PI / 4; live(K.deco(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10), M.glow, x + Math.cos(a) * 8.6, 0.15, z + Math.sin(a) * 8.6)); }
   }
-  // the FUSELAGE: one long rounded body (a capsule, squashed a touch), its belly flattened for the skids
-  const body = add(new THREE.CapsuleGeometry(1.75, 6.2, 6, 16), hull, 0, 2.75, 0.4, PI / 2);
-  body.scale.set(1, 1, 0.9);
-  add(new THREE.BoxGeometry(2.8, 0.5, 7.6), hull, 0, 1.15, 0.6);
-  for (const s of [-1, 1]){
-    // the troop doors, open: a dark rounded bay in each flank, a lit edge round it
-    const door = add(new THREE.CapsuleGeometry(0.75, 1.5, 4, 10), dark, s * 1.42, 2.55, 0.2, PI / 2, 0, 0); door.scale.set(0.5, 1, 1);
-    add(new THREE.BoxGeometry(0.06, 0.08, 3.2), M.glow, s * 1.66, 3.42, 0.2);
-    add(new THREE.BoxGeometry(0.1, 0.34, 8.2), mark, s * 1.62, 3.85, 0.4, 0, 0, s * 0.35);   // the red band along the shoulder
+  // the BAY: one side profile pressed out, flat belly, the roof running forward and stepping down to the nose
+  put(g, profile([[-6.3, 2.2], [-5.5, 1.2], [-4.0, 0.95], [4.4, 0.95], [4.7, 1.3], [5.0, 3.4], [4.4, 4.55], [-3.0, 4.6], [-3.6, 3.6], [-6.1, 2.95]], 3.4, 0.45), hull, 0, 0, 0);
+  put(g, new THREE.BoxGeometry(2.0, 0.3, 6.4), hullD, 0, 4.72, 0.4);   // the roof's equipment spine
+  for (const sz of [-1.6, 0.4, 2.4]) put(g, new THREE.BoxGeometry(2.1, 0.08, 0.06), seam, 0, 4.88, sz);
+  for (const sz of [-3.2, 2.6]) for (const sx of [-1, 1]) put(g, new THREE.BoxGeometry(0.04, 3.2, 0.05), seam, sx * 1.71, 2.8, sz);   // panel seams down the flanks
+  // the NOSE: a glazed cockpit pressed out over the snout, framed in panes, and a gun turret under the chin
+  put(g, profile([[-6.1, 2.85], [-3.55, 3.55], [-3.0, 4.55], [-3.4, 4.62], [-4.9, 4.1], [-5.9, 3.3]], 2.8, 0.22), glass, 0, 0.02, 0).userData.noOutline = true;
+  for (const fx of [-0.7, 0, 0.7]) put(g, new THREE.BoxGeometry(0.08, 0.1, 2.9), dark, fx, 3.62, -4.55, -0.42);
+  put(g, new THREE.BoxGeometry(2.9, 0.1, 0.1), dark, 0, 3.32, -5.3);
+  put(g, new THREE.SphereGeometry(0.5, 14, 10), dark, 0, 1.0, -5.0);
+  for (const sx of [-1, 1]) put(g, new THREE.CylinderGeometry(0.06, 0.06, 1.4, 6), chrome, sx * 0.16, 0.95, -5.7, PI / 2);
+  put(g, new THREE.BoxGeometry(1.0, 0.08, 2.6), mark, 0, 3.92, -4.6, -0.42);   // the red over the nose
+  // the SIDE DOORS, slid back: a dark bay in each flank, its frame, the door panel parked aft of it, a lit strip inside
+  for (const sx of [-1, 1]){
+    put(g, new THREE.BoxGeometry(0.1, 2.1, 3.4), dark, sx * 1.69, 2.6, -0.4);
+    put(g, new THREE.BoxGeometry(0.16, 0.14, 3.7), hullD, sx * 1.72, 3.72, -0.4);
+    put(g, new THREE.BoxGeometry(0.16, 0.14, 3.7), hullD, sx * 1.72, 1.5, -0.4);
+    for (const fz of [-2.15, 1.35]) put(g, new THREE.BoxGeometry(0.16, 2.3, 0.14), hullD, sx * 1.72, 2.6, fz);
+    put(g, new THREE.BoxGeometry(0.1, 2.0, 2.4), hull, sx * 1.8, 2.6, 2.6);
+    put(g, new THREE.BoxGeometry(0.04, 0.06, 2.3), seam, sx * 1.86, 2.0, 2.6);
+    live(put(g, new THREE.BoxGeometry(0.05, 0.06, 3.0), glowM(0xd8f0ff, 0.8), sx * 1.64, 3.5, -0.4));
+    put(g, new THREE.BoxGeometry(0.06, 0.32, 8.6), mark, sx * 1.66, 4.15, 0.2, 0, 0, sx * 0.3);   // the red band along the shoulder
   }
-  // the NOSE: a blunt rounded snout, a bubble canopy on top, a chin turret with a gun under it
-  const snout = add(new THREE.SphereGeometry(1.55, 18, 12), hull, 0, 2.6, -3.9); snout.scale.set(1, 0.95, 1.5);
-  const canopy = add(new THREE.SphereGeometry(0.95, 16, 10, 0, PI * 2, 0, PI / 2), glass, 0, 3.55, -4.3); canopy.scale.set(1, 0.7, 1.4);
-  add(new THREE.TorusGeometry(0.95, 0.07, 6, 24), dark, 0, 3.55, -4.3, PI / 2).scale.set(1, 1.4, 1);
-  add(new THREE.BoxGeometry(0.5, 0.06, 2.6), mark, 0, 4.02, -2.2);
-  add(new THREE.SphereGeometry(0.48, 12, 10), dark, 0, 1.45, -5.0);
-  add(new THREE.CylinderGeometry(0.07, 0.07, 1.3, 6), dark, 0, 1.4, -5.7, PI / 2);
-  // the WINGS: swept, tapering, rounded at the edges, from the shoulders back; an engine pod at each tip, a ball turret at each root
-  const wingGeo = (s) => {   // (built for its own side, not mirrored with a negative scale: that turns its faces inside out)
-    const pts = [[0, -1.4], [5.2, 0.4], [5.2, 1.6], [0, 1.6]].map(([x, y]) => new THREE.Vector2(x * s, y));
-    const q = new THREE.ExtrudeGeometry(new THREE.Shape(s > 0 ? pts : pts.reverse()), { depth: 0.26, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.14, bevelSegments: 2 });
-    q.rotateX(PI / 2); return q;
-  };
-  for (const s of [-1, 1]){
-    add(wingGeo(s), hull, s * 1.4, 4.45, 0.6, 0, 0, s * -0.2);
-    add(new THREE.BoxGeometry(1.1, 0.3, 1.4), mark, s * 5.2, 3.5, 1.6, 0, 0, s * -0.2);
-    add(new THREE.CapsuleGeometry(0.52, 2.2, 4, 12), hull, s * 6.5, 3.2, 1.4, PI / 2);
-    add(new THREE.CylinderGeometry(0.42, 0.52, 0.3, 12), dark, s * 6.5, 3.2, 2.95, PI / 2);
-    const nz = live(new THREE.Mesh(new THREE.CircleGeometry(0.38, 12), glowM(0x8ad8ff))); nz.position.set(s * 6.5, 3.2, 3.12); g.add(nz);
-    add(new THREE.SphereGeometry(0.6, 14, 10), glass, s * 1.75, 4.25, -1.0);
-    add(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), dark, s * 1.9, 4.2, -1.75, PI / 2);
-    // the skids
-    add(new THREE.CylinderGeometry(0.1, 0.12, 0.9, 6), dark, s * 1.15, 0.5, 3.0);
-    add(new THREE.CylinderGeometry(0.1, 0.12, 0.9, 6), dark, s * 1.15, 0.5, -2.2);
-    add(new THREE.CapsuleGeometry(0.13, 6.0, 2, 6), dark, s * 1.15, 0.12, 0.4, PI / 2);
+  // the WINGS off the shoulders, a little drooped: an engine on each tip, a ball turret under each root
+  for (const sx of [-1, 1]){
+    const w = new THREE.Group(); w.position.set(0, 4.35, 0); w.rotation.z = sx * -0.08; g.add(w);
+    put(w, plan([[1.4, -1.6], [6.0, 0.2], [6.0, 2.0], [1.4, 2.6]].map(([a, b]) => [a * sx, b]), 0.42, 0.14), hull, 0, 0, 0);
+    put(w, plan([[4.6, -0.36], [6.0, 0.2], [6.0, 1.0], [4.6, 0.8]].map(([a, b]) => [a * sx, b]), 0.46, 0.06), mark, 0, 0, 0);
+    const e = engine(m, { r: 0.62, len: 3.2, glowCol: 0x8ad8ff, ring: hullD }); e.group.position.set(sx * 6.45, -0.15, 1.0); w.add(e.group); live(e.glow);
+    put(w, new THREE.SphereGeometry(0.3, 10, 8), mark, sx * 6.45, -0.15, -0.72);   // (the red cap on the intake's cone)
+    live(navLight(w, sx < 0 ? 0xff5a40 : 0x5aff8a, sx * 6.45, 0.55, 1.0, 0.1));
+    put(g, new THREE.SphereGeometry(0.62, 16, 12), glass, sx * 1.8, 4.0, -1.4).userData.noOutline = true;
+    put(g, new THREE.TorusGeometry(0.62, 0.07, 6, 20), dark, sx * 1.8, 4.0, -1.4, 0, PI / 2, 0);
+    put(g, new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6), dark, sx * 1.95, 3.95, -2.15, PI / 2);
   }
-  // the TAIL: a boom climbing aft of the bay, two fins canted out from it
-  add(new THREE.CapsuleGeometry(0.7, 1.8, 4, 10), hull, 0, 3.6, 4.6, PI / 2 - 0.35);
-  for (const s of [-1, 1]) add(new THREE.BoxGeometry(0.16, 1.7, 1.4), hull, s * 0.6, 4.9, 5.3, -0.35, 0, s * 0.35);
-  add(new THREE.BoxGeometry(0.06, 0.5, 1.2), mark, 0.68, 5.05, 5.3, -0.35, 0, 0.35);
+  // the TAIL BOOM up over the rear ramp, twin fins canted out, a stabiliser across
+  put(g, profile([[4.2, 3.4], [7.0, 4.0], [7.6, 4.6], [7.2, 5.0], [4.0, 4.55]], 1.2, 0.3), hull, 0, 0, 0);
+  for (const sx of [-1, 1]){
+    put(g, profile([[6.0, 0], [7.0, 1.7], [7.7, 1.7], [7.6, 0]], 0.16, 0.05), hull, sx * 0.5, 4.75, 0, 0, 0, sx * 0.4);
+    put(g, profile([[6.95, 1.35], [7.0, 1.7], [7.7, 1.7], [7.66, 1.35]], 0.2, 0.03), mark, sx * 0.5, 4.75, 0, 0, 0, sx * 0.4);
+  }
+  put(g, plan([[-2.0, 6.6], [2.0, 6.6], [2.2, 7.5], [-2.2, 7.5]], 0.16, 0.05), hullD, 0, 4.55, 0);
+  live(navLight(g, 0xffffff, 0, 5.1, 7.4, 0.08));
+  // the REAR RAMP down onto the pad, the bay lit beyond it
+  { const rz0 = 4.55, rz1 = 7.3, rl = Math.hypot(rz1 - rz0, 0.95), ang = Math.atan2(0.95, rz1 - rz0);
+    put(g, new THREE.BoxGeometry(2.4, 0.14, rl), hullD, 0, 0.52, (rz0 + rz1) / 2, ang);
+    for (let k = 1; k < 5; k++) put(g, new THREE.BoxGeometry(2.2, 0.05, 0.1), dark, 0, 0.95 - 0.95 * k / 5 + 0.1, rz0 + (rz1 - rz0) * k / 5, ang);
+    live(put(g, new THREE.PlaneGeometry(2.3, 2.2), glowM(0xd8f0ff, 0.9), 0, 2.15, 4.82)); }
+  // the SKIDS on struts, and a beacon and aerials on the roof
+  for (const sx of [-1, 1]){
+    for (const sz of [-2.8, 2.6]){ put(g, new THREE.CylinderGeometry(0.1, 0.12, 0.9, 6), dark, sx * 1.2, 0.5, sz, 0, 0, sx * 0.18); put(g, new THREE.CylinderGeometry(0.16, 0.16, 0.3, 8), chrome, sx * 1.12, 0.8, sz); }
+    put(g, new THREE.CapsuleGeometry(0.12, 6.6, 2, 6), dark, sx * 1.3, 0.12, -0.1, PI / 2);
+  }
+  live(navLight(g, 0xff3a2a, 0, 4.95, 1.8, 0.1));
+  for (const az of [-0.6, 3.0]) put(g, new THREE.CylinderGeometry(0.025, 0.025, 1.1, 4), dark, 0.5, 5.3, az, 0.25);
   if (o.y || o.live) return g;
-  // collision: the bay and nose to the roof, the wings overhead (the boxes turned with the ship, a quarter turn at a time)
+  // collision: the bay and nose to the roof, the wings overhead, the boom over the ramp (the boxes turned with the ship,
+  // a quarter turn at a time)
   const turn = (lx, lz) => { const c = Math.cos(yaw), s = Math.sin(yaw); return [x + lx * c + lz * s, z - lx * s + lz * c]; };
   const flip = Math.abs(Math.sin(yaw)) > 0.5;
   const box = (lx, lz, hx, hz, h, y0) => { const [bx, bz] = turn(lx, lz); solids.push({ x: bx, z: bz, hx: flip ? hz : hx, hz: flip ? hx : hz, h, ...(y0 != null ? { y0 } : {}), box: true }); };
-  box(0, 0.4, 1.75, 4.5, 4.8);
-  box(0, -4.8, 1.2, 1.4, 3.6);
-  for (const s of [-1, 1]) box(s * 4.3, 1.4, 2.8, 1.6, 4.4, 3.0);
+  box(0, -0.6, 1.75, 4.9, 4.8);
+  box(0, -5.4, 1.2, 0.9, 3.4);
+  for (const s of [-1, 1]) box(s * 4.3, 0.5, 2.8, 2.0, 4.8, 3.6);
+  box(0, 6.0, 0.7, 1.6, 5.0, 3.4);
   return g;
 }
 

@@ -90,6 +90,18 @@
 .mx-groups li{display:flex;align-items:center;gap:8px}
 .mx-groups li i{font:italic 500 11px/1 var(--font-body);color:var(--hx-dim)}
 
+/* YOUR THREE / YOUR LOADOUT: first on the page, framed in the hero's accent with bigger plates, so it's found at a glance */
+.mx-card.mx-three{gap:10px;padding:14px;box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+.mx-three>.mx-k{flex-wrap:wrap;row-gap:5px;font-size:13px;color:var(--hx-accent-hi)}
+.mx-three>.mx-k em{flex-basis:100%;margin-left:0;letter-spacing:0;font-variant:normal}
+.mx-three .mx-slot{padding:10px 12px;background:var(--hx-paper-solid)}
+.mx-three .mx-slot b{font-size:16px}
+.mx-three .mx-slot kbd{width:24px;height:24px;font-size:13px;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 1px var(--hx-ink)}
+.mx-three .mx-slot.empty kbd{color:var(--hx-dim);background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.mx[data-hero="mando"] .mx-card.mx-three{box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-accent)}
+.mx[data-hero="trooper"] .mx-card.mx-three{box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink);background:rgba(240,165,42,.05)}
+.mx[data-hero="trooper"] .mx-three .mx-slot kbd{color:#101315;background:var(--hx-plate-white)}
+
 /* pips and bars: square, inked, flat with one highlight band */
 .mx-pips{display:inline-flex;gap:3px}
 .mx-pips i{width:9px;height:9px;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
@@ -120,8 +132,6 @@
 .mx-tile.sealed:hover{background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.03) 6px 8px),var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
 .mx-tile.sealed>b{color:var(--hx-dim);font-size:14px}
 .mx-tile.sealed .mx-tf{color:var(--hx-dim)}
-.mx-tile.pw.sealed{cursor:pointer}
-.mx-tile.pw.sealed.sel{box-shadow:inset 0 0 0 2px var(--hx-accent-hi),0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent-hi)}
 .mx-tile.pw,.mx-tile.gun{padding-left:12px}
 .mx-tile.pw.off :is(b,.mx-pic){opacity:.55}
 .mx-tile.pw b{font-size:13px;white-space:normal;line-height:1.15}

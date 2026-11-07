@@ -65,15 +65,16 @@ function loadoutCard(){
   } else {
     const sig = signatureWeapon();
     rows = KIT_SLOTS.map((s, i) => slotPlate(i + 1, KIT_LABEL[s], ctx.kit[s] || null, HUE[ctx.kit[s]] || 0)).join('') +
-      (ctx.mode === 'prefight' ? '' : slotPlate(3, 'SIGNATURE', weaponOwned(sig) ? sig : undefined, HUE[sig] || 0x7fe0ff));
+      (ctx.mode !== 'prefight' && weaponOwned(sig) ? slotPlate(3, 'SIGNATURE', sig, HUE[sig] || 0x7fe0ff) : '');   // (shown once it's forged: never named before)
   }
-  return '<div class="mx-card"><div class="mx-k">' + (ctx.trooper ? 'YOUR GUNS' : 'YOUR LOADOUT') + '</div><div class="mx-slots">' + rows + '</div>' +
+  return '<div class="mx-card mx-three"><div class="mx-k">' + (ctx.trooper ? 'YOUR GUNS' : 'YOUR LOADOUT') + '<em>' + (ctx.edit ? 'pick a gun for its slot' : 'the numbers switch in the fight') + '</em></div><div class="mx-slots">' + rows + '</div>' +
     (ctx.note ? '<p class="mx-note">' + esc(ctx.note) + '</p>' : '') + '</div>';
 }
+// how many guns you have, never how many there are (that would give the story away)
 function countCard(){
-  const all = ctx.trooper ? GUN_ORDER.trooper : [...ARMORY_ORDER, 'disruptor'], n = ctx.known.filter(id => all.includes(id)).length;
-  return '<div class="mx-card mx-lv"><div class="mx-k">' + (ctx.trooper ? 'THE ARMORY' : 'THE COVERT\'S RACK') + '</div><div class="mx-big"><b>' + n + '</b><span>/ ' + all.length + ' guns</span></div>' +
-    pips(n, all.length, 'lv') + '<p>Each has one move only it does, and ranks earned by using it.</p></div>';
+  const n = ctx.known.length;
+  return '<div class="mx-card mx-lv"><div class="mx-k">' + (ctx.trooper ? 'THE ARMORY' : 'THE COVERT\'S RACK') + '</div><div class="mx-big"><b>' + n + '</b><span>' + (n === 1 ? 'gun' : 'guns') + ' found</span></div>' +
+    '<p>Each has one move only it does, and ranks earned by using it.</p></div>';
 }
 function tile(id){
   const T = ctx.trooper ? TROOPER_ARMORY[id] : null, W = T ? null : MANDO_WEAPONS[id], C = T ? T : (ARMORY_CODEX[id] || {});
@@ -83,9 +84,8 @@ function tile(id){
     '<div class="mx-tt"><span>' + esc(T ? T.slot : slotName(W)) + '</span>' + (badge ? '<em class="mx-badge">' + badge + '</em>' : '') + '</div>' + gunIc(id) +
     '<b>' + esc(T ? T.name : W.name) + '</b><div class="mx-tf">' + esc(C.tag || '') + '</div><div class="mx-tr">' + stars(id) + '</div></div>';
 }
-function sealedTile(id){
-  return '<div class="mx-tile gun sealed" title="Not found yet"><div class="mx-tt"><span>' + esc(ctx.trooper ? TROOPER_ARMORY[id].slot : KIT_LABEL[MANDO_WEAPONS[id].slot]) + '</span></div><b>' + LOCK_IC + '</b><div class="mx-tf">NOT FOUND YET</div></div>';
-}
+// the guns still to find stand as one sealed tile: not named, not counted, no slot
+const sealedTiles = (locked) => locked.length ? '<div class="mx-tile gun sealed" title="Guns still to find"><div class="mx-tt"><span>STILL TO FIND</span></div><b>' + LOCK_IC + '</b><div class="mx-tf">THE STORY HANDS YOU MORE</div></div>' : '';
 function detail(){
   const id = ctx.focus;
   if (!id || !ctx.known.includes(id)) return '<div class="mx-detail empty">Pick a gun to see what it is good and bad at.</div>';
@@ -110,7 +110,7 @@ function render(){
   ctx.panel.innerHTML = '<div class="howto-panel mx' + (entering ? ' enter' : '') + (ctx.mode === 'codex' ? '' : ' pre') + '" data-hero="' + heroOf() + '">' +
     '<div class="howto-head"><div class="howto-title">' + title + '</div><div class="rm-sub">' + head + '</div>' + (ctx.mode === 'pick' ? '' : '<div class="howto-x" data-x="1">✕</div>') + '</div>' +
     '<div class="mx-body"><div class="mx-left">' + loadoutCard() + (ctx.mode === 'codex' ? countCard() : '') + '</div>' +
-    '<div class="mx-right"><div class="mx-split"><div class="mx-grid">' + shown.map(tile).join('') + locked.map(sealedTile).join('') + '</div>' + detail() + '</div></div></div>' + actions + '</div>';
+    '<div class="mx-right"><div class="mx-split"><div class="mx-grid">' + shown.map(tile).join('') + sealedTiles(locked) + '</div>' + detail() + '</div></div></div>' + actions + '</div>';
 }
 const trooperOwned = (id) => !TROOPER_ARMORY[id].unlock || !!(G.unlocked && G.unlocked[TROOPER_ARMORY[id].unlock]);
 

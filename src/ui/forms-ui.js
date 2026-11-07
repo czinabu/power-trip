@@ -36,10 +36,6 @@ const ORDER = Object.keys(FORMS).filter(id => FORMS[id].ready);
 
 // the lore behind a small "i" (hover, focus or click), like the notes on Controls
 const loreInfo = (C) => (C.lore || C.who) ? '<span class="fm-i" tabindex="0" role="button" aria-label="Lore">i</span><div class="fm-lorepop">' + esc(C.lore || '') + (C.who ? ' <i>' + esc(C.who) + '</i>' : '') + '</div>' : '';
-// locked forms: Form V and VII have two variants each, so a chip reads V-a / V-b without naming either. The saber staff
-// has no numeral and gives nothing away until it's in hand: ???
-const lockedNo = (id) => { const same = ORDER.filter(x => FORMS[x].no === FORMS[id].no); return FORMS[id].no + (same.length > 1 ? '-' + 'ab'[same.indexOf(id)] : ''); };
-const lockedName = (id) => FORMS[id].no ? 'FORM ' + lockedNo(id) : '? ? ?';
 
 /* THE COUNTER — each form's family in the POWER / GUARD / SPEED triangle (data/foe-forms.js): what it beats and what
    beats it, against a duellist's form. Forms not learned yet aren't named ("a form still to learn"). The numbers under
@@ -225,7 +221,8 @@ function threeCard(){
       (id ? ' style="--c:' + bladeOf(id) + '"' : '') + '><kbd>' + (i + 1) + '</kbd>' +
       (id ? '<i class="mx-blade"></i><b>' + esc(FORMS[id].name) + '</b>' + famIcon(id, 12, 'mx-fam-ic') : '<b>' + (ctx.known.length > filled ? 'EMPTY' : LOCK_IC) + '</b>') + '</div>' + x + '</div>';
   }).join('');
-  return '<div class="mx-card"><div class="mx-k">YOUR THREE' + (ctx.edit ? '<em>a slot, then a form</em>' : '') + '</div><div class="mx-slots">' + rows + '</div>' +
+  // YOUR THREE leads the page: first on the left (and on a phone), in the hero's accent frame (styles/heroes/mastery.css .mx-three)
+  return '<div class="mx-card mx-three"><div class="mx-k">YOUR THREE<em>' + (ctx.edit ? 'pick a slot, then a form' : '1 · 2 · 3 switch in the fight') + '</em></div><div class="mx-slots">' + rows + '</div>' +
     (ctx.note ? '<p class="mx-note">' + esc(ctx.note) + '</p>' : '') + '</div>';
 }
 function groupsCard(){
@@ -243,10 +240,13 @@ function formTile(id){
     '<b>' + esc(FORMS[id].name) + '</b><div class="mx-tf">' + famTag(id) + '</div>' +
     (m ? '<div class="mx-tr">' + pips(r) + '<span>' + RANK_STOPS[r] + '</span></div>' + (ctx.view && r < 3 && rankProgress(id) ? '<div class="mx-bar"><i style="width:' + Math.round(fracOf(id) * 100) + '%"></i></div>' : '') : '') + '</div>';
 }
-function sealedTile(id){
-  const closed = FORMS[id].fork && ctx.closed && ctx.closed !== id;
-  return '<div class="mx-tile sealed" title="' + (closed ? 'Closed for this run: you chose ' + esc(FORMS[ctx.closed].name) : 'Not learned yet') + '"><div class="mx-tt"><span>' + lockedName(id) + '</span></div>' +
-    '<b>' + (closed ? esc(FORMS[id].name) : LOCK_IC) + '</b><div class="mx-tf">' + (closed ? 'CLOSED THIS RUN' : 'NOT LEARNED YET') + '</div></div>';
+// the forms still to learn are never named or counted (which numerals, variants or weapons are left would give the
+// story away): they stand as one sealed tile. A fork's other side, closed this run, is shown, since the player chose it.
+function sealedTiles(locked){
+  const closed = locked.filter(id => FORMS[id].fork && ctx.closed && ctx.closed !== id), rest = locked.length - closed.length;
+  return closed.map(id => '<div class="mx-tile sealed" title="Closed for this run: you chose ' + esc(FORMS[ctx.closed].name) + '"><div class="mx-tt"><span>' + formTitle(id) + '</span></div>' +
+    '<b>' + esc(FORMS[id].name) + '</b><div class="mx-tf">CLOSED THIS RUN</div></div>').join('') +
+    (rest ? '<div class="mx-tile sealed" title="Forms still to learn"><div class="mx-tt"><span>STILL TO LEARN</span></div><b>' + LOCK_IC + '</b><div class="mx-tf">THE STORY TEACHES THE REST</div></div>' : '');
 }
 // FIGHT: what it beats and what beats it (the numbers on hover, or under SHOW NUMBERS), its lore edges, then its strengths and weaknesses
 function fightPart(id){
@@ -316,8 +316,6 @@ function powerOf(id){
 const powerState = (P) => !P.open ? 'Opens at Force Level ' + P.arrive : !P.held ? 'Not in your kit' : 'Ready';
 function powerTile(id){
   const P = powerOf(id);
-  if (!P.known) return '<div class="mx-tile pw sealed' + (id === ctx.power ? ' sel' : '') + '" data-power="' + id + '"><div class="mx-tt"><span>LV ' + P.arrive + '</span></div><b>' + LOCK_IC + '</b><div class="mx-tf">' +
-    (P.open ? 'NOT LEARNED YET' : 'OPENS AT LV ' + P.arrive) + '</div></div>';
   const live = P.open && P.held;
   return '<div class="mx-tile pw' + (live ? ' live' : ' off') + (id === ctx.power ? ' sel' : '') + '" data-power="' + id + '"><div class="mx-tt"><span>LV ' + P.arrive + '</span>' +
     (P.r ? '<em class="mx-pm" title="Power mastery rank ' + ROMAN[P.r] + '">' + ROMAN[P.r] + '</em>' : '') + '</div>' +
@@ -325,8 +323,6 @@ function powerTile(id){
 }
 function powerDetail(){
   const id = ctx.power, P = powerOf(id), [fid, share] = formShare();
-  if (!P.known) return '<div class="mx-detail pw"><div class="mx-dh"><span class="mx-pic big">' + LOCK_IC + '</span><div class="mx-dn"><div class="mx-k">OPENS AT FORCE LEVEL ' + P.arrive + '</div><b>? ? ?</b><em>A power still to learn</em></div></div>' +
-    '<div class="mx-dbody"><p class="mx-where">The story hands it to you. Once you have it, it shows here with what your Force Level gives it.</p></div></div>';
   const live = P.open && P.held;
   const cutStat = stat((P.cut ? '−' + P.cut : '0') + '%', 'Force cost, from your level');
   const stats = !live ? '' : '<div class="mx-stats">' + (id === 'move' ? cutStat
@@ -345,17 +341,21 @@ function powerDetail(){
 function render(){
   const n = ctx.known.length, head = n + (n === 1 ? ' form' : ' forms') + ' learned';
   const tab = ctx.view ? ctx.tab : 'forms';
-  if (ctx.view) refreshSandboxScope();   // (what the story has handed out, for the powers still sealed)
+  if (ctx.view) refreshSandboxScope();   // (what the story has handed out: a power not met yet stays sealed)
   const locked = ORDER.filter(id => !ctx.known.includes(id));
-  const grid = tab === 'force' ? POWERS().map(powerTile).join('') : ORDER.filter(id => ctx.known.includes(id)).map(formTile).join('') + locked.map(sealedTile).join('');
-  const tabs = ctx.view ? tabRow([['forms', 'THE FORMS', n + ' / ' + ORDER.length], ['force', 'THE FORCE', 'LV ' + ctx.view.lv]], tab, 'tab') : '';
+  // the powers not met yet: one sealed tile, never named, counted or dated (as the forms still to learn)
+  const unmet = tab === 'force' && POWERS().some(id => !powerOf(id).known);
+  if (tab === 'force' && !powerOf(ctx.power).known) ctx.power = 'push';
+  const grid = tab === 'force' ? POWERS().filter(id => powerOf(id).known).map(powerTile).join('') +
+      (unmet ? '<div class="mx-tile pw sealed" title="Powers still to learn"><div class="mx-tt"><span>STILL TO LEARN</span></div><b>' + LOCK_IC + '</b><div class="mx-tf">THE STORY HANDS YOU MORE</div></div>' : '') : ORDER.filter(id => ctx.known.includes(id)).map(formTile).join('') + sealedTiles(locked);
+  const tabs = ctx.view ? tabRow([['forms', 'THE FORMS', n], ['force', 'THE FORCE', 'LV ' + ctx.view.lv]], tab, 'tab') : '';
   panel.dataset.hero = 'jedi';
   panel.innerHTML = '<div class="howto-panel mx' + (entering ? ' enter' : '') + (ctx.prefight ? ' pre' : '') + '" data-hero="jedi">' +
     '<div class="howto-head"><div class="howto-title">' + (ctx.prefight ? 'BEFORE THE FIGHT' : 'FORMS &amp; MASTERY') + '</div>' +
     '<div class="rm-sub">' + head + (ctx.view && ctx.view.why ? ' · ' + esc(ctx.view.why) : '') + '</div>' +
     (ctx.view ? '<div class="mx-numt' + (showNums ? ' on' : '') + '" data-nums="1" role="switch" aria-checked="' + showNums + '" title="Show the Force share, the counter and cost numbers, and the rank maths"><i></i>NUMBERS</div>' : '') +
     '<div class="howto-x" data-x="1">✕</div></div>' +
-    '<div class="mx-body"><div class="mx-left">' + (ctx.view ? levelCard() : '') + threeCard() + groupsCard() + '</div>' +
+    '<div class="mx-body"><div class="mx-left">' + threeCard() + (ctx.view ? levelCard() : '') + groupsCard() + '</div>' +
     '<div class="mx-right">' + tabs + '<div class="mx-split"><div class="mx-grid' + (tab === 'force' ? ' pws' : '') + '">' + grid + '</div>' + (tab === 'force' ? powerDetail() : formDetail()) + '</div></div></div>' +
     (ctx.prefight ? '<div class="mx-actions"><div class="btn" data-x="1">BACK</div><div class="btn primary go" data-go="1">FIGHT</div></div>' : '') + '</div>';
 }

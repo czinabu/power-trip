@@ -205,7 +205,7 @@ export const LESSONS = {
     { id: 'trial', group: 'basics', name: 'THE TRIAL', sub: 'Everything at once, against real foes',
       done: 'You are ready. Each form the masters teach you out there opens a new lesson here. Come back when you learn one. May the Force be with you.',
       steps: [
-        { sec: 'THE TRIAL', say: 'No more lessons. Troopers first. Use your blade, the Force and your feet. Each wave you clear in a real fight, and each clean parry or dodge, earns skill points to spend when a chapter ends.',
+        { sec: 'THE TRIAL', say: 'No more lessons. Troopers first. Use your blade, the Force and your feet. Each wave you clear in a real fight, and each clean parry or dodge, earns training points to spend when a chapter ends.',
           keys: '', do: 'Defeat the troopers', clear: true, heal: true, spawn: 'wave', wave: { grunt: 3, blaster: 1 } },
         { say: 'And now a blade. Read its guard, as I showed you.',
           keys: '', do: 'Defeat the Magnaguard', clear: true, heal: true, spawn: 'wave', wave: { duelist: 1 } },
@@ -458,7 +458,7 @@ export const LESSONS = {
     { id: 'trial', group: 'basics', name: 'THE TRIAL', sub: 'Everything at once, against real foes',
       done: 'You have learned what I can teach for now. The forge will make you more as you earn it, and I will teach it here. This is the Way.',
       steps: [
-        { sec: 'THE TRIAL', say: 'Show me. Each wave you clear in a real fight, and each clean catch or dodge, earns skill points to spend when a chapter ends. This is the Way.',
+        { sec: 'THE TRIAL', say: 'Show me. Each wave you clear in a real fight, and each clean catch or dodge, earns training points to spend when a chapter ends. This is the Way.',
           keys: '', do: 'Win the trial', clear: true, heal: true, spawn: 'wave', wave: { grunt: 4, blaster: 2, flyer: 1 } },
       ] },
 

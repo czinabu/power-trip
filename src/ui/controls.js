@@ -165,7 +165,7 @@ const TIPS = {
     'Getting hit knocks your swing loose. Cut into a foe\'s strike mid-swing and the blades clash: nobody is hurt and you both reel. Bosses clash too.',
     '<b>Duellists</b> (Magnaguards, Sith acolytes) hold a guard, and you can read it from their weapon: held on your left, on your right, level over the head, or pointing down across the legs is the line it covers. A ring beside them shows the line too while you learn and fades as you win duels (Settings: GUARD RINGS). A blade that swells and flickers hot has read your cut. They read your cut as you wind up and swing their weapon onto its line to meet it. A cut that meets a guard that holds stops dead on the blade and bounces back. Cut in on the open side (aim the angle with a flick, high or low too), kick to break it, and don\'t throw the same angle twice: they read it.',
     'Swings only hit what\'s in front of you and plant your feet, so step into range before you cut. Parry, don\'t just block: a block lets some of the blow through. Hold your guard against a duellist and your blade moves to meet its strike on the line it\'s coming in on (it follows a feint too); parry it and your riposte cuts back on the side it left open. A skilled duellist may turn that riposte and come straight back at you: keep parrying and the exchange speeds up until someone slips or the blades lock. A lock binds high, low or (out of a long exchange) body to body, and each ends its own way.',
-    'Your powers <b>master themselves</b> as you use them, and the story hands you new ones. Every 500 <b>XP</b> earns a <b>skill point</b>: spend them on training when a chapter ends.',
+    'Your powers <b>master themselves</b> as you use them, and the story hands you new ones. Every 500 <b>XP</b> earns a <b>training point</b>: spend them on training when a chapter ends.',
   ],
   mando: [
     '<b>Pause</b> with TAB (or ESC); TAB or ENTER resumes. TAB keeps you in fullscreen, where ESC may drop you out.',
@@ -179,7 +179,7 @@ const TIPS = {
     'You carry two guns: a <b>sidearm</b> on 1 and a <b>primary</b> on 2. When a run hands you a gun for a full slot, you choose which to carry.',
     'Hold RMB with the single blaster to raise a shield that deflects bolts. Firing drops it; it comes back half a second after you stop. Press E behind it to cut with the vibroblade and bash with the shield, which keeps it up but spends stamina.',
     '<b>Sith acolytes</b> bat blaster fire back. Close in: punch through their guard, charge them with W + E, catch their cuts with E and finish them with a takedown.',
-    'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>skill point</b>: spend them on weapon upgrades when a chapter ends.',
+    'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>training point</b>: spend them on weapon upgrades when a chapter ends.',
   ],  trooper: [
     '<b>The trooper\'s powers</b> come with the campaign: the scan first, then a choice at each trial, and Commander or Commando at Mustafar.',
     '<b>Pause</b> with TAB (or ESC); TAB or ENTER resumes.',

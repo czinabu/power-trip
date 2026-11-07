@@ -37,6 +37,7 @@
     "smoke:coop-four": "node tools/smoke/coop-four.mjs",
     "smoke:coop-three": "node tools/smoke/coop-three.mjs",
     "smoke:temple": "node tools/smoke/temple.mjs",
+    "smoke:ship": "node tools/smoke/ship.mjs",
     "smoke:coop-temple": "node tools/smoke/coop-temple.mjs",
     "smoke:side": "node tools/smoke/side-quests.mjs",
     "smoke:ngplus": "node tools/smoke/ngplus.mjs",

@@ -1,0 +1,117 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE GALAXY MAP on board each hero's ship (ui/galaxy-ui.js, data/hero-ships.js) in the hero's own look. Reads only the
+   --hx-* tokens (styles/heroes/tokens.css) and the shared ink rules: an ink edge, flat fills, no rails. The worlds keep
+   their own colours (--gc), the same for every hero, so a world reads the same to everyone in a party.
+   Wide screens: the chart on the left, the picked world and its missions on the right, the voyages under both. A phone held
+   upright stacks them; a phone on its side keeps them side by side and drops the long lines.
+   ============================================================ */
+#hubpanel .hb-box.gx-box:not(.hm-box):not(.hw-box){width:min(1180px,100%);padding:16px 18px 14px;gap:8px}
+:is(#hubpanel) .hb-box.gx-again{animation:none}
+.gx-head{display:flex;flex-direction:column;gap:4px}
+.gx-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:30px;line-height:1.05;color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+.gx-sub{font:500 13.5px/1.4 var(--hx-read);color:var(--hx-soft)}
+.gx-body{display:flex;gap:14px;align-items:stretch}
+.gx-side{flex:0 0 clamp(260px,34%,380px);display:flex;flex-direction:column;gap:8px;min-width:0}
+.gx-sec{font:700 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent);margin-top:4px;padding-top:8px;border-top:1px solid var(--hx-line)}
+
+/* ---------- the chart ---------- */
+.gx-map{position:relative;flex:1 1 auto;aspect-ratio:100/62;min-width:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse 22% 16% at 50% 46%,rgba(255,236,200,.28),transparent 70%),
+    radial-gradient(ellipse 48% 30% at 50% 46%,rgba(150,170,255,.12),transparent 72%),
+    conic-gradient(from 20deg at 50% 46%,transparent 0 8%,rgba(160,180,255,.07) 12%,transparent 20% 33%,rgba(160,180,255,.07) 37%,transparent 45% 58%,rgba(160,180,255,.07) 62%,transparent 70% 83%,rgba(160,180,255,.07) 87%,transparent 95%),
+    radial-gradient(1px 1px at 12% 18%,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 72% 12%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 33% 66%,rgba(255,255,255,.55),transparent),radial-gradient(1px 1px at 86% 40%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 58% 88%,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 22% 92%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 94% 82%,rgba(255,255,255,.55),transparent),radial-gradient(1px 1px at 44% 24%,rgba(255,255,255,.5),transparent),
+    #05070f;
+  box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.gx-map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.gx-lanes line{stroke:rgba(190,210,255,.18);stroke-width:.35;stroke-dasharray:1 1.2;vector-effect:non-scaling-stroke}
+.gx-lanes line{stroke-width:1px}
+.gx-course{stroke:var(--hx-live);stroke-width:2px;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;animation:gxdash 1.2s linear infinite}
+@keyframes gxdash{to{stroke-dashoffset:-22}}
+/* a world: a lit orb in its own colour, its name under it, and pips for what's there */
+.gx-w{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 6px;z-index:1}
+.gx-orb{display:block;width:calc(16px * var(--gs,1));height:calc(16px * var(--gs,1));border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--gc) 40%,#fff),var(--gc) 45%,color-mix(in srgb,var(--gc) 45%,#000) 100%);
+  box-shadow:0 0 0 2px var(--hx-ink),0 0 12px color-mix(in srgb,var(--gc) 55%,transparent)}
+.gx-w.ring .gx-orb{outline:1.5px solid color-mix(in srgb,var(--gc) 70%,#fff);outline-offset:3px}
+.gx-w.wreck .gx-orb{border-radius:2px;transform:rotate(30deg)}
+.gx-w.deep .gx-orb{background:none;box-shadow:0 0 0 1.5px var(--gc);border-radius:50%}
+.gx-w b{font:700 10.5px/1 var(--font-ui);letter-spacing:.14em;color:var(--hx-soft);white-space:nowrap;text-shadow:0 1px 0 #000,0 0 6px #000}
+.gx-w.empty{opacity:.55}
+.gx-w:hover b,.gx-w.padfocus b{color:var(--hx-text)}
+.gx-w:hover .gx-orb,.gx-w.padfocus .gx-orb{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-accent),0 0 16px var(--gc)}
+.gx-w.sel b{color:var(--hx-accent-hi)}
+.gx-w.sel .gx-orb{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 4px var(--hx-live),0 0 20px var(--gc)}
+.gx-w.sel::before{content:'';position:absolute;left:50%;top:calc(4px + 8px * var(--gs,1));width:calc(34px * var(--gs,1));height:calc(34px * var(--gs,1));transform:translate(-50%,-50%);
+  border:1px dashed var(--hx-live);border-radius:50%;animation:gxspin 9s linear infinite;pointer-events:none}
+@keyframes gxspin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.gx-ps{display:flex;gap:2px}
+.gx-p{display:grid;place-items:center;min-width:14px;height:14px;padding:0 3px;box-sizing:border-box;font:700 9.5px/1 var(--font-ui);font-style:normal;color:#0a0c10;background:#cfd6e0;box-shadow:0 0 0 1.5px var(--hx-ink)}
+.gx-p .ic{width:10px;height:10px}
+.gx-p.m{background:var(--hx-accent);color:var(--hx-on-accent)} .gx-p.s{background:#b892ff} .gx-p.z{background:#e8c46a} .gx-p.r{background:#b46bff;color:#fff}
+/* the ship: orbiting the world it's at */
+.gx-ship{position:absolute;width:0;height:0;z-index:2;pointer-events:none;color:var(--hx-live);animation:gxorbit 6s linear infinite}
+.gx-ship .ic{position:absolute;left:14px;top:-9px;width:18px;height:18px;filter:drop-shadow(0 0 3px #000) drop-shadow(0 0 4px var(--hx-live));transform:rotate(90deg)}
+@keyframes gxorbit{to{transform:rotate(360deg)}}
+
+/* ---------- the picked world ---------- */
+.gx-card{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+.gx-big{flex:none;width:44px;height:44px;border-radius:50%;margin-top:2px;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--gc) 40%,#fff),var(--gc) 45%,color-mix(in srgb,var(--gc) 40%,#000) 100%);box-shadow:0 0 0 2px var(--hx-ink),0 0 18px color-mix(in srgb,var(--gc) 45%,transparent)}
+.gx-n{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:22px;line-height:1.05;color:var(--hx-text)}
+.gx-tags{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 4px}
+.gx-tags em{font:600 10px/1 var(--hx-label);font-style:normal;letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+.gx-tags em + em{color:var(--hx-live)}
+.gx-card p{margin:0;font:500 13px/1.4 var(--hx-read);color:var(--hx-soft)}
+#hubpanel .gx-list{flex:1 1 auto;min-height:0;overflow:auto;max-height:min(46vh,420px);padding:2px;margin-top:0}
+#hubpanel .gx-list .hb-o{flex:none;min-height:54px;padding:8px 10px 8px 8px}
+#hubpanel .gx-list .hb-o b{font-size:15px}
+#hubpanel .gx-list .hb-o span{font-size:12px}
+#hubpanel .gx-list .hb-ic{width:34px;height:34px}
+.gx-none{font:500 13px/1.4 var(--hx-read);color:var(--hx-dim);padding:10px 4px}
+
+/* ---------- the voyages and the crew ---------- */
+#hubpanel .gx-voy{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:0}
+#hubpanel .gx-voy .hb-o{min-height:50px;padding:7px 10px 7px 8px}
+#hubpanel .gx-voy .hb-o b{font-size:14px}
+#hubpanel .gx-voy .hb-o span{font-size:11.5px}
+#hubpanel .gx-voy .hb-ic{width:32px;height:32px}
+.gx-crew{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gx-crew > span{flex:1;font:600 11px/1.3 var(--hx-label);letter-spacing:.12em;color:var(--hx-live)}
+#hubpanel .gx-crew .hb-o{min-height:46px;flex:0 1 320px}
+
+/* not tall enough for it all: the voyages drop their lines, the chart gives up some height */
+@media (max-height:900px){
+  #hubpanel .gx-voy .hb-o span{display:none}
+  #hubpanel .gx-voy .hb-o{min-height:44px}
+  .gx-map{max-height:calc(100dvh - 300px)}
+}
+/* a phone held upright (or a narrow window): the chart the width of the card, the world and its missions under it */
+@media (max-width:760px){
+  .gx-body{flex-direction:column}
+  .gx-side{flex:none}
+  #hubpanel .gx-voy{grid-template-columns:1fr 1fr}
+  .gx-t{font-size:24px}
+  .gx-w b{font-size:9px;letter-spacing:.08em}
+  #hubpanel .gx-list{max-height:none}
+}
+/* a short screen (a phone on its side): tighter, the long lines dropped */
+@media (min-width:761px) and (max-height:560px){
+  #hubpanel .hb-box.gx-box:not(.hm-box):not(.hw-box){padding:10px 14px 10px;gap:5px}
+  .gx-sub,.gx-card p,#hubpanel .gx-voy .hb-o span{display:none}
+  .gx-t{font-size:22px}
+  .gx-map{max-height:calc(100dvh - 225px)}
+  .gx-body{max-height:calc(100dvh - 225px)}
+  #hubpanel .gx-list{max-height:none}
+  #hubpanel .gx-list .hb-o:not(.locked) span{display:none}
+  #hubpanel .gx-box :is(.gx-list,.gx-voy) .hb-o{min-height:40px;padding-top:5px;padding-bottom:5px}
+  #hubpanel .gx-box :is(.gx-list,.gx-voy) .hb-o b{font-size:13px}
+  #hubpanel .gx-box :is(.gx-list,.gx-voy) .hb-ic{width:26px;height:26px}
+  #hubpanel .gx-voy{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:6px;overflow-x:auto;padding:2px}
+  #hubpanel .gx-box .gx-voy .hb-o b{font-size:12px;line-height:1.1}
+  .gx-sec{margin-top:0;padding-top:5px}
+}

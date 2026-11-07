@@ -25,7 +25,7 @@ export const WELCOME = {
     places: [
       ['MISSIONS', 'council', 'table', 'The campaign, story missions and challenges. Your party goes where you lead.', 'The host picks the mission here, and the party goes in together.'],
       ['SIDE MISSIONS', 'hall', 'calls', 'Calls for help from across the galaxy. More come in as your rank rises.'],
-      ['JEDHA', 'landing', 'shuttle', 'The pilgrim shuttle to the old city of Jedha, to roam it as long as you like. It runs once you have finished Act I.'],
+      ['YOUR SHIP', 'landing', 'shuttle', 'Board your shuttle: its galaxy map flies you to any world, mission or raid, and to the old city of Jedha once you have finished Act I.'],
       ['TRAINING', 'training', 'grounds', 'Learn every move and power, spar in the sandbox, or hold the proving ground.'],
       [{ home: 'YOUR SABER', away: 'YOUR GEAR' }, 'forge', 'bench', { home: 'Build your lightsaber, and change how your Jedi looks.', away: 'Your own kit, and how your hero looks.' }],
       ['RECORDS', 'archives', 'terminal', 'The codex, your holocron and every mission you have cleared.'],
@@ -47,7 +47,7 @@ export const WELCOME = {
     places: [
       ['MISSIONS', 'warroom', 'table', 'The campaign, story missions and challenges. Your squad goes where you send it.', 'The host picks the op here, and the squad ships out together.'],
       ['SIDE MISSIONS', 'warroom', 'calls', 'Calls for help from across the galaxy. More come in as your rank rises.'],
-      ['JEDHA', 'deck', 'gunship', 'A gunship to the old city of Jedha, to roam it as long as you like. It flies once you have finished Act I.'],
+      ['YOUR SHIP', 'deck', 'gunship', 'Board your dropship: its galaxy map ships you to any op, world or raid, and to the old city of Jedha once you have finished Act I.'],
       ['TRAINING', 'range', 'grounds', 'Drill the basics on the lanes, run any fight in the sim, or hold the killhouse.'],
       [{ home: 'YOUR KIT', away: 'YOUR GEAR' }, 'armory', 'bench', { home: 'Your rifle, your gear, your paint, and your squad\'s specialist.', away: 'Your own kit, and how your hero looks.' }],
       ['RECORDS', 'halls', 'terminal', 'The genome records, your service file and the mission logs.'],
@@ -71,7 +71,7 @@ export const WELCOME = {
       ['BOUNTIES', 'hangar', 'board', 'A random job off the board, or any story mission.', 'The host picks the job here, and the party goes in together.'],
       ['SIDE MISSIONS', 'hangar', 'calls', 'Calls for help from across the galaxy. More come in as your rank rises.'],
       [{ home: 'YOUR ARMOUR', away: 'YOUR GEAR' }, 'forge', 'anvil', { home: 'Forge your beskar, and change how your Mandalorian looks.', away: 'Your own kit, and how your hero looks.' }],
-      ['JEDHA', 'hangar', 'ship', 'Your ship flies to the old city of Jedha too, to roam it as long as you like, once you have finished Act I.'],
+      ['YOUR SHIP', 'hangar', 'ship', 'Board the Cinderwake: its galaxy map takes you to any job, world or raid, and to the old city of Jedha once you have finished Act I.'],
       ['TRAINING', 'pit', 'range', 'Learn the moves on the range, fight anything in the pit, or run the gauntlet.'],
       ['GETTING AROUND', 'forge', 'map', 'The covert map, here and in every hall, takes you to any hall at once.'],
     ],

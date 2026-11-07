@@ -1137,8 +1137,26 @@ export const ZONE_WORLDS = {
   },
 };
 
+// THE HERO SHIPS (data/hero-ships.js, world/arenas/hero-ship.js): a cabin in orbit. Deep space past the canopy (the world
+// itself is a mesh the cabin builds), the cabin lit cool and even from overhead, its floor a value under the hull
+const SH_SKY = { top: 0x02030a, horizon: 0x0c1430, below: 0x02030a, bands: 5, stars: 700,
+  sun: { az: 0.9, el: 0.35, color: 0xfff4e0, halo: 0xffe0b0, size: 9 } };
+const SH_LIGHT = { sun: 0xf4f0ff, sunI: 1.15, dir: [8, 46, 12], hemiSky: 0xd8e4ff, hemiGround: 0x8a8678, fill: 1.6, rim: 0x9ad8ff, rimI: 0.45 };
+export const SHIP_WORLDS = {
+  shJedi: { mist: false, sky: SH_SKY, clear: 0x02030a, fog: 0x1a2030, fogStart: 3, fogEnd: 9, light: { ...SH_LIGHT, sun: 0xfff2dc, hemiSky: 0xfff0d8 },
+    floor: { kind: 'deck', base: 0x8a7a64, stripe: 0xd8b860, seed: 83 }, outer: 0x02030a, outskirts: false, pal: {}, backdrop: [],
+    ambient: { kind: 'dust', color: 0xfff4dc, count: 40, size: 0.16 }, beats: { fog: 0x1a2030, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
+  shTrooper: { mist: false, sky: SH_SKY, clear: 0x02030a, fog: 0x1a2030, fogStart: 3, fogEnd: 9, light: SH_LIGHT,
+    floor: { kind: 'deck', base: 0x6a7682, stripe: 0xc23a30, seed: 89 }, outer: 0x02030a, outskirts: false, pal: {}, backdrop: [],
+    ambient: { kind: 'dust', color: 0xd8e8f8, count: 30, size: 0.14 }, beats: { fog: 0x1a2030, fill: 1.0, tint: 0xd8ecff }, sound: 'plains' },
+  shMando: { mist: false, sky: SH_SKY, clear: 0x02030a, fog: 0x201a16, fogStart: 3, fogEnd: 9, light: { ...SH_LIGHT, sun: 0xffe0c0, hemiSky: 0xe8c8a8, fill: 1.15 },
+    floor: { kind: 'deck', base: 0x4e4a46, stripe: 0xd9a43a, seed: 97 }, outer: 0x02030a, outskirts: false, pal: {}, backdrop: [],
+    ambient: { kind: 'embers', color: 0xffb060, count: 30 }, beats: { fog: 0x201a16, fill: 1.0, tint: 0xffd0a0 }, sound: 'foundry' },
+};
+
 export function themeFor(L){
   if (ZONE_WORLDS[L.layout]) return ZONE_WORLDS[L.layout];
+  if (SHIP_WORLDS[L.layout]) return SHIP_WORLDS[L.layout];
   if (HUB_WORLDS[L.layout]) return HUB_WORLDS[L.layout];
   if (COVERT_WORLDS[L.layout]) return COVERT_WORLDS[L.layout];
   if (TRAINING_WORLDS[L.layout]) return TRAINING_WORLDS[L.layout];

@@ -421,9 +421,17 @@ const BUILD = {
     } else {   // rocks
       const rk = list.find(b => b.kind === 'cliffs' || b.kind === 'mesas' || b.kind === 'spires');
       const cols = [pal.rock ?? pal.stone ?? (rk && rk.color) ?? dim(ground, 0.9), pal.rockD ?? pal.stoneD ?? (rk && (rk.color2 ?? rk.color)) ?? dim(ground, 0.75)];
+      // PASSES: where the map's own wall of rock leaves a gap (a bluffs or cliffs `skip`: a trail, a road off the
+      // plateau), the land past it stays low near the edge and climbs back into the ranges toward the horizon, so the
+      // gap is a view down a valley and not a second wall
+      const passes = list.filter(b => b.skip && (b.kind === 'bluffs' || b.kind === 'cliffs')).flatMap(b => b.skip);
+      const inPass = (x, z) => { let f = 1;
+        for (const [c, w] of passes){ const d = Math.abs(Math.atan2(Math.sin(Math.atan2(z, x) - c), Math.cos(Math.atan2(z, x) - c))); if (d < w * 1.2) f = Math.min(f, 0.22 + 0.78 * (d / (w * 1.2)) ** 2); }
+        return f; };
       for (let x = -ext; x <= ext; x += S.cell) for (let z = -ext; z <= ext; z += S.cell){
         const cx = x + (R() - 0.5) * S.cell * 0.9, cz = z + (R() - 0.5) * S.cell * 0.9;
-        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.4, 1.2), w = h * rand2(R, 0.6, 1.3);
+        const t = Math.min(1, (dOf(cx, cz) - S.from) / span), p = passes.length ? inPass(cx, cz) : 1;
+        const h = (S.h[0] + (S.h[1] - S.h[0]) * t) * rand2(R, 0.4, 1.2) * (p + (1 - p) * t * t), w = h * rand2(R, 0.6, 1.3);
         if (!out(cx, cz, w) || R() > S.fill) continue;
         put(grp, crag(Math.floor(R() * 6)), mat(cols[R() < 0.5 ? 0 : 1]), cx, h * 0.35, cz, 0, R() * PI * 2, 0, [w, h * 0.7, w * rand2(R, 0.6, 1)]);
       }

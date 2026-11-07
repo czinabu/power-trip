@@ -9,7 +9,7 @@ import { shared, player, barrels, vents, pillars, solids, hazardZones } from '..
 import { spawnVent, spawnBarrel, setHazardStyle } from './hazards.js';
 import { makeFloorTex, makeSkyTex } from './textures.js';
 import { buildAmbient } from '../fx/ambient.js';
-import { themeFor } from '../data/worlds.js';
+import { themeFor, WORLD } from '../data/worlds.js';
 import { paintSky, paintFloor } from './paint.js';
 import { buildBackdrop } from './backdrop.js';
 import { bakeArena, toon, toonGround, farHaze } from './ink.js';
@@ -64,6 +64,7 @@ import { clearScorch } from '../fx/scorch.js';
 import { clearSevered } from '../enemies/scars.js';
 import { buildAir, clearAir } from './air.js';
 import { buildWarfront, clearWarfront } from './warfront.js';
+import { buildLife, clearLife } from './life.js';
 import { buildSkywar } from './skywar.js';
 import { buildGrass, clearGrass } from './grass.js';
 import { spreadMark, spreadBuilt } from './spread.js';
@@ -118,6 +119,7 @@ export function buildArena(L){
   clearSevered();  // and any severed arms still lying about
   clearAir();
   clearWarfront();
+  clearLife();
   scene.remove(shared.arenaGroup);
   disposeArena(shared.arenaGroup);
   shared.arenaGroup = new THREE.Group();
@@ -346,7 +348,7 @@ function disposeArena(g){
    horizon, and the backdrop landmarks (baked here with a thicker outline so they read at distance) */
 const ORGANIC = new Set(['sand', 'snow', 'ice', 'grass', 'ash', 'basalt']);   // ground without a laid-out grid: its tile can be turned to break the repeat
 function outskirtsStyle(L, T){
-  const st = OUTSKIRTS_STYLE[L.layout];
+  const e = OUTSKIRTS_STYLE[L.layout], st = e && typeof e === 'object' ? e[WORLD] : e;   // (some layouts change planet with the world)
   if (st) return st;
   const kinds = new Set((T.backdrop || []).map(b => b.kind));
   if (kinds.has('district') || kinds.has('towers') || kinds.has('stacks')) return 'city';
@@ -406,6 +408,7 @@ function buildWorld(L, T){
     outer.material = farHaze(outer.material);
   }
   shared.skyR = skyR * sky.scale.x;   // (the sky war's capital ships hang just inside it: world/skywar.js)
+  if (!roam) buildLife(T, L, os);   // and the life in the outskirts (world/life.js)
   buildWarfront(T, L);   // the war beyond the walls (world/warfront.js)
   buildSkywar(T, back);  // and its trailer moments: capital ships, gunships, shootdowns (world/skywar.js)
 }

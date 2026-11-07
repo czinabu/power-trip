@@ -8,7 +8,9 @@
 
 /* STYLE — what a map's outskirts are. A layout not listed here takes its style from its world (world/outskirts.js
    styleFor: city-like backdrops → 'city', grass or forest giants → 'forest', anything else → 'rocks').
-   'none' leaves a map alone (the indoor rooms, which have walls and a roof between you and the outside). */
+   'none' leaves a map alone (the indoor rooms, which have walls and a roof between you and the outside, and the maps
+   whose outside is open sea or grassland that the backdrop already shows). A layout that changes planet with the world
+   (data/worlds.js WORLD_DIRECTIONS) can give one per world: { siege, worlds, frozen }. */
 export const OUTSKIRTS_STYLE = {
   archive: 'none', dojo: 'none', hangar: 'none', throne: 'none', frigate: 'none', jedhaNight: 'none',
   // the hubs' wings are halls under a roof (the temple's, the cloning citadel's, the covert's), and the crystal cave
@@ -17,8 +19,18 @@ export const OUTSKIRTS_STYLE = {
   mfForge: 'none', mfClan: 'none', mfPit: 'none', mfVault: 'none', mfHangar: 'none',
   jungle: 'forest', holdfast: 'forest',
   canyon: 'rocks', refuge: 'rocks', warcamp: 'rocks', hall: 'rocks', forge: 'rocks', approach: 'rocks', sith: 'rocks', sithGate: 'rocks',
-  garrison: 'city', relay: 'city', shipyard: 'city', chipworks: 'city', citadel: 'city', covert: 'city', foundry: 'city',
-  plains: 'city', prison: 'city', temple: 'city', pens: 'city', barge: 'city', meltworks: 'city',
+  relay: 'rocks',   // a spire on a bare black headland over the sea
+  pens: 'rocks',    // the Inquisitors' prison moon: black wet rock, nobody lives out there
+  garrison: 'city', shipyard: 'city', chipworks: 'city', citadel: 'city',
+  meltworks: 'rocks',   // the Imperial foundry cut into the ice: glacier all round it
+  foundry: { siege: 'city', worlds: 'city', frozen: 'rocks' },
+  covert: 'town',   // the clan's dwellings cut into the canyon, low and few, not towers
+  prison: 'none',   // a lone Imperial yard on the Grass Sea: open grass to the horizon
+  barge: 'none',    // the prison barge out on the storm sea: nothing but water past the rail
+  // the temple: Coruscant's city, Jedha's holy city, Ilum's bare glacier · the plains: Coruscant's ruins, Exegol's
+  // Sith wastes and Hoth's snowfield are no city
+  temple: { siege: 'city', worlds: 'city', frozen: 'rocks' },
+  plains: { siege: 'city', worlds: 'rocks', frozen: 'rocks' },
   kamino: 'stilts',
   outpost: 'town',
 };

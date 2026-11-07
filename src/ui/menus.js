@@ -170,7 +170,7 @@ for (const id in BTN_ICON){
 }
 export function setOverlayState(state){
   if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
-  if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
+  if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); disarmHome(); }
   _ovState = state;
   hubWords(); refreshGroups(); refreshContinue(state);
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming', 'exitconfirming');
@@ -208,7 +208,9 @@ export function setOverlayState(state){
     _deadAt = performance.now();
   } else if (state === 'victory'){
     go.textContent = pickChanged() ? beginLabel()   // a new pick from CHANGE: name what it begins
+      : homeBound() ? homeWord()   // a run from the hub goes home (HOME BY ITSELF below); PLAY AGAIN is the restart button
       : G.mission && G.chapter < 0 && isArcadeId(G.missionId) && !G.coopWasGuest ? 'NEXT RANDOM MISSION' : 'PLAY AGAIN';   // the arcade deals another (beginPlay)
+    if (homeBound()){ document.getElementById('templeBtn').style.display = 'none'; armHome(); }
     document.getElementById('nextrun').style.display = G.coopWasGuest ? 'none' : '';   // (a co-op guest follows the host's pick)
     refreshNextRun();
   }
@@ -724,6 +726,7 @@ document.addEventListener('click', (e) => {
 overlay.addEventListener('click', (e) => {
   // only the primary button launches/resumes — a click on empty backdrop, a label, a card or a setting must not
   if (!e.target.closest('#goText')) return;
+  if (_ovState === 'victory' && homeBound() && !pickChanged()){ e.stopPropagation(); audioInit(); disarmHome(); goTemple(); return; }   // (HOME BY ITSELF below)
   if (overlay.classList.contains('customizing')) return;   // the stage turns the hero while customizing (ui/customizer.js)
   if (overlay.classList.contains('newconfirming')) return;
   beginFromMenu();
@@ -1026,6 +1029,30 @@ export function goTemple(auto){
   setModeSel('temple'); setOverlayState('menu');
   if (auto) launchNow(); else launch();
 }
+/* HOME BY ITSELF — a run started from the hub (the temple, the citadel, the covert, a ship's galaxy map) ends on its results
+   screen with the way home as the main button, and goes home on its own after a short count unless the player does
+   anything on the screen first (reads the readout, opens CHANGE, scrolls). A co-op guest follows the host instead */
+const HOME_IN = 10;
+let _homeT = 0, _homeLeft = 0;
+const homeBound = () => G.fromHub && !G.hub && !G.coopWasGuest && G.mode === 'victory';
+const homeWord = () => 'RETURN TO ' + ((G.hubId && HUBS[G.hubId]) || nextHub()).home + (_homeLeft > 0 ? ' · ' + _homeLeft : '');
+function armHome(){
+  if (_homeT) return;
+  _homeLeft = HOME_IN;
+  _homeT = setInterval(() => {
+    if (!homeBound() || _ovState !== 'victory' || overlay.style.display !== 'flex'){ disarmHome(); return; }
+    if (overlay.classList.contains('vpicking') || panelOpen()){ disarmHome(); return; }
+    if (--_homeLeft <= 0){ disarmHome(); goTemple(); return; }
+    document.getElementById('goText').textContent = homeWord();
+  }, 1000);
+}
+function disarmHome(){
+  if (_homeT){ clearInterval(_homeT); _homeT = 0; }
+  if (_homeLeft > 0){ _homeLeft = 0; if (_ovState === 'victory' && homeBound()) document.getElementById('goText').textContent = homeWord(); }
+}
+// anything done on the results screen but the main button keeps it up
+for (const ev of ['pointerdown', 'wheel']) overlay.addEventListener(ev, (e) => { if (_homeT && !(e.target.closest && e.target.closest('#goText'))) disarmHome(); }, true);
+window.addEventListener('keydown', () => { if (_homeT) disarmHome(); }, true);
 // a co-op guest in the temple follows the host into the run they just started
 function followHostRun(){
   closeHubPanel(false);

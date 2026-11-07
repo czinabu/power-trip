@@ -99,7 +99,7 @@ function offerFreeForks(){
     if (!freeFork(n) || seen.has(n.fork)) continue;
     seen.add(n.fork);
     const pair = set.filter(m => m.fork === n.fork && freeFork(m));
-    if (pair.length === 2) queueAbilityChoice(pair, takeFork);
+    if (pair.length === 2) queueAbilityChoice(pair, takeFork, freeFork);
   }
 }
 const popFork = (n) => freeFork(n) && storeSet().filter(m => m.fork === n.fork && freeFork(m)).length === 2;   // (on the pop-up, so off this page)

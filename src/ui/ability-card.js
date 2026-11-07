@@ -37,10 +37,12 @@ export function queueAbilityCards(list){
     const c = cardOf(u).clip; if (c) new Image().src = c;   // start fetching its clip now, so it plays the moment the card opens
   }
 }
-// a choice of two (ui/store-ui.js): `pair` the two store nodes, `take(n)` hands the chosen one over
-export function queueAbilityChoice(pair, take){
+// a choice of two (ui/store-ui.js): `pair` the two store nodes, `take(n)` hands the chosen one over, `still(n)` whether a
+// half can still be had. A choice is queued when the upgrade page opens but shows only after it closes, so a pick made on
+// the page in between (Vampiric Blade locks Force Mend) is checked again the moment the pop-up comes up (ripe below).
+export function queueAbilityChoice(pair, take, still){
   if (pending.some(u => u.choice && u.choice[0] === pair[0])) return;
-  pending.push({ choice: pair, take });
+  pending.push({ choice: pair, take, still });
   for (const n of pair){ const c = cardOf({ key: n.id }); if (c && c.clip) new Image().src = c.clip; }
 }
 // game/flow.js, every frame of play: open once nothing else holds the screen
@@ -52,8 +54,19 @@ export function tickAbilityCards(){
   talkAt = 0;
   if (forceToastHolds()) return;   // the Force Level's rise comes up first, in play, with its pulse: then the power it brought
   fadeForceToast();
-  const u = pending.shift();
+  const u = ripe(pending.shift());
+  if (!u) return;
   if (u.choice) openChoice(u); else open(u);
+}
+// a choice as it stands now: both halves still open → the pop-up; one locked out since it was queued → the other is simply
+// handed over with its own card (the run already closed the alternative); neither → nothing to show
+function ripe(u){
+  if (!u.choice || !u.still) return u;
+  const left = u.choice.filter(n => { try { return u.still(n); } catch(e){ return true; } });
+  if (left.length === 2) return u;
+  if (left.length === 0) return null;
+  try { u.take(left[0]); } catch(e){ console.error(e); }
+  return cardOf({ key: left[0].id }) ? { key: left[0].id } : null;
 }
 // a new run, a load or the main menu: forget anything still waiting
 export function clearAbilityCards(){ pending.length = 0; if (abilityCardUp()) close(true); }

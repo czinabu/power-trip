@@ -103,7 +103,7 @@ for (const hero of HEROES){
     check(await cardUp(3000), `${hero}: ...the card of every place`);
     const rows = await page.$$eval('#hubpanel .hw-row', r => r.length);
     check(rows >= 5, `${hero}: the card lists the hub's places (${rows})`);
-    check(await page.$$eval('#hubpanel .hw-pin', r => r.length) === rows && await page.$$eval('#hubpanel .hw-plan .hm-you', r => r.length) === 1, `${hero}: the hub's plan pins every place, and where you stand`);
+    check(await page.$$eval('#hubpanel .hw-pin', r => r.flatMap(p => p.dataset.ps.trim().split(' ')).length) === rows && await page.$$eval('#hubpanel .hw-plan .hw-you', r => r.length) === 1, `${hero}: the hub's plan pins every place, and where you stand`);
     await page.waitForTimeout(300); await shot('whats-where');
     // a place picked on the card: a light leads there (the first tile: the missions, in another wing)
     await page.locator('#hubpanel .hw-row').first().click(); await frames();

@@ -34,6 +34,7 @@ import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML, mapLayout } from './hub-map.js';
 import { optHTML, listHTML, headHTML } from './hub-cards.js';
 import { svgIcon } from './icons.js';
+import { guidePortrait } from './hub-portrait.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
@@ -233,23 +234,29 @@ function renderWelcome(){
     ...C.rows.map(r => B(r.label, r.d, () => guideTo(r.wing, r.id, r.d))),
   ];
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  // the plan of the hub (ui/hub-map.js), YOU ARE HERE on it, and a numbered pin where each place stands
-  // (places close together, e.g. two of the ship's options, step aside along a row instead of sitting on top of each
-  // other: a pin is about 6% of the plan wide)
-  const placed = [], P = 7, ry = L.w / L.h;
-  for (const r of C.rows){
-    const [cx, cz] = L.at[r.wing] || [0, 0]; let x = (cx + r.x - L.x0) / L.w * 100; const y = (cz + r.z - L.z0) / L.h * 100;
-    const hit = (x, y) => placed.some(q => Math.abs(q.x - x) < P && Math.abs(q.y - y) < P * ry);
-    let n = 0, px = x, py = y;   // (out from the spot by turns: right, left, below, above, then further)
-    while (hit(px, py) && n < 24){ n++; const k = Math.ceil(n / 4), d = n % 4; px = x + (d === 1 ? k : d === 2 ? -k : 0) * P; py = y + (d === 3 ? k : d === 0 ? -k : 0) * P * ry; }
-    placed.push({ x: px, y: py });
+  // the plan of the hub (ui/hub-map.js), numbers only: YOU where you stand, and a pin at each spot with the number of
+  // every place there (the ship's two options share one). A pin steps aside, right, left, below, above, then further,
+  // rather than sit on another or on YOU (a pin is about 7% of the plan wide)
+  const pct = (wing, x, z) => { const [cx, cz] = L.at[wing] || [0, 0]; return { x: (cx + x - L.x0) / L.w * 100, y: (cz + z - L.z0) / L.h * 100 }; };
+  const you = pct(G.hubWing, p.x * (L.half(G.hubWing) / (shared.arenaHalf || L.half(G.hubWing))), p.z * (L.half(G.hubWing) / (shared.arenaHalf || L.half(G.hubWing))));
+  const spots = [];
+  C.rows.forEach((r, i) => { const q = spots.find(s => s.wing === r.wing && Math.hypot(s.mx - r.x, s.mz - r.z) < 6); if (q) q.ps.push(i); else spots.push({ wing: r.wing, mx: r.x, mz: r.z, ps: [i] }); });
+  const P = 7, ry = L.w / L.h, placed = [{ ...you, w: 1.6 }, { x: you.x, y: you.y - 5.5 * ry, w: 2.4 }];   // (the arrow, and its tag over it)
+  for (const s of spots){
+    const o = pct(s.wing, s.mx, s.mz), w = s.ps.length > 1 ? 1.6 : 1;
+    const hit = (x, y) => placed.some(q => Math.abs(q.x - x) < P * (q.w + w) / 2 && Math.abs(q.y - y) < P * ry);
+    let n = 0, x = o.x, y = o.y;
+    while (hit(x, y) && n < 24){ n++; const k = Math.ceil(n / 4), d = n % 4; x = o.x + (d === 1 ? k : d === 2 ? -k : 0) * P; y = o.y + (d === 3 ? k : d === 0 ? -k : 0) * P * ry; }
+    s.x = x; s.y = y; placed.push({ x, y, w });
   }
-  const pin = (r, i) => '<i class="hw-pin" data-p="' + i + '" style="left:' + placed[i].x.toFixed(2) + '%;top:' + placed[i].y.toFixed(2) + '%"><b>' + (i + 1) + '</b></i>';
-  const plan = mapHTML(Hb, G.hubId, G.hubWing, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, () => [], () => -1).replace(/<\/div>$/, C.rows.map(pin).join('') + '</div>');
+  const pin = (s) => '<i class="hw-pin' + (s.ps.length > 1 ? ' two' : '') + '" data-p="' + s.ps[0] + '" data-ps=" ' + s.ps.join(' ') + ' " style="left:' + s.x.toFixed(2) + '%;top:' + s.y.toFixed(2) + '%"><b>' + s.ps.map(i => i + 1).join('·') + '</b></i>';
+  const plan = mapHTML(Hb, G.hubId, G.hubWing, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, () => [], () => -1)
+    .replace(/<\/div>$/, spots.map(pin).join('') + '<i class="hw-you" style="left:' + you.x.toFixed(2) + '%;top:' + you.y.toFixed(2) + '%"><b>YOU</b></i></div>');
+  const face = guidePortrait(C.guide);
   const tile = (r, i) => '<div class="hw-row" data-i="' + (i + 2) + '" data-p="' + i + '"><i class="hw-no">' + (i + 1) + '</i><i class="hb-ic">' + svgIcon(placeIcon(r.label)) + '</i>' +
     '<div class="hw-n">' + esc(r.label) + '<em>' + esc(r.name) + ' · ' + esc(r.where.replace(/^.* · RIGHT HERE$/, 'RIGHT HERE')) + '</em></div><em class="hb-tag go"></em></div>';
   panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +
-    '<div class="hw-say"><span>' + esc(firstLine(C.hello)) + '</span><b>' + esc(C.guide) + '</b></div>' +
+    '<div class="hw-say' + (face ? ' face' : '') + '">' + (face ? '<img class="hw-face" alt="" src="' + face + '">' : '') + '<div><span>' + esc(firstLine(C.hello)) + '</span><b>' + esc(C.guide) + '</b></div></div>' +
     '<div class="hw-body"><div class="hw-plan">' + plan + '<div class="hw-info">Pick a place and a light leads you there.</div></div>' +
     '<div class="hw-rows">' + C.rows.map(tile).join('') + '</div></div>' +
     '<div class="hb-list hw-go">' + list.slice(0, 2).map((b, i) => optHTML(b, i, { main: !i, cls: i ? '' : 'hw-main', ic: i ? 'door' : 'compass' })).join('') + '</div></div>';
@@ -258,7 +265,8 @@ function renderWelcome(){
 // the welcome's tiles and pins light together, and the line under the plan says what the place is for
 function welcomePoint(i){
   if (!station || station.act !== 'welcome') return;
-  for (const el of panel.querySelectorAll('.hw-pin,.hw-row')) el.classList.toggle('on', el.dataset.p === String(i));
+  for (const el of panel.querySelectorAll('.hw-row')) el.classList.toggle('on', el.dataset.p === String(i));
+  for (const el of panel.querySelectorAll('.hw-pin')) el.classList.toggle('on', i != null && el.dataset.ps.includes(' ' + i + ' '));
   const info = panel.querySelector('.hw-info'), b = i == null ? null : panel._list[+i + 2];
   if (info) info.textContent = b ? b.d : 'Pick a place and a light leads you there.';
 }

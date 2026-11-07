@@ -34,7 +34,7 @@ async function open(name){
 }
 const connected = (page) => page.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
 const play = async (page) => {
-  for (let i = 0; i < 6 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){
+  for (let i = 0; i < 40 && !(await page.evaluate(() => GAME.G.mode === 'play')); i++){   // (four pages loading a level at once can take a while)
     if (await page.isVisible('#goText')) await page.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await page.isVisible('#forms [data-go]')) await page.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
     await page.waitForTimeout(800);

@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-campaign
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -14,7 +15,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9019, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 30000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -66,14 +67,15 @@ try {
   await begin(guest);
   if (!(await guest.evaluate(() => GAME.G.coopGuest))) throw new Error('the guest did not join the host\'s campaign');
   if (await guest.evaluate(() => GAME.G.endless)) throw new Error('the guest joined Survival, not the campaign');
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   await guest.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   if (await guest.evaluate(() => GAME.enemies.some(e => !e.net))) throw new Error('the guest is running foes of its own');
   // the host's wave clears mid-chapter: the guest gets its own clear bonus (XP toward its next skill point), no upgrade screen
   const w0 = await host.evaluate(() => GAME.G.wave), xp0 = await guest.evaluate(() => GAME.G.xpEarned || 0);
   await host.evaluate(() => { for (const e of GAME.enemies) GAME.damageEnemy(e, 99999, null, 0, false, false); GAME.G.spawnQueue.length = 0; });
-  await guest.waitForFunction((x) => (GAME.G.xpEarned || 0) > x, xp0, poll);
-  await host.waitForFunction((w) => GAME.G.wave === w + 1, w0, poll);
+  // (the wave's clear lands a short beat of GAME time after the last foe falls: game-wait.mjs)
+  await waitGame(guest, (x) => (GAME.G.xpEarned || 0) > x, xp0, { clock: host, what: 'the guest\'s clear bonus' });
+  await waitGame(host, (w) => GAME.G.wave === w + 1, w0, { what: 'the host\'s next wave' });
   if (await guest.evaluate(() => GAME.G.skillSelect)) throw new Error('the guest\'s upgrade screen opened mid-chapter');
   // the host moves on to a mission chapter: the guest follows it there, shown the host's objectives
   await guest.evaluate(() => { document.getElementById('skilltree').style.display = 'none'; GAME.G.skillSelect = false; });
@@ -107,7 +109,7 @@ try {
   await guest.waitForFunction(() => GAME.G.mode !== 'play' && !GAME.finale, null, poll);
   ok = true;
   console.log('ok   co-op campaign: the guest joined the host\'s level, shows its foes as puppets, and followed the wave clear');
-} catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ mode: GAME.G.mode, guest: GAME.G.coopGuest, lv: GAME.G.levelIdx, wave: GAME.G.wave, foes: GAME.enemies.map(e => [e.nid, !!e.net]), boss: GAME.finale ? [GAME.finale.state, GAME.finale.hp, !!GAME.finale.net] : null, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }
+} catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ mode: GAME.G.mode, guest: GAME.G.coopGuest, lv: GAME.G.levelIdx, wave: GAME.G.wave, phase: GAME.shared.levelPhase, chapter: GAME.G.chapter, gt: +GAME.G.gt.toFixed(1), foes: GAME.enemies.map(e => [e.nid, !!e.net]), boss: GAME.finale ? [GAME.finale.state, GAME.finale.hp, !!GAME.finale.net] : null, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }
 await browser.close(); server.close?.();
 if (!ok || errors.length){ console.error('FAIL co-op campaign\n' + errors.join('\n')); process.exit(1); }
 process.exit(0);

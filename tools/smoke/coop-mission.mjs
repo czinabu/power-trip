@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-mission
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -14,7 +15,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9020, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 30000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -74,11 +75,10 @@ try {
   await guest.waitForFunction((i) => GAME.missionState().i === i + 1, i0, poll);
   // the host's last objective: the guest's mission ends with it
   await host.bringToFront();
-  for (let k = 0; k < 120 && !(await host.evaluate(() => GAME.missionState().won || GAME.G.mode !== 'play')); k++){
-    await host.evaluate(() => { if (GAME.missionState().o) GAME.skipObjective(); });
-    await host.waitForTimeout(400);
-  }
-  await guest.waitForFunction(() => GAME.G.mode === 'victory', null, poll);
+  // (each objective begins a beat of GAME time after the last, so this runs on the host's clock: game-wait.mjs)
+  await waitGame(host, () => { if (GAME.missionState().won || GAME.G.mode !== 'play') return true; if (GAME.missionState().o) GAME.skipObjective(); return false; }, null,
+    { gameSeconds: 90, wallMs: 360000, what: 'the host\'s mission won' });
+  await waitGame(guest, () => GAME.G.mode === 'victory', null, { clock: host, what: 'the guest\'s victory' });
   ok = true;
   console.log('ok   co-op mission: the guest joined the host\'s mission, followed its objectives, markers and quarry, and finished with it');
 } catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ mode: GAME.G.mode, guest: GAME.G.coopGuest, mission: GAME.G.missionId, i: GAME.missionState().i, o: !!GAME.missionState().o, mk: GAME.missionState().markers.length, q: !!GAME.missionState().quarry, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }

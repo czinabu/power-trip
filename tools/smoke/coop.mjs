@@ -77,10 +77,18 @@ try {
   await host.evaluate(() => { try { GAME.tryAttack(); } catch(e){} });   // the host (Jedi) swings
   await guest.waitForFunction((a) => JSON.stringify(GAME.partnerInfo().armR) !== JSON.stringify(a), arm0, { timeout: 15000, polling: 250 });
   if (await guest.evaluate(() => document.querySelector('.partnertag').textContent) !== 'KIT FISTO · PADAWAN') throw new Error('the partner tag should carry their name and rank');
-  const hunted = await Promise.race([
-    host.waitForFunction(() => GAME.partnerInfo().hunters > 0, null, { timeout: 25000, polling: 250 }).then(() => 'host'),
-    guest.waitForFunction(() => GAME.partnerInfo().hunters > 0, null, { timeout: 25000, polling: 250 }).then(() => 'guest'),
-  ]);
+  // The siege's first foes only drop in a few GAME seconds into the chapter, and on a slow software-GL runner two
+  // browsers can run the game at a tenth of real time (the frame step is capped), so a wall-clock wait here was a coin
+  // toss. Wait on the host's game clock instead: some foe must be on the partner within 20 game seconds.
+  const hunted = await (async () => {
+    const gt0 = await host.evaluate(() => GAME.G.gt), wall = Date.now() + 240000;
+    for (;;){
+      for (const [name, page] of [['host', host], ['guest', guest]]) if (await page.evaluate(() => GAME.partnerInfo().hunters > 0)) return name;
+      const gt = await host.evaluate(() => GAME.G.gt);
+      if (gt - gt0 > 20 || Date.now() > wall) throw new Error('no foe went after the partner in ' + (gt - gt0).toFixed(1) + ' game seconds');
+      await host.waitForTimeout(250);
+    }
+  })();
   ok = true;
   console.log('ok   co-op: connected with code ' + code + ', each side sees the other, the partner animates, and enemies on the ' + hunted + ' side go after the partner');
 } catch(e){ errors.push(e.message); for (const p of browser.contexts().flatMap(c => c.pages())) errors.push(JSON.stringify(await p.evaluate(() => ({ roster: document.getElementById('cooproster').textContent, nm: localStorage.getItem('sw_coop_name'), info: GAME.partnerInfo(), mode: GAME.G.mode, status: document.getElementById('coopstatus').textContent })).catch(x => x.message))); }

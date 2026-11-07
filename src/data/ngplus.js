@@ -2,7 +2,7 @@
 // NEW GAME+, as data (game/ngplus.js runs it). Edit the words and numbers freely.
 //
 // A hero who has beaten their campaign can play it again as NEW GAME+: the same story from chapter 1, with a fresh run's
-// build but everything the PROFILE keeps (rank, Force Tree, deck, bench parts, looks, light and dark). Each NG+ beaten opens
+// build but everything the PROFILE keeps (rank, bench parts, looks, light and dark). Each NG+ beaten opens
 // the next TIER, up to MAX_TIER. A tier makes every foe a little tougher and hit a little harder (stacked on the chosen
 // difficulty), and deals each chapter its own MUTATORS: one at tier I, two at tier II, three at tier III. Which ones is fixed
 // by the chapter and the tier (a retry, a reload and every co-op player see the same), so a chapter has a character.

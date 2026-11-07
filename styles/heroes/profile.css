@@ -414,24 +414,96 @@
 #profile .pf-tnode .pf-tl>*{background:var(--hx-paper)}
 #profile .pf-tnode .pf-tl b{color:var(--hx-text)}
 #profile .pf-tnode .pf-tl em{color:var(--hx-dim);font-family:var(--hx-label)}
-#profile .pf-tnode.t-rank .pf-orb,#profile .pf-tnode.t-insight .pf-orb{opacity:.6}
-#profile .pf-tnode.t-rank .pf-tl b,#profile .pf-tnode.t-insight .pf-tl b{color:var(--hx-soft)}
+#profile .pf-tnode:is(.t-lock,.t-gate,.t-out) .pf-orb{opacity:.55}
+#profile .pf-tnode:is(.t-lock,.t-gate,.t-out) .pf-tl b{color:var(--hx-soft)}
 #profile .pf-tnode.t-open .pf-orb{color:var(--hx-live);box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 14px rgba(111,200,255,.55);animation:pfready 1.8s ease-in-out infinite}
 #profile .pf-tnode.t-open .pf-tl em{color:var(--hx-live)}
-#profile .pf-tnode.t-learned .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink),0 0 18px rgba(232,196,106,.55)}
-#profile .pf-tnode.t-learned .pf-tl em{color:var(--hx-accent)}
+/* open for good (between runs), or trained in this run: solid in the hero's colour */
+#profile .pf-tnode:is(.t-have,.t-max,.ranked) .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink),0 0 18px rgba(232,196,106,.55)}
+#profile .pf-tnode.t-have .pf-orb{background:var(--hx-paper-solid);color:var(--hx-accent-hi);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-tnode:is(.t-have,.t-max) .pf-tl em{color:var(--hx-accent)}
+#profile .pf-tnode.ranked.t-open .pf-orb{animation:none;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-live),0 0 0 5px var(--hx-ink),0 0 16px rgba(111,200,255,.6)}
+/* a card's ranks this run, as pips under its name */
+#profile .pf-tp{display:flex;gap:3px;justify-content:center;padding:3px 4px 2px}
+#profile .pf-tp i{width:7px;height:7px;box-shadow:inset 0 0 0 1.5px var(--hx-dim)}
+#profile .pf-tp i.on{background:var(--hx-accent);box-shadow:0 0 6px var(--hx-accent)}
+#profile[data-hero="jedi"] .pf-tp i{transform:rotate(45deg);width:6px;height:6px;margin:0 1px}
+#profile[data-hero="mando"] .pf-tp i{width:10px;height:5px;transform:skewX(-18deg)}
+#profile .pf-tdet .pf-tp{justify-content:flex-start;padding:4px 0 0}
 #profile .pf-tnode.sel .pf-orb{outline:2px solid var(--hx-accent-hi);outline-offset:5px}
 #profile .pf-tnode.sel .pf-tl b{color:var(--hx-accent-hi)}
 @keyframes pfready{50%{box-shadow:inset 0 0 0 1px var(--hx-live),0 0 0 2px var(--hx-ink),0 0 22px rgba(111,200,255,.85)}}
 @media (prefers-reduced-motion:reduce){ #profile .pf-tnode.t-open .pf-orb{animation:none} }
-/* the run's picks: small diamonds */
-#profile .pf-tfork .pf-orb.pf-fk,#profile .pf-fdetail .pf-fk{border-radius:0;transform:rotate(45deg);color:var(--hx-soft);box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
-#profile .pf-tfork .pf-orb .ic,#profile .pf-fdetail .pf-fk .ic{transform:rotate(-45deg)}
-#profile .pf-tfork:hover .pf-orb.pf-fk{transform:rotate(45deg) scale(1.08)}
-#profile .pf-tfork .pf-tl b{font-size:10px;color:var(--hx-soft)}
-#profile .pf-tfork.sel .pf-orb{outline-offset:4px}
-#profile .pf-fdetail .pf-fk{width:36px;height:36px;margin:5px}
-#profile .pf-fopts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-#profile .pf-fopts li{display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line)}
-#profile .pf-fopts b{font:600 12px/1.2 var(--font-ui);letter-spacing:.06em;color:var(--hx-text)}
-#profile .pf-fopts span{font:500 12px/1.35 var(--font-body);color:var(--hx-soft)}
+
+/* ---------- the tree's card detail: one band over the tree (who, what it does, what to do) ---------- */
+#profile .pf-tnote{margin:0 0 8px}
+#profile .pf-tdet{position:static;display:grid;grid-template-columns:minmax(170px,.8fr) minmax(0,1.4fr) auto;align-items:center;gap:8px 18px;margin-bottom:12px;padding:12px 14px}
+#profile .pf-tdet .pf-dbody{display:flex;flex-direction:column;gap:5px;min-width:0}
+#profile .pf-tdet .pf-fl{margin:0;font-size:12px}
+#profile .pf-tdet .pf-dact{margin:0;padding:0;border:0;max-width:260px}
+#profile .pf-tdet .pf-dact :is(p,ul){margin:0}
+#profile .pf-tdet>.pf-note{grid-column:1 / -1;margin:0}
+#profile .pf-tnode{width:auto}
+#profile .pf-tnode .pf-tl b{white-space:normal;line-height:1.08}
+#profile .pf-tnode .pf-tl em{white-space:nowrap}
+#profile .pf-ftree.narrow .pf-fhead{padding:5px 6px}
+@media (max-width:760px){
+  #profile .pf-tdet{grid-template-columns:1fr;gap:8px}
+  #profile .pf-tdet .pf-dact{max-width:none}
+  #profile .pf-tnode{width:auto}
+}
+
+/* ---------- THE UPGRADE PAGE at a chapter's close (ui/profile-ui.js openRunTree): this panel inside #skilltree, the page's
+   own head across the top, its other sections and CONTINUE down the left, the tree to train on the right ---------- */
+#skilltree.pfrun{background:rgba(1,3,8,.82)}
+#skilltree.pfrun>.st-scroll{display:none}
+#profile.pf-inrun{z-index:1;color:var(--hx-text)}
+#profile.pf-inrun .pf-panel{width:min(1240px,100%);height:min(800px,100%)}
+#profile.pf-inrun :is(.st-head,.st-sec){animation:none;width:auto}
+#profile .pf-runhead .st-head{padding:0 0 12px;margin:0 0 14px;border-bottom:1px solid var(--hx-line)}
+#profile .pf-runhead .st-kicker{color:var(--hx-dim);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+#skilltree #profile .pf-runhead h1{margin-top:4px;font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:34px;color:var(--hx-text);text-shadow:none}
+#skilltree #profile .pf-runhead .sub{margin-top:6px;color:var(--hx-live);font-family:var(--hx-label)}
+#profile .pf-runhead .coin{border-radius:0;border:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-runhead .coin .cl{font-family:var(--hx-label);color:var(--hx-dim)}
+#profile .pf-runhead .coin.sp{box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#profile .pf-runhead .coin.sp b{color:var(--hx-accent-hi);text-shadow:none}
+#profile.pf-inrun .pf-body{grid-template-columns:340px minmax(0,1fr)}
+#profile .pf-runside{display:flex;flex-direction:column;gap:12px}
+#profile .pf-runside .st-sec{flex:none;padding:12px;border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile .pf-runside .st-sec.empty{display:none}
+#profile .pf-runside .storehdr{margin-bottom:10px}
+#profile .pf-runside .storehdr .sh-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:17px;color:var(--hx-text)}
+#profile .pf-runside .storehdr .sh-h{font-size:12.5px;color:var(--hx-soft)}
+#profile .pf-runside .cardrow{grid-template-columns:1fr;gap:10px}
+#profile .pf-runside .forkgroup{grid-column:auto;flex-direction:column}
+#profile .pf-runside .forkgroup .or{width:auto;padding:4px 0}
+#profile .pf-runside .card{padding:10px 12px;grid-template-columns:40px 1fr;column-gap:12px}
+#profile .pf-runside .card .c-ico{width:32px;height:32px;font-size:18px;margin:4px 0}
+#profile .pf-runside .card .c-nm{font-size:14px}
+#profile .pf-runside .card .c-ds{font-size:13px}
+#profile .pf-runside .card .c-fl{display:none}
+#profile .pf-runfoot{margin-top:12px;padding-top:12px;border-top:1px solid var(--hx-line)}
+#profile .pf-runfoot .st-foot{flex:1;justify-content:space-between;padding:0;background:none;border:0}
+#profile .pf-runfoot .st-hint{color:var(--hx-soft)}
+@media (max-width:760px){
+  #profile.pf-inrun{padding:0}
+  #profile.pf-inrun .pf-body{display:flex;flex-direction:column}
+  #profile.pf-inrun .pf-right{order:1}
+  #profile.pf-inrun .pf-runside{order:2;margin:14px 0 0;padding:0;border:0}
+  #skilltree #profile .pf-runhead h1{font-size:24px}
+  #profile .pf-runhead .st-head{grid-template-columns:1fr auto;column-gap:10px}
+  #profile .pf-runhead .st-wallet{grid-column:2;grid-row:1 / span 3;flex-direction:column;gap:6px;margin:0}
+  #profile .pf-runhead .coin{min-width:0;padding:6px 10px}
+  #profile .pf-runhead .coin b{font-size:20px}
+  #profile .pf-runhead .coin .cl{font-size:9px;letter-spacing:1.4px}
+  #profile .pf-runfoot .st-foot{flex-direction:column;gap:8px}
+  #profile .pf-runfoot #continueBtn{width:100%}
+}
+/* names fit their slot: a touch smaller on the tree, and a long one breaks rather than hiding under its neighbour */
+#profile .pf-tnode .pf-tl b{font-size:10px;letter-spacing:.4px;overflow-wrap:anywhere}
+#profile .pf-tdet .pf-dact .btn{white-space:nowrap}
+@media (max-width:760px){
+  #profile.pf-inrun .pf-body{overflow-y:auto}
+  #profile.pf-inrun .pf-body>*{flex:none;min-height:auto}
+}

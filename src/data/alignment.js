@@ -75,8 +75,8 @@ export const ALIGN_WORDS = {
 
 /* THE TWO PATHS — the Jedi's light and dark cards, in mirrored pairs (same tier, same budget, a different way to fight).
    A card is open while you LEAN its way and hold its tier's rank (FOUNDATION for Padawan, DISCIPLINE for Knight,
-   CAPSTONE for Master, as the Force Tree's own); it needs no Insight. Swing the other way and it closes again (your deck
-   lets go of it), and the other side's opens. In a run it is a card like any other, for the usual one skill point.
+   CAPSTONE for Master, as the Force Tree's own). Swing the other way and it closes again, and the other side's opens. In a
+   run it is a card on the tree's PATH branch like any other, for the usual one Training point.
    `costOf` cuts one Force power's cost (player/jedi/force.js); the cost floor still holds every power to half its base. */
 const cut = (ids, k) => { player.up.costOf = { ...(player.up.costOf || {}) }; for (const id of ids) player.up.costOf[id] = (player.up.costOf[id] || 1) * k; };
 export const LIGHT_POWERS = ['barrier', 'mend', 'repulse'];

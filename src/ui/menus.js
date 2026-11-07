@@ -40,7 +40,7 @@ import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHe
 import { startGate, gateOpen, gateBeaten } from '../game/gate.js';
 import { storyHero } from '../data/campaign.js';
 import { autosave } from '../game/autosave.js';
-import { startCampaign, joinCampaign, closeCard, chapterLabel } from '../game/campaign.js';
+import { startCampaign, joinCampaign, closeCard, chapterLabel, restartChapter } from '../game/campaign.js';
 import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { startZone } from '../game/zone.js';
@@ -182,7 +182,7 @@ export function setOverlayState(state){
   document.getElementById('restartBtn').style.display = state === 'menu' || G.hub ? 'none' : 'inline-flex';
   document.getElementById('templeBtn').style.display = state !== 'menu' && G.fromHub && !G.hub ? 'inline-flex' : 'none';   // a run started from the temple goes back to it
   document.getElementById('stepTemple').style.display = state === 'menu' && G.fromHub ? '' : 'none';
-  document.getElementById('restartBtn').textContent = state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
+  document.getElementById('restartBtn').textContent = G.chapter >= 0 && state !== 'victory' ? '↻ RESTART CHAPTER' : state === 'pause' ? '↻ RESTART' : G.training ? '↻ RESTART TRAINING' : G.mission && G.chapter < 0 ? (isArcadeId(G.missionId) && state === 'victory' ? '↻ PLAY IT AGAIN' : '↻ RESTART MISSION') : '↻ RESTART RUN';
   document.getElementById('skipBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('lessonsBtn').style.display = state === 'pause' && G.training ? 'inline-flex' : 'none';
   document.getElementById('pzTrain').style.display = state === 'pause' && G.training ? '' : 'none';   // the pause screen's TRAINING label
@@ -802,8 +802,9 @@ document.addEventListener('pointerlockchange', () => {
     else setOverlayState('menu');
   }
 });
-// RESTART RUN — wipe progress and drop back into level 1 from scratch
+// RESTART — the mode again from its start; in the campaign that is this chapter's start (a won campaign's starts it over)
 function restartRun(toTraining, after){
+  const won = G.mode === 'victory';
   overlay.style.display = 'none';
   _endPick = null; overlay.classList.remove('vpicking');
   document.getElementById('restartBtn').style.display = 'none';
@@ -817,7 +818,7 @@ function restartRun(toTraining, after){
   G.paused = true;
   loadInto(() => {
     G.paused = false;
-    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0){ if (storyHero() === 'gate') startGate(); else startCampaign(); } else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
+    if (toTraining) startTutorial(); else if (G.zone) startZone(G.zone); else if (G.chapter >= 0 && !won) restartChapter(); else if (G.chapter >= 0){ if (storyHero() === 'gate') startGate(); else startCampaign(); } else if (G.endless) startEndless(); else if (G.training) startTutorial(); else if (G.mission) startMission(G.missionId); else if (G.sandbox) startSandbox({ replay: true }); else startCampaign();   // a survival run restarts as survival, not the campaign
     if (after) after();
   });
   if (!shared.lockFallback) requestLock();

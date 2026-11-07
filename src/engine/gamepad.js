@@ -4,6 +4,7 @@
 // looks. Anywhere else (menus, pause, the upgrade screen, the sandbox panel) the pad moves a focus ring between the
 // things you can click.
 
+import { aimLookScale } from './camera.js';
 import { PAD_BUTTONS, PAD_TUNE, PAD_BINDS, PAD_GLYPHS, padFamily, padLayout } from '../data/gamepad.js';
 import { shared, G, player, isGunner } from '../state.js';
 import { clamp } from '../utils.js';
@@ -181,7 +182,7 @@ function fight(btn, down, up, lx, ly, rx, ry, dt){
   if (wheelStick(rx, ry)) return;
   if (r > PAD_TUNE.lookDead){
     const mag = Math.pow(Math.min(1, (r - PAD_TUNE.lookDead) / (1 - PAD_TUNE.lookDead)), PAD_TUNE.lookCurve);
-    const sens = G.padSens * (isGunner() && player.zoom ? G.adsSens : 1);
+    const sens = G.padSens * aimLookScale();
     const dyaw = -(rx / r) * mag * PAD_TUNE.yawRate * sens * dt;
     const dpitch = (ry / r) * mag * PAD_TUNE.pitchRate * sens * dt * (G.padInvert ? -1 : 1);
     G.yaw += dyaw;

@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Mouse and keyboard handlers.
 
+import { aimLookScale } from './camera.js';
 import { finParry } from '../player/jedi/finisher.js';
 import { CFG } from '../data/config.js';
 import { renderer } from './renderer.js';
@@ -55,8 +56,8 @@ const inputActive = () => !G.cutscene && !G.cardUp && !G.sbPlan && (document.poi
 document.addEventListener('mousemove', (e) => {
   if (!inputActive()) return;
   if (wheelLook(e.movementX, e.movementY)) return;   // the squad's command wheel is up: the mouse points at an order (allies/wheel.js)
-  // scoped in (the disruptor's 30° zoom) the look slows to the SCOPE SENS setting, or the reticle flies off the target
-  const sens = G.mouseSens * (isGunner() && player.zoom ? G.adsSens : 1);
+  // down the sights the look slows with the zoom, and in a scope to the SCOPE SENS setting too (engine/camera.js aimLookScale)
+  const sens = G.mouseSens * aimLookScale();
   G.yaw -= e.movementX * 0.0023 * sens;
   // allow looking well UP (was capped at -0.15, so you couldn't aim high on the ground) as well as down
   G.pitch = clamp(G.pitch + e.movementY * 0.0021 * sens, -0.62, 1.2);

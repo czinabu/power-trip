@@ -116,6 +116,7 @@ import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush } from './ene
 import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
 import { bladeSegment } from './player/jedi/bladehit.js';
 import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partner.js';
+import { updateApprentice } from './allies/apprentice.js';
 import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, duelRingOn, squadStance, setSquadStance, engageCode } from './allies/squad.js';
 import { updateWheel, wheelOpen } from './allies/wheel.js';
 import { downed } from './game/revive.js';
@@ -194,6 +195,7 @@ function tick(){
       updateGlance(dt);   // an objective's hand-off turns the view to the next one, for a moment (game/glance.js)
       updateSandbox(dt);
       updateSquad(dt);   // the hero's squad, and anyone downed waiting to be got up (allies/squad.js, game/revive.js)
+      updateApprentice(dt);   // the Padawan's powers, the foundling's eye, the trooper's second; and in the hub, at their post (allies/apprentice.js)
     }
     if (G.coopGuest) updatePuppets(wdt); else updateEnemies(wdt);   // co-op guest: the host's foes, followed rather than thought for (net/foes.js)
     updateBolts(wdt);
@@ -283,6 +285,8 @@ import { ENDLESS_ARENAS } from './game/survival.js';
 import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene, resolution: resolutionInfo }, killcam: { KC, killCam } });
+import * as APPRENTICE from './allies/apprentice.js';
+Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 Object.assign(window.GAME, { gate: { start: startGate, open: gateOpen, veteranKit, finale: () => shared.finale } });   // ACT IV (game/gate.js), for tests

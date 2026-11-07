@@ -57,6 +57,7 @@ import { resetGrasp } from '../player/jedi/grasp.js';
 import { resetAirCut } from '../player/jedi/aerial.js';
 import { hideThrownSaber, stowHandSaber } from '../player/jedi/force.js';
 import { clearSquad, trooperSquad, addSquadmate, noteGuests } from '../allies/squad.js';
+import { planApprentice } from '../allies/apprentice.js';
 import { clearDowned } from './revive.js';
 import { playBossIntro } from './cutscene.js';
 import { coopRun } from '../net/run.js';
@@ -116,6 +117,7 @@ export function startLevel(idx, opts){
   for (const e of enemies) removeEnemy(e);
   enemies.length = 0;
   clearSquad(); clearDowned();   // the squad and anyone downed don't carry into a new level (a mode calls its own squad in)
+  planApprentice(opts);   // the Padawan, the foundling or the trooper's second: along for this one? (allies/apprentice.js; solo only)
   endLock();
   for (const b of bolts) scene.remove(b.mesh);
   bolts.length = 0;

@@ -41,6 +41,8 @@ export const SIDES = {
 
 // ILSA VENN: the hero's oldest friend; under the Inquisitor's mask from the night the temple falls
 const ILSA_FACE = { skin: 0xdaa888, hair: 0x6a2c16, style: 'ponytail', lip: 0xa8645a, eyes: 0x3e6a44 };
+// TAVI, the Padawan (data/apprentices.js): the same face at every stage, the hair growing up with them
+const TAVI_FACE = (style) => ({ skin: 0x8a5536, hair: 0x140e0a, style, lip: 0x7a4a3c, eyes: 0x5a3a20 });
 
 export const CAST = {
   // ---- the Jedi ----
@@ -58,6 +60,12 @@ export const CAST = {
   // the ARC trooper's Hoth chapter: a Jedi fighting beside the squad (a squadmate whose def names this look: data/allies.js)
   'MASTER IRO':  { side: 'jedi', build: 'm', w: 1.02, face: { skin: 0xb07a56, hair: 0x2a2018, style: 'topknot', beard: 'goatee', eyes: 0x5a3a20 },
                    cloak: true, colors: { cloak: 0x5a4632, trim: 0x2e8a52 }, blade: 0x3aff8c },
+  // TAVI, the Jedi's Padawan (data/apprentices.js), one look a stage: a youngling's tunic, then the braid, then a mantle
+  // over the robe, then a Knight's cloak. The blade is the squadmate's own colour (the stage and your lean)
+  'TAVI 0': { side: 'jedi', build: 'f', w: 0.9, face: TAVI_FACE('buzz'), colors: { tunic: 0xe6e2d8, tabard: 0xb39d78, trim: 0x8c7656 } },
+  'TAVI 1': { side: 'jedi', build: 'f', w: 0.92, face: TAVI_FACE('braid'), colors: { tunic: 0xd8ccb0, tabard: 0x8c7656, trim: 0x6e4a2a } },
+  'TAVI 2': { side: 'jedi', build: 'f', w: 0.95, face: TAVI_FACE('braid'), mantle: true, colors: { tunic: 0xcdb791, cloak: 0x5a3d26, trim: 0x3a5a8a } },
+  'TAVI 3': { side: 'jedi', build: 'f', w: 0.98, face: TAVI_FACE('topknot'), cloak: true, colors: { cloak: 0x4a3422, trim: 0x3a5a8a } },
   // ---- the Empire's blades ----
   'THE INQUISITOR':   { side: 'inq', build: 'f', face: { ...ILSA_FACE, sith: true }, mask: 'half', armour: 'inq', cloak: true },   // Ilsa, masked
   'THE SEVENTH BLADE': { side: 'inq', build: 'f', face: ILSA_FACE, armour: 'inq', cloak: true },     // Ilsa again, the mask gone
@@ -116,7 +124,8 @@ export function lookById(id){
   return i > 0 ? castLook(id.slice(i + 1), id.slice(0, i)) : CAST[id] || null;
 }
 // every named look's id (engine/prewarm.js bakes them all before play)
-export const CAST_IDS = [...Object.keys(CAST), ...Object.entries(MISSION_CAST).flatMap(([m, o]) => Object.keys(o).map(n => m + ':' + n))];
+// (not the Padawan's: Tavi is built in a squadmate's colours, a bake of its own, when Tavi joins: allies/apprentice.js)
+export const CAST_IDS = [...Object.keys(CAST).filter(n => !n.startsWith('TAVI ')), ...Object.entries(MISSION_CAST).flatMap(([m, o]) => Object.keys(o).map(n => m + ':' + n))];
 // the side's palette with the look's own colours over it, and its blade
 export function lookColors(L){ return { ...SIDES[L.side] || SIDES.sith, ...L.colors }; }
 // the blade it burns: its own, else its side's (red for the Empire), else the Order's blue

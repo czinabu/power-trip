@@ -122,6 +122,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (e.dmgRule){ const r = e.dmgRule(e, dmg, tick, opts, knockDir); if (r === null) return; dmg = r; }   // a final boss's own rules on what lands (boss/finale.js)
   const byAlly = !!(opts && opts.ally);
   if (e.scanT > G.gt && dmg > 0) dmg *= e.scanMul || 1;   // marked by the ARC trooper's recon scan (player/trooper/abilities.js)
+  if (e.spotT > G.gt && dmg > 0 && !byAlly) dmg *= e.spotMul || 1;   // called out by the Mando's foundling (allies/apprentice.js): your blows land harder
   // the ARC trooper's SUPPRESS order (allies/squad.js): a squad bolt that lands in the zone PINS its foe (enemies/ai.js)
   const sup = G.suppress;
   // (and the trooper's heavy, HAMMER, pins whatever its rotary hits: data/allies.js `pins`)
@@ -242,6 +243,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }
     if (byAlly){
       // the squad's kill: a share of the bounty, none of the hero's rewards
+      if (opts.by && opts.by.onKill) opts.by.onKill(e);   // an apprentice's kill grows them (allies/apprentice.js)
       if (!e.converted){ gainXp(e.t.score * 4 * SQUAD.killXp); if (G.stats) G.stats.squadKills = (G.stats.squadKills || 0) + 1; gainCP('squadKill'); addFlow('squadKill'); squadKillPerks(); if (hooks.sqk) hooks.sqk(); }   // (co-op: the shared squad's kill feeds the guest's BATTLE RHYTHM too)
       S.kill(cp, !!e.t.heavy);
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);

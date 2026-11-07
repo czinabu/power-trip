@@ -149,9 +149,12 @@ function settleParts(hero, p, atClose, topCard = false){
 }
 
 /* ---------- rank XP: the hooks ---------- */
+let gainHook = null;
+export const onRankGain = (fn) => { gainHook = fn; };   // (allies/apprentice.js: an apprentice who fought beside you earns a share)
 function gain(n, hero = G.hero){
   if (!(n > 0)) return;
   profileOf(hero).xp += Math.round(n);
+  if (gainHook) gainHook(n, hero);
 }
 // a chapter of this run has just closed (game/flow.js checkUnlocks, closing): host or co-op guest alike
 export function noteChapterCleared(id){
@@ -366,6 +369,14 @@ export function cleanCard(c){
 }
 // the profile page's RESET: this hero starts over at the first rank (the save slots and their wins are untouched)
 export function resetProfile(hero){ const s = load(); s.heroes[hero] = blank(); save(); }
+// THE APPRENTICE (data/apprentices.js, allies/apprentice.js): who grows up beside this hero. met: they've come to you
+// (the side mission, the chapter, the rank) · taken: you took them on · xp, stage: how far they've grown · who: the
+// trooper's second (a squadmate's name) · home: left at the hub (they don't come along)
+export function apprenticeOf(hero = G.hero){
+  const p = profileOf(hero);
+  return p.apprentice ||= { met: 0, taken: 0, xp: 0, stage: 0, who: null, home: 0 };
+}
+export const saveProfile = () => save();
 // tools and tests
 export const profileStore = () => load();
 export function reloadProfile(){ store = null; return load(); }

@@ -20,7 +20,9 @@
 //   (none)     the temple's great doors (world/arenas/temple.js): reaching them opens them, and walking through them
 //              is what fades (the Jedi's siege into the archive)
 
-import { G, shared, enemies } from '../state.js';
+import { G, shared, enemies, keys } from '../state.js';
+import { interactReady } from './interact.js';
+import { pad, padKeys } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { makeBeacon, removeMarker, pulseMarker, heroIn } from './objectives.js';
 import { comms, dropComms, clearComms } from './story.js';
@@ -112,7 +114,7 @@ export function startCalm(){
   for (const e of enemies){ if (!e.dead && e.group) burst(new THREE.Vector3(e.group.position.x, 1.2, e.group.position.z), 0xffd28a, 10, 4, 3, 0.8); removeEnemy(e); }
   enemies.length = 0; G.spawnQueue.length = 0;
   const door = c.doorway && (c.doorway.at || templeDoors()) ? c.doorway : null;   // (the way on: THE WAY ON above)
-  Object.assign(A, { on: true, guest: false, t: 0, at: null, said: false, reached: false, lines, door, label: (door && door.label) || (CALM[storyHero()] || CALM.jedi).label || 'REGROUP', who: '' });
+  Object.assign(A, { on: true, guest: false, t: 0, skipT: 0, at: null, said: false, reached: false, lines, door, label: (door && door.label) || (CALM[storyHero()] || CALM.jedi).label || 'REGROUP', who: '' });
   G.calm = true;
   shared.levelPhase = 'aftermath'; shared.phaseT = 0;
   MUSIC.setCue('calm');
@@ -130,11 +132,25 @@ export function endCalm(quiet){
   shared.levelPhase = 'chapterdone'; shared.phaseT = 0.6;   // (then the upgrade screen)
 }
 
+// HOLD F TO MOVE ON: whoever doesn't want the walk can hold F (the pad's Y) and the chapter closes as if they'd reached the
+// marker: the screen goes dark through a doorway, or the upgrade screen comes up. Not while F has a prompt to answer
+const SKIP_HOLD = 1.0;
+const skipWord = () => pad.active ? padKeys('HOLD F') + ' TO MOVE ON' : 'HOLD F TO MOVE ON';
+function skipHeld(dt){
+  if (keys.f && !interactReady()) A.skipT = (A.skipT || 0) + dt; else A.skipT = 0;
+  return A.skipT >= SKIP_HOLD;
+}
+function skipNow(){
+  A.skipT = 0;
+  if (A.door){ dropMark(); goThrough(() => endCalm(false)); return; }   // (straight into the dark, where the next chapter comes up)
+  endCalm(false);
+}
 // for the HUD (ui/hud.js): the line while it runs, and where the waypoint points
 export function calmHud(){
   if (!A.on) return null;
   const d = A.door, st = d ? (A.guest ? A.doorSt || 0 : doorState()) : 0;
-  const status = !A.at ? 'TAKE A BREATH' : d ? (st ? d.through || 'WALK THROUGH THE DOORS' : d.to || 'WALK TO THE MARKER') : A.reached ? 'REGROUPED' : 'NO RUSH · WALK TO THE MARKER';
+  let status = !A.at ? 'TAKE A BREATH' : d ? (st ? d.through || 'WALK THROUGH THE DOORS' : d.to || 'WALK TO THE MARKER') : A.reached ? 'REGROUPED' : 'NO RUSH · WALK TO THE MARKER';
+  if (A.at && !A.guest && st < 2) status += A.skipT > 0 ? ' · MOVING ON ' + '▮'.repeat(Math.ceil(A.skipT / SKIP_HOLD * 5)).padEnd(5, '▯') : ' · ' + skipWord();
   return { title: A.who ? A.label + ' · ' + A.who : A.label, status };
 }
 export const calmTarget = () => A.on && A.at ? A.at : null;
@@ -155,6 +171,7 @@ export function updateAftermath(dt){
   }
   if (A.mark) pulseMarker(A.mark, dt, G.gt);
   if (!A.at) return;
+  if (skipHeld(dt) && (!A.door || doorState() < 2)){ skipNow(); return; }
   A.reached = A.reached || heroIn(A.at.x, A.at.z, CALM_CFG.reach);   // (either hero, in co-op)
   if (A.door){ updateDoor(); return; }
   if ((A.reached && A.t >= CALM_CFG.min) || A.t >= CALM_CFG.max) endCalm(false);   // (the exchange doesn't hold the way out)

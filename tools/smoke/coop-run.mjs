@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-run
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -59,7 +60,7 @@ try {
   if (!(await guest.evaluate(() => GAME.G.coopGuest))) throw new Error('the guest did not join the host\'s run');
   // the host's foes appear on the guest as puppets with the same numbers
   const ids = (page, puppets) => page.evaluate((p) => GAME.enemies.filter(e => !!e.net === p).map(e => e.nid).sort((a, b) => a - b), puppets);
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   await guest.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   const [h, g] = [await ids(host, false), await ids(guest, true)];
   const shared = g.filter(n => h.includes(n));

@@ -8,6 +8,7 @@
 //   npm run build && npm run smoke:coop-three
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -64,7 +65,7 @@ try {
     if (!(await g.evaluate(() => GAME.G.coopGuest))) throw new Error('a guest did not join the host\'s run');
   }
   await host.waitForFunction(() => { const a = GAME.partnerInfo().all; return a.length === 2 && a.every(p => p.shown && p.posed); }, null, poll);
-  await host.waitForFunction(() => GAME.enemies.length >= 2, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 2, null, { what: 'two foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   const slot = (page) => page.evaluate(() => GAME.coopNet.slot);
   const seen = await host.evaluate(() => GAME.partnerInfo().all.map(p => p.slot));
   for (const g of [g1, g2]) await g.waitForFunction((seen) => seen.includes(GAME.coopNet.slot), seen, poll).catch(() => {});   // (each guest knows its seat)

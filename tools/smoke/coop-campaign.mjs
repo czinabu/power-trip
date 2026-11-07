@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-campaign
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -66,7 +67,7 @@ try {
   await begin(guest);
   if (!(await guest.evaluate(() => GAME.G.coopGuest))) throw new Error('the guest did not join the host\'s campaign');
   if (await guest.evaluate(() => GAME.G.endless)) throw new Error('the guest joined Survival, not the campaign');
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   await guest.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   if (await guest.evaluate(() => GAME.enemies.some(e => !e.net))) throw new Error('the guest is running foes of its own');
   // the host's wave clears mid-chapter: the guest gets its own clear bonus (XP toward its next skill point), no upgrade screen

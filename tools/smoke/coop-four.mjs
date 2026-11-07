@@ -5,6 +5,7 @@
 //   npm run build && npm run smoke:coop-four
 
 import { chromium } from 'playwright';
+import { waitGame } from './game-wait.mjs';
 import { PeerServer } from 'peer';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -70,7 +71,7 @@ try {
     await page.waitForFunction(() => { const a = GAME.partnerInfo().all; return a.length === 3 && a.every(p => p.shown && p.posed); }, null, poll)
       .catch(async () => { throw new Error(name + ' does not see three posed partners: ' + JSON.stringify(await page.evaluate(() => GAME.partnerInfo().all))); });
   // the host's foes are on every guest's screen
-  await host.waitForFunction(() => GAME.enemies.length >= 3, null, poll);
+  await waitGame(host, () => GAME.enemies.length >= 3, null, { what: 'three foes on the host' });   // (they drop in on the game's clock: game-wait.mjs)
   for (const g of guests) await g.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 3, null, poll);
   if (await guests[2].evaluate(() => GAME.enemies.some(e => !e.net))) throw new Error('a guest is running foes of its own');
   // a blow lands on exactly the guest it was meant for: the second one

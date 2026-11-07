@@ -124,7 +124,7 @@ try {
   await host.evaluate((p) => { GAME.G.chapter = p; GAME.nextChapter(); }, archive);
   // (the guest's pop-ups from the jump come first, and the choice right after them; its tab in front, where frames run)
   await guest.bringToFront();
-  await guest.waitForFunction(() => { const b = document.querySelector('#abilitycard.open [data-next]'); if (b) b.click(); return document.querySelector('#chapcard.open .cc-opt'); }, null, { timeout: 60000, polling: 400 });
+  await guest.waitForFunction(() => { GAME.clearComms(); const b = document.querySelector('#abilitycard.open [data-next]'); if (b) b.click(); return document.querySelector('#chapcard.open .cc-opt'); }, null, { timeout: 60000, polling: 400 });
   await guest.click('#chapcard.open .cc-opt[data-go="saved"]');
   await host.waitForFunction(() => document.querySelector('#chapcard.open .cc-opt'), null, poll);
   await host.click('#chapcard.open .cc-opt[data-go="saved"]');

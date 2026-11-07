@@ -118,7 +118,9 @@ function powerCost(id, steps){
 // a power the hero hasn't met yet (not in this run's kit, and the story hasn't handed it out anywhere) isn't named: it
 // stands as a sealed card, like the forms still to learn. The Force strikes and Push come with the saber.
 const SEEN = { pull: 'pull', grasp: 'pull', throw: 'throw', barrier: 'barrier', jslam: 'jslam', mend: 'mend', judge: 'judge', repulse: 'repulse' };
-const powerKnown = (id) => !SEEN[id] || !!(ctx.view.has && ctx.view.has(OWNED[id])) || storyReached(SEEN[id]);
+// a power is shown once the story has handed it out (in this run, or any) and the Force Level has reached it: one
+// still locked behind a level is never named, it waits in the sealed tile with the powers not met yet
+const powerKnown = (id) => (!SEEN[id] || !!(ctx.view.has && ctx.view.has(OWNED[id])) || storyReached(SEEN[id])) && ctx.view.lv >= POWER_GROWTH[id].arrive;
 
 /* SHOW NUMBERS on the mastery pages: off by default, so the page reads as forms, ranks and powers. On, it adds the Force
    share, each power's gain and cost and the key to them, and the rank maths (styles/menus.css .fm-nums). Remembered. */

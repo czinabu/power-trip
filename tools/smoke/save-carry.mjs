@@ -165,6 +165,23 @@ await page.$eval('#campLoadBtn', el => el.click()); await page.click('[data-act=
 await page.$eval('#mode-campaign', el => el.click()); await page.waitForTimeout(400);
 check(await page.evaluate((c) => GAME.G.resumeRun && GAME.G.resumeRun.chapter === c, story), 'the hand save from the mission keeps the story\'s chapter too');
 
+// RESTART from the pause screen mid-story: this chapter again, not the whole campaign over (CONTINUE stays on it)
+await page.$eval('#goText', el => el.click());
+await fightNow(); await playing();
+await page.evaluate(() => GAME.startChapter(4)); await page.waitForTimeout(2500);
+const mid = await page.evaluate(() => GAME.G.chapter);
+await page.evaluate(() => { document.getElementById('overlay').style.display = 'flex'; GAME.G.paused = true; GAME.setOverlayState('pause'); });
+check(await page.evaluate(() => document.getElementById('restartBtn').textContent.includes('RESTART CHAPTER')), 'the pause screen in a chapter offers RESTART CHAPTER');
+await page.click('#restartBtn');
+await until(() => GAME.G.mode === 'play' && !GAME.G.paused, null, 20000); await page.waitForTimeout(2500);
+check(await page.evaluate((c) => GAME.G.chapter === c, mid), 'RESTART in a chapter starts that chapter again, not chapter 1');
+check(await page.evaluate((c) => { const d = JSON.parse(localStorage.getItem('sw_save_auto') || 'null'); return d && d.run && d.run.chapter === c; }, mid), 'and the autosave stays on that chapter');
+await boot();
+await page.$eval('#mode-campaign', el => el.click()); await page.waitForTimeout(400);
+await page.$eval('#goText', el => el.click());
+await until(() => GAME.G.mode === 'play', null, 20000); await page.waitForTimeout(1500);
+check(await page.evaluate((c) => GAME.G.chapter === c, mid), 'CONTINUE CAMPAIGN after the restart picks up on that chapter');
+
 for (const e of errors) console.error(e);
 if (errors.length) process.exitCode = 1;
 await browser.close();

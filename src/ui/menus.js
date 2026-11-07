@@ -49,7 +49,7 @@ import { loadInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
-import { startHub, setPartyHooks, curHub, hubIdFor } from '../game/hub.js';
+import { startHub, setPartyHooks, curHub, hubIdFor, keepHubSpot, forgetHubSpot } from '../game/hub.js';
 import { HUBS } from '../data/hub.js';
 // the temple's station panel (ui/hub-ui.js registers its closer: it imports this file, so this one can't import it)
 let closeHubPanel = () => {};
@@ -251,7 +251,7 @@ function beginPlay(){
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.modeSel === 'temple'){ startHub(G.hubWing); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
-      G.hub = false;
+      G.hub = false; forgetHubSpot();   // (a run: coming back from it is a fresh arrival, not the spot left for it)
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
       if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
       else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; G.ngPlus = coopRun.ng | 0; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
@@ -850,6 +850,7 @@ export function goHome(){
   closeSandboxPanel(false); closeHubPanel(false);
   leaveSetup(false);   // the sandbox's battle setup, if it's up (game/battlesim.js)
   closeCard(true);
+  keepHubSpot();   // (from the hub: ENTER it again and you're back where you stood, game/hub.js)
   document.getElementById('skilltree').style.display = 'none';
   G.skillSelect = false; G.sbMenu = false;
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
@@ -915,6 +916,7 @@ export function launchNow(){
 // leave the temple for the title screen (a station that opens a menu page, or launches a mode through it). The temple's
 // build stays where it is until the next mode replaces it; the menu draws its own stage, not the arena
 function leaveHub(){
+  keepHubSpot();   // (closing the page and walking back in: the spot you left, game/hub.js)
   closeHubPanel(false);
   G.fromHub = true; G.hub = false; G.mode = 'menu'; G.paused = false; G.skillSelect = false; G.sbMenu = false;
   G.ngPlus = 0;   // (the temple is between runs: a campaign from here is a first run unless NEW GAME+ arms one)

@@ -48,6 +48,7 @@
     "shots:maps": "node tools/shots/maps.mjs",
     "smoke:files": "node tools/smoke/files.mjs",
     "smoke:welcome": "node tools/smoke/hub-welcome.mjs",
+    "smoke:hub-stay": "node tools/smoke/hub-stay.mjs",
     "smoke:coop-welcome": "node tools/smoke/coop-welcome.mjs",
     "smoke:desktop": "node tools/smoke/desktop.mjs",
     "smoke:zone": "node tools/smoke/zone.mjs",

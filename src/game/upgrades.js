@@ -166,7 +166,7 @@ export function xpPointCheck(){
   G.skillPoints = (G.skillPoints || 0) + (due - G.xpPoints);
   G.xpPoints = due;
   const sp = G.skillPoints;
-  upToast(sp > 1 ? sp + ' SKILL POINTS READY' : 'SKILL POINT READY', 'Spend ' + (sp > 1 ? 'them' : 'it') + ' when the chapter ends', 'sp');
+  upToast(sp > 1 ? sp + ' TRAINING POINTS READY' : 'TRAINING POINT READY', 'Spend ' + (sp > 1 ? 'them' : 'it') + ' when the chapter ends', 'sp');
 }
 // one wave cleared: outside the story it pays a point (survival also owes a boon pick); everywhere it settles mastery
 export function earnWavePoint(){
@@ -179,7 +179,7 @@ export function earnWavePoint(){
 export function noteWavePoint(){
   if (storyRun()) return;
   const sp = G.skillPoints || 0;
-  upToast(sp > 1 ? sp + ' SKILL POINTS READY' : 'SKILL POINT READY', !G.endless ? 'Spend ' + (sp > 1 ? 'them' : 'it') + ' when the area is cleared'
+  upToast(sp > 1 ? sp + ' TRAINING POINTS READY' : 'TRAINING POINT READY', !G.endless ? 'Spend ' + (sp > 1 ? 'them' : 'it') + ' when the area is cleared'
     : 'Spend ' + (sp > 1 ? 'them' : 'it') + ' after wave ' + (Math.ceil(((G.endlessWave || 0) + 1) / SURVIVAL_EVERY) * SURVIVAL_EVERY), 'sp');
 }
 // a fresh run

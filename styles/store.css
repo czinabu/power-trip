@@ -156,3 +156,11 @@
   .st-sec .cardrow{grid-template-columns:1fr}
   .forkgroup{grid-column:auto}
 }
+/* where a Training card came from (ui/store-ui.js srcOf): chips beside its tier tag, the Profile's words */
+.card .c-tags{grid-column:2;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.card .c-src{font-size:10px;letter-spacing:1.6px;padding:2px 7px;border-radius:var(--r-chip);color:var(--ink-dim);border:1px dashed var(--edge)}
+.card .c-src.tree{color:var(--gold);border:1px solid rgba(255,210,90,.5);background:rgba(255,210,90,.08)}
+.card .c-src.path{color:var(--gold);border:1px solid var(--gold);background:rgba(255,210,90,.14)}
+.card .c-src.rank{color:#bfe8ff;border:1px solid rgba(120,200,255,.45)}
+.card .c-src.al-light{color:#9fd8ff;border:1px solid rgba(159,216,255,.55)}
+.card .c-src.al-dark{color:#ff7a66;border:1px solid rgba(255,106,90,.55)}

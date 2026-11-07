@@ -239,7 +239,7 @@ export function updateHud(){
       const have = xpTowardPoint();
       $('xpmeterfill').style.width = (clamp(have / XP_PER_POINT, 0, 1) * 100) + '%';
       xm.classList.remove('ready');
-      setHtml($('xpmetertxt'), '<span class="nx">NEXT</span> SKILL POINT <span class="nx">· ' + have + ' / ' + XP_PER_POINT + ' XP</span>');
+      setHtml($('xpmetertxt'), '<span class="nx">NEXT</span> TRAINING POINT <span class="nx">· ' + have + ' / ' + XP_PER_POINT + ' XP</span>');
     } else if (showX){
       if (goal){ const frac = clamp((G.xp || 0) / goal.cost, 0, 1);
         $('xpmeterfill').style.width = (frac*100) + '%';

@@ -25,8 +25,9 @@ import { LEVELS } from '../data/levels.js';
 import { icon } from './icons.js';
 import { BOON_BY_ID } from '../data/boons.js';
 import { rollBoons, pickBoon } from '../game/boons.js';
-import { noteFork, treePath, inDeck } from '../game/profile.js';
-import { BRANCH } from '../data/profile.js';
+import { noteFork, treePath, inDeck, deckOf } from '../game/profile.js';
+import { BRANCH, BRANCHES } from '../data/profile.js';
+import { ALIGN_WORDS } from '../data/alignment.js';
 
 let progFreeCards = [];   // the 3 free-upgrade cards chosen for this visit (stable across re-renders)
 function rollFreeCards(){
@@ -129,7 +130,9 @@ function pickNextBoon(id){
 function card(opts){
   const c = document.createElement('div');
   c.className = 'card' + (opts.cls || '') + (opts.afford ? '' : ' cant');
-  c.innerHTML = '<div class="c-tag">' + opts.tag + '</div><div class="c-ico">' + icon(opts.ico) + '</div>' +
+  // opts.src: small chips beside the tag saying where a Training card came from (its Profile deck, path, tree or rank)
+  c.innerHTML = (opts.src && opts.src.length ? '<div class="c-tags"><span class="c-tag">' + opts.tag + '</span>' + opts.src.map(x => '<span class="c-src ' + x[0] + '">' + x[1] + '</span>').join('') + '</div>'
+    : '<div class="c-tag">' + opts.tag + '</div>') + '<div class="c-ico">' + icon(opts.ico) + '</div>' +
     '<div class="c-nm">' + opts.nm + '</div><div class="c-ds">' + opts.ds + '</div>' + (opts.extra || '') +
     (opts.cost ? '<div class="' + (opts.costCls || 'c-cost') + '">' + opts.cost + '</div>' : '') +
     (!opts.afford && opts.why ? '<div class="c-why">' + opts.why + '</div>' : '');
@@ -168,7 +171,7 @@ export function renderProgress(){
   }
   // the story spends only skill points: its XP coin shows how far the next one is (game/upgrades.js)
   const story = storyRun();
-  document.querySelector('#xpbalance .cl').textContent = story ? 'NEXT SKILL POINT' : 'XP';
+  document.querySelector('#xpbalance .cl').textContent = story ? 'NEXT TRAINING POINT' : 'XP';
   document.getElementById('xpbalval').textContent = story ? xpTowardPoint() + ' / ' + XP_PER_POINT : xp;
   document.getElementById('spbalval').textContent = sp;
   document.getElementById('spbalval').parentElement.classList.toggle('has', sp > 0);
@@ -250,30 +253,38 @@ export function renderProgress(){
   wrap.innerHTML = '';
   document.getElementById('freehdr').textContent = isTrooper() ? 'GAR TRAINING' : mando ? 'WEAPON UPGRADES' : 'TRAINING';
   // what training opens next — "DISCIPLINE opens after 1 more" — so the tier gate reads as a goal, not a mystery
+  // where the hand came from: YOUR DECK and YOUR PATH, set on the Profile between runs (ui/profile-ui.js; rollFreeCards above)
+  const deck = deckOf(), path = !mando && treePath(), W = ALIGN_WORDS[G.hero] || ALIGN_WORDS.jedi;
+  const srcOf = (s) => [
+    s.prof && ['tree', 'FORCE TREE'], s.rank && ['rank', 'RANK CARD'], s.align && ['al-' + s.align, W[s.align]],
+    path && (s.branch || BRANCH[s.id]) === path && ['path', '★ PATH'],
+    deck && !inDeck(s) && ['out', 'NOT IN DECK'],
+  ].filter(Boolean);
   const spent = G.skillSpent || 0, nextT = [2, 3].find(t => spent < TIER_REQ[t] || !tierStoryOpen(t));
   const gate = !nextT ? '' : !tierStoryOpen(nextT) ? ' · ' + tierName(nextT) + ' opens in Act ' + (TIER_CHAPTER[nextT] === 'mustafar' ? 'III' : 'II')
     : ' · ' + tierName(nextT) + ' opens after ' + (TIER_REQ[nextT] - spent) + ' more';
   document.getElementById('freehelp').textContent = (sp > 0
-    ? 'Spend skill points · ' + sp + ' to spend'
-    : 'Spend skill points · ' + (storyRun() ? 'every ' + XP_PER_POINT + ' XP earns one' : 'you earn one each wave cleared')) + gate;
+    ? 'Spend training points · ' + sp + ' to spend'
+    : 'Spend training points · ' + (storyRun() ? 'every ' + XP_PER_POINT + ' XP earns one' : 'you earn one each wave cleared')) + gate +
+    ' · ' + (deck ? 'dealt from your Profile deck' : 'dealt from your Profile cards') + (path ? ' (★ ' + ((BRANCHES.find(b => b.id === path) || {}).nm || '') + ' always offered)' : '');
   for (const s of progFreeCards){
     const r = skillRank(s.id);
     const spent = r >= s.max;
     const lockedOut = !spent && s.avail && !s.avail();   // a rival pick (e.g. the heal path) closed this off
     const pips = s.max > 1 ? '<div class="pips">' + '<i class="on"></i>'.repeat(r) + '<i></i>'.repeat(s.max - r) + '</div>' : '';
     const rankTag = r > 0 ? '<span class="rk">' + ['','II','III','IV'][r] + '</span>' : '';
-    const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO SKILL POINTS';
+    const why = lockedOut ? 'LOCKED · you chose the other heal path' : spent ? 'FULLY TRAINED' : 'NO TRAINING POINTS';
     wrap.appendChild(card({
-      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier) + (s.prof ? ' · YOUR TREE' : s.rank ? ' · RANK' : '') + (inDeck(s) ? '' : ' · NOT IN YOUR DECK'),
+      cls: ' skill t' + s.tier + (s.prof || s.rank ? ' prof' : ''), tag: tierName(s.tier), src: srcOf(s),
       ico: s.ico, nm: s.nm + rankTag, ds: s.ds,
       extra: (lockedOut ? '' : '<div class="c-fl">“' + s.fl + '”</div>') + pips,
-      cost: '1 SKILL POINT', costCls: 'c-pick',
+      cost: '1 TRAINING POINT', costCls: 'c-pick',
       afford: sp > 0 && !spent && !lockedOut, why,
       onClick: () => chooseUpgrade(s),
     }));
   }
   if (!progFreeCards.length) wrap.innerHTML = '<div class="empty">Nothing left to train. You have mastered every discipline on offer.</div>';
-  document.getElementById('sthint').textContent = (storyRun() ? 'Unspent skill points carry over' : sp > 0 ? 'Unspent XP and skill points carry over' : 'Unspent XP carries over') +
+  document.getElementById('sthint').textContent = (storyRun() ? 'Unspent training points carry over' : sp > 0 ? 'Unspent XP and training points carry over' : 'Unspent XP carries over') +
     (G.endless ? ' · this page opens every ' + SURVIVAL_EVERY + ' waves' : ' · this page opens when a chapter ends');
 }
 function buyStore(n){

@@ -208,10 +208,10 @@ const forkOpt = (id) => { const s = JEDI_STORE.find(n => n.id === id); return s 
 const forkName = (id) => forkOpt(id).nm;
 const forkShort = (id) => forkName(id).replace(/^(FORCE|SABER) /, '');   // the tree's label: THROW / BARRIER
 function forkDetail(f){
-  const last = profileOf('jedi').forks[f.fork], B = BRANCHES.find(x => x.id === f.branch), R = track('jedi').ranks.find(r => r.id === tierRank(f.tier));
+  const last = profileOf('jedi').forks[f.fork], B = BRANCHES.find(x => x.id === f.branch);
   const opts = f.ids.map(id => { const o = forkOpt(id); return '<li><b>' + esc(o.nm) + (last === id ? ' <em class="pf-got">LAST PICK</em>' : '') + '</b><span>' + o.ds + '</span></li>'; }).join('');
   return '<aside class="pf-detail pf-fdetail"><div class="pf-dh"><span class="pf-orb pf-fk">' + icon(forkOpt(f.ids[0]).ico) + '</span><div><b>' + esc(f.ids.map(forkName).join(' or ')) + '</b><span>RUN PICK · ' + esc(B ? B.nm : '') + '</span></div></div>' +
-    '<p>In a run you pick one of these' + (R ? ' from ' + esc(R.nm) + ' tier on' : '') + '. It costs no Insight, and you can pick the other one next run.</p><ul class="pf-fopts">' + opts + '</ul></aside>';
+    '<p>In a run, the story offers you one of these at the ' + TIER_NAME[f.tier] + ' tier (the Training page\'s NEW POWERS). It costs no Insight, and you can pick the other one next run.</p><ul class="pf-fopts">' + opts + '</ul></aside>';
 }
 function treeDetail(n){
   if (!n) return detail('jedi', null);
@@ -223,7 +223,7 @@ function treeDetail(n){
     : st === 'rank' ? '<ul class="pf-unlock"><span>TO UNLOCK</span><li><i>○</i>Reach ' + esc(R ? R.nm : 'a higher rank') + ' <em>(you: ' + esc(track('jedi').ranks[profileOf('jedi').rank].nm) + ')</em></li></ul>'
     : '<p class="pf-lock">' + LOCK + 'NO INSIGHT LEFT: the next rank gives more</p>';
   const B = BRANCHES.find(x => x.id === n.branch);
-  return '<aside class="pf-detail' + (st === 'learned' ? '' : ' shut') + '"><div class="pf-dh"><span class="pf-orb">' + icon(n.ico) + '</span><div><b>' + esc(n.nm) + '</b><span>' + esc(R ? R.nm : TIER_NAME[n.tier]) + ' · ' + esc(B ? B.nm : '') + '</span></div></div>' +
+  return '<aside class="pf-detail' + (st === 'learned' ? '' : ' shut') + '"><div class="pf-dh"><span class="pf-orb">' + icon(n.ico) + '</span><div><b>' + esc(n.nm) + '</b><span>' + TIER_NAME[n.tier] + ' · ' + esc(B ? B.nm : '') + '</span></div></div>' +
     dsHtml(n.ds) + (n.fl ? '<p class="pf-fl">' + esc(n.fl) + '</p>' : '') + '<div class="pf-dact">' + act + '</div></aside>';
 }
 // where things sit: x in % of the tree's width (a branch is a third, its trunk off-centre so the picks hang outward), y as a
@@ -273,7 +273,8 @@ function treeCol(){
         '<span class="pf-tl"><b>' + f.ids.map(id => esc(forkShort(id))).join(' / ') + '</b>' + (last ? '<em>LAST: ' + esc(forkShort(last)) + '</em>' : '') + '</span></span>');
     });
   });
-  const ranks = [1, 2, 3].map(t => { const R = track('jedi').ranks.find(r => r.id === tierRank(t)); return '<span class="pf-ftier' + (hasRank('jedi', R.id) ? ' on' : '') + '" style="top:' + TREE_ROW[t] + '%">' + esc(R.nm) + '</span>'; }).join('');
+  // the rows wear the cards' tier words (FOUNDATION / DISCIPLINE / CAPSTONE), as CARDS and the run's Training page do
+  const ranks = [1, 2, 3].map(t => { const R = track('jedi').ranks.find(r => r.id === tierRank(t)); return '<span class="pf-ftier' + (hasRank('jedi', R.id) ? ' on' : '') + '" style="top:' + TREE_ROW[t] + '%">' + TIER_NAME[t] + '</span>'; }).join('');
   const root = '<div class="pf-froot' + (anyLearned ? ' lit' : '') + '" ' + at(50, TREE_ROW.root) + '><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><b>' + left + '</b><em>INSIGHT<br>TO SPEND</em></span></div>';
   return `<div class="pf-col pf-right">
     ${viewTabs('jedi')}

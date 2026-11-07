@@ -11,7 +11,7 @@
 
 import * as THREE from 'three';
 import { camera, scene } from '../engine/renderer.js';
-import { G, shared, player, isGunner, isTrooper, bolts } from '../state.js';
+import { G, shared, player, isGunner, isTrooper, bolts, enemies } from '../state.js';
 import { VOICE, storyHero } from '../data/campaign.js';
 import { MANDO_BOSS, MANDO_CAST } from '../data/campaign-mando.js';
 import { JEDI_BOSS, JEDI_DUELS, JEDI_CAST } from '../data/campaign-jedi.js';
@@ -244,6 +244,23 @@ function wide(t, title){
   return shot('hero', [Math.PI + a, W, H], [Math.PI + a * 0.5, W * 0.85, H * 0.8], t, { on: 'hero', ahead: Math.min(10, W * 0.5), h: 0 }, { title });
 }
 
+/* ---------- one of it, never two ----------
+   An entrance's stand-in walks up to the mark and the real foe steps in there once the scene is over (game/mission.js
+   holds it back until every screen's copy has ended). If the real one arrives anyway while the stand-in still holds the
+   frame (a co-op host's word outrunning this screen's copy of the scene on a slow link), it stays out of sight until the
+   scene ends: a foe new since the scene began, standing where the stand-in does */
+function hideDouble(){
+  if (!C.before || !/^duel:/.test(C.key)) return;
+  for (const a of C.actors){
+    if (!a.own || !a.g) continue;
+    const q = a.g.position;
+    for (const e of enemies){
+      if (C.before.has(e) || !e.group || !e.group.visible || Math.hypot(e.group.position.x - q.x, e.group.position.z - q.z) > 7) continue;
+      e.group.visible = false; if (!C.hid.includes(e)) C.hid.push(e);
+    }
+  }
+}
+
 /* ---------- starting and ending ---------- */
 // opts: key (seen once a visit) · shots · actors · mark {x, z} · face [x, z] (the hero turns to it) · onDone · share (sent to a co-op partner)
 // the sim stands still but the gait reads player.moveVel/vel: a hero caught mid-run would keep striding in place, so stop them dead
@@ -308,6 +325,7 @@ function start(opts){
   const a0 = opts.actors && opts.actors[0], at = Array.isArray(opts.face) ? { x: opts.face[0], z: opts.face[1] } : a0 && a0.g ? a0.g.position : opts.mark ? { x: opts.mark[0] ?? opts.mark.x, z: opts.mark[1] ?? opts.mark.z } : null;
   const marks = blockScene(at, (opts.actors || []).map(a => a && a.g), opts.stage || null, !!opts.share);
   if (opts.face){ G.yaw = yawTo(pp.x, pp.z, opts.face[0], opts.face[1]); G.pitch = 0.1; }
+  C.before = new Set(enemies); C.hid = [];   // (the foes already on the field: hideDouble)
   Object.assign(C, { on: true, key: opts.key || '', shots: opts.shots, i: 0, t: 0, actors: opts.actors || [], kept: [], keepYaw: opts.keepYaw ?? G.yaw, heroYaw: G.yaw,
                      mark: opts.mark || null, onDone: opts.onDone || null, fade: 0, ending: false, shown: null, titled: null, pair: 0, one: opts.one || null, at: performance.now() });
   if (C.one) oneBegin();   // (from where the play camera is now, before anything turns the hero)
@@ -343,6 +361,8 @@ function finish(skipped){
   MUSIC.sceneEnd(/^(duel|boss):/.test(C.key) && G.mode === 'play');   // a duel's or a boss's entrance lands its fight on a hit
   if (C.draw){ for (const a of C.actors) endFoe(a); endSceneDraw(G.mode !== 'play'); C.draw = false; }   // (the hero's hilt stays on the belt for 5)
   dropActors();
+  for (const e of C.hid || []) if (e.group) e.group.visible = true;   // (the real one, kept out of the entrance: hideDouble)
+  C.hid = []; C.before = null;
   unblockScene();
   if (C.blade){ sceneRestore(C.blade, G.mode !== 'play'); C.blade = null; }   // (lit before with a fight on: drawn and lit again as play resumes)
   G.sceneLit = false;
@@ -540,6 +560,7 @@ export function updateCutscene(){
     return void updateCutscene();
   }
   for (const a of C.actors) updateActor(a, dt);
+  hideDouble();
   // the hero idles (and turns to whatever the scene faced them toward) while the sim stands still
   const pp = playerPos();
   stillHero();   // (nothing else may push the hero's velocity back up while the scene plays)

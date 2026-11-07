@@ -24,7 +24,8 @@ import { V3, clamp, rand } from '../utils.js';
 import { scene } from '../engine/renderer.js';
 import { foeProfile, FORM_SWITCH } from '../data/foe-forms.js';
 import { diffHpMul } from '../data/difficulty.js';
-import { SCALE, heroScale } from '../data/coop.js';
+import { heroScale, DUO } from '../data/coop.js';
+import { duoHp, duoHit, duoPick, duoWheel, duoHeard, updateDuo, strikerOf } from './duo.js';
 import { spawnEnemy } from '../enemies/spawn.js';
 import { setFoeForm } from '../enemies/foeform.js';
 import { initDuel } from '../enemies/duel.js';
@@ -73,7 +74,8 @@ export function spawnFinale(id, at, opts = {}){
   if (def.sunder) e.fin.sd = { v: 0, max: Math.round(def.sunder.bar * heroScale(def.sunder.coop, heroes)), supp: 0, idle: 0, openUntil: 0, pinned: false, sent: 0, said: {} };
   shared.reviveMul = def.reviveMul || null;   // (the trooper's quicker revives in his fight: game/revive.js)
   e.t = { ...e.t, ...(def.over || {}), dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
-  e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroes) * (def.raidHp || 1));
+  e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * duoHp(heroes) * (def.raidHp || 1));   // (a party: more of him, boss/duo.js)
+  e.fin.party = heroes; e.pick = duoPick;   // (a party: he goes after whoever hurts him most, boss/duo.js)
   e.spd = e.t.speed * def.speed;
   e.group.scale.multiplyScalar(def.scale);
   e.dmgRule = finaleDamage;   // what can hurt him, and how much (enemies/damage.js)
@@ -111,6 +113,11 @@ function finaleDamage(e, dmg, tick, opts, knockDir){
   dmg *= (def.phaseResist[F.phase - 1] ?? 1) * (def.armour ?? 1);
   // his own rules first (the Magistrate's shield, his cracks): what's left of the blow, or null if none of it lands
   if (F.D.look.damage){ dmg = F.D.look.damage(e, dmg, tick, opts, knockDir); if (dmg === null) return null; }
+  // a party (boss/duo.js): whose blow it was moves his threat, the one he isn't on lands it harder, and two from either side
+  // catch him between them
+  const duo = duoHit(e, F, strikerOf(opts), dmg, tick, F.sd ? G.gt >= F.sd.openUntil : !(F.sig && (UNBROKEN[F.sig.id] || e.hyper)));
+  dmg *= duo.mul;
+  if (duo.pincer) pincer(e, F);
   const at = () => V3(e.group.position.x, e.group.position.y + 3.2, e.group.position.z);
   if (!tick){
     const open = e.state === 'stagger' || G.gt < (e.openUntil || 0) || (F.sig && F.sig.open) || !!(F.D.look.open && F.D.look.open(e));
@@ -186,6 +193,27 @@ function breakVessel(e, F){
   if (hooks.fin) hooks.fin({ k: 'sb', n: e.nid });
 }
 
+/* ---------------- THE PINCER (a party: boss/duo.js) ----------------
+   Two heroes struck him from either side within a breath: he's caught between them. He staggers open, or a raid boss's
+   sunder bar takes a big share instead. (Not while a move that can't be broken, his phase beat or a ward has him, nor
+   while a raid boss is already broken open: then it doesn't count, finaleDamage.) */
+function pincer(e, F){
+  if (F.sd){ F.sd.v = Math.min(F.sd.max, F.sd.v + F.sd.max * DUO.pincer.sunder); F.sd.idle = 0; }
+  else {
+    if (F.sig) endSig(e, true);
+    staggerEnemy(e, 0, 0, 'CAUGHT BETWEEN');
+    e.st = Math.max(e.st || 0, DUO.pincer.open * 0.8); e.openUntil = G.gt + DUO.pincer.open;
+  }
+  pincerFx(e, F.def);
+  if (hooks.fin) hooks.fin({ k: 'pc', n: e.nid });
+}
+function pincerFx(e, def){
+  const g = e && e.group;
+  if (g){ burst(V3(g.position.x, 1.8 * g.scale.y, g.position.z), 0xffd24a, 26, 10, 5, 1); spawnGroundShock(V3(g.position.x, 0.1, g.position.z), 0xffd24a, 3.5, 0.4, 0.7); S.stun(g.position); }
+  G.shake = Math.max(G.shake, 0.6); G.hitstop = Math.max(G.hitstop, 0.08);
+  showBanner('CAUGHT BETWEEN', def && def.sunder ? 'Both sides at once: the vessel buckles.' : 'Both sides at once: he\'s open. Hit him!', 1.8, { kicker: def ? def.name : '' });
+}
+
 /* ---------------- the boss bar ---------------- */
 function hudEls(){
   const wrap = document.getElementById('bosswrap');
@@ -257,6 +285,7 @@ export function updateFinale(dt){
   if (F.D.look.frame) F.D.look.frame(e, dt);
   if (def.burstCap) F.bucket = Math.max(0, F.bucket - e.maxHp * def.burstCap / def.burstWin * dt);
   if (F.sd && !e.dead) updateSunder(e, F, dt);
+  updateDuo(e, F, dt);   // a party: his threat fades, and a hero joining or leaving rescales him (boss/duo.js)
   const slow = F.sd && F.sd.pinned ? def.sunder.slow : 1;   // (pinned: his moves come slower)
   // he can't be floored, flung or carried off by a power: whatever tried it, he's back on his feet (a move that can't be
   // broken carries on through it; any other move is cut, as a stagger cuts it)
@@ -268,10 +297,7 @@ export function updateFinale(dt){
   }
   if (F.sig && e.hyper && e.state === 'stagger') e.state = 'sig';   // (a move that can't be broken: e.hyper)
   if (e.dead && !F.over){ teardown(); return; }   // (something put him down outside the rules: just let him go)
-  const hero = heroFor(e), pp = hero.pos, g = e.group;
-  let tx = pp.x - g.position.x, tz = pp.z - g.position.z;
-  const dist = Math.hypot(tx, tz) || 0.001; tx /= dist; tz /= dist;
-  Object.assign(C, { hero, pp, dist, tx, tz, remote: !hero.local, phase: F.phase });
+  const g = e.group, { dist } = aim(e, heroFor(e), F);
   // phase III's dark: the lights come down over a couple of seconds and stay down
   if (F.phase >= 3 && !F.over && def.mood){ MOOD.k = Math.min(1, MOOD.k + dt * 0.5); }
   else if (F.over && MOOD.k > 0) MOOD.k = Math.max(0, MOOD.k - dt * 0.35);   // he's beaten: the light comes back
@@ -289,7 +315,7 @@ export function updateFinale(dt){
   if (!F.sig && F.phase < 3 && e.hp <= Math.ceil(e.maxHp * def.phaseAt[F.phase - 1]) + 1e-6) { startSig(e, BEAT); return; }
   if (F.phase >= 3 && e.hp <= 1 + 1e-6 && !F.over){ if (F.sig) endSig(e, true); startSig(e, DEFEAT); return; }
   // what he's watching for: a hero holding a block in his face, a hero crowding him
-  const near = dist < 4.6 && hero.local;
+  const near = dist < 4.6 && C.hero.local;
   F.blockT = near && player.blockHeld && !(player.parryT > 0) ? F.blockT + dt : Math.max(0, F.blockT - dt * 2);
   F.crowdT = players.some(p => p.here && !p.down && Math.hypot(p.pos.x - g.position.x, p.pos.z - g.position.z) < (def.moves.repulse ? def.moves.repulse.crowd : 3)) ? F.crowdT + dt : Math.max(0, F.crowdT - dt);
   for (const k in F.cds) F.cds[k] -= dt * (F.phase >= 3 ? 1.25 : 1) * slow;
@@ -298,8 +324,17 @@ export function updateFinale(dt){
   // he only reaches for a move between exchanges: never out of a swing, a lock, a stagger or the floor
   const free = (e.state === 'chase' || e.state === 'recover') && !e.dead && !e.converted && !(e.stunT > 0) && !(e.dodgeT > 0);   // (stunT: a duellist's; a body without a duel has none)
   if (!free || e.dummy || G.gt - F.lastSig < def.sigMin) return;   // (a sandbox dummy stands and takes it: no moves)
-  const mv = pickMove(e, F);
+  let mv = pickMove(e, F);
+  // a party (boss/duo.js): sometimes he turns his move on the hero he wasn't on (then it's weighed again, against them)
+  if (mv && !mv.urgent && duoWheel(e, F)){ aim(e, e.hero, F); if (!mv.can(e, C, F)) mv = pickMove(e, F); }
   if (mv) startSig(e, mv);
+}
+// this frame's context for his moves: the hero he's on, where they stand, which way and how far
+function aim(e, hero, F){
+  const pp = hero.pos, g = e.group;
+  let tx = pp.x - g.position.x, tz = pp.z - g.position.z;
+  const dist = Math.hypot(tx, tz) || 0.001; tx /= dist; tz /= dist;
+  return Object.assign(C, { hero, pp, dist, tx, tz, remote: !hero.local, phase: F.phase });
 }
 function pickMove(e, F){
   const moves = F.D.moves, ready = [];
@@ -499,6 +534,8 @@ export function finaleNet(m){
   if (m.k === 'up'){ guestNet.n = m.n; guestNet.id = m.id; guestNet.phase = 1; guestNet.mods = m.rm || null; return; }
   const D = REG()[guestNet.id];
   if (m.k === 'sd'){ setSunderHud(m.v, m.p, m.o); return; }   // the sunder bar (a raid boss)
+  if (m.k === 'ag'){ duoHeard(puppetOfNid(m.n), m.s); return; }   // a party: who he's on now (boss/duo.js)
+  if (m.k === 'pc'){ pincerFx(puppetOfNid(m.n), D && D.def); return; }   // ...and two of them caught him between them
   if (m.k === 'sb'){ if (D) showBanner((D.def.sunder && D.def.sunder.broke) || 'BROKEN OPEN', (D.def.sunder && D.def.sunder.brokeSub) || '', 2.4, { kicker: D.def.name }); return; }
   if (m.k === 'phase'){
     guestNet.phase = m.p; MUSIC.bossPhase(m.p);

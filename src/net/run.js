@@ -21,5 +21,10 @@ export function queueHit(e, dmg, knockDir, knockPow, finisher, tick, shove, blad
   hitQueue.push([e.nid, dmg, knockDir ? +knockDir.x.toFixed(2) : 0, knockDir ? +knockDir.z.toFixed(2) : 0, knockPow || 0, finisher ? 1 : 0, tick ? 1 : 0, shove || 0, blade ? 1 : 0, shield ? 1 : 0, slide === true ? -1 : slide ? Math.max(0.05, Math.round(slide * 100) / 100) : 0, roles || 0]);   // (slide: a Force shove, which skids what it can't floor: -1, or the most ground it may cover; roles: a raid boss's role tags, boss/roles.js)
 }
 
+/* who struck the blow being applied right now, when it isn't this browser's hero: the host sets it to a guest's hero
+   while it applies that guest's hits (net/foes.js 'hits'), so a final boss's threat and pincer (boss/duo.js) know whose
+   blow it was */
+export const striker = { p: null };
+
 // what the foe code calls to tell the other browser (set by net/foefire.js; null in solo, so nothing changes there)
 export const hooks = { hurt: null, bolt: null, bx: null, blast: null, tell: null, gren: null, pbolt: null, xp: null, aim: null, lunge: null, ring: null, bctl: null, bossDead: null, missionDone: null, mbanner: null, comms: null, power: null, guard: null, hold: null, fin: null };

@@ -21,6 +21,7 @@ function score(e, p){
 
 export function heroFor(e){
   if (players.length === 1 || e.converted){ e.hero = localPlayer; return localPlayer; }
+  if (e.pick){ const p = e.pick(e); if (p){ e.hero = p; return p; } }   // (a final boss in a party picks by threat: boss/duo.js)
   const cur = e.hero && players.includes(e.hero) ? e.hero : null;
   if (cur && COMMITTED[e.state] && targetable(cur)) return cur;
   let due = !cur || !targetable(cur) || G.gt >= (e.heroCheck || 0);

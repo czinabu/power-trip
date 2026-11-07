@@ -21,7 +21,7 @@
 import { G, shared, player } from '../state.js';
 import { CFG } from '../data/config.js';
 import { ZONES, ZONE_PREFIX, ZONE_TUNE as T, districtAt } from '../data/zones.js';
-import { startLevel, checkUnlocks } from './flow.js';
+import { startLevel, checkUnlocks, missionFormRanks } from './flow.js';
 import { playerPos, maxHp, maxStam } from '../player/helpers.js';
 import { findClearSpawn } from '../world/collision.js';
 import { updateZoneStream, zoneStreamExtra } from '../world/zone-stream.js';
@@ -48,7 +48,8 @@ import { startZoneQuests, updateZoneQuests, zoneQuestMarks } from './zone-quests
 function storyKit(){
   const kept = zoneFork();   // (Form VII: the one this Jedi kept, once they're past the chapter that offers it)
   if (kept){ G.formFork = kept; (G.stanceUnlocked = G.stanceUnlocked || {})[kept] = true; }
-  G.waveTotal = zoneDepth(); checkUnlocks();   // (the depth sets how practised the forms are and which guns a Mando carries)
+  G.waveTotal = zoneDepth(); checkUnlocks();   // (the depth sets which guns a Mando carries)
+  if (G.hero === 'jedi') missionFormRanks();   // (each form at the rank it has earned by fighting in it, as every mode)
 }
 const ZN = { key: null, Z: null, district: null, named: null, distT: 0, near: null, shownKey: '', arrived: 0, pin: null };
 let el = null;

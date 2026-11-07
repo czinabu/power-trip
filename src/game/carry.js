@@ -22,7 +22,7 @@ export function carryStoryKit(){
     const kept = zoneFork();   // (Form VII: the one this Jedi kept, once they're past the chapter that offers it)
     if (kept){ G.formFork = kept; (G.stanceUnlocked = G.stanceUnlocked || {})[kept] = true; }
     checkUnlocks();
-    if (G.hero === 'jedi'){ missionFormRanks(0); setLoadout(autoLoadout()); }   // (the forms as practised as the story has them, the best three slotted)
+    if (G.hero === 'jedi'){ missionFormRanks(); setLoadout(autoLoadout()); }   // (each form at the rank it has earned, the best three slotted)
     if (G.hero === 'mando') setKit(bestKit());
   } finally { G.kitQuiet = was; }
 }

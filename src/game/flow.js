@@ -39,9 +39,9 @@ import { applyJetTier, payWaveClear } from './progression.js';
 import { MANDO_AUTO, JEDI_AUTO } from '../data/store.js';
 import { TROOPER_AUTO } from '../data/trooper-progression.js';
 import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
-import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY } from '../data/force-level.js';
+import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY, bestRanks } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
-import { zoneReached, storyCarries, zoneDepth } from './zone-gate.js';
+import { zoneReached, storyCarries } from './zone-gate.js';
 import { STANCES } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending, abilityCardsPending } from '../ui/ability-card.js';
 import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
@@ -380,14 +380,16 @@ export function checkUnlocks(bannerDelay, closing){
   if (closing && announce.length) shared.unlockHold = performance.now() + (bannerDelay || 0);   // (ui/ability-card.js, meditation.js, ui/armory-ui.js wait for it)
   announceUnlocks(announce, bannerDelay, closing);
 }
-// a mission hands its forms over already practised: about a rank for every two stages the story has known each one
-export function missionFormRanks(depth){
+// FORM MASTERY IS EARNED, NEVER HANDED OUT: a mode that carries the save in (a lone mission, an arcade contract, a raid,
+// survival, the hub) fights each form at the best rank it has truly reached by fighting in it in any run (data/force-level.js
+// bestRanks, the same record the training grounds and the sandbox read). How far the story has gone gives no ranks of its own.
+export function missionFormRanks(){
   G.formRank = G.formRank || {};
-  const kit = Math.max(depth ?? (G.waveTotal || 0), storyCarries() ? zoneDepth() : 0);   // (as practised as the save's own story has them, at least)
+  const best = bestRanks();
   for (const id of [...STARTING_FORMS, ...FORM_PATH.map(p => p.form)]){
     if (!FORM_MASTERY[id] || !(STARTING_FORMS.includes(id) || (G.stanceUnlocked && G.stanceUnlocked[id]))) continue;
-    const p = FORM_PATH.find(q => q.form === id), r = Math.max(0, Math.min(3, Math.floor((kit - (p ? p.stage : 0)) / 2)));
-    G.formRank[id] = Math.max(G.formRank[id] || 0, r);
+    const r = Math.max(0, Math.min(3, best[id] || 0));
+    if (r > (G.formRank[id] || 0)) G.formRank[id] = r;
   }
 }
 // what a Force Level's rise brought, for the powers and Force moves in hand, in the form in hand (ui/force-toast.js)

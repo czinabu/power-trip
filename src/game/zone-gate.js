@@ -78,8 +78,8 @@ export function zoneFork(){
   const p = kept && FORM_PATH.find(q => q.form === kept);
   return p && FORMS[kept] && FORMS[kept].fork && formReached(p, 'jedi') ? kept : null;
 }
-// how deep into a run this hero's story is (a wave apiece, a mission its steps): a mission's form mastery and a Mando's
-// pick of guns follow it (game/flow.js missionFormRanks, game/armory.js missionKit)
+// how deep into a run this hero's story is (a wave apiece, a mission its steps): a Mando's pick of guns follows it
+// (game/armory.js missionKit). Form mastery does not: it is only ever earned (game/flow.js missionFormRanks)
 export function zoneDepth(hero){
   hero = heroOf(hero);
   return chapterOrder(null, hero).filter(c => heroCleared(c.id, hero))

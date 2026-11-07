@@ -65,7 +65,7 @@ export const GRENADE = {
   slots: 1, slotsLate: 1, // grenadiers winding up a throw at once (was 2 late: two detonators landing together was the worst of it)
   overCover: 2.6,         // a thrower lobs over cover up to this tall (m); past a taller wall it can't see you, so it goes round
   // FAIRNESS — a pack of grenadiers shouldn't bury you in detonators (enemies/director.js rangedSlotFree)
-  gap: 2.4, gapLate: 1.7, // seconds after one detonator is thrown at a hero before the next grenadier may start winding up
+  gap: 2.0, gapLate: 1.5, // seconds after one detonator is thrown at a hero before the next grenadier may start winding up
   maxLive: 2,             // ...and never more than this many live ones burning down around one hero at once
   liveR: 7,               // (what counts as "around you": a landing mark this close)
   edge: 0.5,              // the blast is full strength at its heart, this much at the rim: half out of the ring is half the hurt

@@ -45,7 +45,7 @@ import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { startZone } from '../game/zone.js';
 import { ZONE_PREFIX } from '../data/zones.js';
-import { loadInto, loadingNow } from './loading.js';
+import { loadInto, dipInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
@@ -63,6 +63,7 @@ export const overlay = document.getElementById('overlay');
 /* OVERLAY STATE — one screen, four faces: 'menu' (first run), 'pause', 'dead', 'victory'. Each sets the headline,
    the primary button's label and which blocks show (hero/mode setup only where picking makes sense). */
 let _ovState = 'menu';
+let _deadAt = 0;   // when the fallen screen came up (its R to retry waits a moment)
 export const isMenuState = () => _ovState === 'menu';
 /* THE RESULTS SCREEN'S CHANGE PANEL — the victory screen leads with the results and the next run's actions; the mode,
    hero and difficulty pickers fold away behind one line (NEXT: CHALLENGE · ONE ON ONE · JEDI · KNIGHT   CHANGE) and open
@@ -203,7 +204,8 @@ export function setOverlayState(state){
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
-    sub.textContent = '';   // the run summary's own title carries the moment
+    sub.textContent = pad.active ? '' : 'PRESS R TO RETRY';   // (the run summary's own title carries the moment; R is the quick way back: below)
+    _deadAt = performance.now();
   } else if (state === 'victory'){
     go.textContent = pickChanged() ? beginLabel()   // a new pick from CHANGE: name what it begins
       : G.mission && G.chapter < 0 && isArcadeId(G.missionId) && !G.coopWasGuest ? 'NEXT RANDOM MISSION' : 'PLAY AGAIN';   // the arcade deals another (beginPlay)
@@ -295,7 +297,8 @@ function beginPlay(){
     }, stillWanted);
   } else if (G.mode === 'dead'){
     G.paused = true;
-    loadInto(() => {
+    // the same map again: a quick dip to black, not the loading screen (ui/loading.js dipInto)
+    dipInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.zone) startZone(G.zone); else if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
       G.paused = false;
@@ -806,6 +809,14 @@ window.addEventListener('keydown', (e) => {
     else if (shared.lockFallback){ overlay.style.display = 'flex'; G.paused = true; setOverlayState('pause'); }
   }
 }, true);
+// R (or Enter) on the fallen screen retries at once, as its button does. Not in the first moment it's up, so a key still
+// held from the fight (a gunner's reload) doesn't retry by accident
+window.addEventListener('keydown', (e) => {
+  if (e.repeat || (e.key !== 'r' && e.key !== 'R' && e.key !== 'Enter') || G.mode !== 'dead' || _ovState !== 'dead' || overlay.style.display !== 'flex') return;
+  if (panelOpen() || /\b(confirming|exitconfirming)\b/.test(overlay.className) || performance.now() - _deadAt < 600) return;
+  if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault(); audioInit(); launch();
+});
 // ENTER on the title screen presses its primary button (CONTINUE CAMPAIGN when a run is saved, else BEGIN), as the pad's A
 // does with the focus ring on it. Runs last (bubble phase), after the Forms page, armory and text boxes have had theirs.
 window.addEventListener('keydown', (e) => {

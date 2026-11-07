@@ -39,7 +39,8 @@ import { chapterMutators } from '../data/ngplus.js';
 import { damageBoss, bossStagger, bossStun, makeBossPuppet, dropBossPuppet } from '../boss/boss.js';
 import { net, on, send, sendTo, connected } from './session.js';
 import { calmSnap, calmSync } from '../game/aftermath.js';
-import { coopRun, hitQueue } from './run.js';
+import { coopRun, hitQueue, striker } from './run.js';
+import { partnerMate } from './partner.js';
 import { STANCES } from '../data/stances.js';
 import { masterBlade } from '../data/saber-cast.js';
 import { duelRec, updatePuppetDuel, netProfile, updateSaberLock, LOCK } from '../enemies/duel.js';
@@ -104,10 +105,10 @@ on('hits', (m) => {
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
-    MERC.guest = true; MERC.struck = false;   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
+    MERC.guest = true; MERC.struck = false; striker.p = partnerMate(m.from);   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
     const pinned = e.suppT > G.gt;   // (the guest's KILL CONFIRMED asks: game/creed.js)
     try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide || e.fin ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined, rt: roles || 0 } : undefined); }   // (rt: a raid boss's role tags from the guest's screen, boss/roles.js)   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
-    finally { MERC.guest = false; }
+    finally { MERC.guest = false; striker.p = null; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (e.dead) sendTo(m.from, { t: 'kb', p: pinned ? 1 : 0, x: +e.group.position.x.toFixed(1), z: +e.group.position.z.toFixed(1) });   // the killing blow was theirs: their kill cards pay out there
     if (!e.dead) continue;

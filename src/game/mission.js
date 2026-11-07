@@ -38,7 +38,7 @@ import { showBanner, bannerTap } from '../ui/banners.js';
 import { storyBeat, comms, commsBusy } from './story.js';
 import { stageCard } from '../ui/hud-stage.js';
 import { glanceAt, cancelGlance } from './glance.js';
-import { hooks } from '../net/run.js';
+import { hooks, coopRun } from '../net/run.js';
 import { overlay, setOverlayState } from '../ui/menus.js';
 import { showPanel, hidePanel, makeBeacon, makeConsole, setMarkerColor, pulseMarker, removeMarker,
          heroIn, nearHero, hostilesIn, hostilesAlive, setObjectiveHud, objectiveHud, mmss } from './objectives.js';
@@ -57,7 +57,7 @@ import { players, targetable } from '../player/players.js';
 import { LOCK, lockRate } from './locks.js';
 import { diffDmgMul, diffBossCheckpoint } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
-import { playDuelIntro, resetScenes, playScene } from './cutscene.js';
+import { playDuelIntro, resetScenes, playScene, sceneOn } from './cutscene.js';
 import { spawnFinale, dropFinale } from '../boss/finale.js';
 import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
 import { TAUNTS, SCARRED, SCARS, scarOf, pickLine } from '../data/duel-taunts.js';
@@ -231,6 +231,21 @@ function patchUp(){
    ============================================================ */
 /* Each kind also names the music CUE it plays (audio/music.js CUES; an objective's `music` field overrides it) and
    music(o, s) reports how it's going: { urgency 0..1, danger, focus }. */
+/* THE FOE STEPS IN ONLY ONCE EVERY SCREEN'S ENTRANCE IS OVER. The entrance has a stand-in walk up to the mark (game/cutscene.js
+   playDuelIntro), and the real foe takes its place when the scene ends. In a shared fight this objective keeps running under
+   a scene (the world only holds), so without this the real one stepped in on the next frame, beside the stand-in, on the
+   host's screen and the guests' alike: two bosses in the entrance, one in the fight. So it waits while this screen's scene
+   plays, while any guest's copy of it still plays (coopRun.guestScene), and a moment after for a guest whose copy started
+   late; never longer than INTRO_HOLD.max (a word lost on the link can't hold the fight off for good) */
+const INTRO_HOLD = { grace: 1.2, max: 45 };   // (s, on the wall clock: a background tab's frames come slow and capped)
+function introHeld(s){
+  if (!(s.sceneHold > 0)) return false;
+  const now = performance.now() / 1000;
+  if (sceneOn() || coopRun.guestScene){ s.graceAt = now + INTRO_HOLD.grace; s.holdAt = s.holdAt || now; return true; }
+  if (!coopRun.live || now - (s.holdAt || now) > INTRO_HOLD.max || now >= (s.graceAt || 0)){ s.sceneHold = 0; return false; }
+  return true;
+}
+
 const KINDS = {
   hold: {
     cue: 'defend',
@@ -653,12 +668,14 @@ const KINDS = {
     update(o, s, dt){
       if (!s.foe){
         if ((s.dropT -= dt) > 0) return;
+        if (!s.intro && sceneOn()) return;   // (another scene still up, in a shared fight: its entrance waits its turn)
         if (!s.intro){   // its entrance first (game/cutscene.js): the sim holds while it plays, so the foe steps in right after
           s.intro = true;
           const q = o.quarry && heroKey(M.def.quarry);
           if (playDuelIntro(q ? { mid: M.def.id, quarry: true, name: q.name, kicker: q.kicker, scale: q.scale, line: heroText(o.line) }
-                              : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, form: o.form, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })) return;
+                              : { mid: M.def.id, foe: o.foe, dress: o.dress, name: o.name, form: o.form, kicker: o.kicker, tint: o.tint, blade: o.form ? STANCES[o.form].blade : null, scale: o.scale, at: o.at, line: heroText(o.line) })){ s.sceneHold = 1; s.holdAt = 0; s.graceAt = performance.now() / 1000 + INTRO_HOLD.grace; return; }
         }
+        if (introHeld(s)) return;
         if (o.quarry && M.qHp) M.qHp = Math.max(0.6, M.qHp);   // the run wore it down, but it still has a fight in it
         // a FINAL BOSS on the final boss layer (boss/finale.js: the trooper's Marshal at the Broadcast): his own
         // phases, moves and defeat; the duel only waits for him to fall

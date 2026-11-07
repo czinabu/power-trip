@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE SABER WORKBENCH: its own screen, opened from SABER on the main menu (or the customizer's link). (The trooper's and
+// THE SABER WORKBENCH: its own screen, opened from SABER on the main menu or the temple's forge (the
+// customizer has no saber page: the saber is built here alone). (The trooper's and
 // the Mando's benches are ui/kitbench.js: the same button opens theirs.) The saber lies in
 // pieces on a lamp-lit bench (ui/bench-stage.js); this is the panel beside it: a rail of the slots (the kyber crystal,
 // the emitter, the grip, the pommel) and the open slot's parts, earned ones first (ui/bench-panel.js), the fitted crystal's ATTUNEMENT read out as its
@@ -17,7 +18,6 @@ import { chapterOrder, forHero } from '../data/campaign.js';
 import { loadPicks, savePicks } from '../player/mesh.js';
 import { openBench, setBenchSaber, igniteBench, spinBench } from './bench-stage.js';
 import { openKitBench } from './kitbench.js';
-import { pageTabs, pageTabClick } from './page-tabs.js';
 import { slotRail, slotBody, lockFold, keepScroll, putScroll } from './bench-panel.js';
 
 const panel = document.getElementById('workbench');
@@ -66,7 +66,6 @@ function render(keep = false){
   const was = keep ? keepScroll(panel) : 0;
   const live = runLive();
   panel.innerHTML = `<div class="wb-panel bp">
-    ${pageTabs('jedi', 'bench')}
     <div class="wb-head"><h2>SABER WORKBENCH</h2><div class="wb-x" id="wbclose">CLOSE</div></div>
     <div class="wb-count"><span>PARTS</span><b>${partsOwned()} / ${partsTotal()}</b></div>
     ${live ? '<p class="wb-live">A run is on: the saber is built between runs. Look over it here, and fit new parts from the main menu.</p>' : ''}
@@ -117,7 +116,6 @@ panel.addEventListener('click', (e) => {
   const sl = t.closest('[data-slot]');
   if (sl){ if (sl.dataset.slot !== slot){ slot = sl.dataset.slot; S.uiClick(); render(); } return; }   // another slot (ui/bench-panel.js)
   if (t.closest('[data-bpfold]')){ showShut = !showShut; S.uiClick(); render(true); return; }   // the parts still to earn: shown or folded
-  if (pageTabClick(e)) return;   // APPEARANCE: back to the customizer (ui/customizer.js)
   if (t.closest('#wbclose') || t.closest('#wbdone')) return closeWorkbench();
   if (t.closest('#wbtest')){
     lit = igniteBench();

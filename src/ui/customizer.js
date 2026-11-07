@@ -20,7 +20,6 @@ import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
 import { overlay, setOverlayState, heroPicked } from './menus.js';
 import { audioInit } from '../audio/sfx.js';
 import { earnText } from '../data/saber-parts.js';
-import { openWorkbench, closeWorkbench, workbenchOpen } from './workbench.js';
 import { openKitBench, closeKitBench, kitBenchOpen } from './kitbench.js';
 import { pageTabs, pageTabClick } from './page-tabs.js';
 import { armorerHooks } from '../game/armorer.js';
@@ -182,16 +181,16 @@ document.getElementById('customizer').addEventListener('click', (e) => {
   else if (e.target.closest('#czdone')) closeCustomizer();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCustomizer(); });
-// APPEARANCE | SABER (ui/page-tabs.js): a tab, or the pad's LB / RB, turns between the customizer and the hero's bench.
+// APPEARANCE | LOCKER / FORGE (ui/page-tabs.js; the Jedi has no tabs, the saber is the workbench's alone): a tab, or the pad's LB / RB, turns between the customizer and the hero's bench.
 // Each is still its own screen: the one shown closes (saving what was picked on it) and the other opens on the saved picks.
 // (At the temple's forge the closing screen's event is looked at a moment later, with the other open: ui/hub-ui.js)
 document.addEventListener('hero-page', (e) => {
   const to = e.detail;
   if (to === 'bench' && overlay.classList.contains('customizing')){
     closeCustomizer();
-    if (!openKitBench(G.hero)) openWorkbench();   // (each bench has its own screen: ui/workbench.js, ui/kitbench.js)
-  } else if (to === 'look' && (workbenchOpen() || kitBenchOpen())){
-    if (workbenchOpen()) closeWorkbench(); else closeKitBench();
+    openKitBench(G.hero);   // (the trooper's locker or the Mando's forge: ui/kitbench.js)
+  } else if (to === 'look' && kitBenchOpen()){
+    closeKitBench();
     picks = loadPicks();   // what the bench just fitted (the saber, the kit) comes along, so DONE here can't undo it
     restyleShowcase(picks);
     openCustomizer();

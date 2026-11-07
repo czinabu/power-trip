@@ -19,6 +19,7 @@
 //   { top: '<rank>' }    the hero's TOP RANK held (Grand Master, Mand'alor, Marshal Commander): the post-game's LEGENDARY
 //                        parts. The value is the rank's name, for the locked tip
 //   { ng: n }            NEW GAME+ tier n beaten (data/ngplus.js): legendary parts too
+//   { raids: n }         n raids won (data/raids.js): the RARE parts (`rare: true`), only a raid hands them out
 // No `earn`: a starter part, on the bench from the first day. A part that is earned is announced once: a card at a
 // chapter's close, a corner note anywhere else.
 //
@@ -56,6 +57,11 @@ export const CRYSTALS = [
     ds: '+10% stamina regen · −7% damage', fx: [['stamRegen', '*', 1.1], ['dmg', '*', 0.93]] },
   { id: 'crimson', name: 'Wrath crimson', col: 0xc0001c, earn: { dark: 50 }, att: 'HUNGER',
     ds: '+7% damage · −10% stamina regen', fx: [['dmg', '*', 1.07], ['stamRegen', '*', 0.9]] },
+  // THE RAID's RARE crystals (`rare: true`, data/raids.js): looks, never numbers. Only a raid hands them out
+  { id: 'gateshard', name: 'Gate-shard', col: 0xb46bff, earn: { raids: 1 }, rare: true, att: 'RARE',
+    ds: 'A splinter of the gate\'s own ring, cut free when the vessel broke. It burns the violet of the void past it. No sidegrade.', fx: [] },
+  { id: 'unburied', name: 'Unburied', col: 0xff5a7a, earn: { raids: 5 }, rare: true, att: 'RARE',
+    ds: 'Bled once, healed by your hand. It still remembers the dark it was pulled out of. No sidegrade.', fx: [] },
   // THE POST-GAME's LEGENDARY crystal (`legend: true`): a look, never a number. It burns its own colour and asks nothing
   { id: 'heart', name: 'Grand Master\'s', col: 0xffe9a8, earn: { top: 'Grand Master' }, legend: true, att: 'LEGENDARY',
     ds: 'The crystal of the Order\'s last Grand Master: pale gold, and steady as a held breath. No sidegrade.', fx: [] },
@@ -113,7 +119,7 @@ export function earnProgress(p, earn){
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
   if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
   if (earn.holocrons || earn.caves){ const k = earn.holocrons ? 'holocron' : 'cave'; return { have: Object.keys(p.secrets || {}).filter(id => id.endsWith(':' + k)).length, need: earn.holocrons || earn.caves }; }
-  for (const k of ['duels', 'arcade', 'waves', 'revives', 'squadWaves']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
+  for (const k of ['duels', 'arcade', 'waves', 'revives', 'squadWaves', 'raids']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
   return { have: 0, need: 1 };
 }
 export const partEarned = (p, earn) => { const e = earnProgress(p, earn); return e.have >= e.need; };
@@ -126,7 +132,8 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (earn.ng) return 'BEAT NEW GAME+ ' + ['', 'I', 'II', 'III'][earn.ng];
   if (earn.light) return 'LEAN TO THE LIGHT: REACH ' + earn.light + ' LIGHT';
   if (earn.dark) return 'LEAN TO THE DARK: REACH ' + earn.dark + ' DARK';
-  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves, s = n === 1 ? '' : 'S';
+  const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves || earn.raids, s = n === 1 ? '' : 'S';
+  if (earn.raids) return 'WIN ' + n + ' RAID' + s + ' AT THE RAID TABLE';
   if (earn.revives) return 'GET ' + n + ' SQUADMATE' + s + ' BACK UP';
   if (earn.squadWaves) return 'CLEAR ' + n + ' SURVIVAL WAVE' + s + ' WITH THE SQUAD STANDING';
   if (earn.sides) return 'WIN ' + n + ' SIDE MISSION' + s + ' FROM THE TEMPLE';

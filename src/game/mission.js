@@ -68,7 +68,8 @@ import { puppetOf } from '../net/foes.js';
 import { CIV, CIV_TUNE } from './civilians.js';
 import { LANE, pickLanes, setLanes, clearLanes, warnLane, updateLanes, laneSpawn, safeSpot, firstWarning, lanesSnap, lanesSync } from './lanes.js';
 import { meetNamed } from './codex.js';
-import { noteMissionWon, noteSideWon } from './profile.js';
+import { noteMissionWon, noteSideWon, noteRaidWon } from './profile.js';
+import { RAIDS } from '../data/raids.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -106,7 +107,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
   if (!ch) G.ngMuts = def.muts ? [...def.muts] : [];   // a veteran side mission's mutators (data/side-quests.js `muts`, data/ngplus.js); a chapter's are its own (game/campaign.js)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,
-                     chapter: ch, title, kick: ch ? ch.kicker : (def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
+                     chapter: ch, title, kick: ch ? ch.kicker : (def.raid ? 'RAID · ' : def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along
   shared.secretFrom = def.start || st || null;   // where the map's secrets are walked out from (game/secrets.js): the same for every player and every retry
   if (st){ playerPos().set(st[0], 0, st[1]); G.yaw = player.faceYaw = st[2] || 0; }
@@ -662,7 +663,8 @@ const KINDS = {
         // a FINAL BOSS on the final boss layer (boss/finale.js: the trooper's Marshal at the Broadcast): his own
         // phases, moves and defeat; the duel only waits for him to fall
         if (o.finale){
-          s.foe = spawnFinale(o.finale, { x: o.at[0], z: o.at[1] }, { mission: true });
+          if (M.def.raid) raidAllies();   // a raid alone or as two: the squad comes too (data/raids.js `allies`)
+          s.foe = spawnFinale(o.finale, { x: o.at[0], z: o.at[1] }, { mission: true, raid: M.def.raid });
           storyBeat('duel', { name: o.name, quarry: false });
           return;
         }
@@ -1351,13 +1353,22 @@ function nextSpot(o){
   }
   return null;
 }
+// A RAID alone or as two (data/raids.js `allies`): the squad steps in beside you as the boss steps down, to hold the
+// line ward, take on his adds and get you up. Counted by the heroes in the fight right then (a party still loading in
+// counts once it's here: the boss scales the same way, boss/finale.js)
+function raidAllies(){
+  const R = RAIDS[M.def.raid.id]; if (!R) return;
+  const want = R.allies[Math.min(4, heroesHere()) - 1] || 0, have = allies.filter(a => !a.net && !a.dead).length;
+  if (want > have){ const p = playerPos(); spawnSquad(want - have, [p.x, p.z]); }
+}
 function missionComplete(){
   const def = M.def;
   if (def.arcade) noteArcadeWin(G.hero);   // an arcade contract counts toward the hero's tally (and saves nothing: it's a one-off)
-  else try { localStorage.setItem('sw_mission_' + def.id + '_' + G.hero, '1'); } catch(e){}
-  if (def.side) noteSideWon(def.id);   // a side mission from the temple (data/side-quests.js): its own rank XP
+  else if (!def.raid) try { localStorage.setItem('sw_mission_' + def.id + '_' + G.hero, '1'); } catch(e){}
+  if (def.raid) noteRaidWon(def.raid);   // a raid (data/raids.js): its count for the rare parts, its own rank XP
+  else if (def.side) noteSideWon(def.id);   // a side mission from the temple (data/side-quests.js): its own rank XP
   else if (!M.chapter) noteMissionWon(def.id, !!def.arcade);   // rank XP for your profile (game/profile.js; a chapter's counts at its close)
-  if (!M.chapter && !def.arcade && !def.side) autosave('mission');   // (a chapter's win is saved as the next chapter starts)
+  if (!M.chapter && !def.arcade && !def.side && !def.raid) autosave('mission');   // (a chapter's win is saved as the next chapter starts)
   // a campaign chapter's card carries the chapter's clear lines (what the mission taught, who joins), not a second voice line on the comms strip
   // (the voice's own lines; when it has none, the last cast member who speaks ({ who, say }), under their own name)
   const said = (M.chapter && M.chapter.clear) || [], own = said.filter(x => typeof x === 'string'), cast = said.filter(x => x && x.who);
@@ -1378,7 +1389,7 @@ function missionComplete(){
   endTwist(true);   // (the sim stops on the victory screen: a twist still easing off would stay half done behind it)
   endRun(true);
   G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;
-  showBanner('MISSION COMPLETE', M.title, 999);
+  showBanner(def.raid ? 'RAID CLEARED' : 'MISSION COMPLETE', M.title, 999);
   // a side mission's choice (data/side-quests.js `choice`, light and dark: game/alignment.js), the first time it is won:
   // each screen asks its own, before the results
   const q = def.side && SIDE_BY_ID[def.id], ask = q && sideChoiceDue(def.id, q.choice), title = M.title, who = missionVoice();
@@ -1388,7 +1399,7 @@ function missionComplete(){
     const results = () => {
       overlay.style.display = 'flex';
       setOverlayState('victory');
-      document.getElementById('ovsub').textContent = (def.arcade ? 'CHALLENGE WON · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + title;
+      document.getElementById('ovsub').textContent = (def.raid ? 'RAID CLEARED · ' : def.arcade ? 'CHALLENGE WON · ' : def.side ? 'SIDE MISSION COMPLETE · ' : 'MISSION COMPLETE · ') + title;
     };
     if (!ask) return results();
     askChoice({ kicker: 'SIDE MISSION · A CHOICE', title: q.choice.title, lines: q.choice.lines, who, options: q.choice.options, hint: 'Light or dark: it moves your own meter. It is asked once.' },

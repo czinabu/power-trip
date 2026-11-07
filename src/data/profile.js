@@ -35,6 +35,8 @@ export const RANK_XP = {
   mission: 80,        // a story mission won from the Missions page, the first time
   missionAgain: 25,
   arcade: 40,         // an arcade contract won
+  raid: 150,          // a raid won (data/raids.js), the first time each day's rotation
+  raidAgain: 60,
   won: 500,           // the hero's campaign beaten, the first time
   wonAgain: 150,
   form: 40,           // a form mastery rank earned (ADEPT, EXPERT, MASTER)

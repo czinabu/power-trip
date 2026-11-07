@@ -16,7 +16,7 @@ import { removeEnemy } from '../enemies/cleanup.js';
 import { findClearSpawn } from '../world/collision.js';
 import { fadeOverhead } from '../world/camblock.js';
 import { spawnBoss } from '../boss/boss.js';
-import { dropFinale } from '../boss/finale.js';
+import { dropFinale, spawnFinale } from '../boss/finale.js';
 import { spawnChampion } from './survival.js';
 import { showBanner } from '../ui/banners.js';
 import { clearGrenades } from '../enemies/grenades.js';
@@ -68,7 +68,7 @@ function ring(kind, x, z, s){
   marks.add(m);
 }
 const unitPos = (u) => u.ref && u.ref.group ? u.ref.group.position : u;
-const bigOf = (u) => u.id === 'boss' ? 2 : u.id === 'warbringer' ? 2.2 : u.id === 'brute' ? 1.4 : 1;
+const bigOf = (u) => u.id === 'boss' || u.id === 'raid' ? 2 : u.id === 'warbringer' ? 2.2 : u.id === 'brute' ? 1.4 : 1;
 // rebuilt whenever the setup changes; the rings grow with the lens's height so they read from high up
 export function refreshMarks(){
   while (marks.children.length) marks.remove(marks.children[0]);
@@ -107,9 +107,9 @@ function spawnUnit(u){
     u.ref = a; return true;
   }
   if (!foeOffered(u.id)) return false;
-  if (u.id === 'boss'){
+  if (u.id === 'boss' || u.id === 'raid'){
     if (bossUp()) return false;
-    const b = spawnBoss();
+    const b = u.id === 'raid' ? spawnFinale('kharel', { x: u.x, z: u.z }) : spawnBoss();   // (the raid boss: data/raids.js)
     if (!b) return false;
     b.group.position.set(u.x, 0, u.z);
     if (b.fin) b.st = 0;   // (a final boss is a foe on the floor: up at once, like the rest)
@@ -157,7 +157,7 @@ export function rebuild(){
 // the units already on the floor become the setup (the first time the setup opens: what the panel called in stays)
 function adoptFloor(){
   for (const e of enemies) if (!e.dead && !e.converted)
-    BS.plan.push({ kind: 'foe', id: e === shared.finale ? 'boss' : e.warbringer ? 'warbringer' : e.type, x: e.group.position.x, z: e.group.position.z, elite: !!e.elite });
+    BS.plan.push({ kind: 'foe', id: e === shared.finale ? (e.fin && e.fin.id === 'kharel' ? 'raid' : 'boss') : e.warbringer ? 'warbringer' : e.type, x: e.group.position.x, z: e.group.position.z, elite: !!e.elite });
   if (shared.boss && shared.boss.hp > 0) BS.plan.push({ kind: 'foe', id: 'boss', x: shared.boss.group.position.x, z: shared.boss.group.position.z });
   for (const a of allies) if (!a.net) BS.plan.push({ kind: 'ally', id: a.def.role, x: a.group.position.x, z: a.group.position.z });
   if (BS.plan.length){ const pp = playerPos(); BS.hero = { x: pp.x, z: pp.z }; }
@@ -170,11 +170,11 @@ export function placeAt(x, z){
   if (!p || !pickable(p)) return false;
   x = lim(x, halfX()); z = lim(z, halfZ());
   if (p.kind === 'hero'){ BS.hero = { x, z }; putHero(); faceSides(); refreshMarks(); return true; }
-  if (p.id === 'boss'){
-    const had = BS.plan.find(u => u.id === 'boss');
+  if (p.id === 'boss' || p.id === 'raid'){   // (one boss at a time: placing it again moves it)
+    const had = BS.plan.find(u => u.id === 'boss' || u.id === 'raid');
     if (had){ had.x = x; had.z = z; if (had.ref) had.ref.group.position.set(x, 0, z); faceSides(); refreshMarks(); return true; }
   }
-  const n = p.id === 'boss' ? 1 : SB.count;
+  const n = p.id === 'boss' || p.id === 'raid' ? 1 : SB.count;
   let placed = 0;
   for (let i = 0; i < n; i++){
     if (BS.plan.length >= BATTLE_SIM.maxUnits){ showBanner('', 'THAT IS AS BIG AS A BATTLE GETS', 1.2); break; }

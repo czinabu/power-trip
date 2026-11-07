@@ -36,20 +36,20 @@ const net = (k, e, extra) => { if (hooks.fin) hooks.fin({ k, n: e.nid, ...extra 
 
 /* ---------------- the body: arms posed over the AI's (this runs after it, every frame of a move) ---------------- */
 // the free (left) arm out at the hero, palm open; k 0 → at rest, 1 → fully out. lift raises it over the head
-function offArmOut(e, k, lift = 0, dt = 1 / 60){
+export function offArmOut(e, k, lift = 0, dt = 1 / 60){
   const u = e.group.userData, a = u.offArm;
   if (!a) return;
   a.rotation.x = damp(a.rotation.x, -1.45 * k - lift * 1.3, dt, 14);
   a.rotation.z = damp(a.rotation.z, -0.12 * k - lift * 0.25, dt, 14);
   if (u.elbowOff) u.elbowOff.rotation.x = damp(u.elbowOff.rotation.x, 0, dt, 14);
 }
-function swordArm(e, x, dt, r = 12){
+export function swordArm(e, x, dt, r = 12){
   const u = e.group.userData;
   if (u.weaponArm) u.weaponArm.rotation.x = damp(u.weaponArm.rotation.x, x, dt, r);
 }
 // where his free hand is in the world (a little past the end of the arm)
 const _h = new THREE.Vector3();
-function handAt(e, out = _h){
+export function handAt(e, out = _h){
   const u = e.group.userData, a = u.offArm;
   if (!a){ const g = e.group; return out.set(g.position.x, 1.7 * g.scale.y, g.position.z); }
   a.updateWorldMatrix(true, false);

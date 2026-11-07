@@ -93,7 +93,7 @@ function render(){
   $('sbsquadn').textContent = squadSize() + ' / ' + SQUAD.max;
   $('sbfoes').innerHTML = SANDBOX_FOES.map(f => {
     const ok = foeOffered(f.id), nm = !ok ? HIDDEN : typeof f.nm === 'object' ? heroKey(f.nm) : f.nm;   // a foe not met yet keeps its name
-    return `<div class="sb-chip${f.special ? ' special' : ''}${ok ? '' : ' locked'}" data-foe="${f.id}"${ok ? '' : ` title="${LATER}"`}>${nm}<span class="k">${!ok ? 'LATER' : f.id === 'boss' ? 'BOSS' : f.special ? 'MID-BOSS' : ''}</span></div>`;
+    return `<div class="sb-chip${f.special ? ' special' : ''}${ok ? '' : ' locked'}" data-foe="${f.id}"${ok ? '' : ` title="${LATER}"`}>${nm}<span class="k">${!ok ? 'LATER' : f.id === 'boss' ? 'BOSS' : f.raid ? 'RAID' : f.special ? 'MID-BOSS' : ''}</span></div>`;
   }).join('');
   const jedi = !isGunner();
   $('sbformssec').style.display = jedi ? '' : 'none';

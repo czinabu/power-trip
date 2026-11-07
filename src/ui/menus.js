@@ -18,6 +18,7 @@ import { startTutorial, retryTutorial, skipStep, setTrainingExit, setStoryReturn
 import { setTrainHook } from '../game/meditation.js';
 import { startMission, startCoopMission, retryMission, missionTitle } from '../game/mission.js';
 import { isArcadeId, randomArcadeId } from '../data/arcade.js';
+import { isRaidId, parseRaidId, raidIdFor, today } from '../data/raids.js';
 import { isSideId } from '../data/side-quests.js';
 import { startSandbox, sandboxUnlocked } from '../game/sandbox.js';
 import { battleArmed, leaveSetup } from '../game/battlesim.js';
@@ -83,7 +84,7 @@ function setPicking(on){
 export const DIFF_NAME = { padawan: 'GENTLE', knight: 'STANDARD', master: 'BRUTAL' };
 function refreshNextRun(){
   const el = document.getElementById('nrWhat'); if (!el) return;
-  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : isRaidId(G.missionId) ? 'RAID · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
@@ -198,7 +199,7 @@ export function setOverlayState(state){
     sub.textContent = G.modeSel === 'temple' ? nextHub().place + ' · GATHER YOUR PARTY' : G.modeSel === 'endless' ? 'HOW LONG CAN YOU HOLD?' : G.modeSel === 'training' ? 'LEARN THE CONTROLS AND POWERS' : G.modeSel === 'mission' ? (missionOpen(G.missionId) ? missionTitle(G.missionId) : 'LOCKED MISSION') : G.modeSel === 'sandbox' ? (sandboxFull() ? 'ANY FOE, ANY POWER' : 'THE STORY SO FAR') : G.modeSel === 'gate' ? 'ANY HEROES, ONE GATE' : 'CHOOSE YOUR LEGEND';
   } else if (state === 'pause'){
     go.textContent = 'RESUME'; sub.textContent = 'PAUSED';
-    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? (storyHero() === 'gate' ? 'ACT IV · ' : 'CAMPAIGN · ') + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
+    const where = G.hub ? curHub().name + ' · ' + ((shared.arenaLevel && shared.arenaLevel.name.split('—')[1]) || '').trim() : G.chapter >= 0 ? (storyHero() === 'gate' ? 'ACT IV · ' : 'CAMPAIGN · ') + chapterLabel() : G.training ? 'TRAINING' : G.sandbox ? 'SANDBOX' : G.mission ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isRaidId(G.missionId) ? 'RAID · ' : '') + missionTitle(G.missionId) : G.endless ? 'SURVIVAL' : 'CAMPAIGN';
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
@@ -241,6 +242,7 @@ function beginPlay(){
   if (G.modeSel === 'mission' && !G.coopJoin && !missionOpen(G.missionId)) G.modeSel = 'campaign';   // a locked mission never launches
   if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked()) || (G.modeSel === 'gate' && !gateOpen() && !G.coopJoin)) G.modeSel = 'campaign';   // safety — never launch a locked mode
   if (G.mode === 'victory' && !repick && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
+  if (G.modeSel === 'mission' && isRaidId(G.missionId) && !G.coopJoin && !G.coopWasGuest){ const r = parseRaidId(G.missionId); if (r && r.day !== today()) setMission(raidIdFor(r.raid)); }   // a RAID played again is today's rotation
   // a new run (or a retry) builds its level behind the loading screen (ui/loading.js): the screen paints first, then the
   // build, which holds the page for a moment. The sim stays held until it's in; backing out to the menu meanwhile skips it
   const from = G.mode, stillWanted = () => G.mode === from && overlay.style.display !== 'flex';

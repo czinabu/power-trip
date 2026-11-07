@@ -1,0 +1,95 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE RAID TABLE (ui/hub-ui.js renderRaid, data/raids.js) in each hero's look, and the raid boss's SUNDER BAR under his
+   health bar (boss/finale.js). Reads only the --hx-* tokens (styles/heroes/tokens.css) and the shared ink rules: an ink
+   edge, flat fills, no rails, no pills. The day's modifiers keep their own colours (--mc), the same on every hero, so a
+   modifier reads the same in the party whoever looks at it.
+   ============================================================ */
+.hb-box.rd-box{width:min(760px,100%);border-radius:0;gap:10px;color:var(--hx-text);background:var(--hx-paper-solid);
+  border:1px solid var(--hx-line);box-shadow:0 0 0 2px var(--hx-ink),0 30px 80px rgba(0,0,0,.7);animation:hxcard .3s steps(4) both}
+.rd-box .hb-k{font:600 11px/1.2 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+.rd-head{display:flex;flex-direction:column;gap:6px}
+.rd-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:36px;line-height:1.05;color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+.rd-w{font:600 12px/1.3 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+.rd-blurb{margin:0;font:500 15px/1.45 var(--hx-read);color:var(--hx-soft)}
+.rd-blurb b{color:var(--hx-accent-hi);font-weight:600}
+.rd-sec{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:6px;padding-top:8px;border-top:1px solid var(--hx-line)}
+.rd-sec span{font:700 12px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);text-transform:uppercase;color:var(--hx-accent)}
+.rd-sec em{font:500 12px/1.2 var(--hx-read);font-style:normal;color:var(--hx-dim)}
+
+/* the day's modifiers: a plate each in its own colour */
+.rd-mods{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rd-mod{display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:var(--hx-paper-2);box-shadow:0 0 0 2px var(--hx-ink),inset 0 3px 0 var(--mc)}
+.rd-mod b{font:700 14px/1.1 var(--font-ui);letter-spacing:.12em;color:var(--mc)}
+.rd-mod span{font:500 13px/1.35 var(--hx-read);color:var(--hx-soft)}
+
+/* every hero a job: three cards, yours lit */
+.rd-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rd-role{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:var(--hx-paper);box-shadow:0 0 0 2px var(--hx-ink);border:1px solid var(--hx-line)}
+.rd-role i{font:600 10px/1 var(--font-ui);font-style:normal;letter-spacing:.18em;color:var(--hx-dim)}
+.rd-role b{font:700 15px/1.1 var(--font-ui);letter-spacing:.08em;color:var(--hx-text)}
+.rd-role span{font:500 12.5px/1.35 var(--hx-read);color:var(--hx-soft)}
+.rd-role.you{border-color:var(--hx-accent);background:var(--hx-paper-2)}
+.rd-role.you i{color:var(--hx-accent)}
+.rd-role.rd-jedi b{color:#9fd8ff} .rd-role.rd-mando b{color:#ffb07a} .rd-role.rd-trooper b{color:#ffd27a}
+
+/* the rare parts for your hero: how far along each one is */
+.rd-parts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rd-part{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;background:var(--hx-paper);box-shadow:0 0 0 2px var(--hx-ink)}
+.rd-part i{font:600 10px/1 var(--font-ui);font-style:normal;letter-spacing:.18em;color:var(--hx-dim)}
+.rd-part b{font:700 15px/1.1 var(--font-ui);letter-spacing:.06em;color:#d8b8ff}
+.rd-part span{font:600 11px/1.2 var(--font-ui);letter-spacing:.1em;color:var(--hx-soft)}
+.rd-part u{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.08);text-decoration:none}
+.rd-part u s{display:block;height:100%;background:#b46bff;text-decoration:none}
+.rd-part.got{box-shadow:0 0 0 2px var(--hx-ink),inset 0 0 0 1px #b46bff}
+.rd-part.got span{color:#c9a8ff}
+.rd-party{font:500 13px/1.4 var(--hx-read);color:var(--hx-soft)}
+
+/* BEGIN: the hero's own button, as on the chapter card. It stays at the foot of the page as the page scrolls (a short
+   screen, a phone), so the raid is always one press away */
+.rd-box .rd-go{position:sticky;bottom:-18px;z-index:2;margin-bottom:-18px;padding:10px 0 18px;background:inherit;box-shadow:0 -1px 0 var(--hx-line)}
+.rd-box .rd-go + .hb-x{margin-top:28px}
+.rd-go .hb-o{border-radius:0;background:var(--hx-paper-2);border:1px solid var(--hx-line);box-shadow:0 0 0 2px var(--hx-ink)}
+.rd-go .hb-o:hover,.rd-go .hb-o.padfocus,.rd-go .hb-o.pad-focus{border-color:var(--hx-accent);background:var(--hx-paper-2)}
+.rd-go .hb-o b{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);color:var(--hx-text)}
+.rd-go .hb-o.rd-main{background:var(--hx-accent);border-color:var(--hx-ink)}
+.rd-go .hb-o.rd-main b{color:var(--hx-on-accent)}
+.rd-go .hb-o.rd-main span{color:var(--hx-on-accent);opacity:.8}
+.rd-go .hb-o.rd-main:hover,.rd-go .hb-o.rd-main.padfocus{background:var(--hx-accent-hi)}
+.rd-box .hb-x{border-radius:0}
+
+/* the Jedi: a holocron page (the double gold hairline); the Mando: a chamfered plate with an ember top; the trooper:
+   the black readout under a hazard stripe */
+.rd-box.hero-jedi{box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 3px var(--hx-paper-solid),0 0 0 4px var(--hx-line),0 0 0 6px var(--hx-ink),0 30px 80px rgba(0,0,0,.7)}
+.rd-box.hero-jedi .rd-t{font-size:40px}
+.rd-box.hero-jedi .rd-t::after{content:'';display:block;width:220px;height:1px;margin-top:10px;background:linear-gradient(90deg,var(--hx-accent),rgba(217,178,94,0))}
+.rd-box.hero-mando{border:0;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);background:var(--hx-plate);box-shadow:inset 0 3px 0 var(--hx-accent)}
+.rd-box.hero-mando .rd-go .hb-o.rd-main{clip-path:var(--hx-chamfer);background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
+.rd-box.hero-mando :is(.rd-mod,.rd-role,.rd-part){clip-path:var(--hx-chamfer)}
+.rd-box.hero-trooper{padding-top:26px;position:relative}
+.rd-box.hero-trooper::before{content:'';position:absolute;left:0;right:0;top:0;height:8px;background:var(--hx-hazard);box-shadow:0 2px 0 var(--hx-ink)}
+.rd-box.hero-trooper .rd-t{font-size:32px;letter-spacing:-.01em}
+.rd-box.hero-trooper .rd-go .hb-o.rd-main{background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -4px 0 #c5cbce}
+
+@media (max-width:620px){
+  .hb-box.rd-box{padding:16px 14px 14px}
+  .rd-box .rd-go{bottom:-14px;margin-bottom:-14px;padding-bottom:14px}
+  .rd-t,.rd-box.hero-jedi .rd-t{font-size:28px}
+  .rd-box.hero-trooper .rd-t{font-size:24px}
+  .rd-mods,.rd-roles,.rd-parts{grid-template-columns:1fr}
+  .rd-role{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+  .rd-role span{flex-basis:100%}
+}
+
+/* ---------- the SUNDER BAR under a raid boss's health (boss/finale.js) ---------- */
+#bosssunder{display:flex;align-items:center;gap:8px;margin:7px auto 0;width:78%}
+#bosssunder .sd-k{font:700 10px/1 var(--font-ui);letter-spacing:.2em;color:#d8c4ff;text-shadow:0 1px 3px #000;white-space:nowrap}
+#bosssunder .sd-bg{flex:1;height:6px;background:rgba(20,10,30,.8);box-shadow:0 0 0 2px var(--hx-ink);overflow:hidden}
+#bosssunder .sd-bg i{display:block;height:100%;width:0;background:#b46bff;transition:width .12s steps(3)}
+#bosssunder.open .sd-bg i{background:#efe2ff;animation:sdopen .4s steps(2) infinite}
+@keyframes sdopen{50%{background:#b46bff}}
+#bosssunder .sd-pin{font:700 10px/1 var(--font-ui);letter-spacing:.18em;color:#ffc560;text-shadow:0 1px 3px #000;visibility:hidden}
+#bosssunder.pinned .sd-pin{visibility:visible}
+#bossmods{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+#bossmods span{font:700 9.5px/1 var(--font-ui);letter-spacing:.16em;color:var(--mc);padding:3px 6px;background:rgba(8,6,12,.75);box-shadow:0 0 0 1px var(--hx-ink)}
+@media (max-width:700px){ #bosssunder{width:92%} #bossmods span{font-size:9px;letter-spacing:.1em} }

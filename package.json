@@ -48,7 +48,9 @@
     "smoke:zone-life": "node tools/smoke/zone-life.mjs",
     "smoke:coop-zone-party": "node tools/smoke/coop-zone-party.mjs",
     "smoke:coop-zone": "node tools/smoke/coop-zone.mjs",
-    "smoke:gate": "node tools/smoke/gate.mjs"
+    "smoke:gate": "node tools/smoke/gate.mjs",
+    "smoke:raid": "node tools/smoke/raid.mjs",
+    "smoke:coop-raid": "node tools/smoke/coop-raid.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

@@ -13,6 +13,7 @@
 
 import { MISSIONS } from './missions.js';
 import { isSideId, sideQuest } from './side-quests.js';
+import { isRaidId, raidMission } from './raids.js';
 
 export const ARCADE_VOICE = 'DISPATCH';
 export const ARCADE_PREFIX = 'arcade:';
@@ -163,10 +164,11 @@ export function arcadeContract(seed){
   cache.set(seed, def);
   return def;
 }
-// a story mission, an arcade contract or a side mission (data/side-quests.js), by id
+// a story mission, an arcade contract, a side mission (data/side-quests.js) or a raid (data/raids.js), by id
 export function missionById(id){
   if (MISSIONS[id]) return MISSIONS[id];
   if (isSideId(id)) return sideQuest(id);
+  if (isRaidId(id)) return raidMission(id);
   if (isArcadeId(id)){ const s = parseInt(id.slice(ARCADE_PREFIX.length), 10); if (s > 0) return arcadeContract(s); }
   return null;
 }

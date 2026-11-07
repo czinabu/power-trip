@@ -121,7 +121,7 @@ export function hitDownedHero(){ if (player.downed) player.downed.bleed -= 1; }
 export function updateRevive(dt, revivers){
   const pp = playerPos();
   const all = revivers.slice();
-  if (G.mode === 'play' && !player.downed) all.push({ kind: 'hero', pos: pp, hitAt: player.lastHurt });
+  if (G.mode === 'play' && !player.downed) all.push({ kind: 'hero', pos: pp, hitAt: player.lastHurt, trooper: G.hero === 'trooper' });
   for (const f of reviverSources){ const r = f(); if (r) all.push(r); }
   for (let i = downed.length - 1; i >= 0; i--){
     const b = downed[i], p = b.pos();
@@ -132,7 +132,7 @@ export function updateRevive(dt, revivers){
       if (Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < REVIVE.radius){ near = r; break; }
     }
     if (near){
-      b.prog += dt;
+      b.prog += dt * (near.trooper && shared.reviveMul ? shared.reviveMul.trooper || 1 : 1);   // a raid boss's fight: the trooper's job (data/boss-kharel.js reviveMul)
       if (near.hitAt != null && G.gt - near.hitAt < dt * 1.5) b.prog = Math.max(0, b.prog - REVIVE.hitSlow);   // a hit costs the reviver ground
       b.by = near.kind;
     } else { b.prog = Math.max(0, b.prog - dt * 0.5); b.by = null; }

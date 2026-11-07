@@ -5,6 +5,7 @@
 // home (the shuttle on the pad beside it).
 
 import { G, shared } from '../state.js';
+import { optHTML, headHTML } from './hub-cards.js';
 import { renderer } from '../engine/renderer.js';
 import { audioInit, S } from '../audio/sfx.js';
 import { zoneDef, travelTo, setZonePanel, setZoneFade } from '../game/zone.js';
@@ -36,9 +37,8 @@ function render(){
     list.push(B(w.name, known ? dist(w.district) : 'NOT YET TOUCHED · somewhere in ' + dist(w.district).toLowerCase(), known ? () => travelTo(w.id) : null));
   }
   const n = Z.waystones.filter(w => memo.stones[w.id]).length;
-  panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + esc(Z.name) + '</div><div class="hb-t">' + esc(at.name) + '</div>' +
-    '<div class="hb-d">Walk up to a waystone to touch it, then travel between the ones you have touched. You have touched ' + n + ' of ' + Z.waystones.length + '.</div>' +
-    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + '" data-i="' + i + '"><b>' + esc(b.t) + '</b><span>' + esc(b.d) + '</span></div>').join('') + '</div>' +
+  panel.innerHTML = '<div class="hb-box hb-a-waystone">' + headHTML(esc(Z.name), esc(at.name), 'Walk up to a waystone to touch it, then travel between the ones you have touched. You have touched ' + n + ' of ' + Z.waystones.length + '.') +
+    '<div class="hb-list' + (list.length > 4 ? ' many' : '') + '">' + list.map((b, i) => optHTML({ ...b, t: esc(b.t), d: esc(b.d) }, i, { ic: at.gate && !i ? 'ship' : b.go ? 'compass' : 'lock', main: at.gate && !i })).join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;
 }

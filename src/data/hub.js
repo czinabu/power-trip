@@ -14,7 +14,7 @@
 //   its doors and its stations. A station's `act` is what tapping F at it does (ui/hub-ui.js options): x, z in metres
 //   from the wing's middle. The acts: travel, council (every mode), training, sparring (sandbox), proving (survival),
 //   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner), raid (the
-//   raid page: data/raids.js; every hub's mission table carries it too).
+//   raid page: data/raids.js; every hub's mission table carries it too), shuttle (the ship to an open zone: data/zones.js).
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
 import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
@@ -44,12 +44,26 @@ const TEMPLE_WINGS = {
     name: 'THE COUNCIL CHAMBER', short: 'COUNCIL',
     blurb: 'Where the Order chose its battles. The council table sends you, and your party, anywhere.',
     level: { name: 'THE HIDDEN TEMPLE — THE COUNCIL CHAMBER', sub: 'The council table launches any mode.', arena: 64, layout: 'tyCouncil', waves: [], hazards: {} },
-    doors: { s: 'hall' },
+    doors: { s: 'hall', n: 'landing' },
     spawn: [0, 20, Math.PI],
     stations: [
       { id: 'table', x: 0, z: 0, name: 'COUNCIL TABLE', act: 'council', r: 9 },
       { id: 'waystone', x: 9, z: 24, name: 'WAYSTONE', act: 'travel' },
       { id: 'raid', x: -9, z: 24, name: 'THE RAID TABLE', act: 'raid' },   // the raids (data/raids.js), once Act IV is beaten
+    ],
+  },
+  // past the council chamber, out under the sky: the pilgrim shuttle that runs to the old city of Jedha (an open zone:
+  // data/zones.js), once the story has opened it (game/zone-gate.js)
+  landing: {
+    name: 'THE LANDING PLATFORM', short: 'LANDING',
+    blurb: 'A terrace past the council chamber where the pilgrim shuttles set down. One still runs to the old city of Jedha.',
+    level: { name: 'THE HIDDEN TEMPLE — THE LANDING PLATFORM', sub: 'The shuttle to Jedha.', arena: 64, layout: 'tyLanding', waves: [], hazards: {} },
+    map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
+    doors: { s: 'council' },
+    spawn: [0, 20, Math.PI],
+    stations: [
+      { id: 'shuttle', x: 0, z: 2, name: 'SHUTTLE TO JEDHA', act: 'shuttle', r: 4 },
+      { id: 'waystone', x: 9, z: 24, name: 'WAYSTONE', act: 'travel' },
     ],
   },
   training: {
@@ -97,7 +111,7 @@ export const HUBS = {
   temple: { name: 'THE HIDDEN TEMPLE', place: 'TYTHON', home: 'THE TEMPLE', room: 'WING',
     tile: 'Walk the temple on Tython, gather your party and pick a mission together',
     travel: 'Travel to any wing of the temple.',
-    start: 'hall', order: ['hall', 'council', 'training', 'archives', 'forge'], wings: TEMPLE_WINGS },
+    start: 'hall', order: ['hall', 'council', 'landing', 'training', 'archives', 'forge'], wings: TEMPLE_WINGS },
   kamino: { name: 'THE CLONE CITADEL', place: 'KAMINO', home: 'THE CITADEL', room: 'DECK',
     tile: 'Walk the cloning citadel on Kamino, gather your squad and pick a mission together',
     travel: 'Travel to any deck of the citadel.',

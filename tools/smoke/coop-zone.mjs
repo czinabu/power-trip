@@ -22,14 +22,16 @@ const step = (what) => console.log('ok   ' + what);
 const HOST = process.env.HOST || 'jedi', GUEST = HOST === 'trooper' ? 'mando' : 'trooper';
 const COUNCIL = { jedi: 'council', trooper: 'warroom', mando: 'clan' }[HOST];
 
-async function open(name){
+// cleared: the chapters this save has closed, per hero (the host has closed Act I, which opens Jedha: game/zone-gate.js;
+// a guest on a brand-new save still goes along with them)
+async function open(name, cleared = {}){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
   page.on('pageerror', e => errors.push(name + ': ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(name + ': ' + m.text()); });
-  await page.addInitScript(() => {
-    try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
+  await page.addInitScript((cleared) => {
+    try { for (const h in cleared) localStorage.setItem('sw_camp_ch_' + h, JSON.stringify(cleared[h])); localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
-  });
+  }, cleared);
   await page.goto(url);
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);
   return page;
@@ -43,7 +45,7 @@ const builtAt = (page, x, z) => page.evaluate(([x, z]) => { const S = GAME.zone.
 
 let ok = false;
 try {
-  const host = await open('host'), guest = await open('guest');
+  const host = await open('host', { [HOST]: ['siege', 'archive', 'refuge', 'trial-first'] }), guest = await open('guest');
   await host.click('#mode-coop'); await host.click('#coophost');
   await host.waitForFunction(() => document.querySelector('#coopstatus .code'), null, poll);
   const code = await host.evaluate(() => document.querySelector('#coopstatus .code').textContent);
@@ -77,6 +79,10 @@ try {
   await inZone(guest);
   await guest.waitForFunction(() => GAME.G.coopGuest && GAME.G.partyRun, null, poll);
   step('the guest follows them in');
+  // the guest's save is brand new: they go along, carrying only what their own story has handed out (game/zone-gate.js)
+  const gk = await guest.evaluate(() => ({ cells: GAME.player.up.cellTier || 0, frag: GAME.player.up.fragExtra || 0, guns: ['dual', 'carbine', 'repeater', 'flame', 'scan'].filter(k => GAME.G.unlocked && GAME.G.unlocked[k]) }));
+  if (gk.cells || gk.frag || gk.guns.length) throw new Error('a brand-new guest came into the zone with gear their story has not handed out: ' + JSON.stringify(gk));
+  step('the guest on a brand-new save carries only their own story\'s kit');
   const seats = await Promise.all([host, guest].map(p => p.evaluate(() => [GAME.player.group.position.x, GAME.player.group.position.z])));
   if (Math.hypot(seats[0][0] - seats[1][0], seats[0][1] - seats[1][1]) < 1.5) throw new Error('both landed on the same spot: ' + JSON.stringify(seats));
   step('each lands in their own seat by the pad');

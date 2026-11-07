@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // OPEN ZONE SMOKE TEST — boots the BUILT game (dist/index.html) and roams the old city of Jedha (game/zone.js, data/zones.js)
 // as each hero:
-//   · in from the hub: the council table (the war room, the clan hall) lists the zone, and it launches straight in;
+//   · in from the hub: each hub's ship (the temple's landing platform, the citadel's gunship, the covert's ship) and the
+//     council table (the war room, the clan hall) list the zone, and it launches straight in;
 //   · the streets stream: only the chunks round the hero are built, a far jump builds the new ones and drops the old
 //     (world/zone-stream.js), and every wall collides from the first frame;
 //   · walking into a district names it on the HUD; walking up to a waystone touches it (and the profile keeps it);
@@ -26,6 +27,8 @@ let failed = false;
 const check = (ok, what) => { console.log((ok ? 'ok: ' : 'FAIL: ') + what); if (!ok) failed = true; };
 const HEROES = (process.env.HEROES || 'jedi,mando,trooper').split(',');
 const COUNCIL = { temple: 'council', kamino: 'warroom', covert: 'clan' };
+// each hub's ship to Jedha: [wing, x, z] of its station (data/hub.js: the temple's landing platform, the citadel's gunship, the covert's own ship)
+const SHIP = { temple: ['landing', 0, 3], kamino: ['deck', -21, -24], covert: ['hangar', -5, -9] };
 
 for (const hero of HEROES){
   const errors = [];
@@ -53,6 +56,16 @@ for (const hero of HEROES){
     await page.click('#goText');
     check(await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused), `${hero}: into the hub`);
     const hubId = await page.evaluate(() => GAME.G.hubId), council = COUNCIL[hubId] || 'council';
+
+    // THE SHIP: each hub has one that flies to Jedha, at its own station
+    { const [w, x, z] = SHIP[hubId];
+      await page.evaluate((w) => { if (GAME.G.hubWing !== w) GAME.hub.goWing(w); }, w);   // (the trooper starts on the deck: no reload under their feet)
+      check(await until((w) => GAME.G.hub && GAME.G.hubWing === w && !GAME.G.paused, w), `${hero}: to the ${w}, where the ship to Jedha is`);
+      await stand(x, z); await frames();
+      await page.keyboard.press('f');
+      await until(() => document.getElementById('hubpanel').classList.contains('open'), null, 5000);
+      check(await page.locator('#hubpanel .hb-o', { hasText: 'FLY TO JEDHA' }).count() > 0, `${hero}: the ${hubId}'s ship offers the flight to Jedha`);
+      await page.keyboard.press('Escape'); await until(() => !document.getElementById('hubpanel').classList.contains('open'), null, 5000); }
 
     // THE COUNCIL TABLE lists the zone, and it launches straight in (no forms page or armory first)
     await page.evaluate((w) => GAME.hub.goWing(w), council);

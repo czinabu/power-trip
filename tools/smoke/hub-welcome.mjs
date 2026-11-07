@@ -103,7 +103,12 @@ for (const hero of HEROES){
     check(await cardUp(3000), `${hero}: ...the card of every place`);
     const rows = await page.$$eval('#hubpanel .hw-row', r => r.length);
     check(rows >= 5, `${hero}: the card lists the hub's places (${rows})`);
+    check(await page.$$eval('#hubpanel .hw-pin', r => r.flatMap(p => p.dataset.ps.trim().split(' ')).length) === rows && await page.$$eval('#hubpanel .hw-plan .hw-you', r => r.length) === 1, `${hero}: the hub's plan pins every place, and where you stand`);
     await page.waitForTimeout(300); await shot('whats-where');
+    // a place picked on the card: a light leads there (the first tile: the missions, in another wing)
+    await page.locator('#hubpanel .hw-row').first().click(); await frames();
+    check(await page.evaluate(() => { const s = GAME.hub.welcome.state; return s.tour && s.beacon && /THIS WAY/.test(document.getElementById('tutor').textContent) && !document.getElementById('hubpanel').classList.contains('open'); }), `${hero}: a place picked on the card lights the way there`);
+    await page.evaluate(() => GAME.hub.welcome.open()); await cardUp(3000);
     await page.locator('#hubpanel .hb-o', { hasText: 'SHOW ME AROUND' }).click();
     await frames();
     check((await st()).tour && !(await st()).greet, `${hero}: its SHOW ME AROUND walks the tour again`);

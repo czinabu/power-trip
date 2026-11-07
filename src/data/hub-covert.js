@@ -60,7 +60,7 @@ export const COVERT_WINGS = {
   },
   hangar: {
     name: 'THE HANGAR', short: 'HANGAR',
-    blurb: 'The clan\'s ship on its pad under the open sky. Take a job, or pick the hunt back up.',
+    blurb: 'The clan\'s ship on its pad under the open sky. Take a job, fly to Jedha, or pick the hunt back up.',
     level: { name: 'THE HIDDEN COVERT — THE HANGAR', sub: 'Your ship, and the bounty board.', arena: 72, layout: 'mfHangar', waves: [], hazards: {} },
     map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'forge' },

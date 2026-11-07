@@ -100,8 +100,8 @@ for (const hero of HEROES){
 
     // the TEMPLE MAP: prompt, panel, fast travel
     const at = (k) => (P.at && P.at[k]) || AT[k];
-    await stand(...at('map')); await page.waitForTimeout(400);
-    check(await page.evaluate((m) => document.getElementById('hubp').classList.contains('on') && document.getElementById('hubp').textContent.includes(m), P.map), `${hero}: the station prompt shows at the hub map`);
+    await stand(...at('map'));   // (the prompt can take a beat on a slow machine: up to 5s)
+    check(await page.waitForFunction((m) => document.getElementById('hubp').classList.contains('on') && document.getElementById('hubp').textContent.includes(m), P.map, { timeout: 5000 }).then(() => true, () => false), `${hero}: the station prompt shows at the hub map`);
     check(await station(...at('map'), 'wing:' + P.council), `${hero}: F opens the hub map, and the council's wing on it is a button`);
     check(await inHub(P.council), `${hero}: fast travel to the council chamber`);
 

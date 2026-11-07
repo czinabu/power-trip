@@ -1,0 +1,209 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE HUB'S STATION PANELS (#hubpanel, and an open zone's waystone panel #zonepanel: ui/hub-ui.js, ui/zone-ui.js) in
+   the look of the hero being played (docs/hero-ui.md): the Jedi read a holocron page, the Mandalorian a beskar plate,
+   the trooper an orders readout. Every option is a card: an icon in the hero's frame, its name in the hero's face, the
+   line under it in plain reading text, and a tag on the right (a lock, a tick, the way in). The station's main option
+   (the campaign, the flight to Jedha…) wears the accent. Reads only the --hx-* tokens, so the house look covers anyone else.
+   Also the station prompt under the crosshair (#hubp and the zone's prompts).
+   ============================================================ */
+
+/* ---------- the shared frame (every hero) ---------- */
+#hubpanel,#zonepanel{background:radial-gradient(ellipse 80% 75% at 50% 50%,rgba(4,6,10,.55),rgba(2,3,6,.86));backdrop-filter:none;-webkit-backdrop-filter:none}
+:is(#hubpanel,#zonepanel) .hb-box{border:0;border-radius:0;padding:22px 24px 18px;gap:9px;position:relative;
+  background:var(--hx-paper-solid);color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink),0 24px 60px rgba(0,0,0,.6);
+  animation:hxcard .26s steps(4) both}
+:is(#hubpanel,#zonepanel) .hb-box:not(.hm-box):not(.hw-box){width:min(580px,100%)}
+:is(#hubpanel,#zonepanel) .hb-box:not(.hm-box):not(.hw-box):has(.hb-list.many){width:min(800px,100%)}
+:is(#hubpanel,#zonepanel) .hb-k{font:600 11px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-accent)}
+:is(#hubpanel,#zonepanel) .hb-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:32px;line-height:1.05;color:var(--hx-text);text-shadow:0 2px 0 var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-d{font:500 14px/1.45 var(--hx-read);color:var(--hx-soft);max-width:62ch}
+:is(#hubpanel,#zonepanel) .hb-party{font-family:var(--hx-label);letter-spacing:.12em;color:var(--hx-live)}
+/* the rule under the title: a hairline with the hero's mark in the middle */
+.hb-rule{position:relative;height:9px;margin:1px 0 2px}
+.hb-rule::before{content:'';position:absolute;left:0;right:0;top:4px;height:1px;background:var(--hx-line)}
+.hb-rule i{position:absolute;left:0;top:0;width:9px;height:9px;background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+
+/* the options: cards, two to a row once a station has many */
+:is(#hubpanel,#zonepanel) .hb-list{gap:8px;margin-top:4px}
+:is(#hubpanel,#zonepanel) .hb-list.many{display:grid;grid-template-columns:1fr 1fr}
+:is(#hubpanel,#zonepanel) .hb-o{flex-direction:row;align-items:center;gap:13px;padding:10px 12px 10px 10px;border:0;border-radius:0;position:relative;min-height:62px;box-sizing:border-box;
+  background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);transition:none}
+:is(#hubpanel,#zonepanel) .hb-o:hover,:is(#hubpanel,#zonepanel) .hb-o.padfocus{background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-o b{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);font-size:17px;line-height:1.05;color:var(--hx-text)}
+:is(#hubpanel,#zonepanel) .hb-o span{font:500 13px/1.35 var(--hx-read);color:var(--hx-soft)}
+.hb-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hb-tx u{text-decoration:none;font:600 10.5px/1 var(--hx-label);letter-spacing:var(--hx-label-ls);color:var(--hx-dim);margin-right:4px}
+/* the icon in its frame */
+.hb-ic{flex:none;width:42px;height:42px;display:grid;place-items:center;color:var(--hx-accent);background:rgba(0,0,0,.32);box-shadow:inset 0 0 0 1px var(--hx-line)}
+.hb-ic .ic{width:24px;height:24px}
+/* the tag on the right: the way in, a lock, a tick */
+.hb-tag{flex:none;width:20px;height:20px;display:grid;place-items:center;font-style:normal;color:var(--hx-dim)}
+.hb-tag .ic{width:18px;height:18px}
+.hb-tag.go::before{content:'';width:8px;height:8px;border:solid var(--hx-dim);border-width:2px 2px 0 0;transform:rotate(45deg) translate(-2px,2px)}
+.hb-o:hover .hb-tag.go::before,.hb-o.padfocus .hb-tag.go::before{border-color:var(--hx-accent-hi)}
+.hb-tag.ok{color:#5fd38a}
+/* the main option: the accent */
+:is(#hubpanel,#zonepanel) .hb-o.main{background:color-mix(in srgb,var(--hx-accent) 16%,var(--hx-paper-solid));box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-o.main .hb-ic{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-o.main:hover,:is(#hubpanel,#zonepanel) .hb-o.main.padfocus{background:color-mix(in srgb,var(--hx-accent) 26%,var(--hx-paper-solid))}
+.hb-list.many .hb-o.main{grid-column:1 / -1}
+/* not yet (locked), or nothing to do (a line, someone in the party): quieter, the icon greyed */
+:is(#hubpanel,#zonepanel) .hb-o.off,:is(#hubpanel,#zonepanel) .hb-o.off:hover{opacity:1;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-o.locked{opacity:.72;border:0;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0 8px,transparent 8px 16px),var(--hx-paper)}
+:is(#hubpanel,#zonepanel) .hb-o.locked b{color:var(--hx-dim)}
+:is(#hubpanel,#zonepanel) .hb-o:is(.locked,.off) .hb-ic{color:var(--hx-dim)}
+:is(#hubpanel,#zonepanel) .hb-o.off.ready b{color:#7aff9a}
+/* CLOSE: the hero's plain button */
+:is(#hubpanel,#zonepanel) .hb-x{border-radius:0;border:0;background:var(--hx-paper);color:var(--hx-soft);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+:is(#hubpanel,#zonepanel) .hb-x:hover{color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+:is(#hubpanel,#zonepanel) .hb-x::after{content:none}
+/* the welcome card and the map's side in the same paint */
+#hubpanel .hw-say{border-left:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 3px 0 0 var(--hx-accent)}
+#hubpanel .hw-say span{font-family:var(--hx-read);color:var(--hx-text)}
+#hubpanel .hw-say b,#hubpanel .hw-n em{color:var(--hx-accent);font-family:var(--hx-label)}
+#hubpanel .hw-row{border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#hubpanel .hw-l{color:var(--hx-live);font-family:var(--hx-label)}
+#hubpanel .hw-n{font-family:var(--hx-display);font-weight:var(--hx-display-w);color:var(--hx-text)}
+#hubpanel .hw-d{font-family:var(--hx-read);color:var(--hx-soft)}
+/* the welcome: the hub's plan with a numbered pin at each place, the places beside it as tiles (pick one and a light
+   leads there), and the guide's one line over them */
+#hubpanel .hb-box.hw-box{width:min(940px,100%)}
+#hubpanel .hw-body{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start;margin-top:4px}
+#hubpanel .hw-plan{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+#hubpanel .hw-info{align-self:stretch}
+#hubpanel .hw-plan .hm-map{height:min(46vh,400px);width:auto;min-width:0;max-width:100%;max-height:none;margin:0 auto;flex:none}
+#hubpanel .hw-plan .hm-wing{pointer-events:none;cursor:default}
+#hubpanel .hw-plan :is(.hm-l,.hm-n,.hm-tag){display:none}   /* (numbers only: the tiles say what each is) */
+#hubpanel .hw-plan .hm-wing{border-width:1.5px}
+/* YOU: a bright tag over the hero's arrow, above every pin, ringed and pulsing so it reads at a glance */
+.hw-you{position:absolute;width:0;height:0;z-index:5;pointer-events:none}
+.hw-you::before{content:'';position:absolute;left:-15px;top:-15px;width:30px;height:30px;border-radius:50%;box-sizing:border-box;border:2px solid #7affc0;animation:hwYou 1.6s ease-out infinite}
+.hw-you b{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);padding:3px 6px 2px;font:700 10px/1 var(--hx-label);letter-spacing:.12em;white-space:nowrap;color:#04140c;background:#7affc0;box-shadow:0 0 0 2px var(--hx-ink),0 0 12px rgba(122,255,192,.7)}
+.hw-you b::after{content:'';position:absolute;left:50%;top:100%;margin-left:-4px;border:4px solid transparent;border-top-color:#7affc0}
+@keyframes hwYou{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.5);opacity:0}}
+#hubpanel .hw-plan .hm-you > i::before{background:#7affc0;filter:drop-shadow(0 0 4px rgba(122,255,192,.9))}
+#hubpanel .hw-plan .hm-you::before{border-color:#7affc0}
+.hw-pin.two{width:auto;min-width:17px;padding:0 4px;transform:translateX(calc(-50% + 8.5px))}
+.hw-pin.two.on{transform:translateX(calc(-50% + 8.5px)) scale(1.3)}
+/* the guide: their portrait (ui/hub-portrait.js) beside their one line */
+#hubpanel .hw-say.face{flex-direction:row;align-items:center;gap:12px;padding:6px 14px 6px 6px}
+#hubpanel .hw-say > div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hw-face{flex:none;width:68px;height:68px;object-fit:cover;background:radial-gradient(circle at 50% 40%,var(--hx-paper-2),rgba(0,0,0,.4));box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] .hw-face{border-radius:50%;box-shadow:0 0 0 1.5px var(--hx-accent),0 0 0 3px var(--hx-ink)}
+[data-hero="mando"] .hw-face{clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+[data-hero="trooper"] .hw-face{box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+.hw-pin{position:absolute;width:17px;height:17px;margin:-8.5px 0 0 -8.5px;font-style:normal;display:grid;place-items:center;z-index:3;cursor:pointer;
+  background:var(--hx-accent);color:var(--hx-on-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 10px var(--hx-accent);transition:transform .15s}
+[data-hero="jedi"] .hw-pin{border-radius:50%}
+#hubpanel .hw-pin b{font:700 10px/1 var(--hx-label);color:var(--hx-on-accent);text-shadow:none}
+.hw-pin.on{transform:scale(1.35);animation:hwPing 1s ease-out infinite}
+@keyframes hwPing{0%{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 0 var(--hx-accent)}100%{box-shadow:0 0 0 2px var(--hx-ink),0 0 0 14px transparent}}
+#hubpanel .hw-info{min-height:38px;padding:8px 12px;font:500 13px/1.4 var(--hx-read);color:var(--hx-soft);background:var(--hx-paper);box-shadow:inset 3px 0 0 var(--hx-live)}
+#hubpanel .hw-rows{display:flex;flex-direction:column;gap:6px;margin:0}
+#hubpanel .hw-row{flex-direction:row;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;transition:background .12s,transform .12s}
+#hubpanel .hw-row:is(:hover,.on,.padfocus){background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-accent);transform:translateX(3px)}
+#hubpanel .hw-no{flex:none;width:20px;height:20px;display:grid;place-items:center;font:700 11px/1 var(--hx-label);font-style:normal;color:var(--hx-on-accent);background:var(--hx-accent)}
+#hubpanel .hw-row .hb-ic{width:32px;height:32px}
+#hubpanel .hw-row .hb-ic .ic{width:18px;height:18px}
+#hubpanel .hw-n{flex:1;font-size:14px;line-height:1.1;min-width:0}
+#hubpanel .hw-n em{font-size:9.5px;letter-spacing:1.2px;margin-top:4px}
+#hubpanel .hw-row .hb-tag{position:static;margin-left:auto}
+#hubpanel .hw-go .hb-o span:empty{display:none}
+@media (max-width:700px){ #hubpanel .hw-body{grid-template-columns:1fr} #hubpanel .hw-plan .hm-map{height:34vh} }
+@media (max-height:620px){ #hubpanel .hw-plan .hm-map{height:52vh} #hubpanel .hw-row{padding:5px 8px} #hubpanel .hw-info{display:none} }
+#hubpanel .hm-side .hb-o{min-height:0}
+#hubpanel .hm-side .hb-ic{width:32px;height:32px}
+#hubpanel .hm-side .hb-ic .ic{width:19px;height:19px}
+
+/* the station prompt under the crosshair: a small plate in the hero's paint */
+:is(#hubp,#zonep,#zoneqp,#secp,#mercyp){border-radius:0;background:var(--hx-paper);color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+:is(#hubp,#zonep,#zoneqp,#secp,#mercyp) kbd{border-radius:0;border:0;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+
+/* ---------- THE JEDI: a holocron page. Night blue, a gold double hairline, diamond studs, Cinzel ---------- */
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px rgba(217,178,94,.4),0 0 0 2px var(--hx-ink),0 24px 60px rgba(0,0,0,.6);
+  background:radial-gradient(ellipse 90% 60% at 50% 0%,rgba(80,110,200,.16),transparent 70%),var(--hx-paper-solid)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box::before,[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box::after{content:'';position:absolute;top:7px;width:9px;height:9px;background:var(--hx-accent);transform:rotate(45deg);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box::before{left:7px}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box::after{right:7px}
+[data-hero="jedi"] .hb-rule::before{box-shadow:0 3px 0 rgba(217,178,94,.25)}
+[data-hero="jedi"] .hb-rule i{left:50%;margin-left:-5px;transform:rotate(45deg);width:8px;height:8px;top:1px}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-t{font-size:34px;text-align:center}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) :is(.hb-k,.hb-d,.hb-party){text-align:center;align-self:center}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o b{font-size:15.5px;letter-spacing:.06em}
+/* the icon sits in a gold diamond */
+[data-hero="jedi"] .hb-ic{background:none;box-shadow:none;position:relative}
+[data-hero="jedi"] .hb-ic::before{content:'';position:absolute;inset:5px;transform:rotate(45deg);background:rgba(4,6,22,.6);box-shadow:inset 0 0 0 1px var(--hx-accent)}
+[data-hero="jedi"] .hb-ic .ic{position:relative;width:20px;height:20px}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-ic{background:none;box-shadow:none}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-ic::before{background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.main{background:linear-gradient(90deg,rgba(217,178,94,.2),rgba(217,178,94,.06) 60%),var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px rgba(217,178,94,.5),0 0 0 2px var(--hx-ink)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.main:hover{background:linear-gradient(90deg,rgba(217,178,94,.3),rgba(217,178,94,.1) 60%),var(--hx-paper-2)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o:hover .hb-ic,[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.padfocus .hb-ic{color:var(--hx-live)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-o.main:hover .hb-ic{color:var(--hx-on-accent)}
+[data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-x{font-family:'Cinzel',Georgia,serif;font-weight:700;letter-spacing:.08em;align-self:center}
+
+/* ---------- THE MANDALORIAN: beskar plate. Brushed charcoal, chamfered corners, an ember strip from the forge ---------- */
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-box{background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 4px 0 var(--hx-accent);padding-top:24px}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-t{font-size:30px;text-transform:uppercase;letter-spacing:.16em}
+[data-hero="mando"] .hb-rule i{width:26px;height:4px;top:2px;background:var(--hx-accent);box-shadow:none}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o{background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 40%),var(--hx-paper);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line)}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o:hover,[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.padfocus{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o b{text-transform:uppercase;font-size:15px;letter-spacing:.18em}
+[data-hero="mando"] .hb-ic{clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);background:#1a1b1d;box-shadow:inset 0 0 0 1px rgba(255,122,46,.4)}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.main{background:linear-gradient(180deg,rgba(255,176,122,.16),transparent 50%),color-mix(in srgb,var(--hx-accent) 14%,#2a2c2f);box-shadow:inset 0 0 0 1px rgba(255,122,46,.55),inset 0 -3px 0 var(--hx-accent)}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-ic{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.locked{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.03) 0 8px,transparent 8px 16px),#232427}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-x{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);letter-spacing:.22em}
+
+/* ---------- THE TROOPER: an orders readout. Matte black, a hazard stripe, IBM Plex Mono, every order numbered ---------- */
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-box{padding-top:30px;counter-reset:hbo}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-box::before{content:'';position:absolute;left:0;right:0;top:0;height:8px;background:var(--hx-hazard);box-shadow:0 2px 0 var(--hx-ink)}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-t{font-size:28px;letter-spacing:0;text-transform:uppercase}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-k::before{content:'// ';color:var(--hx-dim)}
+[data-hero="trooper"] .hb-rule i{width:56px;height:5px;top:2px;background:var(--hx-hazard);box-shadow:0 0 0 1px var(--hx-ink)}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o{counter-increment:hbo;background:rgba(10,13,15,.82);padding-left:8px}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o b{font-size:14.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o::before{content:counter(hbo,decimal-leading-zero);flex:none;width:20px;font:500 11px/1 var(--hx-label);color:var(--hx-dim);text-align:right}
+[data-hero="trooper"] .hb-ic{background:#06080a;box-shadow:inset 0 0 0 1px rgba(240,165,42,.45)}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main{background:var(--hx-plate-white);box-shadow:0 0 0 2px var(--hx-ink),inset 0 -4px 0 #c5cbce;padding-right:30px}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main::after{content:'';position:absolute;right:0;top:0;bottom:0;width:16px;background:var(--hx-hazard)}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main :is(b,.hb-tag){color:#101315}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main span,[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main::before{color:#3a4246}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-ic{background:#101315;color:var(--hx-accent);box-shadow:none}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-tag.go::before{border-color:#101315}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.main:hover{background:#fff}
+[data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-o.locked .hb-tx u{color:var(--hx-accent)}
+
+/* a phone, or a short window: one to a row, smaller frames */
+@media (max-width:620px){
+  :is(#hubpanel,#zonepanel) .hb-list.many{grid-template-columns:1fr}
+  :is(#hubpanel,#zonepanel) .hb-box{padding:18px 16px 14px}
+  :is(#hubpanel,#zonepanel) .hb-t{font-size:25px!important}
+  .hb-ic{width:36px;height:36px}
+  :is(#hubpanel,#zonepanel) .hb-o{min-height:54px;gap:10px}
+}
+@media (max-height:620px){
+  :is(#hubpanel,#zonepanel) .hb-box{padding-top:14px;padding-bottom:12px;gap:6px}
+  :is(#hubpanel,#zonepanel) .hb-o{min-height:50px;padding-top:7px;padding-bottom:7px}
+  :is(#hubpanel,#zonepanel) .hb-o span{font-size:12px}
+  :is(#hubpanel,#zonepanel) .hb-t{font-size:26px!important}
+}
+/* a phone on its side: the welcome's head shrinks to a line, the guide's portrait with it, and the plan takes the
+   height that's left so it sits whole beside the places */
+@media (min-width:561px) and (max-height:480px){
+  #hubpanel .hw-box .hb-k,#hubpanel .hw-box .hb-rule,#hubpanel .hw-info{display:none}
+  #hubpanel .hw-box .hb-t{font-size:20px!important}
+  #hubpanel .hw-say.face{padding:3px 10px 3px 3px;gap:8px}
+  #hubpanel .hw-say span{font-size:12.5px}
+  #hubpanel .hw-say b{font-size:9.5px}
+  #hubpanel .hw-face{width:40px;height:40px}
+  #hubpanel .hw-body{margin-top:0;gap:10px}
+  #hubpanel .hw-plan .hm-map{height:calc(100dvh - 190px);min-height:150px}
+  #hubpanel .hw-rows{gap:4px}
+  #hubpanel .hw-row{padding:4px 8px}
+  #hubpanel .hw-row .hb-ic{width:26px;height:26px}
+  #hubpanel .hw-n{font-size:12.5px}
+  #hubpanel .hw-n em{font-size:8.5px;margin-top:2px}
+}

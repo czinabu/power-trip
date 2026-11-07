@@ -25,11 +25,12 @@ export function welcomeSeen(hub){ try { return localStorage.getItem(key(hub)) ==
 function markSeen(hub){ try { localStorage.setItem(key(hub), '1'); } catch(e){} }
 
 const SIDE_NAME = { n: 'NORTH', s: 'SOUTH', e: 'EAST', w: 'WEST' };
-const W = { wait: 0, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false, greetT: 0, lineT: 0 };
+const W = { only: null, wait: 0, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false, greetT: 0, lineT: 0 };
 const tutorEl = () => document.getElementById('tutor');
 const guest = () => net.role === 'guest' && connected();
 const hubNow = () => HUBS[G.hubId] || HUBS.temple;
 const dataNow = () => WELCOME[G.hubId] || null;
+const stopsNow = (D) => W.only ? [W.only] : D.tour;   // (the tour's stops, or the one place picked on the card: guideTo)
 const stationOf = (wing, id) => { const w = hubNow().wings[wing]; return w && w.stations.find(s => s.id === id); };
 
 let openCard = null;
@@ -47,7 +48,7 @@ export function welcomeCard(){
     const Wg = Hb.wings[wing], s = Wg && Wg.stations.find(t => t.id === id); if (!s) return null;
     const side = doorSide(Hb.wings, Hb.start, wing);
     const where = wing === G.hubWing ? Wg.short + ' · RIGHT HERE' : inStart && side ? Wg.short + ' · ' + SIDE_NAME[side] + ' DOOR' : Wg.short;
-    return { label: pick(label), name: s.name, where, d: guest() && gd ? gd : pick(d) };
+    return { label: pick(label), name: s.name, where, d: guest() && gd ? gd : pick(d), wing, id, x: s.x, z: s.z };
   }).filter(Boolean);
   const travel = [...new Set(Object.values(Hb.wings).flatMap(w => w.stations.filter(s => s.act === 'travel').map(s => s.name)))];
   return {
@@ -58,6 +59,11 @@ export function welcomeCard(){
 }
 // the card's SHOW ME AROUND (ui/hub-ui.js)
 export function answerWelcome(tour){ if (tour) startTour(); }
+// a place picked on the card: a beacon leads there, the way the tour does, for that one stop
+export function guideTo(wing, id, d){
+  const s = stationOf(wing, id); if (!s) return;
+  W.wait = 0; markSeen(G.hubId); startTour(false, { wing, station: id, say: d, last: d, guide: true });
+}
 // any map or waystone: WHAT'S WHERE opens the card, SHOW ME AROUND walks the tour again (ui/hub-ui.js)
 export function replayWelcome(){ W.wait = 0; return openCard ? openCard() : false; }
 export function replayTour(){ W.wait = 0; startTour(); }
@@ -65,8 +71,8 @@ export function replayTour(){ W.wait = 0; startTour(); }
 // exploring on their own, and the tour bows out
 export function welcomeStation(s){
   if (!W.tour || !s || s.act === 'welcome' || s.act === 'ready') return;
-  const D = dataNow(), stop = D && D.tour[W.i];
-  if (stop && stop.wing === G.hubWing && stop.station === s.id){ if (W.i < D.tour.length - 1){ W.i++; W.greetT = 0; S.uiClick(); } else endTour(); }
+  const D = dataNow(), tour = D && stopsNow(D), stop = tour && tour[W.i];
+  if (stop && stop.wing === G.hubWing && stop.station === s.id){ if (W.i < tour.length - 1){ W.i++; W.greetT = 0; S.uiClick(); } else endTour(); }
   else endTour();
 }
 
@@ -83,15 +89,15 @@ export function welcomeArrive(){
 onRunStart(() => { W.wait = 0; if (W.tour) endTour(); });
 
 /* ---------- the tour ---------- */
-function startTour(greet){
+function startTour(greet, only = null){
   const D = dataNow(); if (!D) return;
-  W.tour = true; W.hub = G.hubId; W.i = 0; W.doneT = 0; W.last = false; W.at = ''; W.panel = '';
+  W.only = only; W.tour = true; W.hub = G.hubId; W.i = 0; W.doneT = 0; W.last = false; W.at = ''; W.panel = '';
   W.greetT = greet ? TUNE.greet : 0;
   // (a stop you're already standing at counts at once: the next frame moves past it)
   S.uiClick();
 }
 function endTour(){
-  W.tour = false; W.last = false; W.doneT = 0; W.greetT = 0;
+  W.tour = false; W.only = null; W.last = false; W.doneT = 0; W.greetT = 0;
   dropBeacon(); W.at = '';
   if (W.panel) hideLine();
 }
@@ -144,8 +150,9 @@ export function updateWelcome(dt){
     const b = W.beacon, p = playerPos(), d = Math.hypot(p.x - b.position.x, p.z - b.position.z);
     b.userData.beam.material.opacity = TUNE.beamAlpha * Math.min(1, Math.max(0, (d - 3) / 9));
   }
-  const n = D.tour.length, stop = D.tour[W.i], step = 'FIRST STEPS · ' + (W.i + 1) + ' / ' + n;
+  const tour = stopsNow(D), n = tour.length, stop = tour[W.i];
   const s = stationOf(stop.wing, stop.station);
+  const step = stop.guide ? 'THIS WAY · ' + (s ? s.name : '') : 'FIRST STEPS · ' + (W.i + 1) + ' / ' + n;
   if (!s){ if (++W.i >= n) endTour(); return; }
   if (G.hubWing !== stop.wing){
     const way = doorToward(stop.wing); if (!way){ endTour(); return; }
@@ -169,7 +176,7 @@ export function updateWelcome(dt){
     }
   }
   // the last stop: the first run is a tap away. It stays up a while (or until the station's panel opens), then lets go
-  say(D.guide, guest() && stop.guestLast ? stop.guestLast : stop.last || stop.say, 'F', 'Tap at the ' + s.name + ' to start', { step: 'FIRST STEPS · DONE', done: true });
+  say(D.guide, guest() && stop.guestLast ? stop.guestLast : stop.last || stop.say, 'F', (stop.guide ? 'Tap at the ' + s.name : 'Tap at the ' + s.name + ' to start'), { step: stop.guide ? 'YOU ARE THERE' : 'FIRST STEPS · DONE', done: true });
   if (G.skillSelect || (W.doneT -= dt) <= 0) endTour();
 }
 

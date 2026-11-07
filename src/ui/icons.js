@@ -44,6 +44,24 @@ const P = {
   wrench:  '<path d="M14.5 4.2a4.5 4.5 0 0 0-4.9 6.1L4 15.9a1.9 1.9 0 0 0 2.7 2.7l5.6-5.6a4.5 4.5 0 0 0 6.1-4.9l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   map:     '<path d="M3.5 6.5l5.5-2 6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
   lock:    '<rect x="5.5" y="10.5" width="13" height="9.5" rx="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  // the hub's station panels (ui/hub-ui.js HUB_ICON)
+  saga:    '<path d="M6 3.5h9.5L19 7v13.5H6z"/><path d="M15.5 3.5V7H19"/><path d="M9 11h7M9 14.5h7M9 18h4"/>',
+  gate:    '<path d="M4 21V9a8 8 0 0 1 16 0v12"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/><path d="M2.5 21h19"/>',
+  ship:    '<path d="M12 3l3 7 6 3-6 1.5L12 21l-3-6.5L3 13l6-3z"/><circle cx="12" cy="12" r="1.3"/>',
+  city:    '<path d="M3 21V11l4-3v13M7 21V6l5-3 5 3v15M17 21V10l4 2.5V21"/><path d="M2 21h20M10 10h4M10 14h4"/>',
+  dice:    '<rect x="4" y="4" width="16" height="16" rx="2.5"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/>',
+  waves:   '<path d="M3 8c3-2 6 2 9 0s6-2 9 0M3 13c3-2 6 2 9 0s6-2 9 0M3 18c3-2 6 2 9 0s6-2 9 0"/>',
+  grid:    '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
+  compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  list:    '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1"/><circle cx="4.8" cy="12" r="1"/><circle cx="4.8" cy="17.5" r="1"/>',
+  party:   '<circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.3 3-5.3 6-5.3s5.4 2 6 5.3"/><circle cx="16.5" cy="9" r="2.6"/><path d="M16.5 14.2c2.4 0 4.2 1.7 4.6 4.6"/>',
+  target:  '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  door:    '<path d="M6 21V4.5L15 3v18"/><path d="M15 5h3.5v16M3.5 21h17"/><circle cx="12.5" cy="12.5" r=".8"/>',
+  holo:    '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  call:    '<path d="M12 3v3M5.5 6.5l2 2M18.5 6.5l-2 2"/><path d="M8 21h8M9 21v-5.5a3 3 0 0 1 6 0V21"/><path d="M6.5 12.5a5.5 5.5 0 0 1 11 0"/>',
+  forge:   '<path d="M4 14h12l-2 4H6z"/><path d="M16 14c0-2.5 1.5-4 4-4M8.5 14V9.5h3V14"/><path d="M7 21h6"/>',
+  helm:    '<path d="M5 13a7 7 0 0 1 14 0v7h-4.5v-3.5h-5V20H5z"/><path d="M8 12.5h8"/>',
+  check:   '<path d="M4.5 12.5l4.5 4.5 10.5-10.5"/>',
 };
 // the glyph ids used across data/ (skills, store, boons, survival powers) → drawn icon
 const GLYPH = {

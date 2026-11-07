@@ -1034,6 +1034,12 @@ export const HUB_WORLDS = {
   tyCouncil: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: { ...TY_LIGHT, dir: [10, 40, -30] },
     floor: { kind: 'flagstone', base: 0x8e877a, seed: 23 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
     ambient: { kind: 'dust', color: 0xfff4dc, count: 70, size: 0.22 }, beats: { fog: 0xc8d8dc, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
+  // the landing platform: the council chamber's terrace out under the sky, a shuttle on its pad, ships passing over
+  tyLanding: { sky: TY_SKY, fog: 0xc8d8dc, fogStart: 1.0, fogEnd: 3.4, light: { ...TY_LIGHT, dir: [-18, 42, 24] },
+    floor: { kind: 'flagstone', base: 0x958d7e, seed: 29 }, outer: 0x8a8476, pal: TY_PAL, backdrop: TY_VIEW,
+    ambient: { kind: 'dust', color: 0xfff4dc, count: 60, size: 0.22 },
+    warfront: { flyers: [{ kind: 'freighter', count: 2, alt: [90, 160], speed: [18, 28], every: [18, 34] }], epic: false },
+    beats: { fog: 0xc8d8dc, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
   tyTraining: { mist: false, sky: TY_SKY, fog: 0xc8d4d0, fogStart: 1.1, fogEnd: 3.6, light: { ...TY_LIGHT, dir: [30, 42, 14] },
     floor: { kind: 'parquet', base: 0x7a4a2a, seed: 31 }, outer: 0x5a3a22, pal: TY_PAL, backdrop: TY_VIEW, glow: 0.7,
     ambient: { kind: 'dust', color: 0xfff0d8, count: 80, size: 0.2 }, beats: { fog: 0xc8d4d0, fill: 1.0, tint: 0xffe8c8 }, sound: 'temple' },

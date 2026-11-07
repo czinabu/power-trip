@@ -32,12 +32,16 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { ZONES } from '../data/zones.js';
+import { zoneLock } from '../game/zone-gate.js';
 import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
-import { mapHTML } from './hub-map.js';
+import { mapHTML, mapLayout } from './hub-map.js';
+import { optHTML, listHTML, headHTML } from './hub-cards.js';
+import { svgIcon } from './icons.js';
+import { guidePortrait } from './hub-portrait.js';
 import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
-import { welcomeCard, answerWelcome, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
+import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -57,6 +61,7 @@ const party = () => net.status === 'connected';
 // a button: [label, line under it, what it does, locked reason]
 const B = (t, d, go, lock) => ({ t, d, go, lock });
 
+// (each option is a card in the hero's look: ui/hub-cards.js)
 // the open zones (data/zones.js): a button for each, from the mode tables and the maps
 // NEW GAME+ (data/ngplus.js), once this hero has beaten the campaign: the story again at the next tier, the profile kept
 const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The story again with your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter',
@@ -66,7 +71,8 @@ const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after
 // THE RAID TABLE (data/raids.js): the raid page, at the temple's own table in the council chamber, and a button for it
 // on every hub's mission table (a trooper or a Mando host takes the party to their own hub)
 const raidButton = () => B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV');
-const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k))));
+// (each waits for the chapter that opens it, for the hero in hand: game/zone-gate.js)
+const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)));
 
 function options(s){
   const G_ = G;
@@ -116,13 +122,18 @@ function options(s){
       ];
       return [
         B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') })),   // (the covert's ship is its way to Jedha)
         gateButton(),
         raidButton(),
         ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
-        ...zoneButtons(),
       ];
+    }
+    // a ship to an open zone (the temple's landing platform, the citadel's gunship; the covert's own ship lists it too)
+    case 'shuttle': {
+      if (guest()) return options({ act: 'council' });
+      return zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') }));
     }
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
@@ -151,9 +162,9 @@ function render(){
   if (station.act === 'travel') return renderMap();
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
-  panel.innerHTML = '<div class="hb-box"><div class="hb-k">' + W.name + '</div><div class="hb-t">' + station.name + '</div>' +
-    '<div class="hb-d">' + (station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb) + '</div>' + partyLine +
-    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
+  panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
+      station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb, partyLine) +
+    listHTML(list, station.act) +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;
 }
@@ -191,7 +202,7 @@ function renderMap(){
     '<div class="hb-d">' + Hb.travel + '</div>' + partyLine + '</div>' +
     '<div class="hm-body">' + mapHTML(Hb, G.hubId, here, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, who, wingIdx) +
     '<div class="hm-side"><div class="hm-info"></div>' +
-    '<div class="hb-list">' + extra.map((b, i) => '<div class="hb-o" data-i="' + (Hb.order.length + i) + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+    '<div class="hb-list">' + extra.map((b, i) => optHTML(b, Hb.order.length + i)).join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div></div></div>';
   panel._list = list;
   showWing(null);
@@ -256,20 +267,60 @@ function renderRaid(){
    WHAT'S WHERE at any map or waystone: the guide's hello, a row for each place worth knowing and where it is, and SHOW
    ME AROUND (the walk to a few stations, ending at the first mission). The first visit itself puts up nothing like this:
    the guide speaks on the side panel and the walk just starts. */
+// the card stays short: the guide's first line (the rest is said on arrival), and a tile per place: what it's for, its name
+// and where (its longer line is the tile's tooltip)
+const firstLine = (t) => (String(t).match(/^.*?[.!?](?=\s|$)/) || [t])[0];
+const PLACE_ICON = [[/SIDE/, 'call'], [/MISSIONS|HUNT/, 'saga'], [/JEDHA/, 'city'], [/TRAINING/, 'target'], [/SABER|ARMOUR|KIT|GEAR/, 'forge'],
+  [/RECORDS/, 'holo'], [/AROUND/, 'map'], [/BOUNT/, 'dice']];
+const placeIcon = (label) => (PLACE_ICON.find(([re]) => re.test(label)) || [])[1] || 'spark';
 function renderWelcome(){
   const C = welcomeCard(); if (!C){ panel.innerHTML = ''; panel._list = []; return; }
+  const Hb = curHub(), L = mapLayout(Hb), p = playerPos();
   const list = [
-    B('SHOW ME AROUND', 'A short walk past the stations, ending where your first mission starts', () => answerWelcome(true)),
-    B('CLOSE', 'Back to ' + C.start.toLowerCase(), () => answerWelcome(false)),
+    B('SHOW ME AROUND', 'A short walk, to your first mission', () => answerWelcome(true)),
+    B('CLOSE', '', () => answerWelcome(false)),
+    ...C.rows.map(r => B(r.label, r.d, () => guideTo(r.wing, r.id, r.d))),
   ];
-  const esc = (t) => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // the plan of the hub (ui/hub-map.js), numbers only: YOU where you stand, and a pin at each spot with the number of
+  // every place there (the ship's two options share one). A pin steps aside, right, left, below, above, then further,
+  // rather than sit on another or on YOU (a pin is about 7% of the plan wide)
+  const pct = (wing, x, z) => { const [cx, cz] = L.at[wing] || [0, 0]; return { x: (cx + x - L.x0) / L.w * 100, y: (cz + z - L.z0) / L.h * 100 }; };
+  const you = pct(G.hubWing, p.x * (L.half(G.hubWing) / (shared.arenaHalf || L.half(G.hubWing))), p.z * (L.half(G.hubWing) / (shared.arenaHalf || L.half(G.hubWing))));
+  const spots = [];
+  C.rows.forEach((r, i) => { const q = spots.find(s => s.wing === r.wing && Math.hypot(s.mx - r.x, s.mz - r.z) < 6); if (q) q.ps.push(i); else spots.push({ wing: r.wing, mx: r.x, mz: r.z, ps: [i] }); });
+  const P = 7, ry = L.w / L.h, placed = [{ ...you, w: 1.6 }, { x: you.x, y: you.y - 5.5 * ry, w: 2.4 }];   // (the arrow, and its tag over it)
+  for (const s of spots){
+    const o = pct(s.wing, s.mx, s.mz), w = s.ps.length > 1 ? 1.6 : 1;
+    const hit = (x, y) => placed.some(q => Math.abs(q.x - x) < P * (q.w + w) / 2 && Math.abs(q.y - y) < P * ry);
+    let n = 0, x = o.x, y = o.y;
+    while (hit(x, y) && n < 24){ n++; const k = Math.ceil(n / 4), d = n % 4; x = o.x + (d === 1 ? k : d === 2 ? -k : 0) * P; y = o.y + (d === 3 ? k : d === 0 ? -k : 0) * P * ry; }
+    s.x = x; s.y = y; placed.push({ x, y, w });
+  }
+  const pin = (s) => '<i class="hw-pin' + (s.ps.length > 1 ? ' two' : '') + '" data-p="' + s.ps[0] + '" data-ps=" ' + s.ps.join(' ') + ' " style="left:' + s.x.toFixed(2) + '%;top:' + s.y.toFixed(2) + '%"><b>' + s.ps.map(i => i + 1).join('·') + '</b></i>';
+  const plan = mapHTML(Hb, G.hubId, G.hubWing, { x: p.x, z: p.z, yaw: G.yaw, half: shared.arenaHalf }, () => [], () => -1)
+    .replace(/<\/div>$/, spots.map(pin).join('') + '<i class="hw-you" style="left:' + you.x.toFixed(2) + '%;top:' + you.y.toFixed(2) + '%"><b>YOU</b></i></div>');
+  const face = guidePortrait(C.guide);
+  const tile = (r, i) => '<div class="hw-row" data-i="' + (i + 2) + '" data-p="' + i + '"><i class="hw-no">' + (i + 1) + '</i><i class="hb-ic">' + svgIcon(placeIcon(r.label)) + '</i>' +
+    '<div class="hw-n">' + esc(r.label) + '<em>' + esc(r.name) + ' · ' + esc(r.where.replace(/^.* · RIGHT HERE$/, 'RIGHT HERE')) + '</em></div><em class="hb-tag go"></em></div>';
   panel.innerHTML = '<div class="hb-box hw-box"><div class="hb-k">' + esc(C.kicker) + '</div><div class="hb-t">' + esc(C.title) + '</div>' +
-    '<div class="hw-say"><span>' + esc(C.hello) + '</span><b>' + esc(C.guide) + '</b></div>' +
-    '<div class="hw-rows">' + C.rows.map(r => '<div class="hw-row"><div class="hw-l">' + esc(r.label) + '</div><div class="hw-n">' + esc(r.name) + '<em>' + esc(r.where) + '</em></div><div class="hw-d">' + esc(r.d) + '</div></div>').join('') + '</div>' +
-    '<div class="hb-list hw-go">' + list.map((b, i) => '<div class="hb-o' + (i ? '' : ' hw-main') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
-    '<div class="hw-again">' + esc(C.again) + '</div></div>';
+    '<div class="hw-say' + (face ? ' face' : '') + '">' + (face ? '<img class="hw-face" alt="" src="' + face + '">' : '') + '<div><span>' + esc(firstLine(C.hello)) + '</span><b>' + esc(C.guide) + '</b></div></div>' +
+    '<div class="hw-body"><div class="hw-plan">' + plan + '<div class="hw-info">Pick a place and a light leads you there.</div></div>' +
+    '<div class="hw-rows">' + C.rows.map(tile).join('') + '</div></div>' +
+    '<div class="hb-list hw-go">' + list.slice(0, 2).map((b, i) => optHTML(b, i, { main: !i, cls: i ? '' : 'hw-main', ic: i ? 'door' : 'compass' })).join('') + '</div></div>';
   panel._list = list;
 }
+// the welcome's tiles and pins light together, and the line under the plan says what the place is for
+function welcomePoint(i){
+  if (!station || station.act !== 'welcome') return;
+  for (const el of panel.querySelectorAll('.hw-row')) el.classList.toggle('on', el.dataset.p === String(i));
+  for (const el of panel.querySelectorAll('.hw-pin')) el.classList.toggle('on', i != null && el.dataset.ps.includes(' ' + i + ' '));
+  const info = panel.querySelector('.hw-info'), b = i == null ? null : panel._list[+i + 2];
+  if (info) info.textContent = b ? b.d : 'Pick a place and a light leads you there.';
+}
+panel.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('.hw-row,.hw-pin'); if (t || station && station.act === 'welcome') welcomePoint(t ? t.dataset.p : null); });
+new MutationObserver((ms) => { for (const m of ms) if (m.target.classList && m.target.classList.contains('hw-row') && m.target.classList.contains('padfocus')){ welcomePoint(m.target.dataset.p); return; } })
+  .observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
 setWelcomeOpener(() => open({ name: 'WELCOME', act: 'welcome' }));
 setStationOpener(open);
 setHubPanelCloser(closeHubPanel);
@@ -277,8 +328,8 @@ setHubPanelCloser(closeHubPanel);
 panel.addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   if (e.target === panel || e.target.closest('[data-x]')){ closeHubPanel(); return; }
-  const o = e.target.closest('.hb-o,.hm-wing[data-i]'); if (!o) return;
-  const b = panel._list[+o.dataset.i];
+  const o = e.target.closest('.hb-o,.hm-wing[data-i],.hw-row[data-i],.hw-pin'); if (!o) return;
+  const b = panel._list[o.dataset.i != null ? +o.dataset.i : +o.dataset.p + 2];   // (a welcome pin: the place it marks)
   if (!b || !b.go){ return; }
   if (b.lock){ S.uiDeny(); o.classList.remove('shake'); void o.offsetWidth; o.classList.add('shake'); return; }
   if (ready){ b.go(); return; }   // (the ready card's buttons keep it up, or close it themselves)
@@ -321,8 +372,8 @@ function renderReady(){
       list.push(B('NOT YET', 'Tell the host you need a moment', () => answer(false)));
     }
   }
-  panel.innerHTML = '<div class="hb-box"><div class="hb-k">THE PARTY</div><div class="hb-t">READY CHECK</div><div class="hb-d">' + line + '</div>' +
-    '<div class="hb-list">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.d === 'READY' ? ' ready' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + b.d + '</span></div>').join('') + '</div>' +
+  panel.innerHTML = '<div class="hb-box hb-a-ready">' + headHTML('THE PARTY', 'READY CHECK', line) +
+    '<div class="hb-list">' + list.map((b, i) => optHTML(b, i, { cls: b.d === 'READY' ? 'ready' : '', main: b.go && (b.t === 'READY' || b.t === 'GO NOW'), ic: b.go ? (b.t === 'NOT YET' ? 'door' : 'check') : 'party' })).join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">' + (R.host ? 'CALL IT OFF' : 'CLOSE') + '</div></div>';
   panel._list = list;
 }

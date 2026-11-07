@@ -70,6 +70,7 @@ export const PAD_CONTROLS = {
       ['{shift} (air)', 'Air dodge', 'A straight thruster kick any way you push, invulnerable for a moment, and it stops your fall · spends a jet charge (the pips on the slot) and a little fuel', 1],
       ['HOLD {shift}', 'Boost in the air', 'Keep it held after the dodge: he lays out the way you fly, Max Payne style, guns up on the crosshair · look down to dive', 1],
       ['HOLD {rmb} (air)', 'Hover', 'Hold your height and strafe; let go of the stick to stop dead', 1],
+      ['{k}', 'Swap shoulder', 'The camera to your other shoulder · out of a fight a long strafe the other way swaps it too, never while aiming'],
       ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move; running away from it no longer turns your back · it also opens the {alt} layer: hold it for the gadgets · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
       ['{c}', 'Slide', 'Feet first, out of any run, aiming too · carries far, steers a little, ducks blaster fire and keeps your aim steady · jump out of it for a long hop', 1],
       ['FLOW', 'Parkour pays', 'Vaults, climbs and slides refuel the jetpack; shots right after one hit harder'],
@@ -117,6 +118,7 @@ export const PAD_CONTROLS = {
       ['HOLD {rmb} (in cover)', 'Lean out', 'Rise over low cover or step out round the edge of tall cover to aim · let go to duck back · {lmb} alone pops up for the shot · ducked, fire that tears past you stops suppressing you'],
       ['{space} x2', 'Combat dive', '{space} again off the hop: a dive flat out the way you push (or back), invulnerable through the throw, firing as you go'],
       ['HOLD {shift}', 'Sprint', 'Forward, both pistols up by the shoulders · aim or fire and you drop back to a run (a shot straight out of a sprint is covering fire) · {c} at a sprint slides you into the cover ahead'],
+      ['{k}', 'Swap shoulder', 'The camera to your other shoulder · out of a fight a long strafe the other way swaps it too, never while aiming'],
       ['HOLD {alt}', 'Strafe', 'Stay square to the crosshair while you move · it also opens the {alt} layer: hold it for the powers · a quick tap of {alt} on its own toggles strafe on and off (Settings · STRAFE: HOLD turns the tap off)'],
     ]},
     { title: 'FIGHT', rows: [

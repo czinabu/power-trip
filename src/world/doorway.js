@@ -22,6 +22,10 @@ const SWING = 1.45, OPEN_TIME = 2.2, FADE_OUT = 1.1, FADE_IN = 1.3;
 export function setTempleDoors(doors){ D.doors = doors; D.state = 0; D.open = 0; D.then = null; shared.passage = null; }
 export const templeDoors = () => D.doors;
 export const doorState = () => D.state;
+// through the doors: the fade still running (nothing comes up over it) · the screen fully dark (the pop-ups a chapter's close
+// brought can come up over the black, and the waiting card: ui/waiting.js)
+export const doorFading = () => D.state >= 2 && D.t < FADE_OUT;
+export const doorDark = () => D.state >= 2 && D.t >= FADE_OUT;
 // where to stand before the doors (inside the play space), and the point just past them that counts as through
 export const doorFront = () => D.doors && { x: D.doors.x, z: shared.arenaHalfZ - 2.4 };
 export const doorThrough = () => D.doors && { x: D.doors.x, z: D.doors.z + 2.6 };
@@ -50,7 +54,10 @@ export function goThrough(then){
 
 // every frame of play (main.js)
 export function updateDoorway(dt){
-  if (D.state === 2 && D.then && (D.t += dt) >= FADE_OUT + 0.25){ const f = D.then; D.then = null; f(); }   // (through: the chapter closes)
+  if (D.state === 2){
+    D.t += dt;   // (on a guest too, which follows the host's fade with no `then` of its own: doorDark below)
+    if (D.then && D.t >= FADE_OUT + 0.25){ const f = D.then; D.then = null; f(); }   // (through: the chapter closes)
+  }
   if (!D.doors) return;
   const want = D.state >= 1 ? 1 : 0;
   if (D.open !== want){

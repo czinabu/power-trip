@@ -4,7 +4,7 @@
 // that follow the snapshot and run no AI. What the guest does to a foe is sent back as a hit, which the host applies with
 // its own damageEnemy. Foes hurting the guest, their shots and tells are net/foefire.js. Not here yet: shared XP.
 
-import { abilityChoicePending } from '../ui/ability-card.js';
+import { pickingSeats } from './waits.js';
 import * as THREE from 'three';
 import { scene, camera } from '../engine/renderer.js';
 import { shared, G, enemies, player } from '../state.js';
@@ -396,17 +396,16 @@ export function updatePuppets(dt){
 }
 
 /* ---------------- both: once a frame ---------------- */
-let pickSent = false, waitShown = false;
+let waitShown = false;
 export function updateFoes(){
   hostTick();
   coopRun.live = coopLive();
   if (coopRun.live && (G.paused || G.skillSelect)) player.awayAt = performance.now();   // in a menu in a shared fight: safe till a moment after (player/damage.js)
-  // co-op: the screens that pop up by themselves (a learned form, a new ability's card, a found gun) wait for a lull
-  coopRun.holdPopups = coopRun.live && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 || !!(shared.boss && !shared.boss.dead));
-  if (net.role === 'guest' && connected()){   // tell the host while the upgrade screen is open (the next wave waits for it)
-    const open = !!(G.coopGuest && (G.skillSelect || abilityChoicePending()));   // (a choose-one pop-up still to come counts: ui/ability-card.js)
-    if (open !== pickSent){ pickSent = open; send({ t: 'pick', o: open ? 1 : 0 }); }
-  } else pickSent = false;
+  // the screens that pop up by themselves (a learned form, a new ability's card, a found gun, the Force Level's rise) wait
+  // for the fight to be over, alone and in co-op: they come up in the lull after it, before the next scene (game/flow.js).
+  // The training grounds, the sandbox, an open zone and the hub keep foes or dummies about, and show theirs as they come
+  coopRun.holdPopups = (coopRun.live || !(G.training || G.sandbox || G.zone || G.hub)) && (enemies.some(e => !e.dead && !e.converted) || G.spawnQueue.length > 0 ||
+    !!(shared.boss && !shared.boss.dead) || !!(shared.finale && !shared.finale.dead));
   if (net.role === 'host'){
     // a grasp whose holder went quiet (left, froze) lets go
     for (const e of enemies){
@@ -414,7 +413,8 @@ export function updateFoes(){
       if (e.heldAt != null && !e.dead && performance.now() - e.heldAt > 1500){ e.state = e.state === 'lock' ? 'recover' : 'knockdown'; e.st = 0.5; e.heldAt = null; }
     }
     const waiting = coopRun.live && coopRun.guestPicking && shared.levelPhase === 'between' && !G.skillSelect;
-    if (waiting && !waitShown) showBanner('', picking.size === 1 ? 'WAITING FOR ' + nameOf([...picking][0]) + ' TO PICK UPGRADES' : 'WAITING FOR ' + picking.size + ' PLAYERS TO PICK UPGRADES', 2.4);
+    const picking = pickingSeats();
+    if (waiting && !waitShown) showBanner('', picking.length === 1 ? 'WAITING FOR ' + nameOf(picking[0]) + ' TO PICK UPGRADES' : 'WAITING FOR ' + picking.length + ' PLAYERS TO PICK UPGRADES', 2.4);
     waitShown = waiting;
   }
   if (net.role === 'guest' && connected() && hitQueue.length){
@@ -423,18 +423,13 @@ export function updateFoes(){
   } else if (!connected()) hitQueue.length = 0;
 }
 
-// which guests have their upgrade screen open (the next wave waits for all of them)
-const picking = new Set();
-on('pick', (m) => { if (net.role !== 'host') return; if (m.o) picking.add(m.from); else picking.delete(m.from); coopRun.guestPicking = picking.size > 0; });
-on('closed', (slot) => { if (slot < 0) picking.clear(); else picking.delete(slot); coopRun.guestPicking = picking.size > 0; });
-
-on('open', () => { pickSent = false; });   // a (re)joined guest tells its new host again if its upgrade screen is open
+// which guests still have their upgrade screen or pop-ups to get through: net/waits.js
 on('takeover', () => takeOver());   // the host left and this guest has the room now (net/session.js)
 on('status', (n) => {
   if (n.status === 'connected') return;
   // reconnecting: still in the host's run as far as this browser knows, so its next snapshot puts this one back in the fight
   const dropped = n.status === 'reconnecting';
-  coopRun.on = false; picking.clear(); coopRun.guestPicking = false; coopRun.live = false; if (!dropped) G.coopWasGuest = false; runChanged();
+  coopRun.on = false; coopRun.guestPicking = false; coopRun.live = false; if (!dropped) G.coopWasGuest = false; runChanged();
   if (G.coopGuest) endGuest(dropped);
   hostSent = false;
 });

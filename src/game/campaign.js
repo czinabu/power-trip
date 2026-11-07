@@ -32,6 +32,12 @@ import { pad } from '../engine/gamepad.js';
 import { gateRecapHtml, gateEpilogueHtml, veteranKit } from './gate.js';
 import { PAD_GLYPHS } from '../data/gamepad.js';
 import { chapterMutators, mutatorById, NG_WORDS } from '../data/ngplus.js';
+import { abilityCardsPending } from '../ui/ability-card.js';
+import { meditationPending } from './meditation.js';
+import { armoryPending } from '../ui/armory-ui.js';
+import { coopRun } from '../net/run.js';
+import { doorFading } from '../world/doorway.js';
+import { loadingNow } from '../ui/loading.js';
 
 const ROMAN = ['I', 'II', 'III', 'IV'];   // (IV: the Sith gate, game/gate.js)
 export const chapters = () => chapterOrder(G.actTwo);
@@ -152,6 +158,7 @@ export const cardUp = () => card.classList.contains('open');
 function openCard(html, go){
   card.innerHTML = html;
   card.classList.add('open');
+  window.dispatchEvent(new Event('chapcard-open'));   // (ui/menus.js lifts the pause screen if the card came up under it: a co-op host moved the run on)
   G.skillSelect = true;   // freezes the sim and keeps the pause screen away while the cursor is free (see ui/menus.js)
   G.cardUp = true;
   document.body.classList.add('chapcard-up');   // the fight's HUD stays hidden behind the card until it closes (styles/hud.css)
@@ -272,7 +279,19 @@ function showChoice(ch, then, own = false){
 }
 const alignWords = () => { const W = ALIGN_WORDS[G.hero] || ALIGN_WORDS.jedi; return W.light.toLowerCase() + ' and ' + W.dark.toLowerCase(); };
 // a guest is asked the host's choice (game/alignment.js): its own card, its own meter
-setOwnChoice((id) => { const ch = storyChoices(storyHero()).find(x => x.id === id); if (ch && ch.after !== 'end' && !cardUp()) showChoice(ch, null, true); });   // (the last one each screen asks itself: campaignWon)
+setOwnChoice((id) => {
+  if (!choiceClear()) return false;   // (asked again next frame: game/alignment.js)
+  const ch = storyChoices(storyHero()).find(x => x.id === id); if (ch && ch.after !== 'end' && !cardUp()) showChoice(ch, null, true);
+});
+/* A STORY'S CHOICE comes when the screen is clear: the fight over (net/foes.js holdPopups), the fight's pop-ups seen (a new
+   power, a learned form, a found gun), nothing else on screen, no fade or loading screen. The host's own comes at the
+   chapter's close, which already waits for all that (game/flow.js 'travel'); a guest's copy of it, and the last one each
+   screen asks after the final boss, wait here */
+function choiceClear(){
+  return G.mode === 'play' && !G.skillSelect && !G.cardUp && !G.cutscene && !G.paused && !coopRun.holdPopups && !doorFading() && !loadingNow() &&
+    !abilityCardsPending() && !meditationPending() && !armoryPending();
+}
+function whenChoiceClear(fn){ (function wait(){ if (G.mode !== 'play' || choiceClear()) fn(); else setTimeout(wait, 300); })(); }   // (the last one each screen asks itself: campaignWon)
 // ANY CHOICE CARD: the campaign's, and a side mission's (game/mission.js). onPick(key) once one is clicked; `resume`
 // takes the pointer back after (in a fight), else the card closes quietly
 export function askChoice(q, onPick, resume = false){
@@ -304,7 +323,7 @@ export function campaignWon(then){
   const scene = () => { if (G.mode !== 'play' || !playScene('epilogue', { onDone: card, share: false, lines: own && own.lines() })) card(); };
   // (a co-op guest is asked it too, on its own card: its pick moves its own meter, the host's decides the story)
   const last = G.coopGuest ? storyChoices(storyHero()).find(ch => ch.after === 'end') : choiceAfter(storyHero(), 'end');
-  setTimeout(() => { if (last && G.mode === 'play') showChoice(last, scene, !!G.coopGuest); else scene(); }, 1200);
+  setTimeout(() => whenChoiceClear(() => { if (last && G.mode === 'play') showChoice(last, scene, !!G.coopGuest); else scene(); }), 1200);
 }
 function showEpilogue(then){
   const gate = storyHero() === 'gate';   // Act IV: one act, no pick (its words are this screen's own: game/gate.js)

@@ -210,7 +210,7 @@ export function updateAlignment(dt){
     el.classList.toggle('on', !!near);
   }
   // a guest asked the host's story choice: their own card, once the screen is free
-  if (pendingAsk && ownChoice && G.mode === 'play' && !G.cutscene && !G.skillSelect && !G.cardUp){ const id = pendingAsk; pendingAsk = null; ownChoice(id); }
+  if (pendingAsk && ownChoice && G.mode === 'play' && !G.cutscene && !G.skillSelect && !G.cardUp){ const id = pendingAsk; if (ownChoice(id) !== false) pendingAsk = null; }   // (false: not yet, game/campaign.js choiceClear)
   // the look, a few times a second: your hero and every partner you can see
   if ((lookT -= dt) > 0) return;
   lookT = 0.4;

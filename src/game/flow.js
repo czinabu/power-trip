@@ -24,7 +24,7 @@ import { resetTrooperKit } from '../player/trooper/kit.js';
 import { shared, G, rockets, birds, detos, enemies, bolts, orbs, rings, vfx, player, isGunner, isTrooper } from '../state.js';
 import { weaponUnlocked, RUN_KIT } from '../data/mando.js';
 import { missionKit } from './armory.js';
-import { tickArmory, clearArmory } from '../ui/armory-ui.js';
+import { tickArmory, clearArmory, armoryPending } from '../ui/armory-ui.js';
 import { setHero } from '../player/hero.js';
 import { playerPos, maxHp, maxStam } from '../player/helpers.js';
 import { setStanceHud, switchStance, setLoadout } from '../player/jedi/stance.js';
@@ -43,9 +43,9 @@ import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTE
 import { storyForceLevel } from './sandbox-unlocks.js';
 import { zoneReached } from './zone-gate.js';
 import { STANCES } from '../data/stances.js';
-import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending } from '../ui/ability-card.js';
+import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending, abilityCardsPending } from '../ui/ability-card.js';
 import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
-import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow } from './meditation.js';
+import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow, meditationPending } from './meditation.js';
 import { chapterOrder, storyHero } from '../data/campaign.js';
 import { openSkillTree } from '../ui/store-ui.js';
 import { earnWavePoint, noteWavePoint, resetUpgrades, upToast } from './upgrades.js';
@@ -556,13 +556,20 @@ export function updateFlow(dt){
   const L = LEVELS[G.levelIdx];
   // a shared run waits in the lull until both heroes have closed their upgrade screens
   const holdForPicks = (coopRun.live && (G.skillSelect || coopRun.guestPicking)) || abilityChoicePending();   // (and a pick still to make: ui/ability-card.js)
-  if (holdForPicks && (shared.levelPhase === 'between' || shared.levelPhase === 'travel')) shared.phaseT = Math.max(shared.phaseT, 1.4);   // a beat after the last screen closes
+  // a SCENE doesn't change (the upgrade page at a chapter's close, the road on to the next) while this hero still has the
+  // pop-ups the fight left to see: a new power's card, a learned form, a found gun. They come up in the lull after the
+  // fight (net/foes.js holdPopups), over the dark of a doorway too. In co-op each guest's count as theirs (net/waits.js)
+  const popups = abilityCardsPending() || meditationPending() || armoryPending();
+  const holdScene = holdForPicks || popups;
+  // (the chapter's close opens this hero's upgrade page without waiting for a partner's: everyone picks at once, and the
+  // road on ('travel') waits for them all, on the waiting card: ui/waiting.js)
+  if ((shared.levelPhase === 'between' && holdForPicks) || (shared.levelPhase === 'travel' && holdScene)) shared.phaseT = Math.max(shared.phaseT, 1.4);   // a beat after the last screen closes
   if (shared.levelPhase === 'between' && shared.phaseT <= 0 && !holdForPicks){
     if (G.endless) startEndlessWave(); else startWave();
-  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !holdForPicks && !forceToastHolds() && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said, its card read (ui/hud-stage.js) and its Force Level's rise up (ui/force-toast.js), then the upgrade screen
+  } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !G.skillSelect && !abilityChoicePending() && (!popups || shared.phaseT < -40) && !forceToastHolds() && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said, its card read (ui/hud-stage.js) and its Force Level's rise up (ui/force-toast.js), then the upgrade screen
     shared.levelPhase = 'travel'; shared.phaseT = 1.6;
     openSkillTree();
-  } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdForPicks){
+  } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdScene){
     shared.levelPhase = 'idle';
     if (G.chapter >= 0) nextChapter(); else startLevel(G.levelIdx + 1);
   } else if (shared.levelPhase === 'fighting'){

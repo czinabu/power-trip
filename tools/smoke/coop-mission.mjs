@@ -15,7 +15,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9020, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 30000, polling: 250 };   // on a timer: only one of the two pages is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });

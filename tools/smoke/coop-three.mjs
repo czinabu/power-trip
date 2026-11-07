@@ -18,7 +18,7 @@ const url = pathToFileURL(path.join(root, 'dist/index.html')).href + '?peerhost=
 const server = PeerServer({ port: 9023, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
-const poll = { timeout: 60000, polling: 250 };   // on a timer: only one page is in the foreground
+const poll = { timeout: 120000, polling: 250 };   // on a timer (only one page is in the foreground), and long: on a slow runner two to four browsers run the sim at a fraction of real time
 
 async function open(name){
   const page = await browser.newPage({ viewport: { width: 480, height: 270 } });
@@ -90,7 +90,7 @@ try {
   await host.waitForFunction((s) => GAME.partnerInfo().all.find(p => p.slot === s).down, s2, poll);
   await host.bringToFront();
   await host.evaluate(() => { for (const e of GAME.enemies) GAME.damageEnemy(e, 99999, null, 0, false, false); GAME.G.spawnQueue.length = 0; });
-  await g2.waitForFunction(() => !GAME.player.downed && GAME.player.hp > 0 && GAME.G.mode === 'play', null, { ...poll, timeout: 90000 });
+  await waitGame(g2, () => !GAME.player.downed && GAME.player.hp > 0 && GAME.G.mode === 'play', null, { clock: host, gameSeconds: 40, wallMs: 300000, what: 'the OUT guest up after the wave' });   // (the wave clears on the game's clock: game-wait.mjs)
   await g2.evaluate(() => { window.letFall = false; });
   // (the wave's clear may open an upgrade page: close them, as a player would)
   for (const p of [host, g1, g2]) await p.evaluate(() => { const st = document.getElementById('skilltree'); if (st) st.style.display = 'none'; GAME.G.skillSelect = false; });
@@ -104,7 +104,7 @@ try {
   await other.waitForFunction(() => GAME.coopNet.role === 'guest' && GAME.coopNet.status === 'connected' && GAME.G.coopGuest, null, { ...poll, timeout: 90000 })
     .catch(async () => { throw new Error('the second guest did not rejoin the new host: ' + JSON.stringify(await other.evaluate(() => ({ role: GAME.coopNet.role, status: GAME.coopNet.status, err: GAME.coopNet.error, guest: GAME.G.coopGuest, mode: GAME.G.mode })))); });
   await heir.evaluate(() => { const st = document.getElementById('skilltree'); if (st) st.style.display = 'none'; GAME.G.skillSelect = false; });
-  await heir.waitForFunction(() => GAME.enemies.filter(e => !e.net).length >= 2, null, { ...poll, timeout: 90000 })
+  await waitGame(heir, () => GAME.enemies.filter(e => !e.net).length >= 2, null, { gameSeconds: 40, wallMs: 300000 })   // (its next wave drops in on the game's clock)
     .catch(async () => { throw new Error('the new host runs no foes: ' + JSON.stringify(await heir.evaluate(() => ({ phase: GAME.shared.levelPhase, t: GAME.shared.phaseT, wave: GAME.G.endlessWave, sel: GAME.G.skillSelect, picking: GAME.coopRun.guestPicking, q: GAME.G.spawnQueue.length })))); });
   await other.waitForFunction(() => GAME.enemies.filter(e => e.net).length >= 2 && !GAME.enemies.some(e => !e.net), null, poll);
   await heir.waitForFunction(() => GAME.partnerInfo().all.filter(p => p.shown).length === 1, null, poll);

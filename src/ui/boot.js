@@ -11,8 +11,11 @@ let frames = 0, fonts = !(document.fonts && document.fonts.ready);
 if (!fonts) document.fonts.ready.then(() => { fonts = true; }, () => { fonts = true; });
 /* called by the main loop after every drawn frame: three frames in (the stage built, its programs compiled, its first
    picture on screen) and with the display font in, the loader goes */
+// the title stage's first warm-up, still linking its shader programs in parallel (ui/showcase.js): the loader stays up
+let held = false;
+export function holdBoot(p){ held = true; p.finally(() => { held = false; }); }
 export function bootFrame(){
-  if (!boot || frames < 0) return;
+  if (!boot || frames < 0 || held) return;
   if (++frames === 1) boot.stage(0.9, 'Almost there');
   if (frames >= 3 && fonts){ frames = -1; boot.done(); }
 }

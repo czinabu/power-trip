@@ -3,7 +3,8 @@
 // turntable on the right, instead of the live arena. Switching hero spins the turntable and swaps the figure.
 
 import * as THREE from 'three';
-import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost, hemi } from '../engine/renderer.js';
+import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost, hemi, parallelCompile, compileAhead, compileLiveAhead } from '../engine/renderer.js';
+import { holdBoot } from './boot.js';
 import { inkRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
@@ -263,6 +264,22 @@ function standDraw(full){   // (full: false draws one pixel: the buffers go up, 
   finally { if (!full){ rt.scissorTest = sc; rt.scissor.set(0, 0, rt.width, rt.height); } renderer.setRenderTarget(prev); }
 }
 const _snap = [];
+let aheadWarm = 0;   // 0 not begun · 1 linking in parallel · 2 done (renderShowcase)
+// warmStand's passes (each hero as the stand shows them, then everything on the rig as the Jedi), compiled ahead instead
+// of drawn: their programs link in parallel, and warmStand then draws them linked
+function warmStandAhead(){
+  const was = shown, rt = composer.readBuffer, all = [];
+  stage.updateMatrixWorld(true);
+  for (const h of ['mando', 'trooper', 'jedi']){ dress(h, false); all.push(compileAhead(stage, cam, rt)); }
+  const lit = [], parts = [];
+  fig.vis.traverse(o => { if (o.isLight && o.visible && !chainVisible(o)){ o.visible = false; lit.push(o); } });
+  fig.vis.traverse(o => { if (!o.visible && !o.isLight){ o.visible = true; parts.push(o); } });
+  all.push(compileAhead(stage, cam, rt));
+  for (const o of parts) o.visible = false;
+  for (const o of lit) o.visible = true;
+  dress(was, false);
+  return Promise.all(all);
+}
 function warmStand(){
   standWarm = true;
   const first = !stageWarmed, was = shown;
@@ -637,6 +654,16 @@ export function renderShowcase(dt){
     if (DBG.has('noblade')){ fig.blade.blade.visible = false; fig.blade.glow.visible = false; }
     if (DBG.has('nolight')) fig.blade.light.visible = false;
   }
+  // THE FIRST LAUNCH, IN PARALLEL: where programs can link off the main thread, every one the stand and the fight need is
+  // handed over at once behind the loader, and nothing is drawn until they're in (a draw would wait on its own link).
+  // Then the warm-ups below find them all linked and only upload buffers (engine/renderer.js compileAhead)
+  if (aheadWarm === 0 && parallelCompile && !stageWarmed){
+    aheadWarm = 1;
+    if (!shown){ dress(G.hero); setTheme(G.hero, true); }
+    const p = Promise.all([warmStandAhead(), compileLiveAhead()]).catch(() => {}).finally(() => { aheadWarm = 2; });
+    holdBoot(p);
+  }
+  if (aheadWarm === 1) return;
   if (!warm){ warm = true; compileLive(); prewarmJudgeFX(); }   // keep the arena's shaders ready, so BEGIN doesn't hitch
   if (!shown){ dress(G.hero); setTheme(G.hero, true); }
   // (after the first dress, so it puts back the picked hero's own outfit; after a rebuild, once the picks settle and

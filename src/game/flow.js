@@ -233,7 +233,7 @@ export function startLevel(idx, opts){
   const cp = G.checkpoint, retry = !!(opts && opts.retry) && !G.training && !G.mission && !G.sandbox && !G.hub && cp && cp.idx === idx && (cp.ch == null || cp.ch === G.chapter);
   const bossRetry = retry && cp.boss;
   if (retry) G.waveTotal = bossRetry ? cp.bossWaveTotal : cp.waveTotal;
-  else if (!G.training && !G.mission && !G.sandbox && !G.hub){ G.checkpoint = { idx, ch: G.chapter, waveTotal: G.waveTotal, boss: false }; if (!G.endless) autosave('level'); }
+  else if (!G.training && !G.mission && !G.sandbox && !G.hub && !(opts && opts.sweep)){ G.checkpoint = { idx, ch: G.chapter, waveTotal: G.waveTotal, boss: false }; if (!G.endless) autosave('level'); }   // (a sweep on the way back to the menu is no checkpoint: its save would write over the one the run left)
   applyJetTier();   // size the jetpack to the current booster tier
   document.getElementById('xpval').textContent = (G.xp || 0);
   checkUnlocks();

@@ -176,16 +176,21 @@ export function readSlot(i){
 }
 // opts.auto: the autosave. A co-op guest's run is the host's, so only its progress is kept; away from a campaign run (training,
 // a mission, survival…) the slot keeps the campaign run it already had, unless opts.finished (the campaign was won) lets it go
+// AWAY FROM A RUN OF ITS OWN (a mission, a contract, a raid, survival, the hub, a zone, the menu, the training grounds, a co-op
+// guest in the host's story) a save still carries this hero's campaign run as it waits on the menu, so no save ever loses
+// the story's place: loading it goes back to the mode it was made in (`away`), with CONTINUE CAMPAIGN ready behind it
+const waitingRun = () => canResume() ? G.resumeRun : latestRun(G.hero);
 export function writeSlot(i, opts = {}){
   const progress = {};
   try { for (const k of progressKeys()) progress[k] = localStorage.getItem(k); } catch(e){}
-  let run, where = whereNow(), hero = G.hero;
+  let run, where = whereNow(), hero = G.hero, away = false;
   if (opts.finished){ run = null; where = 'MAIN MENU'; }   // (the campaign is won: written as its last boss falls, its epilogue still to play)
-  else if (inCampaignRun()) run = G.coopGuest ? null : snapshotRun();
-  else if ((G.mode === 'menu' || G.training) && canResume()) run = G.resumeRun;   // (training from the story: the run left waiting)
-  else run = null;
-  if (opts.auto && !run && !opts.finished){ const prev = readSlot(i); if (prev && prev.run){ run = prev.run; where = prev.where; hero = prev.hero; } }
+  else if (inCampaignRun() && !G.coopGuest) run = snapshotRun();
+  else { run = waitingRun(); away = !(G.mode === 'menu' || G.training); }   // (the menu, or training from the story: the run is what it waits on)
+  if (run) run = clone({ ...run, hero: undefined });
+  if (opts.auto && !run && !opts.finished){ const prev = readSlot(i); if (prev && prev.run){ run = prev.run; hero = prev.hero; } }   // (another hero's run, kept)
   const data = { v: 1, at: Date.now(), hero, diff: G.diff, modeSel: G.modeSel, missionId: G.missionId, progress, where, run };
+  if (away) data.away = true;
   if (opts.auto) data.auto = true;
   try { localStorage.setItem(slotKey(i), JSON.stringify(data)); return true; } catch(e){ return false; }
 }

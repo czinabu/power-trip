@@ -29,6 +29,7 @@ import { showBanner } from '../ui/banners.js';
 import { remoteComms } from '../game/story.js';
 import { blockedOnBlade } from '../player/jedi/clash.js';
 import { playerPos } from '../player/helpers.js';
+import { blastCovered } from '../world/collision.js';
 import { tellFx } from '../fx/tells.js';
 import { burst } from '../fx/particles.js';
 import { spawnGroundShock } from '../fx/vfx.js';
@@ -149,7 +150,8 @@ on('blast', (m) => {
     S.boom(pos, m.k === 's' ? 1.6 : 1.2); G.shake = Math.max(G.shake, 0.8);
   }
   const grenade = m.k === 'g';
-  const inside = grenade ? Math.hypot(pp.x - m.x, pp.z - m.z) < m.r && pp.y < 3.2 : pp.distanceTo(pos) < m.r && player.dashT <= 0;
+  const inside = grenade ? Math.hypot(pp.x - m.x, pp.z - m.z) < m.r && pp.y < 3.2 && !blastCovered(pos, pp.x, pp.y, pp.z)   // (a detonator's blast stops on a wall between, as on the host: enemies/grenades.js)
+                         : pp.distanceTo(pos) < m.r && player.dashT <= 0;
   if (!inside) return;
   const res = grenade ? hurtPlayer(m.d, pos, false, false, false, { unblockable: true, blast: true }) : hurtPlayer(m.d, pos);
   const [push, lift] = KNOCK[m.k] || [0, 0];

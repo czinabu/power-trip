@@ -32,7 +32,8 @@ import { tickTactics, planTroopMelee, troopFeint, holdTremble, planShot, approac
   updateLunge, dropLungeLine } from './tactics.js';
 import { bindBlade, BIND } from './disarm.js';
 import { removeEnemy } from './cleanup.js';
-import { throwGrenade } from './grenades.js';
+import { throwGrenade, lobClear } from './grenades.js';
+const LOB_FROM = V3();
 import { updateLegs } from './gait.js';
 import { updateUpper } from './upper.js';
 import { defeatMotion, defeatLife } from './defeat.js';
@@ -241,11 +242,14 @@ export function updateEnemies(dt){
         // their target each frame. No clear shot → steer toward the near side of whatever's in the way and hold
         // there (peek) instead of standing exposed in the open. ANTI-TURTLE: after 3s with no shot, give up hiding
         // and path around the cover for a clear shot, so they can't camp forever behind it.
-        let exposed = true;
+        let exposed = true, lobOk = true;
         if (t.ranged && !t.fly && !e.converted){
           exposed = vsTrooper(hero) && tgtPos === hp && !onAlly ? heroExposedFrom(g.position.x, g.position.z, hero)   // (over low cover he shows when he rises: enemies/coverfight.js)
                                                          : !segBlockedBySolids(g.position.x, g.position.z, tgtPos.x, tgtPos.z);
-          e.hideT = (exposed || t.grenade) ? 0 : (e.hideT || 0) + dt;   // a grenadier is happy to lob from cover
+          // a grenadier is happy to lob from cover, as long as the lob sails over it: through a tall wall it can't
+          // throw at all (enemies/grenades.js lobClear), so it hides and then flanks like any trooper
+          lobOk = exposed || !t.grenade || !tgtPos || lobClear(LOB_FROM.set(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), tgtPos);
+          e.hideT = (exposed || (t.grenade && lobOk)) ? 0 : (e.hideT || 0) + dt;
         }
         // out of firing range there's nothing to hide from yet: advance. Once a trooper gives up hiding it commits to
         // flanking for a few seconds instead of ducking back behind the first wall it passes
@@ -343,7 +347,7 @@ export function updateEnemies(dt){
           if (t.bomber){ e.state = 'fuse'; e.st = t.fuse; tellFx('area', g.position, t.blastR, t.fuse); }   // light the fuse
           // COVER GATE: a hidden ranged ground trooper won't commit to a windup it can't land — it just keeps
           // peeking (cover-seeking movement above) until exposed or the anti-turtle valve kicks in.
-          else if (t.ranged && !t.fly && !e.converted && !exposed && !t.grenade){ /* no clear shot — keep peeking, or flank for one */ }
+          else if (t.ranged && !t.fly && !e.converted && !exposed && (!t.grenade || !lobOk)){ /* no clear shot (or lob) — keep peeking, or flank for one */ }
           // the cover fight: ducked behind its cover (or pinned there by his fire), it keeps its head down (enemies/coverfight.js)
           else if (e.cvHold && !t.grenade){ /* down behind cover */ }
           // a melee foe on the far side of tall cover doesn't swing at the wall — it keeps routing around

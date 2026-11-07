@@ -17,7 +17,7 @@ import { COVER_FIGHT as CF } from '../data/tactics.js';
 import { segBlockedTall, spotBlocked } from '../world/collision.js';
 import { floater } from '../fx/floaters.js';
 import { tacticsRamp } from './tactics.js';
-import { throwGrenade } from './grenades.js';
+import { throwGrenade, lobClear } from './grenades.js';
 import { players } from '../player/players.js';
 import { addFlow } from '../player/gunner-flow.js';
 import { hooks } from '../net/run.js';
@@ -221,9 +221,10 @@ function champGrenade(e, hero, dist){
   if (v) e.sitT = (e.sitT || 0) + 0.1; else e.sitT = 0;
   if (G.gt < (e.nadeT || 0) || (e.sitT || 0) < CH.sitFor) return;
   e.nadeT = G.gt + rand(CH.nade[0], CH.nade[1]);
-  const g = e.group.position, hp = hero.pos;
+  const g = e.group.position, hp = hero.pos, from = V3(g.x, g.y + 2.2, g.z), at = V3(hp.x + rand(-0.8, 0.8), 0, hp.z + rand(-0.8, 0.8));
+  if (!lobClear(from, at)) return;   // a wall in the way, not cover: no lob through it (enemies/grenades.js)
   const fx = { ...e, t: { ...e.t, fuse: CH.fuse, dmg: CH.nadeDmg * (e.t.dmgMul || 1), blastR: CH.nadeR } };
-  throwGrenade(fx, V3(g.x, g.y + 2.2, g.z), V3(hp.x + rand(-0.8, 0.8), 0, hp.z + rand(-0.8, 0.8)), false);
+  throwGrenade(fx, from, at, false);
   floater(V3(g.x, g.y + 2.8, g.z), 'DETONATOR', '#ffb060');
 }
 export function dropCover(e){ if (e.cv) e.cv = null; e.cvHold = false; }

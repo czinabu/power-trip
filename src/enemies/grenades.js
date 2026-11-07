@@ -22,12 +22,41 @@ import { damageEnemy } from './damage.js';
 import { damageBoss } from '../boss/boss.js';
 import { blastAllies } from '../allies/squad.js';
 import { civBlast } from '../game/civilians.js';
+import { sweepSolids, sweepT, groundAt, blastCovered } from '../world/collision.js';
 
 export const grenades = [];
 const ballGeo = new THREE.SphereGeometry(0.16, 10, 8);
 const ringGeo = new THREE.RingGeometry(0.93, 1, 40).rotateX(-Math.PI / 2);
 const fillGeo = new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2);
 const markMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+const BALL_R = 0.16;
+const LOB_PREV = new THREE.Vector3(), LOB_A = new THREE.Vector3(), LOB_B = new THREE.Vector3();
+// where a lob from `from` onto `to` is, k (0..1) of the way through its flight: a parabola from the hand through the apex onto the mark
+function lobAt(from, to, k, out){
+  const top = Math.max(from.y, 0.5) + GRENADE.arc;
+  return out.set(from.x + (to.x - from.x) * k, (1 - k) * (1 - k) * from.y + 2 * (1 - k) * k * top * 1.1 + k * k * to.y, from.z + (to.z - from.z) * k);
+}
+// CLEAR LOB — does a throw from `from` onto (at.x, at.z) sail over everything on the way, or would it strike a wall? A
+// thrower checks before it commits (enemies/ai.js, enemies/coverfight.js): a detonator is lobbed over cover, never through a wall
+export function lobClear(from, at){
+  const to = LOB_B.set(at.x, BALL_R, at.z);
+  lobAt(from, to, 0, LOB_PREV);
+  for (let s = 1; s <= 12; s++){
+    lobAt(from, to, s / 12, LOB_A);
+    if (sweepSolids(LOB_PREV.x, LOB_PREV.y, LOB_PREV.z, LOB_A.x, LOB_A.y, LOB_A.z, BALL_R)) return false;
+    LOB_PREV.copy(LOB_A);
+  }
+  return true;
+}
+// a detonator that met a wall in flight drops off it on the thrower's side, and its landing mark goes where it really comes to rest
+function bounceOff(n, prev){
+  const p = n.ball.position;
+  p.lerpVectors(prev, p, sweepT);
+  const dx = p.x - prev.x, dz = p.z - prev.z, l = Math.hypot(dx, dz) || 1;
+  p.x -= dx / l * 0.12; p.z -= dz / l * 0.12;   // (off the face, not in it)
+  n.drop = { x: -dx / l * 2, z: -dz / l * 2, y: 0 };
+  sfx(220, 0.05, 'square', 0.04, 140);
+}
 
 // lob one from `from` onto `at`. friendly: thrown by a mind-tricked grenadier (hurts foes, never you)
 export function throwGrenade(e, from, at, friendly){
@@ -63,18 +92,33 @@ export function updateGrenades(dt){
     if (n.vel){
       // pushed back by the Force: a fast flat throw that bursts on the first foe it meets (or where it lands)
       n.vel.y -= 18 * dt;
+      LOB_PREV.copy(n.ball.position);
       n.ball.position.addScaledVector(n.vel, dt);
-      if (n.ball.position.y < 0.16){ n.ball.position.y = 0.16; n.vel.y = 0; n.vel.x *= 0.9; n.vel.z *= 0.9; }
+      const p = n.ball.position;
+      if (sweepSolids(LOB_PREV.x, LOB_PREV.y, LOB_PREV.z, p.x, p.y, p.z, BALL_R)){ p.lerpVectors(LOB_PREV, p, sweepT); n.vel.x = n.vel.z = 0; }   // it stops on a wall, never flies on through
+      const floor = groundAt(p.x, p.z, p.y) + BALL_R;
+      if (p.y < floor){ p.y = floor; n.vel.y = 0; n.vel.x *= 0.9; n.vel.z *= 0.9; }
       for (const o of enemies) if (!o.dead && !o.converted && o.group.position.distanceTo(n.ball.position) < 1.4){ n.fuse = 0; break; }
-      n.ring.position.set(n.ball.position.x, 0.07, n.ball.position.z); n.fill.position.copy(n.ring.position).setY(0.065);
+      n.ring.position.set(n.ball.position.x, floor - BALL_R + 0.07, n.ball.position.z); n.fill.position.copy(n.ring.position).setY(n.ring.position.y - 0.005);
+    } else if (n.drop){
+      // off a wall it struck: it falls at the wall's foot (or onto whatever it's over) and burns down there
+      const p = n.ball.position;
+      LOB_PREV.copy(p);
+      n.drop.y -= 18 * dt;
+      p.x += n.drop.x * dt; p.y += n.drop.y * dt; p.z += n.drop.z * dt;
+      if (sweepSolids(LOB_PREV.x, LOB_PREV.y, LOB_PREV.z, p.x, p.y, p.z, BALL_R)){ p.x = LOB_PREV.x; p.z = LOB_PREV.z; n.drop.x = n.drop.z = 0; }
+      const floor = groundAt(p.x, p.z, p.y + 0.3) + BALL_R;
+      if (p.y <= floor){ p.y = floor; n.drop = null; n.landed = true; burst(p, 0x888888, 3, 2, 2); sfx(160, 0.06, 'square', 0.04, 120); }
+      n.ring.position.set(p.x, floor - BALL_R + 0.07, p.z); n.fill.position.copy(n.ring.position).setY(n.ring.position.y - 0.005);
     } else if (!n.landed){
       n.t += dt;
-      const k = clamp(n.t / n.T, 0, 1), top = Math.max(n.from.y, 0.5) + GRENADE.arc;
-      n.ball.position.set(n.from.x + (n.to.x - n.from.x) * k, 0, n.from.z + (n.to.z - n.from.z) * k);
-      // a parabola from the hand through the apex onto the mark
-      n.ball.position.y = (1 - k) * (1 - k) * n.from.y + 2 * (1 - k) * k * top * 1.1 + k * k * n.to.y;
+      const k = clamp(n.t / n.T, 0, 1);
+      LOB_PREV.copy(n.ball.position);
+      lobAt(n.from, n.to, k, n.ball.position);
       n.ball.rotation.x += dt * 9;
-      if (k >= 1){ n.landed = true; burst(n.to, 0x888888, 3, 2, 2); sfx(160, 0.06, 'square', 0.04, 120); }
+      const p = n.ball.position;
+      if (sweepSolids(LOB_PREV.x, LOB_PREV.y, LOB_PREV.z, p.x, p.y, p.z, BALL_R)) bounceOff(n, LOB_PREV);   // it met a wall: it drops off it
+      else if (k >= 1){ n.landed = true; burst(n.to, 0x888888, 3, 2, 2); sfx(160, 0.06, 'square', 0.04, 120); }
     }
     // the fuse: the fill closes on the rim, the core blinks faster
     const burn = 1 - clamp(n.fuse / n.fuseMax, 0, 1);
@@ -100,17 +144,17 @@ function explode(n){
   if (n.onBlast) n.onBlast(pos, n.R);
   for (const o of enemies){
     if (o.dead || o.converted) continue;
-    const d = o.group.position.distanceTo(pos);
-    if (d < n.R) damageEnemy(o, foeDmg * (1 - d / n.R * 0.4), o.group.position.clone().sub(pos).setY(0).normalize(), knock);
+    const d = o.group.position.distanceTo(pos), op = o.group.position;
+    if (d < n.R && !blastCovered(pos, op.x, op.y, op.z)) damageEnemy(o, foeDmg * (1 - d / n.R * 0.4), o.group.position.clone().sub(pos).setY(0).normalize(), knock);
   }
   if (turned && shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(pos) < n.R) damageBoss(foeDmg * 0.6);
   for (const b of barrels){ if (b.mesh.position.distanceTo(pos) < n.R && b.fuse < 0) b.fuse = 0.15; }
   if (turned) return;   // turned back, or thrown by an ally: it's on your side now
-  blastAllies(pos, n.R, n.dmg * enemyDmgScale());   // the hero's squad is caught in it too
-  civBlast(pos.x, pos.z, n.R, n);   // and anyone being got out (game/civilians.js)
+  blastAllies(pos, n.R, n.dmg * enemyDmgScale(), true);   // the hero's squad is caught in it too
+  civBlast(pos.x, pos.z, n.R, n, (x, y, z) => blastCovered(pos, x, y, z));   // and anyone being got out (game/civilians.js)
   if (hooks.blast) hooks.blast(pos, n.R, n.dmg * enemyDmgScale(), 'g');
   const pp = playerPos();
-  if (Math.hypot(pp.x - pos.x, pp.z - pos.z) < n.R && pp.y < 3.2){   // a dash through it is a perfect dodge (hurtPlayer)
+  if (Math.hypot(pp.x - pos.x, pp.z - pos.z) < n.R && pp.y < 3.2 && !blastCovered(pos, pp.x, pp.y, pp.z)){   // (a wall between takes the blast)   // a dash through it is a perfect dodge (hurtPlayer)
     screenFlash('radial-gradient(ellipse at center, rgba(255,170,60,.32), transparent 60%)', 0.5, 0.25);
     const res = hurtPlayer(n.dmg * enemyDmgScale(), pos, false, false, false, { unblockable: true, blast: true });
     if (res === 'hit'){
@@ -136,7 +180,7 @@ export function pushGrenades(pp, f, range, cosLim){
       if (l < best && l > 0.5 && v.normalize().dot(f) > 0.5){ best = l; aim = v; }
     }
     g.vel = V3(aim.x * GRENADE.pushSpeed, 4, aim.z * GRENADE.pushSpeed);
-    g.landed = true; g.fuse = Math.max(g.fuse, 0.9);
+    g.landed = true; g.drop = null; g.fuse = Math.max(g.fuse, 0.9);
     g.ring.material.color.setHex(0x66ccff); g.fill.material.color.setHex(0x66ccff);
     n++;
   }

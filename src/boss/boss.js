@@ -33,6 +33,7 @@ import { queueSpawn } from '../game/flow.js';
 import { storyBeat } from '../game/story.js';
 import { gainXp } from '../game/progression.js';
 import { victory } from '../game/summary.js';
+import { bossDown } from '../game/autosave.js';
 import { killCam } from '../engine/killcam.js';
 import { showBanner } from '../ui/banners.js';
 import { diffHpMul } from '../data/difficulty.js';
@@ -171,6 +172,7 @@ function killBoss(){
   shared.boss.hp = 0;
   shared.boss.state = 'dying'; shared.boss.st = (BOSS_FALLS[shared.boss.kind === 'mando' ? 'mando' : 'sith']).dur;   // his own fall (bossFall)
   if (G.stats) G.stats.bossKilled = true;
+  bossDown();   // the game saves (game/autosave.js)
   gainXp(1400);   // the Herald's bounty — a climactic payout worthy of felling the boss
   if (shared.bossLight) shared.bossLight.visible = false;
   // a brief, BOUNDED kill-cam — slowmoT lets it recover on its own instead of sticking in slow motion

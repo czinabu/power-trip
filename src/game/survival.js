@@ -22,6 +22,7 @@ import { clearGrenades } from '../enemies/grenades.js';
 import { findClearSpawn, edgeSpawn } from '../world/collision.js';
 import { buildArena } from '../world/arena.js';
 import { startLevel, checkUnlocks, splitWaveWithLull } from './flow.js';
+import { carryStoryKit } from './carry.js';
 import { MUTATORS } from '../data/mutators.js';
 import { mutOn, NG_FRENZY } from '../data/ngplus.js';
 import { payWaveClear } from './progression.js';
@@ -122,6 +123,7 @@ export function startEndless(){
   startLevel(0);                                   // full fresh setup (kit/build/stats) on the first arena (temple)
   G.endless = true; G.endlessWave = 0; G.arenaRot = 0; G.mut = null;
   G.eliteSurge = false; G.pendingChampion = false;
+  carryStoryKit();   // everything this hero's story has earned, in hand from the first wave (game/carry.js); a co-op guest carries its own
   if (G.coopJoin){   // joining the host's run (net/foes.js): their arena, their foes; the host runs the waves
     G.coopJoin = false; G.coopGuest = true; G.coopWasGuest = true;
     if (coopRun.ar){ G.arenaRot = coopRun.ar; rotateEndlessArena(ENDLESS_ARENAS[coopRun.ar]); }

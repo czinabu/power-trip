@@ -20,7 +20,7 @@ import { MANDO_WEAPONS, RUN_KIT, cleanKit } from '../data/mando.js';
 export const SLOTS = 3;
 export const AUTO = 'auto';   // the autosave's own slot (game/autosave.js): shown beside the three, loadable but never saved to by hand
 const slotKey = (i) => 'sw_save_' + i;
-const PROGRESS = /^sw_(camp_|scar_|trained_|lesson_|best_|sandbox_|arcade_won_|mission_.+_(jedi|mando)$)|^sw_(asktrain|look|codex)$/;
+const PROGRESS = /^sw_(camp_|scar_|trained_|lesson_|best_|sandbox_|arcade_won_|mission_.+_(jedi|mando|trooper)$)|^sw_(asktrain|look|codex)$/;
 // what NEW GAME clears: everything above but the hero's look and the sandbox's map/kit picks
 const FRESH_KEEP = /^sw_(look|sandbox_)/;
 
@@ -180,7 +180,8 @@ export function writeSlot(i, opts = {}){
   const progress = {};
   try { for (const k of progressKeys()) progress[k] = localStorage.getItem(k); } catch(e){}
   let run, where = whereNow(), hero = G.hero;
-  if (inCampaignRun()) run = G.coopGuest ? null : snapshotRun();
+  if (opts.finished){ run = null; where = 'MAIN MENU'; }   // (the campaign is won: written as its last boss falls, its epilogue still to play)
+  else if (inCampaignRun()) run = G.coopGuest ? null : snapshotRun();
   else if ((G.mode === 'menu' || G.training) && canResume()) run = G.resumeRun;   // (training from the story: the run left waiting)
   else run = null;
   if (opts.auto && !run && !opts.finished){ const prev = readSlot(i); if (prev && prev.run){ run = prev.run; where = prev.where; hero = prev.hero; } }
@@ -220,11 +221,11 @@ function whereNow(){
 // what the slot holds: wins across the campaign, missions and training
 export function slotSummary(data){
   const p = data.progress || {}, on = (k) => p[k] === '1';
-  const camp = ['jedi', 'mando'].filter(h => on('sw_camp_' + h)).length;
-  const msn = Object.keys(p).filter(k => /^sw_mission_.+_(jedi|mando)$/.test(k) && p[k] === '1').length;
+  const camp = ['jedi', 'mando', 'trooper'].filter(h => on('sw_camp_' + h)).length;
+  const msn = Object.keys(p).filter(k => /^sw_mission_.+_(jedi|mando|trooper)$/.test(k) && p[k] === '1').length;
   const parts = [];
   if (camp) parts.push('Campaign won ×' + camp);
   if (msn) parts.push(msn + ' mission win' + (msn === 1 ? '' : 's'));
-  if (on('sw_trained_jedi') || on('sw_trained_mando')) parts.push('trained');
+  if (on('sw_trained_jedi') || on('sw_trained_mando') || on('sw_trained_trooper')) parts.push('trained');
   return parts.join(' · ') || (data.run ? 'First campaign under way' : 'Fresh start');
 }

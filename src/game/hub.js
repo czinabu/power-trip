@@ -14,6 +14,7 @@ import { CFG } from '../data/config.js';
 import { ZONES, ZONE_PREFIX } from '../data/zones.js';
 import { HUB, HUBS, hubOf, doorSide, SIDE_OUT } from '../data/hub.js';
 import { startLevel } from './flow.js';
+import { carryStoryKit } from './carry.js';
 import { playerPos, fwd } from '../player/helpers.js';
 import { findClearSpawn } from '../world/collision.js';
 import { loadInto } from '../ui/loading.js';
@@ -47,6 +48,7 @@ export function startHub(wing, from){
   G.hubWing = Hb.wings[wing] ? wing : Hb.start;
   const W = hubWing();
   startLevel(0, { level: W.level, hub: true });
+  carryStoryKit();   // the forms, powers and guns this hero's story has earned, in hand here too (game/carry.js)
   G.waveTotal = 0;
   let [x, z, yaw] = W.spawn;
   const side = from && doorSide(Hb.wings, G.hubWing, from);

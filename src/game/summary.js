@@ -66,20 +66,34 @@ function renderRunSummary(){
   el.style.display = 'block';
 }
 
-export function victory(afterEpilogue){
-  if (!afterEpilogue && G.chapter >= 0 && G.mode === 'play'){ campaignWon(() => victory(true)); return; }   // the campaign's end: its epilogue first
-  endRun(true);
-  G.mode = 'victory';
-  G.slowmo = 1; G.slowmoT = 0;   // the fight is won — drop out of slow motion
+// THE WIN, KEPT: this hero's campaign clear is recorded (and the autosave written) the moment the last boss falls, before
+// the epilogue plays, so closing the game during the epilogue or on the win screen never loses it. Once per run (G.stats
+// is the run's own); the win screen reads what was open before it from here. The ending it closed on waits for the
+// epilogue (a story's last choice is asked there: game/campaign.js campaignWon), and is saved again with it.
+function recordWin(){
+  const st = G.stats || {};
+  if (st._win) return st._win;
+  const rec = st._win = { hadBoth: survivalUnlocked(), ngBefore: ngNextTier(G.hero), ngRun: G.ngPlus || 0, hadGate: gateOpen(), gate: storyHero() === 'gate' };
   // record this hero's CAMPAIGN clear — SURVIVAL unlocks once BOTH heroes have finished the campaign
-  const hadBoth = survivalUnlocked(), ngBefore = ngNextTier(G.hero), ngRun = G.ngPlus || 0, hadGate = gateOpen(), gate = storyHero() === 'gate';
-  if (gate){ try { localStorage.setItem('sw_camp_gate_' + G.hero, '1'); } catch(e){} }   // ACT IV (game/gate.js): its own mark, not a story's
+  if (rec.gate){ try { localStorage.setItem('sw_camp_gate_' + G.hero, '1'); } catch(e){} }   // ACT IV (game/gate.js): its own mark, not a story's
   else {
     try { localStorage.setItem('sw_camp_' + G.hero, '1'); } catch(e){}
-    noteEnding(storyHero(), G.story, epilogueText('title'));   // what this story ended on, for Act IV's recap and epilogue
     noteCampaignWon();   // your profile: the post-game rank asks for this (game/profile.js)
   }
   autosave('campaign won', { finished: true });
+  return rec;
+}
+export function victory(afterEpilogue){
+  if (!afterEpilogue && G.chapter >= 0 && G.mode === 'play'){ recordWin(); campaignWon(() => victory(true)); return; }   // the campaign's end: kept at once, then its epilogue
+  const rec = recordWin(), { hadBoth, ngBefore, ngRun, hadGate, gate } = rec;
+  if (!gate && !rec.ended){
+    rec.ended = true;
+    noteEnding(storyHero(), G.story, epilogueText('title'));   // what this story ended on, for Act IV's recap and epilogue
+    autosave('ending', { finished: true });
+  }
+  endRun(true);
+  G.mode = 'victory';
+  G.slowmo = 1; G.slowmoT = 0;   // the fight is won — drop out of slow motion
   const newlyUnlocked = !hadBoth && survivalUnlocked(), gateNew = !hadGate && gateOpen();
   refreshSurvivalLock(); refreshGateLock();
   showBanner('YOU WIN', 'Balance restored. The legend grows.', 999);

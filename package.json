@@ -19,6 +19,7 @@
     "smoke:maps": "node tools/smoke/maps.mjs",
     "smoke:pathing": "node tools/smoke/pathing.mjs",
     "smoke:saves": "node tools/smoke/saves.mjs",
+    "smoke:save-carry": "node tools/smoke/save-carry.mjs",
     "smoke:coop-run": "node tools/smoke/coop-run.mjs",
     "smoke:coop-campaign": "node tools/smoke/coop-campaign.mjs",
     "smoke:coop-boss": "node tools/smoke/coop-boss.mjs",

@@ -1385,7 +1385,7 @@ function missionComplete(){
   if (def.raid) noteRaidWon(def.raid);   // a raid (data/raids.js): its count for the rare parts, its own rank XP
   else if (def.side) noteSideWon(def.id);   // a side mission from the temple (data/side-quests.js): its own rank XP
   else if (!M.chapter) noteMissionWon(def.id, !!def.arcade);   // rank XP for your profile (game/profile.js; a chapter's counts at its close)
-  if (!M.chapter && !def.arcade && !def.side && !def.raid) autosave('mission');   // (a chapter's win is saved as the next chapter starts)
+  if (!M.chapter) autosave('mission');   // a mission, contract, side mission or raid won: saved at once (a chapter's win is saved at its close: game/campaign.js)
   // a campaign chapter's card carries the chapter's clear lines (what the mission taught, who joins), not a second voice line on the comms strip
   // (the voice's own lines; when it has none, the last cast member who speaks ({ who, say }), under their own name)
   const said = (M.chapter && M.chapter.clear) || [], own = said.filter(x => typeof x === 'string'), cast = said.filter(x => x && x.who);

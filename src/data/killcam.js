@@ -9,11 +9,13 @@
 
    kinds    what earns one:
             last   the last foe of a fight falls (nothing left and nothing waiting to come in)
-            duel   a saber finisher kills a duellist, a champion or the Warbringer, with nobody else close
+            duel   a saber finisher kills a big foe (an elite, a heavy, a rank IV duellist, a champion, the Warbringer),
+                   with nobody else close
             boss   a boss goes down (his minions and shots are already cleared by then)
-            takedown  the Mandalorian's vibroblade takedown kills (player/gunner-flow.js), with nobody else close
-            flank  the ARC trooper drops a foe from its flank or while it's pinned, or with his squad's
+            takedown  the Mandalorian's vibroblade takedown kills a big foe (player/gunner-flow.js), with nobody else close
+            flank  the ARC trooper drops a big foe from its flank or while it's pinned, or anything with his squad's
                    COORDINATED FIRE (player/gunner-flow.js), with nobody else close
+            (an ordinary kill never gets one: engine/killcam.js bigFoe; a co-op partner's kill never moves your lens)
             per kind: dur (s, real time) · slow (the world's speed through the hold) · dist (m, lens out to the side)
             · back (m, lens back behind the hero along the line) · up (m, lens height off the hero's feet) · look (m,
             aim height) · fov (° narrower) · orbit (rad the lens drifts round over the shot)
@@ -38,7 +40,7 @@ export const KILLCAM = {
   safe: { melee: 14, ranged: 24, bolt: 12, far: 14 },
   follow: 3.5, hud: 0.3,
   grace: 0.35,
-  cd: 5,
+  cd: 9,
   coop: 0.55,
   bars: 0.075,
 };

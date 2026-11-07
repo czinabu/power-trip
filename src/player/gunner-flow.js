@@ -100,8 +100,10 @@ export function flowKill(e, dir){
   }
   const flank = flanked(e, dir);
   addFlow(flank ? 'flankKill' : player.cover ? 'coverKill' : 'kill');
-  // the payoff: a flank on a pinned foe, or the squad's volley, gets the kill cam's side-on beat (when it's safe)
-  if ((flank || e.volleyT > G.gt) && !killCamOn()) killCam('flank', e);
+  // the payoff: a flank on a big foe, or the squad's volley, gets the kill cam's side-on beat (when it's safe; an
+  // ordinary flank kill stays in the normal camera: engine/killcam.js bigFoe)
+  const volley = e.volleyT > G.gt;
+  if ((flank || volley) && !killCamOn()) killCam('flank', e, volley);
 }
 // the Mando's takedown kills (mando/melee.js)
 export function flowTakedown(e){

@@ -394,7 +394,7 @@
 #profile .pf-ln.dash{stroke-dasharray:3 6;animation:none}
 @keyframes pfflow{to{stroke-dashoffset:-14}}
 @media (prefers-reduced-motion:reduce){ #profile .pf-ln.ready{animation:none} }
-#profile .pf-ftier{color:var(--hx-dim);font-family:var(--hx-label);transform:translateY(-50%) rotate(180deg)}
+#profile .pf-ftier{color:var(--hx-dim);font-family:var(--hx-label);transform:translateY(-78%) rotate(180deg)}
 #profile .pf-ftier.on{color:var(--hx-accent)}
 /* the root: THE FORCE, with the Insight left beside it */
 #profile .pf-froot .pf-orb{color:var(--hx-accent-hi)}

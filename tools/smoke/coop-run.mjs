@@ -147,7 +147,8 @@ try {
     e.ng[1] = 1; e.ng[6] = 0;   // guard up on its line, squared up to the guest
     g.rotation.y = Math.atan2(p.x - g.position.x, p.z - g.position.z);
     e.dp.dodge = 0; e.dp.parry = 0;   // (no dice: an agile duellist may otherwise slip the blow before its guard turns it)
-    const r = GAME.duel.duelDefend(e, ['L', 'R', 'H', 'Lo'][e.ng[0]], 'punch', false); e.dpKey = ''; return r;
+    const rnd = Math.random; Math.random = () => 0;   // (no dice either way: a low rank's sealed guard can be beaten, foeform.js sealOf)
+    try { const r = GAME.duel.duelDefend(e, ['L', 'R', 'H', 'Lo'][e.ng[0]], 'punch', false); e.dpKey = ''; return r; } finally { Math.random = rnd; }
   }, dn);
   if (turned !== 'block') throw new Error('the guest\'s blow on the duellist\'s guarded line was not turned: ' + turned);
   await host.waitForFunction(([n, p0]) => { const e = GAME.enemies.find(o => o.nid === n); return !e || e.dead || e.posture > p0 || e.state === 'stagger'; }, [dn, post0], poll);

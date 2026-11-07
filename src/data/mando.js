@@ -7,7 +7,7 @@ import { TROOPER_WEAPONS } from './trooper.js';
 /* ---------- MANDALORIAN loadout ---------- */
 export const HEADSHOT_MULT = 2.4;   // a blaster bolt to the head zone hits this much harder
 export const MANDO = {
-  boltSpeed: 48, spread: 0.003,   // bolts go through the crosshair; a touch slower than before so LEADING moving targets matters
+  boltSpeed: 90, spread: 0.003,   // bolts go through the crosshair, fast enough that a strafing trooper at range needs only a small lead
   braceDR: 0.6,                                             // beskar brace: incoming damage ×(1-this)
   // JETPACK runs on its OWN fuel (player.jet, separate from ability Force). Limited: drains fast, regen on the ground.
   jetThrust: 46, jetMaxUp: 8.0, jetDrain: 20, jetRegen: 7, jetRegenGround: 30, fallCap: 15, jetHover: 8,   // fuel is a real commitment: barely trickles back in the air, recovers only on the ground (touch down to refuel)
@@ -68,19 +68,19 @@ export const MANDO = {
 // BRACING is the core skill: it tightens the cone hard, boosts damage, and stretches your effective range.
 export const MANDO_WEAPONS = {
   single:    { name: 'BLASTER PISTOL', short: 'PISTOL', slot: 'sidearm', fire: 'semi', fireCd: 0.15, dmg: 32, dual: false, heat: 0.115, cool: 0.6, overCool: 0.46,
-               hipSpread: 0.008, braceSpread: 0.002, braceDmg: 1.08, foStart: 18, foEnd: 44, foMin: 0.5, kick: 0.3, adsZoom: 18, vent: 0.45 },   // bolts track the reticle; the SWAY is the difficulty
+               hipSpread: 0.005, braceSpread: 0.002, braceDmg: 1.08, foStart: 18, foEnd: 44, foMin: 0.5, kick: 0.3, adsZoom: 18, vent: 0.45 },   // bolts track the reticle: a tight hip cone, tighter braced
   dual:      { name: 'DUAL BLASTERS', short: 'DUAL', slot: 'sidearm', fire: 'auto', fireCd: 0.11, dmg: 13, dual: true,  heat: 0.066, cool: 0.66, overCool: 0.5,
-               hipSpread: 0.02, braceSpread: 0.006, braceDmg: 1.12, foStart: 8, foEnd: 24, foMin: 0.35, kick: 0.18, adsZoom: 12, vent: 0.6 },    // a touch looser, but still honest to the reticle
-  // PULSE CARBINE — the mid-range primary: three-round bursts that walk up the target (pull the reticle back down
-  // between bursts), accurate even from the hip, shorter falloff than the pistol, no shield behind it
+               hipSpread: 0.014, braceSpread: 0.006, braceDmg: 1.12, foStart: 8, foEnd: 24, foMin: 0.35, kick: 0.18, adsZoom: 12, vent: 0.6 },    // a touch looser, but still honest to the reticle
+  // PULSE CARBINE — the mid-range primary: three-round bursts that kick up the target (the reticle settles back on
+  // its own between bursts), accurate even from the hip, shorter falloff than the pistol, no shield behind it
   carbine:   { name: 'PULSE CARBINE', short: 'CARBINE', slot: 'primary', fire: 'burst', burst: 3, burstGap: 0.068, fireCd: 0.36, dmg: 21, heat: 0.046, cool: 0.72, overCool: 0.55,
-               hipSpread: 0.011, braceSpread: 0.003, braceDmg: 1.1, foStart: 22, foEnd: 52, foMin: 0.55, kick: 0.17, climb: 3.2, flinch: 0.5,
+               hipSpread: 0.007, braceSpread: 0.003, braceDmg: 1.1, foStart: 22, foEnd: 52, foMin: 0.55, kick: 0.17, climb: 3.2, flinch: 0.5,
                size: 1.25, col: 0x8fe8ff, twoHand: true, adsZoom: 17, vent: 0.55 },
   // HEAVY REPEATER — the crowd shredder: it SPINS UP while the trigger is held (spin.from → spin.to seconds between
   // shots over spin.up s; it winds back down over spin.down once you let go), heavy recoil and a wide cone, every bolt
   // rocks the foe, he walks slower while it fires (slow), and it cooks fast: an overheat or a vent costs a long beat
   repeater:  { name: 'HEAVY REPEATER', short: 'REPEATER', slot: 'primary', fire: 'auto', fireCd: 0.055, dmg: 15, heat: 0.021, cool: 0.4, overCool: 0.26,
-               hipSpread: 0.03, braceSpread: 0.011, braceDmg: 1.06, foStart: 14, foEnd: 36, foMin: 0.45, kick: 0.24, climb: 0.9, flinch: 0.25,
+               hipSpread: 0.024, braceSpread: 0.011, braceDmg: 1.06, foStart: 14, foEnd: 36, foMin: 0.45, kick: 0.24, climb: 0.9, flinch: 0.25,
                size: 1.7, col: 0xff8a4a, twoHand: true, spin: { from: 0.22, to: 0.055, up: 1.1, down: 1.4 }, slow: 0.55, adsZoom: 9, vent: 1.1 },
   disruptor: { name: 'DISRUPTOR', short: 'DISRUPTOR', fire: 'rifle', fireCd: 0.7, dmg: 150, dual: false, heat: 0.42, cool: 0.5, overCool: 0.4,
                hipSpread: 0, braceSpread: 0, braceDmg: 1, foStart: 999, foEnd: 999, foMin: 1, vent: 0.7,
@@ -120,7 +120,7 @@ export const ARMORY_CODEX = {
               cons: ['Harsh falloff past ten metres', 'No shield: bracing is offence only'] },
   carbine:  { tag: 'MID RANGE', best: 'Troopers at mid range, officers, jet troopers', lore: 'A shouldered pulse carbine. Three bolts a pull, steady from the hip.',
               pros: ['Three-round bursts, accurate even moving', 'Long reach before damage drops off', 'A quick vent'],
-              cons: ['Each burst climbs: pull it back on target', 'No shield behind it'] },
+              cons: ['Each burst kicks up: land the first bolt where you want it', 'No shield behind it'] },
   repeater: { tag: 'SUPPRESSION', best: 'Crowds, brutes and shields', lore: 'A heavy repeating blaster off a dead gunner\'s emplacement. It has to wind up, and then it does not stop.',
               pros: ['Spins up to the highest fire rate of any gun', 'Every bolt rocks the foe it hits', 'Holds a crowd back on its own'],
               cons: ['Slow to wind up, wide cone, heavy recoil', 'You walk slower while it fires', 'Cooks fast, and an overheat or a vent costs a long beat'] },

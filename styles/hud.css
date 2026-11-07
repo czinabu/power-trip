@@ -309,6 +309,13 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
 #reticle.ads .r{width:15px;height:9px;clip-path:polygon(0 50%,100% 0,100% 100%);transform:translate(var(--gap),-50%)}
 #reticle.ads .dot{width:4px;height:4px;margin:-2px}
 @keyframes spin{to{transform:scale(var(--ringScale)) rotate(360deg)}}
+/* BLOCKED: cover in front of the barrel (the lens sees over it, the gun can't): a red X where the dot was, the cross dimmed */
+#reticle .blk{display:none;position:absolute;left:50%;top:50%;width:0;height:0}
+#reticle .blk::before,#reticle .blk::after{content:'';position:absolute;width:14px;height:2px;margin:-1px -7px;background:rgba(255,96,72,.95);box-shadow:0 0 5px rgba(255,80,60,.8);transform:rotate(45deg)}
+#reticle .blk::after{transform:rotate(-45deg)}
+#reticle.blocked .blk{display:block}
+#reticle.blocked .dot{opacity:0}
+#reticle.blocked .rl,#reticle.blocked .ring{opacity:.35}
 /* stamina (saber) / heat (blaster) gauge beside the crosshair */
 #energymeter{position:fixed;top:50%;left:50%;margin:-26px 0 0 46px;width:5px;height:52px;display:none;
   background:rgba(8,18,30,.6);border:1px solid rgba(120,180,220,.5);border-radius:3px;overflow:hidden;

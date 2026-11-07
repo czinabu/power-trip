@@ -27,6 +27,17 @@ export const PAD_TUNE = {
   trigger: 0.45,     // LT / RT past this are pressed
   navRepeat: [0.38, 0.12],   // menus: first repeat, then every… (seconds) while a direction is held
 };
+/* CONTROLLER AIM ASSIST for the blasters (player/aim-assist.js). Angles are radians off the foe's body edge, through
+   the crosshair. */
+export const AIM_ASSIST = {
+  far: 45,          // metres: no help past this
+  slowAng: 0.03,    // the look slows inside this…
+  slow: 0.6,        // …to this share of its speed (hip)
+  adsSlow: 0.5,     // …and this down the sights or the scope
+  pullAng: 0.075,   // the view leans toward a foe inside this, only while a stick is moving…
+  pull: 2.6,        // …at this rate (per second, at the zone's centre, fading to nothing at its edge)
+  adsPull: 1.35,    // …this much harder braced (never through a scope)
+};
 
 const SLOTS = {
   LEFT:  { key: '1', label: 'Slot 1' },

@@ -56,6 +56,7 @@ export const G = {
   adsSens: 0.4,          // player preference: share of it while the disruptor is scoped in
   padSens: 1,            // player preference: gamepad right-stick look speed multiplier (engine/gamepad.js)
   padInvert: false,      // player preference: gamepad look up/down inverted
+  padAssist: true,       // player preference: controller aim assist for the blasters (player/aim-assist.js)
   flashScale: 1,         // player preference: full-screen flash brightness (0 = off, 1.5 = extra)
   camSway: 0.8,          // player preference: how much the Jedi's camera trails him as he moves (1 = Jedi Academy's, 0 = none)
   skywar: 'auto',   // player preference: how much of the sky battle over a battle world plays (Settings · SKY BATTLE, world/skywar.js)

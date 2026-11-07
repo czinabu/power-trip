@@ -13,6 +13,7 @@ import { toggleStrafe } from '../player/strafe.js';
 import { audioInit } from '../audio/sfx.js';
 import { skipScene, holdSkip } from '../game/cutscene.js';
 import { wheelStick } from '../allies/wheel.js';
+import { padAimAssist } from '../player/aim-assist.js';
 
 /* the left stick as a camera-relative move: x = right, y = forward (player/locomotion.js reads it for a smooth
    direction; the W A S D keys are pressed too, for everything that reads those) */
@@ -180,9 +181,10 @@ function fight(btn, down, up, lx, ly, rx, ry, dt){
   // RIGHT STICK — look, on a curve: fine near the centre, fast at full tilt (or, with the squad's command wheel up, pick an order)
   const r = Math.hypot(rx, ry);
   if (wheelStick(rx, ry)) return;
+  const assist = padAimAssist(dt, r > PAD_TUNE.lookDead, m > PAD_TUNE.moveDead);   // the blasters' AIM ASSIST: slows over a foe, leans toward him (player/aim-assist.js)
   if (r > PAD_TUNE.lookDead){
     const mag = Math.pow(Math.min(1, (r - PAD_TUNE.lookDead) / (1 - PAD_TUNE.lookDead)), PAD_TUNE.lookCurve);
-    const sens = G.padSens * aimLookScale();
+    const sens = G.padSens * aimLookScale() * assist;
     const dyaw = -(rx / r) * mag * PAD_TUNE.yawRate * sens * dt;
     const dpitch = (ry / r) * mag * PAD_TUNE.pitchRate * sens * dt * (G.padInvert ? -1 : 1);
     G.yaw += dyaw;

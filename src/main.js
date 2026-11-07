@@ -3,6 +3,7 @@
 
 import './engine/save-files.js';   // before anything reads localStorage: the active save file's keys (engine/save-files.js)
 import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
+{ const bv = document.getElementById('buildver'); if (bv && typeof __BUILD_LABEL__ !== 'undefined') bv.textContent = __BUILD_LABEL__; }   // build label on the main menu (vite.config.js)
 import { BLADE_U } from './fx/blade-glow.js';
 import * as THREE from 'three';
 import { switchWeapon, beskarPress } from './player/mando/weapons.js';

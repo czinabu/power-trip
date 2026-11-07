@@ -10,7 +10,7 @@ import { scene } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, clamp, TMP } from '../utils.js';
 import { floater, screenFlash } from '../fx/floaters.js';
-import { shared, G, enemies, bolts, solids, player, isGunner, isTrooper } from '../state.js';
+import { shared, G, enemies, bolts, player, isGunner, isTrooper } from '../state.js';
 import { heroHitBand, suppressHero } from '../player/trooper/cover.js';
 import { TROOPER } from '../data/trooper.js';
 import { suppressFoes, foeShotHit, champHeadMul } from './coverfight.js';
@@ -26,6 +26,7 @@ import { FOCUS, addFocus } from '../player/jedi/focus.js';
 import { spawnHitSpark, spawnParryFlash } from '../fx/vfx.js';
 import { boltImpact, clashFlash } from '../fx/ink.js';
 import { scorchSolid } from '../fx/scorch.js';
+import { sweepSolids, sweepT } from '../world/collision.js';
 import { mandoWeapon, mandoShielding, boltDamage, hitMarker, beskarCatch } from '../player/mando/weapons.js';
 import { BESKAR_PARRY } from '../data/mando.js';
 import { hurtPlayer } from '../player/damage.js';
@@ -99,23 +100,21 @@ export function updateBolts(dt){
     PREV.copy(b.mesh.position);   // where it was last frame: friendly bolts sweep the whole step for bodies
     b.mesh.position.addScaledVector(b.dir, b.speed * dt);
     let kill = b.life <= 0;
-    // COVER — a bolt (either side) that's crossed inside a real wall/pillar/crate is blocked there, same convention
-    // as segBlockedBySolids (shallow climbable steps don't block). Makes cover matter for fire, not just movement.
+    // COVER — a bolt (either side) that meets a real wall/pillar/crate on this frame's step is stopped there, same
+    // convention as segBlockedBySolids (shallow climbable steps don't block). The whole step is swept, not just where
+    // the bolt ends up: a fast bolt covers a metre a frame and used to skip straight through a thin wall. Makes cover
+    // matter for fire, not just movement.
     if (!kill){
-      const bx = b.mesh.position.x, bz = b.mesh.position.z, by = b.mesh.position.y;
-      for (const c of solids){
-        if (c.climbable) continue;
-        const hit = c.box
-          ? (bx > c.x - c.hx && bx < c.x + c.hx && bz > c.z - c.hz && bz < c.z + c.hz)
-          : (Math.hypot(bx - c.x, bz - c.z) < c.r);
-        if (hit && by < c.h && by >= (c.y0 || 0)){   // (an overhead slab: a bolt flies on under it)
-          kill = true;
-          spawnHitSpark(V3(bx, by, bz), b.friendly ? 0x6fd0ff : 0xff5a3a, 0.8);
-          S.boltImpact(V3(bx, by, bz));
-          scorchSolid(c, V3(bx, by, bz));   // a burn on the cover it struck
-          break;
-        }
+      const p = b.mesh.position, c = sweepSolids(PREV.x, PREV.y, PREV.z, p.x, p.y, p.z, 0);
+      if (c){
+        kill = true;
+        p.lerpVectors(PREV, p, sweepT);
+        const at = V3(p.x, p.y, p.z);
+        spawnHitSpark(at, b.friendly ? 0x6fd0ff : 0xff5a3a, 0.8);
+        S.boltImpact(at);
+        scorchSolid(c, at);   // a burn on the cover it struck
       }
+      const bx = b.mesh.position.x, bz = b.mesh.position.z, by = b.mesh.position.y;
       // a walled room (the sandbox rooms): a bolt stops on the wall it reaches, never flies on through it
       if (!kill && shared.arenaWalled){
         const wx = shared.arenaHalf + 0.6, wz = (shared.arenaHalfZ || shared.arenaHalf) + 0.6;

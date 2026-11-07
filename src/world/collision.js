@@ -22,37 +22,76 @@ export function moundY(c, x, z){
 export const mound = (x, z, a, b, ang, base, h) => ({ mound: true, climbable: true, x, z, a, b, cos: Math.cos(ang), sin: Math.sin(ang), base, h });
 
 // LINE-OF-SIGHT — does any real wall/pillar/crate (shallow CLIMBABLE steps don't count, same convention as the
-// avoidance steering) sit between two points? Approximated by projecting each solid's center onto the segment and
-// testing whether that closest-on-segment point falls inside the (slightly expanded) solid — cheap, and exact for
-// the axis-aligned boxes this game already commits to everywhere else. Used by ranged-enemy cover AI + bolt impacts.
-export function segBlockedBySolids(ax, az, bx, bz){
-  const dx = bx - ax, dz = bz - az, len2 = dx*dx + dz*dz || 1;
+// avoidance steering) sit between two points on the ground plan? An exact segment test against each solid's footprint
+// (a box's slabs, a column's circle), so a long wall crossed near its end, or on a slant, still hides what is behind
+// it. Each solid gets a PAD of clearance (a shot grazing a corner isn't a clear shot), except where the pad only wraps
+// an end of the line: a body hugging a wall can still see, and be seen, away from it. Used by the ranged-enemy cover
+// AI, the squad's fire, spawns and cutscene framing.
+const LOS_PAD = 0.3;
+const SEG = [0, 0];
+// the stretch [t0, t1] of a→b (as fractions, unclamped) inside solid c's footprint grown by pad, or false
+function segFoot(c, ax, az, dx, dz, pad){
+  if (c.box){
+    SEG[0] = -Infinity; SEG[1] = Infinity;
+    return slab(ax, dx, c.x - c.hx - pad, c.x + c.hx + pad) && slab(az, dz, c.z - c.hz - pad, c.z + c.hz + pad);
+  }
+  const R = c.r + pad, fx = ax - c.x, fz = az - c.z, A = dx*dx + dz*dz, C = fx*fx + fz*fz - R*R;
+  if (A < 1e-9){ SEG[0] = -Infinity; SEG[1] = Infinity; return C < 0; }
+  const B = fx*dx + fz*dz, disc = B*B - A*C;
+  if (disc <= 0) return false;
+  const q = Math.sqrt(disc); SEG[0] = (-B - q) / A; SEG[1] = (-B + q) / A;
+  return true;
+}
+// one axis of a slab test, narrowing SEG to where a + d·t lies within [lo, hi]
+function slab(a, d, lo, hi){
+  if (Math.abs(d) < 1e-9){ if (a <= lo || a >= hi) return false; return true; }
+  let t0 = (lo - a) / d, t1 = (hi - a) / d; if (t0 > t1){ const k = t0; t0 = t1; t1 = k; }
+  if (t0 > SEG[0]) SEG[0] = t0; if (t1 < SEG[1]) SEG[1] = t1;
+  return SEG[0] < SEG[1];
+}
+function losBlocker(ax, az, bx, bz, minTop){
+  const dx = bx - ax, dz = bz - az;
   for (const c of solids){
-    if (c.climbable || c.y0) continue;   // steps and hills don't hide you, and an overhead slab is seen under
-    let t = ((c.x - ax)*dx + (c.z - az)*dz) / len2; t = clamp(t, 0, 1);
-    const px = ax + dx*t, pz = az + dz*t;
-    if (c.box){
-      if (px > c.x - c.hx - 0.3 && px < c.x + c.hx + 0.3 && pz > c.z - c.hz - 0.3 && pz < c.z + c.hz + 0.3) return c;
-    } else {
-      if (Math.hypot(px - c.x, pz - c.z) < c.r + 0.3) return c;
-    }
+    if (c.climbable || c.y0 || c.mound || c.h < minTop) continue;   // steps and hills don't hide you, and an overhead slab is seen under
+    if (!segFoot(c, ax, az, dx, dz, LOS_PAD) || SEG[1] <= 0 || SEG[0] >= 1) continue;
+    if (SEG[0] > 0 && SEG[1] < 1) return c;   // the padded solid stands wholly between the two: blocked (a graze counts)
+    if (segFoot(c, ax, az, dx, dz, 0) && SEG[1] > 0 && SEG[0] < 1) return c;   // an end sits in the pad: only the solid itself blocks
   }
   return null;
 }
+export const segBlockedBySolids = (ax, az, bx, bz) => losBlocker(ax, az, bx, bz, -Infinity);
 
 // ...the same, counting only solids whose top stands at least `minTop` high (m): what hides a body crouched behind a crate
 // (low cover) and what only hides its legs (a crate it stands up over). The ARC trooper's cover fight uses it (enemies/coverfight.js)
-export function segBlockedTall(ax, az, bx, bz, minTop){
-  const dx = bx - ax, dz = bz - az, len2 = dx*dx + dz*dz || 1;
+export const segBlockedTall = (ax, az, bx, bz, minTop) => losBlocker(ax, az, bx, bz, minTop);
+
+/* SWEPT HIT — the first real solid something moving in a straight line meets on its way from a to b (a blaster bolt over
+   one frame, a thrown detonator over one frame of its arc), in 3D: a solid stops only what passes below its top (and,
+   for an overhead slab, above its underside: a bolt flies on under a wing). `pad` is the mover's own thickness. A fast
+   bolt covers a metre or more a frame, so testing only where it ends up let it skip clean through a thin wall; this
+   tests the whole step. Shallow climbable steps and hills never stop anything. Returns the solid, with the fraction
+   of the way along a→b it struck in sweepT, or null. */
+export let sweepT = 1;
+export function sweepSolids(ax, ay, az, bx, by, bz, pad = 0){
+  const dx = bx - ax, dy = by - ay, dz = bz - az;
+  let hit = null, best = Infinity;
   for (const c of solids){
-    if (c.climbable || c.y0 || c.h < minTop) continue;
-    let t = ((c.x - ax)*dx + (c.z - az)*dz) / len2; t = clamp(t, 0, 1);
-    const px = ax + dx*t, pz = az + dz*t;
-    if (c.box){
-      if (px > c.x - c.hx - 0.3 && px < c.x + c.hx + 0.3 && pz > c.z - c.hz - 0.3 && pz < c.z + c.hz + 0.3) return c;
-    } else if (Math.hypot(px - c.x, pz - c.z) < c.r + 0.3) return c;
+    if (c.climbable || c.mound) continue;
+    if (!segFoot(c, ax, az, dx, dz, pad)) continue;
+    if (!slab(ay, dy, c.y0 ? c.y0 - pad : -Infinity, c.h + pad)) continue;
+    if (SEG[1] < 0 || SEG[0] > 1) continue;
+    const t = Math.max(0, SEG[0]);
+    if (t < best){ best = t; hit = c; }
   }
-  return null;
+  sweepT = hit ? best : 1;
+  return hit;
+}
+
+// BLAST COVER — is a body at (x, y, z) behind a wall from a blast at pos? A solid at least body-high stands between
+// them, and the body isn't up on top of it. A detonator's blast doesn't go through walls (enemies/grenades.js)
+export function blastCovered(pos, x, y, z){
+  const c = losBlocker(pos.x, pos.z, x, z, 1.6);
+  return !!c && y < c.h - 0.5;
 }
 
 // lim: the player's own limit in a walled room (up to its walls' faces), instead of a metre inside the edge

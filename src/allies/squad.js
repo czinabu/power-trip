@@ -26,7 +26,7 @@ import { updateUpper } from '../enemies/upper.js';
 import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
 import { damageEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
-import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn } from '../world/collision.js';
+import { segBlockedBySolids, clampToArena, collideSolids, findClearSpawn, blastCovered } from '../world/collision.js';
 import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
 import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING } from '../data/allies.js';
@@ -365,12 +365,13 @@ export function hurtAlly(a, dmg, from){
   a.hitAt = G.gt; a.flash = 0.14;
   if (a.hp <= 0) downAlly(a);
 }
-// a blast (a detonator, a saboteur) catches any squadmate inside it
-export function blastAllies(pos, r, dmg){
+// a blast (a detonator, a saboteur) catches any squadmate inside it. walls: a wall between shields them (a detonator's
+// blast, enemies/grenades.js)
+export function blastAllies(pos, r, dmg, walls){
   for (const a of allies){
     if (!standing(a) || a.net) continue;
-    const d = Math.hypot(a.group.position.x - pos.x, a.group.position.z - pos.z);
-    if (d < r) hurtAlly(a, dmg * (1 - d / r * 0.4), pos);
+    const ap = a.group.position, d = Math.hypot(ap.x - pos.x, ap.z - pos.z);
+    if (d < r && !(walls && blastCovered(pos, ap.x, ap.y, ap.z))) hurtAlly(a, dmg * (1 - d / r * 0.4), pos);
   }
 }
 // a shockwave ring (r ± half-width) catches each squadmate once (`hit` is the ring's own Set)

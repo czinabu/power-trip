@@ -97,10 +97,12 @@ export function civSweep(a, b, pad){
 }
 
 /* a blast at (x, z) of radius R: everyone standing in it goes down */
-export function civBlast(x, z, R, by){
+// covered(x, y, z): true where a wall between shields them (a detonator's blast, enemies/grenades.js)
+export function civBlast(x, z, R, by, covered){
   for (const c of CIV.list){
     if (!c.hit || !civUp(c)) continue;
-    if (Math.hypot(c.m.position.x - x, c.m.position.z - z) < R + c.r) c.hit(by, 'blast');
+    const cp = c.m.position;
+    if (Math.hypot(cp.x - x, cp.z - z) < R + c.r && !(covered && covered(cp.x, cp.y, cp.z))) c.hit(by, 'blast');
   }
 }
 

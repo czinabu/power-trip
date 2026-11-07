@@ -60,6 +60,7 @@ import { buildCovertHubArena } from './arenas/covert-hub.js';
 import { buildZoneArena, clearZoneStream } from './zone-stream.js';
 import { resetDoors } from './doors.js';
 import { buildNav } from '../enemies/nav.js';
+import { solidsChanged } from './collision.js';
 import { clearScorch } from '../fx/scorch.js';
 import { clearSevered } from '../enemies/scars.js';
 import { buildAir, clearAir } from './air.js';
@@ -320,6 +321,7 @@ export function buildArena(L){
   fillCover(LP);   // real cover in the open holes of the map, clear of the perches (world/coverfill.js, data/map-scale.js COVER_FILL)
   shared.jetCeiling = jetCeilingFor(L);   // how high the Mando's pack climbs here (data/map-rules.js JET_CEILING)   // the second storey: raised decks round the outer ring of a campaign or story arena (world/perches.js)
   if (T) buildGrass(T, L);   // tall grass in the wind, where the world has it (world/grass.js)
+  solidsChanged();   // (the collision queries' packed copy of the solids is read again: world/collision.js)
   buildNav();   // the enemy pathing grid follows the new layout (enemies/nav.js)
   // INK: cel-shade every static prop and merge them into a handful of draw calls (glows and hazards stay live)
   if (T) shared.arenaBake = bakeArena(shared.arenaGroup, T.ink ?? 0.045);

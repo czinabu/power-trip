@@ -21,6 +21,9 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;   // moodier, more filmic contrast
 document.body.appendChild(renderer.domElement);
+/* a shipped build doesn't read back every shader's compile log (a stall per program, on top of the compile itself).
+   The dev server keeps it, so a shader typo still shows in the console */
+if (import.meta.env && import.meta.env.PROD) renderer.debug.checkShaderErrors = false;
 
 export const scene = new THREE.Scene();
 /* far: the backdrop stands up to a kilometre or two out (world/backdrop.js). near: depth precision scales with it, and
@@ -54,7 +57,18 @@ function noAO(o){
   const m = Array.isArray(o.material) ? o.material[0] : o.material;
   return !!m && (m.transparent || m.side === THREE.BackSide || m.toneMapped === false || m.blending === THREE.AdditiveBlending);
 }
-aoPass.overrideVisibility = function(){ this.scene.traverseVisible(o => { if (noAO(o)){ o.visible = false; _aoHidden.push(o); } }); };
+/* ...and nothing past where the AO has faded out (aoFade.far): its depth and normals would be drawn for no shade at all
+   (a hub's far halls, a battle map's far side, the backdrop). Kept when the light shafts are on: they read this pass's
+   depth for where the sky is */
+const _aoSph = new THREE.Sphere();
+function beyondAO(o){
+  if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || o.children.length || shaftPass.enabled) return false;   // (a mesh with others hung on it: they may stand elsewhere)
+  const bs = o.geometry && o.geometry.boundingSphere;
+  if (!bs) return false;
+  _aoSph.copy(bs).applyMatrix4(o.matrixWorld);
+  return _aoSph.center.distanceTo(camera.position) - _aoSph.radius > aoFade.far + 4;
+}
+aoPass.overrideVisibility = function(){ this.scene.traverseVisible(o => { if (noAO(o) || beyondAO(o)){ o.visible = false; _aoHidden.push(o); } }); };
 aoPass.restoreVisibility = function(){ for (const o of _aoHidden) o.visible = true; _aoHidden.length = 0; };
 const _aoSize = aoPass.setSize.bind(aoPass);
 aoPass.setSize = (w, h) => { const k = 1 / Math.max(1, renderer.getPixelRatio()); _aoSize(Math.round(w * k), Math.round(h * k)); };
@@ -178,6 +192,62 @@ export function standPost(on){
   if (on){ _standAO = aoPass.enabled; _standShafts = shaftPass.enabled; aoPass.enabled = shaftPass.enabled = false; gradePass.uniforms.amount.value = 0; }
   else { aoPass.enabled = _standAO; shaftPass.enabled = _standShafts; gradePass.uniforms.amount.value = 1; }
 }
+
+/* ONE SCENE WALK A FRAME — every renderer.render of the scene (the scene pass, the ambient-occlusion pass's own draw)
+   walks the whole scene graph again to refresh its matrices, and the scene's onBeforeRender (fx/lights.js) counts its
+   lights again. Nothing moves between the passes of one frame, so the main loop's draw refreshes the matrices once and
+   the passes after it skip that walk (frameOnce.on: fx/lights.js settles its light count once too). */
+export const frameOnce = { on: false, lights: false };
+export function drawFrame(){
+  scene.updateMatrixWorld();
+  scene.matrixWorldAutoUpdate = false;
+  frameOnce.on = true; frameOnce.lights = false;
+  try { composer.render(); }
+  finally { scene.matrixWorldAutoUpdate = true; frameOnce.on = false; }
+}
+
+/* SHADER VARIANTS, NOT RE-RESOLVED — one material on both skinned and rigid meshes (a character's cloth on its skinned
+   body and on its rigid kit, the ambient-occlusion pass's normal material on everything) needs two programs, and three.js
+   re-resolves which one (a costly lookup that makes garbage) every time consecutive draws switch between them.
+   1. Opaque draws of one material are sorted skinned-together (three's own order otherwise: material, then depth), so a
+      material switches at most once a pass.
+   2. An override material (the AO normals, one material for the whole scene) and the sun's shadow-depth material (three
+      draws every caster with one) are drawn on skinned meshes through a twin of their own, so neither copy ever
+      switches. The shadow material is set up per caster just before its draw (which faces, alpha): the twin takes that
+      on each draw. */
+renderer.setOpaqueSort((a, b) => {
+  if (a.groupOrder !== b.groupOrder) return a.groupOrder - b.groupOrder;
+  if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
+  if (a.material.id !== b.material.id) return a.material.id - b.material.id;
+  const sa = a.object.isSkinnedMesh ? 1 : 0, sb = b.object.isSkinnedMesh ? 1 : 0;
+  if (sa !== sb) return sa - sb;
+  if (a.z !== b.z) return a.z - b.z;
+  return a.id - b.id;
+});
+const _skinTwins = new WeakMap();
+function skinTwin(m){
+  let t = _skinTwins.get(m);
+  if (!t || t.userData.srcVersion !== m.version){
+    if (t) t.dispose();
+    t = m.clone(); t.userData.srcVersion = m.version;
+    _skinTwins.set(m, t);
+  }
+  return t;
+}
+const SHADOW_STATE = ['visible', 'wireframe', 'side', 'alphaMap', 'alphaTest', 'map', 'clipShadows', 'clippingPlanes', 'clipIntersection',
+  'displacementMap', 'displacementScale', 'displacementBias', 'wireframeLinewidth', 'linewidth'];
+const _rbd = renderer.renderBufferDirect.bind(renderer);
+renderer.renderBufferDirect = (cam, sc, geo, mat, obj, group) => {
+  if (obj.isSkinnedMesh){
+    // (no scene: the shadow map's draw. A material with its own shader hooks isn't copied: clone() would drop them)
+    if ((sc ? sc.overrideMaterial === mat : mat.isMeshDepthMaterial) && !Object.prototype.hasOwnProperty.call(mat, 'onBeforeCompile')){
+      const t = skinTwin(mat);
+      if (!sc) for (const k of SHADOW_STATE) t[k] = mat[k];
+      mat = t;
+    }
+  }
+  return _rbd(cam, sc, geo, mat, obj, group);
+};
 
 export const hemi = new THREE.HemisphereLight(0x8fb0d6, 0x231a16, 0.62);   // dimmer ambient → more contrast & mood
 scene.add(hemi);

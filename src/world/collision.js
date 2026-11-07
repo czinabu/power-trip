@@ -21,6 +21,43 @@ export function moundY(c, x, z){
 }
 export const mound = (x, z, a, b, ang, base, h) => ({ mound: true, climbable: true, x, z, a, b, cos: Math.cos(ang), sin: Math.sin(ang), base, h });
 
+/* THE SOLIDS, PACKED — the hot queries below (feet on the ground, a body against the walls, a line of sight, a bolt's
+   flight) run every frame for every body against every solid. The solids are objects of half a dozen shapes (a box, a
+   column, a step, a slab, a hill), and reading numbers off objects of that many shapes is slow in the browser's engine
+   and makes garbage on every read. So the queries read a flat copy: typed arrays, one entry per solid, rebuilt only
+   when the list changes (anything that adds or takes out a solid goes through the list's own methods, counted below;
+   clearing it with length = 0 shows as a length that no longer matches). A hill keeps its own object (its shape needs
+   more numbers, and a map has only a few). */
+let solidsV = 0;
+for (const k of ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin']){
+  const f = Array.prototype[k];
+  Object.defineProperty(solids, k, { value: function(...a){ solidsV++; return f.apply(this, a); }, writable: true, configurable: true });
+}
+const P = { v: -1, n: 0, obj: [], K: new Uint8Array(0), X: new Float64Array(0), Z: new Float64Array(0), HX: new Float64Array(0), HZ: new Float64Array(0),
+  H: new Float64Array(0), Y0: new Float64Array(0), CL: new Uint8Array(0), SOFT: new Uint8Array(0) };
+const COL = 0, BOX = 1, HILL = 2;
+/* a solid changed in place (its top raised after it went in, at a build): read the list again. The main loop calls it
+   once a frame and the arena build once it's done, so a change made any other way is seen by the next frame */
+export function solidsChanged(){ solidsV++; }
+function packed(){
+  if (P.v === solidsV && P.n === solids.length) return P;
+  const n = solids.length;
+  if (P.X.length < n){ const m = Math.max(n, P.X.length * 2, 64);
+    P.K = new Uint8Array(m); P.X = new Float64Array(m); P.Z = new Float64Array(m); P.HX = new Float64Array(m); P.HZ = new Float64Array(m);
+    P.H = new Float64Array(m); P.Y0 = new Float64Array(m); P.CL = new Uint8Array(m); P.SOFT = new Uint8Array(m); }
+  P.obj.length = n;
+  for (let i = 0; i < n; i++){
+    const c = solids[i];
+    P.obj[i] = c;
+    P.K[i] = c.mound ? HILL : c.box ? BOX : COL;
+    P.X[i] = c.x; P.Z[i] = c.z; P.H[i] = c.h; P.Y0[i] = c.y0 ?? NaN;   // (no underside: NaN, which every test below reads as the original's undefined)
+    P.HX[i] = c.box ? c.hx : c.r || 0; P.HZ[i] = c.box ? c.hz : c.r || 0;
+    P.CL[i] = c.climbable ? 1 : 0; P.SOFT[i] = c.soft ? 1 : 0;
+  }
+  P.n = n; P.v = solidsV;
+  return P;
+}
+
 // LINE-OF-SIGHT — does any real wall/pillar/crate (shallow CLIMBABLE steps don't count, same convention as the
 // avoidance steering) sit between two points on the ground plan? An exact segment test against each solid's footprint
 // (a box's slabs, a column's circle), so a long wall crossed near its end, or on a slant, still hides what is behind
@@ -30,12 +67,13 @@ export const mound = (x, z, a, b, ang, base, h) => ({ mound: true, climbable: tr
 const LOS_PAD = 0.3;
 const SEG = [0, 0];
 // the stretch [t0, t1] of a→b (as fractions, unclamped) inside solid c's footprint grown by pad, or false
-function segFoot(c, ax, az, dx, dz, pad){
-  if (c.box){
+function segFoot(i, ax, az, dx, dz, pad){
+  const S = P;
+  if (S.K[i] === BOX){
     SEG[0] = -Infinity; SEG[1] = Infinity;
-    return slab(ax, dx, c.x - c.hx - pad, c.x + c.hx + pad) && slab(az, dz, c.z - c.hz - pad, c.z + c.hz + pad);
+    return slab(ax, dx, S.X[i] - S.HX[i] - pad, S.X[i] + S.HX[i] + pad) && slab(az, dz, S.Z[i] - S.HZ[i] - pad, S.Z[i] + S.HZ[i] + pad);
   }
-  const R = c.r + pad, fx = ax - c.x, fz = az - c.z, A = dx*dx + dz*dz, C = fx*fx + fz*fz - R*R;
+  const R = S.HX[i] + pad, fx = ax - S.X[i], fz = az - S.Z[i], A = dx*dx + dz*dz, C = fx*fx + fz*fz - R*R;
   if (A < 1e-9){ SEG[0] = -Infinity; SEG[1] = Infinity; return C < 0; }
   const B = fx*dx + fz*dz, disc = B*B - A*C;
   if (disc <= 0) return false;
@@ -50,12 +88,12 @@ function slab(a, d, lo, hi){
   return SEG[0] < SEG[1];
 }
 function losBlocker(ax, az, bx, bz, minTop){
-  const dx = bx - ax, dz = bz - az;
-  for (const c of solids){
-    if (c.climbable || c.y0 || c.mound || c.h < minTop) continue;   // steps and hills don't hide you, and an overhead slab is seen under
-    if (!segFoot(c, ax, az, dx, dz, LOS_PAD) || SEG[1] <= 0 || SEG[0] >= 1) continue;
-    if (SEG[0] > 0 && SEG[1] < 1) return c;   // the padded solid stands wholly between the two: blocked (a graze counts)
-    if (segFoot(c, ax, az, dx, dz, 0) && SEG[1] > 0 && SEG[0] < 1) return c;   // an end sits in the pad: only the solid itself blocks
+  const dx = bx - ax, dz = bz - az, S = packed();
+  for (let i = 0; i < S.n; i++){
+    if (S.CL[i] || S.Y0[i] || S.K[i] === HILL || S.H[i] < minTop) continue;   // steps and hills don't hide you, and an overhead slab is seen under
+    if (!segFoot(i, ax, az, dx, dz, LOS_PAD) || SEG[1] <= 0 || SEG[0] >= 1) continue;
+    if (SEG[0] > 0 && SEG[1] < 1) return S.obj[i];   // the padded solid stands wholly between the two: blocked (a graze counts)
+    if (segFoot(i, ax, az, dx, dz, 0) && SEG[1] > 0 && SEG[0] < 1) return S.obj[i];   // an end sits in the pad: only the solid itself blocks
   }
   return null;
 }
@@ -75,13 +113,14 @@ export let sweepT = 1;
 export function sweepSolids(ax, ay, az, bx, by, bz, pad = 0){
   const dx = bx - ax, dy = by - ay, dz = bz - az;
   let hit = null, best = Infinity;
-  for (const c of solids){
-    if (c.climbable || c.mound) continue;
-    if (!segFoot(c, ax, az, dx, dz, pad)) continue;
-    if (!slab(ay, dy, c.y0 ? c.y0 - pad : -Infinity, c.h + pad)) continue;
+  const S = packed();
+  for (let i = 0; i < S.n; i++){
+    if (S.CL[i] || S.K[i] === HILL) continue;
+    if (!segFoot(i, ax, az, dx, dz, pad)) continue;
+    if (!slab(ay, dy, S.Y0[i] ? S.Y0[i] - pad : -Infinity, S.H[i] + pad)) continue;
     if (SEG[1] < 0 || SEG[0] > 1) continue;
     const t = Math.max(0, SEG[0]);
-    if (t < best){ best = t; hit = c; }
+    if (t < best){ best = t; hit = S.obj[i]; }
   }
   sweepT = hit ? best : 1;
   return hit;
@@ -124,27 +163,29 @@ export const STEP_UP = 0.5;   // feet within this of a top "mount" onto it (auto
 export let ceilHit = Infinity;
 // a hard overhead slab the body is beside: true while the body is under it (a head that rises into its underside is
 // noted in ceilHit), false once the body is up level with it (then it's a wall, or a top to stand on, like any solid)
-function underSlab(c, pos, over){
-  if (pos.y >= c.y0) return false;
-  if (over && pos.y + BODY_H > c.y0) ceilHit = Math.min(ceilHit, c.y0);
+function underSlab(y0, pos, over){
+  if (pos.y >= y0) return false;
+  if (over && pos.y + BODY_H > y0) ceilHit = Math.min(ceilHit, y0);
   return true;
 }
 // `step`: how tall a top a body may step up onto (the squad's is a little taller than yours: allies/squad.js)
 export function collideSolids(pos, radius, climb, step = STEP_UP){
   let support = 0;
   ceilHit = Infinity;
-  for (const c of solids){
-    if (c.mound){ const y = moundY(c, pos.x, pos.z); if (y > support) support = y; continue; }
-    const top = c.h;
-    if (c.box){
-      const minX = c.x - c.hx, maxX = c.x + c.hx, minZ = c.z - c.hz, maxZ = c.z + c.hz;
+  const S = packed();
+  for (let i = 0; i < S.n; i++){
+    const k = S.K[i];
+    if (k === HILL){ const y = moundY(S.obj[i], pos.x, pos.z); if (y > support) support = y; continue; }
+    const top = S.H[i], y0 = S.Y0[i];
+    if (k === BOX){
+      const minX = S.X[i] - S.HX[i], maxX = S.X[i] + S.HX[i], minZ = S.Z[i] - S.HZ[i], maxZ = S.Z[i] + S.HZ[i];
       const insideX = pos.x > minX && pos.x < maxX;
       const insideZ = pos.z > minZ && pos.z < maxZ;
       const nx = clamp(pos.x, minX, maxX), nz = clamp(pos.z, minZ, maxZ);
       const dx = pos.x - nx, dz = pos.z - nz, d2 = dx*dx + dz*dz;
       if (!((insideX && insideZ) || d2 < radius*radius)) continue;
-      if (c.soft){ if (climb && pos.y >= c.y0 - 0.4 && top > support) support = top; continue; }   // a canopy only catches a body coming down onto it
-      if (c.y0 && underSlab(c, pos, insideX && insideZ)) continue;
+      if (S.SOFT[i]){ if (climb && pos.y >= y0 - 0.4 && top > support) support = top; continue; }   // a canopy only catches a body coming down onto it
+      if (y0 && underSlab(y0, pos, insideX && insideZ)) continue;
       if (climb && pos.y >= top - step){ if (top > support) support = top; continue; }
       if (pos.y >= top) continue;   // feet already clear of the top (jumping off it): nothing to push out of
       if (insideX && insideZ){   // deep inside — eject through the nearest face
@@ -157,10 +198,10 @@ export function collideSolids(pos, radius, climb, step = STEP_UP){
         pos.x += dx/d*push; pos.z += dz/d*push;
       }
     } else {
-      const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), rr = c.r + radius;
+      const r = S.HX[i], dx = pos.x - S.X[i], dz = pos.z - S.Z[i], d = Math.sqrt(dx*dx + dz*dz), rr = r + radius;
       if (d >= rr) continue;
-      if (c.soft){ if (climb && pos.y >= c.y0 - 0.4 && top > support) support = top; continue; }
-      if (c.y0 && underSlab(c, pos, d < c.r)) continue;
+      if (S.SOFT[i]){ if (climb && pos.y >= y0 - 0.4 && top > support) support = top; continue; }
+      if (y0 && underSlab(y0, pos, d < r)) continue;
       if (climb && pos.y >= top - step){ if (top > support) support = top; continue; }
       if (pos.y >= top) continue;
       if (d > 0.001){ const push = rr - d; pos.x += dx/d*push; pos.z += dz/d*push; }
@@ -173,10 +214,13 @@ export function collideSolids(pos, radius, climb, step = STEP_UP){
 // floor). The body's support (collideSolids) is measured over its whole radius; feet ask this for their own spot.
 export function groundAt(x, z, maxY){
   let g = 0;
-  for (const c of solids){
-    if (c.mound){ const y = moundY(c, x, z); if (y > g && y <= maxY) g = y; continue; }
-    if (c.h > maxY || c.h <= g) continue;
-    if (c.box ? Math.abs(x - c.x) <= c.hx && Math.abs(z - c.z) <= c.hz : Math.hypot(x - c.x, z - c.z) <= c.r) g = c.h;
+  const S = packed();
+  for (let i = 0; i < S.n; i++){
+    if (S.K[i] === HILL){ const y = moundY(S.obj[i], x, z); if (y > g && y <= maxY) g = y; continue; }
+    const h = S.H[i];
+    if (h > maxY || h <= g) continue;
+    const dx = x - S.X[i], dz = z - S.Z[i];
+    if (S.K[i] === BOX ? Math.abs(dx) <= S.HX[i] && Math.abs(dz) <= S.HZ[i] : Math.sqrt(dx*dx + dz*dz) <= S.HX[i]) g = h;
   }
   return g;
 }
@@ -185,10 +229,12 @@ export function groundAt(x, z, maxY){
 // groundAt this respects overhead slabs (a point under one is open air), so a ray can pass under a beam.
 export function solidAt(x, y, z){
   if (y <= 0) return true;
-  for (const c of solids){
-    if (c.mound){ if (y <= moundY(c, x, z)) return true; continue; }
-    if (y > c.h || y < (c.y0 || 0)) continue;
-    if (c.box ? Math.abs(x - c.x) <= c.hx && Math.abs(z - c.z) <= c.hz : Math.hypot(x - c.x, z - c.z) <= c.r) return true;
+  const S = packed();
+  for (let i = 0; i < S.n; i++){
+    if (S.K[i] === HILL){ if (y <= moundY(S.obj[i], x, z)) return true; continue; }
+    if (y > S.H[i] || y < S.Y0[i]) continue;
+    const dx = x - S.X[i], dz = z - S.Z[i];
+    if (S.K[i] === BOX ? Math.abs(dx) <= S.HX[i] && Math.abs(dz) <= S.HZ[i] : Math.sqrt(dx*dx + dz*dz) <= S.HX[i]) return true;
   }
   return false;
 }

@@ -20,7 +20,12 @@ const readKey = (k) => { try { return localStorage.getItem(k); } catch(e){ retur
 // a tier picked with P (jpt_quality) always wins; otherwise start on HIGH, or wherever the auto governor last settled
 let manualQuality = QUALITY_LEVELS.includes(readKey('jpt_quality'));
 let qualityIdx = QUALITY_LEVELS.indexOf(readKey(manualQuality ? 'jpt_quality' : 'jpt_quality_auto'));
-if (qualityIdx < 0) qualityIdx = 2;   // default HIGH
+/* where a first visit starts: HIGH, or MEDIUM on a phone or tablet (a touch screen's GPU drawing HIGH's ambient occlusion
+   at twice the pixels is what the governor below would step down from anyway, after the first stuttering seconds of
+   play). P, or the pause menu's GRAPHICS, still puts it on HIGH */
+const touchFirst = () => { try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches; } catch(e){ return false; } };
+const defaultIdx = () => touchFirst() ? 1 : 2;
+if (qualityIdx < 0) qualityIdx = defaultIdx();   // default HIGH (MEDIUM on a touch device)
 function applyQuality(){
   const q = QUALITY[QUALITY_LEVELS[qualityIdx]];
   renderer.setPixelRatio(Math.min(devicePixelRatio, q.pixelRatio));
@@ -47,9 +52,9 @@ export function cycleQuality(){
   applyQuality();
   showQualityToast();
 }
-/* Settings · RESET TO DEFAULTS: forget the picked tier and the governor's, start again on HIGH (the governor may still step down) */
+/* Settings · RESET TO DEFAULTS: forget the picked tier and the governor's, start again on the default tier (the governor may still step down) */
 export function resetQuality(){
-  manualQuality = false; qualityIdx = 2;
+  manualQuality = false; qualityIdx = defaultIdx();
   try { localStorage.removeItem('jpt_quality'); localStorage.removeItem('jpt_quality_auto'); } catch(e){}
   applyQuality();
 }

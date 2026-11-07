@@ -273,7 +273,7 @@ let bakeQueue = [], baking = null;
 const BAKE_MS = { low: 2, medium: 3, high: 4 };   // (a frame's time spent baking far figures, by quality tier)
 
 /* how many are the live figure at once, and from how far: fewer on the low tier (engine/quality.js), which phones sit on */
-export const NEAR = { low: { dist: 24, max: 3 }, medium: { dist: 30, max: 4 }, high: { dist: 36, max: 5 }, keep: 3 };
+export const NEAR = { low: { dist: 22, max: 3 }, medium: { dist: 26, max: 4 }, high: { dist: 30, max: 4 }, keep: 3 };
 
 /* once a frame in the temple (game/hub.js updateHub) */
 export function stepTempleFolk(dt){

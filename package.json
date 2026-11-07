@@ -42,6 +42,7 @@
     "smoke:alignment": "node tools/smoke/alignment.mjs",
     "smoke:coop-citadel": "HOST=trooper node tools/smoke/coop-temple.mjs",
     "perf:hitch": "node tools/smoke/hitch.mjs",
+    "perf:cpu": "node tools/smoke/cpu.mjs",
     "shots:maps": "node tools/shots/maps.mjs",
     "smoke:files": "node tools/smoke/files.mjs",
     "smoke:welcome": "node tools/smoke/hub-welcome.mjs",

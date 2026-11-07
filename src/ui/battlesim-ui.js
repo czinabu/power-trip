@@ -78,7 +78,7 @@ function hover(at){
   const take = pad.active ? PAD_GLYPHS[pad.family].X : 'RIGHT CLICK';
   const u = BS.plan[i];
   const txt = u ? unitName(palette().find(o => o.kind === u.kind && o.id === u.id) || { nm: u.id.toUpperCase() }) + (u.elite ? ' · ELITE' : '') + ' · ' + take + ' TO TAKE BACK'
-    : p ? 'PLACING: ' + unitName(p) + (p.kind !== 'hero' && p.id !== 'boss' && SB.count > 1 ? ' ×' + SB.count : '') : '';
+    : p ? 'PLACING: ' + unitName(p) + (p.kind !== 'hero' && p.id !== 'boss' && p.id !== 'raid' && SB.count > 1 ? ' ×' + SB.count : '') : '';
   const el = $('bshover'); if (el.textContent !== txt) el.textContent = txt;
 }
 

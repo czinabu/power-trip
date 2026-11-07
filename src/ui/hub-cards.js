@@ -11,7 +11,7 @@ import { svgIcon } from './icons.js';
    lock with what opens it, a tick, READY). The first live option of a station is its main one, drawn in the accent.
    The icon goes by what the option is (its label), so a new option picks one up without a list to keep. */
 const HUB_ICON = [
-  [/CAMPAIGN|THE HUNT$|NEW GAME|NG\+|TIER/, 'saga'], [/SITH GATE|ACT IV/, 'gate'], [/JEDHA|OPEN ZONE|FLY TO/, 'city'],
+  [/CAMPAIGN|THE HUNT$|NEW GAME|NG\+|TIER/, 'saga'], [/SITH GATE|ACT IV/, 'gate'], [/RAID/, 'skull'], [/JEDHA|OPEN ZONE|FLY TO/, 'city'],
   [/STORY MISSIONS|MISSION RECORDS|MISSION LOGS/, 'list'], [/CHALLENGE|BOUNTY/, 'dice'], [/SURVIVAL/, 'waves'],
   [/EVERY MODE/, 'grid'], [/SHOW ME AROUND/, 'compass'], [/WHAT'S WHERE/, 'map'], [/JOIN|HOST|READY|GO NOW|NOT YET|PARTY/, 'party'],
   [/TRAINING/, 'target'], [/SANDBOX/, 'sabers'], [/CODEX/, 'book'], [/HOLOCRON|SIGNET|SERVICE RECORD/, 'holo'],

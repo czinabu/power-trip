@@ -12,6 +12,11 @@
 //
 // Co-op: the host runs all of it. A guest sees the host's foe as a puppet (net/foes.js); the bar, the banners and the
 // moves' effects come over as 'fin' messages (net/foefire.js hooks.fin), drawn here by finaleNet.
+//
+// A RAID BOSS (data/raids.js) carries a SUNDER BAR (def.sunder: the Warbringer's posture bar, given to a boss): each
+// hero's own job fills it (a bolt turned back into him, a blow from behind or above, the trooper's fire: boss/roles.js),
+// and a full bar breaks him open. Gunfire PINS him: his moves come slower while it keeps up. A raid's own day of
+// modifiers is laid over a copy of his numbers as he spawns (opts.raid: data/raids.js tuneBoss).
 
 import * as THREE from 'three';
 import { G, shared, enemies, player, bolts, rings } from '../state.js';
@@ -41,6 +46,9 @@ import { meetBoss } from '../game/codex.js';
 import { hooks } from '../net/run.js';
 import { hurtPlayer } from '../player/damage.js';
 import { killCam } from '../engine/killcam.js';
+import { staggerEnemy } from '../enemies/damage.js';
+import { tuneBoss, MODS } from '../data/raids.js';
+import { ROLE, roleTags } from './roles.js';
 
 // the final bosses by id (boss/vexis.js registers his). Kept on the function itself, so a boss's file can register
 // whichever order the modules load in
@@ -55,14 +63,17 @@ const ss = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k
 export function spawnFinale(id, at, opts = {}){
   const D = REG()[id];
   if (!D) return null;
-  const def = D.def;
+  const heroes = heroesHere();
+  const def = opts.raid ? tuneBoss(D.def, opts.raid.mods, {}, heroes) : D.def;   // (a raid's copy: the day's modifiers on it)
   // a duellist wears his look from the saber cast; any other body is dressed in his own model (def.dress)
   spawnEnemy(def.type, V3(at.x, 0, at.z), def.dress ? { dress: def.dress, keep: true } : { look: def.look, keep: true });
   const e = enemies[enemies.length - 1];
   e.champion = true; e.noFloor = true; e.look = def.look;   // (his look names him to a co-op guest: net/foes.js)
-  e.fin = { id, def, D, mission: !!opts.mission, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0 };
+  e.fin = { id, def, D, mission: !!opts.mission, raid: opts.raid || null, phase: 1, sig: null, sigT: def.sigGap[0] * 0.6, lastSig: -9, cds: {}, used: {}, blockT: 0, crowdT: 0, over: false, bucket: 0, tags: 0 };
+  if (def.sunder) e.fin.sd = { v: 0, max: Math.round(def.sunder.bar * heroScale(def.sunder.coop, heroes)), supp: 0, idle: 0, openUntil: 0, pinned: false, sent: 0, said: {} };
+  shared.reviveMul = def.reviveMul || null;   // (the trooper's quicker revives in his fight: game/revive.js)
   e.t = { ...e.t, ...(def.over || {}), dmg: e.t.dmg * def.dmg, score: 40, boss: true };   // (a copy: never mutate the shared type)
-  e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroesHere()));
+  e.hp = e.maxHp = Math.round(def.hp * diffHpMul() * heroScale(SCALE.bossHp, heroes) * (def.raidHp || 1));
   e.spd = e.t.speed * def.speed;
   e.group.scale.multiplyScalar(def.scale);
   e.dmgRule = finaleDamage;   // what can hurt him, and how much (enemies/damage.js)
@@ -77,7 +88,7 @@ export function spawnFinale(id, at, opts = {}){
   G.shake = Math.max(G.shake, 0.8);
   S.roar(e.group.position); MUSIC.waveSting();
   showBanner(def.name, def.intro || '', 4, { kicker: 'FINAL BOSS' });
-  if (hooks.fin) hooks.fin({ k: 'up', id, n: e.nid });
+  if (hooks.fin) hooks.fin({ k: 'up', id, n: e.nid, rm: opts.raid ? opts.raid.mods : undefined });
   return e;
 }
 // his duel profile for a phase: his form at his rank, with the phase's own numbers on top (data/bosses.js `duel`)
@@ -86,7 +97,7 @@ function setPhaseDuel(e, phase){
   if (!def.duel){ e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1); return; }   // (a body with no duel profile: his moves are the fight)
   if (phase === 1) setFoeForm(e, def.form, def.rank, FORM_SWITCH.boss[def.codex || 'sith'] || null);
   initDuel(e, { ...foeProfile(e.ff || def.form, def.rank), deflect: 1, ...def.duel[phase - 1] });
-  e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1);
+  e.spd = e.t.speed * def.speed * (def.pace[phase - 1] || 1) * (e.fin.sd && e.fin.sd.pinned ? def.sunder.pace : 1);
 }
 
 /* ---------------- what hurts him (enemies/damage.js calls it for every blow) ----------------
@@ -96,6 +107,7 @@ function finaleDamage(e, dmg, tick, opts, knockDir){
   const F = e.fin, def = F.def;
   if (F.over || (F.sig && F.sig.id === 'beat')) return null;   // (null: the blow doesn't land at all)
   if (!(dmg > 0)) return dmg;
+  if (F.sd){ F.tags = opts && opts.rt != null ? opts.rt : roleTags(e, opts); if (!tick) rolePin(e, F, F.tags); }   // (what kind of blow it was: boss/roles.js; a guest's comes with its own)
   dmg *= (def.phaseResist[F.phase - 1] ?? 1) * (def.armour ?? 1);
   // his own rules first (the Magistrate's shield, his cracks): what's left of the blow, or null if none of it lands
   if (F.D.look.damage){ dmg = F.D.look.damage(e, dmg, tick, opts, knockDir); if (dmg === null) return null; }
@@ -107,12 +119,71 @@ function finaleDamage(e, dmg, tick, opts, knockDir){
   }
   // the burst budget: what's gone into him lately drains away over burstWin seconds; nothing past the budget lands
   if (def.burstCap){
-    const room = e.maxHp * def.burstCap - F.bucket;
+    const room = e.maxHp * def.burstCap * (F.sd && G.gt < F.sd.openUntil ? def.sunder.burstMul : 1) - F.bucket;   // (the vessel broken open: more of it lands)
     if (room <= 0){ if (!tick) floater(at(), 'RESISTED', '#cc99ff'); return null; }
     dmg = Math.min(dmg, room);
     F.bucket += dmg;
   }
+  if (F.sd && !tick) roleGain(e, F, F.tags);
   return dmg;
+}
+
+/* ---------------- THE SUNDER BAR (a raid boss: def.sunder) ----------------
+   Each hero's job fills it: a bolt turned back into him, a blow from behind him or from above, the trooper's fire, a
+   little from the squad. Full, it BREAKS him: a stagger, then his guard stays down and more of every blow lands. Gunfire
+   also PINS him (supp): pinned, his moves come slower and his feet drag. */
+const ROLE_SAY = { deflect: ['CRACKED', '#ff9a8a'], flank: ['FLANKED', '#ffd24a'], pin: ['PINNED', '#ffc560'] };
+function roleSay(e, F, k){
+  const sd = F.sd; if (G.gt < (sd.said[k] || 0)) return;
+  sd.said[k] = G.gt + 1.6;
+  floater(V3(e.group.position.x, e.group.position.y + 3.6 * e.group.scale.y, e.group.position.z), ROLE_SAY[k][0], ROLE_SAY[k][1]);
+}
+function rolePin(e, F, t){
+  if (!(t & ROLE.shot)) return;
+  const sd = F.sd, c = F.def.sunder;
+  sd.supp = Math.min(c.pinMax, sd.supp + (t & ROLE.trooper ? c.pin : c.pinOther));
+}
+function roleGain(e, F, t){
+  const sd = F.sd, c = F.def.sunder, g = c.gain;
+  if (F.over || G.gt < sd.openUntil) return;
+  let add = 0;
+  if (t & ROLE.deflect){ add += g.deflect; roleSay(e, F, 'deflect'); }
+  else if (t & (ROLE.behind | ROLE.air)){ add += t & ROLE.shot ? g.flankShot : g.flank; roleSay(e, F, 'flank'); }
+  if (t & ROLE.trooper) add += g.pin * (sd.pinned ? 1.5 : 1);
+  if (t & ROLE.squad) add += g.squad;
+  if (add > 0){ sd.v = Math.min(sd.max, sd.v + add); sd.idle = 0; }
+}
+// the moves the break waits out: his phase beat, his defeat, a ward he kneels behind
+const UNBROKEN = { beat: 1, defeat: 1, ward: 1 };
+function updateSunder(e, F, dt){
+  const sd = F.sd, c = F.def.sunder;
+  sd.supp = Math.max(0, sd.supp - c.pinDecay * dt);
+  const pin = sd.pinned ? sd.supp > 0.55 : sd.supp >= 1;
+  if (pin !== sd.pinned){
+    sd.pinned = pin;
+    e.spd *= pin ? c.pace : 1 / c.pace;
+    if (pin) roleSay(e, F, 'pin');
+  }
+  if ((sd.idle += dt) > c.idle) sd.v = Math.max(0, sd.v - c.drain * dt);
+  if (sd.v >= sd.max && !F.over && !(F.sig && UNBROKEN[F.sig.id])) breakVessel(e, F);
+  setSunderHud(sd.v / sd.max, sd.pinned, G.gt < sd.openUntil);
+  if ((sd.sent -= dt) <= 0 && hooks.fin){ sd.sent = 0.25; hooks.fin({ k: 'sd', n: e.nid, v: Math.round(sd.v / sd.max * 100) / 100, p: sd.pinned ? 1 : 0, o: G.gt < sd.openUntil ? 1 : 0 }); }
+}
+function breakVessel(e, F){
+  const sd = F.sd, c = F.def.sunder, g = e.group;
+  if (F.sig) endSig(e, true);
+  e.hyper = false;
+  sd.v = 0; sd.idle = 0; sd.openUntil = G.gt + c.open; F.bucket = 0;
+  staggerEnemy(e, 0, 0, 'BROKEN OPEN');
+  e.st = Math.min(2.2, c.open); e.openUntil = sd.openUntil;
+  F.lastSig = G.gt; F.sigT = Math.max(F.sigT, c.open * 0.8);
+  burst(V3(g.position.x, 1.8 * g.scale.y, g.position.z), 0xe8d8ff, 40, 12, 6, 1.1);
+  spawnGroundShock(V3(g.position.x, 0.1, g.position.z), 0xb46bff, 5, 0.5, 0.8);
+  screenFlash('radial-gradient(ellipse at center, rgba(232,216,255,.2), transparent 60%)', 0.5, 0.5);
+  G.shake = Math.max(G.shake, 0.9); G.hitstop = Math.max(G.hitstop, 0.12);
+  showBanner(c.broke || 'BROKEN OPEN', c.brokeSub || 'He is wide open. Everyone on him.', 2.4, { kicker: F.def.name });
+  S.stun(g.position);
+  if (hooks.fin) hooks.fin({ k: 'sb', n: e.nid });
 }
 
 /* ---------------- the boss bar ---------------- */
@@ -125,7 +196,28 @@ function hudEls(){
     const bg = document.getElementById('bossbarbg');
     for (const k of [0.66, 0.33]){ const n = document.createElement('div'); n.className = 'bossnotch'; n.style.left = (k * 100) + '%'; bg.appendChild(n); }
   }
-  return { wrap, name: document.getElementById('bossname'), bar: document.getElementById('bossbar'), ph };
+  let sd = document.getElementById('bosssunder');
+  if (!sd){
+    sd = document.createElement('div'); sd.id = 'bosssunder';
+    sd.innerHTML = '<span class="sd-k"></span><div class="sd-bg"><i></i></div><span class="sd-pin">PINNED</span>';
+    wrap.appendChild(sd);
+  }
+  let mods = document.getElementById('bossmods');
+  if (!mods){ mods = document.createElement('div'); mods.id = 'bossmods'; wrap.appendChild(mods); }
+  return { wrap, name: document.getElementById('bossname'), bar: document.getElementById('bossbar'), ph, sd, mods };
+}
+// the sunder bar under his (a raid boss's: def.sunder), and the day's modifiers under that (a raid's)
+function showSunder(def, mods){
+  const H = hudEls(); if (!H) return;
+  H.sd.style.display = def && def.sunder ? '' : 'none';
+  if (def && def.sunder) H.sd.querySelector('.sd-k').textContent = def.sunder.name || 'SUNDER';
+  H.mods.innerHTML = (mods || []).map(m => MODS[m] ? '<span style="--mc:' + MODS[m].col + '">' + MODS[m].name + '</span>' : '').join('');
+  H.mods.style.display = mods && mods.length ? '' : 'none';
+}
+function setSunderHud(k, pinned, open){
+  const H = hudEls(); if (!H) return;
+  H.sd.querySelector('i').style.width = (open ? 100 : Math.max(0, Math.min(1, k)) * 100) + '%';
+  H.sd.classList.toggle('pinned', !!pinned); H.sd.classList.toggle('open', !!open);
 }
 function showHud(e){
   const H = hudEls(); if (!H) return;
@@ -135,6 +227,7 @@ function showHud(e){
   H.name.textContent = def.title;
   H.wrap.style.display = 'block'; H.wrap.classList.add('finale');
   setHudPhase(e.fin ? e.fin.phase : 1, def);
+  showSunder(def, e.fin ? e.fin.raid && e.fin.raid.mods : guestNet.mods);
 }
 function setHudPhase(p, def){
   const H = hudEls(); if (!H) return;
@@ -144,6 +237,7 @@ function setHudPhase(p, def){
 function hideHud(){
   const H = hudEls(); if (!H) return;
   H.wrap.style.display = 'none'; H.wrap.classList.remove('finale');
+  showSunder(null, null);
 }
 function updateHud(e){
   const H = hudEls(); if (!H) return;
@@ -162,6 +256,8 @@ export function updateFinale(dt){
   updateHud(e);
   if (F.D.look.frame) F.D.look.frame(e, dt);
   if (def.burstCap) F.bucket = Math.max(0, F.bucket - e.maxHp * def.burstCap / def.burstWin * dt);
+  if (F.sd && !e.dead) updateSunder(e, F, dt);
+  const slow = F.sd && F.sd.pinned ? def.sunder.slow : 1;   // (pinned: his moves come slower)
   // he can't be floored, flung or carried off by a power: whatever tried it, he's back on his feet (a move that can't be
   // broken carries on through it; any other move is cut, as a stagger cuts it)
   if (!e.dead && (e.state === 'knockdown' || e.state === 'ragdoll' || e.state === 'grasped' || e.state === 'getup')){
@@ -196,9 +292,9 @@ export function updateFinale(dt){
   const near = dist < 4.6 && hero.local;
   F.blockT = near && player.blockHeld && !(player.parryT > 0) ? F.blockT + dt : Math.max(0, F.blockT - dt * 2);
   F.crowdT = players.some(p => p.here && !p.down && Math.hypot(p.pos.x - g.position.x, p.pos.z - g.position.z) < (def.moves.repulse ? def.moves.repulse.crowd : 3)) ? F.crowdT + dt : Math.max(0, F.crowdT - dt);
-  for (const k in F.cds) F.cds[k] -= dt * (F.phase >= 3 ? 1.25 : 1);
+  for (const k in F.cds) F.cds[k] -= dt * (F.phase >= 3 ? 1.25 : 1) * slow;
   if (F.sig) return;
-  F.sigT -= dt;
+  F.sigT -= dt * slow;
   // he only reaches for a move between exchanges: never out of a swing, a lock, a stagger or the floor
   const free = (e.state === 'chase' || e.state === 'recover') && !e.dead && !e.converted && !(e.stunT > 0) && !(e.dodgeT > 0);   // (stunT: a duellist's; a body without a duel has none)
   if (!free || e.dummy || G.gt - F.lastSig < def.sigMin) return;   // (a sandbox dummy stands and takes it: no moves)
@@ -370,7 +466,7 @@ export const finaleNow = () => shared.finale;
 function teardown(){
   const e = shared.finale;
   if (e && e.fin && e.fin.sig && !e.fin.over && e.fin.sig.mv.end) e.fin.sig.mv.end(e, C, e.fin.sig, true);
-  shared.finale = null;
+  shared.finale = null; shared.reviveMul = null;
   hideHud();
   if (MOOD.k > 0) setMood(null);
   for (const id in REG()) REG()[id].look.teardown && REG()[id].look.teardown();
@@ -400,8 +496,10 @@ export function finalePush(pp, f){
 /* ---------------- co-op: the guest's side ---------------- */
 // the host's messages: the boss is up (his puppet's number), a phase turned, a move's effect, his defeat
 export function finaleNet(m){
-  if (m.k === 'up'){ guestNet.n = m.n; guestNet.id = m.id; guestNet.phase = 1; return; }
+  if (m.k === 'up'){ guestNet.n = m.n; guestNet.id = m.id; guestNet.phase = 1; guestNet.mods = m.rm || null; return; }
   const D = REG()[guestNet.id];
+  if (m.k === 'sd'){ setSunderHud(m.v, m.p, m.o); return; }   // the sunder bar (a raid boss)
+  if (m.k === 'sb'){ if (D) showBanner((D.def.sunder && D.def.sunder.broke) || 'BROKEN OPEN', (D.def.sunder && D.def.sunder.brokeSub) || '', 2.4, { kicker: D.def.name }); return; }
   if (m.k === 'phase'){
     guestNet.phase = m.p; MUSIC.bossPhase(m.p);
     if (D){ setHudPhase(m.p, D.def); showBanner('PHASE ' + ROMAN[m.p], (D.def.phaseLines && D.def.phaseLines[m.p - 1]) || '', 3, { kicker: D.def.name }); if (m.p >= 3 && D.def.mood) setMood(D.def.mood);
@@ -411,13 +509,14 @@ export function finaleNet(m){
   if (m.k === 'down'){ MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
   if (D && D.look.netFx) D.look.netFx(m, puppetOfNid(m.n));
 }
-const guestNet = { n: null, id: null, phase: 1 };
+const guestNet = { n: null, id: null, phase: 1, mods: null };
 const puppetOfNid = (n) => enemies.find(e => e.nid === n) || null;
 // a guest: the puppet of the host's boss is the finale here too (its bar, the dark of phase III)
 export function adoptFinalePuppet(e){
   if (shared.finale === e) return;
   shared.finale = e; e.finId = guestNet.id || Object.keys(REG()).find(id => REG()[id].def.look === e.look) || null;
-  if (e.finId){ const def = REG()[e.finId].def; e.finPhase = guestNet.phase; showHud(e); setHudPhase(guestNet.phase || 1, def); }
+  if (e.finId){ const def = REG()[e.finId].def; e.finPhase = guestNet.phase; showHud(e); setHudPhase(guestNet.phase || 1, def);
+    e.roles = !!def.sunder; shared.reviveMul = def.reviveMul || null; }   // (a raid boss: this screen's blows carry their role tags, boss/roles.js)
 }
 function updateGuestFinale(e, dt){
   if (!enemies.includes(e) || e.dead){ teardown(); return; }

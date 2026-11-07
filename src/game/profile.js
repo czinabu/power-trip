@@ -31,7 +31,7 @@ function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catc
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
                        picks: [], path: null, forks: {}, deck: null, fresh: false, parts: null, sides: {}, secrets: {},
                        align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 },
-                       top: 0, ng: { best: 0, runs: 0 } });
+                       top: 0, ng: { best: 0, runs: 0 }, raids: 0, raidLog: {} });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -172,6 +172,21 @@ export function noteMissionWon(id, arcade){
   else { const first = !p.missions[id]; p.missions[id] = (p.missions[id] || 0) + 1; gain(first ? RANK_XP.mission : RANK_XP.missionAgain); }
   settle(G.hero);
 }
+// a raid won (data/raids.js): the count the raid's rare parts ask for (`earn: { raids }`), and more rank XP the first
+// time each day's rotation is beaten. raid: { id, day, mods }
+export function noteRaidWon(raid){
+  if (!learning() || !raid) return;
+  const p = profileOf();
+  p.raids = (p.raids || 0) + 1;
+  p.raidLog ||= {};
+  const L = p.raidLog[raid.id] ||= { wins: 0, days: [] };
+  const first = !L.days.includes(raid.day);
+  L.wins++; if (first) L.days = [...L.days.slice(-13), raid.day];
+  gain(first ? RANK_XP.raid : RANK_XP.raidAgain);
+  settle(G.hero);
+}
+export const raidsWon = (hero = G.hero) => profileOf(hero).raids || 0;
+export const raidWonOn = (id, day, hero = G.hero) => !!(((profileOf(hero).raidLog || {})[id] || {}).days || []).includes(day);
 // a side mission from the temple won (data/side-quests.js): more rank XP the first time
 export function noteSideWon(id){
   if (!learning()) return;

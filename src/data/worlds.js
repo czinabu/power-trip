@@ -478,7 +478,9 @@ export const MISSION_WORLDS = {
     outer: 0x3a3a40,
     backdrop: [
       // TOWERING (world/towering.js): the mountains round the plateau, snow on their tops
-      { kind: 'bluffs', count: 8, r: [1.35, 1.65], h: [75, 120], w: 0.32, color: 0x4a4e54, color2: 0x3a3e44, cap: 0xe8ecf0 },
+      // two passes stay open: the road the hero climbs up by (south, behind the start) and the way down off the
+      // plateau past the camp (north, through the gate), so the ranges and the valley show beyond the mountains' ring
+      { kind: 'bluffs', count: 7, r: [1.35, 1.65], h: [75, 120], w: 0.32, color: 0x4a4e54, color2: 0x3a3e44, cap: 0xe8ecf0, skip: [[Math.PI/2, 0.42], [-Math.PI/2, 0.34]] },
     ],
     pal: { wall: 0x4a4e54, wallD: 0x2a2e34, metal: 0x6a7078, metalD: 0x2e3238, sand: 0x6a6250, crate: 0x4a4a42, rock: 0x5a5a5e,
            red: 0xff3a2a, lamp: 0xffe0b0, cloth: 0x8a1a1a },

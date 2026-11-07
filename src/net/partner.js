@@ -43,7 +43,7 @@ function partnerOf(slot){
      you see them chase */
   P.mate = { id: 'partner' + slot, slot, local: false, name: nameOf(slot), pos: puppet.group.position, vel: new THREE.Vector3(), down: false, here: false, away: false };
   addHeroReviver(() => standing(P));
-  addReviverSource(() => standing(P) ? { kind: 'partner', pos: puppet.group.position, hitAt: null } : null);
+  addReviverSource(() => standing(P) ? { kind: 'partner', pos: puppet.group.position, hitAt: null, trooper: P.hero === 'trooper' } : null);
   partners.set(slot, P);
   return P;
 }

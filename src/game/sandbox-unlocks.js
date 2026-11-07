@@ -8,6 +8,7 @@
 // the other sw_camp_ keys). The sandbox offers what either hero has reached.
 
 import { G, isGunner } from '../state.js';
+import { raidsOpen } from '../data/raids.js';
 import { CHAPTERS as ALL_CHAPTERS, chapterOrder, chapterNo, storyMissions } from '../data/campaign.js';
 import { LEVELS } from '../data/levels.js';
 import { MISSIONS } from '../data/missions.js';
@@ -117,7 +118,7 @@ const S = () => scope || refreshSandboxScope();
 export const sandboxIsFull = () => S().full;
 
 // FOES: a regular type, the Warbringer, or 'boss' (the end-boss)
-export const foeOffered = (id) => S().full || S().foes.has(id);
+export const foeOffered = (id) => S().full || S().foes.has(id) || (id === 'raid' && raidsOpen());   // (the raid boss: once Act IV is beaten)
 export const mapOffered = (id) => S().full || S().maps.has(id);
 
 // POWERS: a kit row (data/sandbox.js) names where the campaign hands it out with `from` (an auto-unlock key or a store

@@ -16,9 +16,20 @@
    Every number below is his; the reused moves' own numbers are Vexis's (data/bosses.js VEXIS.moves). The phases,
    cooldowns and which moves he has are these.
 
-   RAID READY: he is the first raid boss in waiting (the plan's Phase 3). Everything a raid needs is data here, not code:
-   his health already scales with the party (data/coop.js SCALE.bossHp), the wards are the roles (any hero works any
-   ward, each hero has one it is best at), and `raid` below is where a raid page lays its own numbers over his. */
+   THE FIRST RAID BOSS (data/raids.js): a phased fight for 2-4 heroes in which each hero has a job they're best at, and
+   any hero can still do any of them (so a party of one hero, or one hero and the squad, always has a way through):
+     DEFLECTING (the Jedi)       the DARK VOLLEY (from I): he plants and pours crimson bolts at each hero in turn. Turned
+                                 back off a blade, every one that strikes him cracks the vessel (the sunder bar)
+     FLANKING FROM THE AIR (the  the WARDED ADVANCE (from II): a ward across his front turns every blow and shot from in
+       Mandalorian)              front of him. Only what comes from behind him or from above lands. Blows from behind or
+                                 above crack the vessel at any time, and the high ward is worked from above
+     SUPPRESSING AND REVIVING    gunfire on him PINS him (his moves come slower, his feet drag), the trooper's most of
+       (the ARC trooper)         all, and the trooper gets a fallen teammate up twice as fast. The squad holds the line
+   THE SUNDER BAR (`sunder`, the Warbringer's posture bar given to a raid boss: boss/finale.js): those role blows fill
+   it, and full it BREAKS the vessel: he staggers and stands wide open for a while, every blow landing as on an opened
+   foe. The bar grows with the party as the Warbringer's does (data/duel.js WARBRINGER.coop).
+   A raid lays its own numbers over his (`raid` below, the modifiers in data/raids.js); the story's fight is the same
+   fight without them. */
 export const KHAREL = {
   id: 'kharel', codex: 'gate',
   name: 'DARTH KHAREL', title: 'DARTH KHAREL — THE UNBURIED', look: 'DARTH KHAREL',
@@ -51,6 +62,15 @@ export const KHAREL = {
     blink: { from: 3, cd: 12 },
     storm: { from: 3, cd: 18 },
     lastStand: { at: 0.12 },
+    // I+ THE DARK VOLLEY (the deflector's job): he plants, raises his free hand and pours bolts at each hero in turn for
+    // `dur` s after a `wind` s tell, one every `every` s (`speed` m/s, `dmg` each). Nothing breaks him out of it; turned
+    // back off a blade, each bolt that strikes him lands and cracks the vessel. Not when a hero is closer than `near`
+    volley: { from: 1, cd: 15, wind: 0.8, dur: 3.4, every: 0.2, speed: 24, dmg: 10, near: 3.2 },
+    // II+ THE WARDED ADVANCE (the flanker's job): a ward across his front for `dur` s while he walks at the nearest hero
+    // (`step` m/s). Every blow and shot from in front of him is turned (`arc`: how far round his front the ward reaches,
+    // as the cosine); from behind him or from above it lands. A slam off the ward every `slam.every` s throws back
+    // whoever is in front of him (dodge or jump it)
+    bulwark: { from: 2, cd: 21, dur: 7, step: 1.5, arc: 0.2, slam: { every: 2.4, r: 5.5, dmg: 15, knock: 11 } },
     // II+ THE WARDS: once as each phase from II begins, then every `cd` s. He goes to the dais (`home`, or where he
     // stands), kneels behind his ward (nothing lands), and three wards light round the floor (the arena's own spots,
     // shared.gateWards, else a ring of `ring` m round him). Each takes `work` s of one hero's pace (game/locks.js);
@@ -61,7 +81,18 @@ export const KHAREL = {
   },
   // the old Sith lightning (Vexis's moves draw it in these: boss/vexis.js), and the dark of phase III
   mood: { fill: 0.48, sun: 0.32, rim: 1.6, sky: 0.3, fog: 0x1a0a28, blade: 1.4, near: 0.7, far: 0.75 },
-  // A RAID'S OWN NUMBERS (for the raid page to come; nothing reads this yet): a party of four gets more wards and less
-  // time for them, the bar a little longer, and the modifiers a raid rotates in
-  raid: { hp: 1.25, ward: { time: [24, 22, 20, 18], extra: [0, 0, 1, 1] }, modifiers: ['storm-every-phase', 'two-wards-at-once', 'choir-reinforcements'] },
+  // THE SUNDER BAR (boss/finale.js): `bar` at one hero, each extra hero adds `coop` of it again. What fills it, a blow at
+  // a time (`gain`): a bolt turned back into him (deflect), a blow from behind him or from above (flank, and a shot that
+  // way flankShot), any gunfire the trooper lands (pin), and the squad's (squad). A full bar breaks him `open` s (a
+  // stagger, then wide open; his burst cap is `burstMul` times wider meanwhile). Left alone for `idle` s it drains
+  // `drain` a second. PINNED: gunfire builds `supp` (`pin` per trooper hit, `pinOther` per other gunner's, losing
+  // `pinDecay` a second, up to `pinMax`); at 1 or over he is pinned: his moves come `slow` as often and he moves `pace`
+  sunder: { name: 'THE VESSEL', broke: 'THE VESSEL CRACKS', brokeSub: 'He is wide open. Everyone on him.', bar: 190, coop: 0.6, open: 4.5, burstMul: 1.8, idle: 2.5, drain: 9,
+            gain: { deflect: 22, flank: 10, flankShot: 4, pin: 2, squad: 1 },
+            pin: 0.12, pinOther: 0.04, pinDecay: 0.3, pinMax: 1.5, slow: 0.55, pace: 0.8 },
+  // THE TROOPER'S REVIVES in his fight: a trooper gets a fallen teammate up this many times as fast (game/revive.js)
+  reviveMul: { trooper: 2 },
+  // A RAID'S OWN NUMBERS (data/raids.js lays them over his): his bar by the size of the party (on top of the usual co-op
+  // scaling), and the ward's time
+  raid: { hp: [1.0, 1.08, 1.16, 1.25], ward: { time: [24, 22, 20, 18] } },
 };

@@ -65,6 +65,9 @@ export const PAINTS = [
   { id: 'desert', name: 'Desert',  set: { palette: { plate: 0xcbb48a } }, earn: { arcade: 1 }, line: 'Sand-washed for the dune worlds.' },
   { id: 'jungle', name: 'Jungle',  set: { palette: { plate: 0x7d8462 } }, earn: { waves: 5 }, line: 'Swamp-green, for the long nights on the line.' },
   { id: 'guard',  name: 'Guard red', set: { palette: { plate: 0x9a302b } }, earn: { won: 1 }, line: 'The capital\'s own colour. Worn by the few who came home.' },
+  // the RAID's RARE paint (`rare`, data/raids.js): looks only
+  { id: 'vessel', name: 'Vessel black', set: { palette: { plate: 0x2c2832, grey: 0x7a5ab0 } }, earn: { raids: 1 }, rare: true, line: 'Black plate with violet seams, the colours of the thing you put back in the dark.' },
+  { id: 'warded', name: 'Ward violet', set: { palette: { plate: 0x8a74b8, grey: 0x2a2232 } }, earn: { raids: 5 }, rare: true, line: 'Painted the colour of his wards. The squad knows where you have been.' },
   // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
   { id: 'marshal', name: 'Marshal gold', set: { palette: { plate: 0xc29a45, grey: 0x3a3428 } }, earn: { top: 'Marshal Commander' }, legend: true, line: 'Gold plate. The legion knows who wears it.' },
 ];

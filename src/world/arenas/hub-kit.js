@@ -35,6 +35,7 @@ export function hubStations(W, K, o = {}){
     live(K.deco(new THREE.RingGeometry(r + 0.5, r + 0.58, 48), ring, s.x, 0.05, s.z, -PI / 2));
     if (s.act === 'travel' && !tall.includes(s.id) && o.beacon) o.beacon(s.x, s.z);
     if (s.act === 'quests') callStone(K, s.x, s.z, sz >= s.z ? 1 : -1, o.stone || {});
+    if (s.act === 'raid') raidRing(K, s.x, s.z, o.stone || {});
     const face = Math.atan2(sx - s.x, sz - s.z);
     K.sign(s.name, s.x, tall.includes(s.id) ? 8.2 : 4.6, s.z, face, { w: 3.6, ...(o.sign || {}) });
   }
@@ -51,6 +52,20 @@ export function callStone(K, x, z, dir = 1, c = {}){
     const p = live(K.deco(new THREE.PlaneGeometry(0.62, 0.42), lit, px, py, fz, 0, dir > 0 ? 0 : PI));
     anim(p, (o, t) => { o.material.opacity = 0.55 + Math.sin(t * 1.3 + i * 1.7) * 0.25; });
   }
+}
+/* THE RAID TABLE (act 'raid', data/raids.js): a low stone plinth with a small likeness of the Sith gate standing on it,
+   its ring lit violet and its void slowly turning */
+export function raidRing(K, x, z, c = {}){
+  K.column(x, z, 1.1, 0.9, std(c.stone ?? 0xa89f8c), { wallKick: false, seg: 10, taper: 0.9 });
+  K.deco(new THREE.CylinderGeometry(1.25, 1.25, 0.12, 10), std(c.trim ?? 0xd8b860, 0.45, 0.55), x, 0.96, z);
+  const dark = std(0x1c1622, 0.8, 0.2), gate = new THREE.Group();
+  gate.position.set(x, 2.15, z);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 8, 32), dark); gate.add(ring);
+  const lit = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.035, 6, 40), glowM(0xb46bff, 0.95)); gate.add(lit);
+  const veil = new THREE.Mesh(new THREE.CircleGeometry(0.78, 32), holoM(0xb46bff, 0.28)); gate.add(veil);
+  for (const sx of [-1, 1]){ const f = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.36, 0.26), dark); f.position.set(sx * 0.62, -0.95, 0); gate.add(f); }
+  shared.arenaGroup.add(gate); gate.traverse(live);
+  anim(gate, (o, t) => { o.rotation.y = Math.sin(t * 0.4) * 0.5; veil.rotation.z = t * 0.6; veil.material.opacity = 0.22 + Math.sin(t * 1.7) * 0.08; });
 }
 /* over every door, the name of the wing beyond it, and a lit runner from the middle of the floor out to it */
 export function hubDoorSigns(W, wings, K, o = {}){

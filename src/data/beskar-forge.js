@@ -37,6 +37,9 @@ export const SIGNETS = [
   { id: 'mythosaur', name: 'Mythosaur', earn: { chapter: 'trial-first' }, line: 'The great skull, the oldest sign of Mandalore.' },
   { id: 'owl',       name: 'Nite owl',  earn: { missions: 2 }, line: 'Wings spread. A warrior\'s house.' },
   { id: 'jaig',      name: 'Jaig eyes', earn: { duels: 3 }, line: 'The marks round the visor, given for courage.' },
+  // the RAID's RARE signets (`rare`, data/raids.js): looks only
+  { id: 'brokenward', name: 'Broken ward', earn: { raids: 1 }, rare: true, line: 'A ring split clean through. The ward you flew over, and the one you broke.' },
+  { id: 'gatefall', name: 'Gatefall', earn: { raids: 5 }, rare: true, line: 'A falling star through a ring of stone. The clans will ask where you got it.' },
   // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
   { id: 'mandalore', name: 'Mand\'alor\'s sigil', earn: { top: 'Mand\'alor' }, legend: true, line: 'The crowned skull of Mandalore. Only the one the clans follow wears it.' },
 ];

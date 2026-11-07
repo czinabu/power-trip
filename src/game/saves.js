@@ -210,7 +210,7 @@ const placeOf = (L) => (L && L.name.split('—').map(t => t.trim())[1]) || '';
 function whereNow(){
   if (inCampaignRun()) return 'CAMPAIGN · ' + (G.chapter >= 0 && G.ngPlus > 0 ? 'NG+ ' + ['', 'I', 'II', 'III'][G.ngPlus] + ' · ' : '') + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + placeOf(LEVELS[G.levelIdx]));
   if ((G.mode === 'menu' || G.training) && canResume()) return 'CAMPAIGN · ' + savedChapter(G.resumeRun, G.resumeRun.hero);
-  if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'CHALLENGE · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
+  if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'CHALLENGE · ' : G.missionId && G.missionId.startsWith('raid:') ? 'RAID · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';
   if (G.mode === 'play' && G.training) return 'TRAINING';
   if (G.mode === 'play' && G.sandbox) return 'SANDBOX';

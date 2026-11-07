@@ -63,7 +63,7 @@ const TROOPS = [
   { id: 'grenadier', name: 'GRENADIER', kicker: 'ARTILLERY', threat: 2,
     lore: 'Lobs thermal detonators over whatever cover you pick.',
     weapons: ['Thermal detonators'],
-    watch: ['A ring marks the landing spot and fills as the fuse burns', 'Cover will not save you'],
+    watch: ['A spark at its hand and a sharp click: a throw is coming', 'A ring marks the landing spot and fills as the fuse burns', 'Cover will not save you'],
     beat: ['Step out of the ring before it fills', 'As a Jedi, PUSH a live one back at the squad'] },
   { id: 'lancer', name: 'PURGE LANCER', kicker: 'GAP-CLOSER', threat: 3,
     lore: 'An electro-pike and one long, straight lunge.',

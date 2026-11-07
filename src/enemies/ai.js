@@ -21,7 +21,7 @@ import { hurtPlayer } from '../player/damage.js';
 import { blockedOnBlade } from '../player/jedi/clash.js';
 import { enemyDmgScale } from '../game/survival.js';
 import { ENGAGE } from '../data/enemies.js';
-import { updateDirector, usesToken, dropToken, claimToken, rangedSlotFree, behindCamera } from './director.js';
+import { updateDirector, usesToken, dropToken, claimToken, rangedSlotFree, behindCamera, noteGrenade } from './director.js';
 import { updateNav, navSteer, navClass, navClearance } from './nav.js';
 import { DUEL, FOOTWORK } from '../data/duel.js';
 import { diffTellMul } from '../data/difficulty.js';
@@ -32,7 +32,7 @@ import { tickTactics, planTroopMelee, troopFeint, holdTremble, planShot, approac
   updateLunge, dropLungeLine } from './tactics.js';
 import { bindBlade, BIND } from './disarm.js';
 import { removeEnemy } from './cleanup.js';
-import { throwGrenade, lobClear } from './grenades.js';
+import { throwGrenade, lobClear, grenadeTell } from './grenades.js';
 const LOB_FROM = V3();
 import { updateLegs } from './gait.js';
 import { updateUpper } from './upper.js';
@@ -367,9 +367,11 @@ export function updateEnemies(dt){
           // swing at once — ranged/converted foes are unaffected (already standoff/ally-targeted, not a swarm problem).
           else if (t.ranged || e.converted || onAlly || G.gt - (G.lastMeleeWindupT ?? -9) >= MELEE_WINDUP_GAP){
             // a swing coiled BEHIND the camera gets a longer tell, so off-screen hits stay fair
-            e.wu = t.windup * (!t.ranged && !e.converted && !onAlly && !remote && behindCamera(g.position) ? ENGAGE.rearWindup : 1) * (e.converted || onAlly ? 1 : diffTellMul());   // DIFFICULTY: longer tells on Padawan
+            const rear = !e.converted && !onAlly && !remote && (!t.ranged || t.grenade) && behindCamera(g.position);   // (a grenadier's throw too)
+            e.wu = t.windup * (rear ? (t.grenade ? GRENADE.rearWindup : ENGAGE.rearWindup) : 1) * (e.converted || onAlly ? 1 : diffTellMul());   // DIFFICULTY: longer tells on Padawan
             if (e.suppT > G.gt && t.ranged) e.wu *= TROOPER.command.suppress.windup;   // PINNED: it takes its time over the shot
             e.state = 'windup'; e.st = e.wu; telegraphWindup(e); e.heldTell = false;
+            if (t.grenade && !e.converted && !onAlly) grenadeTell(e, hero);
             // a duellist picks its line, and whether this one is a feint, a held strike or the start of a string; a plain
             // trooper may hold or feint (tactics.js); a line trooper plans a double-tap or a held aim
             e.troop = null; e.volley = false;
@@ -446,6 +448,7 @@ export function updateEnemies(dt){
               const v = e.converted || onAlly ? null : hero.vel, L = GRENADE.lead, sc = GRENADE.scatter;
               const at = V3(tgtPos.x + (v ? v.x * L : 0) + rand(-sc, sc), 0, tgtPos.z + (v ? v.z * L : 0) + rand(-sc, sc));
               throwGrenade(e, V3(g.position.x + tx*0.4, g.position.y + 2.2, g.position.z + tz*0.4), at, e.converted);
+              if (!e.converted && !onAlly) noteGrenade(hero);   // the next grenadier waits its turn (enemies/director.js)
               if (g.userData.weaponArm) g.userData.weaponArm.rotation.x = 0.5;   // the arm follows through
             } else if (tgtPos){
               fireAt(e, tgtPos, 0, held); e.shotAt = G.gt;

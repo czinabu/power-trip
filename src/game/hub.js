@@ -110,6 +110,7 @@ function pickNear(){
   const p = playerPos(), f = fwd();
   let best = null, bd = Infinity;
   for (const s of hubWing().stations){
+    if (s.when && !s.when()) continue;   // (a station that waits for something: the apprentice's post, allies/apprentice.js)
     const dx = s.x - p.x, dz = s.z - p.z, d = Math.hypot(dx, dz);
     if (d > (s.r || 3.2)) continue;
     const face = d < 1.2 ? 1 : (dx * f.x + dz * f.z) / d;

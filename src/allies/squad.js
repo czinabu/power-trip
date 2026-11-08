@@ -77,7 +77,7 @@ export const squadSize = () => allies.length;
 export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
 // the mark by a squadmate's name in the squad panel: its specialist's (the ARMORY LOCKER), else the roster's
-const allyTag = (a) => (a.spec && a.spec.tag) || a.def.tag || '';
+const allyTag = (a) => a.badge || (a.spec && a.spec.tag) || a.def.tag || '';   // (badge: the apprentice's, allies/apprentice.js)
 // every squadmate on its feet (and at least one of them): a survival wave cleared so counts for the armory locker
 export const squadAllStanding = () => allies.length > 0 && allies.every(standing);
 export const squadIn = (x, z, r) => allies.filter(a => standing(a) && !(a.dazeT > G.gt) && !(a.turnT > G.gt) && Math.hypot(a.group.position.x - x, a.group.position.z - z) < r).length;
@@ -95,11 +95,11 @@ export function addSquadmate(at, opts){
   const full = heroKey(SQUAD.roster) || SQUAD.roster.jedi, askRole = opts && opts.role;
   const roster = askRole && full.some(d => d.role === askRole) ? full.filter(d => d.role === askRole)
     : full.filter(d => !d.need || G.unlocked[d.need]);   // (a specialist the run hasn't earned yet waits)
-  const def = (opts && opts.def) || roster.find(d => !allies.some(a => a.def === d)) || roster[allies.length % roster.length];
+  const def = (opts && opts.def) || (!askRole && firstPick && roster.find(d => d.name === firstPick && !allies.some(a => a.def === d))) || roster.find(d => !allies.some(a => a.def === d)) || roster[allies.length % roster.length];   // (firstPick: the trooper's second comes first)
   // the ARMORY LOCKER's SQUAD SPECIALIST (data/trooper-locker.js): the trooper's first squadmate (SGT. VANT) fights in
   // the specialist's role. Only the hero's own roster, never a battle setup's asked-for role or a story's guest
   const spec = isTrooper() && !askRole && !(opts && opts.def) && def === full[0] ? squadSpecialist() : null;
-  const role = SQUAD.roles[spec ? spec.role : def.role];
+  const role = (opts && opts.roleObj) || SQUAD.roles[spec ? spec.role : def.role];   // (roleObj: an apprentice's own numbers, allies/apprentice.js)
   const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
   const g = buildEnemyMesh(t);
   const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
@@ -118,7 +118,18 @@ export function addSquadmate(at, opts){
   if (G.reviveLeft == null) refill();
   return a;
 }
+// THE APPRENTICE'S SLOT (allies/apprentice.js): an apprentice coming along takes one of the squad's places, so the next
+// squad a mode calls in brings one fewer (a mission's squad of three: two and the apprentice)
+const slotHold = { n: 0 };
+// THE SECOND (the trooper's apprentice): the squadmate called in first, so whoever you promoted is always along
+let firstPick = null;
+export function setFirstPick(name){ firstPick = name || null; }
+export function holdSquadSlot(on){ slotHold.n = on ? 1 : 0; }
+// THE SECOND'S RALLY (the trooper's apprentice): while the hero is down, the squad hits this much harder
+let rally = 1;
+export function setSquadRally(m){ rally = m > 0 ? m : 1; }
 export function spawnSquad(n, at){
+  if (n > 0 && slotHold.n > 0){ n--; slotHold.n--; }
   for (let i = 0; i < n; i++) addSquadmate(at && { x: at[0] + (i % 2 ? 1.6 : -1.6) * (1 + (i >> 1)), z: at[1] - 1.2 * (i >> 1) });
   SQ.fYaw = SQ.fYawT = G.yaw;
 }
@@ -441,8 +452,10 @@ function standUp(a, share){
   floater(V3(a.group.position.x, 2.2, a.group.position.z), a.name + ' IS UP', '#7bffae');
 }
 // a wave (or objective) cleared: everyone up and patched, and the hero's second chance back
+let extraRevives = 0;
+export function setExtraRevives(n){ extraRevives = n > 0 ? n : 0; }   // (the trooper's second, made lieutenant: allies/apprentice.js)
 export function refill(){
-  G.reviveLeft = (REVIVE.hero.revives[diffKey()] ?? 1) + SCALE.revives * (heroesHere() - 1);   // a partner in the fight earns more second chances
+  G.reviveLeft = (REVIVE.hero.revives[diffKey()] ?? 1) + SCALE.revives * (heroesHere() - 1) + extraRevives;   // a partner in the fight earns more second chances
   for (const a of allies){ if (a.body) getUp(a.body, 'clear'); a.hp = a.maxHp; }
 }
 // the trooper's REINFORCE call (allies/calls.js): everyone down is up now, patched. Returns how many got up
@@ -538,7 +551,7 @@ function shoot(a, e){
   const sp = a.role.spread;
   dir.x += rand(-sp, sp); dir.y += rand(-sp, sp) * 0.5; dir.z += rand(-sp, sp); dir.normalize();
   a.kick = 1;
-  fireBolt(muzzle, dir, a.role.boltSpeed, a.role.dmg * (SQUAD.dmg[diffKey()] || 1) * (isFodder(e) ? 1 : COMMAND.markEliteDmg) * (player.up.squadDmg || 1) * flankMul(a, e), true, true, a);
+  fireBolt(muzzle, dir, a.role.boltSpeed, a.role.dmg * (SQUAD.dmg[diffKey()] || 1) * (isFodder(e) ? 1 : COMMAND.markEliteDmg) * (player.up.squadDmg || 1) * flankMul(a, e) * (a.dmgMul || 1) * rally, true, true, a);
   bolts[bolts.length - 1].ally = a;
   bolts[bolts.length - 1].mark = isFodder(e) ? null : e;   // an elite only takes the bolts meant for it (enemies/bolts.js)
   bolts[bolts.length - 1].mesh.material.color.setHex(isMando() ? 0xffa040 : 0x4aa8ff);
@@ -563,7 +576,7 @@ function meleeAlly(a, e, dt, dy){
   if (!e || a.fireT > 0 || Math.abs(dy) > 0.5) return;
   const p = g.position, tp = e.group.position;
   if (Math.hypot(tp.x - p.x, tp.z - p.z) - bodyRadius(e) > R.reach) return;
-  a.cutT = R.windup; a.fireT = rand(R.every[0], R.every[1]);
+  a.cutT = R.windup; a.fireT = rand(R.every[0], R.every[1]) * (a.fireMul || 1);
   sfx(160, R.windup, 'sawtooth', 0.025, 260);   // the blade's hum rises into the cut
 }
 function allyCut(a){
@@ -574,7 +587,7 @@ function allyCut(a){
     if (e.dead || e.converted || e.state === 'spawn' || !isFodder(e)) continue;   // the duellists stay the hero's
     const dx = e.group.position.x - p.x, dz = e.group.position.z - p.z, d = Math.hypot(dx, dz);
     if (d - bodyRadius(e) > R.reach || (d > 0.3 && (dx * fx + dz * fz) / d < 0.2)) continue;
-    damageEnemy(e, R.dmg * (SQUAD.dmg[diffKey()] || 1) * (player.up.squadDmg || 1), V3(dx / (d || 1), 0, dz / (d || 1)), 4, false, false, { ally: true });
+    damageEnemy(e, R.dmg * (SQUAD.dmg[diffKey()] || 1) * (player.up.squadDmg || 1) * (a.dmgMul || 1) * rally, V3(dx / (d || 1), 0, dz / (d || 1)), 4, false, false, { ally: true, by: a });
     hit++;
   }
   const at = V3(p.x + fx * 1.2, p.y + 1.2 * a.t.scale, p.z + fz * 1.2);
@@ -1276,9 +1289,10 @@ function updateAlly(a, dt, medic, pp){
   const dy = Math.atan2(Math.sin(face - g.rotation.y), Math.cos(face - g.rotation.y));
   g.rotation.y += clamp(dy, -9 * dt, 9 * dt);
   if (a.role.melee){ meleeAlly(a, e, dt, dy); updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }
+  if (a.role.noFire){ updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }   // (the foundling as a SPOTTER: eyes on, no shots: allies/apprentice.js)
   if (a.burstLeft > 0 && e && (a.burstT -= dt) <= 0){ a.burstLeft--; a.burstT = a.role.burstGap; shoot(a, e); }
   if ((a.fireT -= dt) <= 0 && e && Math.abs(dy) < 0.3){
-    a.fireT = rand(a.role.every[0], a.role.every[1]) * (a.inCover && !a.eng ? COMMAND.coverFire : 1) * (G.suppress && G.suppress.until > G.gt ? TROOPER.command.suppress.fire : 1);
+    a.fireT = rand(a.role.every[0], a.role.every[1]) * (a.fireMul || 1) * (a.inCover && !a.eng ? COMMAND.coverFire : 1) * (G.suppress && G.suppress.until > G.gt ? TROOPER.command.suppress.fire : 1);
     shoot(a, e);
     a.burstLeft = a.role.burst - 1; a.burstT = a.role.burstGap;
   }

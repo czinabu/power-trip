@@ -21,6 +21,7 @@ import { pad, padKeys } from '../engine/gamepad.js';
 import { S } from '../audio/sfx.js';
 import { INTERACT_KEY } from './interact.js';
 import { alignLines } from './alignment.js';
+import { apprenticeLines } from '../allies/apprentice.js';
 import { inCombat } from '../player/mobility.js';
 
 export const TALKCFG = { reach: 3.0, facing: 0.7, calm: 35, again: 1.2 };   // m · how squarely you face them (cos) · no foe this close · s between lines
@@ -43,7 +44,7 @@ function linesFor(f){
   const mid = missionId(), own = mid && MISSION_TALK[mid] && MISSION_TALK[mid][f.name];
   const base = f.kind ? TALK[f.kind] : TALK[f.name];
   const pick = (v) => !v ? [] : Array.isArray(v) ? v : (heroKey(v) || v.jedi || v.trooper || v.mando || []);
-  return [...pick(chapterLines(f.name)), ...pick(own), ...alignLines(f.kind || f.name), ...pick(base)];   // (alignLines: what they say once you lean, game/alignment.js)
+  return [...apprenticeLines(f.name), ...pick(chapterLines(f.name)), ...pick(own), ...alignLines(f.kind || f.name), ...pick(base)];   // (apprenticeLines: the Padawan, the foundling, the second: allies/apprentice.js)   // (alignLines: what they say once you lean, game/alignment.js)
 }
 
 // everyone who could be talked to right now

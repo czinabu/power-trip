@@ -44,6 +44,8 @@ import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
+import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
+import { apprenticeOf } from '../game/profile.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -140,6 +142,7 @@ function options(s){
       if (guest()) return [boardButton(), ...options({ act: 'council' })];
       return [boardButton(), ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') }))];
     }
+    case 'apprentice': return apprenticeOptions();
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
     case 'proving': return [B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando')];
@@ -158,6 +161,42 @@ function options(s){
   }
   return [];
 }
+/* ---------------- THE APPRENTICE'S POST (allies/apprentice.js, data/apprentices.js) ----------------
+   The Padawan, the foundling or the trooper's second, standing at their post: take them on (the trooper picks who),
+   leave them home or bring them along, and hear what they have to say. The head shows how far they've grown. */
+let appLine = 0;
+const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function apprenticeOptions(){
+  const D = apprenticeDef(), st = apprenticeOf(), name = apprenticeName(), home = G.hubId && curHub().home ? curHub().home.toLowerCase() : 'home';
+  const re = (fn) => () => { fn(); render(); };
+  const out = [];
+  if (G.hero === 'trooper'){
+    for (const who of D.pick){
+      const mine = st.taken && st.who === who;
+      out.push({ ...B(mine ? 'YOUR SECOND · ' + who : D.take + ' ' + who, mine ? 'Already your second' : st.taken && st.who ? 'Makes ' + who + ' your second instead: they start at ' + D.stages[0].nm : D.takeLine,
+        mine ? null : re(() => { takeApprentice('trooper', who); appLine = 0; })), stay: true });
+    }
+  } else if (!st.taken) out.push({ ...B(D.take, D.takeLine, re(() => { takeApprentice(); appLine = 0; })), stay: true });
+  if (st.taken && name){
+    out.push({ ...B('TALK', 'Hear what ' + name + ' has to say', re(() => { appLine++; })), stay: true });
+    const tr = G.hero === 'trooper';
+    out.push(st.home ? { ...B(tr ? 'RETURN ' + name + ' TO SECOND' : 'BRING ' + name + ' ALONG', tr ? name + ' leads the squad again when you go down' : 'They fight beside you again in solo play', re(() => setApprenticeHome(false))), stay: true }
+      : { ...B(tr ? 'STAND YOUR SECOND DOWN' : 'LEAVE ' + name + ' AT ' + home.toUpperCase(), tr ? name + ' fights as an ordinary squadmate until you make them second again' : 'They wait here and sit the fights out until you bring them again', re(() => setApprenticeHome(true))), stay: true });
+  }
+  return out;
+}
+function apprenticeHead(){
+  const D = apprenticeDef(), st = apprenticeOf(), name = apprenticeName();
+  if (!st.taken) return esc(D.blurb);
+  const stg = apprenticeStage(), nx = nextStageNeeds(), learned = apprenticeLearned();
+  const lines = apprenticeLines(name), say = lines.length ? lines[appLine % lines.length] : '';
+  const grow = !nx ? 'Fully grown.' : nx.rank ? 'Ready for ' + nx.nm + ': it waits for your own rank to rise.' : Math.floor(nx.xp) + ' / ' + nx.need + ' toward ' + nx.nm + '.';
+  return '<b>' + esc(D.title + ' · ' + stg.nm) + '</b><br>' + esc(stg.line) + '<br>' + esc(grow) +
+    (learned.length ? '<br>Learned from your run: ' + esc(learned.join(' · ')) : '') +
+    (G.hero === 'trooper' ? (st.home ? '<br>Stood down for now.' : '<br>Leads the squad when you go down, in solo play. In co-op they fight as an ordinary squadmate.')
+      : st.home ? '<br>Staying here for now.' : '<br>Fights beside you in solo play, in one of your squad\'s places. In co-op they stay here.') +
+    (say ? '<br><i>' + esc(name) + ': \u201c' + esc(say) + '\u201d</i>' : '');
+}
 function hubToMissions(){ G.modeSel = 'mission'; document.getElementById('mode-mission').click(); }
 
 function render(){
@@ -169,7 +208,7 @@ function render(){
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
-      station.act === 'travel' ? curHub().travel : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb, partyLine) +
+      station.act === 'travel' ? curHub().travel : station.act === 'apprentice' ? apprenticeHead() : station.act === 'quests' ? 'Side missions: calls for help from across the galaxy, answered on the story\'s own worlds. More open up as your rank rises.' : W.blurb, partyLine) +
     listHTML(list, station.act) +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;

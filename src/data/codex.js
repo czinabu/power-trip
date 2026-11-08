@@ -255,6 +255,11 @@ const ALLY_LIST = [
   { squad: 'ARLA', kicker: 'CLAN HUNTER', lore: 'A hunter of the clan with an eye for the high ground.' },
   { squad: 'MASTER IRO', role: 'jedi', guest: { model: 'acolyte', look: 'MASTER IRO', weapon: 'saber', color: 0xb8a888, eye: 0x4ad06a, cloth: 0x6a4a2e, scale: 1.2 },
     kicker: 'JEDI · HOTH', lore: 'A Jedi who stands with the squad in the snow.' },
+  // the apprentices (data/apprentices.js): who grows up beside you
+  { squad: 'TAVI', role: 'jedi', guest: { model: 'acolyte', look: 'TAVI 1', weapon: 'saber', color: 0xd2c4a2, eye: 0xffe6a0, cloth: 0x6b4f37, scale: 0.94 },
+    kicker: 'YOUR PADAWAN', lore: 'The last name on the Ledger, walked out of the pens on Tessaril. Learns what you learn.' },
+  { squad: 'RIN', role: 'rifle', guest: { model: 'mandalorian', color: 0x7c8a96, eye: 0xffa040, cloth: 0x2e5a6a, scale: 0.8 },
+    kicker: 'YOUR FOUNDLING', lore: 'One of the ten off the dead ship. Calls the targets, and wants a helmet.' },
   // ---- the Jedi's story ----
   { cast: 'MASTER VAEL', kicker: 'YOUR MASTER', lore: 'Your teacher, and the voice in your ear.' },
   { cast: 'TARN ODO', kicker: 'THE WALL', lore: 'A Soresu master who outlasted the Purge.' },

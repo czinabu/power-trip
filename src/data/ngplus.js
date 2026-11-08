@@ -28,15 +28,19 @@ export const NG_TIERS = [
 // THE MUTATORS a NG+ chapter (or a veteran side mission, data/side-quests.js `muts`) runs with. The first five are the
 // survival waves' own (data/mutators.js) and use the same hooks; VANGUARD is NG+'s own. They stack.
 export const NG_MUTATORS = [
-  { id: 'ironhide', name: 'IRONHIDE', col: '#9cc8e8', tip: 'foes are 40% tougher' },
+  { id: 'ironhide', name: 'IRONHIDE', col: '#9cc8e8', tip: 'foes are 20% tougher' },
   { id: 'berserk',  name: 'BERSERK',  col: '#ff6a4a', tip: 'foes move faster' },
   { id: 'volatile', name: 'VOLATILE', col: '#ff9a3a', tip: 'every foe erupts when it falls' },
   { id: 'marksmen', name: 'MARKSMEN', col: '#7fd4ff', tip: 'their bolts fly faster' },
-  { id: 'frenzy',   name: 'FRENZY',   col: '#ff5a5a', tip: 'foes hit 25% harder' },
+  { id: 'frenzy',   name: 'FRENZY',   col: '#ff5a5a', tip: 'foes hit 15% harder' },
   { id: 'vanguard', name: 'VANGUARD', col: '#d6b23a', tip: 'far more elites' },
 ];
 export const mutatorById = (id) => NG_MUTATORS.find(m => m.id === id) || null;
-export const NG_FRENZY = 1.25;        // FRENZY outside survival: the damage foes deal
+// IRONHIDE and FRENZY outside survival: gentler than a survival wave's (×1.4 health, ×1.3 damage), because a NG+ tier
+// already makes every foe tougher and harder-hitting. At the survival numbers, a tier III chapter that drew IRONHIDE had
+// foes at twice a fresh run's health while the next chapter's stood at 1.45: the mutator, not the tier, set the fight.
+export const NG_IRONHIDE = 1.2;       // the health foes have
+export const NG_FRENZY = 1.15;        // the damage foes deal
 export const NG_VANGUARD = 0.25;      // VANGUARD: added to the elite odds (capped at VANGUARD_CAP)
 export const VANGUARD_CAP = 0.55;
 

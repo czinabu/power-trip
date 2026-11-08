@@ -44,6 +44,13 @@ for (const [skill, rs0] of groups(rows, r => (r.skill || 'good') + ' / ' + r.tag
     // the counter edge
     table(`${skill}: counter edge (▲ you counter it · even · ▼ it counters you)`, ['rank', '▲', 'even', '▼'],
       ranks.map(k => [k, ...[1, 0, -1].map(d => { const a = agg(rs.filter(r => r.rank === k && edge(r.form, r.foe) === d)); return `${(a.win*100).toFixed(0)}% ${a.ttk.toFixed(1)}s ${a.dmg.toFixed(0)}`; })]));
+  } else if (rs0[0].tag === 'crystals'){
+    // each crystal against the unattuned blade ('form'), all forms and fights together, then by fight (win · ttk · dmg)
+    const foes = [...new Set(rs.map(r => r.foe))], base = agg(rs.filter(r => r.rank === 'form'));
+    table(`${skill}: each crystal (all forms) · Δ win against the unattuned blade`, ['crystal', 'win', 'Δwin', 'ttk', 'dmg', ...foes],
+      [...groups(rs, r => r.rank).entries()].map(([c, v]) => { const a = agg(v);
+        return [c, (a.win * 100).toFixed(0) + '%', ((a.win - base.win) * 100 >= 0 ? '+' : '') + ((a.win - base.win) * 100).toFixed(0), a.ttk.toFixed(1) + 's', a.dmg.toFixed(0),
+                ...foes.map(f => { const b = agg(v.filter(r => r.foe === f)); return `${(b.win*100).toFixed(0)}% ${b.ttk.toFixed(1)}s`; })]; }));
   } else {
     const keys = [...groups(rs, r => r.form + ' vs ' + r.foe + (r.adaptive != null ? (r.adaptive ? ' (answers)' : ' (stays)') : '')).entries()];
     table(`${skill}`, ['fight', 'win', 'ttk', 'dmg', 'stam/s', 'kills', 'switches'],

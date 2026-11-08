@@ -91,6 +91,10 @@
     G.stanceCd = 0;
     GAME.switchStance(cfg.form, true);
     G.stance = cfg.form;
+    // a kyber crystal's attunement (sim.mjs plan 'crystals'): every fight starts from the same upgrades, then lays cfg.fx on
+    if (!GAME.__up0) GAME.__up0 = JSON.parse(JSON.stringify(player.up));
+    Object.assign(player.up, JSON.parse(JSON.stringify(GAME.__up0)));
+    for (const [k, op, v] of cfg.fx || []) player.up[k] = op === '*' ? (player.up[k] ?? 1) * v : (player.up[k] ?? 0) + v;
     // a fresh hero in the middle of the room, facing +z
     const maxHp = CFG.player.maxHp + (player.up.hpMax || 0), maxStam = CFG.player.maxStam + (player.up.maxStam || 0);
     player.hp = maxHp; player.stam = maxStam; player.force = CFG.player.maxForce;

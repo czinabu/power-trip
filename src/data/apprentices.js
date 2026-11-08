@@ -63,8 +63,10 @@ export const APPRENTICES = {
       { id: 'mend', need: ['mend', 'vamp'], cd: 18, nm: 'MEND' },
       { id: 'repulse', need: ['repulse', 'slam'], cd: 14, nm: 'REPULSE' },
     ],
-    // THE TREE: each point the run has trained on a Force Tree branch (data/profile.js BRANCH) gives this
-    tree: { combat: { dmg: 0.05 }, sense: { deflect: 0.03, hp: 0.04 }, control: { cd: 0.06 } },
+    // THE TREE: each point the run has trained on a Force Tree branch (data/profile.js BRANCH) gives this, counting at most
+    // `treeCap` points a branch (uncapped, a run that poured a dozen points into COMBAT had a Knight Tavi in a STRONG form
+    // hitting two thirds harder than the squad's own Jedi, data/allies.js SQUAD.roles.jedi)
+    tree: { combat: { dmg: 0.05 }, sense: { deflect: 0.03, hp: 0.04 }, control: { cd: 0.06 } }, treeCap: 6,
     // THE FORM: the form you hold (G.stance) shapes how they fight: by its tag (data/forms.js)
     forms: { FAST: { every: 0.82 }, FLURRY: { every: 0.8 }, STRONG: { dmg: 1.2, every: 1.08 }, FURY: { dmg: 1.18 },
              DEFENCE: { deflect: 0.15 }, REDIRECT: { deflect: 0.12 }, DUELS: { dmg: 1.1 }, CROWDS: { reach: 0.4 },

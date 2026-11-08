@@ -8,6 +8,7 @@
     "prebuild": "node tools/roadmap-check.mjs",
     "build": "vite build",
     "roadmap:check": "node tools/roadmap-check.mjs",
+    "balance:check": "node tools/balance-check.mjs",
     "preview": "vite preview",
     "desktop": "node desktop/build.mjs run",
     "desktop:exe": "node desktop/build.mjs exe",

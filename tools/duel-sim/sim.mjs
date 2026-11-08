@@ -8,12 +8,14 @@
 //   crowd    every form against a pack of acolytes and a pack of troopers
 //   early    the first waves' acolytes (Shii-Cho adepts) against the forms a run has then
 //   one      a single fight: --form ataru --foe djemso --rank knight
+//   crystals every kyber crystal's attunement (data/saber-parts.js fx) in a few forms against the Jedi story's champions, so no crystal turns out a must-have (narrow with --crystals white,red and --forms)
 import { chromium } from 'playwright';
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import { FORM_FAMILY as FAMILY, FAMILIES } from '../../src/data/foe-forms.js';
 import { bossFoes } from './bosses.mjs';
+import { CRYSTALS } from '../../src/data/saber-parts.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const page_url = pathToFileURL(path.join(root, 'dist/index.html')).href;
@@ -75,6 +77,14 @@ function jobs(){
     const forms = opt('forms', FORMS.join()).split(',');
     for (const [foe, b] of Object.entries(B)) if (!only || only.split(',').includes(foe)) for (const form of forms) for (let r = 0; r < REPS; r++)
       J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', adaptive: ADAPT || undefined, cfg: { form, loadout: loadoutFor(form), adaptive: ADAPT, foes: b.foes, depth: b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
+  } else if (PLAN === 'crystals'){
+    // each crystal's attunement laid on player.up (bot.js begin: cfg.fx), in the same fights: 'form' is the baseline
+    const B = bossFoes(HPM), only = opt('crystals', null);
+    const forms = opt('forms', 'ataru,soresu,djemso').split(',');
+    const fights = ['inquisitor', 'warden', 'rematch', 'trialknight', 'grand'].map(k => [k, B[k]]);   // (plain acolytes fall too fast to tell)
+    for (const c of CRYSTALS) if ((c.id === 'form' || c.fx.length) && (!only || only.split(',').includes(c.id)))
+      for (const form of forms) for (const [foe, b] of fights) for (let r = 0; r < REPS; r++)
+        J.push({ tag: 'crystals', form, foe, rank: c.id, cfg: { form, loadout: loadoutFor(form), foes: b.foes, depth: b.depth, fx: c.fx, seed: s++ * 2477 + r, tmax: b.tmax || 180 } });
   } else {
     const form = opt('form', 'niman'), foe = opt('foe', 'niman'), rank = opt('rank', 'knight');
     for (let r = 0; r < REPS; r++) J.push({ tag: 'one', form, foe, rank, cfg: { form, loadout: loadoutFor(form), foes: [{ type: 'acolyte', form: foe, rank, hpMul: HPM(DEPTH[rank] || 9) }], depth: DEPTH[rank] || 9, seed: 17 + r, tmax: 90 } });

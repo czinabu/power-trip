@@ -37,26 +37,29 @@ export const ATTUNE_CAP = { mul: 0.12, parry: 0.02 };   // the most any one crys
 export const CRYSTALS = [
   { id: 'form', name: 'Form colour', att: 'UNATTUNED', ds: 'The blade burns your form\'s own colour. No sidegrade.', fx: [] },
   { id: 'white', name: 'Purified', col: 0xf0f4ff, earn: { chapter: 'trial-first' }, att: 'STILL HAND',
-    ds: '+0.02s parry window · −5% damage', fx: [['parry', '+', 0.02], ['dmg', '*', 0.95]] },
+    ds: '+0.02s parry window · −8% damage', fx: [['parry', '+', 0.02], ['dmg', '*', 0.92]] },
   { id: 'cyan', name: 'Teal', col: 0x2affe0, earn: { chapter: 'trial-acrobat' }, att: 'QUICKSILVER',
     ds: '−12% dash cooldown · blocks cost 8% more stamina', fx: [['dashCdMult', '*', 0.88], ['blockStam', '*', 1.08]] },
   { id: 'yellow', name: 'Yellow', col: 0xffd23a, earn: { chapter: 'trial-knight' }, att: 'SENTINEL\'S CALM',
-    ds: '+10% Force regen · −5% attack speed', fx: [['forceRegen', '*', 1.1], ['atkSpeed', '*', 0.95]] },
+    ds: '+10% Force regen · −7% attack speed', fx: [['forceRegen', '*', 1.1], ['atkSpeed', '*', 0.93]] },
   { id: 'orange', name: 'Orange', col: 0xff8a2a, earn: { chapter: 'spearhead' }, att: 'EMBER',
     ds: '+6% attack speed · −8% Force regen', fx: [['atkSpeed', '*', 1.06], ['forceRegen', '*', 0.92]] },
   { id: 'rose', name: 'Rose', col: 0xff4fb8, earn: { duels: 6 }, att: 'HEARTFIRE',
-    ds: '+12% riposte damage · −6% Force regen', fx: [['riposte', '*', 1.12], ['forceRegen', '*', 0.94]] },
+    ds: '+12% riposte damage · −8% Force regen', fx: [['riposte', '*', 1.12], ['forceRegen', '*', 0.92]] },
   { id: 'frost', name: 'Frost', col: 0xbfe6ff, earn: { waves: 20 }, att: 'STILLFROST',
-    ds: '+10% stamina regen · −4% move speed', fx: [['stamRegen', '*', 1.1], ['move', '*', 0.96]] },
+    ds: '+10% stamina regen · −7% Force regen', fx: [['stamRegen', '*', 1.1], ['forceRegen', '*', 0.93]] },
   { id: 'amethyst', name: 'Amethyst', col: 0xa86bff, earn: { caves: 3 }, att: 'DEEP ECHO',
     ds: '+8% Force regen · −6% stamina regen', fx: [['forceRegen', '*', 1.08], ['stamRegen', '*', 0.94]] },
   { id: 'red', name: 'Bled red', col: 0xff3a30, earn: { won: 1 }, att: 'BLED',
     ds: '+7% damage · −0.02s parry window', fx: [['dmg', '*', 1.07], ['parry', '+', -0.02]] },
   // the two paths' own crystals (data/alignment.js): earned the first time you lean that far, and kept after. A mirrored pair
+  // by what they do in a fight, not by the bare numbers: stamina regen weighs far more in a duel than a few points of
+  // damage (tools/duel-sim plan `crystals`: at −10% stamina regen for +7% damage, HUNGER lost 17 points of win rate
+  // against the story's champions while every other crystal sat within 8), so each trades 6% of stamina regen and 7% damage
   { id: 'dawn', name: 'Dawnlight', col: 0xffe6a8, earn: { light: 50 }, att: 'MERCIFUL HAND',
-    ds: '+10% stamina regen · −7% damage', fx: [['stamRegen', '*', 1.1], ['dmg', '*', 0.93]] },
+    ds: '+6% stamina regen · −7% damage', fx: [['stamRegen', '*', 1.06], ['dmg', '*', 0.93]] },
   { id: 'crimson', name: 'Wrath crimson', col: 0xc0001c, earn: { dark: 50 }, att: 'HUNGER',
-    ds: '+7% damage · −10% stamina regen', fx: [['dmg', '*', 1.07], ['stamRegen', '*', 0.9]] },
+    ds: '+7% damage · −6% stamina regen', fx: [['dmg', '*', 1.07], ['stamRegen', '*', 0.94]] },
   // THE RAID's RARE crystals (`rare: true`, data/raids.js): looks, never numbers. Only a raid hands them out
   { id: 'gateshard', name: 'Gate-shard', col: 0xb46bff, earn: { raids: 1 }, rare: true, att: 'RARE',
     ds: 'A splinter of the gate\'s own ring, cut free when the vessel broke. It burns the violet of the void past it. No sidegrade.', fx: [] },

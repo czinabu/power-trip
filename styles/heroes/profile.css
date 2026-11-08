@@ -385,6 +385,8 @@
 #profile .pf-ftree{background:radial-gradient(ellipse 60% 34% at 50% 4%,rgba(232,196,106,.10),transparent 70%),var(--hx-paper);
   box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
 #profile .pf-lu{stroke:var(--hx-ink);stroke-width:7}
+#profile .pf-lu.dim{stroke-width:5;opacity:.45}
+#profile .pf-runtree .pf-lu.dim{opacity:.18}
 #profile .pf-ln{stroke:var(--hx-line);stroke-width:2.5;opacity:.5}
 #profile .pf-ln:is(.lit,.ready,.pick){opacity:1}
 #profile .pf-ln.lit{stroke:var(--hx-accent);stroke-width:3;filter:drop-shadow(0 0 3px var(--hx-accent)) drop-shadow(0 0 8px rgba(232,196,106,.55))}
@@ -394,13 +396,17 @@
 #profile .pf-ln.dash{stroke-dasharray:3 6;animation:none}
 @keyframes pfflow{to{stroke-dashoffset:-14}}
 @media (prefers-reduced-motion:reduce){ #profile .pf-ln.ready{animation:none} }
-#profile .pf-ftier{color:var(--hx-dim);font-family:var(--hx-label);transform:translateY(-78%) rotate(180deg)}
+#profile .pf-ftier{color:var(--hx-dim);font-family:var(--hx-label);transform:translateY(-50%) rotate(180deg)}
 #profile .pf-ftier.on{color:var(--hx-accent)}
 /* the root: THE FORCE, with the Insight left beside it */
 #profile .pf-froot .pf-orb{color:var(--hx-accent-hi)}
+/* each branch's column: a faint band from its plate down, so its cards read as one group; a hairline between tiers */
+#profile .pf-fband{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012) 70%,transparent);box-shadow:inset 1px 0 0 rgba(255,255,255,.04),inset -1px 0 0 rgba(255,255,255,.04)}
+#profile .pf-fband.path{background:linear-gradient(180deg,rgba(232,196,106,.06),rgba(232,196,106,.015) 70%,transparent)}
+#profile .pf-frule{border-top:1px dashed var(--hx-line);opacity:.45}
 #profile .pf-froot.lit .pf-orb{color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-accent-hi),0 0 0 5px var(--hx-ink),0 0 22px rgba(232,196,106,.6)}
 #profile .pf-froot .pf-tl b{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:22px;color:var(--hx-accent-hi)}
-#profile .pf-froot .pf-tl em{font:600 10px/1.15 var(--hx-label);font-style:normal;letter-spacing:var(--hx-label-ls);color:var(--hx-dim)}
+#profile .pf-froot .pf-tl em{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:15px;line-height:1;font-style:normal;letter-spacing:var(--hx-display-ls);color:var(--hx-accent-hi);padding:3px 6px;background:var(--hx-paper-solid)}
 /* a branch's name plate, where its trunk starts */
 #profile .pf-fhead{background:var(--hx-paper-solid);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
 #profile .pf-fhead.path{box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink),0 0 16px rgba(232,196,106,.25)}
@@ -424,11 +430,11 @@
 #profile .pf-tnode:is(.t-have,.t-max) .pf-tl em{color:var(--hx-accent)}
 #profile .pf-tnode.ranked.t-open .pf-orb{animation:none;box-shadow:0 0 0 2px var(--hx-ink),0 0 0 3px var(--hx-live),0 0 0 5px var(--hx-ink),0 0 16px rgba(111,200,255,.6)}
 /* a card's ranks this run, as pips under its name */
-#profile .pf-tp{display:flex;gap:3px;justify-content:center;padding:3px 4px 2px}
-#profile .pf-tp i{width:7px;height:7px;box-shadow:inset 0 0 0 1.5px var(--hx-dim)}
+#profile .pf-tp{display:flex;gap:4px;justify-content:center;padding:4px 4px 2px}
+#profile .pf-tp i{width:9px;height:9px;box-shadow:inset 0 0 0 1.5px var(--hx-dim)}
 #profile .pf-tp i.on{background:var(--hx-accent);box-shadow:0 0 6px var(--hx-accent)}
-#profile[data-hero="jedi"] .pf-tp i{transform:rotate(45deg);width:6px;height:6px;margin:0 1px}
-#profile[data-hero="mando"] .pf-tp i{width:10px;height:5px;transform:skewX(-18deg)}
+#profile[data-hero="jedi"] .pf-tp i{transform:rotate(45deg);width:8px;height:8px;margin:0 2px}
+#profile[data-hero="mando"] .pf-tp i{width:12px;height:6px;transform:skewX(-18deg)}
 #profile .pf-tdet .pf-tp{justify-content:flex-start;padding:4px 0 0}
 #profile .pf-tnode.sel .pf-orb{outline:2px solid var(--hx-accent-hi);outline-offset:5px}
 #profile .pf-tnode.sel .pf-tl b{color:var(--hx-accent-hi)}
@@ -436,7 +442,7 @@
 @media (prefers-reduced-motion:reduce){ #profile .pf-tnode.t-open .pf-orb{animation:none} }
 
 /* ---------- the tree's card detail: one band over the tree (who, what it does, what to do) ---------- */
-#profile .pf-tnote{margin:0 0 8px}
+#profile .pf-tnote{margin:0}
 #profile .pf-tdet{position:static;display:grid;grid-template-columns:minmax(170px,.8fr) minmax(0,1.4fr) auto;align-items:center;gap:8px 18px;margin-bottom:12px;padding:12px 14px}
 #profile .pf-tdet .pf-dbody{display:flex;flex-direction:column;gap:5px;min-width:0}
 #profile .pf-tdet .pf-fl{margin:0;font-size:12px}
@@ -447,6 +453,11 @@
 #profile .pf-tnode .pf-tl b{white-space:normal;line-height:1.08}
 #profile .pf-tnode .pf-tl em{white-space:nowrap}
 #profile .pf-ftree.narrow .pf-fhead{padding:5px 6px}
+/* a mid-width screen (a phone on its side, a small tablet): the card's name and its button on one row, its words under them */
+@media (min-width:761px) and (max-width:1000px){
+  #profile .pf-tdet{grid-template-columns:minmax(0,1fr) auto}
+  #profile .pf-tdet .pf-dbody{grid-column:1 / -1;grid-row:2}
+}
 @media (max-width:760px){
   #profile .pf-tdet{grid-template-columns:1fr;gap:8px}
   #profile .pf-tdet .pf-dact{max-width:none}
@@ -468,9 +479,11 @@
 #profile .pf-runhead .coin .cl{font-family:var(--hx-label);color:var(--hx-dim)}
 #profile .pf-runhead .coin.sp{box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
 #profile .pf-runhead .coin.sp b{color:var(--hx-accent-hi);text-shadow:none}
-#profile.pf-inrun .pf-body{grid-template-columns:340px minmax(0,1fr)}
-#profile .pf-runside{display:flex;flex-direction:column;gap:12px}
-#profile .pf-runside .st-sec{flex:none;padding:12px;border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#profile.pf-inrun .pf-body{grid-template-columns:316px minmax(0,1fr)}
+/* the left column is one sidebar, its sections stacked inside it with a rule between, running the tree's full height */
+#profile .pf-runside{display:flex;flex-direction:column;gap:0;padding:0 14px;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#profile .pf-runside .st-sec{flex:none;padding:14px 0;border:0;border-radius:0;background:none;box-shadow:none}
+#profile .pf-runside .st-sec:not(.empty)~.st-sec:not(.empty){border-top:1px solid var(--hx-line)}
 #profile .pf-runside .st-sec.empty{display:none}
 #profile .pf-runside .storehdr{margin-bottom:10px}
 #profile .pf-runside .storehdr .sh-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);font-size:17px;color:var(--hx-text)}
@@ -501,7 +514,9 @@
   #profile .pf-runfoot #continueBtn{width:100%}
 }
 /* names fit their slot: a touch smaller on the tree, and a long one breaks rather than hiding under its neighbour */
-#profile .pf-tnode .pf-tl b{font-size:10px;letter-spacing:.4px;overflow-wrap:anywhere}
+#profile .pf-tnode .pf-tl b{font-size:11px;letter-spacing:.5px;overflow-wrap:anywhere}
+#profile .pf-tnode .pf-tl em{font-size:9.5px}
+@media (max-width:760px){ #profile .pf-tnode .pf-tl b{font-size:10px;letter-spacing:.4px} }
 #profile .pf-tdet .pf-dact .btn{white-space:nowrap}
 @media (max-width:760px){
   #profile.pf-inrun .pf-body{overflow-y:auto}

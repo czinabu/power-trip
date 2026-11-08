@@ -32,7 +32,7 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { ZONES } from '../data/zones.js';
-import { zoneLock } from '../game/zone-gate.js';
+import { zoneLock, zoneLate } from '../game/zone-gate.js';
 import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML, mapLayout } from './hub-map.js';
@@ -71,14 +71,33 @@ const B = (t, d, go, lock) => ({ t, d, go, lock });
 const ngButton = () => { const t = ngNextTier(); return t ? [B(tierName(t), 'The story again with your rank, parts and looks · tougher foes, ' + NG_TIERS[t].muts + ' mutator' + (NG_TIERS[t].muts === 1 ? '' : 's') + ' a chapter',
   () => askParty(tierName(t), () => { G.resumeRun = null; G.ngNext = t; hubLaunch('campaign'); }))] : []; };
 // ACT IV · THE SITH GATE (game/gate.js): the shared campaign after the three, for the whole party
-const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign');
+const gateButton = () => ({ ...B('ACT IV · THE SITH GATE', 'The shared campaign after the three stories, for any mix of heroes', () => askParty('ACT IV', () => hubLaunch('gate')), gateOpen() ? null : 'Beat any hero\'s campaign'), later: 'Act IV' });
 // THE RAID TABLE (data/raids.js): the raid page, at the temple's own table in the council chamber, and a button for it
 // on every hub's mission table (a trooper or a Mando host takes the party to their own hub)
-const raidButton = () => B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV');
+const raidButton = () => ({ ...B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV'), later: 'the raid' });
+const survivalButton = () => ({ ...B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'), later: 'Survival' });
 // (each waits for the chapter that opens it, for the hero in hand: game/zone-gate.js)
 // THE SHIP (data/hero-ships.js): board it from the hub's pad or hangar, first on that station's list
 const boardButton = () => { const sh = shipOf(G.hubId); return B(sh.board, sh.boardLine + (party() ? ' · your party can board too' : ''), () => goWing(SHIP_WING)); };
-const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)));
+const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => ({ ...B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)),
+  later: zoneLate(k) ? 'the ' + Z.short.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) + ' zone' : null }));   // (a zone past Act IV folds away until then: foldLater)
+// THE CAMPAIGN: first on every mission table. A hero who hasn't begun it is told plainly it's the place to start
+const campaignFresh = () => { if (canResume()) return false; const p = profileOf(); return !p.won && !Object.keys(p.cleared || {}).length; };
+const campaignButton = (title = 'THE CAMPAIGN', cont = 'CONTINUE THE CAMPAIGN') => B(canResume() ? cont : title,
+  canResume() ? 'Pick your story up where you left it' : campaignFresh() ? 'START HERE · the story from its first lesson: 13 chapters in three acts' : '13 chapters, three acts',
+  () => askParty('THE CAMPAIGN', () => hubLaunch('campaign')));
+// THE FAR-OFF LOCKS: a new hero's table would be half padlocks (Act IV, the raid, survival, the gate's zone), each a whole
+// campaign away. A button with `later` (its short name) folds, with any others, into one MORE TO COME line; a lock that is
+// near (Jedha, a chapter or two off) stays its own button, so the next thing to reach for is always named
+function foldLater(list){
+  const later = list.filter(b => b.lock && b.later);
+  if (later.length < 2) return list;
+  const names = later.map(b => b.later), what = names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  const fold = B('MORE TO COME', null, null, what.charAt(0).toUpperCase() + what.slice(1) + ' open as your story goes on');
+  const out = list.filter(b => !later.includes(b)), at = out.findIndex(b => b.t === 'EVERY MODE');
+  out.splice(at < 0 ? out.length : at, 0, fold);
+  return out;
+}
 
 function options(s){
   const G_ = G;
@@ -98,18 +117,17 @@ function options(s){
         list.push(B('THE HOST CHOOSES', 'In a party the host picks the mission at this table, and everyone in ' + curHub().home.toLowerCase() + ' goes with them.', null));
         return list;
       }
-      const sv = survivalUnlocked();
-      return [
-        B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+      return foldLater([
+        campaignButton(),
         gateButton(),
         raidButton(),
         ...ngButton(),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
         B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
-        B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), sv ? null : 'Beat the campaign as Jedi and Mando'),
+        survivalButton(),
         ...zoneButtons(),
         B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
-      ];
+      ]);
     }
     case 'quests': {
       // the side missions (data/side-quests.js): each waits for a rank, and a won one keeps its tick
@@ -126,16 +144,16 @@ function options(s){
         B('TAKE A BOUNTY', 'A random job off the board, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
         B('STORY MISSIONS', 'Choose one from the mission list', () => { hubToMenu('mode'); hubToMissions(); }),
       ];
-      return [
+      return foldLater([
         boardButton(),
-        B(canResume() ? 'CONTINUE THE HUNT' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => hubLaunch('campaign')),
+        campaignButton('THE CAMPAIGN', 'CONTINUE THE HUNT'),
         ...zoneButtons().map(b => ({ ...b, t: b.t.replace('OPEN ZONE · ', 'FLY TO ') })),   // (the covert's ship is its way to Jedha)
         gateButton(),
         raidButton(),
         ...ngButton(),
         B('CHALLENGE', 'A random mission, dealt fresh', () => hubLaunch('mission', randomArcadeId())),
-        B('SURVIVAL', 'Endless waves, one high score', () => hubLaunch('endless'), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
-      ];
+        survivalButton(),
+      ]);
     }
     // a ship to an open zone (the temple's landing platform, the citadel's gunship; the covert's own ship lists it too)
     case 'shuttle': {
@@ -275,12 +293,11 @@ new MutationObserver((ms) => {
    campaign, Act IV, NEW GAME+, a challenge, survival). In a party it's the lobby: who is aboard, CALL THE PARTY ABOARD
    for the host, and the usual ready check on whatever the host launches; a guest sees the same map, and JOIN. */
 function renderGalaxy(again = false){
-  const r = galaxyPanel({ B, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons,
+  const r = galaxyPanel({ B, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
     rerender: () => { if (isOpen() && station && station.act === 'galaxy') renderGalaxy(true); },
     joinButton: () => coopRun.on ? B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()) : null,
     everyMode: () => B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
-    survival: () => B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando'),
-    campaign: () => B(canResume() ? 'CONTINUE THE CAMPAIGN' : 'THE CAMPAIGN', canResume() ? 'Pick your story up where you left it' : '13 chapters, three acts', () => askParty('THE CAMPAIGN', () => hubLaunch('campaign'))),
+    survival: survivalButton, campaign: () => campaignButton(),
     challenge: () => B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
     side: (id) => hubLaunch('mission', id), mission: (id) => hubLaunch('mission', id), zone: (k) => hubLaunchZone(k),
     disembark: () => goWing(shipOf(G.hubId).exit) });

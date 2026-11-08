@@ -41,6 +41,9 @@ export function zoneOpen(key, hero){
   if (!Z.opensAfter) return true;
   return gateChapter(Z.opensAfter) ? gateCleared(Z.opensAfter, heroOf(hero)) : heroCleared(Z.opensAfter, heroOf(hero));
 }
+// a zone still shut that waits on Act IV (past the hero's own whole campaign): the hub's mission tables fold it into
+// their MORE TO COME line with the other far-off locks (ui/hub-ui.js foldLater), rather than a button of its own
+export function zoneLate(key, hero){ const Z = ZONES[key]; return !!Z && !zoneOpen(key, hero) && gateChapter(Z.opensAfter); }
 // the hub's locked line for a zone not open yet: 'Finish Act I of your campaign (chapter 4, TRIAL OF THE WALL)' (null when it's open)
 export function zoneLock(key, hero){
   hero = heroOf(hero);

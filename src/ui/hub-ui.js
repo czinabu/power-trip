@@ -76,7 +76,7 @@ const gateButton = () => B('ACT IV · THE SITH GATE', 'The shared campaign after
 // on every hub's mission table (a trooper or a Mando host takes the party to their own hub)
 const raidButton = () => B('THE RAID · DARTH KHAREL', 'Act IV\'s last fight for a full party, with the day\'s modifiers and rare parts', () => setTimeout(() => open({ id: 'raid', name: 'THE RAID TABLE', act: 'raid' }), 0), raidsOpen() ? null : 'Beat Act IV');
 // (each waits for the chapter that opens it, for the hero in hand: game/zone-gate.js)
-// THE SHIP (data/hero-ships.js): board it from the hub's pad or hangar, first on the station that flies to Jedha
+// THE SHIP (data/hero-ships.js): board it from the hub's pad or hangar, first on that station's list
 const boardButton = () => { const sh = shipOf(G.hubId); return B(sh.board, sh.boardLine + (party() ? ' · your party can board too' : ''), () => goWing(SHIP_WING)); };
 const zoneButtons = () => Object.entries(ZONES).map(([k, Z]) => B('OPEN ZONE · ' + Z.place, Z.blurb, () => askParty(Z.name, () => hubLaunchZone(k)), zoneLock(k)));
 

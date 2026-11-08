@@ -7,14 +7,14 @@
 export const KAMINO_WINGS = {
   deck: {
     name: 'THE HANGAR DECK', short: 'HANGAR DECK',
-    blurb: 'The citadel\'s great hangar, open to the storm. Gunships on their pads (one runs to Jedha), squads drilling, every deck a door away.',
+    blurb: 'The citadel\'s great hangar, open to the storm. Gunships on their pads (one of them yours), squads drilling, every deck a door away.',
     level: { name: 'THE CLONE CITADEL — THE HANGAR DECK', sub: 'Kamino. Walk up to a station and tap F.', arena: 96, layout: 'kmDeck', waves: [], hazards: {} },
     map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { n: 'warroom', e: 'range', w: 'halls', s: 'armory' },
     spawn: [0, 30, Math.PI],
     stations: [
       { id: 'map', x: 0, z: 0, name: 'FACILITY MAP', act: 'travel', r: 11 },
-      { id: 'gunship', x: -21, z: -24, name: 'GUNSHIP TO JEDHA', act: 'shuttle', r: 4 },   // the north-west pad's gunship: the open zone (data/zones.js)
+      { id: 'gunship', x: -21, z: -24, name: 'THE KESTREL', act: 'shuttle', r: 4 },   // the north-west pad's gunship: your own ship (data/hero-ships.js)
     ],
   },
   warroom: {

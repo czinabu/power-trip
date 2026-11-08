@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { shared, solids } from '../../state.js';
 import { arenaKit, seeded, at } from './kit.js';
 import { toon, inkify } from '../ink.js';
+import { buildCivilian } from '../../enemies/civilian.js';
 
 /* THE HIDDEN REFUGE (half-size 32). A wide valley floor in front of a refuge cut into the mountain, laid out for the
    mission's three objectives:
@@ -155,28 +156,8 @@ function buildTransport(){
   shared.refugeShip = { group: g, ramp, glow: glowM, hatch, solids: list };
 }
 
-/* an EVACUEE — a small robed figure (a youngling) or a little cloaked foundling in a helmet, or a grown PRISONER in a
-   jumpsuit (the Lothal breakout). Live, not baked. */
+/* an EVACUEE — one of the people a mission gets out: an archivist, a prisoner, a youngling or a foundling, as a real
+   person in the troopers' Ink style (enemies/civilian.js: walked by their gait, breathing, blinking, glancing about) */
 export function makeEvacuee(kind, seed){
-  const g = new THREE.Group();
-  if (kind === 'prisoner' || kind === 'archivist'){   // grown-ups: a prisoner's jumpsuit, or an archivist's robe (the Jedi's Burning Archive)
-    const suit = toon(kind === 'archivist' ? [0xd8c8a0, 0xa8946a, 0x8a7a5a][seed % 3] : [0xc86a2a, 0x8a8a84, 0xb05a24][seed % 3]), skin = toon([0xe8c0a0, 0xb07a58, 0x7a5038, 0xd8a888, 0x8ab070][seed % 5]);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.3, 1.0, 10), suit); body.position.y = 1.0;
-    const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.2, 0.55, 8), suit); legs.position.y = 0.28;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), skin); head.position.y = 1.68;
-    for (const m of [body, legs, head]){ m.castShadow = true; inkify(m, 0.025); g.add(m); }
-    return g;
-  }
-  const robe = kind === 'foundling' ? [0x6a5a4a, 0x5a5048][seed % 2] : [0xc8b48e, 0x9a7a56, 0xb8a080][seed % 3];
-  const skin = [0xe8c0a0, 0xb07a58, 0x7a5038, 0xd8a888][seed % 4];
-  const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.75, 10), toon(robe)); body.position.y = 0.42;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), toon(kind === 'foundling' ? 0x9aa2aa : skin)); head.position.y = 0.92;
-  for (const m of [body, head]){ m.castShadow = true; inkify(m, 0.025); g.add(m); }
-  if (kind === 'foundling'){   // a T-visor on the little helmet
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.04, 0.02), toon(0x101418)); visor.position.set(0, 0.95, 0.165); g.add(visor);
-    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.02), toon(0x101418)); stem.position.set(0, 0.89, 0.165); g.add(stem);
-  } else {                     // a padawan braid
-    const braid = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 4), toon(0x5a3a22)); braid.position.set(0.12, 0.8, -0.05); g.add(braid);
-  }
-  return g;
+  return buildCivilian(kind, seed);
 }

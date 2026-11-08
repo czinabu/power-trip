@@ -271,9 +271,9 @@ const HOOD_GEO = () => _hood || (_hood = loft([
   ring(0.39,  0.09, 0.13, -0.095, 0.22, 0,    0.7),     // the crown, peaked a little to the back
   ring(0.4,   0.02, 0.03, -0.105, 0.2,  0,    0.5),
 ], hoodRing(0.4), { capTop: false, capBottom: false }));
-function hood(k, h){ k.add(HOOD_GEO(), 'cloth', h); }
+export function hood(k, h){ k.add(HOOD_GEO(), 'cloth', h); }
 // the cowl a raised hood falls into: gathered round the neck, out over the shoulders, its hem dipping down the back
-function cowl(k, w){
+export function cowl(k, w){
   const geo = loft([
     ring(1.76, 0.98*w, 0.52, -0.04, 0.32, 0.05, 0.97),
     ring(1.81, 0.84*w, 0.47, -0.04, 0.32, 0.05, 0.9),

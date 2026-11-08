@@ -32,6 +32,7 @@ import { findClearSpawn } from '../world/collision.js';
 import { buildNav } from '../enemies/nav.js';
 import { setDoorsOpen, doorsOpen, doorAt } from '../world/doors.js';
 import { makeEvacuee } from '../world/arenas/refuge.js';
+import { animateCivilian } from '../enemies/civilian.js';
 import { startLevel, queueSpawn, checkUnlocks } from './flow.js';
 import { endRun } from './summary.js';
 import { showBanner, bannerTap } from '../ui/banners.js';
@@ -854,10 +855,11 @@ function poseEvacuees(ev, s, dt, rate){
     k.fall += ((k.down > 0.4 ? 1 : 0) - k.fall) * Math.min(1, dt * (k.down > 0.4 ? 9 : 5));
     k.ph += dt * (walking ? 11 : rate === 0 || k.flinch > 0 ? 20 : 2);
     const cower = !walking && (rate === 0 || k.flinch > 0) && k.fall < 0.1;
-    k.m.position.set(x, (walking ? Math.abs(Math.sin(k.ph)) * 0.06 : 0) + (ev.ramp !== false && k.d > s.len - 3 ? (k.d - (s.len - 3)) * 0.33 : 0), z);   // (up the ramp at the end)
+    k.m.position.set(x, ev.ramp !== false && k.d > s.len - 3 ? (k.d - (s.len - 3)) * 0.33 : 0, z);   // (up the ramp at the end; the stride's bob is the gait's)
     if (dt > 0){ k.vx = (x - px) / dt; k.vz = (z - pz) / dt; }
     if (k.fall > 0.02) k.m.rotation.set(k.fall * 1.45, k.fy, 0);   // knocked flat, the way the shot was going
-    else k.m.rotation.set(cower ? 0.25 : 0, yaw, cower ? Math.sin(k.ph) * 0.05 : 0);   // huddled and trembling while the ramp is overrun (or a foe shoves past)
+    else k.m.rotation.set(cower ? 0.08 : 0, yaw, cower ? Math.sin(k.ph) * 0.03 : 0);   // huddled and trembling while the ramp is overrun (or a foe shoves past)
+    animateCivilian(k.m, k.an || (k.an = {}), dt, k.fall > 0.3, cower ? 1 : 0);   // walking legs, breath, glances; arms over the head while they cower (enemies/civilian.js)
   }
 }
 // the transport raises its ramp, climbs and is gone (the field is open where it stood)

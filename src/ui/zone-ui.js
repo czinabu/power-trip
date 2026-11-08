@@ -29,7 +29,8 @@ function render(){
   if (at.gate){
     const home = (HUBS[G.hubId] || HUBS[hubIdFor()] || HUBS.temple).home;
     const guest = net.role === 'guest' && net.status === 'connected';
-    list.push(B('RETURN TO ' + home, guest ? 'Take the shuttle home. The rest of the party stays in the city.' : 'Take the shuttle on the pad home. You can come back any time.', () => goTemple()));
+    const H = Z.home || {};   // (a zone can say its own way home: the gate ruins' is back through the gate)
+    list.push(B('RETURN TO ' + home, guest ? (H.guest || 'Take the shuttle home. The rest of the party stays in the city.') : (H.line || 'Take the shuttle on the pad home. You can come back any time.'), () => goTemple()));
   }
   for (const w of Z.waystones){
     if (w.id === at.id) continue;

@@ -72,14 +72,14 @@ export const shipOf = (hubId) => HERO_SHIPS[hubId] || HERO_SHIPS.temple;
 
 /* THE GALAXY MAP's worlds (ui/galaxy-ui.js). Each is a node on the map at (x, y), in percent of the map's width and height,
    with the story missions played there (data/missions.js ids: a hero sees only their own, as on the Missions page), its
-   side missions (data/side-quests.js slugs), and `zone` (an open zone: data/zones.js) or `raid` (data/raids.js) when it has
-   one. `home` is the hub whose ship starts there (the ship's marker sits on it). A story mission no world lists still shows,
+   side missions (data/side-quests.js slugs), and `zones` (its open zones: data/zones.js) or `raid` (data/raids.js) when it
+   has them. `home` is the hub whose ship starts there (the ship's marker sits on it). A story mission no world lists still shows,
    on DEEP SPACE (the last entry). `col` is the world's colour on the map, `ring` a planet ring. */
 export const GALAXY = [
   { id: 'tython', name: 'TYTHON', region: 'DEEP CORE', x: 50, y: 46, col: '#7fb7d8', home: 'temple', size: 1.1,
     line: 'The hidden temple, in the light of the galaxy\'s heart.', missions: [], sides: [] },
-  { id: 'jedha', name: 'JEDHA', region: 'MID RIM', x: 61, y: 34, col: '#d8b07a', size: 1.0, zone: 'jedha', raid: 'kharel',
-    line: 'The holy moon. Its old city, its temple, and the Sith gate under it.',
+  { id: 'jedha', name: 'JEDHA', region: 'MID RIM', x: 61, y: 34, col: '#d8b07a', size: 1.0, zones: ['jedha', 'ruins'], raid: 'kharel',
+    line: 'The holy moon. Its old city, its temple, and the Sith gate under it, and the dead city past the gate.',
     missions: ['last-lesson', 'vault', 'jedha-night', 'gate-wake', 'gate-heart'], sides: ['grave-knight'] },
   { id: 'refuge', name: 'THE HIDDEN REFUGE', region: 'INNER RIM', x: 40, y: 34, col: '#9ab88a', size: 0.7,
     line: 'A forest moon where the Order hid what it could.', missions: ['refuge', 'trial-wall'], sides: [] },

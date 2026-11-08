@@ -110,7 +110,8 @@ import { updateCharFade, charFadeState, CHAR_SEE } from './world/charfade.js';
 import { updateCutscene } from './game/cutscene.js';
 import { updateBarks } from './fx/barks.js';
 import { SEE } from './world/ink.js';
-import { NAV, buildNav, updateNav, navSteer, navDist } from './enemies/nav.js';
+import { NAV, buildNav, updateNav, navSteer, navDist, navRoute } from './enemies/nav.js';
+import { foeType } from './enemies/look.js';
 import { DUEL, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
 import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush } from './enemies/duel.js';
 import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
@@ -341,6 +342,7 @@ Object.assign(window.GAME, { buildArena, findClearSpawn, edgeSpawn, mapLevels: (
 }) });
 import { arcadeContract, arcadeBoard, missionById } from './data/arcade.js';
 Object.assign(window.GAME, { arcade: { arcadeContract, arcadeBoard, missionById }, secrets: { placed: secretsPlaced } });   // the arcade's dealt contracts (data/arcade.js), for tests
+Object.assign(window.GAME, { navRoute, foeType });   // (tests: can a spot be walked to, and how a foe type is dressed here: tools/smoke/zone-ruins.mjs)
 import * as forceLevelData from './data/force-level.js';
 import { trainForm } from './game/upgrades.js';
 Object.assign(window.GAME, { force: { ...forceLevelData, trainForm } });   // the Jedi's Force Level, form shares and form mastery (data/force-level.js), for tests

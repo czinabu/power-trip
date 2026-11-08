@@ -19,6 +19,7 @@ export const OUTSKIRTS_STYLE = {
   mfForge: 'none', mfClan: 'none', mfPit: 'none', mfVault: 'none', mfHangar: 'none',
   jungle: 'forest', holdfast: 'forest',
   canyon: 'rocks', refuge: 'rocks', warcamp: 'rocks', hall: 'rocks', forge: 'rocks', approach: 'rocks', sith: 'rocks', sithGate: 'rocks',
+  zoRuins: 'rocks',   // the gate ruins: a basin of black rock, the dead city's edges lost in it
   relay: 'rocks',   // a spire on a bare black headland over the sea
   pens: 'rocks',    // the Inquisitors' prison moon: black wet rock, nobody lives out there
   garrison: 'city', shipyard: 'city', chipworks: 'city', citadel: 'city',

@@ -87,7 +87,7 @@ export function startZone(key = 'jedha', opts = {}){
   hookUp();
   ZN.key = key; ZN.Z = Z; ZN.district = null; ZN.named = null; ZN.distT = 0; ZN.near = null; ZN.shownKey = ''; ZN.pin = null;
   G.missionForms = null; G.missionKit = null;   // (not the forms or guns last picked on the Missions page: the zone's kit is your story's)
-  startLevel(0, { level: Z.level, mission: true, zone: key });
+  startLevel(0, { level: Z.level, mission: true, zone: key, foeLook: Z.foeLook });   // (a zone may dress its foes: the gate ruins' Hollow Choir)
   storyKit();
   G.waveTotal = 2;   // ...and foes as tough as an early wave (each district sets its own when its fights begin)
   noteZone(key, 'stones', Z.waystones.find(w => w.gate).id);   // the gate's stone is yours from the first visit

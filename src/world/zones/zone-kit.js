@@ -13,6 +13,7 @@ import { seeded } from '../arenas/kit.js';
 const PI = Math.PI;
 const std = (c, r = 0.92, m = 0.04) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
 const glow = (c) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
+const veil = (c) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false });
 
 /* the zone's materials, from its world's palette (data/worlds.js ZONE_WORLDS) */
 export function zoneMats(pal = {}){
@@ -28,6 +29,8 @@ export function zoneMats(pal = {}){
     lamp: glow(pal.lamp ?? 0xffc870), kyber: glow(pal.kyber ?? 0x8ad8ff), beacon: glow(pal.beacon ?? 0xff5a40),
     water: new THREE.MeshStandardMaterial({ color: pal.water ?? 0x3a7a8a, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.72 }),
     flag: glow(pal.flag ?? 0xffe6a8),
+    crystal: glow(pal.crystal ?? pal.kyber ?? 0x8ad8ff),   // a crystal cluster's shards (the gate ruins' are red: data/worlds.js)
+    gate: veil(pal.gate ?? 0xb46bff), fire: glow(pal.fire ?? pal.gate ?? 0xb46bff),
   };
 }
 
@@ -290,7 +293,7 @@ export const KINDS = {
     mesh(p, K){
       const M = K.M, R = seeded(p.s);
       K.add(new THREE.IcosahedronGeometry(p.r * 1.1, 0), M.rockD, p.x, 0.2, p.z, R(), R(), R()).scale.y = 0.55;
-      for (let i = 0; i < 4; i++){ const a = R() * PI * 2; const c = K.add(new THREE.OctahedronGeometry(0.22 + R() * 0.2), M.kyber, p.x + Math.cos(a) * p.r * 0.5, 0.6 + R() * 0.4, p.z + Math.sin(a) * p.r * 0.5); c.scale.y = 2.2; c.rotation.z = (R() - 0.5) * 0.8; c.castShadow = false; c.userData.noOutline = true; }
+      for (let i = 0; i < 4; i++){ const a = R() * PI * 2; const c = K.add(new THREE.OctahedronGeometry(0.22 + R() * 0.2), M.crystal, p.x + Math.cos(a) * p.r * 0.5, 0.6 + R() * 0.4, p.z + Math.sin(a) * p.r * 0.5); c.scale.y = 2.2; c.rotation.z = (R() - 0.5) * 0.8; c.castShadow = false; c.userData.noOutline = true; }
     },
   },
   /* mine-cart RAILS laid along the ground (only a picture: flat on the floor) */
@@ -360,6 +363,71 @@ export const KINDS = {
   fountain: {
     solids(p, out){ col(out, p.x, p.z, p.r, 0.7, { climbable: true }); col(out, p.x, p.z, 0.9, 3.6); },
     mesh(p, K){ const M = K.M; K.cyl(p.x, 0, p.z, p.r, 0.7, M.stoneD, 20); K.flat(K.add(new THREE.CircleGeometry(p.r - 0.4, 20), M.stone[1], p.x, 0.71, p.z, -PI / 2)); K.cyl(p.x, 0, p.z, 0.9, 2.4, M.stone[2], 10); K.box(p.x, 2.4, p.z, 0.6, 1.2, 0.5, M.statue); },
+  },
+  /* ---------------- THE GATE RUINS' own pieces (world/zones/ruins-plan.js) ---------------- */
+  /* THE SITH GATE: the great ring standing on its stepped base, its middle a veil of violet light (the way you came in,
+     and the way home: the threshold's waystone stands beside it). Its plane runs east-west, so it faces north up the
+     avenue. Skyline: seen from all over the ruins */
+  gatering: {
+    solids(p, out){ for (const s of gateParts(p)) partSolid(s, out); },
+    mesh(p, K){ for (const s of gateParts(p)) if (s.draw) s.draw(K, K.M); },
+  },
+  /* an OBELISK: a black needle on a stepped foot, a lit rune strip up its face (skyline: the tomb's two) */
+  obelisk: {
+    solids(p, out){ box(out, p.x, p.z, p.r * 1.6, p.r * 1.6, 1.2, { climbable: true }); box(out, p.x, p.z, p.r, p.r, p.h); },
+    mesh(p, K){
+      const M = K.M;
+      K.box(p.x, 0, p.z, p.r * 1.6, 1.2, p.r * 1.6, M.stoneD);
+      K.box(p.x, 1.2, p.z, p.r * 1.25, 1.2, p.r * 1.25, M.trim);
+      const n = K.add(new THREE.CylinderGeometry(0.18, p.r * 1.414, p.h - 2.4, 4), M.statueD, p.x, 2.4 + (p.h - 2.4) / 2, p.z, 0, PI / 4, 0); n.userData.k = 'obelisk';
+      for (const s of [-1, 1]){ const r = K.box(p.x, 4, p.z + s * (p.r * 0.86), 0.16, p.h * 0.55, 0.05, M.fire); r.userData.noOutline = true; r.castShadow = false; }
+    },
+  },
+  /* a SITH STATUE: a hooded, robed lord on a plinth, both hands on the pommel of a blade held point-down. They line the
+     avenue up to the tomb, every one with the same face, worn away */
+  sithstatue: {
+    solids(p, out){ box(out, p.x, p.z, 1.5, 1.5, 1.4); col(out, p.x, p.z, 1.25, 1.4 + p.h); },   // (round the robe, the hands and the blade)
+    mesh(p, K){
+      const M = K.M, h = p.h, y = 1.4, f = p.face || 0;
+      K.box(p.x, 0, p.z, 1.5, y, 1.5, M.stoneD); K.box(p.x, y - 0.12, p.z, 1.62, 0.24, 1.62, M.trim);
+      K.cyl(p.x, y, p.z, 1.0, h * 0.62, M.statue, 10, 0.62);                          // the robe
+      K.cyl(p.x, y + h * 0.62, p.z, 0.62, h * 0.18, M.statue, 10, 0.8);               // the shoulders
+      const hood = K.add(new THREE.SphereGeometry(0.62, 10, 8), M.statue, p.x, y + h * 0.86, p.z); hood.scale.set(1, 1.15, 1);
+      const fx = Math.sin(f), fz = Math.cos(f);
+      K.add(new THREE.SphereGeometry(0.4, 8, 6), M.dark, p.x + fx * 0.32, y + h * 0.84, p.z + fz * 0.32).userData.noOutline = true;   // the dark under the hood
+      K.box(p.x + fx * 0.9, y + h * 0.5, p.z + fz * 0.9, 0.28, 0.5, 0.28, M.statueD);   // the hands on the pommel
+      K.box(p.x + fx * 0.9, y + 0.1, p.z + fz * 0.9, 0.12, h * 0.42, 0.12, M.metal);     // the blade, point down
+      const eyes = K.box(p.x + fx * 0.6, y + h * 0.86, p.z + fz * 0.6, 0.22, 0.05, 0.05, M.fire, f); eyes.userData.noOutline = true; eyes.castShadow = false;
+    },
+  },
+  /* a BRAZIER: a stone bowl on a short pillar, a violet flame in it */
+  brazier: {
+    solids(p, out){ col(out, p.x, p.z, 0.6, 1.4); },
+    mesh(p, K){
+      const M = K.M;
+      K.cyl(p.x, 0, p.z, 0.45, 1.0, M.stoneD, 8, 0.8);
+      K.cyl(p.x, 1.0, p.z, 0.6, 0.4, M.metal, 10, 1.25);
+      const fl = K.add(new THREE.ConeGeometry(0.42, 1.1, 7), M.fire, p.x, 1.95, p.z); fl.castShadow = false; fl.userData.noOutline = true; K.pic(fl);
+    },
+  },
+  /* a CLIFF: the ruins' edge, a rock face too tall to climb, boulders heaped at its foot toward `face` */
+  cliff: {
+    solids(p, out){ box(out, p.x, p.z, p.hx, p.hz, p.h); },
+    mesh(p, K){
+      const R = seeded(p.s), M = K.M, [fx, fz] = p.face, along = p.hx > p.hz, len = (along ? p.hx : p.hz) * 2;
+      K.box(p.x, 0, p.z, p.hx, p.h, p.hz, M.rock);
+      for (let t = -len / 2 + 3; t < len / 2 - 2; t += 5 + R() * 3){
+        const hh = p.h * (0.35 + R() * 0.5), w = 1.8 + R() * 1.6;
+        K.box(p.x + (along ? t : fx * (p.hx + 0.6)), 0, p.z + (along ? fz * (p.hz + 0.6) : t), along ? w : 0.8, hh, along ? 0.8 : w, R() < 0.5 ? M.rockD : M.rock, (R() - 0.5) * 0.3);
+        if (R() < 0.6){ const b = K.add(new THREE.IcosahedronGeometry(0.9 + R() * 0.8, 0), M.rockD, p.x + (along ? t + 2 : fx * (p.hx + 1.6)), 0.4, p.z + (along ? fz * (p.hz + 1.6) : t + 2), R(), R(), R()); b.scale.y = 0.6; K.pic(b); }
+      }
+      K.box(p.x, p.h - 0.1, p.z, p.hx + 0.3, 0.6, p.hz + 0.3, M.rockD);
+    },
+  },
+  /* a BARRICADE in Kast's camp: plates of hull on struts, waist high (vaulted, or shot over) */
+  barricade: {
+    solids(p, out){ box(out, p.x, p.z, p.hx, p.hz, 1.3); },
+    mesh(p, K){ const M = K.M; K.box(p.x, 0, p.z, p.hx, 1.3, p.hz, M.hull); K.box(p.x, 1.2, p.z, p.hx + 0.05, 0.12, p.hz + 0.05, M.impD); for (const s of [-1, 1]) K.box(p.x + (p.hx > p.hz ? s * (p.hx - 0.3) : 0), 0, p.z + (p.hx > p.hz ? 0 : s * (p.hz - 0.3)), 0.2, 1.5, 0.2, M.metal); },
   },
 };
 
@@ -506,5 +574,21 @@ function templeParts(p){
     const cx = x + sx * 21.5;
     out.push({ solid: true, x: cx, z: z - 12, r: 1.2, h: F + 6, draw: (K, M) => { K.cyl(cx, F, z - 12, 1.4, 1.2, M.stoneD, 10); K.cyl(cx, F + 1.2, z - 12, 0.9, 3.4, M.statue, 10, 0.7); K.add(new THREE.SphereGeometry(0.6, 10, 8), M.statue, cx, F + 5.1, z - 12); } });
   }
+  return out;
+}
+
+/* THE SITH GATE, as parts: the stepped base (walk-up), two piers, the ring overhead and its veil */
+function gateParts(p){
+  const out = [], x = p.x, z = p.z, r = p.r, t = 1.1;
+  const B = (bx, bz, hx, hz, h, draw, o) => out.push({ solid: true, x: bx, z: bz, hx, hz, h, o, draw });
+  [[r + 4, 4.4, 0.4], [r + 3, 3.6, 0.8]].forEach(([hx, hz, h], i) => B(x, z, hx, hz, h, (K, M) => { K.box(x, 0, z, hx, h, hz, i ? M.stoneD : M.stone[1]); K.box(x, h - 0.06, z, hx + 0.05, 0.1, hz + 0.05, M.trim); }, { climbable: true }));
+  const F = 0.8, cy = F + r + t * 0.4;   // the ring's middle
+  for (const s of [-1, 1]) B(x + s * r, z, t * 1.3, t * 1.6, F + r * 0.9, (K, M) => { K.box(x + s * r, F, z, t * 1.3, r * 0.9, t * 1.6, M.statueD); });
+  out.push({ solid: true, x, z, hx: r, hz: t, h: cy + r + t, o: { y0: cy + r - t * 1.4 }, draw: (K, M) => {
+    const ring = K.add(new THREE.TorusGeometry(r, t, 10, 48), M.statueD, x, cy, z); ring.userData.k = 'gate';
+    const lip = K.add(new THREE.TorusGeometry(r - t * 0.9, 0.14, 6, 48), M.fire, x, cy, z); lip.castShadow = false; lip.userData.noOutline = true;
+    for (let i = 0; i < 12; i++){ const a = i / 12 * PI * 2; const k = K.add(new THREE.BoxGeometry(0.7, 1.3, t * 2.3), M.stoneD, x + Math.cos(a) * r, cy + Math.sin(a) * r, z, 0, 0, a); k.userData.k = 'gate-key'; }
+    const v = K.add(new THREE.CircleGeometry(r - t * 0.9, 40), M.gate, x, cy, z); v.userData.passThrough = true; v.userData.noBake = true; v.userData.noOutline = true; v.castShadow = false; v.receiveShadow = false;
+  } });
   return out;
 }

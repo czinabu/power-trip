@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // THE ZONE STREAMER: an open zone (data/zones.js) built in pieces. world/arena.js hands every zo* layout here.
 //
-//   · THE PLAN (world/zones/jedha-plan.js) is rolled once per zone: every piece of the city as plain data.
+//   · THE PLAN (world/zones/jedha-plan.js, ruins-plan.js) is rolled once per zone: every piece of the city as plain data.
 //   · SOLIDS: every piece's collision goes into `solids` at once, so the whole zone collides from the first frame (foes
 //     a long way from anyone, a hero fast-travelling across it: nothing ever falls through a wall that isn't built yet).
 //   · CHUNKS: the zone is cut into squares (Z.chunk metres across); a chunk's meshes are built, inked and merged
@@ -21,10 +21,11 @@ import { autoSolids } from './autosolid.js';
 import { propOwner, dropProps } from './camblock.js';
 import { KINDS, zoneMats, meshKit } from './zones/zone-kit.js';
 import { planJedha } from './zones/jedha-plan.js';
+import { planRuins } from './zones/ruins-plan.js';
 import { ZONE_TUNE as T, zoneByLayout } from '../data/zones.js';
 import { qualityLevel } from '../engine/quality.js';
 
-const PLANS = { zoJedha: planJedha };
+const PLANS = { zoJedha: planJedha, zoRuins: planRuins };
 const planCache = new Map();
 let RAW = false;   // the collision audit (tools/collision-audit.js): every chunk built at once, unbaked, so each prop is its own mesh
 const ZS = { on: false, Z: null, n: 0, size: 0, chunk: 0, chunks: [], root: null, M: null, ink: 0.045, built: 0, extra: [], stats: { builds: 0, drops: 0, ms: 0 } };

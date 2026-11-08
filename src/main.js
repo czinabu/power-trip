@@ -6,7 +6,6 @@ import './engine/save-files.js';   // before anything reads localStorage: the ac
 import './ui/boot.js';   // first: the loading screen hears that the game's code is in (ui/boot.js)
 { const bv = document.getElementById('buildver'); if (bv && typeof __BUILD_LABEL__ !== 'undefined') bv.textContent = __BUILD_LABEL__; }   // build label on the main menu (vite.config.js)
 import { BLADE_U } from './fx/blade-glow.js';
-import * as THREE from 'three';
 import { switchWeapon, beskarPress } from './player/mando/weapons.js';
 import { setKit, grantGun } from './game/armory.js';
 import { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim } from './player/aim.js';
@@ -165,12 +164,17 @@ continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINU
 /* ============================================================
    MAIN LOOP
    ============================================================ */
-const clock = new THREE.Clock();
-function tick(){
+/* the frame's time step comes from the browser's frame timestamp (when this frame will be shown, on the display's beat),
+   not from a clock read when the script happens to start: that read wobbles by a millisecond or two with whatever ran
+   before it, and every move in the game, the camera's most of all, stuttered with the wobble */
+let lastFrameT = -1;
+function tick(ts){
   requestAnimationFrame(tick);
   if (!frameStart()) return;   // the FRAME RATE cap holds this one back (engine/quality.js)
   solidsChanged();   // the collision queries read the solids afresh once a frame (world/collision.js)
-  const rawDt = Math.min(clock.getDelta(), 0.05);
+  const frameT = typeof ts === 'number' ? ts : performance.now();
+  const rawDt = lastFrameT < 0 ? 0 : Math.max(0, Math.min((frameT - lastFrameT) / 1000, 0.05));
+  lastFrameT = frameT;
   let dt = rawDt;
   updateWheel();   // the squad's command wheel: opens on a held H and slows the world while it's up (allies/wheel.js)
   if (G.slowmoT > 0){

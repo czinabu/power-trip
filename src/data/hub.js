@@ -58,12 +58,12 @@ const TEMPLE_WINGS = {
   landing: {
     name: 'THE LANDING PLATFORM', short: 'LANDING',
     blurb: 'A terrace past the council chamber where the pilgrim shuttles set down. One still runs to the old city of Jedha.',
-    level: { name: 'THE HIDDEN TEMPLE — THE LANDING PLATFORM', sub: 'The shuttle to Jedha.', arena: 64, layout: 'tyLanding', waves: [], hazards: {} },
+    level: { name: 'THE HIDDEN TEMPLE — THE LANDING PLATFORM', sub: 'The Dawnreach on its pad, ready for anywhere in the galaxy.', arena: 64, layout: 'tyLanding', waves: [], hazards: {} },
     map: ['pads'],   // what the hub map draws the room with (ui/hub-map.js ART)
     doors: { s: 'council' },
     spawn: [0, 20, Math.PI],
     stations: [
-      { id: 'shuttle', x: 0, z: 2, name: 'SHUTTLE TO JEDHA', act: 'shuttle', r: 4 },
+      { id: 'shuttle', x: 0, z: 2, name: 'THE DAWNREACH', act: 'shuttle', r: 4 },
       { id: 'waystone', x: 9, z: 24, name: 'WAYSTONE', act: 'travel' },
     ],
   },

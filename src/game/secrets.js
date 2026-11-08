@@ -185,14 +185,14 @@ function verb(s){
 }
 onInteract(() => {
   const s = St.near;
-  if (!s || !secretsHere() || G.hub) return false;
+  if (!s || s.taken || !secretsHere() || G.hub) return false;
   if (s.kind === 'meditate'){ if (!St.sit) beginSit(s); return true; }   // (pressed again while sitting: keep sitting)
   take(s);
   return true;
-}, () => !!St.near && secretsHere() && !G.hub);
+}, () => !!St.near && !St.near.taken && secretsHere() && !G.hub);
 // a holocron or a cave: taken at once
 function take(s){
-  s.taken = true;
+  s.taken = true; St.near = null;
   const first = noteSecret(s.id, s.kind);
   const at = new THREE.Vector3(s.x, s.y + 1.3, s.z), K = SECRET_KINDS[s.kind];
   burst(at, K.col, 26, 5, 4, 0.9);
@@ -248,7 +248,7 @@ export function updateSecrets(dt){
   if (St.level !== shared.arenaLevel) queueSecrets();   // (a level built some other way: catch up)
   if (St.want && G.mode === 'play' && !G.paused && !G.cutscene){ try { place(); } catch(e){ St.want = false; console.warn('secrets', e); } }
   const e = prompt();
-  if (!St.list.length || !secretsHere()){ if (e && St.shownKey){ e.classList.remove('on'); St.shownKey = ''; } return; }
+  if (!St.list.length || !secretsHere()){ St.near = null; St.sit = null; if (e && St.shownKey){ e.classList.remove('on'); St.shownKey = ''; } return; }   // (the last one taken: F is the hero's power again)
   for (const s of St.list) s.P.anim(G.gt);
   if (St.sit && dt > 0) updateSit(dt);
   St.near = St.sit ? St.sit.s : pickNear();

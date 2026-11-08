@@ -129,9 +129,11 @@ export const JEDI_PARTS = {
       const HOOD = [
         [0.05,  0.31, 0.33, 0,     0.62, 0.03],    // the jaw: the sides fall open to the chest
         [0.13,  0.34, 0.37, 0.01,  0.52, 0.03],    // the cheeks, roomy, the sides standing forward of the face
-        [0.21,  0.35, 0.4,  0.018, 0.44, 0.025],   // the brow: the brim stands out ahead of the face
-        [0.28,  0.345,0.41, 0.02,  0.36, 0.02],    // the forehead: the brim at its deepest, closing over
-        [0.335, 0.31, 0.37, 0.01,  0.2,  0.015],
+        [0.19,  0.35, 0.4,  0.02,  0.44, 0.025],   // the brow: the brim stands out ahead of the face
+        [0.215, 0.35, 0.405,0.022, 0.4,  0.022],   // the opening still wide just over the eyes...
+        [0.24,  0.348,0.4,  0.022, -0.12,0.02],    // ...then closed across: the brim's edge curves low over the brow,
+        [0.295, 0.338,0.385,0.012, -0.12,0.018],   // so the eyes look out from under it
+        [0.335, 0.31, 0.36, 0.0,   -0.12,0.015],
         [0.375, 0.24, 0.3,  -0.01, -0.12,0.01],    // the crown, rounding over
         [0.403, 0.15, 0.2,  -0.04, -0.14,0.008],
         [0.42,  0.07, 0.1,  -0.07, -0.14,0],       // easing back to a soft point
@@ -153,6 +155,14 @@ export const JEDI_PARTS = {
       k.skin(k.mat('robe', { shade: 0.42 }), HOOD.slice(0, -2).map(([y, w, d, z, open, fold]) =>
         ({ t: H + y, w: w * 0.895, d: d * 0.895, z, p: hoodRing(open + 0.04, fold, 0.97) })),
         { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true, outline: false });
+      // the brim's shadow over the face: heroes don't take cast shadows, so it is painted on as two thin see-through
+      // films of darker skin round the front of the head, a deep one from the brow up and a lighter one down to the
+      // cheekbones, a hard cel step so the eyes look out of the hood's shade
+      const front = hoodRing(1.55, 0, 0.97).map(([x, z]) => [x, -z]);   // (the C turned round: open at the back)
+      k.add(loft([{ y:0.15, w:0.234, d:0.272, z:0.002 }, { y:0.2, w:0.238, d:0.268 }, { y:0.25, w:0.228, d:0.262, z:-0.004 }, { y:0.31, w:0.192, d:0.222, z:-0.008 }, { y:0.35, w:0.09, d:0.11, z:-0.01 }], front),
+        k.mat('skin', { shade: 0.3, o: 0.6 }), R.head, [0, 0, 0], [0, 0, 0], { outline: false });
+      k.add(loft([{ y:0.11, w:0.226, d:0.27, z:0.004 }, { y:0.15, w:0.232, d:0.27, z:0.002 }], front),
+        k.mat('skin', { shade: 0.4, o: 0.35 }), R.head, [0, 0, 0], [0, 0, 0], { outline: false });
     },
   },
 

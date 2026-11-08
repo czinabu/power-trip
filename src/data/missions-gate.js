@@ -60,7 +60,7 @@ export const GATE_MISSIONS = {
         foe: 'acolyte', form: 'makashi', name: 'THE CANTOR', hp: 3.2, dmg: 1.05, scale: 1.04, tint: 0x6a3a8a, at: [0, -6],
         duel: { posture: 150, feint: 0.4, chain: 3, counter: 0.45 },
         rage: 0.55, rageDuel: { feint: 0.5, delay: 0.32, chain: 3 },
-        escape: 0.3, escapeLine: all('The Cantor backs into the gate\'s light, still humming, and is gone.'),
+        escape: 0.3, escapeLine: all('The Cantor backs into the gate\'s light, still humming, and is gone.'), escapeScene: 'cantor-escape',
         trickle: { every: 15, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
     ],
     done: all('The gate is open, and it is not going to close on its own. The Cantor went through it. So do we.'),

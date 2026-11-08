@@ -173,10 +173,22 @@ export function holdAim(chest, wr, node, axis, dir, rest, upAxis = null, upHint 
 /* GRIP AT — solve `arm` so its FIST (fistLocal, in the wrist's frame) lands on `target` (chest space) rather than its wrist
    joint: the pose's hand point is where the hilt is held, so the blade's path is the pose's own whatever the wrist does.
    `aim` turns the wrist (and the hilt) once the arm is posed; the fist's offset from the wrist that results is carried
-   to the next pass and the next frame (`k` fades it, for an off hand only part way onto the hilt). */
+   to the next pass and the next frame (`k` fades it, for an off hand only part way onto the hilt).
+   THE OFFSET SETTLES (`ease`: a fist holding its own saber): from one frame to the next it eases toward the new one (FIST_RATE) rather
+   than jumping there. The
+   offset, the wrist's target, the elbow and the wrist's turn all feed each other, and where a pose leaves two ways to
+   hold it (a reversed blade laid back past the forearm, a hand folded in behind) a snapped offset can throw the arm
+   from one to the other and back again every frame, which reads as the arm flickering. */
 const _wt = new THREE.Vector3(), _fp = new THREE.Vector3(), _wq = new THREE.Vector3();
-export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1){
+const FIST_RATE = 24;   // /s
+export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1, ease = false){
   const U = arm.wr.userData, off = U._fistOff || (U._fistOff = new THREE.Vector3(0, -0.1, 0.06));
+  const F = U._fistEase || (U._fistEase = { prev: new THREE.Vector3(), t: -1e9, a: 1 }), now = performance.now();
+  if (now !== F.t){   // (a new frame: what the offset was, and how far it may move this frame)
+    const dt = (now - F.t) / 1000;
+    F.a = ease && dt > 0 && dt < 0.25 ? 1 - Math.exp(-FIST_RATE * dt) : 1;
+    F.prev.copy(off); F.t = now;
+  }
   for (let i = 0; i < 2; i++){
     _wt.copy(target).addScaledVector(off, -k);
     solveArmClear(arm, _wt, pole);
@@ -185,7 +197,7 @@ export function gripAt(R, arm, target, pole, fistLocal, aim, k = 1){
     arm.wr.updateWorldMatrix(true, false);
     pointInChest(R.chest, arm.wr, _fp.copy(fistLocal), _wq);
     wristInChest(R.chest, arm, _fp);
-    off.subVectors(_wq, _fp);
+    off.subVectors(_wq, _fp).sub(F.prev).multiplyScalar(F.a).add(F.prev);
   }
 }
 
@@ -273,9 +285,12 @@ export function solveArmClear(arm, target, pole){
     // so a guard hovering between two equal answers doesn't flick the elbow from one to the other
     const score = w => w.clear ? Math.abs(w.ang) + (was ? 0 : w.y * 0.6) - (was === Math.sign(w.ang) ? KEEP : 0)
                                : 10 + w.c * 40 - (was === Math.sign(w.ang) ? KEEP : 0);
-    const W = score(P) <= score(N) ? P : N;
+    // (and within one frame — a grip's second pass — it never changes way at all: the passes only refine the wrist, and
+    // a way flipped between them comes back next frame as an arm flicking from one side to the other every frame)
+    const same = was && arm._clrT === performance.now();
+    const W = same ? (was > 0 ? P : N) : score(P) <= score(N) ? P : N;
     best = W.ang;
-    arm._clrWay = Math.sign(best);
+    arm._clrWay = Math.sign(best); arm._clrT = performance.now();
   }
   // THE ELBOW SETTLES — it eases from where it was last frame toward that spot on the ring rather than snapping there,
   // so a guard whose answer hovers between two (the pole's own spot just clear or just not, a hand folded in close to

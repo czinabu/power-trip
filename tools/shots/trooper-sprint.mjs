@@ -15,7 +15,7 @@ const GUNS = (process.argv[3] || 'rifle,pistols').split(',');
 const FPS = 30, STEP = 1000 / FPS;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await browser.newPage({ viewport: { width: 480, height: 360 } });
+const page = await browser.newPage({ viewport: { width: +(process.env.W || 480), height: +(process.env.H || 360) } });
 await page.addInitScript(() => {
   const real = performance.now.bind(performance), rRAF = window.requestAnimationFrame.bind(window);
   let frozen = null, queue = [];
@@ -64,6 +64,7 @@ const lane = await page.evaluate(() => {
 console.log('lane', JSON.stringify(lane));
 
 let side = true;
+if (process.env.FOV) await page.evaluate(f => { window.__fov = f; }, +process.env.FOV);   // (FOV=… frames him tighter)
 async function frame(file){
   await page.evaluate(ms => window.__step(ms), STEP);
   const r = await page.evaluate(([shoot, side]) => {
@@ -72,7 +73,7 @@ async function frame(file){
     if (side){
       c.position.set(x - co * 5.5 + s * 2.2, y + 1.5, z + s * 5.5 + co * 2.2);   // (side-on, a little ahead of him)
       c.lookAt(x, y + 1.1, z);
-      c.fov = 36; c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix(); c.updateMatrixWorld();
+      c.fov = window.__fov || 36; c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix(); c.updateMatrixWorld();
     }
     if (shoot) GAME.gfx.composer.render();   // (read straight back after a render of our own: the game's frame is cleared by now)
     const why = ['cover','blockHeld','zoom','trigHeld','firing','mantle','hang','flip','downed','wallRun'].filter(k => p[k]).concat(p.slideT > 0 ? ['slide'] : [], p.flinchT > 0 ? ['flinch'] : [], p.grounded ? [] : ['air']).join('+');

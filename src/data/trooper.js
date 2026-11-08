@@ -127,15 +127,17 @@ export const TROOPER = {
      He can't shoot or aim at a sprint (either drops him to a run), so the pace buys repositioning, not damage.
        lean  how far the whole body pitches into it (rad) · hunch  the chest's extra fold over it · fov  the camera's
              widening at full sprint (degrees) · blendIn / blendOut  how fast (1/s) the sprint's body comes and goes
-       arms  the pump (player/anim/guns.js sprintArms), chest-space hand points [x, y, z] at the front (`fwd`) and back
-             (`back`) of the swing, x for the gun hand's side (mirrored for the other) · `bow` the hand's swing out round
-             the hip · dirFwd / dirBack the pistol muzzle's rise (+ up) at either end of the swing
-             carry: the long gun in the gun hand alone (its swing `amp` × the free hand's, `muzzle` its barrel's rise) */
-  sprint: { mul: 1.6, lean: 0.17, hunch: 0.08, fov: 5, blendIn: 9, blendOut: 7,
+       arms  the swing (player/anim/guns.js sprintArms), in joint angles (rad): the shoulder hangs at `base` (- forward)
+             and swings `swing` either way of it, turning in `yaw` as it comes forward, held `tuck` off the body and `out`
+             more at the back of the swing; the elbow bends `bend`, `bendFwd` more forward and `open` less behind;
+             `wrist` cocks the fist (`wristFwd` more at the front: the pistol levels out instead of pointing at the sky; `wristBack` less behind, so the
+             long gun's barrel holds about level through the swing instead of dipping at the ground). pistol: each arm with a DC-17 in it · free: the empty hand under the long gun ·
+             carry: the gun arm holding the DC-15 or the launcher, its swing `amp` × the free arm's */
+  sprint: { mul: 1.6, lean: 0.12, hunch: 0.06, fov: 5, blendIn: 9, blendOut: 7,
             arms: {
-              pistol: { fwd: [0.1, 0.16, 0.38], back: [0.3, -0.18, -0.27], bow: 0.05, dirFwd: 0.55, dirBack: -0.5 },
-              free:   { fwd: [0.1, 0.16, 0.36], back: [0.3, -0.18, -0.28], bow: 0.05, dirFwd: 0, dirBack: 0 },
-              carry:  { fwd: [0.24, -0.1, 0.26], back: [0.3, -0.24, -0.08], bow: 0.03, dirFwd: 0, dirBack: 0, amp: 0.55, muzzle: 0.05 },
+              pistol: { base: -0.2, swing: 0.62, yaw: 0.12, tuck: 0.02, out: 0.06, bend: 1.5, bendFwd: 0.05, open: 0.3, wrist: 0.15, wristFwd: 0.85 },
+              free:   { base: -0.2, swing: 0.65, yaw: 0.15, tuck: 0.02, out: 0.06, bend: 1.5, bendFwd: 0.1, open: 0.35, wrist: 0 },
+              carry:  { base: 0, swing: 0.75, yaw: 0, tuck: 0.08, out: 0.04, bend: 1.25, bendFwd: 0, open: 0.1, wrist: 0.15, wristFwd: 0.25, wristBack: 0.55, amp: 0.4 },
             } },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.
   // Each spends ability energy (the bar under vitality) and has a cooldown; mastery ranks (data/mastery.js) retune them.

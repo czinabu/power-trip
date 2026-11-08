@@ -27,6 +27,8 @@ const INQ = { jedi: { foe: 'acolyte', name: 'THE INQUISITOR', tint: 0xa01a22, sc
 const ORDER_OPENS = [[VOICE.trooper, 'Midnight. The comms lit up, and every visor in the company turned to the General. Not ours.'],
                      [VOICE.trooper, 'Whatever that order was, brother, we are not following it.']];
 const MARSHAL = { foe: 'officer', dress: MARSHAL_DRESS, name: 'THE MARSHAL', tint: 0xc9a040, scale: 1.12 };   // in his own black-and-gold armour (data/allies.js MARSHAL)
+const CANTOR = { foe: 'acolyte', name: 'THE CANTOR', tint: 0x6a3a8a, scale: 1.04 };   // (its look: data/saber-cast.js CAST)
+const CANTOR_LEAVES = [['THE CANTOR', 'The door is open now. He has waited a long time to meet whoever opened it.']];
 const MARSHAL_LEAVES = [['THE MARSHAL', 'Run, then. Hide your General. I will find you both, brother. It is what we were made for.']];
 
 export const OPENINGS = {
@@ -139,6 +141,14 @@ export const SCENES = {
   'vx-escape': { shots: 'mark', actor: { jedi: INQ.mando, mando: INQ.mando },
     jedi:  [['VX-7', 'Foundling acquired. Count complete. Withdrawing.'], ['ROOK', 'Let go of me!']],
     mando: [['VX-7', 'Foundling acquired. Count complete. Withdrawing.'], ['ROOK', 'Let go of me! I said LET GO!']] },
+  // the ARC trooper's story: the Marshal breaks off at the war camp and in the canyon (data/missions.js warcamp, hunt)
+  'marshal-camp': { shots: 'mark', actor: { jedi: MARSHAL, mando: MARSHAL },
+    jedi: [['THE MARSHAL', 'Keep the camp, brother. I am keeping your Captain.']], mando: [['THE MARSHAL', 'Keep the camp, brother. I am keeping your Captain.']] },
+  'marshal-canyon': { shots: 'mark', actor: { jedi: MARSHAL, mando: MARSHAL },
+    jedi: [['THE MARSHAL', 'The ship is right there, brother. Come and take him off it.']], mando: [['THE MARSHAL', 'The ship is right there, brother. Come and take him off it.']] },
+  // ACT IV: the Cantor backs into the gate at Jedha (data/missions-gate.js gate-wake), the same figure you just fought
+  'cantor-escape': { shots: 'mark', actor: { jedi: CANTOR, mando: CANTOR },
+    jedi: CANTOR_LEAVES, mando: CANTOR_LEAVES },
   // (the epilogue's card says the rest: game/campaign.js showEpilogue)
   epilogue: { shots: 'hero',
     jedi:  [[VOICE.jedi, 'It is over.']],

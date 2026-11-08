@@ -73,7 +73,7 @@ body.minimap-on #netping{top:calc(18px + var(--mm,172px) + 36px)}
 .zm-stone:hover i,.zm-stone.padfocus i{background:#d4f2ff}
 .zm-pin i{background:rgba(200,220,235,.55)}
 .zm-pin span{color:var(--hx-dim);background:rgba(7,6,10,.55)}
-.zm-obj{width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);background:#ffd24a;box-shadow:0 0 0 2px #07060a;z-index:3;animation:zmPulse 1.2s steps(2) infinite}
+.zm-obj{position:absolute;width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);background:#ffd24a;box-shadow:0 0 0 2px #07060a;z-index:3;animation:zmPulse 1.2s steps(2) infinite}
 @keyframes zmPulse{50%{box-shadow:0 0 0 2px #07060a,0 0 0 6px rgba(255,210,74,.35)}}
 .zm-giver{cursor:pointer;width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#f3e7c4;box-shadow:0 0 0 2px #07060a;display:flex;align-items:center;justify-content:center;z-index:2}
 .zm-giver b{font:800 11px/1 var(--font-ui);color:#07060a}
@@ -127,3 +127,33 @@ body.minimap-on #netping{top:calc(18px + var(--mm,172px) + 36px)}
   .zm-map{--zm:calc(100vw - 60px)}
   .zm-side{width:auto}
 }
+
+/* ---------- the area maps (ui/area-map.js): a big story map's and a hub's wing ---------- */
+/* the minimap sits under the objectives list when one is up (ui/hud-stage.js places it: --mm-top / --mm-right), and
+   steps aside while a mission card has the column */
+body.minimap-area #minimap.mm-under{top:var(--mm-top);right:var(--mm-right)}
+body.minimap-under #netping{top:18px}
+body.minimap-area #minimap.mm-hold{opacity:0;pointer-events:none}
+.zm-spot,.zm-door{transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;z-index:2;padding:3px;cursor:pointer}
+.zm-spot i{width:12px;height:12px;border-radius:50%;background:#f3e7c4;box-shadow:0 0 0 2px #07060a;position:relative}
+.zm-spot i::after{content:'';position:absolute;left:4px;top:4px;width:4px;height:4px;border-radius:50%;background:#07060a}
+.zm-door i{width:14px;height:12px;border-radius:7px 7px 0 0;background:#8ad8ff;box-shadow:0 0 0 2px #07060a}
+.zm-door.n{transform:translate(-50%,0)} .zm-door.s{transform:translate(-50%,-100%);flex-direction:column-reverse}
+.zm-door.w{transform:translate(0,-50%)} .zm-door.e{transform:translate(-100%,-50%)}
+.zm-door.s i{transform:rotate(180deg)} .zm-door.w i{transform:rotate(-90deg)} .zm-door.e i{transform:rotate(90deg)}
+:is(.zm-spot,.zm-door) b{font:700 clamp(8px,1.4cqw,11px)/1 var(--font-ui);letter-spacing:.1em;color:#eaf8ff;background:rgba(7,6,10,.82);padding:2px 4px;white-space:nowrap}
+.zm-door b{color:#bfeaff}
+:is(.zm-spot,.zm-door):hover i,:is(.zm-spot,.zm-door).padfocus i{filter:brightness(1.25)}
+.zm-obj.part{width:10px;height:10px;background:rgba(255,210,74,.55);animation:none}
+.zm-foe{position:absolute;width:10px;height:10px;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 2px #ff4a3a,0 0 0 4px #07060a;z-index:3}
+.zm-foe.boss{width:16px;height:16px;border-radius:0;transform:translate(-50%,-50%) rotate(45deg);background:#ff4a3a;box-shadow:0 0 0 2px #07060a}
+.zm-mate{position:absolute;width:9px;height:9px;transform:translate(-50%,-50%);border-radius:50%;background:#7ee0a8;box-shadow:0 0 0 2px #07060a;z-index:3}
+.zm-obl{display:flex;flex-direction:column;gap:6px}
+.zm-oi{display:flex;gap:8px;align-items:baseline;font:600 13px/1.3 var(--font-ui);letter-spacing:.06em;color:var(--hx-dim)}
+.zm-oi b{flex:none;width:12px;text-align:center;color:var(--hx-dim)}
+.zm-oi.now{color:var(--hx-text)} .zm-oi.now b{color:#ffd24a}
+.zm-oi.done{color:var(--hx-soft);text-decoration:line-through;text-decoration-color:rgba(120,255,180,.5)} .zm-oi.done b{color:#7ee0a8}
+.lg.door{background:#8ad8ff;border-radius:5px 5px 0 0}
+.lg.foe{background:#ff4a3a;transform:rotate(45deg) scale(.85)}
+.lg.mate{background:#7ee0a8;border-radius:50%}
+@media (max-height:520px){ .zm-oi{font-size:11.5px} .zm-obl{gap:4px} }

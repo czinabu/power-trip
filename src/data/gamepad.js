@@ -71,7 +71,7 @@ export const PAD_BINDS = {
       LEFT: { key: 'z', label: 'Ignite / retract saber', note: 'Blade out, hilt to the belt: walk or run at ease · any attack, block, power or blow lights it again' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners · again on it to take it down' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
+      VIEW: { key: 'h', label: 'Squad orders · where there is a map, the map', note: 'In an open zone, on the big story maps and in your hub LB + VIEW opens the full map (M on the keyboard): in a zone with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
   mando: {
@@ -100,7 +100,7 @@ export const PAD_BINDS = {
       LEFT: { key: '5', label: 'Ignite / retract Darksaber', note: 'With the Darksaber in hand · any swing or guard lights it again' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners · again on it to take it down' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
+      VIEW: { key: 'h', label: 'Squad orders · where there is a map, the map', note: 'In an open zone, on the big story maps and in your hub LB + VIEW opens the full map (M on the keyboard): in a zone with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
   // the clone ARC trooper (player/trooper/kit.js): the Mandalorian's shape, so a gunner's hands carry over, with its own
@@ -132,7 +132,7 @@ export const PAD_BINDS = {
       LEFT: { key: 'k', label: 'Swap shoulder', note: 'The camera to your other shoulder · leaning out of cover picks the side on its own' },
       UP: { key: 'n', label: 'Ping', note: 'Marks the spot or foe under the crosshair for your co-op partners · again on it to take it down' },
       RIGHT: { key: 'o', label: 'Objective (hold)', note: 'The objective, which step it is and how far through you are, while held' },
-      VIEW: { key: 'h', label: 'Squad orders · in an open zone, the map', note: 'In an open zone LB + VIEW opens the full map (M on the keyboard), with fast travel to the waystones you have touched', zone: 'm' },
+      VIEW: { key: 'h', label: 'Squad orders · where there is a map, the map', note: 'In an open zone, on the big story maps and in your hub LB + VIEW opens the full map (M on the keyboard): in a zone with fast travel to the waystones you have touched', zone: 'm' },
     },
   },
 };

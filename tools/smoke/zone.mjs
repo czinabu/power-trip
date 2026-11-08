@@ -153,7 +153,7 @@ for (const hero of HEROES){
     if (await home.count()) await home.click();
     check(await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.zone && !GAME.G.paused, null, 120000), `${hero}: back in the hub from the zone`);
     check(await page.evaluate(() => !GAME.zone.zoneStreamInfo().on), `${hero}: the zone's streets are let go in the hub`);
-    check(await page.evaluate(() => !GAME.zoneMap.info().mini), `${hero}: no minimap in the hub`);
+    check(await page.evaluate(() => { const i = GAME.zoneMap.info(); return i.kind === 'area' && !i.pin; }), `${hero}: the hub has its own map, the zone's waypoint left behind`);
     await live();
   } catch (e){ check(false, `${hero}: ${e.message}`); }
   for (const e of errors) check(false, `${hero}: ${e}`);

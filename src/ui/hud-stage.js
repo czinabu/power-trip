@@ -24,6 +24,8 @@ export const STAGE = {
   briskAfter: 1.5,    // s: a brisk line (the calm's exchange: game/story.js) waits for the card this long once it's up, not its whole read
   every: 0.1,         // s: how often the boxes are measured (and at once whenever a card goes up)
   cardLow: 0.55,      // the card's top never goes lower than this share of the screen's height, however long the list above it
+  miniLow: 0.66,      // the minimap under the list never reaches lower than this share of the screen's height...
+  miniMin: 120,       // ...shrinking to fit, down to this many px across (any smaller and it stands beside the list instead)
 };
 
 const $ = (id) => document.getElementById(id);
@@ -74,14 +76,37 @@ function setPx(el, prop, px){
 }
 export function layout(){
   const { xp, tutor, comms, above } = boxes(), H = innerHeight, W = innerWidth, gap = STAGE.gap;
+  placeMinimap(above, tutor.classList.contains('drill'), W, H, gap);
   // the card: under whatever the top-right column already shows
   if (tutor.classList.contains('drill')){
     let top = 0, w = 0;
-    for (const a of above){ const b = a.getBoundingClientRect(); if (b.height && getComputedStyle(a).opacity !== '0'){ top = Math.max(top, b.bottom); w = Math.max(w, b.width); } }
+    for (const a of above){ if (a.classList.contains('mm-hold')) continue; const b = a.getBoundingClientRect(); if (b.height && getComputedStyle(a).opacity !== '0'){ top = Math.max(top, b.bottom); w = Math.max(w, b.width); } }
     setPx(tutor, 'top', Math.min(top ? top + gap : 44, H * STAGE.cardLow));
     setPx(tutor, 'width', w || null);   // as wide as the list it hangs under
   } else { setPx(tutor, 'top', null); setPx(tutor, 'width', null); }
   // the strip keeps its own spot (styles/hud.css) unless the XP line would reach it (a very short screen)
   const xr = xp.getBoundingClientRect(), floor = xr.height ? H - xr.top : 0, own = H * (W <= 620 ? 0.26 : 0.21);
   setPx(comms, 'bottom', floor + gap > own ? floor + gap : null);
+}
+// THE MINIMAP in a story map or a hub (ui/zone-map.js, ui/area-map.js): under the objectives list (or the sandbox
+// readout) when one is up, a gap below it, shrunk to keep above STAGE.miniLow of the screen; if that would leave it too
+// small (a short screen, a long list) it stands beside the list instead, level with its top. A mission card takes the column: the minimap steps
+// aside until it's read. With no list it keeps the corner, as in an open zone
+function placeMinimap(above, cardUp, W, H, gap){
+  const mini = above.find(a => a.id === 'minimap'), body = document.body;
+  if (!mini) return;
+  let lb = null;
+  if (body.classList.contains('minimap-area')) for (const a of above){ if (a === mini) continue; const b = a.getBoundingClientRect(); if (b.height && (!lb || b.bottom > lb.bottom)) lb = b; }
+  mini.classList.toggle('mm-hold', !!lb && cardUp);
+  mini.classList.toggle('mm-under', !!lb); body.classList.toggle('minimap-under', !!lb);
+  const set = (k, v) => { if (mini.style.getPropertyValue(k) !== v){ if (v) mini.style.setProperty(k, v); else mini.style.removeProperty(k); } };
+  if (!lb){ set('--mm', ''); return; }
+  // its own size (styles/zone-map.css), shrunk to fit under the list if need be, down to STAGE.miniMin
+  const was = mini.style.getPropertyValue('--mm'); mini.style.removeProperty('--mm');
+  const full = parseFloat(getComputedStyle(mini).getPropertyValue('--mm')) || 172, key = Math.max(0, mini.offsetHeight - mini.offsetWidth);
+  if (was) mini.style.setProperty('--mm', was);
+  let top = lb.bottom + gap, right = W - lb.right, size = Math.min(full, Math.floor(H * STAGE.miniLow - top - key));
+  if (size < STAGE.miniMin){ top = lb.top; right = W - lb.left + gap; size = full; }
+  set('--mm', size < full ? size + 'px' : '');
+  set('--mm-top', Math.round(top) + 'px'); set('--mm-right', Math.round(right) + 'px');
 }

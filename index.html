@@ -225,6 +225,9 @@
         <!-- the temple on top, then STORY, QUICK PLAY, FREEPLAY and ONLINE: the first three open a short list in their place
              (ui/menus.js openGroup), ONLINE is the co-op tile and opens its panel -->
         <div id="modeselect">
+          <!-- CONTINUE: one click back to where this file left off (the campaign's chapter, Act IV or the hub), shown only
+               when there's something to continue (ui/menus.js refreshContinue) -->
+          <div class="modeopt brk major wide continue" id="mode-continue" hidden><span class="mt">CONTINUE</span><span class="md" id="contMd"></span></div>
           <div class="modeopt brk major wide temple" id="mode-temple"><span class="mt">THE HIDDEN TEMPLE</span><span class="md">Walk the temple on Tython, gather your party and pick a mission together</span></div>
           <div class="mgroups">
             <div class="modeopt brk mgroup" id="grp-story" data-grp="story"><span class="mt">STORY</span><span class="md" id="grpStoryMd">Campaign and missions</span></div>

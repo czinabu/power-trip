@@ -1497,3 +1497,14 @@ body.wb-open #overlay{background:none}
 /* the arcade face of the Missions page: only its board, always out */
 .mp-arcade.open-always>.mp-fold{cursor:default}
 .mp-arcade.open-always>.mp-fold .mp-arrow{display:none}
+
+/* ---------- CONTINUE (ui/menus.js refreshContinue): the first tile when this save file has somewhere to go back to.
+   It wears the gold as the quickest way in; the temple under it steps down to the plain frame ---------- */
+#modeselect .modeopt.continue[hidden]{display:none!important}
+#overlay.mgrp #modeselect .modeopt.continue,#overlay.vpicking #modeselect .modeopt.continue{display:none!important}
+#overlay:is(.st-menu) #modeselect .modeopt.continue{min-height:84px;padding:16px 40px 16px 22px;border-color:rgba(255,210,74,.85);
+  background:linear-gradient(90deg,rgba(255,210,74,.16),rgba(8,18,33,.55) 70%)}
+#overlay:is(.st-menu) #modeselect .modeopt.continue .mt{font-size:28px;letter-spacing:3px;color:var(--gold)}
+#overlay:is(.st-menu) #modeselect .modeopt.continue::before,#overlay:is(.st-menu) #modeselect .modeopt.continue::after{opacity:1;border-color:var(--gold)}
+#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple{min-height:84px;border-color:var(--edge)}
+#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple::before,#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple::after{opacity:0}

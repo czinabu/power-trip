@@ -34,10 +34,8 @@ import { darksaberThrow } from '../player/mando/darksaber.js';
 import { mandoMelee, clinchThrow } from '../player/mando/melee.js';
 import { lockPress, lockKick, lockPush } from '../enemies/duel.js';
 import { mandoWeapon, switchWeapon, startReload, fireTrigger, mandoFlame, beskarPress } from '../player/mando/weapons.js';
-import { startLevel, retryLevel } from '../game/flow.js';
-import { startMission, retryMission } from '../game/mission.js';
 import { showBanner } from '../ui/banners.js';
-import { overlay, setSaberGrip } from '../ui/menus.js';
+import { setSaberGrip } from '../ui/menus.js';
 import { startSwitch } from '../player/anim/saber.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { tutEvent } from '../game/tutor-bus.js';
@@ -239,7 +237,7 @@ document.addEventListener('keydown', (e) => {
     if (k === 'v') forceBarrier();     // Force Barrier — the defensive bubble (its fork-sibling SABER THROW is RMB+LMB)
     // ADAPTIVE FORK KEYS — each either/or pair shares ONE bind (you only ever own one of the pair).
     if (k === 'x' && !e.repeat && G.mode === 'play'){ if (G.unlocked.slam) forceSlam(); else if (G.unlocked.mend) forceMend(); }   // UTIL: JUMP ATTACK or MEND
-    if (k === 'r' && G.mode === 'play'){ if (G.unlocked.judge) forceJudgement(); else if (G.unlocked.repulse) forceRepulse(); }   // ULT: JUDGEMENT or REPULSE ('R' still restarts when dead/victory below)
+    if (k === 'r' && G.mode === 'play'){ if (G.unlocked.judge) forceJudgement(); else if (G.unlocked.repulse) forceRepulse(); }   // ULT: JUDGEMENT or REPULSE ('R' on the fallen screen retries: ui/menus.js)
     if (k === 'g' && !e.repeat && G.mode === 'play'){   // GRIP — in a Form V slot G swaps Djem So ⇄ Shien (the reverse-grip variant); in Niman it flips
       // between a regular and a reverse (Starkiller-style) grip; every other form holds its own forward grip (data/forms.js)
       const own = !isGunner() && FORMS[G.stance] && FORMS[G.stance].grip;
@@ -264,15 +262,7 @@ document.addEventListener('keydown', (e) => {
     if (k === '2') switchSlot(1);
     if (k === '3') switchSlot(2);
   }
-  if (k === 'r' && (G.mode === 'dead' || G.mode === 'victory')){
-    const again = G.mode === 'victory';
-    G.mode = 'play'; G.slowmo = 1;
-    overlay.style.display = 'none';
-    document.getElementById('banner').style.opacity = '0';
-    if (G.mission){ if (again) startMission(G.missionId); else retryMission(); }
-    else if (again) startLevel(0); else retryLevel();
-    try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch(e){}
-  }
+  // (R on the fallen screen retries: ui/menus.js, through the same quick way back in as its RETRY button)
 });
 document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'f') fInteract = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck

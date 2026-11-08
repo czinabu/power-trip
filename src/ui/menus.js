@@ -45,7 +45,7 @@ import { pad } from '../engine/gamepad.js';
 import { openPrefight } from './forms-ui.js';
 import { startZone } from '../game/zone.js';
 import { ZONE_PREFIX } from '../data/zones.js';
-import { loadInto, loadingNow } from './loading.js';
+import { loadInto, dipInto, loadingNow } from './loading.js';
 import { openArmoryPrefight } from './armory-ui.js';
 import { GUARD_RINGS } from '../data/guard-rings.js';
 import { SABER_ASSIST } from '../data/saber-assist.js';
@@ -64,6 +64,10 @@ export const overlay = document.getElementById('overlay');
 /* OVERLAY STATE — one screen, four faces: 'menu' (first run), 'pause', 'dead', 'victory'. Each sets the headline,
    the primary button's label and which blocks show (hero/mode setup only where picking makes sense). */
 let _ovState = 'menu';
+let _deadAt = 0;   // when the fallen screen came up (its R to retry waits a moment)
+// (declared up here: setOverlayState runs while this file is still loading, and reads them: HOME BY ITSELF below)
+const HOME_IN = 10;
+let _homeT = 0, _homeLeft = 0;
 export const isMenuState = () => _ovState === 'menu';
 /* THE RESULTS SCREEN'S CHANGE PANEL — the victory screen leads with the results and the next run's actions; the mode,
    hero and difficulty pickers fold away behind one line (NEXT: CHALLENGE · ONE ON ONE · JEDI · KNIGHT   CHANGE) and open
@@ -173,9 +177,9 @@ for (const id in BTN_ICON){
 }
 export function setOverlayState(state){
   if (state === 'victory' && _endPick === null) _endPick = pickKey();   // a fresh results screen: what was just played
-  if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); }
+  if (state !== 'victory'){ _endPick = null; overlay.classList.remove('vpicking'); disarmHome(); }
   _ovState = state;
-  hubWords(); refreshGroups();
+  hubWords(); refreshGroups(); refreshContinue(state);
   overlay.classList.remove('st-menu', 'st-pause', 'st-dead', 'st-victory', 'confirming', 'newconfirming', 'exitconfirming');
   overlay.classList.add('st-' + state);
   document.body.classList.toggle('in-menu', state === 'menu');
@@ -208,10 +212,13 @@ export function setOverlayState(state){
     document.getElementById('ovctx').textContent = where + ' · ' + heroName(G.hero);
   } else if (state === 'dead'){
     go.textContent = G.endless ? 'NEW SURVIVAL RUN' : G.mission ? 'RETRY THIS OBJECTIVE' : G.sandbox ? (battleArmed() ? 'REPLAY THE BATTLE' : 'BACK TO THE SANDBOX') : retryIsBoss() ? 'RETRY THE BOSS' : G.chapter >= 0 ? 'RETRY THIS CHAPTER' : 'RETRY THIS LEVEL';
-    sub.textContent = '';   // the run summary's own title carries the moment
+    sub.textContent = pad.active ? '' : 'PRESS R TO RETRY';   // (the run summary's own title carries the moment; R is the quick way back: below)
+    _deadAt = performance.now();
   } else if (state === 'victory'){
     go.textContent = pickChanged() ? beginLabel()   // a new pick from CHANGE: name what it begins
+      : homeBound() ? homeWord()   // a run from the hub goes home (HOME BY ITSELF below); PLAY AGAIN is the restart button
       : G.mission && G.chapter < 0 && isArcadeId(G.missionId) && !G.coopWasGuest ? 'NEXT RANDOM MISSION' : 'PLAY AGAIN';   // the arcade deals another (beginPlay)
+    if (homeBound()){ document.getElementById('templeBtn').style.display = 'none'; armHome(); }
     document.getElementById('nextrun').style.display = G.coopWasGuest ? 'none' : '';   // (a co-op guest follows the host's pick)
     refreshNextRun();
   }
@@ -234,6 +241,40 @@ function fitMenu(){
 window.addEventListener('resize', queueFit);
 new MutationObserver(queueFit).observe(overlay, { attributes: true, attributeFilter: ['class'] });   // customizing on and off
 
+/* CONTINUE — the title screen's first tile, when this save file has somewhere to go back to: one click puts you where you
+   left off. What was last played from the title (the campaign, Act IV or the hub; a run started from the hub counts as
+   the hub, since that is where it comes back to) is kept per save file. It skips the Forms page and the training offer:
+   the run's own loadout is already saved, as RESUME and a retry do. */
+const LAST_PLAY = 'sw_last_play';
+function noteLastPlay(){
+  const m = G.fromHub || G.modeSel === 'temple' ? 'temple' : G.modeSel === 'campaign' || G.modeSel === 'gate' ? G.modeSel : null;
+  if (m) try { localStorage.setItem(LAST_PLAY, m); } catch(e){}
+}
+function continueTarget(){
+  let last = null; try { last = localStorage.getItem(LAST_PLAY); } catch(e){}
+  if (last === 'gate' && gateOpen() && gateRun()) return 'gate';
+  if (last === 'temple') return 'temple';
+  if (canResume()) return 'campaign';
+  return null;
+}
+function refreshContinue(state = _ovState){
+  const el = document.getElementById('mode-continue'); if (!el) return;
+  const to = state === 'menu' && G.mode === 'menu' && !G.coopJoin ? continueTarget() : null;
+  el.hidden = !to;
+  if (!to) return;
+  document.getElementById('contMd').textContent = to === 'temple' ? 'Back to ' + nextHub().name + ' · ' + heroName(G.hero)
+    : to === 'gate' ? 'Act IV · ' + resumeProgressOf(gateRun())
+    : (resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + heroName(G.hero)).split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
+}
+document.getElementById('mode-continue').addEventListener('click', (e) => {
+  e.stopPropagation(); audioInit();
+  const to = continueTarget(); if (!to) return refreshContinue();
+  if (to === 'campaign') pickUpSavedRun();
+  if (!setModeSel(to)) return;
+  G.missionKit = null;
+  launch();
+});
+document.addEventListener('campaignmark', () => refreshContinue());   // (the hero or the saved run changed)
 function beginPlay(){
   overlay.style.display = 'none';
   document.getElementById('banner').style.opacity = '0';
@@ -253,6 +294,7 @@ function beginPlay(){
   const from = G.mode, stillWanted = () => G.mode === from && overlay.style.display !== 'flex';
   if (G.mode === 'menu' || G.mode === 'victory'){
     G.paused = true;
+    if (G.mode === 'menu' && !G.coopJoin) noteLastPlay();
     loadInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.modeSel === 'temple'){ const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
@@ -265,7 +307,8 @@ function beginPlay(){
     }, stillWanted);
   } else if (G.mode === 'dead'){
     G.paused = true;
-    loadInto(() => {
+    // the same map again: a quick dip to black, not the loading screen (ui/loading.js dipInto)
+    dipInto(() => {
       G.mode = 'play'; G.slowmo = 1;
       if (G.zone) startZone(G.zone); else if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
       G.paused = false;
@@ -691,6 +734,7 @@ document.addEventListener('click', (e) => {
 overlay.addEventListener('click', (e) => {
   // only the primary button launches/resumes — a click on empty backdrop, a label, a card or a setting must not
   if (!e.target.closest('#goText')) return;
+  if (_ovState === 'victory' && homeBound() && !pickChanged()){ e.stopPropagation(); audioInit(); disarmHome(); goTemple(); return; }   // (HOME BY ITSELF below)
   if (overlay.classList.contains('customizing')) return;   // the stage turns the hero while customizing (ui/customizer.js)
   if (overlay.classList.contains('newconfirming')) return;
   beginFromMenu();
@@ -776,12 +820,22 @@ window.addEventListener('keydown', (e) => {
     else if (shared.lockFallback){ overlay.style.display = 'flex'; G.paused = true; setOverlayState('pause'); }
   }
 }, true);
+// R (or Enter) on the fallen screen retries at once, as its button does. Not in the first moment it's up, so a key still
+// held from the fight (a gunner's reload) doesn't retry by accident
+window.addEventListener('keydown', (e) => {
+  if (e.repeat || (e.key !== 'r' && e.key !== 'R' && e.key !== 'Enter') || G.mode !== 'dead' || _ovState !== 'dead' || overlay.style.display !== 'flex') return;
+  if (panelOpen() || /\b(confirming|exitconfirming)\b/.test(overlay.className) || performance.now() - _deadAt < 600) return;
+  if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault(); audioInit(); launch();
+});
 // ENTER on the title screen presses its primary button (CONTINUE CAMPAIGN when a run is saved, else BEGIN), as the pad's A
 // does with the focus ring on it. Runs last (bubble phase), after the Forms page, armory and text boxes have had theirs.
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.repeat || e.defaultPrevented || G.mode !== 'menu' || _ovState !== 'menu' || overlay.style.display === 'none') return;
   if (panelOpen() || /\b(customizing|newconfirming|confirming|asktrain)\b/.test(overlay.className)) return;
   if (document.activeElement && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(document.activeElement.tagName)) return;
+  const cont = document.getElementById('mode-continue');
+  if (cont && cont.offsetParent && _step === 'mode' && !_group){ e.preventDefault(); cont.click(); return; }   // the modes step: CONTINUE, when it's there
   const go = document.getElementById('goText'); if (!go || !go.offsetParent) return;   // (only where the button shows: not on the modes step)
   e.preventDefault(); audioInit(); beginFromMenu();
 });
@@ -989,6 +1043,28 @@ export function goTemple(auto){
   setModeSel('temple'); setOverlayState('menu');
   if (auto) launchNow(); else launch();
 }
+/* HOME BY ITSELF — a run started from the hub (the temple, the citadel, the covert, a ship's galaxy map) ends on its results
+   screen with the way home as the main button, and goes home on its own after a short count unless the player does
+   anything on the screen first (reads the readout, opens CHANGE, scrolls). A co-op guest follows the host instead */
+const homeBound = () => G.fromHub && !G.hub && !G.coopWasGuest && G.mode === 'victory';
+const homeWord = () => 'RETURN TO ' + ((G.hubId && HUBS[G.hubId]) || nextHub()).home + (_homeLeft > 0 ? ' · ' + _homeLeft : '');
+function armHome(){
+  if (_homeT) return;
+  _homeLeft = HOME_IN;
+  _homeT = setInterval(() => {
+    if (!homeBound() || _ovState !== 'victory' || overlay.style.display !== 'flex'){ disarmHome(); return; }
+    if (overlay.classList.contains('vpicking') || panelOpen()){ disarmHome(); return; }
+    if (--_homeLeft <= 0){ disarmHome(); goTemple(); return; }
+    document.getElementById('goText').textContent = homeWord();
+  }, 1000);
+}
+function disarmHome(){
+  if (_homeT){ clearInterval(_homeT); _homeT = 0; }
+  if (_homeLeft > 0){ _homeLeft = 0; if (_ovState === 'victory' && homeBound()) document.getElementById('goText').textContent = homeWord(); }
+}
+// anything done on the results screen but the main button keeps it up
+for (const ev of ['pointerdown', 'wheel']) overlay.addEventListener(ev, (e) => { if (_homeT && !(e.target.closest && e.target.closest('#goText'))) disarmHome(); }, true);
+window.addEventListener('keydown', () => { if (_homeT) disarmHome(); }, true);
 // a co-op guest in the temple follows the host into the run they just started
 function followHostRun(){
   closeHubPanel(false);

@@ -5,6 +5,8 @@
 // froze on its last frame. The screen is painted FIRST, the build waits for that paint, and the screen lifts once the
 // new level has drawn a few frames, so it never flashes the half-built world.
 
+import { fadeTo, liftFade } from '../world/doorway.js';
+
 const el = () => document.getElementById('boot');
 let loading = false, lift = 0;
 
@@ -50,4 +52,19 @@ function finish(b){
     b.classList.add('out');
     lift = setTimeout(() => { if (!loading) b.hidden = true; }, 600);
   }, 160);
+}
+
+/* A QUICK WAY BACK IN: a retry on the map you're already on (a death's RETRY) needs no loading screen. The screen dips to
+   black, the level is rebuilt behind it (the same map: its shaders and textures are warm, so it's quick) and comes back
+   up as the new arena lifts the fade (world/arena.js resetDoorway). */
+const DIP = 0.22;
+export async function dipInto(build, stillWanted){
+  if (loading) return;
+  loading = true;
+  fadeTo(1, DIP);
+  await new Promise(r => setTimeout(r, DIP * 1000 + 40));
+  await frame();
+  if (stillWanted && !stillWanted()){ loading = false; liftFade(); return; }
+  try { build(); }
+  finally { loading = false; liftFade(); }
 }

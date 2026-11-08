@@ -69,6 +69,7 @@ import { stageHolds } from '../ui/hud-stage.js';
 import { setFoeLook } from '../enemies/look.js';
 import { queueSecrets } from './secrets.js';
 import { resetGunMoves } from '../player/gun-moves.js';
+import { fadeTo, liftFade, fadedOut, doorDark } from '../world/doorway.js';
 
 /* ============================================================
    LEVEL / WAVE FLOW
@@ -527,6 +528,27 @@ export function coopCampaignCleared(){
   else noteWavePoint();
 }
 
+/* THE ROAD ON, IN THE DARK: the next chapter (or level) is built while the screen is black, so the build's hold never
+   freezes the old map on screen and the new one doesn't pop in. A chapter that walked through a doorway is already dark
+   (world/doorway.js); any other fades out first. The new arena lifts the fade as it's built (world/arena.js
+   resetDoorway), under the next chapter's briefing card. A story's choice or Act II's pick comes up over the black, and
+   the build after it lifts it; anything that builds nothing lifts it here. */
+const DARK_IN = 0.55;
+function onTheDark(go){
+  const run = () => {
+    go();
+    if (fadedOut() && !G.cardUp && !G.skillSelect) liftFade();   // (nothing was built: don't leave the screen black)
+  };
+  if (fadedOut() || doorDark() || G.coopGuest){ run(); return; }
+  fadeTo(1, DARK_IN);
+  const t0 = performance.now();
+  (function wait(){
+    if (G.mode !== 'play'){ liftFade(); return; }   // (left for the menu meanwhile)
+    if (G.paused || performance.now() - t0 < DARK_IN * 1000 + 60) return void setTimeout(wait, 60);
+    run();
+  })();
+}
+
 export function updateFlow(dt){
   tickMeditation();   // a learned form waits for the screens in front of it to close (meditation.js)
   tickFormsWindow(inCombat, upToast);   // the three can be re-picked until the chapter's (or survival wave's) fight is on (meditation.js)
@@ -579,7 +601,7 @@ export function updateFlow(dt){
     openSkillTree();
   } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdScene){
     shared.levelPhase = 'idle';
-    if (G.chapter >= 0) nextChapter(); else startLevel(G.levelIdx + 1);
+    onTheDark(() => { if (G.chapter >= 0) nextChapter(); else startLevel(G.levelIdx + 1); });
   } else if (shared.levelPhase === 'fighting'){
     let hostiles = 0;
     for (const e of enemies) if (!e.converted) hostiles++;

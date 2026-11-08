@@ -284,6 +284,30 @@ addEventListener('resize', () => {
    different shader variant (no tone mapping, linear output) than for the screen. Compiling against the screen, as a bare
    renderer.compile does, builds programs the game never uses and leaves the real ones to compile on first draw. */
 const _compileFog = new THREE.Fog(0x000000, 1, 2);
+/* PARALLEL SHADER COMPILE (the first launch): where the browser can link shader programs off the main thread
+   (KHR_parallel_shader_compile: Chrome, Edge and the desktop app on a real GPU), the boot hands the title stage's and the
+   fight's programs to the driver all at once and waits for them together, instead of linking one by one on the main
+   thread (most of the time behind the loader). Elsewhere it's false, and the warm-ups below link as they always have. */
+export const parallelCompile = !!renderer.extensions.get('KHR_parallel_shader_compile');
+// compile `sc` for `cam` as a draw into `rt` would (the target decides tone mapping and colour space, so the variants
+// match the real draw's), without waiting on the links; resolves when they're all done (or after `ms`, whatever's left
+// then just links at its first draw as before)
+export function compileAhead(sc, cam, rt, ms = 8000){
+  if (!parallelCompile) return Promise.resolve();
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(rt);
+  let p;
+  try { p = renderer.compileAsync(sc, cam); } catch(e){ p = Promise.resolve(); }
+  finally { renderer.setRenderTarget(prev); }
+  return Promise.race([p, new Promise(r => setTimeout(r, ms))]);
+}
+// the live scene's programs (compileLive below), ahead
+export function compileLiveAhead(){
+  const fog = scene.fog;
+  if (!fog) scene.fog = _compileFog;
+  try { scene.onBeforeRender(renderer, scene, camera, composer.readBuffer); return compileAhead(scene, camera, composer.readBuffer); }
+  finally { scene.fog = fog; }
+}
 export function compileLive(){
   const prev = renderer.getRenderTarget(), fog = scene.fog;
   renderer.setRenderTarget(composer.readBuffer);

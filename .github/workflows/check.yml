@@ -10,7 +10,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-24.04   # Playwright 1.56 has no Chromium for ubuntu-latest (26.04)
-    timeout-minutes: 50   # the suites take about 30 minutes now (smoke ~10, the co-op ones ~15, maps); 30 cut runs off mid smoke:maps
+    timeout-minutes: 65   # the suites take just over 50 minutes now (smoke, the co-op ones, cutscenes, maps, collision); 50 cut runs off at smoke:collision
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

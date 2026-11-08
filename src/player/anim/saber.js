@@ -672,7 +672,7 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
     _aim.copy(_cd);
     if (rev > 0.01 && reverseWrist(R, _aim, rev)) keepClear(_t.copy(_ch), _aim, staff);
     holdAim(R.chest, R.armR.wr, held.node, bladeAxis(held, _ax), _aim, rest);
-  });
+  }, 1, true);
   if (!offFree) return;
   // off hand: blend between its own target and the pommel end of the hilt (on the saber staff, its own grip further
   // down the long hilt: model/weapons.js STAFF.off)
@@ -698,7 +698,7 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
       _aim.copy(_mb);
       if (orev > 0.01 && reverseWrist(R, _aim, orev, R.armL, -1)) keepClear(_s.copy(_t), _aim);
       holdAim(R.chest, R.armL.wr, on, bladeAxis({ root: orr }, _ax), _aim, on.userData.restQ || IDQ);
-    });
+    }, 1, true);
     return;
   }
   /* TWO HANDS ON ONE HILT: the off fist closes on the grip below the main one, the same way round (its thumb toward
@@ -711,7 +711,7 @@ export function applySaberPose(R, held, offFree = true, dt = 1 / 60){
   gripAt(R, R.armL, _t, _p, OFF_FIST, () => {
     holdAim(R.chest, R.armL.wr, null, _ax.copy(Y).applyQuaternion(OFF_FLIP), _bd, OFF_REST_Q);
     if (two < 0.99) R.armL.wr.quaternion.slerp(IDQ, 1 - two);
-  }, two);
+  }, two);   // (not eased: this fist has to stay closed on the main hilt through the fastest cut)
 }
 const _aim = new THREE.Vector3(), _bd = new THREE.Vector3();
 // the off hand's fist on the main hilt: FIST mirrored, and the hilt laid through it as in the main hand (model/weapons.js)

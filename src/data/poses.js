@@ -240,10 +240,13 @@ export const SABER_GUARDS = {
     jarkai: {
       ready: { hand: [0.36, -0.06, 0.32], blade: [0.68, -0.4, -0.62], twist: 0.06, torso: 0.02, lean: 0.1, pole: [0.8, -0.5, -0.3],
                off: { hand: [0.06, 0.12, 0.44], pole: [-0.85, -0.45, -0.25], sway: 0.25 }, offBlade: [-0.9, -0.3, 0.12] },
-      // one arm before the body, one behind it (Ahsoka, The Clone Wars; Starkiller): the lead fist up in front of the
-      // chest, its blade laid level out past the weapon side; the off arm drawn back behind, its blade trailing out behind
+      // one arm before the body, one held back (Ahsoka, The Clone Wars; Starkiller): the lead fist up in front of the
+      // chest, its blade laid level out past the weapon side; the off arm down and out at its own side, its blade raked
+      // back from the pinky side and a little up (Starkiller's own guard, mirrored). (The off fist used to be drawn in
+      // behind the back with its pole along the arm's own line, which left the elbow two ways to go and the arm
+      // flickering between them every frame.)
       block: { hand: [0.16, 0.14, 0.44], blade: [0.96, 0.08, 0.24], twist: 0.22, lean: 0.12, pole: [0.5, -0.7, -0.4],
-               off: { hand: [-0.36, 0.06, -0.2], pole: [-0.45, -0.55, -0.7] }, offBlade: [-0.42, -0.2, -0.88] },
+               off: { hand: [-0.44, -0.1, 0.1], pole: [-0.7, -0.5, -0.5] }, offBlade: [-0.38, 0.22, -0.9] },
       // (every other raise) both forearms raised before the face, the blades hanging down and out on either side: a wall
       block2: { hand: [0.1, 0.3, 0.42], blade: [0.42, -0.88, 0.2], twist: 0, lean: 0.08, pole: [0.9, -0.1, -0.3],
                 off: { hand: [-0.1, 0.24, 0.42], pole: [-0.9, -0.1, -0.3] }, offBlade: [-0.42, -0.88, 0.2] },
@@ -259,7 +262,8 @@ export const SABER_GUARDS = {
    The Clone Wars). Idle: the forward blade stood straight up by the shoulder, the reversed one angled down and back out
    past the off hip from a fist beside it. Block: hunched in, the right arm high with its blade angled down at the foe, the left
    arm straight out. Every other block: the reversed fist thrown
-   up over the head with its blade level across above it, the forward blade level across the waist the other way. */
+   up before the brow with its blade laid back along the forearm out past the off side, the forward blade low and level
+   out past the weapon hip. */
 export const DUAL_GUARDS = {
   'regular/reverse': {
     // the right fist up by the shoulder, its blade standing straight up; the reversed left fist low before the waist,
@@ -272,8 +276,13 @@ export const DUAL_GUARDS = {
     // laid out to the left and a little up
     block: { hand: [0.36, 0.44, -0.02], blade: [-0.16, -0.12, 0.98], twist: 0.2, lean: 0.36, gaze: 1, sink: 0.1, pole: [0.9, 0.2, -0.35],
              off: { hand: [-0.46, 0.24, 0.54], pole: [-0.55, -0.8, -0.2] }, offBlade: [-0.96, 0.24, 0.1] },
-    block2: { hand: [0.2, -0.04, 0.44], blade: [-0.92, 0.05, 0.38], twist: 0.1, lean: 0.08, gaze: 1, pole: [0.6, -0.75, -0.2],
-              off: { hand: [-0.16, 0.62, 0.18], pole: [-0.8, 0.3, -0.4] }, offBlade: [0.95, 0.1, 0.25] },
+    // (every other raise) the high shield: the reversed fist thrown up before the brow, the forearm across above the
+    // eyes and its blade laid back along it out past the off side; the forward blade low and level out past the weapon
+    // hip, so the two bars spread one high to each side. (The reversed fist used to sit over the crown with its blade
+    // pointed across the other way, on along the forearm, which a reversed blade can't do: the arm wrapped round
+    // behind the head, the blade crossed the face from behind and whipped half a turn on the way up.)
+    block2: { hand: [0.22, -0.04, 0.44], blade: [0.9, 0.08, 0.42], twist: 0.1, lean: 0.08, gaze: 1, pole: [0.6, -0.75, -0.2],
+              off: { hand: [-0.04, 0.68, 0.38], pole: [-0.9, -0.2, -0.3] }, offBlade: [-0.94, 0.18, 0.28] },
   },
 };
 

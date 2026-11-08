@@ -12,7 +12,6 @@ import { CFG } from '../data/config.js';
 import { DUEL } from '../data/duel.js';
 import { LOCK_CAM } from '../enemies/duel.js';
 import { KC, updateKillCam } from './killcam.js';
-import { inCombat } from '../player/mobility.js';
 import * as THREE from 'three';
 /* the Jedi rig's aim point fixed to the hero (no lag): Jedi Academy draws its crosshair along the view from here, so it
    sits mid-screen at rest and rides out with the hero when a roll or a flip outruns the lens (player/aim.js) */
@@ -23,6 +22,14 @@ export const jaAim = Object.assign(new THREE.Vector3(), { live: false });
    ============================================================ */
 let lastOts = 0, lastAds = false;
 let camDist = 5, camFov = 60, camLift = 0, camRise = 0, jaYaw = 0, jaLive = false, deadAt = -1, fovPunch = 0;
+/* SMOOTHED FOLLOW INPUTS — things the rig reads off the hero's velocity, which can change in a single frame (a dash, a
+   stop, a hit's shove, a boost cut): each eases toward its new value on its own rate instead of jumping with it.
+   leadX/Z: the look-ahead into the motion · dive: the boost dive's drop · roll: the bank into a strafe · stiff: the
+   Jedi rig's stiffening on a fast turn · boom: how far out the lens may sit (pulled in at once off a prop, let back out
+   gently, as a share of the line from the hero) · dipS: a landing's dip */
+let leadX = 0, leadZ = 0, diveS = 0, rollS = 0, stiffS = 0, dipS = 0, boom = -1;
+const boomPrev = new THREE.Vector3();
+const ease = (rate, dt) => 1 - Math.exp(-rate * dt);   // a frame-rate-independent share of the gap to close
 // the Jedi rig's state (JA's cameraCurLoc / cameraCurTarget): where the lens and its aim point are, each easing after
 // its ideal spot on its own damping
 const jaLoc = camera.position.clone(), jaTarget = camera.position.clone(), LOOK = camera.position.clone();
@@ -90,23 +97,13 @@ export function aimLookScale(){
    ease (CFG.camera.shoulderSwap seconds, in and out) instead of a slow drift, and a wall on the new side squeezes the
    offset in so the lens never ends up inside it */
 const swap = { live: false, from: 1, to: 1, t: 1, dur: 1, w: 1, mag: 1, room: 1 };
-/* WHICH SHOULDER. The swap button (K, or a mouse side button; on a pad LB + L3, the trooper's LB + D-pad left) is the
-   way to change it: a swap you didn't ask for slides the whole view about two metres mid-fight and throws your aim off
-   what you were tracking. Out of a fight the lens still follows a deliberate strafe, one way for CFG.camera.autoSwapHold
-   seconds, but never while aiming and not for a while after a swap by hand. The trooper's lean out of cover picks its
-   own side (trooper/cover.js), since that's the side he's shooting round. */
-let strafeT = 0, strafeSign = 0, manualAt = -99;
+/* WHICH SHOULDER. Only the swap button changes it (K, or a mouse side button; on a pad LB + L3, the trooper's LB + D-pad
+   left): a swap you didn't ask for slides the whole view about two metres and throws your aim off what you were
+   tracking, so a strafe never moves it. The trooper's lean out of cover picks its own side (trooper/cover.js), since
+   that's the side he's shooting round. */
 export function swapShoulder(){
   if (!isGunner() || G.mode !== 'play' || G.paused) return;
   player.camSide = -(player.camSide || 1);
-  manualAt = G.gt;
-}
-function autoShoulder(lat, aiming, dt){
-  const C = CFG.camera, s = Math.abs(lat) > C.autoSwapSpeed ? Math.sign(lat) : 0;
-  if (!s || s === (player.camSide || 1) || aiming || inCombat() || G.gt - manualAt < C.autoSwapAfterManual){ strafeT = 0; strafeSign = 0; return; }
-  if (s !== strafeSign){ strafeSign = s; strafeT = 0; }
-  strafeT += dt;
-  if (strafeT >= C.autoSwapHold){ player.camSide = s; strafeT = 0; }
 }
 function shoulderOffset(pp, eyeY, rv, mag, dt){
   const C = CFG.camera, want = player.camSide || 1;
@@ -237,7 +234,7 @@ function lockShot(){
 }
 
 // a cutscene ended (game/cutscene.js): the Jedi rig starts over from its ideal spot instead of swooping in from before it
-export function resetCameraRig(){ jaLive = false; camFov = camera.fov; punch = null; swap.live = false; }
+export function resetCameraRig(){ jaLive = false; camFov = camera.fov; punch = null; swap.live = false; boom = -1; leadX = leadZ = diveS = rollS = stiffS = dipS = 0; }
 
 // BATTLE SETUP (game/battlesim.js): the lens hangs over the map at shared.planCam, tipped down at its pitch
 function updatePlanCam(){
@@ -246,6 +243,32 @@ function updatePlanCam(){
   camera.up.set(0, 1, 0);
   camera.lookAt(c.x, 0, c.z);
   if (Math.abs(camera.fov - 50) > 0.02){ camera.fov = 50; camera.updateProjectionMatrix(); }
+}
+
+// THE BOOM — a prop the lens would sit inside pulls it in toward (ox, oy, oz) (it can't be inside). Rather than wait
+// until it's in and then jump, the boom reads a little further out (C.boomSoft), and where the lens is headed
+// (C.boomLead), and starts closing in as the lens nears the prop; once clear it lets back out over a moment. Only a
+// prop that arrives faster than that still pulls it in at once. Skirting a wall or a pillar's corner no longer snaps
+// the view in and out. `snap`: no easing this frame (a cut to another shot)
+function applyBoom(v, ox, oy, oz, snap, dt){
+  const C = CFG.camera, bx = v.x - ox, by = v.y - oy, bz = v.z - oz, len = Math.hypot(bx, by, bz);
+  if (len < 1e-4) return;
+  // (worked as a share of the line, not a length: the follow lag stretching the line as the hero moves isn't a prop)
+  const room = cameraClearance(ox, oy, oz, v.x, v.y, v.z);
+  if (boom < 0 || snap || dt <= 0) boom = room;
+  else {
+    // (never eased in closer than boomMin on the read-ahead alone: right up against a prop it would fold the lens onto the hero)
+    const floor = Math.min(room, C.boomMin / len), ext = (len + C.boomSoft) / len;
+    let soft = clamp((cameraClearance(ox, oy, oz, ox + bx*ext, oy + by*ext, oz + bz*ext) * len * ext - C.boomSoft) / len, floor, 1);
+    // ...and where the lens is headed: an orbit swinging it sideways into a prop's flank shows up there first
+    const lead = C.boomLead / dt, px = v.x + (v.x - boomPrev.x) * lead, py = v.y + (v.y - boomPrev.y) * lead, pz = v.z + (v.z - boomPrev.z) * lead;
+    const pl = Math.hypot(px - ox, py - oy, pz - oz);
+    if (pl > 1e-4 && Math.hypot(px - v.x, pz - v.z) < 3) soft = Math.min(soft, Math.max(floor, (cameraClearance(ox, oy, oz, px, py, pz) * pl - (pl - len)) / len));
+    boom += (soft - boom) * ease(soft < boom ? C.boomIn : C.boomOut, dt);
+  }
+  boomPrev.copy(v);
+  boom = Math.min(boom, room, 1);
+  if (boom < 1 - 1e-5) v.set(ox + bx*boom, oy + by*boom, oz + bz*boom);
 }
 
 export function updateCamera(dt){
@@ -265,8 +288,10 @@ export function updateCamera(dt){
   const vx = player.moveVel.x + player.vel.x, vz = player.moveVel.z + player.vel.z;
   const speed = Math.hypot(vx, vz);
   // look-ahead into motion (kept short: at this distance a long lead would push the hero out of frame)
-  const tx = pp.x + clamp(vx * 0.12, -1.5, 1.5);
-  const tz = pp.z + clamp(vz * 0.12, -1.5, 1.5);
+  // (eased: a dash or a sudden stop would otherwise throw the aim point up to 1.5 m in one frame)
+  const lk = G.fovPreview ? 1 : ease(C.leadRate, dt);
+  leadX += (clamp(vx * 0.12, -1.5, 1.5) - leadX) * lk; leadZ += (clamp(vz * 0.12, -1.5, 1.5) - leadZ) * lk;
+  const tx = pp.x + leadX, tz = pp.z + leadZ;
   const ty = pp.y + C.pivotY;
   const rv = rightV();
   const side = updateDuelSide(pp, f, rv, dt);
@@ -280,11 +305,8 @@ export function updateCamera(dt){
     const aiming = player.blockHeld || player.zoom || player.aiming > 0;
     const ads = adsOn();                                  // down the sights (or the scope): the tightest framing
     const flying = !player.grounded;
-    const lat = vx*rv.x + vz*rv.z;                        // signed strafe: +right, -left
     // never CENTRED: at this distance a centred Mando sits right under the crosshair, so aiming at a head put the
-    // reticle on your own back. Stay over one shoulder; the SWAP button changes it (swapShoulder), and out of a fight a
-    // held strafe the other way does too (autoShoulder)
-    autoShoulder(lat, aiming, dt);
+    // reticle on your own back. Stay over one shoulder; the SWAP button changes it (swapShoulder)
     const mag = player.zoom ? C.mandoShoulderScope : ads ? C.mandoShoulderAds : aiming ? C.mandoShoulderAim : flying ? C.mandoShoulderFly : C.mandoShoulder;
     ots = shoulderOffset(pp, ty + camHi0, rv, mag, dt);
     player.camOts = ots;
@@ -345,8 +367,10 @@ export function updateCamera(dt){
     let dy = Math.abs(G.yaw - jaYaw) * 180 / Math.PI % 360; if (dy > 180) dy = 360 - dy;
     let stiff = dt > 0 ? dy / (dt * 1000) : 0;
     stiff = stiff < 1 ? 0 : stiff > 2.5 ? 0.75 : (stiff - 1) * 0.5;
+    // (eased: the mouse's counts land unevenly frame to frame, and a stiffness that leapt with each one shook the lag)
+    stiffS += (stiff - stiffS) * ease(C.stiffRate, dt); stiff = stiffS;
     jaYaw = G.yaw;
-    if (!jaLive || G.fovPreview || ov){ jaTarget.set(itx, ity, itz); jaLoc.copy(TMP); jaLive = true; }   // (re)start: no swoop in
+    if (!jaLive || G.fovPreview || ov){ jaTarget.set(itx, ity, itz); jaLoc.copy(TMP); jaLive = true; stiffS = 0; }   // (re)start: no swoop in
     else {
       const tr = Math.pow(1 - J.targetDamp, k);
       jaTarget.set(itx - (itx - jaTarget.x)*tr, ity - (ity - jaTarget.y)*tr, itz - (itz - jaTarget.z)*tr);
@@ -397,12 +421,11 @@ export function updateCamera(dt){
   }
   camRise += (riseWant - camRise) * Math.min(1, dt * 3);
   TMP.y += camRise;
-  clear(TMP);
   // INERTIA — the camera lags when you boost / fly fast (a weighty swoop), but snaps tight when you're AIMING
   const lagBase = (adsFly) ? 0.000004 : (isGunner() && (player.boosting || speed > 14)) ? 0.02 : 0.000008;
   // (frozen sim: dt = 0 would leave the lens stuck on the last pause cut, so the FOV preview snaps straight to the gameplay spot)
   // (the Jedi rig has already done its own easing)
-  if (jedi || lw > 0 || kw > 0) camera.position.copy(TMP);
+  if (jedi || lw > 0 || kw > 0){ applyBoom(TMP, ox, oy, oz, lw > 0 || kw > 0, dt); camera.position.copy(TMP); }
   else {
     const a = G.fovPreview ? 1 : 1 - Math.pow(lagBase, dt);
     camera.position.lerp(TMP, a);
@@ -410,6 +433,8 @@ export function updateCamera(dt){
     // rather than through the follow lag too, or the swap would trail the lag and feel slow and soft
     const dOts = ots - lastOts;
     if (Math.abs(dOts) < 3){ camera.position.x += rv.x * dOts * (1 - a); camera.position.z += rv.z * dOts * (1 - a); }
+    // (the boom works on where the lag leaves the lens: it trails the ideal spot, and could swing into a prop the ideal spot is clear of)
+    applyBoom(camera.position, ox, oy, oz, G.fovPreview, dt);
   }
   lastOts = jedi ? 0 : ots;
   // SHAKE — trauma model: strength is shake², so chip damage barely registers and a boss slam rattles the screen.
@@ -438,7 +463,10 @@ export function updateCamera(dt){
     const sw = C.sway * (1 - clamp(speed / 6, 0, 1));
     camera.position.x += Math.sin(now * 0.63) * sw; camera.position.y += Math.sin(now * 0.91 + 1.3) * sw * 0.7;
   }
-  if (player.landDip > 0) camera.position.y -= player.landDip;   // TOUCHDOWN — the view dips with the impact (decayed in updatePlayer)
+  // TOUCHDOWN — the view dips with the impact (decayed in updatePlayer); it drops over a few frames rather than in one
+  const dip = player.landDip || 0;
+  dipS = dip < dipS ? dip : dipS + (dip - dipS) * ease(C.dipRate, dt);
+  if (dipS > 0) camera.position.y -= dipS;
   if (camera.position.y < 0.25) camera.position.y = 0.25;        // none of the above may push the lens under the floor
   // ...or into a prop: the lag, shake, hit kick and sway all move the lens after the check above, so check where it
   // actually ended up
@@ -446,7 +474,8 @@ export function updateCamera(dt){
   // SEE-THROUGH — a prop standing between the lens and the hero turns slightly see-through (world/camblock.js, ink.js)
   updatePropFade(camera.position, pp.x, pp.y, pp.z, dt);
   // Mando aims a bit ABOVE its own head height; while DIVING the look target drops so the camera follows the dive angle
-  const diveLook = (isGunner() && player.boosting) ? clamp(player.vy * 0.06, -2.0, 0) : 0;
+  diveS += ((isGunner() && player.boosting ? clamp(player.vy * 0.06, -2.0, 0) : 0) - diveS) * ease(6, dt);   // (eased: a boost's end no longer jerks the view up)
+  const diveLook = diveS;
   // LOOKING DOWN — the lens climbs overhead, and aiming far past the hero from up there drops them off the bottom of the
   // screen. As the view tips over, draw the aim point back in toward the hero and down toward the waist, so they stay
   // in frame
@@ -462,7 +491,9 @@ export function updateCamera(dt){
   let rollGain = (isGunner()) ? (player.boosting ? 0.013 : !player.grounded ? 0.009 : 0.006) : 0.0035;
   let rollMax  = (isGunner()) ? (player.boosting ? 0.13 : 0.08) : 0.045;
   if (adsFly){ rollGain *= 0.35; rollMax *= 0.45; }
-  camera.rotateZ(clamp(-strafe * rollGain, -rollMax, rollMax) * (1 - kw) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
+  // (eased: the strafe speed jumps on a dash, a stop or a shove, and the bank used to jump with it)
+  rollS += (clamp(-strafe * rollGain, -rollMax, rollMax) - rollS) * ease(C.rollRate, dt);
+  camera.rotateZ(rollS * (1 - kw) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
   // FOV kick on dashes and at speed; down the sights the view narrows by the gun's own `adsZoom` (degrees), and a
   // scope drops to its `scopeFov` (data/mando.js, data/trooper.js): each gun aims with its own magnification
   const adsCut = adsZoomNow();

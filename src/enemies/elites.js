@@ -15,7 +15,7 @@ import { hurtPlayer } from '../player/damage.js';
 import { hooks } from '../net/run.js';
 import { diffHpMul } from '../data/difficulty.js';
 import { ELITES } from '../data/enemies.js';
-import { mutOn, NG_VANGUARD, VANGUARD_CAP } from '../data/ngplus.js';
+import { mutOn, NG_VANGUARD, VANGUARD_CAP, NG_IRONHIDE } from '../data/ngplus.js';
 
 export { ELITES };
 
@@ -27,7 +27,7 @@ export function enemyHpScale(){
   // CAMPAIGN: a gentle linear ramp. SURVIVAL: COMPOUNDS past wave ~5 so enemy HP keeps pace with the player's
   // snowballing (boons + repeatable power-ups multiply damage exponentially; a flat +5%/wave fell way behind).
   const s = G.endless ? (1 + wt*0.06) * Math.pow(1.05, Math.max(0, wt-5)) : (1 + wt*0.05);
-  return s * (mutOn('ironhide') ? 1.4 : 1) * diffHpMul();   // DIFFICULTY scales enemy durability
+  return s * (G.mut === 'ironhide' ? 1.4 : mutOn('ironhide') ? NG_IRONHIDE : 1) * diffHpMul();   // DIFFICULTY scales enemy durability · IRONHIDE: a survival wave's, or NG+'s gentler one (data/ngplus.js)
 }
 
 const ELITE_KEYS = Object.keys(ELITES);

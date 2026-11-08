@@ -358,12 +358,12 @@ function shotInacc(){
   return spd01 * 0.7 + (player.boosting ? 1.0 : (!player.grounded && !player.hovering ? 0.35 : 0));
 }
 /* THE CONE a shot goes out in right now (radians, its half-angle): the gun's hip or braced spread, opened by speed and
-   the jetpack, steadied by HUNTER'S EYE, shaken by suppression. The reticle's gap is drawn from this (ui/hud.js), so
+   the jetpack, steadied by HUNTER'S EYE and the TARGETING VISOR, shaken by suppression. The reticle's gap is drawn from this (ui/hud.js), so
    the crosshair shows exactly where the bolts can go. (A signature move may override it per shot: gun-moves.js.) */
 export function shotSpread(W = mandoWeapon()){
   const steady = steadyNow(), inacc = shotInacc();
   const base = (steady ? W.braceSpread : W.hipSpread) || 0;
-  return (base + inacc * (steady ? 0.003 : 0.022)) * heroSuppSpread() * flowSpreadMul();
+  return (base + inacc * (steady ? 0.003 : 0.022)) * heroSuppSpread() * flowSpreadMul() / (1 + (player.up.aim || 0));   // TARGETING VISOR's steadier aim (data/skills.js)
 }
 /* BOLT MAGNETISM — a shot that just misses a body's edge (within MAGNET.ang of it, through the crosshair) is aimed at
    that body instead, at the height the crosshair line passes it. Small enough that you still aim; it only forgives

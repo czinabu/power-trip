@@ -106,8 +106,9 @@ function jediPowers(stage){
 }
 const TREE_BRANCH = (id) => TREES.jedi.of[id] || (JEDI_TREE.find(n => n.id === id) || {}).branch || null;
 function treePoints(){
-  const out = { combat: 0, sense: 0, control: 0 };
+  const out = { combat: 0, sense: 0, control: 0 }, cap = APPRENTICES.jedi.treeCap || 99;
   for (const id in player.skills || {}){ const b = TREE_BRANCH(id); if (b in out) out[b] += player.skills[id] || 0; }
+  for (const b in out) out[b] = Math.min(cap, out[b]);   // (data/apprentices.js treeCap)
   return out;
 }
 export function apprenticeLearned(hero = G.hero){

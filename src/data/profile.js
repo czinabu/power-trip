@@ -138,8 +138,10 @@ export const JEDI_TREE = [
   { id: 'prescience', prof: 'prescience', branch: 'sense', ico: '❂', nm: 'PRESCIENCE', tier: 3, max: 1, ds: '+0.06s parry window · +25% stamina regen · −20% dash cooldown',
     fl: 'The fight has already happened. You are only remembering it.', apply(){ player.up.parry += 0.06; player.up.stamRegen *= 1.25; player.up.dashCdMult *= 0.8; } },
   // ---- COMBAT ----
-  { id: 'flurry', prof: 'flurry', branch: 'combat', ico: '⚔', nm: 'FLURRY', tier: 2, max: 2, ds: '+10% attack speed · +5% saber damage',
-    fl: 'Three cuts where they braced for one.', apply(){ player.up.atkSpeed *= 1.1; player.up.dmg *= 1.05; } },
+  { id: 'flurry', prof: 'flurry', branch: 'combat', ico: '⚔', nm: 'FLURRY', tier: 2, max: 2, ds: '+10% attack speed',
+    // (tempo where JUGGERNAUT, its tier's other blade card, has weight: +10% a rank each. It also gave +5% damage, which
+    // made it the tier's best damage card outright, a ranked hero's run stronger than a fresh one's)
+    fl: 'Three cuts where they braced for one.', apply(){ player.up.atkSpeed *= 1.1; } },
 ];
 
 // the Mando's and the trooper's lighter track: each rank opens one more card on the run's upgrade page

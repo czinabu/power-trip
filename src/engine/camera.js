@@ -4,12 +4,13 @@
 import { FINISHER } from '../data/finishers.js';
 import { camera } from './renderer.js';
 import { clamp, TMP } from '../utils.js';
-import { shared, G, player, enemies, isGunner, bossUp } from '../state.js';
+import { shared, G, player, enemies, isGunner, isTrooper, bossUp } from '../state.js';
 import { fwd, rightV, playerPos, stance } from '../player/helpers.js';
 import { mandoWeapon } from '../player/mando/weapons.js';
 import { cameraClearance, updatePropFade } from '../world/camblock.js';
 import { CFG } from '../data/config.js';
 import { DUEL } from '../data/duel.js';
+import { TROOPER } from '../data/trooper.js';
 import { LOCK_CAM } from '../enemies/duel.js';
 import { KC, updateKillCam } from './killcam.js';
 import * as THREE from 'three';
@@ -494,7 +495,7 @@ export function updateCamera(dt){
   // (eased: the strafe speed jumps on a dash, a stop or a shove, and the bank used to jump with it)
   rollS += (clamp(-strafe * rollGain, -rollMax, rollMax) - rollS) * ease(C.rollRate, dt);
   camera.rotateZ(rollS * (1 - kw) + shakeRoll + (G.camRoll || 0));   // (a listing deck: game/twists/list.js)
-  // FOV kick on dashes and at speed; down the sights the view narrows by the gun's own `adsZoom` (degrees), and a
+  // FOV kick on dashes and at speed (and the trooper's sprint: data/trooper.js sprint.fov); down the sights the view narrows by the gun's own `adsZoom` (degrees), and a
   // scope drops to its `scopeFov` (data/mando.js, data/trooper.js): each gun aims with its own magnification
   const adsCut = adsZoomNow();
   // IMPACT PUNCH — heavy hitstop snaps the view in a touch (instantly, the sim is frozen) and slow-mo holds it there,
@@ -502,7 +503,7 @@ export function updateCamera(dt){
   if (G.mode === 'play' && !player.zoom && player.fin && player.fin.cam && G.finCam !== false) fovPunch = Math.min(FINISHER.cam, fovPunch + dt * FINISHER.cam * 6);   // a big SABER FINISHER: the view pushes in while it plays
   else if (G.mode === 'play' && !player.zoom && (G.hitstop > 0.04 || G.slowmo < 0.9)) fovPunch = C.impactFov;
   else fovPunch = Math.max(0, fovPunch - dt * C.impactFov * 4);
-  const wantFov = player.zoom ? scopeFov() : (baseFov(C) + (adsCut > 0 ? 0 : (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6)) + (stance().fovKick || 0) - adsCut);   // (no speed kick down the sights)
+  const wantFov = player.zoom ? scopeFov() : (baseFov(C) + (adsCut > 0 ? 0 : (player.dashT > 0 ? 10 : 0) + clamp(speed * 0.2, 0, 6) + (isTrooper() ? TROOPER.sprint.fov * (player._sprK || 0) : 0)) + (stance().fovKick || 0) - adsCut);   // (no speed kick down the sights)
   // previewing the FOV setting (often while paused, dt = 0): snap so the view follows the slider at once
   camFov = G.fovPreview ? wantFov : camFov + (wantFov - camFov) * Math.min(1, dt * (player.zoom || adsCut > 0 ? C.adsIn : lastAds ? C.adsOut : 7));
   if (adsCut > 0 || player.zoom) lastAds = true; else if (Math.abs(wantFov - camFov) < 0.5) lastAds = false;

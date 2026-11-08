@@ -154,6 +154,41 @@ function overShoulder(dir, side){
   return dir;
 }
 
+/* THE TROOPER'S SPRINT (player/trooper/sprint.js): both arms swing from the shoulder against the stride like a
+   sprinter's, elbows bent, the hands passing close by the ribs from the hip to the chest. Plain joint angles (no IK:
+   a pendulum swing reads as running, a hand steered between points reads as a puppet). The guns sit straight in the
+   fists, so a pistol follows its forearm, level out front, angled at the ground behind. The DC-15 (or the launcher)
+   rides in the gun hand alone on a shorter, stiffer swing, its barrel along the forearm; the free hand pumps full.
+   `k` (0..1) blends it in over whatever the arms already hold this frame (Rex's carry, the long-gun rest), so the
+   sprint eases in and out; `ph` is the stride's clock (player.runPhase: the right arm forward as sin(ph) rises).
+   Tuning: data/trooper.js sprint.arms. */
+const _save = Array.from({ length: 6 }, () => new THREE.Quaternion());
+// one arm: `a` 1 swung fully forward … -1 fully back; side +1 the right arm, -1 the left
+function swingArm(arm, a, side, P){
+  const fw = Math.max(0, a), bk = Math.max(0, -a);
+  arm.sh.rotation.set(P.base - a * P.swing, side * P.yaw * fw, -side * (P.tuck + P.out * bk));
+  arm.el.rotation.set(-(P.bend + P.bendFwd * fw - P.open * bk), 0, 0);
+  arm.wr.rotation.set(P.wrist + (P.wristFwd || 0) * fw - (P.wristBack || 0) * bk, 0, 0);
+}
+export function sprintArms(dt, R, player, k, ph, twoH, dual, A){
+  if (k <= 0.001) return;
+  const arms = [R.armR.sh, R.armR.el, R.armR.wr, R.armL.sh, R.armL.el, R.armL.wr];
+  arms.forEach((j, i) => _save[i].copy(j.quaternion));
+  const sw = Math.sin(ph);
+  if (twoH){
+    swingArm(R.armR, sw * A.carry.amp, 1, A.carry);
+    swingArm(R.armL, -sw, -1, A.free);
+    const gun = player.rifleMesh;
+    if (gun){ rememberRest(gun); gun.quaternion.slerp(gun.userData.restQ, Math.min(1, dt * 14)); }
+  } else {
+    swingArm(R.armR, sw, 1, A.pistol);
+    swingArm(R.armL, -sw, -1, dual ? A.pistol : A.free);
+    for (const g of [player.pistols.R, dual && player.pistols.L]) if (g){ rememberRest(g); g.quaternion.slerp(g.userData.restQ, Math.min(1, dt * 14)); }
+  }
+  // ease in from the pose the arms held before this
+  if (k < 0.999) arms.forEach((j, i) => j.quaternion.copy(_save[i].slerp(j.quaternion, k)));
+}
+
 /* DISRUPTOR shouldered: gun hand by the weapon-side collarbone, rifle down the aim line, off hand on the foregrip. */
 // thrust: the disruptor's spear stab (-0.3 chambered back … 1 at full reach): the stock comes off the shoulder to
 // the hip line and both hands drive it down the aim, the chest squaring into it

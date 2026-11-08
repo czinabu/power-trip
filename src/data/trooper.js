@@ -123,8 +123,22 @@ export const TROOPER = {
   // JUMP: no pack under him. A short, heavy hop (× CFG.player.jumpVel) that falls harder than it rose (× gravity): enough to
   // vault, climb and clear a step, never a bound. No wall-runs, no wall-kicks. In the air the keys only nudge him.
   jump: { vel: 0.7, fall: 1.7, airControl: 0.3, diveWindow: 0.7 },   // `diveWindow`: SPACE again within this many s of the hop is the combat dive
-  // SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it
-  sprint: { mul: 1.4 },
+  /* SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it.
+     He can't shoot or aim at a sprint (either drops him to a run), so the pace buys repositioning, not damage.
+       lean  how far the whole body pitches into it (rad) · hunch  the chest's extra fold over it · fov  the camera's
+             widening at full sprint (degrees) · blendIn / blendOut  how fast (1/s) the sprint's body comes and goes
+       arms  the swing (player/anim/guns.js sprintArms), in joint angles (rad): the shoulder hangs at `base` (- forward)
+             and swings `swing` either way of it, turning in `yaw` as it comes forward, held `tuck` off the body and `out`
+             more at the back of the swing; the elbow bends `bend`, `bendFwd` more forward and `open` less behind;
+             `wrist` cocks the fist (`wristFwd` more at the front: the pistol levels out instead of pointing at the sky; `wristBack` less behind, so the
+             long gun's barrel holds about level through the swing instead of dipping at the ground). pistol: each arm with a DC-17 in it · free: the empty hand under the long gun ·
+             carry: the gun arm holding the DC-15 or the launcher, its swing `amp` × the free arm's */
+  sprint: { mul: 1.6, lean: 0.12, hunch: 0.06, fov: 5, blendIn: 9, blendOut: 7,
+            arms: {
+              pistol: { base: -0.2, swing: 0.62, yaw: 0.12, tuck: 0.02, out: 0.06, bend: 1.5, bendFwd: 0.05, open: 0.3, wrist: 0.15, wristFwd: 0.85 },
+              free:   { base: -0.2, swing: 0.65, yaw: 0.15, tuck: 0.02, out: 0.06, bend: 1.5, bendFwd: 0.1, open: 0.35, wrist: 0 },
+              carry:  { base: 0, swing: 0.75, yaw: 0, tuck: 0.08, out: 0.04, bend: 1.25, bendFwd: 0, open: 0.1, wrist: 0.15, wristFwd: 0.25, wristBack: 0.55, amp: 0.4 },
+            } },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.
   // Each spends ability energy (the bar under vitality) and has a cooldown; mastery ranks (data/mastery.js) retune them.
   // RECON SCAN (Q): a pulse that marks every foe within `range` for `time` s: marked foes take `mark`× damage from

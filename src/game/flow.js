@@ -179,7 +179,7 @@ export function startLevel(idx, opts){
   player.riposteT = 0;
   player.mantle = null; player.wallRun = null; player.wallRunUsed = false; player.landStagT = 0;   // parkour state
   player.jetCharges = null; player.dodgeKind = null;   // the Mando's air-dodge charges refill to full
-  player.hang = null; player.slideT = 0; player.sprinting = false; player.sprintOn = true; player.strafeLatch = false; player.pivotT = 0; player.flinchT = 0;
+  player.hang = null; player.slideT = 0; player.sprinting = false; player._sprK = 0; player.sprintOn = true; player.strafeLatch = false; player.pivotT = 0; player.flinchT = 0;
   player.lockTarget = null;
   resetMandoMelee();
   player.judgeT = 0;

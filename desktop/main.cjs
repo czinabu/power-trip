@@ -75,4 +75,12 @@ else {
     startUpdateCheck();
   });
   app.on('window-all-closed', () => app.quit());
+  /* SAVES REACH THE DISK BEFORE THE APP GOES. Chromium writes localStorage out lazily, a few seconds after the game sets it,
+     so a save made just before EXIT GAME, the window's X, an update installing on close, or Windows shutting down could
+     be lost. Flush it at each of those. */
+  const flush = () => { try { session.defaultSession.flushStorageData(); } catch(e){} };
+  app.on('before-quit', flush);
+  app.on('browser-window-created', (e, win) => win.on('close', flush));
+  app.on('session-end', flush);   // (Windows: logging off or shutting down)
+  ipcMain.on('power-trip:flush', flush);
 }

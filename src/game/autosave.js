@@ -23,6 +23,11 @@ export function autosave(reason, opts = {}){
   timer = setTimeout(flush, Math.max(0, pending.due - performance.now()));
 }
 function flush(){ const p = pending; pending = null; if (p) write(p); }
+// the game is put away with a save still waiting on its beat (a phone's home button, a tab closed, the app swiped away):
+// write it now, while the page can still run (a hidden phone tab may be frozen or dropped before the timer comes round)
+function now(){ if (pending){ clearTimeout(timer); flush(); } }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') now(); });
+window.addEventListener('pagehide', now);
 // A BOSS DOWN (the Herald, a finale boss, a raid's, the Warbringer: boss/boss.js, boss/finale.js, enemies/damage.js, and a
 // co-op guest's screen as the host's boss falls: net/foefire.js). Away from the campaign it saves at once, once the fall has
 // played. A campaign's boss is saved as its chapter closes (saveAtClose below, moments later): saved mid-chapter, the

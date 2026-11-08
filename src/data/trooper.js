@@ -123,8 +123,20 @@ export const TROOPER = {
   // JUMP: no pack under him. A short, heavy hop (× CFG.player.jumpVel) that falls harder than it rose (× gravity): enough to
   // vault, climb and clear a step, never a bound. No wall-runs, no wall-kicks. In the air the keys only nudge him.
   jump: { vel: 0.7, fall: 1.7, airControl: 0.3, diveWindow: 0.7 },   // `diveWindow`: SPACE again within this many s of the hop is the combat dive
-  // SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it
-  sprint: { mul: 1.4 },
+  /* SPRINT (hold SHIFT, pad B: player/trooper/sprint.js): forward at `mul` × his run. No dive, no jetpack: he runs for it.
+     He can't shoot or aim at a sprint (either drops him to a run), so the pace buys repositioning, not damage.
+       lean  how far the whole body pitches into it (rad) · hunch  the chest's extra fold over it · fov  the camera's
+             widening at full sprint (degrees) · blendIn / blendOut  how fast (1/s) the sprint's body comes and goes
+       arms  the pump (player/anim/guns.js sprintArms), chest-space hand points [x, y, z] at the front (`fwd`) and back
+             (`back`) of the swing, x for the gun hand's side (mirrored for the other) · `bow` the hand's swing out round
+             the hip · dirFwd / dirBack the pistol muzzle's rise (+ up) at either end of the swing
+             carry: the long gun in the gun hand alone (its swing `amp` × the free hand's, `muzzle` its barrel's rise) */
+  sprint: { mul: 1.6, lean: 0.17, hunch: 0.08, fov: 5, blendIn: 9, blendOut: 7,
+            arms: {
+              pistol: { fwd: [0.1, 0.16, 0.38], back: [0.3, -0.18, -0.27], bow: 0.05, dirFwd: 0.55, dirBack: -0.5 },
+              free:   { fwd: [0.1, 0.16, 0.36], back: [0.3, -0.18, -0.28], bow: 0.05, dirFwd: 0, dirBack: 0 },
+              carry:  { fwd: [0.24, -0.1, 0.26], back: [0.3, -0.24, -0.08], bow: 0.03, dirFwd: 0, dirBack: 0, amp: 0.55, muzzle: 0.05 },
+            } },
   // ---- the powers the run hands over or lets him choose (data/trooper-progression.js), cast in player/trooper/abilities.js.
   // Each spends ability energy (the bar under vitality) and has a cooldown; mastery ranks (data/mastery.js) retune them.
   // RECON SCAN (Q): a pulse that marks every foe within `range` for `time` s: marked foes take `mark`× damage from

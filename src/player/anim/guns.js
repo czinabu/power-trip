@@ -154,6 +154,59 @@ function overShoulder(dir, side){
   return dir;
 }
 
+/* THE TROOPER'S SPRINT (player/trooper/sprint.js): both arms pump against the stride, elbows bent and driving back, the
+   way a man runs flat out. The pistols ride in the pumping fists, muzzles down the forearms (never back at him); the
+   DC-15 (or the launcher) goes to the gun hand alone, a low one-handed carry, muzzle ahead and down, its arm pumping
+   shorter under the weight while the free hand pumps full. `k` (0..1) blends it in over whatever pose the arms already
+   hold this frame (Rex's carry, the long-gun rest), so the sprint eases in and out instead of snapping. `ph` is the
+   stride's clock (player.runPhase: the right arm drives forward as sin(ph) rises). Tuning: data/trooper.js sprint.arms. */
+const PUMP_POLE = { R: new THREE.Vector3(0.35, -0.45, -0.82).normalize(), L: new THREE.Vector3(-0.35, -0.45, -0.82).normalize() };
+const _pf = new THREE.Vector3(), _pb = new THREE.Vector3(), _pd = new THREE.Vector3(), _pu = new THREE.Vector3();
+const _save = Array.from({ length: 6 }, () => new THREE.Quaternion());
+const _pump = { hand: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3() };
+// one arm's pump target in chest space: a = 1 driven fully forward, -1 fully back; s = +1 the gun hand's side, -1 the off
+function pumpAt(A, a, s, out){
+  const t = (a + 1) / 2;
+  _pf.set(A.fwd[0] * s, A.fwd[1], A.fwd[2]); _pb.set(A.back[0] * s, A.back[1], A.back[2]);
+  out.hand.lerpVectors(_pb, _pf, t);
+  out.hand.x += s * A.bow * (1 - a * a);   // the hand swings a little out round the hip, not through it
+  // the muzzle runs down the forearm: up and ahead at the front of the swing, down and ahead at the back of it
+  out.dir.set(0, A.dirBack + (A.dirFwd - A.dirBack) * t, 1).normalize();
+  out.up.set(0, out.dir.z, -out.dir.y);   // the gun's top square to the barrel, toward the sky
+  return out;
+}
+export function sprintArms(dt, R, player, k, ph, twoH, dual, A){
+  if (k <= 0.001) return;
+  const arms = [R.armR.sh, R.armR.el, R.armR.wr, R.armL.sh, R.armL.el, R.armL.wr];
+  arms.forEach((j, i) => _save[i].copy(j.quaternion));
+  R.chest.updateWorldMatrix(true, false);
+  const sw = Math.sin(ph);
+  if (twoH){
+    // the long gun in the gun hand alone, carried low (its own shorter swing), the free hand pumping full
+    const gun = player.rifleMesh;
+    if (gun){
+      rememberRest(gun);
+      gun.quaternion.slerp(gun.userData.restQ, Math.min(1, k * 1.5));   // (straight in the fist: animation.js leaves the barrel to this while he sprints)
+      pumpAt(A.carry, sw * A.carry.amp, 1, _pump);
+      _pd.set(0, A.carry.muzzle, 1).normalize(); _pu.set(0, _pd.z, -_pd.y);
+      gripAt(R, R.armR, _pump.hand, PUMP_POLE.R, gun.position, () => holdAim(R.chest, R.armR.wr, gun, Z, _pd, gun.quaternion, Y, _pu));
+    }
+    pumpAt(A.free, -sw, -1, _pump);
+    solveArm(R.armL, _pump.hand, PUMP_POLE.L);
+    R.armL.wr.quaternion.identity();
+  } else {
+    // a pistol in each fist (the free hand empty under a single blaster), both arms pumping
+    pumpAt(A.pistol, sw, 1, _pump);
+    gripAt(R, R.armR, _pump.hand, PUMP_POLE.R, player.pistols.R.position, () => holdAim(R.chest, R.armR.wr, player.pistols.R, Z, _pump.dir, player.pistols.R.userData.restQ || player.pistols.R.quaternion, Y, _pump.up));
+    pumpAt(A.pistol, -sw, -1, _pump);
+    if (dual)
+      gripAt(R, R.armL, _pump.hand, PUMP_POLE.L, player.pistols.L.position, () => holdAim(R.chest, R.armL.wr, player.pistols.L, Z, _pump.dir, player.pistols.L.userData.restQ || player.pistols.L.quaternion, Y, _pump.up));
+    else { solveArm(R.armL, _pump.hand, PUMP_POLE.L); R.armL.wr.quaternion.identity(); }
+  }
+  // ease in from the pose the arms held before this
+  if (k < 0.999) arms.forEach((j, i) => j.quaternion.copy(_save[i].slerp(j.quaternion, k)));
+}
+
 /* DISRUPTOR shouldered: gun hand by the weapon-side collarbone, rifle down the aim line, off hand on the foregrip. */
 // thrust: the disruptor's spear stab (-0.3 chambered back … 1 at full reach): the stock comes off the shoulder to
 // the hip line and both hands drive it down the aim, the chest squaring into it

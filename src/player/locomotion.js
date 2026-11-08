@@ -61,7 +61,7 @@ export function updateMovement(dt, pp, st, f, r){
   player.sprinting = !isGunner() && !!player.sprintOn && !!keys['w'] && (player.grounded || wasSprinting)
                      && !strafing() && !player.blockHeld && player.atkT <= 0 && !(player.flinchT > 0)
                      && !(player.landStagT > 0) && !(player.slideT > 0) && !player.mantle && !player.hang;
-  if (isTrooper()) player.sprinting = trooperSprint(moving, want, f);   // THE ARC TROOPER: hold SHIFT (player/trooper/sprint.js)
+  if (isTrooper()) player.sprinting = trooperSprint(moving, want, f, wasSprinting);   // THE ARC TROOPER: hold SHIFT (player/trooper/sprint.js)
   player.walking = !isGunner() && !player.sprintOn && player.grounded;
   // PIVOT — reversing hard at speed plants the feet: you brake to a stop before the new direction takes
   if (player.pivotT > 0) player.pivotT -= dt;

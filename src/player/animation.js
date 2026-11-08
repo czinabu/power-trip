@@ -10,7 +10,7 @@ import { burst } from '../fx/particles.js';
 import { G, keys, player, isGunner, isTrooper } from '../state.js';
 import { strafing as isStrafing } from './strafe.js';
 import { MANDO, MANDO_WEAPONS } from '../data/mando.js';
-import { gunLook } from '../data/trooper.js';
+import { gunLook, TROOPER } from '../data/trooper.js';
 import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
 import { stance, maxStam, heldGrip, playerPos, fwd } from './helpers.js';
@@ -27,7 +27,7 @@ import { saberIsDual } from './model/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP, SWING_STYLE } from '../data/poses.js';
 import { isDual, offGrip } from '../data/forms.js';
-import { pistolPose, riflePose, rifleLowered, restGun } from './anim/guns.js';
+import { pistolPose, riflePose, rifleLowered, restGun, sprintArms } from './anim/guns.js';
 import { MIRROR, DIM } from './model/rig.js';
 import { solveArm } from './anim/ik.js';
 import { saberPose, guardPose, swingPose, deflectPose, applySaberPose, releaseSaberPose, airGuard } from './anim/saber.js';
@@ -882,6 +882,11 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
   const slamArms = w !== 'darksaber' && player.darkT <= 0 && (player.slamming || player.slamLandT > 0);
   const hangArms = !!player.hang;   // both hands up on the lip: the guns ride on the hands
   const gunsIK = !flyingFree && !slamArms && !hangArms && player.meleeT <= 0 && player.darkT <= 0 && w !== 'fists';
+  // THE TROOPER'S SPRINT: how far into its body he is (0..1): the arm pump (anim/guns.js sprintArms), the lean, the
+  // camera's widening. A shot or the sights take it away at once; letting go of the sprint eases it out
+  const SP = TROOPER.sprint, sprHot = player.firing || player.aiming > 0 || player.zoom || player.blockHeld;
+  const sprWant = isTrooper() && player.sprinting && gunsIK && !player.cover && !sprHot ? 1 : 0;
+  const sprK = player._sprK = dr(player._sprK || 0, sprWant, sprHot ? 30 : sprWant ? SP.blendIn : SP.blendOut);
   if (!flyingFree){
   if (hangArms){
     for (const A of [R.armR, R.armL]){
@@ -926,6 +931,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     R.armL.sh.rotation.x = dr(R.armL.sh.rotation.x, -0.55, 12);
     R.armL.sh.rotation.y = dr(R.armL.sh.rotation.y, 0.12, 12);
     R.armL.el.rotation.x = dr(R.armL.el.rotation.x, -0.75, 12);
+    if (sprK > 0.001) sprintArms(dt, R, player, sprK, player.runPhase || 0, true, false, SP.arms);   // (sprinting: the DC-15 one-handed, the free arm pumping)
   } else if (w === 'fists'){
     // HOLSTERED — a fighting stance between blows: side-on with the left shoulder leading, the lead fist out at eye
     // height and the rear one tucked by the chin, bouncing on the knees (the footing comes from FOOTWORK.brawler; the
@@ -946,6 +952,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     if (twoH) riflePose(dt, R, player, aimPt);
     else pistolPose(dt, R, player, aimPt, w === 'dual', { braced: player.blockHeld, backRun: player.backRun, rex: isTrooper(),
       run: isTrooper() && player.grounded && (player.sprinting || Math.hypot(player.moveVel.x, player.moveVel.z) > CFG.player.speed * 0.6) });   // (the trooper's DC-17s rest Rex's way: one up, one down; on the run both up)
+    if (!twoH && sprK > 0.001) sprintArms(dt, R, player, sprK, player.runPhase || 0, false, w === 'dual', SP.arms);   // (sprinting: both arms pump, a DC-17 in each fist)
   } else {
     mandoAimPoint();
   }
@@ -959,7 +966,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     if (w !== 'darksaber' && player.darkT <= 0) R.chest.rotation.y = dr(R.chest.rotation.y, 0, 10);
   }
   // DISRUPTOR barrel: aimed by riflePose while shouldered; otherwise lies back along the forearm at rest
-  if (player.rifleMesh && w !== 'fists' && !(gunsIK && twoH && (player.zoom || player.aiming > 0 || player.blockHeld))){
+  if (player.rifleMesh && w !== 'fists' && !(gunsIK && twoH && (player.zoom || player.aiming > 0 || player.blockHeld || sprK > 0.001))){
     const out = player.zoom || player.aiming > 0 || player.stabT > 0;
     player.rifleMesh.rotation.x = dr(player.rifleMesh.rotation.x, out ? 1.15 : -0.35, 9);
     player.rifleMesh.rotation.y = dr(player.rifleMesh.rotation.y, 0, 9);
@@ -1047,7 +1054,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
         const vx = player.moveVel.x + player.vel.x, vz = player.moveVel.z + player.vel.z;
         const latV = vx*r.x + vz*r.z;
         const strafeLean = player.backRun ? 0 : clamp(latV * 0.035, -0.5, 0.5);   // running away: a straight run, no bank
-        vis.rotation.x = dr(vis.rotation.x, player.backRun ? 0.06 : 0, 9);
+        vis.rotation.x = dr(vis.rotation.x, (player.backRun ? 0.06 : 0) + (isTrooper() ? TROOPER.sprint.lean * (player._sprK || 0) : 0), 9);   // (the trooper's sprint: driving forward into it)
         vis.rotation.z = dr(vis.rotation.z, strafeLean, 10);
         R.head.rotation.z = dr(R.head.rotation.z, -strafeLean * 0.65 * MIRROR, 10);
       }
@@ -1064,7 +1071,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
   const mLean = mT > 0 ? ML.lean * smooth01((ML.time - mT) / ML.in) * smooth01(mT / (ML.time * 0.45)) : 0;
   // the slam: arched back through the wind-up, hunched over the fist on the way down and in the landing
   const sLean = player.slamming ? (player.slamWind > 0 ? -0.3 : 0.3) : player.slamLandT > 0 ? 0.5 * smooth01(player.slamLandT / 0.2) : 0;
-  if (!(player.meleeT > 0)) R.torso.rotation.x = dr(R.torso.rotation.x, (player.weapon === 'fists' && player.grounded ? 0.1 : 0) + mLean + sLean, mLean > 0 || sLean ? 18 : 12);   // settle a knee/charge/dive hunch (the fighting stance keeps the chin down)
+  if (!(player.meleeT > 0)) R.torso.rotation.x = dr(R.torso.rotation.x, (player.weapon === 'fists' && player.grounded ? 0.1 : 0) + mLean + sLean + (isTrooper() ? TROOPER.sprint.hunch * (player._sprK || 0) : 0), mLean > 0 || sLean ? 18 : 12);   // settle a knee/charge/dive hunch (the fighting stance keeps the chin down)
   if (mLean > 0.01) headToReticle(R, mandoAimPoint(), dt, 16);
   wristBlade(dt, R, player.meleeT > 0 && BLADE_OUT[player.meleeKind]);
   player.bashOut = 0;

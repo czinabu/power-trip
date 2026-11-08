@@ -316,8 +316,9 @@
 }
 /* the Jedi's FORCE TREE as a tree (ui/profile-ui.js treeCol): nodes sit by % over one SVG of links that stretches with it */
 .pf-ftree{position:relative;height:450px;min-width:0}
-.pf-fth{flex-wrap:nowrap;align-items:center}
-.pf-fth .pf-note{margin:0;flex:1}
+.pf-fth{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 16px;margin-bottom:12px}
+.pf-fth .pf-vtabs{margin:0;flex:none}
+.pf-fth .pf-note{margin:0;flex:1;min-width:0;font-size:12px;line-height:1.35}
 .pf-flinks{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .pf-flinks path{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round}
 .pf-froot,.pf-fhead,.pf-tnode{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;text-align:center}
@@ -335,6 +336,19 @@
 .pf-fhead .pf-bl{font:600 11px/1 var(--font-ui);letter-spacing:1.6px;text-transform:uppercase}
 .pf-ftier{position:absolute;left:3px;transform:translateY(-50%);font:700 9px/1 var(--font-ui);letter-spacing:2px;writing-mode:vertical-rl;opacity:.55}
 .pf-ftier.on{opacity:.9}
+/* wide: the tree's column is a flex column and the tree takes what's left of it, at least 400px (ui/profile-ui.js fitTree
+   lays the rows out for the height it ends up). The plates are a set height, so the lines land on their edges */
+.pf-treecol{display:flex;flex-direction:column}
+.pf-treecol>*{flex:none}
+.pf-treecol>.pf-ftree{flex:1 0 auto;height:auto;min-height:400px}
+.pf-ftree:not(.narrow) .pf-fhead{min-height:56px;box-sizing:border-box;justify-content:center;padding:6px}
+.pf-ftree:not(.narrow) .pf-fhead .pf-bl{letter-spacing:.8px}
+/* a short tree (the Profile's TREE tab) wears slightly smaller orbs, so a two-line name never meets the row below */
+.pf-ftree.short .pf-tnode .pf-orb{width:40px;height:40px}
+.pf-ftree.short .pf-tnode .pf-orb .ic{width:20px;height:20px}
+.pf-fband,.pf-frule{position:absolute;pointer-events:none}
+.pf-fband{bottom:6px}
+.pf-frule{left:22px;right:8px;height:0}
 @media (max-width:760px){
   .pf-ftree{height:480px;margin:8px 0 4px}
   .pf-fth{flex-wrap:wrap}

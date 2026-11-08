@@ -253,7 +253,7 @@ function lockSteps(h, s){
 // where everything sits. Wide: the branches side by side under THE ROOT. Narrow (a phone): each branch its own block,
 // stacked, full width. x in % of the tree's width, y in px; the links are one SVG stretched over it
 // keep (a phone, at a chapter's close): only these cards, in rows of three under their plate, so what you can train is all there is
-function treeLayout(h, narrow, keep = null){
+function treeLayout(h, narrow, keep = null, fit = TREE_MIN){
   const B = branchesOf(h), set = SET_OF[h], pos = [], heads = [];
   const of = (b, t) => {
     const list = set.filter(s => branchOf(h, s) === b && s.tier === t);
@@ -263,15 +263,15 @@ function treeLayout(h, narrow, keep = null){
   // a branch is as wide as its busiest tier (two slots at least), and each card gets one slot's width for its name
   const slots = (b) => Math.max(2, ...[1, 2, 3].map(t => of(b.id, t).length));
   if (!narrow){
-    const total = B.reduce((n, b) => n + slots(b), 0), rows = { head: ROWS[0], 1: ROWS[1], 2: ROWS[2], 3: ROWS[3] };
+    const total = B.reduce((n, b) => n + slots(b), 0), rows = wideRows(fit);
     let x0 = 0;
     B.forEach((b) => {
       const w = 100 * slots(b) / total, sw = w / slots(b);
-      heads.push({ b, x: x0 + w / 2, y: rows.head, w });
+      heads.push({ b, x: x0 + w / 2, y: rows.head, w, x0 });
       for (const t of [1, 2, 3]){ const L = of(b.id, t); L.forEach((s, k) => pos.push({ s, b: b.id, t, x: x0 + sw * (k + .5 + (slots(b) - L.length) / 2), y: rows[t], sw })); }
       x0 += w;
     });
-    H = ROWS[3] + 58;
+    H = fit;
   } else if (keep){
     let y0 = 0;
     B.forEach((b) => {
@@ -301,14 +301,24 @@ function treeLayout(h, narrow, keep = null){
   }
   return { B, pos, heads, H };
 }
-const ROWS = [60, 136, 214, 292];   // the wide tree's rows: the branch plates, then FOUNDATION, DISCIPLINE, CAPSTONE (px)
+// the wide tree, top to bottom: THE ROOT, the branch plates (HEAD_H tall), then FOUNDATION, DISCIPLINE and CAPSTONE sharing
+// what's left. It is at least TREE_MIN tall and grows to fill its column (fitTree), so the rows spread out on a tall screen.
+// A card's orb sits a little above its share's middle, its name and pips hanging below it.
+// A short tree (the Profile's own TREE tab, under its tabs and detail) tucks the plates up closer to the root.
+const TREE_MIN = 400, ROOT_Y = 30, HEAD_H = 56;
+const headTop = (H) => H < 470 ? 80 : 92;
+function wideRows(H){
+  const ht = headTop(H), top = ht + HEAD_H + 6, slot = (H - top - 6) / 3;
+  return { head: ht + HEAD_H / 2, top, 1: top + slot * .5 - 19, 2: top + slot * 1.5 - 19, 3: top + slot * 2.5 - 19 };
+}
+let treeH = TREE_MIN;   // the wide tree's height, as fitTree last measured it
 const narrowNow = () => window.matchMedia('(max-width:760px)').matches;
 let lastNarrow = null;
 function treeCol(h){
   const narrow = narrowNow(), run = inRun(h);
   // a phone at a chapter's close lists only what you can train (or have trained), unless SHOW ALL is on
   const trim = run && narrow && !showAll, live = (s) => { const N = nodeOf(h, s); return N.r > 0 || N.st === 'open' || N.st === 'nopts'; };
-  const L = treeLayout(h, narrow, trim ? live : null);
+  const L = treeLayout(h, narrow, trim ? live : null, treeH), R = wideRows(L.H);
   lastNarrow = narrow;
   const info = new Map(L.pos.map(p => [p.s, nodeOf(h, p.s)]));
   const pick = (L.pos.find(p => p.s.id === treeSel[h]) || L.pos.find(p => info.get(p.s).st === 'open') || L.pos.find(p => info.get(p.s).st === 'have') || L.pos[0] || {}).s;
@@ -316,13 +326,13 @@ function treeCol(h){
   const links = [];
   const link = (x1, y1, x2, y2, st) => {
     const d = 'M' + x1 * 10 + ' ' + y1 + ' C' + x1 * 10 + ' ' + (y1 + y2) / 2 + ' ' + x2 * 10 + ' ' + (y1 + y2) / 2 + ' ' + x2 * 10 + ' ' + y2;
-    links.push('<path class="pf-lu" d="' + d + '"/><path class="pf-ln ' + st + '" d="' + d + '"/>');
+    links.push('<path class="pf-lu ' + st + '" d="' + d + '"/><path class="pf-ln ' + st + '" d="' + d + '"/>');
   };
-  const rootY = 24;
   const stOf = (b) => { const ns = L.pos.filter(p => p.b === b).map(p => lineOf(info.get(p.s))); return ns.includes('lit') ? 'lit' : ns.includes('ready') ? 'ready' : 'dim'; };
-  if (!narrow) for (const hd of L.heads) link(50, rootY, hd.x, hd.y - 26, stOf(hd.b.id));
+  // the root's lines leave from under its orb and land on each plate's top; a branch's lines leave from under its plate
+  if (!narrow) for (const hd of L.heads) link(50, ROOT_Y + 26, hd.x, hd.y - HEAD_H / 2, stOf(hd.b.id));
   for (const p of L.pos){
-    const f = p.from, fy = f.s ? f.y : f.y + 26;
+    const f = p.from, fy = f.s ? f.y : f.y + (narrow ? 26 : HEAD_H / 2);
     link(f.x, fy, p.x, p.y, lineOf(info.get(p.s)));
   }
   const nodes = L.pos.map(p => {
@@ -332,14 +342,16 @@ function treeCol(h){
       '<span class="pf-tl"><b>' + esc(s.nm) + '</b>' + (run && s.max > 1 && (N.r > 0 || ['open', 'nopts', 'max'].includes(N.st)) ? pipsOf(s, N.r) : '<em>' + N.tag + '</em>') + '</span></span>';
   }).join('');
   const heads = L.heads.map(hd => '<div class="pf-fhead' + (hd.b.id === 'path' ? ' pf-fpath' : '') + '" style="left:' + hd.x + '%;top:' + hd.y + 'px;width:calc(' + hd.w + '% - 12px)"><b>' + esc(hd.b.nm) + '</b><span class="pf-bl">' + esc(hd.none ? 'Nothing to train here yet' : hd.b.line) + '</span></div>').join('');
-  const ranks = narrow ? '' : [1, 2, 3].map(t => '<span class="pf-ftier" style="top:' + ROWS[t] + 'px">' + tierWord(t) + '</span>').join('');
-  const root = narrow ? '' : '<div class="pf-froot' + (run ? ' lit' : '') + '" style="left:50%;top:' + rootY + 'px"><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><em>' + esc(TREES[h].nm) + '</em></span></div>';
+  // wide: each tier's name down the left edge, a faint band under each branch (its column, from its plate down), a rule between tiers
+  const ranks = narrow ? '' : L.heads.map(hd => '<span class="pf-fband' + (hd.b.id === 'path' ? ' path' : '') + '" style="left:calc(' + hd.x0 + '% + 6px);width:calc(' + hd.w + '% - 12px);top:' + R.head + 'px"></span>').join('') +
+    [2, 3].map(t => '<span class="pf-frule" style="top:' + Math.round(R.top + (L.H - R.top - 6) / 3 * (t - 1)) + 'px"></span>').join('') +
+    [1, 2, 3].map(t => '<span class="pf-ftier" style="top:' + (R[t] + 19) + 'px">' + tierWord(t) + '</span>').join('');
+  const root = narrow ? '' : '<div class="pf-froot' + (run ? ' lit' : '') + '" style="left:50%;top:' + ROOT_Y + 'px"><span class="pf-orb">' + icon('❂') + '</span><span class="pf-tl"><em>' + esc(TREES[h].nm) + '</em></span></div>';
   const note = 'Every card you can train in a run. Your rank and your lean open more of them for good. In a run, Training points rank them up at each chapter\'s close.';
-  return `<div class="pf-col pf-right">
-    ${run ? '' : viewTabs(h)}
-    ${run ? '' : '<p class="pf-note pf-tnote">' + note + '</p>'}
+  return `<div class="pf-col pf-right${narrow ? '' : ' pf-treecol'}">
+    ${run ? '' : '<div class="pf-fth">' + viewTabs(h) + '<p class="pf-note pf-tnote">' + note + '</p></div>'}
     ${treeDetail(h, pick)}
-    <div class="pf-ftree${narrow ? ' narrow' : ''}${run ? ' pf-runtree' : ''}" style="height:${L.H}px">${ranks}<svg class="pf-flinks" viewBox="0 0 1000 ${L.H}" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads}${nodes}</div>
+    <div class="pf-ftree${narrow ? ' narrow' : L.H < 470 ? ' short' : ''}${run ? ' pf-runtree' : ''}"${narrow ? ' style="height:' + L.H + 'px"' : ''}>${ranks}<svg class="pf-flinks" viewBox="0 0 1000 ${L.H}" preserveAspectRatio="none" aria-hidden="true">${links.join('')}</svg>${root}${heads}${nodes}</div>
     ${run && narrow ? '<span class="btn pf-showall" data-showall="1">' + (showAll ? 'SHOW ONLY WHAT I CAN TRAIN' : 'SHOW ALL CARDS') + '</span>' : ''}
   </div>`;
 }
@@ -433,6 +445,22 @@ function render(){
   if (!cardsSeen(hero)) seeCards(hero, owned);
   else if (view === 'tree' || view === 'sides') pendingSeen = [hero, view === 'sides' ? PATH_TREE[hero].filter(n => owns(hero, n)).map(n => n.id) : owned];
   refreshButton();
+  watchTree();
+}
+// the wide tree grows to fill its column (CSS: flex, at least TREE_MIN tall); once drawn, its real height is measured and,
+// if it isn't what the rows were laid out for, it is drawn again to fit. A resize does the same.
+const treeRO = typeof ResizeObserver === 'function' ? new ResizeObserver(() => requestAnimationFrame(fitTree)) : null;
+function fitTree(){
+  const el = panel.querySelector('.pf-ftree:not(.narrow)');
+  if (!el || !panel.classList.contains('open')) return;
+  const h = Math.max(TREE_MIN, Math.round(el.clientHeight));
+  if (Math.abs(h - treeH) > 3){ treeH = h; render(); }
+}
+function watchTree(){
+  if (!treeRO) return;
+  treeRO.disconnect();
+  const el = panel.querySelector('.pf-ftree:not(.narrow)');
+  if (el) treeRO.observe(el);
 }
 
 /* ---------- THE CHAPTER'S CLOSE: the upgrade page (ui/store-ui.js openSkillTree) is this panel. It moves into the page
@@ -480,6 +508,7 @@ function renderRun(){
   panel.querySelector('.pf-runside').append(...P.side);
   panel.querySelector('.pf-runfoot').append(P.foot);
   panel.querySelectorAll('.pf-col').forEach((c, i) => { c.scrollTop = keep[i] || 0; });
+  watchTree();
 }
 
 export function setProfile(open){

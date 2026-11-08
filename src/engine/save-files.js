@@ -41,6 +41,16 @@ function readMeta(){
 const writeMeta = (m) => rSet(META, JSON.stringify(m));
 let meta = raw ? readMeta() : { active: 1, files: { 1: {} } };
 export const activeFile = () => meta.active;
+/* ASK THE BROWSER TO KEEP THIS SITE'S STORAGE: a phone short on space clears a site's data, saves and all, unless the site
+   is marked persistent (Chrome grants it quietly to a site that is played). Not on Firefox, which asks the player with a
+   prompt; it doesn't clear storage under pressure the same way */
+try {
+  const st = navigator.storage;
+  if (st && st.persist && st.persisted && !/Firefox\//.test(navigator.userAgent)) st.persisted().then(p => p || st.persist()).catch(() => {});
+} catch(e){}
+// the desktop app writes storage to disk lazily: after a save, ask it to write now, so a crash or a pulled plug right after
+// keeps it (desktop/preload.cjs; nothing on the website, where the browser does this itself)
+export function flushToDisk(){ try { window.powerTripDesktop?.flush?.(); } catch(e){} }
 
 /* THE NAMESPACE: the active file's keys read and write under its prefix, and walking localStorage (key(i), length) sees the
    device's settings plus the active file's keys by their plain names, never another file's. The prefix follows the
@@ -48,10 +58,20 @@ export const activeFile = () => meta.active;
 let pre = prefix(meta.active);
 if (raw){
   const map = (k) => { k = String(k); return pre && fileScoped(k) ? pre + k : k; };
-  const view = () => rKeys().map(k => pre && k.startsWith(pre) ? k.slice(pre.length) : (PRE.test(k) || (pre && fileScoped(k))) ? null : k).filter(k => k != null);
+  /* the active file's key list, built once and kept until something is added or removed (here, or by another tab: the
+     raw length moves). Rebuilt on every key(i), a walk of localStorage was O(n²): with a few hundred keys, a save on a
+     phone took a good part of a second */
+  let viewKeys = null, viewPre = null, viewLen = -1;
+  const dirty = () => { viewKeys = null; };
+  const view = () => {
+    const n = raw.len.call(ls);
+    if (viewKeys && viewPre === pre && viewLen === n) return viewKeys;
+    viewPre = pre; viewLen = n;
+    return viewKeys = rKeys().map(k => pre && k.startsWith(pre) ? k.slice(pre.length) : (PRE.test(k) || (pre && fileScoped(k))) ? null : k).filter(k => k != null);
+  };
   P.getItem = function(k){ return this === ls ? raw.get.call(this, map(k)) : raw.get.call(this, k); };
-  P.setItem = function(k, v){ return this === ls ? raw.set.call(this, map(k), v) : raw.set.call(this, k, v); };
-  P.removeItem = function(k){ return this === ls ? raw.del.call(this, map(k)) : raw.del.call(this, k); };
+  P.setItem = function(k, v){ if (this !== ls) return raw.set.call(this, k, v); dirty(); return raw.set.call(this, map(k), v); };
+  P.removeItem = function(k){ if (this !== ls) return raw.del.call(this, k); dirty(); return raw.del.call(this, map(k)); };
   P.key = function(i){ return this === ls ? (view()[i] ?? null) : raw.key.call(this, i); };
   Object.defineProperty(P, 'length', { configurable: true, get(){ return this === ls ? view().length : raw.len.call(this); } });
 }

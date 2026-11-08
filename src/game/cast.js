@@ -10,7 +10,7 @@
 // sets `talk` and `look` on it each frame and calls stepFigure.
 
 import * as THREE from 'three';
-import { scene } from '../engine/renderer.js';
+import { scene, camera } from '../engine/renderer.js';
 import { CAST } from '../data/cast.js';
 // the cast's own base look: a field-worn Mando in the Hunter helmet (the player's starting basics differ: data/customize.js)
 const CAST_BASE = { jedi: { wear: 'field' }, mando: { helmet: 'tvisor', wear: 'field' }, trooper: { wear: 'field', legion: 'blue' } };
@@ -200,7 +200,7 @@ export function stepFigure(F, dt){
     blink(F.target, dt);
     express(F.target, dt, { talk: F.talk });
     gripHands(F.target, dt, { L: 0.45, R: F.talk ? 0.12 : 0.45 });   // hands loose at rest; the talking hand opens
-    stepCloth(F.target, dt, g.position.y + 0.02);
+    stepCloth(F.target, dt, g.position.y + 0.02, camera);   // (detail by distance: player/model/cloth.js)
   } else if (F.kind === 'foe'){
     g.userData.talk = F.talk;
     updateLegs(F, g, dt, 'ground');

@@ -114,7 +114,7 @@ function collide(C, segs){
   }
 }
 
-function step(C, segs, floor){
+function step(C, segs, floor, iters = ITER){
   const P = C.pos, Q = C.prev, W = C.W, T = C.pin;
   for (let i = 0; i < C.n; i++){
     if (i < W){ Q[i*3] = P[i*3]; Q[i*3+1] = P[i*3+1]; Q[i*3+2] = P[i*3+2]; P[i*3] = T[i*3]; P[i*3+1] = T[i*3+1]; P[i*3+2] = T[i*3+2]; continue; }
@@ -125,7 +125,7 @@ function step(C, segs, floor){
     }
   }
   const s = C.scale, lk = C.lk, ll = C.ll, lw = C.lw, L = ll.length;
-  for (let it = 0; it < ITER; it++){
+  for (let it = 0; it < iters; it++){
     for (let j = 0; j < L; j++){
       const a = lk[j*2], b = lk[j*2+1];
       const dx = P[b*3] - P[a*3], dy = P[b*3+1] - P[a*3+1], dz = P[b*3+2] - P[a*3+2];
@@ -145,7 +145,7 @@ function step(C, segs, floor){
       const dx = P[i*3] - ax, dy = P[i*3+1] - ay, dz = P[i*3+2] - az, d = Math.sqrt(dx*dx + dy*dy + dz*dz), max = C.reach[i] * s;
       if (d > max){ const k = max / d; P[i*3] = ax + dx * k; P[i*3+1] = ay + dy * k; P[i*3+2] = az + dz * k; }
     }
-    collide(C, segs);
+    if (iters === ITER || it === iters - 1) collide(C, segs);
   }
   for (let i = W; i < C.n; i++) if (P[i*3+1] < floor) P[i*3+1] = floor;
 }
@@ -205,12 +205,34 @@ function capsules(C){
   return S;
 }
 
-/* advance every visible cloth on `target` (player) by dt; `floor` = world height the hem can't sink under */
-export function stepCloth(target, dt, floor = -Infinity){
+/* DETAIL BY DISTANCE, for figures other than the player's own hero (the temple's people, a cutscene's cast, co-op
+   partners: pass the camera as `view`). A crowded hall steps a dozen robes at 120 Hz, a good part of a phone's frame, so:
+   off screen or past FAR, a cloth rests (and drapes afresh when it comes back); past NEAR, half the constraint passes
+   (the swing reads the same at that size). Up close, and for the player, every pass as before. */
+const NEAR = 16, FAR = 45;
+const _frustum = new THREE.Frustum(), _pv = new THREE.Matrix4(), _sphere = new THREE.Sphere(new THREE.Vector3(), 2.2), _w = new THREE.Vector3();
+let _fCam = null, _fAt = -1;
+function viewDetail(target, view){
+  if (!view) return ITER;
+  const now = performance.now();
+  if (_fCam !== view || now - _fAt > 8){ _fCam = view; _fAt = now; _frustum.setFromProjectionMatrix(_pv.multiplyMatrices(view.projectionMatrix, view.matrixWorldInverse)); }
+  const e = target.vis.matrixWorld.elements;
+  _w.set(e[12], e[13] + 1, e[14]);
+  const d = _w.distanceTo(view.position);
+  if (d > FAR) return 0;
+  _sphere.center.copy(_w);
+  if (!_frustum.intersectsSphere(_sphere)) return 0;
+  return d > NEAR ? ITER >> 1 : ITER;
+}
+
+/* advance every visible cloth on `target` (player) by dt; `floor` = world height the hem can't sink under; `view`: the
+   camera, for detail by distance (above) */
+export function stepCloth(target, dt, floor = -Infinity, view = null){
   if (!target.cloth) return;
   let updated = false;
+  const iters = target.vis ? viewDetail(target, view) : ITER;
   for (const C of target.cloth){
-    if (!shown(C)){ C.live = false; continue; }
+    if (!shown(C) || !iters){ C.live = false; continue; }
     if (!updated){ target.vis.updateWorldMatrix(true, true); updated = true; }
     pinned(C, 0, _p);
     const jump = Math.hypot(_p.x - C.pos[0], _p.y - C.pos[1], _p.z - C.pos[2]);
@@ -218,7 +240,7 @@ export function stepCloth(target, dt, floor = -Infinity){
     const segs = capsules(C);
     pinAll(C);
     C.acc = Math.min(C.acc + dt, 4 * H);
-    while (C.acc >= H){ step(C, segs, floor); C.acc -= H; }
+    while (C.acc >= H){ step(C, segs, floor, iters); C.acc -= H; }
     writeMesh(C);
   }
 }

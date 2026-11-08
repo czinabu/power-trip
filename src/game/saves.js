@@ -13,6 +13,7 @@ import { chapterOrder, chapterNo, forHero, CHAPTER_OF_LEVEL } from '../data/camp
 import { DEFAULT_LOADOUT, STARTING_FORMS, cleanLoadout, migrateForm } from '../data/forms.js';
 import { clearMeditation } from './meditation.js';
 import { MANDO_WEAPONS, RUN_KIT, cleanKit } from '../data/mando.js';
+import { flushToDisk } from '../engine/save-files.js';
 
 /* PROGRESS lives in localStorage keys spread across the game (campaign/mission/training wins, bests, the customizer's
    look, the sandbox's picks). A slot copies those keys, so loading one puts every mode's locks and ticks back exactly.
@@ -192,7 +193,9 @@ export function writeSlot(i, opts = {}){
   const data = { v: 1, at: Date.now(), hero, diff: G.diff, modeSel: G.modeSel, missionId: G.missionId, progress, where, run };
   if (away) data.away = true;
   if (opts.auto) data.auto = true;
-  try { localStorage.setItem(slotKey(i), JSON.stringify(data)); return true; } catch(e){ return false; }
+  try { localStorage.setItem(slotKey(i), JSON.stringify(data)); } catch(e){ return false; }
+  flushToDisk();
+  return true;
 }
 export function deleteSlot(i){ try { localStorage.removeItem(slotKey(i)); } catch(e){} }
 // swap the live progress for a slot's (the menu then refreshes its locks, picks and look: ui/saves-ui.js)

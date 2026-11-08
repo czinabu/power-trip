@@ -9,6 +9,8 @@ import { scene, camera } from '../engine/renderer.js';
 import { G, player, enemies } from '../state.js';
 import { NET } from '../data/coop.js';
 import { buildHeroModel } from '../player/model/index.js';
+import { slim } from '../player/model/slim.js';
+import { qualityLevel } from '../engine/quality.js';
 import { stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
 import { footDust } from '../fx/footdust.js';
@@ -52,17 +54,19 @@ function build(P, picks, heroName){
   const { puppet } = P;
   if (puppet.vis){ puppet.group.remove(puppet.vis); disposeTree(puppet.vis); }
   puppet.group.add(buildHeroModel(puppet, lookOf(picks)));
-  P.picksKey = keyOf(picks);
+  P.picksKey = keyOf(picks); P.picks = picks; P.farShadow = false;   // (fresh meshes cast again: farShadow below)
   P.track.to = P.track.from = null;   // a fresh rig: the next pose snaps on
   dress(P, heroName);
+  slim(puppet, { partner: P.hero });   // the outfit merged, the other heroes' gone: far fewer draws (player/model/slim.js)
   if (!P.built){ scene.add(puppet.group); P.built = true; }
 }
 
 /* show only the parts of the chosen hero (the same switch player/hero.js makes for the local player); which weapon is
    out, and where, comes with every pose */
+const heroOf = (h) => h === 'mando' || h === 'trooper' ? h : 'jedi';
 function dress(P, heroName){
   const { puppet } = P;
-  P.hero = heroName === 'mando' || heroName === 'trooper' ? heroName : 'jedi';
+  P.hero = heroOf(heroName);
   P.mate.hero = P.hero;   // (which hero they play: the duel bubble reads it, enemies/bubble.js)
   const mando = P.hero === 'mando', trooper = P.hero === 'trooper', gunner = mando || trooper;
   for (const m of puppet.mandoParts) m.visible = mando;
@@ -113,7 +117,7 @@ on('s', (m) => {
   hearCard(P, m.rk);
   if (!P.built) build(P, m.picks, m.hero);
   if (m.picks && keyOf(m.picks) !== P.picksKey) build(P, m.picks, m.hero);
-  if (m.hero !== P.hero) dress(P, m.hero);
+  if (heroOf(m.hero) !== P.hero) build(P, m.picks || P.picks, m.hero);   // (rebuilt for the new hero: a slimmed puppet carries only its own outfit)
   addPlayer(mate);
   if (!P.playing) puppet.group.position.set(m.x, m.y, m.z);   // first sight, or back from the menu: snap
   // (held on a cutscene mark: what they send from before they got there doesn't drag them back across the set)
@@ -200,17 +204,31 @@ function stepPartner(P, dt){
   g.position.z = damp(g.position.z, want.pos.z, 14, dt);
   g.rotation.y += angDiff(g.rotation.y, want.yaw) * (1 - Math.exp(-14 * dt));
   stepPose(track, puppet, performance.now());
-  stepCloth(puppet, dt, g.position.y + 0.02);   // their robe and cape swing here too, after the pose
+  farShadow(P);
+  stepCloth(puppet, dt, g.position.y + 0.02, camera);   // their robe and cape swing here too, after the pose (less of it far off)
   blink(puppet, dt);   // and they blink (model/life.js); their hands keep the grip they were built with
   partnerSteps(P, dt);   // and their feet kick up dust at a run (fx/footdust.js)
   // the name tag follows the head on screen
   const t = nameTag(P);
   if (P.chip && P.chip.style.display !== 'none'){ t.style.display = 'none'; return; }   // down: the chip says it instead
-  t.textContent = mate.down ? who(P) + ' IS OUT' : mate.away ? who(P) + ' · PAUSED' : label(P);
-  const v = new THREE.Vector3(g.position.x, g.position.y + 2.6, g.position.z).project(camera);
+  // (written only when it changes: three tags rewritten every frame kept a phone's layout busy)
+  const text = mate.down ? who(P) + ' IS OUT' : mate.away ? who(P) + ' · PAUSED' : label(P);
+  if (t.textContent !== text) t.textContent = text;
+  const v = _tagAt.set(g.position.x, g.position.y + 2.6, g.position.z).project(camera);
   if (v.z > 1){ t.style.display = 'none'; return; }
-  t.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px';
-  t.style.top = ((-v.y * 0.5 + 0.5) * innerHeight) + 'px';
+  const left = Math.round((v.x * 0.5 + 0.5) * innerWidth) + 'px', top = Math.round((-v.y * 0.5 + 0.5) * innerHeight) + 'px';
+  if (t.style.left !== left) t.style.left = left;
+  if (t.style.top !== top) t.style.top = top;
+}
+const _tagAt = new THREE.Vector3();
+/* a partner far from the camera stops casting a shadow (each one is some eighty more draws in the shadow pass): sooner on
+   the lower tiers, which phones sit on. Switched only as they cross the line, never a frame at a time */
+const SHADOW_NEAR = { low: 12, medium: 20, high: 35 };
+function farShadow(P){
+  const g = P.puppet.group, far = g.position.distanceTo(camera.position) > (SHADOW_NEAR[qualityLevel()] || 20) + (P.farShadow ? -2 : 2);
+  if (far === !!P.farShadow) return;
+  P.farShadow = far;
+  g.traverse(o => { if (!o.isMesh) return; if (o.userData.cs === undefined) o.userData.cs = o.castShadow; o.castShadow = !far && o.userData.cs; });
 }
 
 /* A PARTNER DOWN — the moment they drop, a banner and a sound; while they wait to be got up, the revive ring under them

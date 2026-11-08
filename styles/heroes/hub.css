@@ -146,16 +146,16 @@
 /* ---------- THE MANDALORIAN: beskar plate. Brushed charcoal, chamfered corners, an ember strip from the forge ---------- */
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-box{background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
   box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 4px 0 var(--hx-accent);padding-top:24px}
-[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-t{font-size:30px;text-transform:uppercase;letter-spacing:.16em}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-t{font-size:30px;text-transform:uppercase;letter-spacing:.08em}
 [data-hero="mando"] .hb-rule i{width:26px;height:4px;top:2px;background:var(--hx-accent);box-shadow:none}
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o{background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 40%),var(--hx-paper);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line)}
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o:hover,[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.padfocus{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
-[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o b{text-transform:uppercase;font-size:15px;letter-spacing:.18em}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o b{text-transform:uppercase;font-size:15px;letter-spacing:.14em}
 [data-hero="mando"] .hb-ic{clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);background:#1a1b1d;box-shadow:inset 0 0 0 1px rgba(255,122,46,.4)}
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.main{background:linear-gradient(180deg,rgba(255,176,122,.16),transparent 50%),color-mix(in srgb,var(--hx-accent) 14%,#2a2c2f);box-shadow:inset 0 0 0 1px rgba(255,122,46,.55),inset 0 -3px 0 var(--hx-accent)}
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.main .hb-ic{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none}
 [data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-o.locked{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.03) 0 8px,transparent 8px 16px),#232427}
-[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-x{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);letter-spacing:.22em}
+[data-hero="mando"] :is(#hubpanel,#zonepanel) .hb-x{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);letter-spacing:.14em}
 
 /* ---------- THE TROOPER: an orders readout. Matte black, a hazard stripe, IBM Plex Mono, every order numbered ---------- */
 [data-hero="trooper"] :is(#hubpanel,#zonepanel) .hb-box{padding-top:30px;counter-reset:hbo}

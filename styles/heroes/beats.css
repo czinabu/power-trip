@@ -12,10 +12,10 @@
 /* the forge: beskar plate */
 #forcetoast.ft-forge{background:linear-gradient(180deg,#3a3d41,#222427);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
   box-shadow:inset 0 4px 0 #ff7a2e,inset 0 0 0 2px #07060a}
-#forcetoast.ft-forge .ft-k{font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.26em;color:#ff7a2e}
-#forcetoast.ft-forge .ft-t{margin-top:10px;font:400 38px/1.05 Georgia,'Times New Roman',serif;letter-spacing:.14em;color:#f1ece4;text-shadow:0 2px 0 #07060a,0 0 18px rgba(255,140,60,.45);animation:ftheat 1.4s ease-out both}
+#forcetoast.ft-forge .ft-k{font:600 13px/1 var(--font-beskar);letter-spacing:.14em;color:#ff7a2e}
+#forcetoast.ft-forge .ft-t{margin-top:10px;font:400 40px/1.05 var(--font-stencil);letter-spacing:.08em;color:#f1ece4;text-shadow:0 2px 0 #07060a,0 0 18px rgba(255,140,60,.45);animation:ftheat 1.4s ease-out both}
 @keyframes ftheat{0%{color:#fff2d8;text-shadow:0 2px 0 #07060a,0 0 28px rgba(255,150,60,.95)}100%{}}
-#forcetoast.ft-forge .ft-w{margin-top:6px;font:400 12px/1 Georgia,serif;letter-spacing:.24em;color:#8d949b}
+#forcetoast.ft-forge .ft-w{margin-top:6px;font:600 12px/1 var(--font-beskar);letter-spacing:.14em;color:#8d949b}
 #forcetoast.ft-forge .ft-l{margin-top:12px;font:italic 500 15px/1.35 var(--font-body);color:#e6ddd0}
 #forcetoast.ft-forge .ft-x{margin-top:6px;font:500 13px/1.35 var(--font-body);color:#bdb5a9}
 

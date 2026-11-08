@@ -6,7 +6,9 @@
 //     that starts a first run;
 //   · coming back (a reload, the same file) nobody greets you; the map's WHAT'S WHERE card and SHOW ME AROUND;
 //   · opening some other station ends the tour, and so does a mode launched mid-tour (its own panel, no beacon left);
-//   · a second save file is welcomed afresh.
+//   · a second save file is welcomed afresh;
+//   · coming home with something new opened, the guide walks you to it (game/hub-news.js), once; a save from before
+//     the news isn't told what it already has.
 // SHOTS=dir saves screenshots of the greeting, the tour and the card. Fails on any page error or console error.
 //   npm run build && npm run smoke:welcome   (HEROES=jedi,mando,trooper)
 
@@ -143,6 +145,39 @@ for (const hero of HEROES){
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     check(await enter(), `${hero}: into the hub on save file 2`);
     check(await greeted(), `${hero}: save file 2 gets its own welcome`);
+
+    // NEWS AT HOME (game/hub-news.js): the story moves on (Act I cleared), and coming home the guide walks you to what it
+    // opened, one piece a homecoming, the most useful first: the ship to Jedha (two doors from the start), then sparring.
+    // (the Jedi: the gunners' Act I also deals a new gun, whose card comes first and holds the news back until it closes)
+    if (hero === 'jedi'){
+      await page.waitForFunction(() => GAME.hub.welcome.state.seen, null, { timeout: 30000 }).catch(() => {});
+      await page.evaluate((h) => localStorage.setItem('sw_camp_ch_' + h, JSON.stringify(['siege', 'archive', 'refuge', 'trial-first'])), hero);
+      const news = async (want) => {
+        await page.reload();
+        await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
+        if (!(await enter())) return null;
+        return page.waitForFunction((w) => { const s = GAME.hub.welcome.state; return w ? s.tour && s.step.startsWith('NEW') && s : null; }, want, { timeout: want ? 60000 : 1 })
+          .then(h => h && h.jsonValue(), () => null);
+      };
+      const n1 = await news(true);
+      check(n1 && n1.stop.wing === 'landing' && n1.beacon, `${hero}: home with Jedha open, the guide leads to the ship (${JSON.stringify(n1 && n1.stop)})`);
+      check(/NORTH DOOR/.test(await tutor()) && /Jedha/.test(await tutor()), `${hero}: ...through the door toward it, two wings off, and says why`);
+      await shot('news-zone');
+      const n2 = await news(true);
+      check(n2 && n2.stop.wing === 'training' && /SPARRING/.test(n2.step), `${hero}: the next homecoming, the next news: the sparring hall (${JSON.stringify(n2 && n2.stop)})`);
+      await news(false); await page.waitForTimeout(6000);
+      check(!(await st()).tour && !(await tutor()), `${hero}: once told, nothing is told again`);
+      // a save that had it all before the news existed isn't walked round what it already knows
+      await page.evaluate(() => { localStorage.setItem('sw_files', JSON.stringify({ active: 3, files: { 1: { at: 1 }, 2: { at: 2 }, 3: { at: 3, fresh: true } } })); });
+      await page.reload();
+      await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
+      await page.evaluate((h) => { for (const k of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + k, '1'); localStorage.setItem('sw_camp_ch_' + h, JSON.stringify(['siege', 'archive', 'refuge', 'trial-first'])); }, hero);
+      await page.reload();
+      await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
+      check(await enter(), `${hero}: into the hub on a file that played before the news`);
+      await page.waitForTimeout(8000);
+      check(!(await st()).tour && (await page.evaluate(() => GAME.hub.news.noted)).zone === 1, `${hero}: ...what it already had counts as known`);
+    }
   } catch(e){ check(false, `${hero}: ${e.message}`); }
   check(!errors.length, `${hero}: no page or console errors`);
   for (const e of errors.slice(0, 6)) console.log('  ' + e);

@@ -19,13 +19,15 @@ import { groundAt } from '../world/collision.js';
 import { net, connected } from '../net/session.js';
 import { S } from '../audio/sfx.js';
 import { onRunStart } from './flow.js';
+import { takeNews, primeNews } from './hub-news.js';
+import { NEWS_TUNE } from '../data/hub-news.js';
 
 const key = (hub) => 'sw_hubwelcome_' + hub;
 export function welcomeSeen(hub){ try { return localStorage.getItem(key(hub)) === '1'; } catch(e){ return true; } }   // (no storage: never nag)
 function markSeen(hub){ try { localStorage.setItem(key(hub), '1'); } catch(e){} }
 
 const SIDE_NAME = { n: 'NORTH', s: 'SOUTH', e: 'EAST', w: 'WEST' };
-const W = { only: null, wait: 0, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false, greetT: 0, lineT: 0 };
+const W = { only: null, wait: 0, newsWait: 0, newsDone: false, hub: null, tour: false, i: 0, beacon: null, at: '', panel: '', doneT: 0, last: false, greetT: 0, lineT: 0 };
 const tutorEl = () => document.getElementById('tutor');
 const guest = () => net.role === 'guest' && connected();
 const hubNow = () => HUBS[G.hubId] || HUBS.temple;
@@ -36,6 +38,8 @@ const stationOf = (wing, id) => { const w = hubNow().wings[wing]; return w && w.
 let openCard = null;
 export function setWelcomeOpener(fn){ openCard = fn; }   // ui/hub-ui.js
 
+const the = (name) => /^THE /.test(name) ? name : 'the ' + name;   // ('the COUNCIL TABLE', but THE DAWNREACH as it is)
+const touch = () => { try { return matchMedia('(hover: none)').matches; } catch(e){ return false; } };   // (a phone walks with its stick: no keys to show)
 const greeting = (D) => (hubOf(G.hero) !== G.hubId && D.away || D.hello) + (guest() && D.guest ? ' ' + D.guest : '');
 
 /* ---------- the card ---------- */
@@ -82,11 +86,16 @@ export function welcomeStation(s){
 export function welcomeArrive(){
   dropBeacon(); W.at = ''; W.panel = '';
   if (W.tour && W.hub !== G.hubId) endTour();
-  if (!W.tour && !welcomeSeen(G.hubId) && WELCOME[G.hubId]) W.wait = TUNE.delay;
+  const fresh = !welcomeSeen(G.hubId);
+  primeNews(fresh);   // (game/hub-news.js: a new hero starts knowing nothing, so what the first run opens is news after it)
+  if (!W.tour && fresh && WELCOME[G.hubId]){ W.wait = TUNE.delay; W.newsDone = true; }
+  // home from a run (or in from the title screen): once a homecoming, the guide's news, if anything new has opened
+  else if (!W.tour && !W.newsDone && !guest()){ W.newsWait = NEWS_TUNE.delay; W.newsDone = true; }
   W.hub = G.hubId;
 }
-// any mode starting (game/flow.js startLevel, not the hub): the first run is under way, so the tour has done its job
-onRunStart(() => { W.wait = 0; if (W.tour) endTour(); });
+// any mode starting (game/flow.js startLevel, not the hub): the first run is under way, so the tour has done its job,
+// and the next homecoming may bring news
+onRunStart(() => { W.wait = 0; W.newsWait = 0; W.newsDone = false; if (W.tour) endTour(); });
 
 /* ---------- the tour ---------- */
 function startTour(greet, only = null){
@@ -117,11 +126,20 @@ function beaconAt(tag, x, z, r){
   beam.material.opacity = TUNE.beamAlpha; beam.scale.set(r > 2 ? 2.2 : 1.2, 1.6, r > 2 ? 2.2 : 1.2); beam.position.y = 11;
   ring.material.depthTest = false; ring.renderOrder = 3;
 }
-// the way to a wing from this one: its own door, or else the door back toward the hub's start
+// the way to a wing from this one: the door that starts the shortest walk there, through as many wings as it takes (the
+// temple's landing platform is two doors from the hall). Else the door back toward the hub's start
 function doorToward(wing){
-  const Hb = hubNow();
-  const side = doorSide(Hb.wings, G.hubWing, wing) || doorSide(Hb.wings, G.hubWing, Hb.start);
-  return side ? { side, to: Hb.wings[hubNow().wings[G.hubWing].doors[side]] } : null;
+  const Hb = hubNow(), from = G.hubWing;
+  const first = new Map([[from, null]]), q = [from];
+  while (q.length){
+    const w = q.shift(), D = (Hb.wings[w] && Hb.wings[w].doors) || {};
+    for (const side in D){
+      const to = D[side]; if (first.has(to) || !Hb.wings[to]) continue;
+      first.set(to, w === from ? side : first.get(w)); q.push(to);
+    }
+  }
+  const side = first.get(wing) || doorSide(Hb.wings, from, Hb.start);
+  return side ? { side, to: Hb.wings[Hb.wings[from].doors[side]] } : null;
 }
 function say(who, line, keys, task, opts){
   const k = [who, line, keys, task, opts.step, !!opts.done].join('|');
@@ -141,6 +159,12 @@ export function updateWelcome(dt){
     W.wait = 0;
     if (!welcomeSeen(G.hubId)){ markSeen(G.hubId); startTour(true); }   // (once: from here it's the hero's to follow or not)
   }
+  // NEWS AT HOME (data/hub-news.js): the guide's line and a beacon to the station, the way a place picked on the card is
+  if (W.newsWait > 0 && !W.tour && !G.skillSelect && !G.cutscene && !G.cardUp && (W.newsWait -= dt) <= 0){
+    W.newsWait = 0;
+    const n = !guest() && takeNews();
+    if (n) startTour(false, { wing: n.wing, station: n.station, say: n.say, last: n.say, guide: true, step: n.step });
+  }
   if (!W.tour) return;
   if (W.lineT > 0 && (W.lineT -= dt) <= 0){ const t = tutorEl(); if (t) t.classList.add('hw-quiet'); }
   const D = dataNow(); if (!D){ endTour(); return; }
@@ -152,7 +176,7 @@ export function updateWelcome(dt){
   }
   const tour = stopsNow(D), n = tour.length, stop = tour[W.i];
   const s = stationOf(stop.wing, stop.station);
-  const step = stop.guide ? 'THIS WAY · ' + (s ? s.name : '') : 'FIRST STEPS · ' + (W.i + 1) + ' / ' + n;
+  const step = stop.guide ? stop.step || 'THIS WAY · ' + (s ? s.name : '') : 'FIRST STEPS · ' + (W.i + 1) + ' / ' + n;
   if (!s){ if (++W.i >= n) endTour(); return; }
   if (G.hubWing !== stop.wing){
     const way = doorToward(stop.wing); if (!way){ endTour(); return; }
@@ -170,18 +194,19 @@ export function updateWelcome(dt){
       else { W.i++; W.greetT = 0; S.uiClick(); return; }
     } else {
       // the greeting first: the guide's hello, over the first stop's beacon
-      if (W.greetT > 0){ W.greetT -= dt; say(D.guide, greeting(D), '', 'Follow the light to the ' + s.name + ', or explore on your own', { step: 'WELCOME TO ' + hubNow().home }); }
-      else say(D.guide, stop.say, '', 'Walk up to the ' + s.name, { step });
+      if (W.greetT > 0){ W.greetT -= dt; say(D.guide, greeting(D), touch() ? '' : 'W A S D', 'Follow the light to ' + the(s.name) + ', or explore on your own', { step: 'WELCOME TO ' + hubNow().home }); }
+      else say(D.guide, stop.say, '', 'Walk up to ' + the(s.name), { step });
       return;
     }
   }
   // the last stop: the first run is a tap away. It stays up a while (or until the station's panel opens), then lets go
-  say(D.guide, guest() && stop.guestLast ? stop.guestLast : stop.last || stop.say, 'F', (stop.guide ? 'Tap at the ' + s.name : 'Tap at the ' + s.name + ' to start'), { step: stop.guide ? 'YOU ARE THERE' : 'FIRST STEPS · DONE', done: true });
+  say(D.guide, guest() && stop.guestLast ? stop.guestLast : stop.last || stop.say, 'F', (stop.guide ? 'Tap at ' + the(s.name) : 'Tap at ' + the(s.name) + ' to start'), { step: stop.guide ? 'YOU ARE THERE' : 'FIRST STEPS · DONE', done: true });
   if (G.skillSelect || (W.doneT -= dt) <= 0) endTour();
 }
 
 // for the smoke tests and screenshots (window.GAME.hub.welcome)
-export const welcomeState = () => ({ wait: W.wait, tour: W.tour, i: W.i, last: W.last, greet: W.greetT > 0, seen: welcomeSeen(G.hubId), beacon: !!W.beacon,
+const stopNow = () => W.tour && dataNow() ? stopsNow(dataNow())[W.i] || null : null;
+export const welcomeState = () => ({ wait: W.wait, newsWait: W.newsWait, step: (stopNow() || {}).step || '', stop: stopNow() && { wing: stopNow().wing, id: stopNow().station }, tour: W.tour, i: W.i, last: W.last, greet: W.greetT > 0, seen: welcomeSeen(G.hubId), beacon: !!W.beacon,
   target: W.beacon ? { x: W.beacon.position.x, z: W.beacon.position.z } : null });
 export const welcomeStops = () => ((dataNow() || {}).tour || []).map(t => { const s = stationOf(t.wing, t.station) || {}; return { wing: t.wing, id: t.station, x: s.x, z: s.z }; });
 export function forgetWelcome(){ for (const h in HUBS) try { localStorage.removeItem(key(h)); } catch(e){} }

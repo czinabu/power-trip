@@ -109,40 +109,50 @@ export const JEDI_PARTS = {
     // bare head: chiseled skull, brow ridge, nose, ears
     bald(R, k){ face(R, k); },
     // the same face under a raised hood: ONE surface of robe cloth from the shoulders to the crown, bound to the chest
-    // below the neck and the head above it, so it turns and nods with him without a seam. Three parts of one drape:
-    // - the cowl: soft cloth slumped over the shoulders and falling over the deltoids, gathered in loose folds round the
-    //   neck, its hem dipping to a point between the shoulder blades and a scoop at the chest (cowlDrape)
-    // - the sides: close round the cheeks and temples, wide enough to clear the hair, open in a narrow oval at the face
-    // - the crown: a rounded dome over the skull (a quarter ellipse of rings, not a taper), the front edge closing over
-    //   the brow and the cloth easing back to a small soft point behind, so it reads as cloth pulled up, not a helmet
+    // below the neck and the head above it, so it turns and nods with him without a seam. Cut like Obi-Wan's and
+    // Luke's: a big, heavy, loose hood, not a cap that fits the skull.
+    // - the cowl: soft cloth slumped over the shoulders, gathered in loose folds round the neck, its hem dipping to a
+    //   point between the shoulder blades and a scoop at the chest (cowlDrape)
+    // - the hood: roomy round the head, its front edge standing well out past the face as a deep brim that juts
+    //   furthest over the brow, so the face sits back inside it; the opening a tall arch from the chin to the forehead
+    // - the crown: rounded, the cloth over the top slumping back into a soft point behind the head
+    // - the lining: a darker shell just inside, so the face reads in the hood's shadow
     hood(R, k){
       face(R, k);
       const H = DIM.headY;   // the head joint, in the chest's frame (t up the chain)
       const ring = (t, w, d, z, open, fold, wall) => ({ t, w, d, z, p: hoodRing(open, fold, wall) });   // (model/shapes.js)
-      // the dome: a quarter ellipse from the temples (H + 0.2) to the crown, the face opening narrowing over the brow
-      // until the cloth closes above the forehead, its centre easing back so the top falls into a soft point behind
-      // (a negative opening overlaps the C's two ends a little, so the closed crown has no notch where they meet)
-      const dome = [];
-      for (const [th, open] of [[0.25, 0.46], [0.5, 0.35], [0.65, 0.19], [0.8, -0.1], [1.02, -0.14], [1.22, -0.14], [1.4, -0.14], [1.53, -0.14]]){
-        const c = Math.cos(th), sn = Math.sin(th);
-        const cd = Math.cos(th * 0.8);   // (deeper than wide near the top: the front stays out over the forehead)
-        dome.push(ring(H + 0.2 + 0.16 * sn, Math.max(0.02, 0.32 * c), Math.max(0.03, 0.35 * cd), -0.03 * sn * sn, open, 0.012 * c, 0.88));
-      }
       // over the outer robe the cowl spreads a little wider, to fall over its roomier sleeve tops too
       const o = k.parts.robe === 'outer' ? 0.07 : 0;
+      // the hood round the head, the chin up: [height over the head joint, width, depth, centre z, face opening, fold].
+      // The front edge (z + d/2 at the opening) runs from just ahead of the jaw to ~8cm out past the brow; a negative
+      // opening overlaps the C's two ends a little, so the closed crown has no notch where they meet
+      const HOOD = [
+        [0.05,  0.31, 0.33, 0,     0.62, 0.03],    // the jaw: the sides fall open to the chest
+        [0.13,  0.34, 0.37, 0.01,  0.52, 0.03],    // the cheeks, roomy, the sides standing forward of the face
+        [0.21,  0.35, 0.4,  0.018, 0.44, 0.025],   // the brow: the brim stands out ahead of the face
+        [0.28,  0.345,0.41, 0.02,  0.36, 0.02],    // the forehead: the brim at its deepest, closing over
+        [0.335, 0.31, 0.37, 0.01,  0.2,  0.015],
+        [0.375, 0.24, 0.3,  -0.01, -0.12,0.01],    // the crown, rounding over
+        [0.403, 0.15, 0.2,  -0.04, -0.14,0.008],
+        [0.42,  0.07, 0.1,  -0.07, -0.14,0],       // easing back to a soft point
+        [0.426, 0.02, 0.03, -0.1,  -0.14,0],
+      ];
       k.skin('robe', [
         ring(0.345,     0.7 + o,  0.44 + o*0.4, -0.03, 0.58, 0.09, 0.97),    // the hem, resting on the shoulders' slope
         ring(0.375,     0.71 + o, 0.44 + o*0.4, -0.03, 0.48, 0.075,0.9),
         ring(0.41,      0.69 + o, 0.42 + o*0.3, -0.032,0.4, 0.06, 0.89),    // rolling over the shoulders' curve
         ring(0.43,      0.65 + o*0.8, 0.4, -0.034, 0.39, 0.047,0.88),
-        ring(0.45,      0.53 + o*0.5, 0.36, -0.035, 0.42, 0.045,0.88),
-        ring(0.475,     0.37,     0.32, -0.035, 0.46, 0.04, 0.87),
-        ring(0.5,       0.29,     0.29, -0.035, 0.5,  0.03, 0.87),    // gathered round the neck in loose folds
-        ring(H + 0.06,  0.28,     0.3,  -0.03,  0.58, 0.02, 0.87),    // the jaw, snug
-        ring(H + 0.13,  0.3,      0.33, -0.028, 0.62, 0.015,0.88),    // framing the cheeks, clear of the face
-        ...dome,
+        ring(0.45,      0.55 + o*0.5, 0.37, -0.035, 0.42, 0.045,0.88),
+        ring(0.475,     0.4,      0.33, -0.03,  0.48, 0.04, 0.88),
+        ring(0.5,       0.32,     0.31, -0.02,  0.56, 0.035,0.88),    // gathered round the neck in loose folds
+        ...HOOD.map(([y, w, d, z, open, fold]) => ring(H + y, w, d, z, open, fold, 0.9)),
       ], { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true,
         warp: cowlDrape({ neck: 0.5, len: 0.155, zc: -0.03, back: 0.21, front: 0.15, side: 0.06, width: 0.34 }) });
+      // the lining: a thin dark shell just inside the hood's inner wall, from the jaw up, so the inside reads as shadow
+      // round the face (no ink line of its own: the hood's rim carries the edge)
+      k.skin(k.mat('robe', { shade: 0.42 }), HOOD.slice(0, -2).map(([y, w, d, z, open, fold]) =>
+        ({ t: H + y, w: w * 0.895, d: d * 0.895, z, p: hoodRing(open + 0.04, fold, 0.97) })),
+        { bones: [R.chest, R.head], at: [H], blend: 0.05, profile: hoodRing(0.3), dir: 1, open: true, outline: false });
     },
   },
 

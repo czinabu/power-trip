@@ -301,15 +301,15 @@ function treeLayout(h, narrow, keep = null, fit = TREE_MIN){
   }
   return { B, pos, heads, H };
 }
-// the wide tree, top to bottom: THE ROOT, the branch plates (HEAD_H tall), then FOUNDATION, DISCIPLINE and CAPSTONE sharing
+// the wide tree, top to bottom: THE ROOT, the branch plates (hh tall), then FOUNDATION, DISCIPLINE and CAPSTONE sharing
 // what's left. It is at least TREE_MIN tall and grows to fill its column (fitTree), so the rows spread out on a tall screen.
 // A card's orb sits a little above its share's middle, its name and pips hanging below it.
-// A short tree (the Profile's own TREE tab, under its tabs and detail) tucks the plates up closer to the root.
-const TREE_MIN = 400, ROOT_Y = 30, HEAD_H = 56;
-const headTop = (H) => H < 470 ? 80 : 92;
+// A short tree (the Profile's own TREE tab, under its tabs and detail) keeps the same room under the root and wears
+// slimmer plates instead.
+const TREE_MIN = 400, ROOT_Y = 30;
 function wideRows(H){
-  const ht = headTop(H), top = ht + HEAD_H + 6, slot = (H - top - 6) / 3;
-  return { head: ht + HEAD_H / 2, top, 1: top + slot * .5 - 19, 2: top + slot * 1.5 - 19, 3: top + slot * 2.5 - 19 };
+  const short = H < 470, ht = short ? 90 : 96, hh = short ? 50 : 56, top = ht + hh + 6, slot = (H - top - 6) / 3;
+  return { head: ht + hh / 2, hh, top, 1: top + slot * .5 - 19, 2: top + slot * 1.5 - 19, 3: top + slot * 2.5 - 19 };
 }
 let treeH = TREE_MIN;   // the wide tree's height, as fitTree last measured it
 const narrowNow = () => window.matchMedia('(max-width:760px)').matches;
@@ -330,9 +330,9 @@ function treeCol(h){
   };
   const stOf = (b) => { const ns = L.pos.filter(p => p.b === b).map(p => lineOf(info.get(p.s))); return ns.includes('lit') ? 'lit' : ns.includes('ready') ? 'ready' : 'dim'; };
   // the root's lines leave from under its orb and land on each plate's top; a branch's lines leave from under its plate
-  if (!narrow) for (const hd of L.heads) link(50, ROOT_Y + 26, hd.x, hd.y - HEAD_H / 2, stOf(hd.b.id));
+  if (!narrow) for (const hd of L.heads) link(50, ROOT_Y + 26, hd.x, hd.y - R.hh / 2, stOf(hd.b.id));
   for (const p of L.pos){
-    const f = p.from, fy = f.s ? f.y : f.y + (narrow ? 26 : HEAD_H / 2);
+    const f = p.from, fy = f.s ? f.y : f.y + (narrow ? 26 : R.hh / 2);
     link(f.x, fy, p.x, p.y, lineOf(info.get(p.s)));
   }
   const nodes = L.pos.map(p => {
@@ -341,7 +341,7 @@ function treeCol(h){
       '<span class="pf-orb">' + icon(s.ico) + (N.st === 'lock' ? '<i class="pf-lk">' + LOCK + '</i>' : N.st === 'max' ? '<i class="pf-in">✓</i>' : '') + '</span>' +
       '<span class="pf-tl"><b>' + esc(s.nm) + '</b>' + (run && s.max > 1 && (N.r > 0 || ['open', 'nopts', 'max'].includes(N.st)) ? pipsOf(s, N.r) : '<em>' + N.tag + '</em>') + '</span></span>';
   }).join('');
-  const heads = L.heads.map(hd => '<div class="pf-fhead' + (hd.b.id === 'path' ? ' pf-fpath' : '') + '" style="left:' + hd.x + '%;top:' + hd.y + 'px;width:calc(' + hd.w + '% - 12px)"><b>' + esc(hd.b.nm) + '</b><span class="pf-bl">' + esc(hd.none ? 'Nothing to train here yet' : hd.b.line) + '</span></div>').join('');
+  const heads = L.heads.map(hd => '<div class="pf-fhead' + (hd.b.id === 'path' ? ' pf-fpath' : '') + '" style="left:' + hd.x + '%;top:' + hd.y + 'px;width:calc(' + hd.w + '% - 12px)' + (narrow ? '' : ';height:' + R.hh + 'px') + '"><b>' + esc(hd.b.nm) + '</b><span class="pf-bl">' + esc(hd.none ? 'Nothing to train here yet' : hd.b.line) + '</span></div>').join('');
   // wide: each tier's name down the left edge, a faint band under each branch (its column, from its plate down), a rule between tiers
   const ranks = narrow ? '' : L.heads.map(hd => '<span class="pf-fband' + (hd.b.id === 'path' ? ' path' : '') + '" style="left:calc(' + hd.x0 + '% + 6px);width:calc(' + hd.w + '% - 12px);top:' + R.head + 'px"></span>').join('') +
     [2, 3].map(t => '<span class="pf-frule" style="top:' + Math.round(R.top + (L.H - R.top - 6) / 3 * (t - 1)) + 'px"></span>').join('') +

@@ -341,8 +341,8 @@
 .pf-treecol{display:flex;flex-direction:column}
 .pf-treecol>*{flex:none}
 .pf-treecol>.pf-ftree{flex:1 0 auto;height:auto;min-height:400px}
-.pf-ftree:not(.narrow) .pf-fhead{min-height:56px;box-sizing:border-box;justify-content:center;padding:6px}
-.pf-ftree:not(.narrow) .pf-fhead .pf-bl{letter-spacing:.8px}
+.pf-ftree:not(.narrow) .pf-fhead{box-sizing:border-box;justify-content:center;gap:3px;padding:4px 6px}
+.pf-ftree:not(.narrow) .pf-fhead .pf-bl{letter-spacing:.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* a short tree (the Profile's TREE tab) wears slightly smaller orbs, so a two-line name never meets the row below */
 .pf-ftree.short .pf-tnode .pf-orb{width:40px;height:40px}
 .pf-ftree.short .pf-tnode .pf-orb .ic{width:20px;height:20px}

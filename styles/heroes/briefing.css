@@ -78,9 +78,9 @@
 #chapcard .cc-inner.hero-mando .cc-k{font-size:13px;color:var(--hx-accent)}
 #chapcard .cc-inner.hero-mando .cc-goals li::before{content:'▸';color:var(--hx-accent)}
 #chapcard .cc-inner.hero-mando .cc-scene,:is(#chapcard,#lessonboard) .cc-inner.hero-mando .cc-voice{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
-#chapcard .cc-inner.hero-mando .cc-who{font:400 14px/1 Georgia,serif;letter-spacing:.2em}
+#chapcard .cc-inner.hero-mando .cc-who{font:600 14px/1 var(--hx-label);letter-spacing:.14em}
 #chapcard .cc-inner.hero-mando .cc-chapters .pips i{width:16px;height:6px;transform:skewX(-20deg)}
-:is(#chapcard,#lessonboard) .cc-inner.hero-mando .cc-btns .btn.primary{font:400 17px/1 Georgia,serif;letter-spacing:.22em;
+:is(#chapcard,#lessonboard) .cc-inner.hero-mando .cc-btns .btn.primary{font:600 17px/1 var(--hx-label);letter-spacing:.14em;
   background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);clip-path:var(--hx-chamfer);box-shadow:none}
 :is(#chapcard,#lessonboard) .cc-inner.hero-mando .cc-btns .btn.primary:hover{background:linear-gradient(180deg,#ffd0a8 0 22%,var(--hx-accent-hi) 22% 70%,var(--hx-accent) 70%)}
 

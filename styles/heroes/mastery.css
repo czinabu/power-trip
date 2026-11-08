@@ -267,7 +267,7 @@
 /* ======================= THE MANDALORIAN: beskar plate ======================= */
 .mx[data-hero="mando"]{background:var(--hx-plate);clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
   box-shadow:inset 0 4px 0 var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
-.mx[data-hero="mando"] .howto-title{font-size:30px;letter-spacing:.2em;font-variant:small-caps}
+.mx[data-hero="mando"] .howto-title{font-size:30px;letter-spacing:.08em;text-transform:uppercase}
 .mx[data-hero="mando"] :is(.mx-card,.mx-tile,.mx-detail,.mx-ctr,.mx-move,.mx-stat,.mx-slot){background:var(--hx-plate);clip-path:var(--hx-chamfer)}
 .mx[data-hero="mando"] :is(.mx-card,.mx-detail){box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
 .mx[data-hero="mando"] .mx-tile{box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
@@ -278,10 +278,10 @@
 .mx[data-hero="mando"] .mx-slot{box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
 .mx[data-hero="mando"] .mx-ctr.up{box-shadow:inset 0 3px 0 var(--mx-up),inset 0 0 0 1px var(--hx-line)}
 .mx[data-hero="mando"] .mx-ctr.dn{box-shadow:inset 0 3px 0 var(--mx-dn),inset 0 0 0 1px var(--hx-line)}
-.mx[data-hero="mando"] .mx-k{font:400 13px/1.1 Georgia,'Times New Roman',serif;letter-spacing:.2em;font-variant:small-caps}
-.mx[data-hero="mando"] :is(.mx-tt,.mx-tf,.mx-tr span,.mx-sn span,.mx-stop span,.mx-ctr>span){font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.14em}
-.mx[data-hero="mando"] .mx-tile>b,.mx[data-hero="mando"] .mx-slot b{font:400 14px/1.15 Georgia,'Times New Roman',serif;letter-spacing:.12em}
-.mx[data-hero="mando"] .mx-dn b{font-size:24px;letter-spacing:.14em}
+.mx[data-hero="mando"] .mx-k{font:600 13px/1.1 var(--hx-label);letter-spacing:.14em;text-transform:uppercase}
+.mx[data-hero="mando"] :is(.mx-tt,.mx-tf,.mx-tr span,.mx-sn span,.mx-stop span,.mx-ctr>span){font-family:var(--hx-label);font-weight:600;letter-spacing:.14em}
+.mx[data-hero="mando"] .mx-tile>b,.mx[data-hero="mando"] .mx-slot b{font:600 14px/1.15 var(--hx-label);letter-spacing:.12em}
+.mx[data-hero="mando"] .mx-dn b{font-size:24px;letter-spacing:.08em}
 /* rivets in the plates' top corners */
 .mx[data-hero="mando"] :is(.mx-card,.mx-detail){position:relative}
 .mx[data-hero="mando"] :is(.mx-card,.mx-detail)::after{content:'';position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%;background:#8d949b;box-shadow:0 0 0 1px var(--hx-ink)}
@@ -294,12 +294,12 @@
 .mx[data-hero="mando"] .mx-pips i{width:12px;height:7px;transform:skewX(-18deg)}
 .mx[data-hero="mando"] .mx-pips.lv i{height:9px}
 .mx[data-hero="mando"] :is(.mx-tline,.mx-bar) i{background:repeating-linear-gradient(105deg,var(--hx-accent) 0 9px,transparent 9px 12px);box-shadow:none}
-.mx[data-hero="mando"] .mx-tabs span{font:400 13px/1 Georgia,'Times New Roman',serif;letter-spacing:.16em}
+.mx[data-hero="mando"] .mx-tabs span{font:600 13px/1 var(--hx-label);letter-spacing:.14em}
 .mx[data-hero="mando"] .mx-tabs span.on{background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%)}
-.mx[data-hero="mando"] .mx-actions .btn{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font:400 14px/1 Georgia,'Times New Roman',serif;letter-spacing:.2em}
+.mx[data-hero="mando"] .mx-actions .btn{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line);font:600 14px/1 var(--hx-label);letter-spacing:.14em}
 .mx[data-hero="mando"] .mx-actions .btn:hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
 .mx[data-hero="mando"] .mx-actions .btn.primary{color:var(--hx-on-accent);background:linear-gradient(180deg,var(--hx-accent-hi) 0 22%,var(--hx-accent) 22% 70%,var(--hx-accent-lo) 70%);box-shadow:none;font-size:16px}
-.mx[data-hero="mando"] .mx-slotb,.mx[data-hero="mando"] .mx-badge{font:400 10px/1 Georgia,serif;letter-spacing:.14em}
+.mx[data-hero="mando"] .mx-slotb,.mx[data-hero="mando"] .mx-badge{font:600 10px/1 var(--hx-label);letter-spacing:.14em}
 .mx[data-hero="mando"] .mx-badge{top:9px;right:9px}   /* (inside the chamfer, which would cut it off) */
 
 /* ======================= THE TROOPER: orders, and the field file ======================= */

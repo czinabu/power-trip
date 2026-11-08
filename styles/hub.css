@@ -116,7 +116,7 @@ body.cutscene :is(#hubp,#zonep,#zoneqp,#secp,#mercyp){opacity:0 !important}
 .hm-map.hm-t-covert{--hm-bg:#120f0d;--hm-grid:rgba(255,160,90,.04);--hm-hall:#2a2420;--hm-hall-edge:rgba(200,180,160,.12);
   --hm-tile:linear-gradient(180deg,#2a2522,#1d1916);--hm-tile-on:linear-gradient(180deg,#38302b,#28211d);
   --hm-frame:#8d969d;--hm-frame-on:#dfe5e9;--hm-here:#ff8a3c;--hm-glow:rgba(255,130,50,.4);--hm-rad:1px;
-  --hm-title:#dfe3e6;--hm-title-font:700 clamp(9px,2.4cqw,18px)/1 var(--font-display);--hm-title-ls:.26em;
+  --hm-title:#dfe3e6;--hm-title-font:700 clamp(9px,2.4cqw,18px)/1 var(--font-beskar);--hm-title-ls:.16em;
   --hm-label:#c8bfb6;--hm-tag-bg:#ff8a3c;--hm-tag-ink:#1c0d04;
   --hm-c1:#ff8a3c;--hm-c2:#c9d2d8;--hm-c3:#857c73;--hm-c4:#ff6a1a;--hm-c5:#e3b45a}
 .hm-hall{position:absolute;background:var(--hm-hall);box-sizing:border-box;border:1px solid var(--hm-hall-edge)}

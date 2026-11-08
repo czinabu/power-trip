@@ -122,5 +122,7 @@ function next(){
   idle(next);
 }
 idle(next);
-// (first in line, ahead of the shader warm-up above)
-arenaBuilt.unshift(() => { while (jobs.length) run(jobs.shift()); });
+// (first in line, ahead of the shader warm-up above). Not for a hub (the temple, a ship, the citadel): nothing there is
+// fought, and a player straight off the title screen paid seconds of foe models on a phone to walk into a peaceful hall;
+// the first fight's load builds whatever is still left
+arenaBuilt.unshift(() => { if (G.hub) return; while (jobs.length) run(jobs.shift()); });

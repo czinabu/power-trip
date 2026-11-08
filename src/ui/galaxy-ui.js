@@ -115,7 +115,7 @@ export function galaxyPanel(ctx){
     const j = ctx.joinButton(); if (j) voy.push(j);
     voy.push(ctx.B('THE HOST CHOOSES', 'In a party the host picks where the ship goes, and everyone aboard goes with them.', null));
   } else {
-    voy.push(ctx.campaign(), ctx.gateButton(), ...ctx.ngButton(), ctx.challenge(), ctx.survival(), ctx.everyMode());
+    voy.push(...ctx.foldLater([ctx.campaign(), ctx.gateButton(), ...ctx.ngButton(), ctx.challenge(), ctx.survival(), ctx.everyMode()]));
   }
   const v0 = list.length;
   for (const b of voy) add(b);

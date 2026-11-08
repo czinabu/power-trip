@@ -2,7 +2,7 @@
 /* ACT IV · THE SITH GATE: its recap and epilogue cards (game/gate.js gateRecapHtml, gateEpilogueHtml).
    Not the menu's panels: each story is its own hero's keepsake, and the ending is carved in the gate's stone.
      JEDI      a holocron page: Cinzel, warm gold ink on deep blue, a double hairline frame with diamond corners
-     MANDO     a beskar plate: brushed steel, rivets, Georgia small caps, an ember edge (the kitbench's forge family)
+     MANDO     a beskar plate: brushed steel, rivets, a stamped stencil and angular labels, an ember edge (the kitbench's forge family)
      TROOPER   a field file: tan dossier paper, IBM Plex Mono, a file number, redaction bars and a rubber stamp
      THE GATE  carved violet stone, Cinzel, the ring behind it shut or split by the choice */
 
@@ -49,11 +49,11 @@
     linear-gradient(160deg,#5d646d,#373c43 45%,#272b30);
   border-bottom:2px solid #e0661e;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -12px 20px -12px rgba(255,110,30,.35),0 14px 30px -14px rgba(0,0,0,.85)}
 #chapcard .gx-mando .gx-g{color:#ffb15a;filter:drop-shadow(0 0 5px rgba(255,120,40,.6))}
-#chapcard .gx-mando header b{font:700 12.5px/1 Georgia,'Times New Roman',serif;letter-spacing:2.2px;white-space:nowrap;color:#f1f3f5;text-shadow:0 1px 0 #000}
-#chapcard .gx-mando header small{font:600 10px/1.2 Georgia,serif;letter-spacing:2.4px;color:#b3bac2;text-transform:uppercase}
+#chapcard .gx-mando header b{font:700 12.5px/1 var(--font-beskar);letter-spacing:2.2px;white-space:nowrap;color:#f1f3f5;text-shadow:0 1px 0 #000}
+#chapcard .gx-mando header small{font:600 10px/1.2 var(--font-beskar);letter-spacing:2.4px;color:#b3bac2;text-transform:uppercase}
 #chapcard .gx-mando .gx-end{margin-top:12px;padding:7px 9px;background:rgba(10,12,14,.45);box-shadow:inset 0 1px 3px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.08)}
-#chapcard .gx-mando .gx-end span{font:600 9px/1 Georgia,serif;letter-spacing:3px;color:#ffb15a}
-#chapcard .gx-mando .gx-end strong{margin-top:5px;font:700 14px/1.15 Georgia,serif;letter-spacing:2.6px;color:#fff;text-shadow:0 1px 0 #000}
+#chapcard .gx-mando .gx-end span{font:600 9px/1 var(--font-beskar);letter-spacing:3px;color:#ffb15a}
+#chapcard .gx-mando .gx-end strong{margin-top:5px;font:700 14px/1.15 var(--font-beskar);letter-spacing:2.6px;color:#fff;text-shadow:0 1px 0 #000}
 #chapcard .gx-mando p{font:500 13.5px/1.45 var(--font-body);color:#cfd4da}
 
 /* TROOPER · a field file */

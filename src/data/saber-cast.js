@@ -81,6 +81,11 @@ export const CAST = {
   // No face under the lord's mask, only the void and violet eyes; the armour is beskar grey with the old violet trim
   'DARTH KHAREL': { side: 'sith', build: 'm', w: 1.2, height: 1.1, face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xb46bff },
                    mask: 'lord', armour: 'lord', cloak: true, hood: true, colors: { tunic: 0x2a2c34, tabard: 0x3c404a, cloak: 0x120a18, trim: 0x8a4ad2, belt: 0x5a5e68 } },
+  // THE CANTOR, the Hollow Choir's voice (Act IV: data/missions-gate.js): the same figure at the gate, on Kamino's pad and
+  // in the scene where it breaks off. A gaunt grey face with the Choir's violet eyes and marks, hooded, in the cult's
+  // black-and-violet robes over old armour
+  'THE CANTOR':  { side: 'sith', build: 'm', w: 0.96, height: 1.03, face: { skin: 0x8e8a92, hair: 0x18141c, style: 'bald', marks: 0x6a3a8a, markStyle: 'lines', sith: true, eyeC: 0xb46bff },
+                   armour: 'inq', cloak: true, hood: true, colors: { tunic: 0x26222c, tabard: 0x3a1a3a, under: 0x141018, cloak: 0x1a1420, trim: 0x8a4ad2, belt: 0x1a1218 } },
   'THE ECHO':    { side: 'echo', build: 'm', face: { skin: 0x0c0a12, hair: 0x0c0a12, style: 'bald', void: true, sith: true, eyeC: 0xc49aff }, cloak: true, hood: true },
 };
 // the Jedi's sparring blade, and the masters' (Ataru's acrobat), share the names other stories give them

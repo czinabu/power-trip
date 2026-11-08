@@ -494,7 +494,7 @@ body.fovpreview .set-tip{display:none}
 #czpage .pg-tabs{background:rgba(8,18,33,.7);border-radius:var(--r) var(--r) 0 0}   /* (readable over the hero, where a phone stacks the two) */
 body:not(.pad-ps) .pg-tabs .pg-ps,body.pad-ps .pg-tabs .pg-xb{display:none}
 .kb-panel .pg-tabs{--pg-ink:var(--k-ink);--pg-dim:var(--k-faint);--pg-acc:var(--k-acc);--pg-line:color-mix(in srgb,var(--k-faint) 45%,transparent);margin:-4px 0 0}
-.kb-mando .pg-tabs{font-family:Georgia,'Times New Roman',serif;letter-spacing:3px}
+.kb-mando .pg-tabs{font-family:var(--font-beskar);letter-spacing:3px}
 #overlay:not(.st-menu) #wbBtn{display:none}
 /* ---------- SANDBOX: the training room's panel (B in the sandbox; ui/sandbox-ui.js) — one page: FOES | YOU, the floor below ---------- */
 #sandbox{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
@@ -1364,12 +1364,12 @@ body.wb-open #overlay{background:none}
   background:radial-gradient(120% 60% at 20% 0%,#2a211b 0%,#151110 60%),#151110;
   border:1px solid #4a3a2c;border-top:3px solid #ff7a2a;border-radius:4px;
   box-shadow:0 -6px 30px -8px rgba(255,110,30,.55),inset 0 0 0 4px #0f0c0a,inset 0 0 0 5px #3a2d22,0 10px 40px rgba(0,0,0,.6)}
-.kb-mando .kb-head h2{font:700 28px/1 Georgia,'Times New Roman',serif;letter-spacing:5px;color:var(--k-ink);text-shadow:0 1px 0 #000,0 0 16px rgba(255,120,40,.3)}
+.kb-mando .kb-head h2{font:400 30px/1 var(--font-stencil);letter-spacing:3px;color:var(--k-ink);text-shadow:0 1px 0 #000,0 0 16px rgba(255,120,40,.3)}
 .kb-mando .kb-head small{color:#ff8a3d}
 .kb-mando .kb-head{padding-bottom:12px;border-bottom:1px solid #4a3a2c}
 .kb-mando .kb-bar{height:8px;border-radius:4px;box-shadow:inset 0 1px 2px #000}
 .kb-mando .kb-bar i{border-radius:4px;background:linear-gradient(90deg,#8a2a0a,#ff7a2a,#ffd27a)}
-.kb-mando .kb-load h4,.kb-mando .kb-row h3{font-family:Georgia,'Times New Roman',serif;letter-spacing:3px}
+.kb-mando .kb-load h4,.kb-mando .kb-row h3{font-family:var(--font-beskar);letter-spacing:3px}
 .kb-mando .kb-slot{border:1px solid #3a2d22;border-radius:3px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
 .kb-mando .kb-row h3{padding-bottom:7px;border-bottom:1px solid #3a2d22}
 .kb-mando .kb-tag{border:1px solid #3a2d22;border-radius:3px;background:linear-gradient(#221c18,#181412);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
@@ -1382,7 +1382,7 @@ body.wb-open #overlay{background:none}
 .kb-mando .kb-tag.on em{color:#ff9a4a}
 .kb-mando .kb-tag.shut{background:#141110;border-style:dashed;border-color:#2e251e;box-shadow:none}
 .kb-mando .kb-tag.shut::before,.kb-mando .kb-tag.shut::after{background:#2e251e}
-.kb-mando .kb-btn{border-radius:3px;color:#1a0d05;background:linear-gradient(#ffb15a,#e0661e);box-shadow:0 0 18px -4px rgba(255,110,30,.8);font-family:Georgia,'Times New Roman',serif;letter-spacing:4px}
+.kb-mando .kb-btn{border-radius:3px;color:#1a0d05;background:linear-gradient(#ffb15a,#e0661e);box-shadow:0 0 18px -4px rgba(255,110,30,.8);font-family:var(--font-beskar);letter-spacing:4px}
 .kb-mando .kb-btn:hover{background:linear-gradient(#ffc27a,#f07a2a)}
 @media (max-width:720px){.kb-panel{top:auto;left:12px;right:12px;width:auto;max-height:64%;bottom:12px}}
 /* ---------- THE BENCH PANELS' SHARED FRAME (ui/bench-panel.js): a rail of the slots, the open slot's earned parts as a grid,
@@ -1425,7 +1425,7 @@ body.wb-open #overlay{background:none}
 .kb-panel .kb-load h4,.kb-panel .kb-load p{grid-column:1/-1}
 .kb-panel .kb-load .kb-slot{margin-bottom:0}
 .kb-panel .kb-load p{margin-top:6px}
-.kb-mando .bp-slot b,.kb-mando .bp-fold-h b{font-family:Georgia,'Times New Roman',serif;letter-spacing:2px}
+.kb-mando .bp-slot b,.kb-mando .bp-fold-h b{font-family:var(--font-beskar);letter-spacing:2px}
 .kb-trooper .bp-slot.on{background:var(--k-ink);border-color:var(--k-ink);border-left-color:var(--k-acc)}
 .kb-trooper .bp-slot.on b,.kb-trooper .bp-slot.on span{color:#eef2f5}
 .kb-trooper .bp-slot.on i,.kb-trooper .bp-slot.on em{color:#7fb6ff}

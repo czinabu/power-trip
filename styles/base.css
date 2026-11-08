@@ -3,6 +3,9 @@
   --font-ui:'Barlow Condensed','Arial Narrow','Segoe UI',system-ui,sans-serif;
   --font-body:'Barlow','Segoe UI',system-ui,Arial,sans-serif;
   --font-display:'Barlow Condensed','Arial Narrow','Segoe UI',system-ui,sans-serif;
+  /* the Mandalorian's two faces: a stamped stencil for titles, an angular cut (its corners chamfered like the plates) for labels */
+  --font-stencil:'Saira Stencil One','Chakra Petch','Barlow Condensed','Arial Narrow',sans-serif;
+  --font-beskar:'Chakra Petch','Barlow Condensed','Arial Narrow','Segoe UI',system-ui,sans-serif;
   --ink:#e8f4ff; --ink-soft:#a9c6dd; --ink-dim:#7393ab; --ink-faint:#4d6578;
   --accent:#5cc6ff; --accent-glow:rgba(92,198,255,.55);
   --gold:#ffd24a; --gold-glow:rgba(255,200,70,.5);

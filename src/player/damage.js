@@ -40,6 +40,8 @@ import { noteDamage, noteDefense } from '../game/readout.js';
 import { heroCanGoDown, downHero, hitDownedHero, heroCanSitOut, sitOut } from '../game/revive.js';
 import { coopRun } from '../net/run.js';
 import { flowHurt } from './gunner-flow.js';
+import { guardMeets, guardFlash } from './jedi/guardline.js';
+import { GUARD_TURN } from '../data/duel-guard.js';
 
 const MELEE_REACH_UP = 1.7;   // a melee foe can't strike you if you're perched higher than this above their feet
 const AWAY_GRACE = 800;   // ms (wall clock) after a co-op menu closes before a blow can land (the fight ran on while it was open)
@@ -269,11 +271,22 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         // a heavy blow (a brute's maul) jars the guard far harder than a grunt's chop
         const heavy = Math.max(1, dmg / CFG.player.blockHeavy);
         const crush = M ? M.guard : 1;   // the form counter bears down on the block (data/foe-forms.js MATCHUP)
-        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * crush * (!isGunner() && player.holstered ? CFG.holster.ward.stamMul : 1));   // (a Force ward breathes harder than a blade's guard)
+        // THE GUARD TURNS (jedi/guardline.js): a strike on a line the guard covers is blocked as ever; on the line you
+        // steered it to by hand it's a CLEAN block (cheaper); on a side it hasn't reached yet it is BEATEN (it holds, barely)
+        const meet = melee && !player.holstered ? guardMeets(opts && opts.line) : 'covered';
+        const GT = meet === 'clean' ? GUARD_TURN.clean : meet === 'beaten' ? GUARD_TURN.beaten : null;
+        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * crush * (!isGunner() && player.holstered ? CFG.holster.ward.stamMul : 1) * (GT ? GT.stam : 1));   // (a Force ward breathes harder than a blade's guard)
         player.stamDelay = stamDelay();
-        clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), stance().blade, false);   // the blow meets the blade
-        G.shake = Math.max(G.shake, 0.15 * heavy);
-        player.vel.addScaledVector(fwd(), -2.5 * heavy);   // the blow drives you back a step
+        clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), meet === 'beaten' ? 0xff6a3a : stance().blade, meet === 'beaten');   // the blow meets the blade
+        G.shake = Math.max(G.shake, 0.15 * heavy * (meet === 'beaten' ? 2 : 1));
+        player.vel.addScaledVector(fwd(), -2.5 * heavy * (GT && GT.push || 1));   // the blow drives you back a step
+        if (melee && opts && opts.line) guardFlash(meet);
+        if (meet === 'beaten'){
+          floater(pp, 'WRONG SIDE', '#ff6a3a'); sfx(150, 0.1, 'square', 0.05, 80); tutEvent('wrongSide');
+          if (!G.seenWrongSide){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'Your guard follows a strike a beat late. Flick toward the side it winds up on to send it there yourself.', 3.2); }
+        }
+        else if (meet === 'clean'){ floater(pp, 'CLEAN BLOCK', '#ffe08a'); tutEvent('cleanBlock'); }
+        else if (melee && opts && opts.line) tutEvent('lineBlock');
         S.deflect(contact || V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8));   // the one blade-contact sound (clash + pyew), whatever weapon it was
         noteDefense('blocks', fromPos, opts);
         // a block is not a parry: some of a melee blow still gets through the guard
@@ -284,8 +297,9 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
           floater(pp, 'FLUID RIPOSTE', '#c9a0ff');
         }
         const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets only a sliver through)
-        if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush, null, true, false, true);
+        if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush * (GT ? GT.chip : 1), null, true, false, true);
         addFury(stance().furyBlock);
+        if (meet === 'beaten' && player.stam <= 0 && player.hp > 0 && !broke){ guardBreak(fromPos); broke = true; }   // beaten on an empty tank: the guard gives way
         return 'blocked';
       }
       else if (guard){

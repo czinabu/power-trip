@@ -9,6 +9,7 @@ import { G, isGunner, enemies } from '../state.js';
 import { floater } from '../fx/floaters.js';
 import { foeTipToast } from '../game/upgrades.js';
 import { V3 } from '../utils.js';
+import { pvpEdge } from '../game/pvp-rules.js';
 
 const depth = () => G.endless ? (G.endlessWave || 0) : (G.waveTotal || 0);
 const rankUp = (r) => RANK_ORDER[Math.min(RANK_ORDER.length - 1, RANK_ORDER.indexOf(r) + 1)] || r;
@@ -86,7 +87,7 @@ export const edgeOn = (e) => (e && e.ff && !isGunner()) ? formEdge(G.stance, e.f
 /* can the hero answer this form right now: a form in the loadout (1 / 2 / 3) that counters it? The wrong form only
    costs you when you had the right one to hand: a hero with only Shii-Cho is never punished for not switching */
 export const canCounter = (ff) => (G.loadout || []).some(id => id && formEdge(id, ff) > 0);
-export const matchup = (e) => { const k = edgeOn(e); return k > 0 || (k < 0 && canCounter(e.ff)) ? matchupAt(k) : MATCHUP.even; };
+export const matchup = (e) => { const k = edgeOn(e); return k > 0 || (k < 0 && canCounter(e.ff)) ? matchupAt(pvpEdge(k)) : MATCHUP.even; };   // (a sparring duel scales the edge down: game/pvp-rules.js)
 // × your saber's damage on it
 export const edgeMul = (e) => matchup(e).dmg;
 // the chance its sealed guard holds against your cut (its rank's seal, less when your form counters it)

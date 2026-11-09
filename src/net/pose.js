@@ -8,7 +8,8 @@
 import * as THREE from 'three';
 import { setFistGlow } from '../player/jedi/palm.js';
 import { S } from '../audio/sfx.js';
-import { G } from '../state.js';
+import { G, player } from '../state.js';
+import { guardState } from '../player/jedi/guardline.js';
 import { fitBlade, extShown } from '../fx/trail.js';
 import { LONG_GUNS, setLongGun, RIFLE_MOD_IDS, setRifleMod, setSaberStaff, saberIsStaff } from '../player/model/weapons.js';
 
@@ -52,6 +53,7 @@ export function readPose(hero){
     rm: hero.longGuns && hero.longGuns.dc15 ? Math.max(0, RIFLE_MOD_IDS.indexOf(hero.longGuns.dc15.group.userData.mod || 'burst')) : 0,   // the DC-15's fitted module
     spin: hero.repeaterSpin ? r3(hero.repeaterSpin.rotation.z % (Math.PI * 2)) : 0,
     fist: hero.fistGlow ? r3(hero.fistGlow[0].material.opacity / 0.85) : 0, fc: hero.fistGlow ? hero.fistGlow[0].material.color.getHex() : 0,   // the holstered Jedi's Force-lit hands (jedi/palm.js)
+    gd: hero === player ? guardState() : null,   // the held guard: the line it covers, turning to, how far, placed by hand (jedi/guardline.js)
   };
   return { q, p, gear, fx };
 }
@@ -113,6 +115,7 @@ function applyGear(hero, pose){
     m.quaternion.set(s[5], s[6], s[7], s[8]).normalize();
   });
   const fx = pose.fx || {}, B = hero.blade;
+  hero.guardNet = Array.isArray(fx.gd) ? fx.gd : null;   // their guard (jedi/guardline.js guardState): for a mode that shows or judges it
   if (B){
     B.blade.visible = B.glow.visible = !!fx.blade;
     if (fx.bc){ B.glow.material.color.setHex(fx.bc); B.light.color.setHex(fx.bc); }

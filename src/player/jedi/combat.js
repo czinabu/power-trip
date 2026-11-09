@@ -20,7 +20,8 @@ import { spawnHitSpark, spawnGroundShock } from '../../fx/vfx.js';
 import { inkSprite, sparks, clashFlash, clashSparks } from '../../fx/ink.js';
 import { scorchGround } from '../../fx/scorch.js';
 import { DUEL } from '../../data/duel.js';
-import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry } from '../../enemies/duel.js';
+import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry, baitGuards } from '../../enemies/duel.js';
+import { FEINT } from '../../data/duel-guard.js';
 import { bodyRadius } from './bladehit.js';
 import { bounceOff, contactPoint } from './clash.js';
 import { inReach } from '../../enemies/bodyshape.js';
@@ -291,9 +292,16 @@ function stepIntoCut(dir, impulse){
 // Bail out of a saber swing at ANY point — into a guard/parry, a Force power, or a dash. The unspent cut is
 // forfeit (that's the price of going defensive/Force mid-stroke). PARTIAL cost: an EARLY feint (first ~30%) is
 // free & snappy; bailing LATE (committed, past 60%) bleeds stamina. Always leaves a blue Force-ripple + whoosh.
-export function cancelSwing(){
+// `feint`: the guard (RMB) broke it off (engine/input.js): early enough, at a duellist that reads blades, it's a FEINT
+// (data/duel-guard.js FEINT): its guard bites on the line you faked (enemies/duel.js baitGuards)
+export function cancelSwing(feint){
   if (player.atkT <= 0 && player.darkT <= 0) return false;
   const k = player.swing ? clamp(player.swing.t / player.swing.dur, 0, 1) : 0.5;   // how far into the swing
+  const sw = player.swing;
+  if (feint && sw && !isGunner() && !sw.riposte && !sw.recoil && !sw.back && k <= FEINT.by && !player.fin && player.stam >= FEINT.stam && baitGuards(cutLine(sw))){
+    player.stam -= FEINT.stam; player.stamDelay = stamDelay();
+    floater(playerPos(), 'FEINT', '#ffd27a');
+  }
   player.atkT = 0;
   player.swing = null;
   player.queuedAtk = false;

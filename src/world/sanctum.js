@@ -353,6 +353,9 @@ export function buildSanctum(o = {}){
   function doors(side, a, w){
     const dh = Math.min(galleries[0] - 1, o.doorH ?? 11), dw = Math.min(w - 0.6, o.doorW ?? 7);
     const out = new THREE.MeshBasicMaterial({ color: o.door ?? 0x1a1a2e, fog: false });
+    /* a sunlit doorway (the temple's day outside) is held just under the bloom's threshold: at full strength it bloomed
+       into a white blob that swallowed the arch, and from the pool it sat right behind the temple map */
+    { const c = out.color, l = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; if (l > 0.45) c.multiplyScalar(0.45 / l); }
     put(side, new THREE.PlaneGeometry(dw, dh - dw / 2), out, a, (dh - dw / 2) / 2, off - 0.03);
     put(side, new THREE.CircleGeometry(dw / 2, 14, 0, PI), out, a, dh - dw / 2, off - 0.03);
     for (const sx of [-1, 1]){

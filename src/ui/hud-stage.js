@@ -26,10 +26,11 @@ export const STAGE = {
   cardLow: 0.55,      // the card's top never goes lower than this share of the screen's height, however long the list above it
   miniLow: 0.66,      // the minimap under the list never reaches lower than this share of the screen's height...
   miniMin: 120,       // ...shrinking to fit, down to this many px across (any smaller and it stands beside the list instead)
+  lowMin: 420,        // px: the narrowest the voice strip goes down low between the vitals and the action bar (else it sits higher)
 };
 
 const $ = (id) => document.getElementById(id);
-let els = null;
+let els = null, statusEl = null, barEl = null;
 const boxes = () => els || (els = { xp: $('xpmeter'), tutor: $('tutor'), comms: $('comms'), above: ['objlist', 'readout', 'minimap'].map($).filter(Boolean) });
 
 /* ---------- the closing card's turn ---------- */
@@ -84,9 +85,22 @@ export function layout(){
     setPx(tutor, 'top', Math.min(top ? top + gap : 44, H * STAGE.cardLow));
     setPx(tutor, 'width', w || null);   // as wide as the list it hangs under
   } else { setPx(tutor, 'top', null); setPx(tutor, 'width', null); }
-  // the strip keeps its own spot (styles/hud.css) unless the XP line would reach it (a very short screen)
-  const xr = xp.getBoundingClientRect(), floor = xr.height ? H - xr.top : 0, own = H * (W <= 620 ? 0.26 : 0.21);
-  setPx(comms, 'bottom', floor + gap > own ? floor + gap : null);
+  // the strip keeps its own spot (styles/hud.css) unless the XP line would reach it (a very short screen). On a wide screen
+  // it sits low, in the gap between the vitals (#status) and the action bar's low rows, as wide as that gap allows; a
+  // gap too narrow for a readable line (a busy action bar, a narrow window) sends it back up over them
+  const xr = xp.getBoundingClientRect(), floor = xr.height ? H - xr.top : 0;
+  let own = H * (W <= 620 ? 0.26 : 0.21), maxW = null;
+  if (W >= 1180 && H >= 600){
+    let half = W / 2;
+    const low = (el) => { if (!el) return; for (const c of el.children){ const b = c.getBoundingClientRect(); if (!b.width || b.bottom < H * 0.78) continue;
+      half = Math.min(half, b.left > W / 2 ? b.left - W / 2 : W / 2 - b.right); } };
+    low(statusEl || (statusEl = $('status'))); low(barEl || (barEl = $('actionbar')));
+    const room = Math.floor(2 * (half - gap));
+    if (room >= STAGE.lowMin){ own = H * 0.065; maxW = Math.min(600, room); }
+  }
+  comms.classList.toggle('low', maxW != null);
+  setPx(comms, 'maxWidth', maxW);
+  setPx(comms, 'bottom', floor + gap > own ? floor + gap : maxW != null ? own : null);
 }
 // THE MINIMAP in a story map or a hub (ui/zone-map.js, ui/area-map.js): under the objectives list (or the sandbox
 // readout) when one is up, a gap below it, shrunk to keep above STAGE.miniLow of the screen; if that would leave it too

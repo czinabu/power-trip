@@ -943,11 +943,13 @@ export const BATTLE_WORLDS = {
     sky: { top: 0x06060c, horizon: 0x4a5266, below: 0x16141c, bands: 6, stars: 0,
       clouds: { color: 0x525a70, under: 0x20242e, count: 30, lo: 0.25, hi: 0.95 },
       ridges: [{ color: 0x14121a, h: 0.1, rough: 0.12, spiky: 1.2, seed: 17 }] },
-    fog: 0x3c485c, fogStart: 0.12, fogEnd: 0.8, haze: { len: 40, max: 0.8 },
-    light: { sun: 0xb4c4e8, sunI: 1.3, dir: [14, 50, 40], hemiSky: 0x8a9cc0, hemiGround: 0x2e2a36, fill: 0.88, rim: 0x8a9cf0, rimI: 0.7 },
-    floor: { kind: 'ash', base: 0x6a6472, seed: 29 },
+    // (art pass: the fog starts further out and the cover is a step lighter than the ash and the fog, so the line
+    // you're breaking reads at a glance instead of everything sharing one blue-grey)
+    fog: 0x3c485c, fogStart: 0.22, fogEnd: 0.85, haze: { len: 40, max: 0.8 },
+    light: { sun: 0xc4ccec, sunI: 1.45, dir: [14, 50, 40], hemiSky: 0x8a9cc0, hemiGround: 0x3a3440, fill: 0.95, rim: 0x8a9cf0, rimI: 0.7 },
+    floor: { kind: 'ash', base: 0x5e5866, seed: 29 },
     outer: 0x2c2834,
-    pal: { stone: 0x5a5262, stoneD: 0x3e3846, bag: 0x6a6258, metal: 0x6a6e7a, imperial: 0x2a2630, crate: 0x5a4e46,
+    pal: { stone: 0x7a7080, stoneD: 0x4e4656, bag: 0x7e7466, metal: 0x7e8290, imperial: 0x3a3442, crate: 0x6e5e50,
            stripe: 0x7f8ee0, lamp: 0xa8b4f0, scorch: 0x1e1a24, blast: 0x9aa6ee, beacon: 0x7f8ee0 },
     backdrop: [
       { kind: 'pyramid', az: -Math.PI/2, r: 2.2, scale: 1.0, size: 1500, color: 0x1a1620, color2: 0x241e2a, glow: 0x8a98e8 },
@@ -1053,8 +1055,11 @@ export const HUB_WORLDS = {
     floor: { kind: 'basalt', base: 0x3e3e4a, seed: 47 }, outer: 0x22222c, pal: TY_PAL, backdrop: [],
     ambient: { kind: 'embers', color: 0x8ae0ff, count: 110 }, beats: { fog: 0x1a2a3e, fill: 1.0, tint: 0xb8e8ff }, sound: 'temple' },
   // the clone citadel (KM_*: see above)
-  kmDeck: { mist: false, sky: KM_SKY, fog: 0x56687a, fogStart: 0.9, fogEnd: 3.0, light: KM_LIGHT, storm: KM_STORM,
-    floor: { kind: 'deck', base: 0xa8b2bc, stripe: 0x5a8aa8, seed: 61 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
+  // (art pass: the hangar was all one pale value, white walls on a near-white deck under a strong fill, so nothing had
+  // depth. Less fill and a harder sun so the shadows read, a deck a step darker than the walls, a touch more contrast)
+  kmDeck: { mist: false, sky: KM_SKY, fog: 0x56687a, fogStart: 0.9, fogEnd: 3.0, light: { ...KM_LIGHT, fill: 0.86, sunI: 1.4 }, storm: KM_STORM,
+    grade: { contrast: 1.14 },
+    floor: { kind: 'deck', base: 0x8c96a0, stripe: 0x5a8aa8, seed: 61 }, outer: 0x2a3a46, pal: KM_PAL, backdrop: KM_VIEW,
     ambient: { kind: 'dust', color: 0xd8e8f8, count: 90, size: 0.18 },
     warfront: { flyers: [{ kind: 'gunship', count: 2, alt: [60, 120], speed: [26, 40], every: [14, 26] }], epic: false },
     beats: KM_BEATS, sound: 'plains' },

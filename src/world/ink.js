@@ -122,21 +122,23 @@ export function seeThrough(src, shade = false){
     prev.call(src, sh, r);
     sh.uniforms.uSeeTex = SEE.tex; sh.uniforms.uSeeAmt = SEE.amt;
     if (shade){ sh.uniforms.uLamp = SCALE_U.lamp; sh.uniforms.uLit = SCALE_U.lit; }
-    sh.vertexShader = `attribute float aProp;\nuniform sampler2D uSeeTex;\nvarying float vSee;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nattribute vec2 aDet;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\n' : ''}` + sh.vertexShader
+    sh.vertexShader = `attribute float aProp;\nuniform sampler2D uSeeTex;\nvarying float vSee;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nattribute vec2 aDet;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\nattribute vec3 aEdgeP;\nattribute vec3 aEdgeH;\nvarying vec3 vEdgeP;\nvarying vec3 vEdgeH;\n' : ''}` + sh.vertexShader
       .replace('#include <project_vertex>', `#include <project_vertex>
   int sid = int(floor(aProp + 0.5));
   vSee = sid < 0 ? 0.0 : texelFetch(uSeeTex, ivec2(sid % ${FADE_W}, sid / ${FADE_W}), 0).r;${shade ? `
   vPropK = fract(sin(float(sid) * 12.9898 + 4.1) * 43758.5453);
   vPropY = (modelMatrix * vec4(transformed, 1.0)).y;
-  vDet = aDet; vDetW = (modelMatrix * vec4(transformed, 1.0)).xyz; vDetN = normalize(mat3(modelMatrix) * objectNormal);` : ''}`);
-    sh.fragmentShader = `varying float vSee;\nuniform float uSeeAmt;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\nuniform vec3 uLamp;\nuniform float uLit;\nfloat vWin = 0.0;\n' : ''}` + sh.fragmentShader
+  vDet = aDet; vDetW = (modelMatrix * vec4(transformed, 1.0)).xyz; vDetN = normalize(mat3(modelMatrix) * objectNormal);
+  vEdgeP = aEdgeP; vEdgeH = aEdgeH;` : ''}`);
+    sh.fragmentShader = `varying float vSee;\nuniform float uSeeAmt;\n${shade ? 'varying float vPropK;\nvarying float vPropY;\nvarying vec2 vDet;\nvarying vec3 vDetW;\nvarying vec3 vDetN;\nvarying vec3 vEdgeP;\nvarying vec3 vEdgeH;\nuniform vec3 uLamp;\nuniform float uLit;\nfloat vWin = 0.0;\n' : ''}` + sh.fragmentShader
       .replace('void main() {', `void main() {
   if (vSee > 0.0 && vSee * uSeeAmt > fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))))) discard;`);
     if (shade) sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
   diffuseColor.rgb *= (1.0 + (vPropK - 0.5) * ${PROP_SHADE.jitter.toFixed(3)})
     * mix(${PROP_SHADE.foot.toFixed(3)}, 1.0, smoothstep(0.0, ${PROP_SHADE.footH.toFixed(2)}, vPropY))
     * (1.0 + ${PROP_SHADE.crown.toFixed(3)} * smoothstep(${PROP_SHADE.crownY[0].toFixed(1)}, ${PROP_SHADE.crownY[1].toFixed(1)}, vPropY));
-${SCALE_GLSL}`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+${SCALE_GLSL}
+${EDGE_GLSL}`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   totalEmissiveRadiance += uLamp * vWin;`);
   };
   m.customProgramCacheKey = () => key + '|see' + (shade ? 's' : '');
@@ -150,14 +152,41 @@ ${SCALE_GLSL}`).replace('#include <emissivemap_fragment>', `#include <emissivema
    foot    every prop darkens toward the ground (to this share of its colour over footH metres): it sits ON the
            floor instead of floating, even on tiers without ambient occlusion
    crown   tall things lighten a little toward the sky between crownY metres: skylines lift off the walls below */
+const f3 = v => v.toFixed(3);
 export const PROP_SHADE = { jitter: 0.16, foot: 0.68, footH: 1.6, crown: 0.1, crownY: [5, 26] };
+
+/* PAINTED EDGES — every baked box (cover, crates, walls, steps, plinths) gets a lighter chamfer line along its edges and
+   a little wear toward its corners, the way a painted cel prop catches light on its bevel. Without it a block of cover
+   was one flat colour bounded by an outline: it read as an untextured placeholder next to the detailed cast. Works in
+   the box's own frame (aEdgeP: the point, aEdgeH: the half size, both in metres; zero for anything not a box), so a
+   turned crate keeps its lines on its own edges. The band keeps at least a pixel or so, and fades out where the edge
+   is far enough away to just shimmer.
+   width  the chamfer band (metres)   lift  how much lighter it is   top  extra on the top edges (they face the sky)
+   wear   darkening toward the corners, broken up by noise */
+export const EDGE = { width: 0.07, lift: 0.26, top: 0.14, wear: 0.12 };
+const EDGE_GLSL = `
+  if (vEdgeH.x > 0.0){
+    vec3 a = vEdgeH - abs(vEdgeP);                         // metres to each pair of faces
+    // the face this pixel is on is the axis nearest zero: the edge is the nearer of the other two
+    float d1 = min(a.x, min(a.y, a.z));
+    float d2 = a.x + a.y + a.z - d1 - max(a.x, max(a.y, a.z));
+    float px = max(fwidth(d2), 1e-4);
+    float far = 1.0 - smoothstep(0.35, 0.9, px / ${f3(EDGE.width)});
+    float band = (1.0 - smoothstep(${f3(EDGE.width)}, ${f3(EDGE.width)} + px * 1.5, d2)) * far;
+    // a top edge: the pixel sits near the box's top face
+    float topE = 1.0 - smoothstep(${f3(EDGE.width)}, ${f3(EDGE.width)} * 2.5, vEdgeH.y - vEdgeP.y);
+    diffuseColor.rgb *= 1.0 + band * (${f3(EDGE.lift)} + ${f3(EDGE.top)} * topE);
+    // grime toward the corners and the edges (not on the chamfer line itself)
+    float nearE = 1.0 - smoothstep(0.0, 0.5, d2);
+    float n = fract(sin(dot(floor(vEdgeP * 6.0), vec3(12.99, 78.23, 37.71))) * 43758.55);
+    diffuseColor.rgb *= 1.0 - ${f3(EDGE.wear)} * nearE * (1.0 - band) * (0.4 + 0.6 * n) * far;
+  }`;
 
 /* SCALE DETAIL (data/depth.js DETAIL): the big man-made blocks' panel seams, storey courses and, at night, a few lit
    window slots, drawn in world metres on their upright faces. bakeArena marks which props take it (aDet.x: 0 none,
    1 seams, 2 seams and windows at night, 3 windows by day too (dark slots, a few lit after dark: userData.windows); aDet.y: the prop's foot, so courses count up from its base). Seams fade out where a
    panel shrinks to a few pixels, so the far skyline never shimmers. SCALE_U is set per arena (world/atmosphere.js) */
 export const SCALE_U = { lamp: { value: new THREE.Color(0xffc070) }, lit: { value: 0 } };
-const f3 = v => v.toFixed(3);
 const SCALE_GLSL = `
   if (vDet.x > 0.5 && abs(vDetN.y) < 0.35){
     float du = abs(vDetN.x) > abs(vDetN.z) ? vDetW.z : vDetW.x;
@@ -236,6 +265,7 @@ export function inkify(mesh, width = 0.04){
    merged per material, and given one outline hull per material. Unlit glows (MeshBasicMaterial: lava, braziers,
    beacons, the sky), points, lines and anything flagged userData.noBake stay live and untouched.
    width: outline thickness in world units. far: a backdrop (outlines grow with distance, see inkHull). */
+export const ARENA_INK_GROW = 16;
 export function bakeArena(group, width = 0.045, far = false){
   group.updateMatrixWorld(true);
   const buckets = new Map();
@@ -274,6 +304,7 @@ export function bakeArena(group, width = 0.045, far = false){
     g.applyMatrix4(o.matrixWorld);
     g.setAttribute('aProp', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(registerProp(o)), 1));
     g.setAttribute('aDet', detailOf(o, g));
+    edgeOf(o, sg, g);
     const key = mat.uuid + (o.castShadow ? 's' : '') + (o.userData.noOutline || src.side === THREE.DoubleSide ? 'n' : '');
     if (!buckets.has(key)) buckets.set(key, { mat, geos: [], shadow: o.castShadow, outline: !key.endsWith('n') });
     buckets.get(key).geos.push(g);
@@ -295,7 +326,9 @@ export function bakeArena(group, width = 0.045, far = false){
     m.userData.baked = true;
     group.add(m); calls++;
     if (b.outline && width > 0){
-      const hull = new THREE.Mesh(hullGeo(merged), seeThrough(inkHull(width, far ? 40 : 0)));
+      /* (in the arena the line also thickens past ARENA_INK_GROW metres: the 4-5 cm a prop's outline is near the lens was
+         under a pixel by mid-field, so cover and walls out there lost their ink and read as flat grey shapes) */
+      const hull = new THREE.Mesh(hullGeo(merged), seeThrough(inkHull(width, far ? 40 : ARENA_INK_GROW)));
       hull.userData.baked = true;
       group.add(hull); calls++;
     }
@@ -324,6 +357,25 @@ function detailOf(o, g){
   }
   for (let i = 0; i < n; i++){ a[i * 2] = k; a[i * 2 + 1] = foot; }
   return new THREE.BufferAttribute(a, 2);
+}
+
+/* the painted-edge frame (EDGE_GLSL): for a box, each vertex's place in the box and the box's half size, in metres
+   (the box's own axes, its object scale applied); zero for anything else, which leaves it plain */
+const _es = new THREE.Vector3(), _ec = new THREE.Vector3(), _eh = new THREE.Vector3();
+function edgeOf(o, sg, g){
+  const n = g.attributes.position.count, P = new Float32Array(n * 3), H = new Float32Array(n * 3);
+  if (sg.type === 'BoxGeometry' && !o.userData.noEdge){
+    if (!sg.boundingBox) sg.computeBoundingBox();
+    o.getWorldScale(_es); _es.set(Math.abs(_es.x), Math.abs(_es.y), Math.abs(_es.z));
+    sg.boundingBox.getCenter(_ec); sg.boundingBox.getSize(_eh).multiplyScalar(0.5).multiply(_es);
+    const sp = sg.attributes.position;
+    for (let i = 0; i < n; i++){
+      P[i*3] = (sp.getX(i) - _ec.x) * _es.x; P[i*3+1] = (sp.getY(i) - _ec.y) * _es.y; P[i*3+2] = (sp.getZ(i) - _ec.z) * _es.z;
+      H[i*3] = _eh.x; H[i*3+1] = _eh.y; H[i*3+2] = _eh.z;
+    }
+  }
+  g.setAttribute('aEdgeP', new THREE.BufferAttribute(P, 3));
+  g.setAttribute('aEdgeH', new THREE.BufferAttribute(H, 3));
 }
 
 /* a glow that can merge: opaque plain colour on an ordinary, visible mesh nobody moves or draws specially (anything the

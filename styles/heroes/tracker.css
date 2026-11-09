@@ -4,7 +4,7 @@
    ui/objective-view.js), in each hero's look. Every mode that shows them (story missions, mission chapters, training,
    arcade contracts, co-op) gets the look from body[data-hero].
    QUIET IN A FIGHT: body.hx-fight (ui/hud.js) keeps only the objective in hand; the list opens out a moment after the
-   fight goes quiet. The frame is never bigger than the box it replaced (290px wide, top right).
+   fight goes quiet. body.hx-settled folds it the same way once an objective has been up a while. The frame is never bigger than the box it replaced (290px wide, top right).
    ============================================================ */
 
 /* ---------- shared shape: left-aligned rows, a marker, the objective title in the hero's display face ---------- */
@@ -27,8 +27,10 @@
 @keyframes hxsnap{0%{transform:translateX(6px);filter:brightness(1.6)}100%{transform:none;filter:none}}
 
 /* quiet in a fight: the objective in hand only (and its progress); the rest returns in a lull or under HOLD O */
-body.hx-fight #objlist :is(.ol-i:not(.now),.ol-i:not(.now)+.ol-s,.ol-n,.ol-hold,.ol-mut,.ol-h){display:none}
-body.hx-fight #objlist{padding-block:9px 9px}
+body:is(.hx-fight,.hx-settled) #objlist :is(.ol-i:not(.now),.ol-i:not(.now)+.ol-s,.ol-n,.ol-hold,.ol-mut,.ol-h){display:none}
+body:is(.hx-fight,.hx-settled) #objlist{padding-block:9px 9px}
+/* settled (an objective that has been up a while, ui/hud.js): folded the same way, and a little see-through */
+body.hx-settled:not(.hx-fight) #objlist{opacity:.86}
 
 /* ---------- the Jedi: a holocron page (double gold hairline, diamond studs, saber blue for the live objective) ---------- */
 [data-hero="jedi"] #objlist{box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 3px var(--hx-paper-solid),0 0 0 4px var(--hx-line),0 0 0 6px var(--hx-ink);

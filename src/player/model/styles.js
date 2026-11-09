@@ -88,6 +88,25 @@ const SKY = { value: hemi.color }, GROUND = { value: hemi.groundColor };
    light-then-dark edge that lifts it off a dark arena or a busy backdrop. One knob for the whole cast (heroes,
    squadmates, enemies, bosses all draw through this surface). */
 export const inkRim = { value: 0.34 };
+/* HERO RIM: the hero's own materials (not the npc: ones) take this much more of the rim, plus a little more headroom
+   under the bloom cap, so the character you play stays readable on any ground: brown robes on brown rock, grey armour
+   on grey ash. The menu stand and the benches draw their own lighting and set it back to 1 while they draw. */
+export const heroRim = { value: 1.9 };
+const ONE = { value: 1 };
+/* CAST FOG: characters (heroes, squads, enemies, bosses) take only this share of the arena's fog through the middle
+   distance, easing back to the full fog at its far end. The arena still recedes into the haze, but a trooper 30 m off
+   keeps his shape and colour instead of melting into it: what you fight reads before the walls around it do. */
+export const castFog = { value: 0.55 };
+const CAST_FOG_GLSL = `
+  #ifdef USE_FOG
+    #ifdef FOG_EXP2
+      float fogFactor = 1.0 - exp(- fogDensity * fogDensity * vFogDepth * vFogDepth);
+    #else
+      float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
+    #endif
+    fogFactor *= mix(uCastFog, 1.0, smoothstep(0.7, 1.0, fogFactor));
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor);
+  #endif`;
 /* SURFACE DETAIL (a procedural normal map: the models have no UVs, so the bumps come from noise on the part's own
    rest-pose position and tilt the shading normal the way a bump map would). Plates get a faint hammered, pressed
    texture, cloth a woven grain with long vertical folds, leather a fine pebble. It only bends the light, so the cel
@@ -128,14 +147,16 @@ const DETAIL_FRAG = `
     normal = normalize(abs(det) * normal - grad);
   }
   #endif`;
-function inkSurface(m, metal, rough, rimK = 1, kind = 0){
+function inkSurface(m, metal, rough, rimK = 1, kind = 0, hero = false){
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, { uSky: SKY, uGround: GROUND, uMetal: { value: metal }, uRough: { value: rough }, uFill: darkFill, uRim: inkRim, uRimK: { value: rimK }, uDetail: surfaceDetail });
+    Object.assign(sh.uniforms, { uSky: SKY, uGround: GROUND, uMetal: { value: metal }, uRough: { value: rough }, uFill: darkFill, uRim: inkRim, uRimK: { value: rimK }, uDetail: surfaceDetail,
+      uHero: hero ? heroRim : ONE, uCastFog: castFog });
     sh.vertexShader = 'varying vec3 vDetP;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vDetP = position;');
     // (in the source, not m.defines: a unit's own armour material is a clone(), and clone() drops defines)
     sh.fragmentShader = `#define DETAIL_KIND ${kind}\n` + sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uSky, uGround;\nuniform float uMetal, uRough, uFill, uRim, uRimK, uDetail;\nvarying vec3 vDetP;' + DETAIL_GLSL)
+      .replace('#include <common>', '#include <common>\nuniform vec3 uSky, uGround;\nuniform float uMetal, uRough, uFill, uRim, uRimK, uDetail, uHero, uCastFog;\nvarying vec3 vDetP;' + DETAIL_GLSL)
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>' + DETAIL_FRAG)
+      .replace('#include <fog_fragment>', CAST_FOG_GLSL)
       .replace('#include <opaque_fragment>', `
         vec3 vv = normalize(vViewPosition);   // towards the camera
         vec3 nn = normalize(normal);
@@ -165,10 +186,10 @@ function inkSurface(m, metal, rough, rimK = 1, kind = 0){
           float upw = clamp(inverseTransformDirection(nn, viewMatrix).y, 0.0, 1.0);
           float band = smoothstep(0.42, 0.52, rim);   // stepped, like the cel bands: an edge, not a glow
           vec3 rimC = mix(uSky, vec3(1.0), 0.45) * (0.45 + 0.55 * upw);
-          vec3 rimAdd = rimC * band * uRim * uRimK * (1.0 - 0.6 * uMetal);
+          vec3 rimAdd = rimC * band * uRim * uRimK * uHero * (1.0 - 0.6 * uMetal);
           /* an edge, never a glow: pale cloth and skin already sit near the bloom threshold, so the rim only gets
              the headroom left under it (a light tunic keeps its edge light but never blooms like a saber) */
-          float room = clamp((0.55 - dot(outgoingLight + surf, vec3(0.2126, 0.7152, 0.0722))) / max(dot(rimAdd, vec3(0.2126, 0.7152, 0.0722)), 1e-3), 0.0, 1.0);
+          float room = clamp((0.55 + 0.07 * (uHero - 1.0) - dot(outgoingLight + surf, vec3(0.2126, 0.7152, 0.0722))) / max(dot(rimAdd, vec3(0.2126, 0.7152, 0.0722)), 1e-3), 0.0, 1.0);
           surf += rimAdd * room;
         }
         outgoingLight += surf;
@@ -226,7 +247,7 @@ export function makeStyle(name = 'ink', colors = {}){
       // cel bands flatten metal; lift metals a touch so beskar still reads bright against the suit
       const c = new THREE.Color(d.c);
       if (d.m) c.offsetHSL(0, -0.05, 0.08);
-      m = inkSurface(new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp() }), Math.min(1, Math.max(0, ((d.m || 0) - 0.2) / 0.7)), d.r ?? 0.8, d.noRim ? 0 : 1, detailKind(key));
+      m = inkSurface(new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp() }), Math.min(1, Math.max(0, ((d.m || 0) - 0.2) / 0.7)), d.r ?? 0.8, d.noRim ? 0 : 1, detailKind(key), !String(key).startsWith('npc:'));
     } else {
       m = new THREE.MeshStandardMaterial({
         color: d.c, roughness: d.r ?? 0.8, metalness: (d.m || 0) * (cfg.env ? 1 : 0.75), flatShading: cfg.flat,
@@ -293,9 +314,13 @@ export function makeStyle(name = 'ink', colors = {}){
     if (outlineMat) return outlineMat;
     outlineMat = new THREE.MeshBasicMaterial({ color: 0x07060a, side: THREE.BackSide });
     outlineMat.onBeforeCompile = sh => {
+      sh.uniforms.uCastFog = castFog;
       sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>',
         `vec3 transformed = position + normal * ${cfg.outline.toFixed(4)};`);
+      // the outline fades with the body it wraps (CAST FOG)
+      sh.fragmentShader = 'uniform float uCastFog;\n' + sh.fragmentShader.replace('#include <fog_fragment>', CAST_FOG_GLSL);
     };
+    outlineMat.customProgramCacheKey = () => 'ink-outline-castfog' + cfg.outline.toFixed(4);
     return outlineMat;
   }
 

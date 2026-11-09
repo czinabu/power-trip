@@ -12,6 +12,40 @@ export const std = (c, r = 0.9, m = 0.05, e = 0) => new THREE.MeshStandardMateri
   ...(e ? { emissive: new THREE.Color(c).multiplyScalar(e), emissiveIntensity: 1 } : {}) });
 export const glowM = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false, ...(op < 1 ? { transparent: true, opacity: op, depthWrite: false } : {}) });
 export const holoM = (c, op = 0.45) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide });
+/* POOL WATER in the Ink look: a deep tone toward the middle, a shallow one at the rim, and thin pale ripple bands that
+   ride outward, stepped like the cel bands (no soft gradients). It replaces a flat emissive disc that read as a sheet of
+   cyan plastic. Animated by its own clock (animWater, called from the hub's per-frame list). centre: world x/z. */
+export function waterM(c, o = {}){
+  const m = new THREE.MeshBasicMaterial({ color: c });
+  const deep = new THREE.Color(o.deep ?? new THREE.Color(c).multiplyScalar(0.45).getHex()), crest = new THREE.Color(o.crest ?? 0xe8fbff);
+  const u = { uT: { value: 0 }, uC: { value: new THREE.Vector2(o.x ?? 0, o.z ?? 0) }, uR: { value: new THREE.Vector2(o.r0 ?? 0, o.r1 ?? 10) },
+    uDeep: { value: deep }, uCrest: { value: crest } };
+  m.userData.water = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'varying vec3 vWW;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  vWW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'varying vec3 vWW;\nuniform float uT;\nuniform vec2 uC, uR;\nuniform vec3 uDeep, uCrest;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  {
+    vec2 d = vWW.xz - uC;
+    float r = length(d), a = atan(d.y, d.x);
+    float k = clamp((r - uR.x) / max(uR.y - uR.x, 1e-3), 0.0, 1.0);
+    // deep in the middle of the band, shallow at both lips: three steps, like the cel ramp
+    float depth = 1.0 - abs(k * 2.0 - 1.0);
+    diffuseColor.rgb = mix(diffuseColor.rgb, uDeep, floor(depth * 3.0) / 3.0 * 0.85);
+    // ripples riding outward, wobbled round the ring so they don't read as perfect circles
+    float w = r * 1.35 - uT * 0.9 + sin(a * 5.0 + uT * 0.4) * 0.35 + sin(a * 11.0 - uT * 0.3) * 0.15;
+    float band = smoothstep(0.86, 0.9, fract(w)) * (1.0 - smoothstep(0.96, 1.0, fract(w)));
+    float px = fwidth(w);
+    band *= 1.0 - smoothstep(0.08, 0.3, px);   // far off the bands thin under a pixel: let them go
+    diffuseColor.rgb = mix(diffuseColor.rgb, uCrest, band * 0.55);
+    // a bright lip where the water meets the stone
+    diffuseColor.rgb = mix(diffuseColor.rgb, uCrest, (1.0 - smoothstep(0.0, 0.035, min(k, 1.0 - k))) * 0.6);
+  }`);
+  };
+  m.customProgramCacheKey = () => 'ink-pool-water';
+  return m;
+}
+
 // a mesh that's only a picture and stays out of the bake (it moves, or glows)
 export const live = (m) => { m.userData.noBake = true; m.userData.passThrough = true; m.castShadow = false; m.receiveShadow = false; return m; };
 // something game/hub.js turns every frame: fn(obj, time, its starting position)

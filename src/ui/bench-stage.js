@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { composer, renderPass, scene, camera, bloomPass, standPost, hemi } from '../engine/renderer.js';
-import { inkRim } from '../player/model/styles.js';
+import { inkRim, heroRim } from '../player/model/styles.js';
 import { buildSaberModel } from '../player/model/index.js';
 import { wornLook } from '../player/mesh.js';
 import { STANCES } from '../data/stances.js';
@@ -166,8 +166,9 @@ export function renderBench(dt, bloomAt){
   standPost(true);
   const rimWas = inkRim.value, sky = hemi.color.getHex();
   inkRim.value = 0.6; hemi.color.setHex(0x8a909c);
+  const heroWas = heroRim.value; heroRim.value = 1;   // (the stand's own rim, not the arena's hero boost)
   composer.render();
-  inkRim.value = rimWas; hemi.color.setHex(sky);
+  heroRim.value = heroWas; inkRim.value = rimWas; hemi.color.setHex(sky);
   standPost(false);
   bloomPass.threshold = th; bloomPass.strength = st;
   renderPass.scene = scene; renderPass.camera = camera;

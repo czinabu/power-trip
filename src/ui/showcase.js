@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { renderer, composer, renderPass, scene, camera, bloomPass, compileLive, standPost, hemi, parallelCompile, compileAhead, compileLiveAhead } from '../engine/renderer.js';
 import { holdBoot } from './boot.js';
-import { inkRim } from '../player/model/styles.js';
+import { inkRim, heroRim } from '../player/model/styles.js';
 import { G } from '../state.js';
 import { prewarmJudgeFX } from '../player/jedi/judgement-fx.js';
 import { buildHeroModel } from '../player/model/index.js';
@@ -740,8 +740,9 @@ export function renderShowcase(dt){
   // figure's outline catches the backdrop's light instead of reading as a flat cut-out; the arena's own is put back
   const rimWas = inkRim.value; _sky.copy(hemi.color);
   inkRim.value = STAND_RIM; hemi.color.copy(accent);
+  const heroWas = heroRim.value; heroRim.value = 1;   // (the stand's own rim, not the arena's hero boost)
   composer.render();
-  inkRim.value = rimWas; hemi.color.copy(_sky);
+  heroRim.value = heroWas; inkRim.value = rimWas; hemi.color.copy(_sky);
   standPost(false);
   bloomPass.threshold = th; bloomPass.strength = st;
   renderPass.scene = scene; renderPass.camera = camera;

@@ -7,12 +7,25 @@ import * as THREE from 'three';
 export const ALLY_COLOR = 0x3fb8ff, ALLY_DOWN = 0xff5a4a;
 const INK = 0x07060a;
 // shared by every friend: one geometry and material each
-const ringGeo = new THREE.RingGeometry(0.78, 1.0, 40), inkGeo = new THREE.RingGeometry(0.7, 1.1, 40);
-const ringMat = new THREE.MeshBasicMaterial({ color: ALLY_COLOR, toneMapped: false, transparent: true, opacity: 0.95,
-  side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-const downMat = ringMat.clone(); downMat.color.setHex(ALLY_DOWN);
-const inkMat = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.75, side: THREE.DoubleSide, depthWrite: false,
-  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+/* (art pass: thinner than it was, and it fades out close to the lens. A squad stacked up right in front of the camera
+   used to put three or four fat cyan rings across the bottom third of the screen; the ring is for picking a friend out
+   at a distance, and up close their diamond and the hero's own eyes already do that) */
+const ringGeo = new THREE.RingGeometry(0.86, 1.0, 40), inkGeo = new THREE.RingGeometry(0.8, 1.06, 40);
+export const RING_FADE = { near: 3.5, far: 8 };   // m from the lens: gone nearer than near, whole past far
+function fadeNear(m){
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying float vRingD;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  vRingD = -mvPosition.z;');
+    sh.fragmentShader = 'varying float vRingD;\n' + sh.fragmentShader.replace('#include <opaque_fragment>',
+      `diffuseColor.a *= smoothstep(${RING_FADE.near.toFixed(2)}, ${RING_FADE.far.toFixed(2)}, vRingD);\n  #include <opaque_fragment>`);
+  };
+  m.customProgramCacheKey = () => 'friend-ring-fade';
+  return m;
+}
+const ringMat = fadeNear(new THREE.MeshBasicMaterial({ color: ALLY_COLOR, toneMapped: false, transparent: true, opacity: 0.9,
+  side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+const downMat = ringMat.clone(); downMat.color.setHex(ALLY_DOWN); downMat.opacity = 0.95;   // (a downed friend's ring stays whole up close: it says who to pick up)
+const inkMat = fadeNear(new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
 const tagGeo = new THREE.OctahedronGeometry(0.15, 0), tagInkGeo = new THREE.OctahedronGeometry(0.15, 0);
 const tagInkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide, depthTest: false, transparent: true });
 

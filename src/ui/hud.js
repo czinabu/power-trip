@@ -81,13 +81,17 @@ const $ = (id) => document.getElementById(id);
 const FIGHT_LINGER = 2.5;   // s of quiet before the checklist opens out again
 let fightT = -99;
 // top-right objectives checklist (training lessons, mission objectives): a window of up to 7 rows around the current one
+const CHECKLIST_SETTLE = 8;   // s an objective stays up before its list folds down to it
 function renderChecklist(c){
   const el = $('objlist');
   // while the checklist is up it is the one home for the objective: the top-left run line would only repeat it
   document.body.classList.toggle('has-checklist', !!c);
-  if (!c){ el.classList.remove('on'); return; }
+  if (!c){ el.classList.remove('on'); document.body.classList.remove('hx-settled'); return; }
   const nowKey = c.items.findIndex(i => i.now) + '/' + c.items.filter(i => i.done).length;
-  if (el._now !== nowKey){ el._now = nowKey; el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh'); }   // the objective changed: flash the list
+  if (el._now !== nowKey){ el._now = nowKey; el._nowAt = G.gt; el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh'); }   // the objective changed: flash the list
+  // SETTLED (styles/heroes/tracker.css): once an objective has been up a while the list folds to the objective in hand,
+  // as it does in a fight, so the corner isn't a wall of text for the whole mission. A new objective opens it again
+  document.body.classList.toggle('hx-settled', G.gt - (el._nowAt ?? G.gt) > CHECKLIST_SETTLE);
   const cur = Math.max(0, c.items.findIndex(i => i.now)), n = c.items.length;
   const from = Math.max(0, Math.min(cur - 2, n - 7)), rows = c.items.slice(from, from + 7);
   el.classList.add('on');

@@ -143,6 +143,8 @@ export const MANDO_PARTS = {
     mandalore(R, k){ signet(R, k, MANDALORE); },
     brokenward(R, k){ signet(R, k, BROKEN_WARD); },
     gatefall(R, k){ signet(R, k, GATEFALL); },
+    honourstar(R, k){ signet(R, k, STAR5); },   // the mission medals' (data/medals.js)
+    sunburst(R, k){ signet(R, k, SUN8); },
   },
   // a helmet's silhouette piece, on top of whichever HELMET the customizer picked
   helmod: {
@@ -305,6 +307,9 @@ const MANDALORE = [[0,0.03],[0.022,0.035],[0.028,0.072],[0.04,0.05],[0.055,0.075
 const BROKEN_WARD = [...Array.from({ length: 13 }, (_, i) => { const a = 0.9 + i / 12 * 4.6; return [Math.cos(a) * 0.06, Math.sin(a) * 0.06]; }),
   ...Array.from({ length: 13 }, (_, i) => { const a = 5.5 - i / 12 * 4.6; return [Math.cos(a) * 0.036, Math.sin(a) * 0.036]; })];
 const GATEFALL = [[0,0.07],[0.012,0.025],[0.05,0.03],[0.022,0.004],[0.06,-0.045],[0.005,-0.02],[-0.035,-0.06],[-0.018,-0.012],[-0.06,0.01],[-0.014,0.022]];
+// the mission medals': a five-pointed star, and an eight-rayed sun
+const STAR5 = Array.from({ length: 10 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.026 : 0.066; return [Math.cos(a) * r, Math.sin(a) * r]; });
+const SUN8 = Array.from({ length: 16 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 8, r = i % 2 ? 0.036 : 0.068; return [Math.cos(a) * r, Math.sin(a) * r]; });
 const OWL = [[0,0.03],[0.02,0.045],[0.07,0.03],[0.05,0.0],[0.028,-0.005],[0.012,-0.05],[0,-0.035],[-0.012,-0.05],[-0.028,-0.005],[-0.05,0.0],[-0.07,0.03],[-0.02,0.045]];
 // the frame on the outside of the left shoulder that a signet lies in (+z out of the shoulder), fitted to the arms worn
 function shoulderFace(R, k){

@@ -71,6 +71,9 @@ import { LANE, pickLanes, setLanes, clearLanes, warnLane, updateLanes, laneSpawn
 import { meetNamed } from './codex.js';
 import { noteMissionWon, noteSideWon, noteRaidWon } from './profile.js';
 import { RAIDS } from '../data/raids.js';
+import { medalsBegin, medalsEnd, medalNote, medalsTick, medalsMissed, medalsHostMissed, medalsResult } from './medals.js';
+import { noteMedals } from './profile.js';
+import { showMedals } from '../ui/medals-ui.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -103,12 +106,14 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
     G.waveTotal = def.kit; checkUnlocks();                 // a mid-run kit: forms, Force jump / jetpack boosters, dual blasters
     G.waveTotal = def.foeTier || 0;   // ...but foes as tough as the first wave (HP and elite odds climb with waveTotal); an arcade contract's threat sets its own
   }
+  const rawDef = def;   // (the medals' par is worked out on the mission as written: data/medals.js spreads it itself)
   def = spreadDef(def);   // on a map built wider than it was laid out, its points move with the map (world/spread.js)
   const title = typeof def.title === 'object' ? heroKey(def.title) : def.title;
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
   if (!ch) G.ngMuts = def.muts ? [...def.muts] : [];   // a veteran side mission's mutators (data/side-quests.js `muts`, data/ngplus.js); a chapter's are its own (game/campaign.js)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,
                      chapter: ch, title, kick: ch ? ch.kicker : (def.raid ? 'RAID · ' : def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
+  medalsBegin(rawDef, !!opts.retry);   // the medals' count (game/medals.js): a retry keeps it running
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along
   shared.secretFrom = def.start || st || null;   // where the map's secrets are walked out from (game/secrets.js): the same for every player and every retry
   if (st){ playerPos().set(st[0], 0, st[1]); G.yaw = player.faceYaw = st[2] || 0; }
@@ -139,6 +144,7 @@ export function startCoopMission(id){ startMission(id, 0, true); }
 let rageCk = null;   // { id, i }: the mission and the duel objective whose rage was reached
 export function retryMission(){
   const s = M.s, o = M.o;
+  medalNote('fell');   // (a retry is a fall: the bonus goal that asks for none is missed)
   rageCk = M.def && o && o.kind === 'duel' && s && s.raged && o.rage && diffBossCheckpoint() ? { id: M.def.id, i: M.i } : null;
   startMission(M.def ? M.def.id : (G.missionId || 'refuge'), M.def ? M.i : 0, false, { chapter: M.chapter, retry: true }); }
 export function missionTitle(id, hero = G.hero){ const t = (missionById(id) || MISSIONS.refuge).title; return typeof t === 'object' ? heroKey(t, hero) : t; }   // (a hero with no title of its own takes heroKey's fallback)
@@ -157,7 +163,7 @@ function clearMission(){
   MUSIC.setCue(null);
   setObjectiveHud(null);
 }
-export function endMission(){ if (M.on || M.markers.length) clearMission(); }
+export function endMission(){ medalsEnd(); if (M.on || M.markers.length) clearMission(); }
 // co-op HOST HANDOFF (net/foes.js takeOver): this guest now runs the mission, from the objective the old host was on
 export function takeOverMission(){
   if (!M.on || !M.guest || !M.def) return false;
@@ -365,7 +371,7 @@ const KINDS = {
         at = c; c.pace = pace;
         if (st && !s.told?.[st]){ (s.told ||= {})[st] = true; showBanner(LOCK.name[st], LOCK.hint[st], 3.2, { kicker: 'EVERY HERO HAS A WAY' }); }
         // a hit sets the work back, once a second at most: a sniper and two blasters on you shouldn't pin it at zero forever
-        if (hit && c.prog > 0 && G.gt - (s.lossAt ?? -9) > 1){ s.lossAt = G.gt; c.prog = Math.max(0, c.prog - o.hitLoss); floater(V3(c.x, 1.6, c.z), 'INTERRUPTED', '#ff9a8a'); }
+        if (hit && c.prog > 0 && G.gt - (s.lossAt ?? -9) > 1){ s.lossAt = G.gt; medalNote('slice'); c.prog = Math.max(0, c.prog - o.hitLoss); floater(V3(c.x, 1.6, c.z), 'INTERRUPTED', '#ff9a8a'); }
         gate = o.twist && twistGate(c.x, c.z, twistCtx);   // its twist can hold it up (game/twists.js)
         const was = c.prog;
         c.prog += dt * (gate ? gate.rate : 1) * pace;
@@ -797,6 +803,7 @@ function hitEvacuee(s, k, by, how){
     return;
   }
   k.down = EVAC_HIT.down; k.flinch = 0;
+  medalNote('evacuees');
   const dir = by && by.dir ? by.dir : null;
   k.fy = dir ? Math.atan2(dir.x, dir.z) : how === 'blast' && by && by.ball ? Math.atan2(p.x - by.ball.position.x, p.z - by.ball.position.z) : k.m.rotation.y + Math.PI;
   if (G.gt - (s.hitAt ?? -9) > EVAC_HIT.gap) s.prog = Math.max(outFloor(ev, s) * o.time, s.prog - EVAC_HIT.setback);
@@ -1152,6 +1159,7 @@ function escapeDuel(o, e){
 }
 function quarryEscaped(){
   const q = M.quarry.def;
+  medalNote('chase');
   showBanner(q.name + ' GOT AWAY', 'Back to where the chase began.', 2.6, { kicker: 'MISSION FAILED' });
   S.uiDeny();
   M.failT = 2.8;
@@ -1224,6 +1232,7 @@ function walkVip(s, dt, spd = 0, rdt = dt){
 }
 function vipDown(){
   const v = M.vip;
+  medalNote('escort');
   burst(V3(v.g.position.x, 1.0, v.g.position.z), 0xffa040, 26, 8, 4, 1);
   showBanner(v.def.name + ' IS DOWN', 'Back to the start of this leg.', 2.6, { kicker: 'MISSION FAILED' });
   S.uiDeny();
@@ -1382,6 +1391,9 @@ function raidAllies(){
 }
 function missionComplete(){
   const def = M.def;
+  // the medals this win took (game/medals.js), kept on the hero's record (a story or side mission's) before the run ends
+  const medals = medalsResult(); medalsEnd();
+  const freshMedals = medals ? noteMedals(medals) : [];
   if (def.arcade) noteArcadeWin(G.hero);   // an arcade contract counts toward the hero's tally (and saves nothing: it's a one-off)
   else if (!def.raid) try { localStorage.setItem('sw_mission_' + def.id + '_' + G.hero, '1'); } catch(e){}
   if (def.raid) noteRaidWon(def.raid);   // a raid (data/raids.js): its count for the rare parts, its own rank XP
@@ -1401,12 +1413,13 @@ function missionComplete(){
     stageCard(() => card(true), hidePanel, clearText);
     M.panelT = 0; M.o = null;
     showBanner('CHAPTER COMPLETE', M.title, 2.4);
+    if (medals && medals.keep) showMedals(medals, freshMedals, true);   // (a chapter's: a note in the corner, the card is the chapter's)
     M.chapter.done();
     return;
   }
   card(false);
   endTwist(true);   // (the sim stops on the victory screen: a twist still easing off would stay half done behind it)
-  endRun(true);
+  endRun(true, medals ? { ...medals, fresh: freshMedals } : null);
   G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;
   showBanner(def.raid ? 'RAID CLEARED' : 'MISSION COMPLETE', M.title, 999);
   // a side mission's choice (data/side-quests.js `choice`, light and dark: game/alignment.js), the first time it is won:
@@ -1445,6 +1458,7 @@ function listCivilians(){
 }
 function updateMissionHost(dt){
   listCivilians();
+  medalsTick(M.o, M.vip);
   M.fx = M.fx.filter(f => f(dt));
   if (M.pn && (M.pnT -= dt) <= 0) M.pn = null;   // (the guest only needs the punch-in while it's happening)
   updateBattleFx(dt);
@@ -1568,7 +1582,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
     q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }
 // the hold's line as the guest draws it: per evacuee, how far along, pushed aside how far, and down which way (99: up)
@@ -1620,6 +1634,7 @@ export function coopMissionSync(ms){
     if (M.o.twist) beginTwist(M.o, true, guestCtx);   // the host's twist, on this screen too
   }
   M.net = ms;
+  medalsHostMissed(ms.md);   // what the mission itself has missed, as the host saw it (game/medals.js)
   if (ms.tw) twistSync(ms.tw);
   lanesSync(ms.ln);   // the host's approach lanes, lit as its waves are called in
   if (ms.pn && ms.pn[0] !== M.pnSeen){ M.pnSeen = ms.pn[0]; punchIn({ x: ms.pn[1], y: 0, z: ms.pn[2] }, ms.pn[3]); }   // the host's foe hit its rage: this lens punches in too
@@ -1641,6 +1656,7 @@ export function coopMissionSync(ms){
 }
 function updateMissionGuest(dt){
   M.fx = M.fx.filter(f => f(dt));
+  medalsTick(M.o, null);
   updateBattleFx(dt);
   if (M.panelT > 0 && (M.panelT -= dt) <= 0) hidePanel();
   const ms = M.net;

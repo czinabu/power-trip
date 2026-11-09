@@ -42,10 +42,16 @@ export const MANDO_AUTO = [
   // the armory to choose which to carry (game/armory.js)
   ...ARMORY_PATH.map(p => ({ key: p.weapon, gun: true, stage: p.stage, chapter: p.chapter, hud: MANDO_WEAPONS[p.weapon].slot === 'primary' ? '2' : '1',
     name: MANDO_WEAPONS[p.weapon].name, has: () => !!G.unlocked[p.weapon], grant(){ grantGun(p.weapon); } })),
-  { key:'jet1', stage:3, chapter:'trial-first', hud:'SPACE', name:'JETPACK BOOSTER I',
-    has:()=>(player.up.jetTier||0) >= 1, grant(){ player.up.jetTier = 1; applyJetTier(); } },
-  { key:'jet2', stage:8, chapter:'trial-acrobat', hud:'SPACE', name:'JETPACK BOOSTER II',
-    has:()=>(player.up.jetTier||0) >= 2, grant(){ player.up.jetTier = 2; applyJetTier(); } },
+  // THE JETPACK is EARNED: the story plays Act I on foot, and the Armorer forges the pack at its close (the beat:
+  // game/flow.js checkUnlocks; the model: game/pack.js). `always`: anywhere that isn't the story (survival, a lone
+  // mission, an arcade contract, a raid) it's on his back from the start; the hub and the training grounds follow the story
+  // (the sandbox, its kit panel: data/sandbox.js)
+  { key:'jet1', stage:0, always:true, chapter:'trial-first', hud:'SPACE', name:'JETPACK',
+    has:()=>(player.up.jetTier||0) >= 1, grant(){ player.up.jetTier = Math.max(1, player.up.jetTier || 0); applyJetTier(); } },
+  { key:'jet2', stage:8, chapter:'trial-acrobat', hud:'SPACE', name:'JETPACK BOOSTER I',
+    has:()=>(player.up.jetTier||0) >= 2, grant(){ player.up.jetTier = Math.max(2, player.up.jetTier || 0); applyJetTier(); } },
+  { key:'jet3', stage:12, chapter:'mustafar', hud:'SPACE', name:'JETPACK BOOSTER II',
+    has:()=>(player.up.jetTier||0) >= 3, grant(){ player.up.jetTier = 3; applyJetTier(); } },
   // POWER CELLS — the blasters hold more energy before they overheat and recover it faster (data/mando.js cells),
   // keeping pace with the fire-rate upgrades that drain it quicker
   { key:'cells1', stage:2, chapter:'archive', hud:'HOLD LMB', name:'POWER CELLS I',

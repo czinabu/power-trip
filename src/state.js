@@ -115,6 +115,11 @@ export const G = {
 export const isMando = (h = G.hero) => h === 'mando';
 export const isTrooper = (h = G.hero) => h === 'trooper';
 export const isGunner = (h = G.hero) => h === 'mando' || h === 'trooper';
+// THE JETPACK is earned: the Armorer forges it at the close of Act I (data/store.js MANDO_AUTO 'jet1'). Until then the
+// Mando fights on his feet (jet tier 0: no pack on his back, no fuel, no flight). ownsPack: this run holds it, whatever
+// the hero; hasPack: the hero in play is a Mando wearing it
+export const ownsPack = () => ((player.up && player.up.jetTier) || 0) >= 1;
+export const hasPack = (h = G.hero) => h === 'mando' && ownsPack();
 export const heroKey = (obj, h = G.hero) => obj ? (obj[h] !== undefined ? obj[h] : h === 'trooper' ? obj.mando : obj.jedi) : obj;
 
 export let rockets = [], birds = [], detos = [], grapples = [];   // mando projectiles / hooks

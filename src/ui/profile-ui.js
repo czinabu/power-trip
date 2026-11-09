@@ -217,7 +217,7 @@ function nodeOf(h, s){
   const r = skillRank(s.id);
   if (r >= s.max) return { st: 'max', r, tag: 'TRAINED' };
   if (!mine) return { st: 'lock', r, tag: shortLock(h, s) };
-  if (s.avail && !s.avail()) return { st: 'out', r, tag: 'CLOSED' };
+  if (s.avail && !s.avail()) return { st: 'out', r, tag: s.availTag || 'CLOSED' };   // (availTag: why it waits, e.g. no jetpack yet)
   const gate = tierGate(s.tier);
   if (gate) return { st: 'gate', r, tag: 'LATER', why: gate };
   return runMode.points() > 0 ? { st: 'open', r, tag: r ? 'RANK ' + (r + 1) : 'TRAIN' } : { st: 'nopts', r, tag: r ? 'RANK ' + r : 'NO POINTS' };

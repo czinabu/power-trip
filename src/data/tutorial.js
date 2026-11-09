@@ -55,7 +55,7 @@
 //   respawn put a dummy back when one falls before the step is done
 //   loadout  (Jedi) swap the three forms as the step starts · give: { unlocked: {…}, up: {…} } hands over gear or a
 //          power for the step (a store fork's other half is switched off: X and V each fire one of a pair)
-//   grant  'jet1' fits Jetpack Booster I (a real run earns it by wave 3) · 'dual' hands the Mando his second blaster ·
+//   grant  'jet1' fits the jetpack (a real run earns it at the close of Act I; the lesson waits for it: kit) · 'dual' hands the Mando his second blaster ·
 //          'flow' fills the gunner's flow meter (Hunter's Eye / Battle Rhythm) for its signature move's step (deadEye)
 //   toast  a mastery id (data/mastery.js): as the step passes, the corner note its rank I would show in a real fight, the
 //          training's preview of how a power grows by use
@@ -371,23 +371,24 @@ export const LESSONS = {
   mando: [
     /* ---------------- THE BASICS ---------------- */
     { id: 'yard', group: 'basics', name: 'THE YARD', sub: 'Walk, climb over cover, dive',
-      done: 'You move like a hunter. Now, the jetpack.',
+      done: 'You move like a hunter. Now, run my course.',
       steps: [
         { sec: 'THE YARD', say: 'Walk with me, foundling. To the forge.',
           keys: 'W A S D · MOUSE', do: 'Walk to the forge', reach: [0, 3.6] },
         { say: 'Beskar is heavy. Do not hop the crates: run straight at one and climb over it without stopping.',
           keys: 'W · SPACE', do: 'Run right up to a crate in the crate row on the west lane and press SPACE at its edge', ev: 'vault', need: 1, mark: [-11, 8] },
         { say: 'Do not stand where the shot is going.',
-          keys: 'SHIFT', do: 'Dive on the ground (SHIFT again mid-dive lights the jetpack)', ev: 'dash', need: 2 },
+          keys: 'SHIFT', do: 'Dive on the ground', ev: 'dash', need: 2 },
         { say: 'Never turn your back on a target. Hold your aim and circle it: your feet move, your barrel does not.',
           keys: 'ALT + A / D / S', do: 'Strafe: press ALT (or hold it, with Settings · STRAFE on HOLD) and sidestep or backpedal while you keep facing the crosshair (hold LB on a controller)', poll: 'strafe', need: 1.5 },
         { say: 'Drop and slide when the gap is low. The slide gate, by the covert door: under it.',
           keys: 'W · C', do: 'Run at the bar and slide under it', ev: 'slide', need: 1, mark: [-7, 11] },
       ] },
-    { id: 'jetpack', group: 'basics', name: 'THE JETPACK', sub: 'The high ground, fuel, and the boost',
+    // (the jetpack is earned at the close of Act I: this lesson opens once the story has handed it over)
+    { id: 'jetpack', group: 'more', kit: 'jet1', name: 'THE JETPACK', sub: 'The high ground, fuel, and the boost',
       done: 'The sky is a place to fight from. Never a place to run dry.',
       steps: [
-        { sec: 'THE JETPACK', say: 'I have reforged your booster. The jetpack is not for running. It is for the high ground. Take the lookout.',
+        { sec: 'THE JETPACK', say: 'The pack I forged you is not for running. It is for the high ground. Take the lookout.',
           keys: 'HOLD SPACE', do: 'Fly to the top of the lookout', reach: [13.6, -9.4, 7.7], grant: 'jet1' },
         { say: 'The jetpack drinks fuel. Watch the gauge: in the air it barely refills, on the ground it fills fast. Never run dry above a drop.',
           keys: 'HOLD SPACE', do: 'Burn your fuel below a quarter, then land and let it refill', poll: 'refuel' },
@@ -402,8 +403,8 @@ export const LESSONS = {
             { at: [-7, 11], r: 1.6, slide: true, keys: 'W · C', do: 'Run west to the SLIDE gate and slide under the bar', hint: 'SLIDE UNDER IT' },
             { at: [-11, -4], after: 'vault', keys: 'W · SPACE', do: 'Climb over the crate row down the west lane', hint: 'OVER THE CRATES' },
             { at: [0, -11.5], after: 'vault', keys: 'W · SPACE', do: 'Climb over the sandbag wall', hint: 'OVER THE WALL' },
-            { at: [13.6, -9.4, 7.7], keys: 'HOLD SPACE', do: 'Jet to the top of the lookout' },
-            { at: [-2, 12], r: 2.4, land: true, keys: 'HOLD SPACE + HOLD SHIFT', do: 'Boost across the yard and land on the marker' },
+            { at: [13.6, -9.4, 7.7], needs: 'jet1', keys: 'HOLD SPACE', do: 'Jet to the top of the lookout' },   // (the jetpack's legs: once the story has it)
+            { at: [-2, 12], r: 2.4, land: true, needs: 'jet1', keys: 'HOLD SPACE + HOLD SHIFT', do: 'Boost across the yard and land on the marker' },
             { at: [0, 3.6], after: 'dash', keys: 'SHIFT', do: 'Dive into the forge', hint: 'DIVE IN (SHIFT)' },
           ] },
       ] },
@@ -441,7 +442,7 @@ export const LESSONS = {
         { sec: 'CLOSE QUARTERS', say: 'When they come close, your armour is a weapon. Catch the blow on your vambrace.',
           keys: 'TAP E', do: 'Catch a strike: tap E as the blow lands', ev: 'catch', need: 1, spawn: partner() },
         { say: 'Close the distance in one burn.',
-          keys: 'W + E', do: 'Jet-charge into the target', ev: 'charge', need: 1, respawn: true, spawn: dummies([[0, -5]]) },
+          needs: 'jet1', keys: 'W + E', do: 'Jet-charge into the target', ev: 'charge', need: 1, respawn: true, spawn: dummies([[0, -5]]) },
         { say: 'Strike until it reels. Then end it.',
           keys: 'E E E E · E', do: 'Stagger the target with the full string, then take it down', ev: 'takedown', need: 1, respawn: true,
           spawn: dummies([[0, -4]], { sparring: true }) },
@@ -662,8 +663,9 @@ export const DRILLS = {
     carbine:    { say: 'A carbine. Three bolts a pull. Keep it on them.', key: '2', use: ['weapon', 'carbine'] },
     repeater:   { say: 'The heavy repeater. Let it wind up, and do not let go.', key: '2', use: ['weapon', 'repeater'] },
     flame:      { say: 'Fire clears a crowd that will not listen.', key: 'F', use: ['flag', 'flaming'] },
-    jet1:       { say: 'Your jetpack burns longer now.', key: 'HOLD SPACE' },
-    jet2:       { say: 'Longer still. The sky is yours.', key: 'HOLD SPACE' },
+    jet1:       { say: 'The jetpack. Take the high ground.', key: 'HOLD SPACE' },
+    jet2:       { say: 'Your jetpack burns longer now.', key: 'HOLD SPACE' },
+    jet3:       { say: 'Longer still. The sky is yours.', key: 'HOLD SPACE' },
     grapple:    { say: 'Pull yourself into the fight, or pull the fight to you.', key: 'X', use: ['cd', 'grapple'] },
     slam:       { say: 'Drop from the sky and shake the ground.', key: 'X', use: ['flag', 'slamming'] },
     birds:      { say: 'Whistling Birds. Let them sing.', key: 'V', use: ['cd', 'birds'] },

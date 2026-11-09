@@ -14,6 +14,7 @@ import { svgIcon } from './icons.js';
 import { S } from '../audio/sfx.js';
 import { loadPicks, savePicks, rebuildPlayerModel } from '../player/mesh.js';
 import { setHero, dressHeroParts } from '../player/hero.js';
+import { syncMandoChips } from '../game/flow.js';
 import { bladeColor, heldGrip } from '../player/helpers.js';
 import { applySaberGrip } from '../player/model/weapons.js';
 import { restyleShowcase, focusShowcase, spinShowcase } from './showcase.js';
@@ -23,6 +24,7 @@ import { earnText } from '../data/saber-parts.js';
 import { openKitBench, closeKitBench, kitBenchOpen } from './kitbench.js';
 import { pageTabs, pageTabClick } from './page-tabs.js';
 import { armorerHooks } from '../game/armorer.js';
+import { packHooks } from '../game/pack.js';
 
 const rowsEl = document.getElementById('czrows');
 let picks = loadPicks();
@@ -147,6 +149,14 @@ export function refreshWornLook(){
   return true;
 }
 armorerHooks.refit = refreshWornLook;   // the Armorer's new piece goes on at once (game/armorer.js)
+// the jetpack goes on (or comes off) the player's back as the run earns it (game/pack.js): rebuild on the picks as they are
+export function refitPack(){
+  if (!czReady || overlay.classList.contains('customizing')) return;   // (mid-edit: the rebuild on leaving the customizer fits it)
+  picks = loadPicks();
+  dressPlayer();
+  if (G.mode === 'play' && G.hero === 'mando') syncMandoChips();   // (and the JETPACK chip with it)
+}
+packHooks.refit = refitPack;
 // the trooper goes by TROOPER until his promotion, then ARC TROOPER (game/wardrobe.js): every place the menu names him
 export function syncHeroNames(){
   const n = heroName('trooper');

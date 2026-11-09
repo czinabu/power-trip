@@ -93,7 +93,8 @@ export const SANDBOX_KIT = {
     { id: 'repeater',   nm: 'HEAVY REPEATER',  key: '2', slot: 'prim', ...gun('repeater') },
     { id: 'disruptor',  nm: 'DISRUPTOR RIFLE', key: '3', slot: 'wpn', ...weapon('disruptor', 'disruptor') },
     { id: 'darksaber',  nm: 'THE DARKSABER',   key: '3', slot: 'wpn', ...weapon('darksaber') },
-    { id: 'jet',        nm: tiered('JETPACK BOOSTER'), key: 'SPACE', tiers: ['jet1', 'jet2'], has: () => (player.up.jetTier || 0) >= 1,
+    // the pack itself, then its two boosters (off: on his feet, as before the Armorer forges it at the close of Act I)
+    { id: 'jet',        nm(){ const t = kitTier(this); return t > 1 ? 'JETPACK BOOSTER ' + ROMAN[t - 1] : 'JETPACK'; }, key: 'SPACE', tiers: ['jet1', 'jet2', 'jet3'], has: () => (player.up.jetTier || 0) >= 1,
       set(on){ player.up.jetTier = on ? kitTier(this) : 0; applyJetTier(); player.jet = player.jetMax; } },
     { id: 'cells',      nm: tiered('POWER CELLS'), key: 'LMB', tiers: ['cells1', 'cells2', 'cells3'], has: () => (player.up.cellTier || 0) >= 1,
       set(on){ player.up.cellTier = on ? kitTier(this) : 0; applyCellTier(); } },

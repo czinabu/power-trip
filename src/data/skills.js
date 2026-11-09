@@ -2,7 +2,7 @@
 // Skill trees for both heroes (SKILLS, MANDO_SKILLS) and tier gates.
 
 import { CFG } from './config.js';
-import { G, player } from '../state.js';
+import { G, player, ownsPack } from '../state.js';
 import { maxHp } from '../player/helpers.js';
 import { MANDO_STORE, JEDI_STORE } from './store.js';
 import { storeStageOpen } from '../game/progression.js';
@@ -71,6 +71,7 @@ export const MANDO_SKILLS = [
   { id:'trigger', ico:'⁌', nm:'MODIFIED TRIGGERS',tier:1, max:3, ds:'+15% blaster damage',
     fl:'A hunter is only as sharp as the iron they carry.', apply(){ player.up.dmg *= 1.15; } },
   { id:'thrust',  ico:'⏶', nm:'TUNED THRUSTERS', tier:1, max:3, ds:'Jetpack burns −16% fuel',
+    avail:()=>ownsPack(), availTag:'NO PACK YET',   // (only once there's a jetpack to tune: the Armorer forges it at the close of Act I)
     fl:'The sky is just another place to stand.', apply(){ player.up.fuelEff = (player.up.fuelEff || 1) * 0.84; } },
   { id:'fleet',   ico:'➤', nm:'GUNSLINGER',      tier:1, max:3, ds:'+10% fire rate · +6% move speed',
     fl:'Draw fast. Draw first.', apply(){ player.up.fireRate = (player.up.fireRate || 1) * 1.1; player.up.move *= 1.06; } },
@@ -99,6 +100,7 @@ export const MANDO_SKILLS = [
   { id:'arsenal', ico:'⚡', nm:'FULL ARSENAL',     tier:3, max:1, ds:'+30% weapon damage · +20% fire rate',
     fl:'Bring everything. Leave nothing.', apply(){ player.up.dmg *= 1.3; player.up.fireRate = (player.up.fireRate||1)*1.2; player.up.flameDmg = (player.up.flameDmg||1)*1.3; } },   // ordnance reads dmg × rocketDmg, so dmg alone covers it (it used to get ×1.69)
   { id:'marshal', ico:'✺', nm:'SKY MARSHAL',      tier:3, max:1, ds:'Jetpack barely sips fuel · +10% move speed · refuel now',
+    avail:()=>ownsPack(), availTag:'NO PACK YET',
     fl:'They will look up, and they will fear.', apply(){ player.up.fuelEff = (player.up.fuelEff||1)*0.55; player.up.move *= 1.1; player.jet = player.jetMax; } },   // refuels the JETPACK (it used to refill gadget power instead)
   // ---- the clan ranks' cards (data/profile.js): dealt once your profile holds the rank (game/profile.js) ----
   ...RANK_SKILLS.mando,

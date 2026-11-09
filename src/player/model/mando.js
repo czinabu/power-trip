@@ -87,8 +87,8 @@ export const MANDO_PARTS = {
       const coil = gear(-0.2, -0.06, -1.2);
       k.add(new THREE.TorusGeometry(0.045, 0.012, 5, 10), 'suit', coil, [0, -0.06, -0.01], [0, Math.PI/2, 0]);
       // JETPACK HOSES: from the belt up into the pack's underside, skinned over the hips, waist and chest so they bend
-      // and twist with the body instead of cutting through it
-      for (const sx of [-1, 1]) k.skin('suit', [
+      // and twist with the body instead of cutting through it (none on a bare back: no pack yet, game/pack.js)
+      if (k.parts.jetpack !== 'none') for (const sx of [-1, 1]) k.skin('suit', [
         { t:0.0, w:0.03, d:0.03, x:0.15*sx, z:-0.16 }, { t:0.1, w:0.03, d:0.03, x:0.16*sx, z:-0.2 },
         { t:0.22, w:0.03, d:0.03, x:0.15*sx, z:-0.24 }, { t:0.32, w:0.03, d:0.03, x:0.13*sx, z:-0.27 },
       ], { bones: [R.hips, R.torso, R.chest], at: [DIM.torsoY, DIM.torsoY + DIM.chestY], blend: 0.07, profile: ngon(6), dir: 1 });
@@ -169,6 +169,9 @@ export const MANDO_PARTS = {
   },
 
   jetpack: {
+    // NO PACK: the Mando before the Armorer forges his at the close of Act I (game/pack.js). Nothing on the back, and
+    // nothing for flight.js, gadgets.js and net/pose.js to drive
+    none(R, k, player){ player.jetGlow = null; player.jetFuelSegs = null; player.jetMissileMesh = null; },
     // THE BESKAR FORGE's jetpacks (data/beskar-forge.js) are the standard pack with more bolted on: swept wings out past
     // the tanks, or a pair of reserve canisters slung outboard. Both change the hero's outline from behind
     winged(R, k, player){

@@ -138,7 +138,7 @@ const reached = (id, h) => { const s = source(id, h); return !s || s.reached(); 
 // how many of a tiered row's tiers the story has reached (all of them once the campaign is beaten)
 export function kitTier(r){
   if (!r.tiers) return 1;
-  return S().full ? r.tiers.length : r.tiers.filter(reached).length;
+  return S().full ? r.tiers.length : r.tiers.filter(id => reached(id)).length;   // (not filter(reached): the index would land in its hero argument)
 }
 export function kitOffered(r){
   if (S().full) return true;

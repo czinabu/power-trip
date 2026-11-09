@@ -106,10 +106,10 @@ on('hits', (m) => {
     if (id === 'B'){ if (shared.boss && !shared.boss.net) damageBoss(dmg, !!tick); continue; }   // the boss
     const e = enemies.find(o => o.nid === id);
     if (!e || e.dead) continue;
-    MERC.guest = true; MERC.struck = false; striker.p = partnerMate(m.from);   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
+    MERC.guest = true; MERC.from = m.from; MERC.struck = false; striker.p = partnerMate(m.from);   // (a yielded foe struck down here is that guest's deed, not this hero's: game/alignment.js)
     const pinned = e.suppT > G.gt;   // (the guest's KILL CONFIRMED asks: game/creed.js)
     try { damageEnemy(e, dmg, kx || kz ? V3(kx, 0, kz) : null, kpow, !!fin, !!tick, shove || shield || slide || e.fin ? { shove: shove || undefined, bodyShield: !!shield, slide: slide === -1 ? true : slide > 0 ? slide : undefined, rt: roles || 0 } : undefined); }   // (rt: a raid boss's role tags from the guest's screen, boss/roles.js)   // (shield: a bolt the guest's held body caught; slide: their Force shove, which skids what it can't floor)
-    finally { MERC.guest = false; striker.p = null; }
+    finally { MERC.guest = false; MERC.from = null; striker.p = null; }
     if (MERC.struck){ MERC.struck = false; tellGuestStruck(m.from); }
     if (e.dead) sendTo(m.from, { t: 'kb', p: pinned ? 1 : 0, x: +e.group.position.x.toFixed(1), z: +e.group.position.z.toFixed(1) });   // the killing blow was theirs: their kill cards pay out there
     if (!e.dead) continue;
@@ -371,8 +371,11 @@ function sendCtl(e){
 /* the guest's stand-in for updateEnemies: follow the snapshot, and walk the legs on the motion that results */
 export function updatePuppets(dt){
   if (LOCK.foe && LOCK.foe.net) updateSaberLock(dt);   // a bind with one of the host's duellists runs here, as ai.js runs it for its own
+  const dtAll = dt;
   for (const e of enemies){
     if (!e.net) continue;
+    // this hero's blow holds the puppet for its freeze (enemies/damage.js foeFreeze); it catches up with the host after
+    dt = dtAll; if (e.freezeT > 0){ e.freezeT -= dtAll; dt *= 0.08; }
     sendCtl(e);   // a power or a blow here put it in a control state: the host applies it to the real foe
     const g = e.group, w = e.want;
     if (e.hrA){ g.rotation.x -= e.hrA.x; g.rotation.z -= e.hrA.z; g.rotation.y -= e.hrA.y; e.hrA = null; }   // last frame's hit reaction off, before following the host

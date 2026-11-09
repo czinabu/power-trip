@@ -345,6 +345,9 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
 .threatmark{position:absolute;width:0;height:0;opacity:0;transition:opacity .15s}
 .threatmark i{position:absolute;left:-9px;top:-26px;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;
   border-bottom:16px solid currentColor;filter:drop-shadow(0 0 5px currentColor)}
+/* an attack winding up out of view (ui/threats.js INCOMING): bigger, and it pulses */
+.threatmark.atk i{left:-13px;top:-34px;border-left-width:13px;border-right-width:13px;border-bottom-width:22px;animation:threatpulse .32s ease-in-out infinite alternate}
+@keyframes threatpulse{from{transform:scale(.85)}to{transform:scale(1.15)}}
 /* hit marker: the X-flash at the crosshair confirming a bolt connected */
 #hitmark{position:fixed;left:50%;top:50%;opacity:0;z-index:9;pointer-events:none;color:#fff;transform:translate(-50%,-50%)}
 #hitmark i{position:absolute;width:2.5px;height:10px;left:-1px;top:-5px;background:currentColor;border-radius:1px;box-shadow:0 0 5px currentColor}

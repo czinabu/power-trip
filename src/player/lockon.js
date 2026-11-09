@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// Soft lock-on (Jedi): T or the middle mouse button keeps one foe framed so cuts and parries are aimed at it.
+// Soft lock-on (Jedi): T (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
+// the mouse or the right stick to one side moves the lock to the next foe that way (unless CUT AIM is MOUSE: the flick aims cuts).
 
 import { CFG } from '../data/config.js';
 import { wrapAngle, V3 } from '../utils.js';
@@ -71,4 +72,43 @@ export function updateLockOn(dt){
     m.style.opacity = on ? '1' : '0';
     m.style.transform = `translate(${((v.x + 1) / 2 * innerWidth).toFixed(1)}px, ${((1 - v.y) / 2 * innerHeight).toFixed(1)}px)`;
   }
+}
+
+/* SWITCHING — locked on, a quick flick sideways moves the lock to the nearest foe on that side of the current one (by
+   bearing from the hero). The mouse counts a flick as `px` of travel within `win` s; the right stick as a push past
+   `stick` from rest (it re-arms under `rearm`). With CUT AIM on MOUSE a flick aims the next cut instead, so it never switches. */
+export const LOCK_SWITCH = { px: 150, win: 0.16, stick: 0.85, rearm: 0.35, cd: 0.28, arc: 2.6 };
+let flickAcc = 0, flickT = -9, stickArmed = true, lastSwitch = -9;
+function switchLock(side){   // side: +1 the next foe to the right on screen, -1 to the left
+  const S = LOCK_SWITCH, cur = player.lockTarget, now = performance.now() / 1000;
+  if (!cur || now - lastSwitch < S.cd) return;
+  const L = CFG.player.lockOn, pp = playerPos(), cp = posOf(cur);
+  const b0 = Math.atan2(cp.x - pp.x, cp.z - pp.z);
+  let best = null, ba = 1e9;
+  const consider = (t) => {
+    if (!alive(t) || t === cur) return;
+    const p = posOf(t), d = Math.hypot(p.x - pp.x, p.z - pp.z);
+    if (d > L.keep || d < 0.01) return;
+    const a = wrapAngle(Math.atan2(p.x - pp.x, p.z - pp.z) - b0);   // (a smaller bearing is further right on screen)
+    if (-a * side <= 0.02 || Math.abs(a) > S.arc) return;
+    if (Math.abs(a) < ba){ ba = Math.abs(a); best = t; }
+  };
+  for (const e of enemies) consider(e);
+  if (shared.boss) consider(shared.boss);
+  if (!best) return;
+  player.lockTarget = best; lastSwitch = now;
+  sfx(880, 0.05, 'triangle', 0.035, 1250);
+}
+// the mouse's sideways travel, from engine/input.js
+export function lockMouseFlick(dx){
+  if (!player.lockTarget || G.cutMouse) return;
+  const now = performance.now() / 1000;
+  if (now - flickT > LOCK_SWITCH.win) flickAcc = 0;
+  flickT = now; flickAcc += dx;
+  if (Math.abs(flickAcc) > LOCK_SWITCH.px){ switchLock(Math.sign(flickAcc)); flickAcc = 0; }
+}
+// the right stick's x, every pad frame (engine/gamepad.js)
+export function lockStickFlick(rx){
+  if (!player.lockTarget || G.cutMouse || Math.abs(rx) < LOCK_SWITCH.rearm){ stickArmed = true; return; }
+  if (stickArmed && Math.abs(rx) > LOCK_SWITCH.stick){ stickArmed = false; switchLock(Math.sign(rx)); }
 }

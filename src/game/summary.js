@@ -17,13 +17,14 @@ import { TROOPER_VICTORY } from '../data/campaign-trooper.js';
 import { isArcadeId } from '../data/arcade.js';
 import { noteCampaignWon, ngNextTier } from './profile.js';
 import { tierName, NG_WORDS } from '../data/ngplus.js';
+import { medalResultsHtml } from '../ui/medals-ui.js';
 
 /* ---------- END-OF-RUN SUMMARY + SCORE ---------- */
-export function endRun(won){
+export function endRun(won, medals = null){   // medals: a mission's (game/medals.js medalsResult), for the results screen
   const st = G.stats; if (!st || st._ended) return;   // compute once per end (cleared on re-entering play)
   st._ended = true;
   closeReadout();
-  const elapsed = Math.max(0, G.gt - (st.startGt || 0));
+  const elapsed = medals ? medals.time : Math.max(0, G.gt - (st.startGt || 0));   // (a mission's medals clock runs through its retries: the time shown is the one its par is held to)
   const endless = !!G.endless;
   const waves = endless ? (G.endlessWave || 0) : clamp((G.waveTotal || 0) + 1, 0, 99);
   const acc = st.shotsFired > 0 ? st.shotsHit / st.shotsFired : -1;
@@ -35,7 +36,7 @@ export function endRun(won){
   let best = 0; try { best = parseInt(localStorage.getItem(key) || '0', 10) || 0; } catch(e){}
   const newBest = score > best;
   if (newBest){ try { localStorage.setItem(key, String(score)); } catch(e){} best = score; }
-  st.summary = { won, elapsed, waves, acc, score, best, newBest, endless, mission };
+  st.summary = { won, elapsed, waves, acc, score, best, newBest, endless, mission, medals };
   renderRunSummary();
 }
 function renderRunSummary(){
@@ -61,6 +62,7 @@ function renderRunSummary(){
     '<div class="rs-title">' + title + '</div>' +
     '<div class="rs-score">SCORE <b>' + s.score.toLocaleString() + '</b>' +
       (s.newBest ? '<span class="rs-best new">★ NEW BEST</span>' : '<span class="rs-best">BEST ' + s.best.toLocaleString() + '</span>') + '</div>' +
+    (s.medals ? medalResultsHtml(s.medals) : '') +
     '<div class="rs-grid">' + grid + '</div>' +
     boonHtml + readoutSummaryHtml();
   el.style.display = 'block';

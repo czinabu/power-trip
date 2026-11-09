@@ -174,6 +174,14 @@
 .mthreat{display:inline-flex;gap:2px;vertical-align:middle}
 .mthreat i{width:5px;height:5px;border-radius:1px;background:rgba(255,255,255,.14)}
 .mthreat i.on{background:var(--danger-soft,#ff7a6a)}
+/* MISSION MEDALS (ui/medals-ui.js): CLEAR, PAR TIME, BONUS GOAL as three small diamonds, lit in their colours */
+.msn .mmedals{position:absolute;right:46px;bottom:8.5px}
+.msn:has(.mmedals) .mw{padding-right:84px}
+.mmedals{display:inline-flex;gap:3px;vertical-align:middle}
+.mmedals i{width:6px;height:6px;transform:rotate(45deg);border:1px solid rgba(255,255,255,.22);background:transparent}
+.mmedals i.on.clear{background:#c8d2dc;border-color:#c8d2dc}
+.mmedals i.on.par{background:#7fd4ff;border-color:#7fd4ff;box-shadow:0 0 5px rgba(127,212,255,.6)}
+.mmedals i.on.bonus{background:#ffd24a;border-color:#ffd24a;box-shadow:0 0 5px rgba(255,210,74,.6)}
 /* the picked mission, spelled out under the shelves */
 #mpinfo{padding:11px 14px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(8,18,33,.78);cursor:default}
 #mpinfo .mpi-t{display:flex;align-items:center;gap:8px;font:700 19px/1.1 var(--font-ui);letter-spacing:2px;color:var(--ink)}
@@ -183,6 +191,17 @@
 #mpinfo .mpi-meta .mthreat{margin-left:4px}
 #mpinfo .mpi-won{margin-left:auto;font:500 12.5px/1 var(--font-body);letter-spacing:.3px;color:var(--ink-soft)}
 #mpinfo .ok{color:var(--xp)} #mpinfo .no{color:var(--ink-dim)}
+#mpinfo .mpi-medals{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:9px;padding:8px 10px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(0,0,0,.18)}
+#mpinfo .mpi-medal{display:contents;font:500 12.5px/1.3 var(--font-body);color:var(--ink-soft)}
+#mpinfo .mpi-medal b{display:flex;align-items:center;gap:7px;font:700 11px/1.3 var(--font-ui);letter-spacing:1.5px;color:var(--ink-dim)}
+#mpinfo .mpi-medal i{display:inline-block;width:7px;height:7px;transform:rotate(45deg);border:1px solid rgba(255,255,255,.3)}
+#mpinfo .mpi-medal b{grid-column:1} #mpinfo .mpi-medal span{grid-column:2}
+#mpinfo .mpi-medal.on b{color:var(--ink)}
+#mpinfo .mpi-medal.on.clear i{background:#c8d2dc;border-color:#c8d2dc}
+#mpinfo .mpi-medal.on.par i{background:#7fd4ff;border-color:#7fd4ff}
+#mpinfo .mpi-medal.on.bonus i{background:#ffd24a;border-color:#ffd24a}
+#mpinfo .mpi-best{grid-column:1/-1;font:600 11px/1.2 var(--font-ui);letter-spacing:1.5px;color:var(--ink-dim);margin-top:2px}
+#mpinfo .mpi-best b{color:var(--xp);margin-left:4px}
 /* the ARCADE shelf (ui/missions-ui.js): random contracts, SHUFFLE and SURPRISE ME */
 .mp-arcbtns{display:flex;gap:6px}
 .mp-arcbtns .btn{flex:1 1 0;padding:7px 10px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.6);pointer-events:auto}
@@ -406,6 +425,18 @@ body.fovpreview .set-tip{display:none}
 #runsummary .rs-score b{font:700 46px/1 var(--font-ui);letter-spacing:1px;color:var(--xp);text-shadow:0 0 18px var(--xp-glow)}
 #runsummary .rs-best{font-size:12px;letter-spacing:2px;color:var(--ink-dim);padding:3px 10px;border:1px solid var(--edge);border-radius:var(--r-chip)}
 #runsummary .rs-best.new{color:var(--gold);border-color:var(--gold);text-shadow:0 0 12px #a06000;animation:pulse 1s infinite}
+#runsummary .rs-medals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+#runsummary .rs-medal{position:relative;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px 9px;border:1px solid var(--edge);border-radius:var(--r);background:var(--panel-solid);opacity:.6}
+#runsummary .rs-medal i{width:16px;height:16px;transform:rotate(45deg);border:2px solid rgba(255,255,255,.25)}
+#runsummary .rs-medal b{font:700 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-dim)}
+#runsummary .rs-medal span{font:500 12px/1.3 var(--font-body);color:var(--ink-soft)}
+#runsummary .rs-medal em{position:absolute;top:6px;right:7px;font:700 9.5px/1 var(--font-ui);font-style:normal;letter-spacing:1.5px;color:var(--gold)}
+#runsummary .rs-medal.on{opacity:1}
+#runsummary .rs-medal.on b{color:var(--ink)}
+#runsummary .rs-medal.on.clear i{background:#c8d2dc;border-color:#c8d2dc}
+#runsummary .rs-medal.on.par{border-color:rgba(127,212,255,.5)} #runsummary .rs-medal.on.par i{background:#7fd4ff;border-color:#7fd4ff;box-shadow:0 0 12px rgba(127,212,255,.7)}
+#runsummary .rs-medal.on.bonus{border-color:rgba(255,210,74,.55)} #runsummary .rs-medal.on.bonus i{background:#ffd24a;border-color:#ffd24a;box-shadow:0 0 12px rgba(255,210,74,.7)}
+#runsummary .rs-medal-note{font:500 12px/1.3 var(--font-body);color:var(--ink-dim);margin:-4px 0 10px}
 #runsummary .rs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}   /* every stat on one row */
 #runsummary .rs-stat{box-sizing:border-box;background:var(--panel-solid);border:1px solid var(--edge);border-radius:var(--r);padding:10px 6px 9px}
 #runsummary .rs-v{font:700 22px/1 var(--font-ui);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -428,6 +459,10 @@ body.fovpreview .set-tip{display:none}
   .ctl,.rm-list,.set-grid{grid-template-columns:1fr}
   .ctl .tips{grid-template-columns:1fr}
   #runsummary .rs-grid{grid-template-columns:repeat(3,1fr)}
+  #runsummary .rs-medals{gap:5px}
+  #runsummary .rs-medal{padding:8px 4px 7px}
+  #runsummary .rs-medal b{font-size:10.5px;letter-spacing:1.2px}
+  #runsummary .rs-medal span{font-size:11px}
 }
 /* first campaign: the offer to train first swaps in for the action row, like the leave-run confirm */
 #trainconfirm{display:none;flex-direction:column;align-items:flex-start;gap:12px;margin-top:28px;padding:16px 22px;cursor:default;

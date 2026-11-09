@@ -65,6 +65,11 @@ export const CRYSTALS = [
     ds: 'A splinter of the gate\'s own ring, cut free when the vessel broke. It burns the violet of the void past it. No sidegrade.', fx: [] },
   { id: 'unburied', name: 'Unburied', col: 0xff5a7a, earn: { raids: 5 }, rare: true, att: 'RARE',
     ds: 'Bled once, healed by your hand. It still remembers the dark it was pulled out of. No sidegrade.', fx: [] },
+  // THE MEDALS' crystals (data/medals.js): looks, never numbers, for the mission medals a hero has gathered
+  { id: 'honour', name: 'Honour', col: 0xbfe2ff, earn: { medals: 20 }, att: 'MEDAL',
+    ds: 'Cut pale as starlight, for a Jedi who goes back and does it better. No sidegrade.', fx: [] },
+  { id: 'victor', name: 'Victor\'s rose', col: 0xff9fb8, earn: { medals: 60 }, att: 'MEDAL',
+    ds: 'A rose-gold blade few ever see. Every mission, done right. No sidegrade.', fx: [] },
   // THE POST-GAME's LEGENDARY crystal (`legend: true`): a look, never a number. It burns its own colour and asks nothing
   { id: 'heart', name: 'Grand Master\'s', col: 0xffe9a8, earn: { top: 'Grand Master' }, legend: true, att: 'LEGENDARY',
     ds: 'The crystal of the Order\'s last Grand Master: pale gold, and steady as a held breath. No sidegrade.', fx: [] },
@@ -121,6 +126,7 @@ export function earnProgress(p, earn){
   if (earn.light || earn.dark){ const k = earn.light ? 'light' : 'dark'; return { have: Math.max(0, Math.round((p.alignPeak && p.alignPeak[k]) || 0)), need: earn[k] }; }
   if (earn.missions) return { have: Object.keys(p.missions || {}).length, need: earn.missions };
   if (earn.sides) return { have: Object.keys(p.sides || {}).length, need: earn.sides };
+  if (earn.medals) return { have: Object.values(p.medals || {}).reduce((n, r) => n + [1, 2, 4].filter(b => (r.m || 0) & b).length, 0), need: earn.medals };   // (data/medals.js MEDAL_BIT)
   if (earn.holocrons || earn.caves){ const k = earn.holocrons ? 'holocron' : 'cave'; return { have: Object.keys(p.secrets || {}).filter(id => id.endsWith(':' + k)).length, need: earn.holocrons || earn.caves }; }
   for (const k of ['duels', 'arcade', 'waves', 'revives', 'squadWaves', 'raids']) if (earn[k]) return { have: p[k] || 0, need: earn[k] };
   return { have: 0, need: 1 };
@@ -136,6 +142,7 @@ export function earnText(earn, chapterName = (id) => id.toUpperCase()){
   if (earn.light) return 'LEAN TO THE LIGHT: REACH ' + earn.light + ' LIGHT';
   if (earn.dark) return 'LEAN TO THE DARK: REACH ' + earn.dark + ' DARK';
   const n = earn.duels || earn.missions || earn.arcade || earn.waves || earn.revives || earn.squadWaves || earn.sides || earn.holocrons || earn.caves || earn.raids, s = n === 1 ? '' : 'S';
+  if (earn.medals) return 'EARN ' + earn.medals + ' MISSION MEDAL' + (earn.medals === 1 ? '' : 'S');
   if (earn.raids) return 'WIN ' + n + ' RAID' + s + ' AT THE RAID TABLE';
   if (earn.revives) return 'GET ' + n + ' SQUADMATE' + s + ' BACK UP';
   if (earn.squadWaves) return 'CLEAR ' + n + ' SURVIVAL WAVE' + s + ' WITH THE SQUAD STANDING';

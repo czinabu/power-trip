@@ -41,6 +41,9 @@ export const SIGNETS = [
   { id: 'brokenward', name: 'Broken ward', earn: { raids: 1 }, rare: true, line: 'A ring split clean through. The ward you flew over, and the one you broke.' },
   { id: 'gatefall', name: 'Gatefall', earn: { raids: 5 }, rare: true, line: 'A falling star through a ring of stone. The clans will ask where you got it.' },
   // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
+  // the mission medals' (data/medals.js)
+  { id: 'honourstar', name: 'Honour star', earn: { medals: 20 }, line: 'A five-pointed star. The Armorer strikes it for one who finishes the job clean.' },
+  { id: 'sunburst', name: 'Victor\'s sun', earn: { medals: 60 }, line: 'An eight-rayed sun. Only a hunter with a medal for every job wears it.' },
   { id: 'mandalore', name: 'Mand\'alor\'s sigil', earn: { top: 'Mand\'alor' }, legend: true, line: 'The crowned skull of Mandalore. Only the one the clans follow wears it.' },
 ];
 // VAMBRACES: what's on the forearms

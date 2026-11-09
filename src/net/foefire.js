@@ -41,6 +41,7 @@ import { net, on, send, sendTo, guestSlots, connected } from './session.js';
 import { hooks } from './run.js';
 import { puppetOf, runKind } from './foes.js';
 import { addFlow } from '../player/gunner-flow.js';
+import { teamFx } from '../game/teamstrike.js';
 import { bossDown } from '../game/autosave.js';
 
 const asHost = () => net.role === 'host' && connected() && !!runKind() && !G.coopGuest;
@@ -186,6 +187,10 @@ on('pw', (m) => {
   if (!asHost() && !asGuest()) return;
   partnerPower(partnerPuppet(m.from), m.k, m.c, m.r, m.h || 1, m.x, m.z);
 });
+
+/* ---------------- TEAM STRIKE: the host saw two heroes work one foe (game/teamstrike.js); every guest marks it too ---------------- */
+hooks.ts = (x, y, z) => { if (asHost()) send({ t: 'ts', x: r2(x), y: r2(y), z: r2(z) }); };
+on('ts', (m) => { if (asGuest()) teamFx(m.x, m.y, m.z); });
 
 /* ---------------- shared XP: a kill pays both heroes ---------------- */
 hooks.xp = (n) => { if (asHost() && n > 0) send({ t: 'xp', n: Math.round(n) }); };

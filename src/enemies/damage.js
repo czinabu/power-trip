@@ -27,7 +27,8 @@ import { bossDown } from '../game/autosave.js';
 import { SQUAD } from '../data/allies.js';
 import { TROOPER } from '../data/trooper.js';
 import { gainCP } from '../player/trooper/command.js';
-import { queueHit, hooks } from '../net/run.js';
+import { queueHit, hooks, coopRun } from '../net/run.js';
+import { teamCheck } from '../game/teamstrike.js';
 import { foeBeaten, foeFell, MERC } from '../game/alignment.js';
 import { killPerks, squadKillPerks } from '../game/creed.js';
 import { MERCY } from '../data/alignment.js';
@@ -52,6 +53,13 @@ const slideCap = (v, opts) => opts && typeof opts.slide === 'number' ? Math.min(
 const shoveCap = (v, opts) => opts && opts.shove ? Math.min(v, opts.shove) : v;
 /* SPARED (game/alignment.js): a foe that yielded, let go. It leaves the fight beaten, as a kill would, and pays the
    same bounty, so mercy never costs a run anything: it bows out instead of falling */
+
+/* THE FOE'S OWN FREEZE — solo, a hitstop freezes the whole fight, the foe you struck with it. In a shared co-op fight the
+   world runs on real time whatever one hero's hitstop does (main.js), so the foe you hit kept walking through your
+   freeze and blows felt light. There, the struck foe holds for the freeze instead (ai.js and net/foes.js read freezeT),
+   so the blow lands on a body that stops for it, as it does solo. */
+export function foeFreeze(e, s){ if (coopRun.live && e && s > 0) e.freezeT = Math.max(e.freezeT || 0, s); }
+
 export function spareEnemy(e){
   if (e.dead || e.net) return false;
   e.dead = true; e.spared = true; e.yielding = false; e.state = 'spared'; e.st = MERCY.bow;
@@ -105,12 +113,12 @@ function netBlow(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   }
   spawnHitSpark(cp, col, power);
   if (kill){
-    G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38);
+    G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38); foeFreeze(e, isFinisher ? 0.1 : 0.05);
     S.kill(cp, !!e.t.heavy); S.killSting(!!e.t.heavy);
     burst(V3(p.x, p.y + 1.2, p.z), 0xffaa44, 12, 8, 5);
     spawnHitSpark(cp, 0xffcc55, power * 1.3);
   } else {
-    G.hitstop = Math.max(G.hitstop, 0.02 + power * 0.028); G.shake = Math.max(G.shake, 0.12 + power * 0.13);
+    G.hitstop = Math.max(G.hitstop, 0.02 + power * 0.028); G.shake = Math.max(G.shake, 0.12 + power * 0.13); foeFreeze(e, 0.02 + power * 0.028);
   }
   if (!(opts && opts.slide)) floater(p, Math.round(Math.min(dmg, Math.max(e.hp, 1))), kill ? '#ffd24a' : '#bfe8ff');
   S.impact(cp, power);
@@ -143,6 +151,8 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     dmg *= DUEL.open.dmg;
     if (e.openShown !== e.openUntil){ e.openShown = e.openUntil; floater(V3(e.group.position.x, e.group.position.y + 1.9, e.group.position.z), 'OPENING', '#ffe27a'); }
   }
+  // TEAM STRIKE (online co-op): a blow on a foe another hero struck a moment ago lands harder (game/teamstrike.js)
+  if (!tick && !byAlly && knockDir && dmg > 0 && !e.converted) dmg *= teamCheck(e, guest ? 'g' + (MERC.from ?? '') : 'me');
   // SENTINEL frontal deflector — chip damage from the front mostly bounces; FLANK it, or break the guard with a
   // finisher / Djem-So heavy / a RIPOSTE. The shield shatters once depleted, leaving it open & staggered.
   // (a body held up as a HUMAN SHIELD takes its own side's fire on the back and flank, limp: no deflector, enemies/bolts.js)
@@ -200,6 +210,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       spawnHitSpark(cp, col, power);
       if (e.hp > 0 && !byAlly && !guest){   // (a guest's blow freezes and shakes their screen, not this one: netBlow)
         G.hitstop = Math.max(G.hitstop, 0.02 + power*0.028);   // a micro-freeze on impact — the core of "punch"
+        foeFreeze(e, 0.02 + power*0.028);   // (co-op: the struck foe holds for it too)
         G.shake   = Math.max(G.shake,   0.12 + power*0.13);
       }
     }
@@ -249,7 +260,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       burst(V3(p.x, p.y+1.2, p.z), 0xffaa44, 8, 6, 4);
       return;
     }
-    if (!guest){ G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38); }
+    if (!guest){ G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38); foeFreeze(e, isFinisher ? 0.1 : 0.05); }
     addStreak(e.t.score);
     if (!e.converted){
       const xp = e.t.score * 4 * killBonus() * (e.elite ? 1.6 : 1);

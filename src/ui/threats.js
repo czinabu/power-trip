@@ -7,6 +7,7 @@ import { clamp } from '../utils.js';
 import { shared, G, enemies, player } from '../state.js';
 import { playerPos } from '../player/helpers.js';
 import { grenades } from '../enemies/grenades.js';
+import { localPlayer } from '../player/players.js';
 
 /* THREAT AWARENESS — project a world point to screen space; return the on-screen flag, a clamped edge position, and
    the CSS rotation (0°=up, clockwise) for an arrow pointing toward it. Powers the damage arc + off-screen markers. */
@@ -23,7 +24,9 @@ function threatScreen(world){
   return { onScreen, behind, deg, ex: clamp(sx, m, W-m), ey: clamp(sy, m, H-m) };
 }
 const _threatMarks = [];
-const ARRIVAL_SHOW = 2.6;   // seconds a new arrival's direction stays marked
+const ARRIVAL_SHOW = 2.6;
+// the wind-ups that count as an attack coming in (enemies/ai.js states), and how near a melee foe must be for its to
+const ATK_WIND = { windup: 1, lungewind: 1, leapwind: 1 }, ATK_NEAR = 9;   // seconds a new arrival's direction stays marked
 export function renderThreats(){
   const wrap = document.getElementById('threats'), dind = document.getElementById('dmgind');
   if (G.mode !== 'play'){ wrap.style.display = 'none'; return; }
@@ -35,18 +38,23 @@ export function renderThreats(){
     dind.style.transform = 'rotate(' + s.deg.toFixed(0) + 'deg)';
   } else dind.style.opacity = '0';
   // --- off-screen markers for the genuinely dangerous foes: charging snipers, live bombers, boss/warbringer ---
-  const threats = [];
+  const threats = [], pp = playerPos();
   for (const e of enemies){
     if (e.dead || e.converted) continue;
     let col = null;
     if (e.t.sniper && e.aimLine && e.aimLine.visible) col = '#ff3030';      // a marksman drawing a bead on you
     else if (e.t.bomber && (e.state === 'fuse' || e.state === 'chase')) col = '#ffae2a';   // a saboteur closing in
     else if (e.warbringer) col = '#ff3b3b';
+    // INCOMING: any foe out of view winding up a blow or a shot at THIS hero (in co-op, the one it picked: enemies/targets.js)
+    // gets a pulsing marker, so a swing from behind or a rifle levelled from the side never lands unannounced
+    else if (ATK_WIND[e.state] && (!e.hero || e.hero === localPlayer) && !e.dummy){
+      const p = e.group.position, d = Math.hypot(p.x - pp.x, p.z - pp.z);
+      if (d < (e.t.ranged ? (e.t.range || 14) + 2 : ATK_NEAR)){ threats.push({ pos: p, col: '#ff6a3a', atk: true }); continue; }
+    }
     if (col) threats.push({ pos: e.group.position, col });
   }
   if (shared.boss && shared.boss.hp > 0) threats.push({ pos: shared.boss.group.position, col: '#ff5a5a' });
   // a live detonator coming down on you out of view: point at its landing mark (enemies/grenades.js)
-  const pp = playerPos();
   for (const n of grenades){
     if (n.friendly || n.vel) continue;
     const m = n.ring.position;
@@ -73,6 +81,7 @@ export function renderThreats(){
     mk.style.left = s.ex + 'px'; mk.style.top = s.ey + 'px';
     mk.style.transform = 'rotate(' + s.deg.toFixed(0) + 'deg)';
     mk.style.color = th.col; mk.style.opacity = th.op || '0.92';
+    mk.classList.toggle('atk', !!th.atk);
     mi++;
   }
   for (let i = mi; i < _threatMarks.length; i++) _threatMarks[i].style.opacity = '0';

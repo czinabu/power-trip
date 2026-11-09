@@ -24,7 +24,7 @@ import { atkPress, atkRelease } from '../player/jedi/weight.js';
 import { forceDash, doJump } from '../player/movement.js';
 import { trySlide } from '../player/parkour.js';
 import { pullPress, pullRelease, graspThrow, graspDrop } from '../player/jedi/grasp.js';
-import { toggleLock } from '../player/lockon.js';
+import { toggleLock, lockMouseFlick } from '../player/lockon.js';
 import { toggleStrafe } from '../player/strafe.js';
 import {
   bactaStim, mandoRocket, mandoJetMissile, whistlingBirds, thermalDetonator, grappleHook, jetSlam
@@ -61,6 +61,7 @@ document.addEventListener('mousemove', (e) => {
   // allow looking well UP (was capped at -0.15, so you couldn't aim high on the ground) as well as down
   G.pitch = clamp(G.pitch + e.movementY * 0.0021 * sens, -0.62, 1.2);
   noteFlick(e.movementX, e.movementY);   // a flick just before a cut aims it (player/jedi/cutaim.js)
+  lockMouseFlick(e.movementX);   // locked on: a quick flick sideways moves the lock to the next foe (player/lockon.js)
 });
 document.addEventListener('mousedown', (e) => {
   if (!inputActive()) return;

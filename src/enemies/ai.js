@@ -84,14 +84,17 @@ function turnToward(g, want, rate, dt){
   const d = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
   g.rotation.y += clamp(d, -rate * dt, rate * dt);
 }
-export function updateEnemies(dt){
+export function updateEnemies(dtAll){
   const pp = playerPos();
-  updateNav(dt, pp);    // refresh the flow field toward the player (nav.js)
+  updateNav(dtAll, pp);    // refresh the flow field toward the player (nav.js)
   updateBubble();       // who is in a 1v1 duel, so the troops round it give it room (bubble.js)
-  updateDirector(dt);   // hand out attack tokens before anyone decides to swing
-  updateSaberLock(dt);  // a bind in progress (duel.js) runs before the foe it holds
+  updateDirector(dtAll);   // hand out attack tokens before anyone decides to swing
+  updateSaberLock(dtAll);  // a bind in progress (duel.js) runs before the foe it holds
   for (let i = enemies.length-1; i >= 0; i--){
     const e = enemies[i], g = e.group, t = e.t;
+    // a foe held in a co-op blow's freeze (damage.js foeFreeze) runs at a crawl for it, as the whole fight does solo
+    let dt = dtAll;
+    if (e.freezeT > 0){ e.freezeT -= dtAll; dt *= 0.08; }
     e.st -= dt;
     if (e.hrA){ g.rotation.x -= e.hrA.x; g.rotation.z -= e.hrA.z; g.rotation.y -= e.hrA.y; e.hrA = null; }   // lift last frame's hit reaction off
     if (g.userData.eliteRing) g.userData.eliteRing.rotation.z += dt * 2.5;   // elite halo spins

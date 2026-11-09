@@ -62,6 +62,7 @@ export const G = {
   skywar: 'auto',   // player preference: how much of the sky battle over a battle world plays (Settings · SKY BATTLE, world/skywar.js)
   finSlow: true, finCam: true,   // player preference: a saber finisher's slow-motion beat and its camera push (Settings · FINISHERS)
   killCam: true,         // player preference: THE KILL CAM, a big kill's short cinematic shot and slow motion (engine/killcam.js)
+  rumble: 1,             // player preference: controller rumble strength (0 = off, 1.5 = extra; engine/rumble.js)
   shakeScale: 1,         // player preference: screen shake strength (0 = off, 1.5 = extra)
   fov: 60,               // player preference: resting vertical FOV in degrees (the FOV slider, 50-90)
   sbMenu: false,         // the sandbox B panel is open (same cinematic cuts as the pause screen)

@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Mando aiming, blasters, rifle, heat/reload, flamethrower.
 
+import { rumble } from '../../engine/rumble.js';
 import * as THREE from 'three';
 import { hooks } from '../../net/run.js';
 import { scene, camera } from '../../engine/renderer.js';
@@ -423,6 +424,7 @@ function fireBlaster(W, hand){
   // so a burst lands high unless you pull it down. Bracing halves it.
   if (W.climb) player.aimOff.y -= W.climb * (steadyAim ? 0.5 : 1) * (1 + inacc);
   G.shake = Math.max(G.shake, W.dual ? 0.06 : W.slow ? 0.08 : W.heavy ? 0.3 : W.chatter ? 0.07 : 0.15);
+  rumble(W.heavy ? 0.35 : W.slow ? 0.18 : 0.08, W.heavy ? 0.5 : 0.28, W.heavy ? 90 : 45);   // the pad kicks with each shot (engine/rumble.js)
   if (W.heavy){ S.blaster(); sfx(90, 0.14, 'sawtooth', 0.07, 45); sfx(1400, 0.05, 'square', 0.03, 600); }   // the DC-15's marksman module: a deep crack
   else if (W.chatter) S.blasterDual();   // its auto barrel: a lighter, quicker report
   else if (W.dual) S.blasterDual();
@@ -445,7 +447,7 @@ function fireRifle(W){
   const mz = gunMuzzle(o).clone();
   disruptorWake(mz, V3(aim.x-mz.x, aim.y-mz.y, aim.z-mz.z).normalize(), mz.distanceTo(aim));
   player.recoil = 0.5; player.recoilKick = 0.5;
-  G.shake = Math.max(G.shake, 0.4); G.hitstop = Math.max(G.hitstop, 0.05);
+  G.shake = Math.max(G.shake, 0.4); G.hitstop = Math.max(G.hitstop, 0.05); rumble(0.7, 0.8, 160);
   screenFlash('radial-gradient(ellipse at center, rgba(120,210,255,.2), transparent 60%)', 0.35, 0.2);
   S.disruptor();
   player.fireCd = W.fireCd / (player.up.fireRate || 1);

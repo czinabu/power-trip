@@ -407,6 +407,27 @@ export function clash(pos, big, form, pew = 1, lenK = 1){   // pew: how loud its
   crackle(pos, big ? 8 : 5, len * 1.3 * dm, 0.045 * k, 0.03);
 }
 
+/* a cut that LANDS (a foe, the boss): the blade burning into armour or a body, not meeting another blade. It used to play
+   the clash, so a cut that got through and one a duellist turned sounded the same; now a block rings (clash above) and
+   a hit sears: a dull knock under it, a short hissing burn through the plasma, the hum stuttering as it drags through,
+   and a few spits. No metal ring and no blaster "pyew": those belong to blade meeting blade. big: a heavy blow. */
+export function cut(pos, big, form){
+  form = form || (!isGunner() ? G.stance : null);
+  const v = FORM_SOUND[form] || FORM_SOUND.niman, k = (big ? 1.3 : 1) * rand(0.88, 1.06);
+  const hp = (HUM_PITCH[form] || SABER_PITCH) * rand(0.95, 1.05), len = (big ? 0.26 : 0.17) * Math.min(1.25, v.damp) * rand(0.85, 1.2);
+  const C = o => play(Object.assign({ pos, bus: 'clash' }, o));
+  if (!tooSoon('cutduck', 0.12)) duck(big ? 0.22 : 0.1, big ? 0.06 : 0.02);
+  // the knock: the blow's weight, low and short (felt more than heard)
+  C({ type: 'sine', f: rand(150, 175) * (v.thump ? 0.8 : 1), f2: 55, ft: 0.07, g: 0.17 * k, a: 0.001, d: big ? 0.12 : 0.08, drive: 0.4, pri: 2 });
+  // the sear: a burst of hiss that bites in bright and closes down as the blade burns through
+  C({ src: 'noise', color: 'pink', g: 0.11 * k, a: 0.002, d: len, filt: { type: 'bandpass', f: rand(3200, 4200), f2: 1300, q: 1.1, t: len }, drive: 0.6, pri: 2 });
+  // the hum dragging through it: a buzzy stutter at the blade's own pitch
+  C({ type: 'sawtooth', f: 132 * hp, f2: 96 * hp, ft: len, g: 0.05 * k, a: 0.003, d: len * 1.1, vib: { r: rand(38, 52), d: 30 },
+      filt: { type: 'bandpass', f: 900, f2: 520, q: 1.6, t: len }, drive: 0.5 + (v.drive || 0), pri: 1 });
+  if (tooSoon('cutspit', 0.03)) return;
+  crackle(pos, big ? 6 : 4, len * 1.2, 0.04 * k, 0.02);
+}
+
 /* blade dragged through a wall or a pillar. first = the moment it bites in (a crack and a buzz); after that a
    sizzling scrape keeps hissing while the blade stays in the stone */
 export function wall(pos, first, dark){

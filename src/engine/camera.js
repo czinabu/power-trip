@@ -383,10 +383,12 @@ export function updateCamera(dt){
     }
     // JA's horizontal offset slides lens and aim together, so the view direction is unchanged. It is 0, as in JA: the
     // lens sits square behind the hero, and the only thing that puts him off to one side is the lag above, while he
-    // moves (a run, a strafe, a roll pulls him ahead of the lens until it catches up). No duel side-on slide either.
+    // moves (a run, a strafe, a roll pulls him ahead of the lens until it catches up).
+    // DUEL SIDE-ON, on top of JA: squared up with one foe, the offset slides `J.duel` of the duel slide (updateDuelSide),
+    // so the foe stands beside the hero on screen and its wind-up reads; square behind again once the duel's over.
     // CAMERA SWAY (Settings): how much of that lag shows. 100% is JA's exactly; the default is a touch under it; 0 is
     // locked to the hero with no drift at all. The lag itself runs on JA's numbers either way
-    const ha = J.horz, sw = G.camSway == null ? 0.8 : G.camSway;
+    const ha = J.horz + side * (J.duel || 0), sw = G.camSway == null ? 0.8 : G.camSway;
     // The trail moves the lens and its aim point TOGETHER (the lens's lag, carried to both), so the view keeps facing the
     // way you look: JA's aim point catches up faster than its lens, which swings the view toward the way you're going and
     // sends a far crosshair the OTHER way across the screen. Here the hero and his crosshair drift out the same way.

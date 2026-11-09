@@ -106,7 +106,7 @@ function netBlow(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   spawnHitSpark(cp, col, power);
   if (kill){
     G.hitstop = Math.max(G.hitstop, isFinisher ? 0.1 : 0.05); G.shake = Math.max(G.shake, 0.38);
-    S.kill(cp, !!e.t.heavy);
+    S.kill(cp, !!e.t.heavy); S.killSting(!!e.t.heavy);
     burst(V3(p.x, p.y + 1.2, p.z), 0xffaa44, 12, 8, 5);
     spawnHitSpark(cp, 0xffcc55, power * 1.3);
   } else {
@@ -259,7 +259,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     }   // small per-kill bounty, ×1–3 on a kill streak, elites pay more
     if (e.elite === 'volatile' && !e.converted){ if (e.group.userData.eliteRing) e.group.userData.eliteRing.visible = false; volatileBlast(p.clone(), e); }
     else if (mutOn('volatile') && !e.converted) volatileBlast(p.clone(), e);   // VOLATILE mutator: every corpse erupts
-    S.kill(cp, !!e.t.heavy);
+    S.kill(cp, !!e.t.heavy); if (!guest) S.killSting(!!e.t.heavy);
     if (!MERC.guest) killPerks(e.suppT > G.gt, p);   // the per-kill cards: lifesteal, the paths' (game/creed.js; a co-op guest's kill pays on their screen: net/foes.js)
     if (player.boon && !guest){   // (this hero's boons pay on this hero's kills)
       if (player.boon.blood) player.hp = clamp(player.hp + maxHp()*0.04, 0, maxHp());                          // BLOODTHIRST boon

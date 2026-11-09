@@ -90,9 +90,11 @@ export const S = {
     else if (kind === 'dark') swing(0.68, 1.2, true);
     else swing(1, 1);
   },
-  // a lightsaber striking anything (a foe, the boss, a shield): the one blade-contact sound, the clash (saber.js), a
-  // heavy blow landing as a big one
+  // a lightsaber striking something that turns it (a shield, the hero's own body): the blade-contact clash (saber.js), a
+  // heavy blow as a big one
   saberHit: (pos, power, form) => { if (!tooSoon('shit', 0.04)) SB.clash(pos, (power || 1) >= 1.3, form); },
+  // a lightsaber cut that LANDS on a foe or the boss: the sear (saber.js cut), so a hit never sounds like a block
+  saberCut: (pos, power, form) => { if (!tooSoon('shit', 0.04)) SB.cut(pos, (power || 1) >= 1.3, form); },
   // the snap-hiss: kind is a form id ('staff' lights both ends) or 'dark' (the Darksaber); retract is the reverse;
   // reignite drops the blade and lights it again in a new form (from = the form it was in)
   // (full: the showpiece version, for the ignite / retract key and a draw from the belt)
@@ -147,7 +149,7 @@ export const S = {
   },
   // a connect voiced by what landed it: a saber burns, a Mando bolt pops, a fist / kick / spear thumps
   impact: (pos, power) => {
-    if (player.atkT > 0 || player.darkT > 0 || shared.saberProj) S.saberHit(pos, power);
+    if (player.atkT > 0 || player.darkT > 0 || shared.saberProj) S.saberCut(pos, power);
     else if (isGunner() && !(player.meleeT > 0)) S.blastHit(pos, power);
     else S.punch(pos, power);
   },
@@ -164,6 +166,13 @@ export const S = {
     if (heavy) T({ pos, at: 0.06, type: 'sine', f: 420, fm: { r: 1.53, i: 3, i2: 0.1 }, g: 0.07, d: 0.4, verb: 0.2 });
     T({ pos, at: 0.32, type: 'sine', f: heavy ? 90 : 120, f2: 40, g: heavy ? 0.16 : 0.1, d: 0.14 });
     N({ pos, at: 0.32, color: 'brown', g: heavy ? 0.16 : 0.09, d: 0.12, filt: { type: 'lowpass', f: 500 } });
+  },
+  // the KILL CONFIRM, on the hero's own felling blow (not a squadmate's): a deep drop and a soft rush of air under the
+  // hit, so a kill reads apart from a hit without looking
+  killSting: (heavy) => {
+    if (tooSoon('ksting', 0.06)) return;
+    T({ type: 'sine', f: heavy ? 110 : 140, f2: 38, ft: 0.18, g: heavy ? 0.14 : 0.1, a: 0.002, d: heavy ? 0.3 : 0.22, drive: 0.3, pri: 2 });
+    N({ color: 'brown', g: 0.05, a: 0.004, d: 0.2, filt: { type: 'lowpass', f: 1400, f2: 300, t: 0.2 }, pri: 1 });
   },
   // ── defence ──
   deflect: (pos) => { if (!tooSoon('defl', 0.03)) SB.deflect(pos); },

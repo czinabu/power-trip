@@ -41,7 +41,7 @@ src/
   state.js           G (run state), player, entity arrays, keys, and `shared` (values that get reassigned)
   utils.js           math helpers
   data/              tuning tables: config, movement, stances, enemies, levels, bosses, mando, skills, store, mastery, boons, mutators, difficulty, worlds (arena looks), sandbox, battlemaps, allies (the squad and revive rules)
-  engine/            renderer + post-processing, graphics quality, input, camera
+  engine/            renderer + post-processing, graphics quality, input, camera, controller rumble (rumble.js)
   audio/             mixer + voice builder (engine.js), sound bank (sfx.js), adaptive orchestral score with hero themes and mission cues (music.js), loops + ambience (director.js)
   fx/                particles, floating text, VFX lights, saber trail, one-shot VFX, ambient embers, the wider battle past a mission's edge (battle.js)
   player/            hero swap, movement, parkour, damage, updatePlayer (update.js), animation

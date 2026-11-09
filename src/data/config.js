@@ -144,6 +144,9 @@ export const CFG = {
       cameraDamp: 0.3,        // cg_thirdPersonCameraDamp: the same for the lens; JA stiffens it toward 1 as the view
                               // tips toward straight up/down ((pitch / 115°)²) and on fast turns (over 1° per ms)
       horz: 0,                // cg_thirdPersonHorzOffset 0, as in JA: square behind the hero; only moving (the lag) puts him off to a side
+      duel: 0.7,              // ON TOP OF JA: squared up with one foe (the lock-on target, the boss, a lone duellist close in;
+                              // engine/camera.js duelFoe), the lens and its aim point slide this share of `duelSide` sideways
+                              // together, so the foe's wind-up shows beside the hero instead of behind his back (0 = JA's square-on)
       frame: 0.2,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
                               // moves); a boss still gets its full pull-back
     },
@@ -185,7 +188,7 @@ export const CFG = {
     adsSensCurve: 0.8,        // ...and the look speed scales with the zoom (1 = exactly with it, 0 = not at all)
     duelPull: 0.18,           // LOCK-ON: per metre to the locked foe, the lens backs off so both duelists stay framed...
     duelMax: 1.6,             // ...up to this much
-    duelSide: 1.5,            // DUEL SIDE-ON (engine/camera.js, the Mando's camera; the Jedi's never slides, like JA's): with one foe squared up straight ahead, the lens slides this far sideways...
+    duelSide: 1.5,            // DUEL SIDE-ON (engine/camera.js; the Jedi slides `ja.duel` of it): with one foe squared up straight ahead, the lens slides this far sideways...
     duelSideTurn: 0.35,       // ...and the aim point this share of it, so the view turns back toward the pair
     duelSideLat: 1.6,         // fully on while the foe is within this of the view's centre line (sideways, metres), easing off by here
     duelSideFar: 11,          // and while it is nearer than this (easing in over the last 4 m)

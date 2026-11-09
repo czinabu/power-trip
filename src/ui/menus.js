@@ -587,6 +587,17 @@ function setShakeScale(v){
   const sl = document.getElementById('shakesl'); if (sl && +sl.value !== G.shakeScale) sl.value = G.shakeScale;
 }
 { let v; try { v = parseFloat(localStorage.getItem('sw_shake')); } catch(e){} setShakeScale(isNaN(v) ? 1 : v); }
+// RUMBLE — scales the controller's rumble (engine/rumble.js); 0 turns it off
+function setRumble(v){
+  G.rumble = Math.max(0, Math.min(1.5, isNaN(v) ? 1 : v));
+  try { localStorage.setItem('sw_rumble', G.rumble); } catch(e){}
+  const sv = document.getElementById('rumbleval'); if (sv) sv.textContent = G.rumble ? Math.round(G.rumble * 100) + '%' : 'OFF';
+  const sl = document.getElementById('rumblesl'); if (sl && +sl.value !== G.rumble) sl.value = G.rumble;
+}
+{ let v; try { v = parseFloat(localStorage.getItem('sw_rumble')); } catch(e){} setRumble(isNaN(v) ? 1 : v); }
+{ const sl = document.getElementById('rumblesl');
+  if (sl){ sl.addEventListener('pointerdown', (e) => e.stopPropagation()); sl.addEventListener('click', (e) => e.stopPropagation());
+    sl.addEventListener('input', (e) => setRumble(parseFloat(e.target.value))); } }
 // CAMERA SWAY — how much the Jedi's camera trails him as he moves (engine/camera.js): 100% is Jedi Academy's lag
 function setCamSway(v){
   G.camSway = Math.max(0, Math.min(1.5, isNaN(v) ? 0.8 : v));
@@ -706,7 +717,7 @@ const setResetConfirm = (on) => resetBox.classList.toggle('confirming', on);
 function resetSettings(){
   setMasterVol(1); setMusicVol(0.8); setSfxVol(1);
   setMouseSens(1); setAdsSens(0.4); setPadSens(1); setPadInvert(false); setPadAssist(true);
-  setShakeScale(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
+  setShakeScale(1); setRumble(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
   setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true); setMinimap(true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
   setAimHint(true); setSwingMirror(false); setSaberGrip('regular');

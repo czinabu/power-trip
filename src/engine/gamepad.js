@@ -14,6 +14,7 @@ import { audioInit } from '../audio/sfx.js';
 import { skipScene, holdSkip } from '../game/cutscene.js';
 import { wheelStick } from '../allies/wheel.js';
 import { padAimAssist } from '../player/aim-assist.js';
+import { updateRumble } from './rumble.js';
 
 /* the left stick as a camera-relative move: x = right, y = forward (player/locomotion.js reads it for a smooth
    direction; the W A S D keys are pressed too, for everything that reads those) */
@@ -121,6 +122,7 @@ function poll(t){
   requestAnimationFrame(poll);
   const dt = Math.min(0.05, lastT ? (t - lastT) / 1000 : 0); lastT = t;
   const gp = navigator.getGamepads ? [...navigator.getGamepads()].find(p => p && p.connected) : null;
+  updateRumble(gp, pad.active, t);   // the motors follow the fight's feedback (engine/rumble.js)
   if (!gp){ return; }
   if (!pad.connected){ pad.connected = true; pad.family = padFamily(gp.id); }
   const btn = PAD_BUTTONS.map((_, i) => { const b = gp.buttons[i]; if (!b) return false;

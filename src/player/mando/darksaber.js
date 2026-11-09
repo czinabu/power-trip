@@ -130,7 +130,7 @@ function darkCut(dp){
       const kd = dp.phase === 'reel' ? TMP.set(dp.dir.x, 0, dp.dir.z).negate().normalize().clone() : TMP.set(dp.dir.x, 0, dp.dir.z).normalize().clone();
       damageEnemy(e, A.dmg * player.up.dmg, kd, A.knock); flinchEnemy(e, kd, 0.7);
       scarBody(e.group, kd, 'left', false);
-      spawnHitSpark(p.clone(), 0xc9a6ff, 1.1); S.saberHit(p, 1);
+      spawnHitSpark(p.clone(), 0xc9a6ff, 1.1); S.saberCut(p, 1);
     }
   }
   if (shared.boss && shared.boss.hp > 0 && !dp.hitSet.has(shared.boss) && p.distanceTo(shared.boss.group.position.clone().setY(p.y)) < 2.2 && p.y < shared.boss.group.position.y + 4.2){

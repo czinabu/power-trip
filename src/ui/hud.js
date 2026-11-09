@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { clamp } from '../utils.js';
-import { shared, G, enemies, player, isGunner, isTrooper, isMando, bossUp } from '../state.js';
+import { shared, G, enemies, player, isGunner, isTrooper, isMando, hasPack, bossUp } from '../state.js';
 import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon } from '../data/mando.js';
 import { abil } from '../data/mastery.js';
 import { maxHp, maxStam } from '../player/helpers.js';
@@ -395,7 +395,7 @@ export function updateHud(){
       const gap = clamp(Math.tan(spr) * pxPerRad + player.recoilKick * 10, 3, 90);   // (never inside the dot, so the cross reads)
       let col = '120,210,255', ringOp = 0.24, dotOp = 0.9;
       if (player.blockHeld){ col = '158,176,191'; }                // bracing → beskar-steel
-      if (player.jet < 18){ col = '255,120,70'; }                  // low jet fuel → amber-red warning
+      if (hasPack() && player.jet < 18){ col = '255,120,70'; }     // low jet fuel → amber-red warning (no pack yet: no fuel to warn of)
       if (player.lockOn){ col = '255,207,74'; ringOp = 0.6; dotOp = 1; }   // target under the reticle → gold
       rt.style.setProperty('--gap', gap.toFixed(1) + 'px');
       rt.style.setProperty('--col', col);
@@ -426,6 +426,10 @@ function mandoShiftSlot(){
   const el = $('ab-boost'); if (!el) return;
   const A = MANDO_MOBILITY.airDodge, n = player.jetCharges ?? A.charges, fight = inCombat(), air = !player.grounded;
   if (!el._chg){ el.insertAdjacentHTML('beforeend', '<span class="chg"></span>'); el._chg = el.querySelector('.chg'); }
+  if (!hasPack()){   // on his feet (no pack yet: game/pack.js): SHIFT is the dive alone, no jet charges to show
+    setHtml(el._chg, ''); el.classList.toggle('cool', air || player.cds.roll > 0); setText(el.querySelector('.an'), 'DIVE');
+    return;
+  }
   setHtml(el._chg, '<i class="on"></i>'.repeat(n) + '<i></i>'.repeat(Math.max(0, A.charges - n)));
   const fl = player.flip, diving = !!fl && fl.kind === 'dive' && !fl.landT;   // in a dive's air SHIFT is the jet dive
   const cool = diving ? (!!fl.jet || player.jet < MANDO_MOBILITY.dive.jet.fuel)

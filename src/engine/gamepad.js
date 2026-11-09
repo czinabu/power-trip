@@ -9,6 +9,7 @@ import { PAD_BUTTONS, PAD_TUNE, PAD_BINDS, PAD_GLYPHS, padFamily, padLayout } fr
 import { shared, G, player, isGunner } from '../state.js';
 import { clamp } from '../utils.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
+import { noteGuardFlick } from '../player/jedi/guardline.js';
 import { toggleStrafe } from '../player/strafe.js';
 import { audioInit } from '../audio/sfx.js';
 import { skipScene, holdSkip } from '../game/cutscene.js';
@@ -194,6 +195,7 @@ function fight(btn, down, up, lx, ly, rx, ry, dt){
     G.yaw += dyaw;
     G.pitch = clamp(G.pitch + dpitch, -0.62, 1.2);
     noteFlick(-dyaw / 0.0023, dpitch / 0.0021);   // a fast flick of the stick aims a cut, as the mouse does (CUT AIM: MOUSE)
+    noteGuardFlick(-dyaw / 0.0023, dpitch / 0.0021);   // ...and with the guard up, steers it to that side (player/jedi/guardline.js)
   }
 }
 

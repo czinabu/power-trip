@@ -1,6 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // Soft lock-on (Jedi): T (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
-// the mouse or the right stick to one side moves the lock to the next foe that way (unless CUT AIM is MOUSE: the flick aims cuts).
+// the mouse or the right stick to one side moves the lock to the next foe that way (unless CUT AIM is MOUSE: the flick aims cuts,
+// or the guard is up: the flick steers the guard, player/jedi/guardline.js).
 
 import { CFG } from '../data/config.js';
 import { wrapAngle, V3 } from '../utils.js';
@@ -101,7 +102,7 @@ function switchLock(side){   // side: +1 the next foe to the right on screen, -1
 }
 // the mouse's sideways travel, from engine/input.js
 export function lockMouseFlick(dx){
-  if (!player.lockTarget || G.cutMouse) return;
+  if (!player.lockTarget || G.cutMouse || player.blockHeld) return;   // (with the guard up a flick steers the guard: jedi/guardline.js)
   const now = performance.now() / 1000;
   if (now - flickT > LOCK_SWITCH.win) flickAcc = 0;
   flickT = now; flickAcc += dx;
@@ -110,5 +111,6 @@ export function lockMouseFlick(dx){
 // the right stick's x, every pad frame (engine/gamepad.js)
 export function lockStickFlick(rx){
   if (!player.lockTarget || G.cutMouse || Math.abs(rx) < LOCK_SWITCH.rearm){ stickArmed = true; return; }
+  if (player.blockHeld){ stickArmed = false; return; }   // with the guard up a flick steers the guard (jedi/guardline.js), never the lock
   if (stickArmed && Math.abs(rx) > LOCK_SWITCH.stick){ stickArmed = false; switchLock(Math.sign(rx)); }
 }

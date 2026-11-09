@@ -33,6 +33,8 @@ import { ringOpacity, bladeCue } from './guardcue.js';
 import { cutMul } from '../player/jedi/weight.js';
 import { forceCostMul } from '../data/force-level.js';
 import { updateDisarm, endDisarm } from './disarm.js';
+import { FEINT, DUEL_PVP } from '../data/duel-guard.js';
+import { pvpOn } from '../game/pvp-rules.js';
 // a light cut strains a guard a little less, a heavy one far more (player/jedi/weight.js); other blows keep their own
 const weighed = kind => kind === 'cut' || kind === 'finisher' ? cutMul(player.swing, 'posture') : 1;
 
@@ -57,6 +59,7 @@ const diffMul = () => DIFF_MUL[G.diff] || 1;
 
 /* ELITE RAMP (DUEL.eliteRamp) — how far a duellist's skill has grown this deep into the run. 1 = as listed. */
 export function eliteRamp(){
+  if (pvpOn() && !DUEL_PVP.ramp) return 1;   // a sparring duel: everyone at their listed skill (game/pvp-rules.js)
   const R = DUEL.eliteRamp, n = G.endless ? (G.endlessWave || 0) : (G.waveTotal || 0);
   if (n <= R.full) return R.from + (1 - R.from) * clamp((n - 1) / (R.full - 1), 0, 1);
   return 1 + (R.max - 1) * clamp((n - R.full) / (R.top - R.full), 0, 1);
@@ -245,7 +248,9 @@ export function updateDuel(e, dt, dist){
   }
   // posture bar over the head while the guard is under pressure, and its breath under it once it has spent some
   const spent = e.breath != null && e.breath < e.breathMax - 0.5;
-  if ((e.posture > 0.5 || spent || p.brace) && !e.dead && (p.brace || dist < DUEL.guardRange * 2)){   // the Warbringer's bar is always up, like its health bar
+  // (and always over the duellist you are locked on to, or one squared up to you with its guard: its meters are the duel)
+  const watched = player.lockTarget === e || (showsGuard(e) && dist < DUEL.guardRange);
+  if ((e.posture > 0.5 || spent || p.brace || watched) && !e.dead && (p.brace || dist < DUEL.guardRange * 2)){   // the Warbringer's bar is always up, like its health bar
     if (!e.postBar) makePostureBar(e);
     const b = e.postBar, k = clamp(e.posture / p.posture, 0, 1);
     b.visible = true;
@@ -622,8 +627,10 @@ export function duelDefend(e, line, kind, heavy, at){
   const m = diffMul() * skill(e);
   // what it does with this blow: the call it made when it read the cut in the chamber (readCut), else made now
   const sw = player.swing, rd = sw && sw.reads && sw.reads.get(e);
-  const dec = rd && rd.line === line ? rd.dec : decide(e, line, kind, e.rhyN);
+  const fooled = fooledBy(e, line);   // the real cut after your feint: in on the side it left open
+  const dec = fooled ? null : rd && rd.line === line ? rd.dec : decide(e, line, kind, e.rhyN);
   if (rd) sw.reads.set(e, { line: null, dec: null });   // spent: a second contact on the same swing rolls afresh
+  if (fooled){ e.lineStreak = 0; return null; }
   // a light cut seen coming: the agile ones slip it with a backstep
   if (dec === 'dodge' && spend(e, DUEL.breath.dodge)){
     e.dodgeT = p.flip ? DUEL.flipTime : 0.3; e.dodgeX = -dx / dl; e.dodgeZ = -dz / dl;
@@ -679,6 +686,7 @@ export function duelDefend(e, line, kind, heavy, at){
    agile slip a light blow, a mash (rhyN quick blows in a row) gets parried, and otherwise the guard holds by its odds on
    the line it covers (block), much worse off it (offLine), near certain on a line you keep repeating (adaptAfter) */
 function decide(e, line, kind, rhyN){
+  if (baited(e, line)) return null;   // it bit on your feint: its guard is still on the line you faked
   const p = e.dp, m = diffMul() * skill(e), R = DUEL.rhythm;
   const has = amt => e.breath == null || (!e.winded && e.breath >= amt);
   if (p.dodge && (kind === 'cut' || kind === 'punch') && Math.random() < p.dodge * m && has(DUEL.breath.dodge)) return 'dodge';
@@ -701,6 +709,49 @@ function decide(e, line, kind, rhyN){
   if (kind === 'finisher') chance *= 0.75;
   if (!isGunner()) chance *= stance().duelBlockMul || 1;   // Shii-Cho's broad cuts are easy to read
   return Math.random() < Math.min(0.95, chance * m) && has(DUEL.breath.block) ? 'block' : null;
+}
+/* YOUR FEINT (data/duel-guard.js FEINT) — a cut on `line` broken off early into your guard (player/jedi/combat.js
+   cancelSwing). Every guard close in front of you that reads blades may BITE: it swings over to the faked line and
+   holds it FEINT.bait s, and a real cut in on another line in that time gets through clean (decide, fooledBy). A guard
+   that has been fooled lately bites less (FEINT.wary), and so does a sharper one (its skill, the difficulty). Works on a
+   co-op guest too: the puppet keeps the bait on this screen, where this player's cuts are judged (netDefend).
+   Returns how many bit. */
+export function baitGuards(line){
+  const F = FEINT, pp = playerPos(), f = fwd();
+  let n = 0;
+  for (const e of enemies){
+    if (e.dead || e.converted || !isGuarding(e)) continue;
+    const reads = e.net ? !!(e.ng && e.ng[NG.block] >= 40 && !e.ng[NG.brace]) : !!(showsGuard(e) && !e.dp.brace && canGuard(e));
+    if (!reads) continue;
+    const g = e.group, dx = g.position.x - pp.x, dz = g.position.z - pp.z, dl = Math.hypot(dx, dz) || 1;
+    if (dl > F.reach || (f.x * dx + f.z * dz) / dl < F.face) continue;
+    const recent = G.gt - (e.feintAt ?? -99) < F.memory ? (e.feintN || 0) : 0;
+    e.feintN = recent + 1; e.feintAt = G.gt;
+    const sharp = diffMul() * (e.net ? (e.dp && e.dp.elite ? eliteRamp() : 1) : skill(e));
+    const at = V3(g.position.x, g.position.y + 1.45, g.position.z);
+    if (!(Math.random() < F.bite * Math.pow(F.wary, recent) / Math.max(0.5, sharp))){ floater(at, 'NOT FOOLED', '#c8d4e0'); continue; }
+    e.baitLine = line; e.baitUntil = G.gt + F.bait;
+    if (!e.net){
+      if (LINES.includes(line)){ e.guard = line; e.guardT = Math.max(e.guardT, F.bait); }   // the crescent swings over to the fake
+      e.blockLine = line; e.blockAt = G.gt; e.lineStreak = 0;
+    }
+    e.arcFlash = 0.6;
+    floater(at, 'BAITED', '#ffd27a');
+    n++;
+  }
+  if (n) tutEvent('feint');
+  return n;
+}
+// is its guard still stuck on your feint's line (a cut on `line` won't be turned)?
+const baited = (e, line) => !!e.baitLine && G.gt < (e.baitUntil || 0) && line !== e.baitLine;
+// the cut that lands in the opening your feint made: called out once, and the bait is spent
+function fooledBy(e, line){
+  if (!e.baitLine || G.gt > (e.baitUntil || 0) + 0.3 || line === e.baitLine) return false;   // (a beat of grace: the cut was read while it bit)
+  e.baitLine = null; e.baitUntil = 0;
+  const g = e.group;
+  floater(V3(g.position.x, g.position.y + 1.3, g.position.z), 'FEINTED', '#ffd27a');
+  tutEvent('feintHit');
+  return true;
 }
 // can it answer a blow from you at all right now (facing you, guard up, not caught open or winded, not a brace)?
 function canGuard(e){
@@ -1111,7 +1162,8 @@ export function endLock(){
    meet its own cuts with the same rules a solo fight has (the sealed arc, the off-line odds). A cut the guest's screen
    turns is sent back (hooks.guard), and the host puts the posture and breath it costs on the real foe. */
 const NG = { line: 0, up: 1, posture: 2, breath: 3, read: 4, block: 5, brace: 6, winded: 7,
-  lock: 8, push: 9, deflect: 10, dodge: 11, parry: 12, flip: 13, side: 14, max: 15, elite: 16 };   // (8 on: its profile, for the puppet's e.dp)
+  lock: 8, push: 9, deflect: 10, dodge: 11, parry: 12, flip: 13, side: 14, max: 15, elite: 16, strike: 17 };   // (17: the line its wind-up comes in on, for this player's guard: player/jedi/guardline.js)
+const STRIKE_LINES = ['L', 'R', 'H', 'Lo', 'T'];   // (8 on: its profile, for the puppet's e.dp)
 const line0 = e => LINES[e.ng ? e.ng[NG.line] : 2] || 'H';
 // host: a duellist's guard as the snapshot sends it, or 0
 export function duelRec(e){
@@ -1122,14 +1174,17 @@ export function duelRec(e){
     e.breath != null ? Math.round(clamp(e.breath / e.breathMax, 0, 1) * 100) : -1, e.lineStreak >= DUEL.adaptAfter ? 1 : 0,
     Math.round((p.block || 0) * 100), p.brace ? 1 : 0, e.winded ? 1 : 0,
     p.lock ? 1 : 0, Math.round((p.push || 0) * 100), Math.round((p.deflect || 0) * 100), Math.round((p.dodge || 0) * 100),
-    Math.round((p.parry || 0) * 100), Math.round((p.flip || 0) * 100), Math.round((p.side || 0) * 100), p.posture || 0, p.elite ? 1 : 0];
+    Math.round((p.parry || 0) * 100), Math.round((p.flip || 0) * 100), Math.round((p.side || 0) * 100), p.posture || 0, p.elite ? 1 : 0,
+    (e.state === 'windup' || e.state === 'strike') && e.plan ? STRIKE_LINES.indexOf(e.plan.side) : -1];
 }
+// guest: the line a host's duellist is winding up on (null: not striking), from the snapshot
+export const netStrikeLine = e => (e.ng && e.ng[NG.strike] >= 0 ? STRIKE_LINES[e.ng[NG.strike]] : null);
 // guest: the puppet's own copy of the profile, from the snapshot (what its bolt deflection, the saber lock and the
 // Makashi bonus read), rebuilt only when it changes
 export function netProfile(e){
   const n = e.ng;
   if (!n || n.length <= NG.elite){ e.dp = null; e.dpKey = ''; return; }
-  const key = n.slice(NG.block).join();
+  const key = n.slice(NG.block, NG.elite + 1).join();
   if (key === e.dpKey) return;
   e.dpKey = key;
   e.dp = { block: n[NG.block] / 100, brace: !!n[NG.brace], lock: !!n[NG.lock], push: n[NG.push] / 100, deflect: n[NG.deflect] / 100,
@@ -1144,6 +1199,7 @@ function netDefend(e, line, kind, heavy, at){
   const R = DUEL.rhythm;   // your rhythm at it, kept here: a mash builds a streak it can read
   e.rhyN = G.gt - (e.rhyAt ?? -9) < R.gap ? (e.rhyN || 0) + 1 : 1; e.rhyAt = G.gt;
   if ((Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl < 0.35) return null;   // the flank or the back always lands
+  if (!n[NG.brace] && fooledBy(e, line)) return null;   // it bit on your feint (baitGuards): the real cut gets through
   const P = DUEL.posture;
   const M = matchup(e);   // the form counter (enemies/foeform.js), from the puppet's form
   const mul = (!isGunner() ? stance().postureMul || 1 : heavy ? P.heavyMul : 1) * weighed(kind) * (n[NG.brace] ? 1 : M.posture);
@@ -1237,7 +1293,8 @@ export function updatePuppetDuel(e, dt){
   }
   if (e.ff) updateStance(e, dt, !!n[NG.up] && !e.dead && !n[NG.winded], LINES[n[NG.line]] || 'H');   // its form's stance, as the host's (enemies/foestance.js)
   const brace = !!n[NG.brace], hasBreath = n[NG.breath] >= 0, spent = hasBreath && n[NG.breath] < 99;
-  if ((n[NG.posture] > 0 || spent || brace) && !e.dead && (brace || dist < DUEL.guardRange * 2)){
+  const watched = player.lockTarget === e || (n[NG.block] >= 40 && dist < DUEL.guardRange);   // (as the host's: updateDuel)
+  if ((n[NG.posture] > 0 || spent || brace || watched) && !e.dead && (brace || dist < DUEL.guardRange * 2)){
     if (!e.postBar) makePostureBar(e, hasBreath);
     const b = e.postBar, k = n[NG.posture] / 100;
     b.visible = true;

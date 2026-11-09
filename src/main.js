@@ -112,7 +112,9 @@ import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist, navRoute } from './enemies/nav.js';
 import { foeType } from './enemies/look.js';
 import { DUEL, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
-import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush } from './enemies/duel.js';
+import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush, baitGuards } from './enemies/duel.js';
+import { guardMeets, guardState } from './player/jedi/guardline.js';
+import { pvpOn } from './game/pvp-rules.js';
 import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
 import { bladeSegment } from './player/jedi/bladehit.js';
 import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partner.js';
@@ -362,6 +364,7 @@ import { TROOPER_STORE, TROOPER_SKILLS } from './data/trooper-progression.js';
 import { clearSquad } from './allies/squad.js';
 Object.assign(window.GAME, { cover: TROOPER_COVER, coverFight: COVER_FIGHT, trooperProg: { TROOPER_STORE, TROOPER_SKILLS } });
 window.GAME.squad.clearSquad = clearSquad;
+window.GAME.guard = { guardMeets, guardState, baitGuards, pvpOn };   // the soft directional block and the feint (player/jedi/guardline.js, enemies/duel.js)
 Object.assign(window.GAME, { hub: { startHub, goWing, hubs: HUBS, get wings(){ return curHub().wings; }, get id(){ return GAME.G.hubId; }, welcome: { get state(){ return welcomeState(); }, get stops(){ return welcomeStops(); }, get target(){ return welcomeState().target; }, forget: forgetWelcome, open: replayWelcome, tour: replayTour }, news: { get noted(){ return newsNoted(); }, forget: forgetNews }, launch: hubLaunch } });   // the hubs (game/hub.js), for tests and shots: wings are the current hub's
 // the post-game (data/ngplus.js, game/profile.js): what the NEW GAME+ smoke suite (tools/smoke/ngplus.mjs) reads
 import { CUSTOMIZE as CUSTOMIZE_ROWS } from './data/customize.js';

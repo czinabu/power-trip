@@ -27,6 +27,9 @@
 //          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike sweep forceTakedown forceCounter grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
+//          lineBlock cleanBlock wrongSide (a duellist's strike met on your guard: on its line, steered there by hand, or
+//          beaten from the side it hadn't reached: player/jedi/guardline.js) feint feintHit (your feint baited a guard; a
+//          cut landed through the opening it left: enemies/duel.js baitGuards)
 //          perfectString (a string struck fully in rhythm into its finisher)
 //          the guns' signature moves (player/gun-moves.js): quickdraw gunKata tagBurst plant overcharge tripleTap sweep
 //          steadyBreath coveringFire
@@ -209,6 +212,27 @@ export const LESSONS = {
           keys: '', do: 'Defeat the troopers', clear: true, heal: true, spawn: 'wave', wave: { grunt: 3, blaster: 1 } },
         { say: 'And now a blade. Read its guard, as I showed you.',
           keys: '', do: 'Defeat the Magnaguard', clear: true, heal: true, spawn: 'wave', wave: { duelist: 1 } },
+      ] },
+
+    /* ---------------- DUELCRAFT — the guard's sides, steering it, the feint (data/duel-guard.js). Open from the start ---------------- */
+    { id: 'duelcraft', group: 'more', name: 'DUELCRAFT', sub: 'Guard sides, steering your guard, the feint', loadout: BASE,
+      done: 'Every duel is a conversation. Now you can lie in it, and hear when you are lied to.',
+      steps: [
+        { sec: 'YOUR GUARD', say: 'Hold your guard and watch the blade. Yours goes to meet each blow on the side it comes from, but always a beat behind. The arc in front of you shows where it is.',
+          keys: 'HOLD RMB', do: 'Block 3 of your partner\'s strikes on your guard', ev: 'lineBlock', alt: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
+        { say: 'A blow that switches sides late finds your guard still on the old one. Do not wait for it. As the strike winds up, send your guard there yourself.',
+          keys: 'HOLD RMB + FLICK MOUSE / RIGHT STICK', do: 'Make 3 clean blocks: while guarding, flick toward the side the strike winds up on (left, right, up for overhead, down for low)',
+          ev: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
+        { say: 'Better than any block is to meet the blow as it lands.',
+          keys: 'TAP RMB', do: 'Parry 2 strikes', ev: 'parry', need: 2, spawn: partner('duelist', [0, -5]) },
+        { sec: 'THE FEINT', say: 'A guard that reads your blade will chase a lie. Show it a cut, then take it back.',
+          keys: 'LMB · RMB', do: 'Start a cut at your partner and break it off into your guard at once: bait its guard twice', ev: 'feint', need: 2,
+          spawn: partner('duelist', [0, -4]) },
+        { say: 'Now finish the lie. Feint one side, and while its guard is still there, cut the other.',
+          keys: 'A + LMB · RMB · D + LMB', do: 'Land 2 cuts through a baited guard: feint one side, then cut the other', ev: 'feintHit', need: 2,
+          spawn: partner('duelist', [0, -4]) },
+        { sec: 'THE DUEL', say: 'All of it, against a blade that knows it too.',
+          keys: '', do: 'Defeat the Sith acolyte', clear: true, heal: true, spawn: 'wave', wave: { acolyte: 1 } },
       ] },
 
     /* ---------------- THE FORMS — each opens when the story teaches it (data/forms.js FORM_PATH) ---------------- */

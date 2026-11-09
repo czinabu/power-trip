@@ -51,7 +51,7 @@ export function updatePlayer(dt){
   } else updateForceStrike(dt);   // the holstered Force strike string (jedi/palm.js)
   updateForceJump(dt, pp, f, r);
   updateGravityAndLanding(dt, pp);
-  updateGuardLine();   // a held guard waits on a duellist's line (jedi/guardline.js)
+  updateGuardLine(dt);   // a held guard turns to a duellist's line, a beat late (jedi/guardline.js)
   updateFinisherCue();   // the hilt over a foe the next attack would finish (jedi/finisher.js)
   updateOffThrow(dt);    // Jar'Kai's off-hand saber in flight off the finisher (jedi/offthrow.js)
   animatePlayer(dt, pp, st, f, r, moving);

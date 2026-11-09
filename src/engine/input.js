@@ -48,6 +48,7 @@ import { interactTap } from '../game/interact.js';
 let fInteract = false;   // this F press went to a prompt (see the keydown below)
 import { pingHere } from '../net/ping.js';
 import { noteFlick } from '../player/jedi/cutaim.js';
+import { noteGuardFlick } from '../player/jedi/guardline.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
 import { flowSignature } from '../player/gunner-flow.js';
 
@@ -61,6 +62,7 @@ document.addEventListener('mousemove', (e) => {
   // allow looking well UP (was capped at -0.15, so you couldn't aim high on the ground) as well as down
   G.pitch = clamp(G.pitch + e.movementY * 0.0021 * sens, -0.62, 1.2);
   noteFlick(e.movementX, e.movementY);   // a flick just before a cut aims it (player/jedi/cutaim.js)
+  noteGuardFlick(e.movementX, e.movementY);   // ...and with the guard up, a flick steers it to that side (player/jedi/guardline.js)
   lockMouseFlick(e.movementX);   // locked on: a quick flick sideways moves the lock to the next foe (player/lockon.js)
 });
 document.addEventListener('mousedown', (e) => {
@@ -109,7 +111,7 @@ document.addEventListener('mousedown', (e) => {
     if (player.exhausted || player.gbT > 0){   // guard broken — can't defend until stamina recovers
       if (G.gt - player.lastWinded > 0.5){ player.lastWinded = G.gt; floater(playerPos(), 'GUARD BROKEN', '#ff6a3a'); sfx(120, 0.12, 'square', 0.06, 70); }
     } else {
-      const cancelled = cancelSwing();   // RMB interrupts a swing at any point — feint straight into the guard
+      const cancelled = cancelSwing(true);   // RMB interrupts a swing at any point — feint straight into the guard (an early one at a duellist baits its guard: enemies/duel.js baitGuards)
       if (cancelled) tutEvent('cancel');
       // HOLD = block (absorb only). Each fresh CLICK opens a brief, timed DEFLECT/PARRY window —
       // land it on an incoming bolt or a melee strike to send it back / stagger the attacker.

@@ -14,7 +14,7 @@ import { shared } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { buildSanctum, shelfFaces } from '../sanctum.js';
 import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
-import { PI, std, glowM, holoM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
+import { PI, std, glowM, holoM, waterM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { templeFolk } from './tython-folk.js';
 import { put, turned, radiusAt, seamRing, profile, plan, engine, leg, navLight } from './ship-kit.js';
 
@@ -102,11 +102,15 @@ function hall(L, K, pal, R){
   // the KYBER POOL under the oculus: a wide round dais, water round the projector, the temple's map turning over it
   roundStep(K, 0, 0, 13, 0.4, stoneD, 64);
   K.deco(new THREE.TorusGeometry(13, 0.14, 8, 96), trim, 0, 0.4, 0, -PI / 2).userData.noOutline = true;   // a gold lip round the dais edge
-  live(K.deco(new THREE.RingGeometry(4.2, 10.5, 64), new THREE.MeshStandardMaterial({ color: pal.water ?? 0x6ac8e8, roughness: 0.15, metalness: 0.3, emissive: 0x1a5a78, emissiveIntensity: 0.6 }), 0, 0.46, 0, -PI / 2));
+  { const wm = waterM(pal.water ?? 0x4fb4d4, { deep: 0x1d5c78, r0: 4.2, r1: 10.5 });
+    const pool = live(K.deco(new THREE.RingGeometry(4.2, 10.5, 96, 4), wm, 0, 0.46, 0, -PI / 2));
+    anim(pool, (o, t) => { wm.userData.water.uT.value = t; }); }
   K.column(0, 0, 1.3, 1.3, trim, { wallKick: false, seg: 12, taper: 0.8 });
-  live(K.deco(new THREE.CylinderGeometry(1.9, 0.6, 3.5, 24, 1, true), holoM(pal.kyber ?? 0x5ad2ff, 0.18), 0, 3.1, 0));
+  /* (art pass: the projector's cone and the map's white core were bright enough together, additive under the oculus
+     light, that the bloom turned the whole map into one white blob. Fainter cone, a pale-blue core instead of white) */
+  live(K.deco(new THREE.CylinderGeometry(1.9, 0.6, 3.5, 24, 1, true), holoM(pal.kyber ?? 0x5ad2ff, 0.07), 0, 3.1, 0));
   const map = new THREE.Group(); map.position.set(0, 5.6, 0); shared.arenaGroup.add(map);
-  { const hm = holoM(pal.kyber ?? 0x5ad2ff, 0.5), hw = holoM(0xffffff, 0.35);
+  { const hm = holoM(pal.kyber ?? 0x5ad2ff, 0.42), hw = holoM(0x9fdcff, 0.26);
     const blk = (w, h, d, x, z, m = hm) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, h / 2, z); live(b); map.add(b); };
     blk(1.5, 0.5, 1.5, 0, 0, hw); blk(1.1, 0.35, 0.6, 0, -1.4); blk(0.6, 0.3, 1.2, 1.3, 0); blk(0.6, 0.3, 1.2, -1.3, 0); blk(0.8, 0.2, 0.8, 0, 1.3);
     blk(0.4, 0.04, 4.2, 0, 0); blk(4.2, 0.04, 0.4, 0, 0);
@@ -337,6 +341,22 @@ function training(L, K, pal, R){
     for (let k = -2; k <= 2; k++) live(K.deco(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 6), glowM(k % 2 ? 0x5ad2ff : 0x7aff6a), 32 - 0.3, 2.3, z + k * 1.1, 0.25));
   }
   for (const [x, z] of [[-26, -26], [-26, 26]]) planter(K, x, z, pal, R, 0.8);
+  // DUEL MODE (game/duel-mode.js, data/duel-mode.js): the sparring hall's ring is the duel ring. Its marker stone on the
+  // north edge, the SPECTATORS' BALCONY on the south (two steps up to a stone deck facing the ring), and the TROPHY CASE
+  // in the corner where the duel honours are kept
+  K.box(14, -12.7, 0.7, 0.35, 1.1, stoneD);
+  K.deco(new THREE.BoxGeometry(1.6, 0.12, 0.9), trim, 14, 1.16, -12.7);
+  live(K.deco(new THREE.RingGeometry(0.22, 0.3, 24), glowM(0xffb84a, 0.8), 14, 1.24, -12.7, -PI / 2));
+  K.box(15, 13.2, 2, 0.8, 0.8, stoneD, { climbable: true });
+  K.box(15, 14.7, 2, 0.7, 1.6, stoneD, { climbable: true });
+  K.box(15, 16.9, 6, 1.5, 2.4, stone, { climbable: true });
+  K.deco(new THREE.BoxGeometry(12.2, 0.16, 0.3), trim, 15, 2.46, 15.45);
+  for (const x of [9.4, 20.6]) K.column(x, 17.9, 0.22, 3.6, stoneD, { seg: 8, taper: 1 });
+  K.box(26.4, 16.6, 0.7, 1.6, 2.2, woodD);
+  for (let k = -1; k <= 1; k++){
+    K.deco(new THREE.CylinderGeometry(0.16, 0.08, 0.34, 10), trim, 26.4, 2.42, 16.6 + k * 0.9);
+    K.deco(new THREE.CylinderGeometry(0.03, 0.03, 0.18, 6), trim, 26.4, 2.29 + 0.0, 16.6 + k * 0.9);
+  }
 }
 
 /* ---------------- THE ARCHIVES ---------------- */

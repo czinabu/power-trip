@@ -21,7 +21,7 @@ import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { floater } from '../fx/floaters.js';
 import { resetTrooperKit } from '../player/trooper/kit.js';
-import { shared, G, rockets, birds, detos, enemies, bolts, orbs, rings, vfx, player, isGunner, isTrooper } from '../state.js';
+import { shared, G, rockets, birds, detos, enemies, bolts, orbs, rings, vfx, player, isGunner, isTrooper, ownsPack } from '../state.js';
 import { weaponUnlocked, RUN_KIT } from '../data/mando.js';
 import { missionKit } from './armory.js';
 import { tickArmory, clearArmory, armoryPending } from '../ui/armory-ui.js';
@@ -217,10 +217,7 @@ export function startLevel(idx, opts){
     G.forceLevel = 1; G.formRank = {}; G.formUse = {}; G.formSince = {};   // the Jedi's Force Level and form mastery (data/force-level.js)
     G.gunRank = {}; G.gunUse = {}; G.gunMoves = {};   // the gunners' gun mastery (data/gun-moves.js)
     G.boonOffer = null; G.boonPicked = false;
-    player.up = { dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
-                  atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,
-                  fireRate: 1, fuelEff: 1, flameDmg: 1, flameRange: 1, rocketDmg: 1, rocketR: 1, braceDR: 0, aim: 0, darksaber: false, abilityCostMul: 1,
-                  jetTier: 0, jetPow: 0.62, fjTier: 0, cellTier: 0, heatCap: 1, heatCool: 1 };
+    player.up = freshUp();
     player.boon = {}; player.boons = {}; player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = false;   // ROGUELITE BOONS
     player.focus = 0; player.focusHitT = 0; player._focusTier = 0; player.flow = 0; player.flowReady = false; player._flowTier = 0; player.flowSig = null;   // FORCE FOCUS meter
     player.skills = {};
@@ -255,6 +252,11 @@ export function startLevel(idx, opts){
   if (opts && opts.guests && !G.coopGuest && !opts.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
   if (G.chapter >= 0) openFormsWindow();   // a chapter's start: the three can be re-picked until its fight is on (meditation.js)
 }
+// a fresh run's numbers: no upgrade, skill, crystal or perk on them (a duel levels both fighters to these: game/duel-mode.js)
+export const freshUp = () => ({ dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
+  atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,
+  fireRate: 1, fuelEff: 1, flameDmg: 1, flameRange: 1, rocketDmg: 1, rocketR: 1, braceDR: 0, aim: 0, darksaber: false, abilityCostMul: 1,
+  jetTier: 0, jetPow: 0.62, fjTier: 0, cellTier: 0, heatCap: 1, heatCool: 1 });
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)
 export function retryLevel(){ if (G.chapter >= 0) retryChapter(); else startLevel(G.levelIdx, { retry: true }); }
 export function retryIsBoss(){ return !!(G.checkpoint && G.checkpoint.boss && G.checkpoint.idx === G.levelIdx && !G.endless && !G.training && !G.mission && !G.sandbox && !G.hub); }
@@ -277,6 +279,7 @@ export function syncMandoChips(){   // reveal exactly the ability chips the Mand
     const chip = document.getElementById(id);
     if (chip) chip.style.display = (key === 'dark' ? player.up.darksaber : G.unlocked[key]) ? '' : 'none';
   }
+  const jet = document.getElementById('ab-jet'); if (jet) jet.style.display = ownsPack() ? '' : 'none';   // the jetpack: once the Armorer forges it (game/pack.js)
 }
 export function syncJediChips(){
   for (const [key, id] of JEDI_GATED){
@@ -288,6 +291,13 @@ export function syncJediChips(){
 // stay customised (the XP store). This keeps gear progression effortless and the build choices deliberate.
 // closing: the chapter has just been won (game/campaign.js chapterCleared, the wave chapter's clear below): what it hands
 // over is shown now, at its end, not as the next one opens. Its screens wait out the CHAPTER COMPLETE banner (bannerDelay).
+// THE ARMORER FORGES THE JETPACK (the Mando's close of Act I, data/store.js 'jet1'): her beat (ui/force-toast.js), as the
+// pack goes on his back (game/pack.js)
+const PACK_FORGED = { kind: 'forge', lead: true, name: 'JETPACK', what: 'FORGED FROM THE COVERT\'S BESKAR',
+  note: 'Hold SPACE to fly. It burns fuel in the air: land to refill.', covers: [] };
+const PACK_LINE = { mando: 'VX-7 flew out of here with Rook. The next time something flies away from you, you follow.',
+                    other: 'A Mandalorian is not meant to be held to the ground. Wear it. This is the Way.' };
+const packForged = () => ({ ...PACK_FORGED, line: storyHero() === 'mando' ? PACK_LINE.mando : PACK_LINE.other });
 export function checkUnlocks(bannerDelay, closing){
   // an ARRAY, not a single slot — two unlocks can share the same trigger (e.g. FORCE PULL + FAST FORM both land at
   // level0/wave2; Mando's FLAMETHROWER + WRIST ROCKET both land at stage0) and the old single-`announce` version
@@ -311,8 +321,16 @@ export function checkUnlocks(bannerDelay, closing){
     syncTrooperChips();
   } else if (isGunner()){
     for (const u of MANDO_AUTO){
-      const reached = G.zone ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage) || story(u);   // the campaign: the chapter that hands it over (data/store.js)
-      if (reached && !u.has()){ u.grant(); announce.push(u); }
+      // (`always`, the jetpack: in hand from the start outside the story, but the hub and the training grounds go by the
+      // story, and the sandbox by its own panel: game/sandbox.js)
+      const outside = (u) => u.always ? !G.hub && !G.training && !G.sandbox : (G.waveTotal || 0) >= u.stage;
+      const reached = G.zone ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : outside(u)) || story(u);   // the campaign: the chapter that hands it over (data/store.js)
+      if (reached && !u.has()){
+        u.grant();
+        if (!u.always || (u.chapter && G.chapter >= 0)) announce.push(u);   // (on his back from the start outside the story: no card for it)
+        // THE ARMORER FORGES THE JETPACK at the close of Act I: struck onto his back with the forge's beat, its card after
+        if (u.key === 'jet1' && storyClose && u.chapter === closeId && !G.kitQuiet) queueForceToast(packForged());
+      }
     }
     syncMandoChips();
   } else {

@@ -55,15 +55,22 @@ hooks.hurt = (e, dmg, pos, kind, unblockable, dx, dz) => {
   if (!asHost()) return false;
   const victim = (e === shared.boss ? shared.boss.hero : e.hero), slot = victim && victim.slot || guestSlots()[0];   // the guest this blow is for
   if (!slot) return false;
-  sendTo(slot, { t: 'hurt', n: e.nid, d: r2(dmg), x: r2(pos.x), y: r2(pos.y), z: r2(pos.z), k: kind, u: unblockable ? 1 : 0, dx: dx ? r2(dx) : 0, dz: dz ? r2(dz) : 0 });
+  const line = e !== shared.boss && e.dp && e.plan ? e.plan.side : '';   // a duellist's strike comes in on a line: their guard meets it there (player/jedi/guardline.js)
+  sendTo(slot, { t: 'hurt', n: e.nid, d: r2(dmg), x: r2(pos.x), y: r2(pos.y), z: r2(pos.z), k: kind, u: unblockable ? 1 : 0, dx: dx ? r2(dx) : 0, dz: dz ? r2(dz) : 0, l: line });
   return true;
 };
 
+/* THE INCOMING-BLOW PATH: a blow struck on another screen, judged on this one exactly as a solo fight judges it (block,
+   parry, dodge, clash or a hit: player/damage.js hurtPlayer). A host's foe uses it ('hurt' below), and so does another
+   player's saber in a duel (net/pvp.js), so whatever defends against a foe defends against a player the same way.
+   src: what struck it (a foe's puppet, or null for a player), extra: more for hurtPlayer's opts (the blow's line...) */
+export function incomingBlow(dmg, pos, kind, unblockable, src, extra){
+  const opts = { ...(unblockable ? { unblockable: true } : {}), src, by: src, ...extra };
+  return kind === 'zap' ? hurtPlayer(dmg, null, false, false, false, opts) : hurtPlayer(dmg, pos, false, true, false, opts);
+}
 on('hurt', (m) => {
   if (!asGuest()) return;
-  const src = puppetOf(m.n);
-  const opts = m.u ? { unblockable: true, src, by: src } : { src, by: src };
-  const res = m.k === 'zap' ? hurtPlayer(m.d, null, false, false, false, opts) : hurtPlayer(m.d, V3(m.x, m.y, m.z), false, true, false, opts);
+  const res = incomingBlow(m.d, V3(m.x, m.y, m.z), m.k, !!m.u, puppetOf(m.n), m.l ? { line: m.l } : undefined);   // (m.l: the line the host's duellist cut in on)
   if (res === 'hit' && m.k === 'lunge'){ player.vel.x += m.dx * 9; player.vel.z += m.dz * 9; }
   send({ t: 'hres', n: m.n, r: res, k: m.k });
 });

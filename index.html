@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="/styles/profile.css">
 <link rel="stylesheet" href="/styles/hub.css">
 <link rel="stylesheet" href="/styles/zone-map.css">
+<link rel="stylesheet" href="/styles/duel.css">
 <!-- the hero UI (styles/heroes/tokens.css): tokens first, then the shared ink rules, then each area -->
 <link rel="stylesheet" href="/styles/heroes/tokens.css">
 <link rel="stylesheet" href="/styles/heroes/ink.css">
@@ -570,6 +571,7 @@
           <div class="sec-label">DUELLISTS <span class="sb-hint">The form and rank saber and staff foes fight with</span></div>
           <div class="sb-pick"><span class="sb-pl">FORM</span><div class="sb-seg wide" id="sbfform"></div></div>
           <div class="sb-pick"><span class="sb-pl">RANK</span><div class="sb-seg wide" id="sbfrank"></div></div>
+          <div class="sb-row" id="sbduelrow"><span class="sb-pl">PRACTICE RING</span><div class="btn" data-sbduel="hits" title="Duel a mirror of yourself: first to 3 clean hits, best of 3">CLEAN HITS</div><div class="btn" data-sbduel="health" title="Duel a mirror of yourself on a health bar, best of 3">HEALTH</div><div class="btn" data-sbduel="timed" title="Duel a mirror of yourself for 90 seconds a round, best of 3">TIMED</div><div class="btn" id="sbduelstop" title="Call the duel off">END DUEL</div></div>
         </section>
       </div>
       <div class="sb-col" data-sbcol="you">

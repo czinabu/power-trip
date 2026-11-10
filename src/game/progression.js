@@ -18,6 +18,7 @@ import { endWave } from './readout.js';
 import { xpPointCheck } from './upgrades.js';
 import { chapterClosed } from './flow.js';
 import { profileOpens } from './profile.js';
+import { packChanged } from './pack.js';
 import { ngScale } from '../data/ngplus.js';
 
 export function skillSet(){ return isTrooper() ? TROOPER_SKILLS : isGunner() ? MANDO_SKILLS : SKILLS; }
@@ -38,7 +39,7 @@ export function gainXp(n){
   if (G.endless){ if (G.mut === 'windfall') n *= 2; else if (G.mut === 'frenzy') n *= 1.5; }   // mutator XP bonuses
   n *= ngScale('xp');   // a NEW GAME+ chapter levels the run faster (data/ngplus.js)
   n = Math.round(n);
-  if (n <= 0) return;
+  if (n <= 0 || G.duel) return;   // (nothing is earned in a duel: game/duel-mode.js)
   G.xp = (G.xp || 0) + n;
   G.xpEarned = (G.xpEarned || 0) + n;
   const el = document.getElementById('xpval'); if (el) el.textContent = G.xp;
@@ -68,14 +69,16 @@ export const STORE_TIER_STAGE = { 1: 0, 2: 1, 3: 3, 4: 6, 5: 8 };   // waveTotal
 function storeTierOpen(tier){ return (G.waveTotal || 0) >= (STORE_TIER_STAGE[tier] || 0); }
 
 // JETPACK PROGRESSION — starts WEAK & short (very limiting early); boosters add real lift & a bigger tank
+// THE JETPACK'S TIER: 0 is no pack at all (the Mando before the Armorer forges it at the close of Act I: an empty tank,
+// so nothing that burns fuel lights), 1 the pack she forges, 2 and 3 its boosters (data/store.js MANDO_AUTO)
 export function applyJetTier(){
-  const t = player.up.jetTier || 0;
-  player.up.jetPow = [0.5, 0.82, 1.12, 1.35][t] || 0.5;     // climb power & lift (tier 0 barely gets you off the ground)
-  player.jetMax   = [70, 100, 130, 160][t] || 70;           // fuel tank (tier 0: ~3.5 s of thrust)
-  player.up.jetHoverMul = [1.3, 1.0, 0.8, 0.6][t] || 1.3; // HOVER fuel burn — punishing early, efficient once upgraded
+  const t = Math.min(3, player.up.jetTier || 0);
+  player.up.jetPow = [0, 0.82, 1.12, 1.35][t];          // climb power & lift
+  player.jetMax   = [0, 100, 130, 160][t];              // fuel tank
+  player.up.jetHoverMul = [1, 1.0, 0.8, 0.6][t];       // HOVER fuel burn — efficient once upgraded
   player.jet = Math.min(player.jetMax, Math.max(player.jet, player.jetMax * 0.6));
+  packChanged();   // the pack goes on (or comes off) the model to match (game/pack.js)
 }
-
 // POWER CELLS — the guns hold more energy (heat) and recover it faster, a tier at a time (data/mando.js cells)
 export function applyCellTier(){
   const t = player.up.cellTier || 0, C = MANDO.cells;

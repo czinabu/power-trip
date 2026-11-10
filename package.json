@@ -63,7 +63,8 @@
     "smoke:coop-zone-ruins": "node tools/smoke/coop-zone-ruins.mjs",
     "smoke:gate": "node tools/smoke/gate.mjs",
     "smoke:raid": "node tools/smoke/raid.mjs",
-    "smoke:coop-raid": "node tools/smoke/coop-raid.mjs"
+    "smoke:coop-raid": "node tools/smoke/coop-raid.mjs",
+    "smoke:coop-duel": "node tools/smoke/coop-duel.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

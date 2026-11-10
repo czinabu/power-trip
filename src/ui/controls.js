@@ -275,6 +275,7 @@ function wireTip(el){
    together, so a row may name the other half. */
 const POWER_ROWS = {
   'Pull · hold to Grasp': ['pull'], 'Barrier': ['barrier', 'throw'], 'Jump attack': ['jslam', 'mend'], 'Judgement': ['judge', 'repulse'],
+  'Jetpack thrust': ['jet1'], 'Jet dive / rocket boost': ['jet1'], 'Air dodge': ['jet1'], 'Jet charge': ['jet1'],   // (the jetpack: forged at the close of Act I)
   'Flamethrower': ['flame'], 'Grappling hook': ['grapple', 'mslam'], 'Whistling Birds': ['birds', 'deto'], 'Bacta stim': ['bacta'], 'Jetpack missile': ['jetmissile'],
   'Spear stab': ['disruptor'], 'Darksaber heavy cut': ['darksaber'], 'Darksaber finisher': ['darksaber'], 'Ignite / retract Darksaber': ['darksaber'], 'Darksaber throw': ['darksaber'],
 };

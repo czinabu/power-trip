@@ -51,6 +51,7 @@ import { killCam } from '../engine/killcam.js';
 import { staggerEnemy } from '../enemies/damage.js';
 import { tuneBoss, MODS } from '../data/raids.js';
 import { ROLE, roleTags } from './roles.js';
+import { noteTrophy } from '../game/hub-growth.js';   // (a boss down: a trophy for the hub's hall)
 
 // the final bosses by id (boss/vexis.js registers his). Kept on the function itself, so a boss's file can register
 // whichever order the modules load in
@@ -451,6 +452,7 @@ const DEFEAT = {
     e.ward = 0; e.hpFloor = 0; e.legMode = 'off'; e.upperMode = 'off';
     if (G.stats) G.stats.bossKilled = true;
     bossDown();   // the game saves (game/autosave.js)
+    noteTrophy(F.def.id);   // his trophy for the hub's hall (game/hub-growth.js)
     gainXp(D.xp);
     G.slowmo = D.slowmo; G.slowmoT = Math.max(G.slowmoT, D.slowT);
     G.shake = 1.2; G.hitstop = Math.max(G.hitstop, 0.16);
@@ -545,7 +547,7 @@ export function finaleNet(m){
       const pe = puppetOfNid(guestNet.n); if (D.look.phase && pe) D.look.phase(pe, m.p, true); }
     return;
   }
-  if (m.k === 'down'){ bossDown(); MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
+  if (m.k === 'down'){ bossDown(); if (D) noteTrophy(D.def.id); MUSIC.bossFinish(); if (D) showBanner(D.def.fallLine || (D.def.name + ' FALLS'), '', 3.2); teardown(); return; }   // (his puppet kneels and fades with the snapshot)
   if (D && D.look.netFx) D.look.netFx(m, puppetOfNid(m.n));
 }
 const guestNet = { n: null, id: null, phase: 1, mods: null };

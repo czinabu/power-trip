@@ -16,6 +16,12 @@ import { buildEnemyMesh } from '../../enemies/mesh.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toon } from '../ink.js';
 import { put, profile, plan, engine, navLight } from './ship-kit.js';
+import { growWing } from './growth-kit.js';
+import { buildGrowth } from '../../game/hub-growth.js';
+
+// how far the citadel has grown (game/hub-growth.js, the host's in a party), while a wing is built: who is back at their post
+let ST = null;
+const has = (id) => !ST || ST.restored.has(id);
 
 /* the dispatcher: world/arena.js hands every km* layout here */
 export function buildCloneCitadel(L){
@@ -23,7 +29,11 @@ export function buildCloneCitadel(L){
   const wings = HUBS.kamino.wings, found = wingByLayout(L.layout), wing = found && found.hub === 'kamino' ? found.id : 'deck';
   const pal = { ...PAL, ...(L.pal || {}) }, K = arenaKit(), R = seeded(wing.length * 37 + 11), W = wings[wing];
   const M = mats(pal);
+  ST = buildGrowth('kamino');
   ({ deck, warroom, range, halls, armory })[wing](K, pal, M, R);
+  // a deck still short-handed: its lights low and its clutter; the war room: the honour wall (world/arenas/growth-kit.js)
+  growWing(K, 'kamino', wing, ST, { stone: 0xd2d9df, stoneD: 0x8ea0ae, trim: 0x8ea0ae, crate: 0x6a7480, cloth: pal.blue,
+    ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)', plate: 'rgba(10,20,30,.9)' });
   hubStations(W, K, { ring: pal.holo, stone: { stone: 0x6a7684, trim: 0xd8e4ee, glow: pal.holo }, beacon: (x, z) => beacon(K, M, x, z), sign: { ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' } });
   hubDoorSigns(W, wings, K, { runner: pal.holo, signY: 13, sign: { ink: '#d8f0ff', edge: 'rgba(120,210,255,.85)' } });
 }
@@ -449,9 +459,9 @@ function deck(K, pal, M, R){
   // SQUADS ON THE MARCH: two columns walking a loop round the map, opposite ways round
   { const loop = stadium(0, 0, 20, 17);
     marchingSquad(10, loop.path, loop.len, { speed: 1.5 });
-    marchingSquad(8, (d) => loop.path(loop.len - d), loop.len, { speed: 1.3, cloth: 0x7a6a3a }); }
+    if (has('home')) marchingSquad(8, (d) => loop.path(loop.len - d), loop.len, { speed: 1.3, cloth: 0x7a6a3a }); }   // (the brothers home: data/hub-growth.js)
   // the ARMY: two companies drawn up between the map and the north door, a sergeant out in front of each, facing them
-  for (const s of [-1, 1]){
+  for (const s of has('home') ? [-1, 1] : [-1]){   // (the second company: the brothers home)
     for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) trooper(s * (9 + c * 2.1), -30 + r * 2.4, 0, { variant: (r + c) % 3 });
     trooper(s * 12.2, -22.6, PI, { cloth: 0x7a6a3a, variant: 4 });
   }
@@ -520,7 +530,7 @@ function warroom(K, pal, M, R){
     const scr = pic(K.deco(new THREE.PlaneGeometry(1.8, 0.7), M.screen, x - Math.sin(yaw) * 0.1, 1.25, z - Math.cos(yaw) * 0.1, -0.6, yaw, 0));
     scr.userData.noBake = false;
   }
-  for (const [x, z, yaw] of [[-16, 6, -PI / 2 + 0.6], [16, 6, PI / 2 - 0.6], [-8, -18, 0.3], [10, -17, -0.2]]) trooper(x, z, yaw + PI, { variant: 4, cloth: 0x7a6a3a });
+  if (has('hall')) for (const [x, z, yaw] of [[-16, 6, -PI / 2 + 0.6], [16, 6, PI / 2 - 0.6], [-8, -18, 0.3], [10, -17, -0.2]]) trooper(x, z, yaw + PI, { variant: 4, cloth: 0x7a6a3a });   // (the officers back: data/hub-growth.js)
   // the wall of glass onto the storm: a rail under it, the officers' walk
   K.box(0, -31, 30, 0.3, 1.1, M.trim);
   // a holo-screen on each side wall: the front lines
@@ -554,7 +564,7 @@ function range(K, pal, M, R){
     const ph = R() * 10, per = 3 + R() * 3;
     anim(t, (o, time) => { const c = ((time + ph) % per) / per; o.rotation.x = c < 0.6 ? 0 : -PI / 2 * Math.min(1, (c - 0.6) / 0.08); });
   }
-  for (let k = 0; k < 3; k++) trooper(-12.6 + k * 8.8, -19.6, PI, { variant: k });
+  if (has('yard')) for (let k = 0; k < 3; k++) trooper(-12.6 + k * 8.8, -19.6, PI, { variant: k });   // (on the line once the range is back online)
   // the COMBAT SIM: a floor of light under a projector frame, cover blocks to fight from, droids in blue light
   live(K.deco(new THREE.CircleGeometry(10, 48), holoM(pal.holo, 0.1), 14, 0.03, 0, -PI / 2));
   for (let k = -4; k <= 4; k++){
@@ -598,7 +608,7 @@ function range(K, pal, M, R){
   for (const [lx, lz] of [[3, 24], [7, 24], [3, 28], [7, 28]]) K.column(lx, lz, 0.18, 5.2, M.metalD, { wallKick: false, seg: 6, taper: 1 });
   K.box(5, 26, 2.4, 2.4, 0.3, M.panel, { y: 5.2 });
   pic(K.deco(new THREE.BoxGeometry(4.8, 0.1, 0.1), M.trim, 5, 6.5, 23.6)); pic(K.deco(new THREE.BoxGeometry(0.1, 0.1, 4.8), M.trim, 2.6, 6.5, 26));
-  trooper(5, 25, PI + 0.6, { y: 5.5, cloth: 0x7a6a3a, variant: 4, rest: true });
+  if (has('yard')) trooper(5, 25, PI + 0.6, { y: 5.5, cloth: 0x7a6a3a, variant: 4, rest: true });
   // the scoreboard over the sim: a holo-screen of the last runs, ranked
   live(K.deco(new THREE.PlaneGeometry(7, 3.2), holoM(pal.holo, 0.18), 14, 8.5, -11.6));
   for (let k = 0; k < 5; k++) live(K.deco(new THREE.PlaneGeometry(5.6 - k * 0.7, 0.22), holoM(k ? pal.holo : 0xffd27a, 0.55), 14 - k * 0.35, 9.6 - k * 0.5, -11.55));
@@ -682,7 +692,7 @@ function halls(K, pal, M, R){
     anim(holo, (o, t, b) => { o.rotation.y = t * 0.8; o.position.y = b.y + Math.sin(t * 1.3) * 0.1; });
   }
   // the technicians on their rounds
-  for (const [x, z, yaw] of [[-12, 2, PI / 2], [8, -3, -0.4], [14, 3, PI]]) trooper(x, z, yaw, { cloth: 0x8a98a6, variant: 2 });
+  if (has('light')) for (const [x, z, yaw] of [[-12, 2, PI / 2], [8, -3, -0.4], [14, 3, PI]]) trooper(x, z, yaw, { cloth: 0x8a98a6, variant: 2 });   // (the techs, once the power's back)
 }
 
 /* ---------------- THE ARMORY ---------------- */
@@ -704,8 +714,8 @@ function armory(K, pal, M, R){
   for (const s of [-1, 1]){
     for (let z = -16; z <= 16; z += 6.5){
       K.column(s * 24, z, 0.7, 0.4, M.metalD, { wallKick: false, seg: 12, taper: 1 });
-      trooper(s * 24, z, s > 0 ? -PI / 2 : PI / 2, { y: 0.4, rest: true, cloth: s > 0 ? PAL.blue : PAL.red });
-      solids.push({ x: s * 24, z, r: 0.75, h: 2.4 });
+      // (every stand full once the armory's restocked; until then every other one stands empty)
+      if (has('heart') || Math.round((z + 16) / 6.5) % 2 === 0){ trooper(s * 24, z, s > 0 ? -PI / 2 : PI / 2, { y: 0.4, rest: true, cloth: s > 0 ? PAL.blue : PAL.red }); solids.push({ x: s * 24, z, r: 0.75, h: 2.4 }); }
     }
     for (const z of [-19.5, -9.6, -3.2, 3.2, 9.6, 19.5]) rack(K, M, s * 28.6, z, s > 0 ? -PI / 2 : PI / 2, 4);
   }

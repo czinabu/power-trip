@@ -37,6 +37,7 @@ import { addFlow, flowKill } from '../player/gunner-flow.js';
 import { mutOn } from '../data/ngplus.js';
 import { roleTags, takesRoles } from '../boss/roles.js';
 import { pickCuts } from './scars.js';
+import { noteTrophy } from '../game/hub-growth.js';   // (the Warbringer down: a trophy for the hub's hall)
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -228,7 +229,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
     foeFell(e, byAlly);   // struck down while it had yielded: the dark (game/alignment.js)
     tutEvent('kill', e);
     if (e.dp) duelWon(e);   // a duellist down: its guard ring fades a little more as you learn the blade (enemies/guardcue.js)
-    if (e.warbringer && !e.converted) bossDown();   // the Warbringer down: the game saves (game/autosave.js)
+    if (e.warbringer && !e.converted){ bossDown(); noteTrophy('warbringer'); }   // the Warbringer down: the game saves (game/autosave.js)
     if (blownUp) flyerBlowUp(e);
     if (e.t.bomber && !e._blew) bomberExplode(e);   // a SABOTEUR killed before its fuse still goes off — don't kill it point-blank
     if (e.t.officer) officerDown(e);   // an OFFICER down: the squad around it falters (tactics.js)

@@ -15,7 +15,8 @@
 //   from the wing's middle. The acts: travel, council (every mode), training, sparring (sandbox), proving (survival),
 //   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner), raid (the
 //   raid page: data/raids.js; every hub's mission table carries it too), shuttle (the ship to an open zone: data/zones.js),
-//   duel (the duel ring: challenge a friend, watch from the balcony, practise), honours (the trophy hall's duel record).
+//   duel (the duel ring: challenge a friend, watch from the balcony, practise), honours (the duel record, by the ring).
+//   deeds (the hub's trophy hall: what it has restored, its trophies and its friends, data/hub-growth.js).
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
 import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
@@ -89,13 +90,27 @@ const TEMPLE_WINGS = {
     blurb: 'Everything the Order learned, and everything you have: the codex, your holocron, the mission records.',
     level: { name: 'THE HIDDEN TEMPLE — THE ARCHIVES', sub: 'The codex, your holocron and the mission records.', arena: 72, layout: 'tyArchive', waves: [], hazards: {} },
     map: ['shelves'],   // what the hub map draws the room with (ui/hub-map.js ART)
-    doors: { e: 'hall' },
+    doors: { e: 'hall', w: 'trophies' },
     spawn: [26, 0, -Math.PI / 2],
     stations: [
       { id: 'terminal', x: 0, z: 0, name: 'ARCHIVE TERMINAL', act: 'codex', r: 4 },
       { id: 'holocron', x: -22, z: -4.5, name: 'HOLOCRON', act: 'profile' },
       { id: 'records', x: -22, z: 4.5, name: 'MISSION RECORDS', act: 'records' },
       { id: 'waystone', x: 28, z: 9, name: 'WAYSTONE', act: 'travel' },
+    ],
+  },
+  // past the archives, west: THE TROPHY HALL, where the temple keeps what you've beaten, a banner for every raid day won
+  // and a wall naming the friends who stood with you (data/hub-growth.js, world/arenas/growth-kit.js)
+  trophies: {
+    name: 'THE TROPHY HALL', short: 'TROPHY HALL',
+    blurb: 'What the temple has won back: a trophy from every great foe you have beaten, a banner for every raid, and the names of everyone who stood with you.',
+    level: { name: 'THE HIDDEN TEMPLE — THE TROPHY HALL', sub: 'Your trophies, your raid banners and your friends.', arena: 64, layout: 'tyTrophy', waves: [], hazards: {} },
+    map: ['plinths'],   // what the hub map draws the room with (ui/hub-map.js ART)
+    doors: { e: 'archives' },
+    spawn: [22, 0, -Math.PI / 2],
+    stations: [
+      { id: 'deeds', x: 0, z: 0, name: 'THE LEDGER OF DEEDS', act: 'deeds', r: 4 },
+      { id: 'waystone', x: 26, z: 9, name: 'WAYSTONE', act: 'travel' },
     ],
   },
   forge: {
@@ -116,7 +131,7 @@ const HUB_LIST = {
   temple: { name: 'THE HIDDEN TEMPLE', place: 'TYTHON', home: 'THE TEMPLE', room: 'WING',
     tile: 'Walk the temple on Tython, gather your party and pick a mission together',
     travel: 'Travel to any wing of the temple.',
-    start: 'hall', order: ['hall', 'council', 'landing', 'training', 'archives', 'forge'], wings: TEMPLE_WINGS },
+    start: 'hall', order: ['hall', 'council', 'landing', 'training', 'archives', 'trophies', 'forge'], wings: TEMPLE_WINGS },
   kamino: { name: 'THE CLONE CITADEL', place: 'KAMINO', home: 'THE CITADEL', room: 'DECK',
     tile: 'Walk the cloning citadel on Kamino, gather your squad and pick a mission together',
     travel: 'Travel to any deck of the citadel.',

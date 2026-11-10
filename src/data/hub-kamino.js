@@ -27,6 +27,7 @@ export const KAMINO_WINGS = {
       { id: 'table', x: 0, z: 0, name: 'HOLOTABLE', act: 'council', r: 9 },
       { id: 'beacon', x: 9, z: 24, name: 'TRANSIT BEACON', act: 'travel' },
       { id: 'calls', x: -9, z: 24, name: 'CALLS FOR AID', act: 'quests' },   // the side missions (data/side-quests.js)
+      { id: 'deeds', x: -20, z: 0, name: 'HONOUR WALL', act: 'deeds' },   // what the citadel has restored, won and who served with you (data/hub-growth.js)
     ],
   },
   range: {

@@ -17,6 +17,9 @@ import { toon, inkify } from '../ink.js';
 import { leg, navLight } from './ship-kit.js';
 import { COVERT_WINGS } from '../../data/hub-covert.js';
 import { SIDE_OUT } from '../../data/hub.js';
+import { growWing } from './growth-kit.js';
+import { buildGrowth } from '../../game/hub-growth.js';
+import { templeFolk } from './tython-folk.js';
 
 const pic = (m) => { m.userData.passThrough = true; m.castShadow = false; return m; };   // past the edge: a picture, baked
 const AMBER = 0xffb35a;
@@ -27,10 +30,15 @@ export function buildCovertHubArena(L){
   const wing = Object.keys(COVERT_WINGS).find(k => COVERT_WINGS[k].level.layout === L.layout) || 'forge';
   const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 37 + 11);
   const M = mats(pal);
+  const st = buildGrowth('covert');   // how far the covert has grown (game/hub-growth.js): the host's, in a party
   ({ forge, clan, pit, vault, hangar })[wing](L, K, pal, R, M);
+  // a hall still to be restored: its fires low and its rubble; the trophy vault: its trophies, banners and friends
+  growWing(K, 'covert', wing, st, { stone: pal.stone ?? 0x6a5c52, stoneD: pal.stoneD ?? 0x4a4038, trim: pal.trim ?? 0xc89a4a, crate: pal.wood ?? 0x5a3e2a,
+    wood: pal.wood ?? 0x5a3e2a, cloth: pal.cloth ?? 0x6a2620, ink: '#ffd8a0', edge: 'rgba(255,179,90,.85)', plate: 'rgba(26,18,14,.92)' });
   // every station's amber rings and sign (a covert map console at each fast-travel stop), the signs over the doors
   hubStations(COVERT_WINGS[wing], K, { ring: pal.ring ?? AMBER, stone: { stone: 0x4a4440, trim: 0x8a7a60, glow: pal.ring ?? AMBER }, tall: ['table', 'ship'], beacon: (x, z) => mapConsole(K, pal, x, z, wing === 'forge' ? 1 : 0.5) });
   hubDoorSigns(COVERT_WINGS[wing], COVERT_WINGS, K, { signY: 8.2, runner: pal.ring ?? AMBER });
+  templeFolk(wing, 'covert', st);   // the foundlings and the clan, home as the covert grows (world/arenas/tython-folk.js)
 }
 
 function mats(pal){

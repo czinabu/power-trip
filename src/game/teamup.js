@@ -36,7 +36,7 @@ import { floater, screenFlash } from '../fx/floaters.js';
 import { explosion, sparks, groundRing, motes, puff } from '../fx/ink.js';
 import { spawnGroundShock } from '../fx/vfx.js';
 import { bark } from '../fx/barks.js';
-import { addTeamDome, updateTeamDomes, clearTeamDomes } from '../fx/team-dome.js';
+import { addTeamDome, updateTeamDomes, clearTeamDomes, teamDomeCount } from '../fx/team-dome.js';
 import { SEAT_COLORS } from '../ui/coop-marks.js';
 import { showBanner } from '../ui/banners.js';
 import { pad, padKeys } from '../engine/gamepad.js';
@@ -167,6 +167,23 @@ const SETUP = {
     const mid = { x: (A.pos.x + B.pos.x) / 2, y: 0, z: (A.pos.z + B.pos.z) / 2 };
     return list.filter(e => flat(e.group.position, mid) < D.ring).length >= D.min ? { n: null, p: mid } : null;
   },
+  cross(D, A, B, list){
+    let best = null, bw = -1e9;
+    for (const e of list){
+      const q = e.group.position, da = flat(q, A.pos), db = flat(q, B.pos);
+      if (da > D.reach || db > D.far || da < 2 || db < 2 || !faces(A, q, 0) || !faces(B, q, 0)) continue;
+      // caught between the two: from the foe, the two heroes stand on opposite sides
+      const cos = ((A.pos.x - q.x) * (B.pos.x - q.x) + (A.pos.z - q.z) * (B.pos.z - q.z)) / (da * db);
+      if (cos > D.flank) continue;
+      const w = (tough(e) ? 20 : 0) - da - db;   // a big one first
+      if (w > bw){ bw = w; best = e; }
+    }
+    return best && { n: nidOf(best), p: best.group.position };
+  },
+  barrage(D, A, B, list){
+    const c = bestCrowd(list.filter(e => !bossy(e)), A.pos, D.reach, D.minD, D.crowd, D.min);
+    return c && flat(c, B.pos) < D.far ? { n: null, p: { x: c.x, y: 0, z: c.z } } : null;
+  },
 };
 // the marks a MARKED VOLLEY takes, nearest the seed first
 function marksAround(list, p, D){
@@ -182,11 +199,14 @@ function setupFor(k, A, B){
 
 const meNow = () => ({ slot: mySlot(), hero: G.hero, pos: playerPos(), yaw: player.faceYaw ?? player.group.rotation.y, packed: hasPack(), me: true, group: player.group });
 
+// how far a partner may stand and still count as near (a flanking move wants them across the fight)
+const reachFor = (h1, h2) => Math.max(TEAMUP.near, ...(PAIRS[pairKey(h1, h2)] || []).map(k => TEAMUPS[k].apart || 0));
+
 /* what this hero could team up on right now: online with the nearest partner in reach, solo with an ally */
 function findCandidate(){
   const me = meNow();
   if (coop()){
-    const mates = partnerStand().filter(P => !P.away && flat(P.pos, me.pos) < TEAMUP.near).sort((a, b) => flat(a.pos, me.pos) - flat(b.pos, me.pos));
+    const mates = partnerStand().filter(P => !P.away && flat(P.pos, me.pos) < reachFor(me.hero, P.hero)).sort((a, b) => flat(a.pos, me.pos) - flat(b.pos, me.pos));
     for (const P of mates){
       const mate = { slot: P.slot, hero: P.hero, pos: P.pos, yaw: P.yaw, packed: P.hero === 'mando' && P.packed, name: P.name, group: P.group };
       for (const k of PAIRS[pairKey(me.hero, mate.hero)] || []){
@@ -571,12 +591,73 @@ const MOVES = {
       });
     },
   },
+
+  /* CROSSFIRE — a foe caught between two Mandos: a rocket from each side at once, and the armour cracks */
+  cross: {
+    start(run){ if (run.role) player.aiming = run.D.dur; },
+    step(run, dt, pa, pb){
+      const e = run.target, D = run.D, launch = D.hit - 0.4;
+      const aim = () => (e && (alive(e) || e === shared.boss) ? e.group.position.clone().setY(e.group.position.y + 1.2) : run.at.clone().setY(1.5));
+      once(run, 'fire', launch, () => {
+        if (run.role){ player.recoil = 0.35; G.shake = Math.max(G.shake, 0.3); }
+        run.birds = [];
+        for (const q of [pa, pb]){
+          if (!q) continue;
+          if (q.ally){ for (let i = 0; i < 4; i++) setTimeout(() => { tracer(q.pos.clone().setY(q.pos.y + 1.4), aim(), 0x6fd0ff); S.blaster(); }, i * 70); continue; }
+          S.rocket(); run.birds.push(projectile(q.pos.clone().setY(q.pos.y + 1.9), 0.1, 0xb8c2cc));
+        }
+      });
+      for (const b of run.birds || []) fly(b, aim(), (run.t - launch) / 0.4);
+      once(run, 'hit', D.hit, () => {
+        for (const b of run.birds || []) dropProjectile(b); run.birds = null;
+        const p = aim();
+        explosion(p, D.splash, true); burst(p, 0xffb04a, 14, 9, 4); S.boom(p, 1.5);
+        G.shake = Math.max(G.shake, 1.1); G.hitstop = Math.max(G.hitstop, 0.1);
+        G.slowmo = Math.min(G.slowmo, TEAMUP.slowmo); G.slowmoT = Math.max(G.slowmoT, TEAMUP.slowT);
+        floater(p.clone().setY(p.y + 1), 'CROSSFIRE', '#ffd24a');
+        if (!run.own) return;
+        if (e && (alive(e) || e === shared.boss)){
+          const side = pa && pb ? V3(pb.pos.z - pa.pos.z, 0, pa.pos.x - pb.pos.x).normalize() : away(run.at, e);
+          hit(run, e, D.dmg, side, D.knock * 0.4, { stagger: true });
+          if (!e.dead && e !== shared.boss){ if (tough(e)) staggerEnemy(e, side.x, side.z, 'ARMOUR CRACKED'); else { e.state = 'ragdoll'; e.st = 0; e.vel.set(side.x * 4, 9, side.z * 4); } }
+        }
+        for (const o of foes()) if (o !== e && !bossy(o) && flat(o.group.position, p) < D.splash) hit(run, o, D.splashDmg, away(p, o), D.knock);
+      });
+    },
+  },
+
+  /* ARTILLERY CALL — one trooper paints a far crowd, the other calls it in: shells walk across it */
+  barrage: {
+    start(run, pa){
+      const D = run.D;
+      if (run.role) player.aiming = D.dur;
+      if (pa) tracer(pa.pos.clone().setY(pa.pos.y + 1.4), V3(run.at.x, 0.2, run.at.z), 0xff4a3a);
+      groundRing(V3(run.at.x, 0.1, run.at.z), 0xff5a4a, D.spread + D.radius, D.hit, 0.9);
+      floater(V3(run.at.x, 2.4, run.at.z), 'TARGET PAINTED', '#ff8a7a');
+      sfx(520, 0.1, 'square', 0.04, 780); setTimeout(() => sfx(780, 0.1, 'square', 0.04, 520), 130);
+    },
+    step(run, dt, pa){
+      const D = run.D;
+      if (pa && run.t < D.hit && Math.random() < 0.25) tracer(pa.pos.clone().setY(pa.pos.y + 1.4), V3(run.at.x, 0.2, run.at.z), 0xff4a3a);
+      for (let i = 0; i < D.shells; i++){
+        // (the same spots on every screen: a fixed spiral round the mark)
+        const a = i * 2.4, r = i === 0 ? 0 : D.spread * (0.45 + 0.55 * (i / D.shells)), p = V3(run.at.x + Math.sin(a) * r, 0.3, run.at.z + Math.cos(a) * r), at = D.hit + i * D.every;
+        once(run, 'streak' + i, at - 0.12, () => tracer(p.clone().setY(26), p, 0xffd9a0));
+        once(run, 'shell' + i, at, () => {
+          explosion(p, D.radius * 0.8, false); S.boom(p, 1.0); G.shake = Math.max(G.shake, 0.7);
+          if (i === 0){ floater(V3(p.x, 2.4, p.z), 'ARTILLERY CALL', '#ffb04a'); G.slowmo = Math.min(G.slowmo, TEAMUP.slowmo); G.slowmoT = Math.max(G.slowmoT, TEAMUP.slowT * 0.6); }
+          if (!run.own) return;
+          for (const e of foes()){ const d = flat(e.group.position, p); if (d < D.radius && !bossy(e)) hit(run, e, D.dmg * (1 - d / D.radius * 0.4), away(p, e), D.knock); }
+        });
+      }
+    },
+  },
 };
 
 /* ---------------- every frame ---------------- */
 // before the hero's own update (main.js): the moves play, the prompt shows. dt: the game's (slowed) step
 export function updateTeamups(dt){
-  if (G.mode !== 'play'){ if (T.runs.length) resetTeamups(); prompt(null); return; }
+  if (G.mode !== 'play'){ if (T.runs.length) resetTeamups(); prompt(null); aimMark(null); return; }
   updateTeamDomes(dt, G.gt);
   for (let i = T.runs.length - 1; i >= 0; i--){
     const run = T.runs[i];
@@ -585,7 +666,8 @@ export function updateTeamups(dt){
     if (MOVES[run.k].step) MOVES[run.k].step(run, dt, pa, pb);
     if (run.m.ally && run.m.ally.group){ const g = run.m.ally.group; g.rotation.y = Math.atan2(run.at.x - g.position.x, run.at.z - g.position.z); }
     stepTether(run.tether, pa, pb, run.t, run.D.dur);
-    if (run.t >= run.D.dur + 0.1){ dropTether(run.tether); for (const p of run.fx) dropProjectile(p); T.runs.splice(i, 1); }
+    if (run.t >= Math.max(run.D.dur, run.D.hit + (run.D.shells || 0) * (run.D.every || 0)) + 0.1){   // (the move plays out past the commitment, for a barrage's last shells)
+      dropTether(run.tether); for (const p of run.fx) dropProjectile(p); T.runs.splice(i, 1); }
   }
   if (!teamupBusy()){ player.teamFace = null; }
   else player.moveVel.multiplyScalar(0.5);   // planted: the move is the commitment
@@ -598,6 +680,9 @@ export function updateTeamups(dt){
   const waiting = T.offer && performance.now() - T.offer.at < TEAMUP.window * 1000 ? T.offer : (T.offer = null);
   prompt(teamupBusy() ? null : ready ? { kind: 'ready', k: ready.k, name: ready.name } : waiting ? { kind: 'wait', k: waiting.k, name: nameOf(waiting.p) }
     : T.cand ? { kind: G.gt < T.cdUntil ? 'cd' : 'go', k: T.cand.k, name: T.cand.mate.name, solo: !!T.cand.solo } : null);
+  // ...and on the ground, where it would land: a gold ring under the foe (or the crowd, or the spot) while you can press
+  const aim = teamupBusy() || G.gt < T.cdUntil ? null : ready || T.cand;
+  aimMark(aim, dt);
 }
 
 // after the hero's own update: a scripted flight (JETPACK DROP) puts the body where the arc says
@@ -616,10 +701,10 @@ export function updateTeamupFlight(dt){
 }
 
 export function resetTeamups(){
-  for (const run of T.runs){ dropTether(run.tether); dropProjectile(run.rocket); dropProjectile(run.frag); for (const b of run.birds || []) dropProjectile(b.p); }
+  for (const run of T.runs){ dropTether(run.tether); dropProjectile(run.rocket); dropProjectile(run.frag); for (const b of run.birds || []) dropProjectile(b.p || b); }
   T.runs.length = 0; T.fly = null; T.busyUntil = -1e9; T.cdUntil = -1e9; T.offer = null; T.heard.clear(); T.offers.clear(); T.cand = null;
   player.teamFace = null; player.backT = 0;
-  clearTeamDomes();
+  clearTeamDomes(); aimMark(null);
 }
 on('closed', () => { T.heard.clear(); T.offers.clear(); T.offer = null; });
 
@@ -642,6 +727,21 @@ shared.teamupUp = () => !!(T.el && / (go|ready)$/.test(T.el.className));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /* ---------------- the pieces the moves are drawn with ---------------- */
+// the prompt's ground ring: what the team-up would land on
+let mark = null;
+function aimMark(c, dt){
+  if (!c){ if (mark) mark.visible = false; return; }
+  if (!mark){
+    mark = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40), new THREE.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    mark.rotation.x = -Math.PI / 2; mark.renderOrder = 6; scene.add(mark);
+  }
+  const D = TEAMUPS[c.k], e = c.n != null ? byNid(c.n) : null, q = e && e.group ? e.group.position : c;
+  const r = e ? Math.max(1.1, bodyRadius(e) + 0.6) : (D.radius || D.crowd || D.ring || 3);
+  mark.visible = true; mark.position.set(q.x, 0.08, q.z);
+  mark.scale.setScalar(r * (1 + Math.sin(G.gt * 6) * 0.05));
+  mark.material.opacity = 0.45 + Math.sin(G.gt * 6) * 0.15;
+}
+
 const _a = new THREE.Vector3(), _b = new THREE.Vector3();
 function tether(c1, c2){
   const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
@@ -696,4 +796,4 @@ export function updateTeamupFx(dt){
 /* ---------------- for the smoke tests ---------------- */
 export const teamupInfo = () => ({ cand: T.cand ? { k: T.cand.k, mate: T.cand.mate.slot, solo: !!T.cand.solo } : null, busy: teamupBusy(), cd: Math.max(0, T.cdUntil - G.gt),
   runs: T.runs.map(r => ({ k: r.k, t: +r.t.toFixed(2), role: r.role, own: r.own })), done: T.done, offer: T.offer ? T.offer.k : null,
-  ready: (() => { const r = readyFrom(); return r ? r.k : null; })(), prompt: T.el ? T.el.className : '' });
+  ready: (() => { const r = readyFrom(); return r ? r.k : null; })(), prompt: T.el ? T.el.className : '', domes: teamDomeCount(), backs: Math.max(0, (player.backT || 0) - G.gt) });

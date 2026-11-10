@@ -24,7 +24,7 @@ export const TEAMUP = {
 };
 
 /* THE MOVES. reach: the farthest part A's hero may stand from the target; far: part B's; gap: the farthest the two heroes
-   may stand apart. dur: how long both are committed. hit: when (s after the go) the payoff lands. dmg: base damage. */
+   may stand apart (apart: a partner this far counts as near, for a move that wants them spread out). dur: how long both are committed. hit: when (s after the go) the payoff lands. dmg: base damage. */
 export const TEAMUPS = {
   // Jedi + Mando: the Jedi lifts a foe high in the Force, the Mando's rocket meets it in the air
   lift: { name: 'LIFT & LAUNCH', heroes: ['jedi', 'mando'], reach: 14, far: 30, gap: 24, dur: 1.4, hit: 1.0, rise: 3.4,
@@ -53,6 +53,12 @@ export const TEAMUPS = {
   // Jedi + Jedi: back to back in a crowd, a spinning cut all round, then each guards the other's back for a while
   backs: { name: 'BACK TO BACK', heroes: ['jedi', 'jedi'], reach: 7, far: 7, gap: 4, dur: 0.9, hit: 0.35, min: 3, ring: 7.5, cut: 4.2, guard: 8,
            dmg: 40, knock: 10, says: ['I\'ve got your back.', 'And I yours.'] },
+  // Mando + Mando: a big foe caught between the two, a rocket from each side at once cracks its armour
+  cross: { name: 'CROSSFIRE', heroes: ['mando', 'mando'], reach: 22, far: 22, gap: 36, apart: 36, dur: 1.2, hit: 0.85, flank: -0.25,
+           dmg: 150, splash: 3.5, splashDmg: 35, knock: 14, says: ['Flank it!', 'Got the other side.'] },
+  // Trooper + trooper: one paints a far crowd, the other calls the barrage in on it
+  barrage: { name: 'ARTILLERY CALL', heroes: ['trooper', 'trooper'], reach: 40, far: 40, gap: 30, dur: 1.4, hit: 1.1, minD: 12, min: 3, crowd: 5,
+             shells: 5, spread: 3.5, every: 0.14, radius: 3.5, dmg: 50, knock: 12, says: ['Target painted!', 'Fire for effect!'] },
 };
 
 // which moves a pair can do, the first whose setup is right is offered (pair key: the two heroes, sorted)
@@ -61,6 +67,8 @@ export const PAIRS = {
   'jedi+trooper': ['pin', 'barrier'],
   'mando+trooper': ['sweep', 'mark'],
   'jedi+jedi': ['backs', 'push'],
+  'mando+mando': ['cross'],
+  'trooper+trooper': ['barrage'],
 };
 export const pairKey = (a, b) => [a, b].sort().join('+');
 
@@ -68,6 +76,6 @@ export const pairKey = (a, b) => [a, b].sort().join('+');
    ally: who it takes (apprentice: the Padawan or the foundling; squad: any squadmate). The ally plays the other part. */
 export const SOLO = {
   jedi: [{ k: 'push', ally: 'apprentice' }, { k: 'pin', ally: 'squad' }, { k: 'backs', ally: 'any' }],
-  mando: [{ k: 'mark', ally: 'any' }],
-  trooper: [{ k: 'sweep', ally: 'squad' }, { k: 'mark', ally: 'squad' }],
+  mando: [{ k: 'cross', ally: 'any' }, { k: 'mark', ally: 'any' }],
+  trooper: [{ k: 'sweep', ally: 'squad' }, { k: 'barrage', ally: 'squad' }, { k: 'mark', ally: 'squad' }],
 };

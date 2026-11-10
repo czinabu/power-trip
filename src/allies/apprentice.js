@@ -21,6 +21,8 @@ import { bark } from '../fx/barks.js';
 import { sfx } from '../audio/sfx.js';
 import { makeFriendTag, addFriendRing } from '../fx/friend.js';
 import { buildEnemyMesh } from '../enemies/mesh.js';
+import { buildHeroAlly, heroCast, heroFollowForm, poseHeroIdle } from './hero-ally.js';
+import { dropStandIn } from '../player/stand-in.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { damageEnemy } from '../enemies/damage.js';
@@ -128,8 +130,10 @@ function bladeOf(hero){
 }
 function defFor(hero){
   const D = apprenticeDef(hero), stg = apprenticeStage(hero);
-  if (hero === 'jedi') return { name: D.name, role: 'jedi', model: D.model, weapon: D.weapon, look: stg.look.look, color: D.color, eye: bladeOf(hero), cloth: D.cloth, scale: stg.look.scale, apprentice: true };
-  if (hero === 'mando') return { name: D.name, role: 'rifle', model: D.model, color: stg.look.color, eye: D.eye, cloth: D.cloth, scale: stg.look.scale, apprentice: true };
+  // (hero: a hero-class squadmate, the hero's own model and moves at the stage's size: data/hero-allies.js. The Padawan
+  // fights in the form you hold, the foundling with the carbine)
+  if (hero === 'jedi') return { name: D.name, role: 'jedi', hero: 'jedi', stance: G.stance, blade: bladeOf(hero), heroScale: stg.look.scale, model: D.model, weapon: D.weapon, look: stg.look.look, color: D.color, eye: bladeOf(hero), cloth: D.cloth, scale: stg.look.scale, apprentice: true };
+  if (hero === 'mando') return { name: D.name, role: 'rifle', hero: 'mando', weapon: 'carbine', heroScale: stg.look.scale, heroLook: { mando: { parts: { helmet: 'clean', cape: 'none' }, palette: { beskar: stg.look.color, beskar2: 0x4a4f58, cloth: D.cloth } } }, model: D.model, color: stg.look.color, eye: D.eye, cloth: D.cloth, scale: stg.look.scale, apprentice: true };
   return null;
 }
 function roleFor(hero){
@@ -304,13 +308,14 @@ function usePower(a, pw, scale){
   return false;
 }
 function padawan(a, dt){
+  heroFollowForm(a, G.stance);   // (a hero-class Padawan holds the form you hold: allies/hero-ally.js)
   if ((A.powT -= dt) > 0) return;
   const stg = apprenticeStage('jedi'), pws = jediPowers(stg);
   if (!pws.length || a.cutT > 0 || !enemies.some(e => !e.dead)){ A.powT = 1; return; }
   const cdMul = Math.max(0.5, 1 - treePoints().control * APPRENTICES.jedi.tree.control.cd);
   const scale = (SQUAD.dmg[G.diff] || 1) * (player.up.squadDmg || 1);
   const order = pws.slice().sort(() => Math.random() - 0.5);
-  for (const pw of order) if (usePower(a, pw, scale)){ A.powT = pw.cd * cdMul * rand(0.85, 1.15); A.used = (A.used || 0) + 1; return; }
+  for (const pw of order) if (usePower(a, pw, scale)){ heroCast(a, pw.id === 'pull' ? 'pull' : 'push'); A.powT = pw.cd * cdMul * rand(0.85, 1.15); A.used = (A.used || 0) + 1; return; }
   A.powT = 0.6;
 }
 // THE FOUNDLING'S EYE: every few seconds, the foe nearest you that they can see (never the boss) is called out, and your
@@ -362,7 +367,7 @@ function figDef(hero){
   const who = apprenticeOf(hero).who || APPRENTICES.trooper.pick[0];
   return SQUAD.roster.trooper.find(d => d.name === who) || SQUAD.roster.trooper[0];
 }
-function dropFig(){ if (A.fig){ scene.remove(A.fig.group); A.fig = null; } A.figKey = ''; }
+function dropFig(){ if (A.fig){ scene.remove(A.fig.group); if (A.fig.S) dropStandIn(A.fig.S); A.fig = null; } A.figKey = ''; }
 function updateFig(dt){
   const P = postHere(), hero = G.hero;
   const key = P ? [G.hubId, G.hubWing, hero, apprenticeOf(hero).stage, apprenticeOf(hero).who, bladeKey(hero), shared.arenaHalf].join(':') : '';
@@ -371,13 +376,14 @@ function updateFig(dt){
     if (!P) return;
     const d = figDef(hero);
     const t = { model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1, ranged: hero !== 'jedi', weapon: d.weapon, look: d.look };
-    const g = buildEnemyMesh(t);
+    const S = d.hero ? buildHeroAlly(d) : null;   // (the Padawan and the foundling: the hero's own model, data/hero-allies.js)
+    const g = S ? S.group : buildEnemyMesh(t);
     g.position.set(P.x, 0, P.z); g.rotation.y = Math.atan2(P.face[0] - P.x, P.face[1] - P.z);
-    if (hero === 'jedi') tintBlade(g, t.eye);
+    if (hero === 'jedi' && !S) tintBlade(g, t.eye);
     scene.add(g); addFriendRing(g);
-    A.fig = { group: g, t }; A.figKey = key;
+    A.fig = { group: g, t, S }; A.figKey = key;
   }
-  if (A.fig){ const g = A.fig.group; updateLegs(A.fig, g, dt, 'ground'); updateUpper(A.fig, g, dt, null); }
+  if (A.fig){ const g = A.fig.group; if (A.fig.S) poseHeroIdle(A.fig.S, dt); else { updateLegs(A.fig, g, dt, 'ground'); updateUpper(A.fig, g, dt, null); } }
 }
 const bladeKey = (hero) => hero === 'jedi' ? bladeOf(hero) : 0;
 // the hub's station for the apprentice (ui/hub-ui.js opens it): one per hub, at the post, shown once they've come to you

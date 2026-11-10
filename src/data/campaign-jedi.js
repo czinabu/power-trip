@@ -70,7 +70,7 @@ export const JEDI_CHAPTERS = {
     brief: ['They are already on the pilgrim road. Somebody let them in.',
             'We hold the steps together, Knight. Then I will find out who. Do not go looking for them yourself.'],
     // Vael fights beside you on the steps (a melee squadmate: data/allies.js SQUAD.roles.jedi; his look: data/saber-cast.js)
-    guests: [{ name: VAEL, role: 'jedi', model: 'acolyte', look: VAEL, weapon: 'saber', color: 0xd2c4a2, eye: 0x4a86ff, cloth: 0x3b2a1e, scale: 1.2 }],
+    guests: [{ name: VAEL, role: 'jedi', hero: 'jedi', cast: VAEL, stance: 'soresu', blade: 0x4a86ff, model: 'acolyte', color: 0xd2c4a2, eye: 0x4a86ff, cloth: 0x3b2a1e }],   // (a Jedi as yours is: data/hero-allies.js)
     talk: { where: 'THE TEMPLE STEPS, BEFORE DAWN',
       lines: [[VAEL, 'The pilgrim gate is open. Nobody on watch opened it by mistake.'],
            [HERO, 'Ilsa had the watch.'],
@@ -196,7 +196,7 @@ export const JEDI_CHAPTERS = {
             'Pull the cores before Vexis\'s salvage crews burn them. And be careful: we are not the only ones here for them.'],
     // the Mandalorian fights beside you here (a squadmate for the chapter: allies/squad.js); their own story has this meeting too
     says: ['The transport broke apart over four wrecks, and each still holds a nav core. Pull every one before the salvage crews burn them. Mind the snipers on the hulls.'],
-    guests: [{ name: 'THE MANDALORIAN', role: 'heavy', model: 'mandalorian', color: 0x8c8f94, eye: 0xffa040, cloth: 0x3a3a3a, scale: 1.04 }],
+    guests: [{ name: 'THE MANDALORIAN', role: 'heavy', hero: 'mando', cast: 'THE MANDALORIAN', weapon: 'dual', model: 'mandalorian', color: 0x8c8f94, eye: 0xffa040, cloth: 0x3a3a3a }],   // (a Mandalorian as the Mando hero is)
     opening: { lines: [[VAEL, 'A graveyard of ships, and one of them was carrying children.'],
               [MANDO, 'Jedi. You are on my salvage.'],
               [VAEL, 'A Mandalorian. The clans have been losing their foundlings down the same road. Talk first, Knight.']] },

@@ -74,6 +74,8 @@ export const FLOURISH = {
   retract: { dur: 0.44, turns: -1 },   // the other way round, the hilt settling as the blade goes in
 };
 const FL = { t: 0, F: null, node: null, off: null };
+// (another figure posed with this code for a moment takes its own: player/stand-in.js) returns what was here, puts `o` in
+export function easeMemo(o){ const was = { ...FL }; if (o) Object.assign(FL, o); return was; }
 const flNode = () => isGunner() ? (player.weapon === 'darksaber' ? player.darksaberMesh : null) : (player.holstered ? null : player.saberHand);
 // Jar'Kai's second hilt, when it's in the off hand with the first (model/weapons.js syncOffSaber)
 const flOff = () => !isGunner() && !player.holstered && !player.offAway && player.offSaber && player.offSaber.node.visible && player.saberBladeRoot && player.saberBladeRoot.userData.dual ? player.offSaber.node : null;

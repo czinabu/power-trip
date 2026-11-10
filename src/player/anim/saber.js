@@ -216,6 +216,13 @@ let switchT = 0, wheelA = 0;
 // a form with a second block (block2, Makashi) alternates between the two each time the guard goes up
 let blockAlt = true, wasBlocking = false;
 export function startSwitch(){ switchT = SWITCH_TIME; }
+/* THE POSE'S OWN MEMORY (the blend of a switch, the wheel, the block it last used, the split), handed over when someone
+   else's figure is posed with this code for a moment (player/stand-in.js): returns what was here, puts `o` in its place */
+export function saberMemo(o){
+  const was = { switchT, wheelA, blockAlt, wasBlocking, split: { t: SPLIT.t, dur: SPLIT.dur, mode: SPLIT.mode } };
+  if (o){ switchT = o.switchT; wheelA = o.wheelA; blockAlt = o.blockAlt; wasBlocking = o.wasBlocking; Object.assign(SPLIT, o.split); }
+  return was;
+}
 /* THE SPLIT AND THE JOIN (the saber staff and Jar'Kai, Maul's and Ventress's way): switching between them, the hilt is
    brought level across the chest in both hands and pulled apart into two sabers, or the two are swung together and
    locked end to end into the staff (player/jedi/stance.js swaps the weapon on the beat). Chest space: x out to the right. */

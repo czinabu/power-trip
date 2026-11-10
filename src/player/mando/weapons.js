@@ -11,7 +11,7 @@ import { V3, rand, clamp, TMP } from '../../utils.js';
 import { acquireParticle, burst } from '../../fx/particles.js';
 import { floater, screenFlash } from '../../fx/floaters.js';
 import { shared, G, enemies, bolts, vfx, keys, player, isGunner, isMando, isTrooper } from '../../state.js';
-import { MANDO, MANDO_WEAPONS, weaponUnlocked, BESKAR_PARRY } from '../../data/mando.js';
+import { MANDO, MANDO_WEAPONS, weaponUnlocked, BESKAR_PARRY, BESKAR_GUARD } from '../../data/mando.js';
 import { setLongGun, setRifleMod, setPistolLook, longMuzzle, OWN_MODEL } from '../model/weapons.js';
 import { diffWindow } from '../../data/difficulty.js';
 import { abil } from '../../data/mastery.js';
@@ -336,17 +336,33 @@ function burstRound(W){
 }
 // is the Mando BRACING (hold RMB) — the stance that tightens the cone & boosts blaster damage
 function mandoBraced(){ return isGunner() && player.blockHeld; }
-// The SINGLE-blaster GAUNTLET SHIELD — the one source of truth for "is the beskar energy shield up". Single + RMB
-// only (Dual bracing is offensive, Darksaber uses the saber guard). Computed fresh so it's valid in the air too.
-// SHIELD OR FIRE — aiming in raises the shield, but pulling the trigger drops it for blaster ADS: it stays down while
-// LMB is held and for SHIELD_RETURN after the last shot, so you can't soak and shoot at once. An overheated gun
-// can't fire, so holding the trigger then doesn't lower it (shield up while the coils vent).
-export const SHIELD_RETURN = 0.5;   // seconds after the last shot before the shield comes back up
-export function mandoShielding(){
+// THE BESKAR GUARD (data/mando.js BESKAR_GUARD) — the one source of truth for "is the vambrace up". Single + RMB, or
+// holstered with his fists (Dual bracing is offensive, the Darksaber uses the saber guard). Computed fresh so it's
+// valid in the air too.
+// GUARD OR FIRE — aiming in raises the arm, but pulling the trigger lowers it: it stays down while LMB is held and for
+// BESKAR_GUARD.back after the last shot, so you can't soak and shoot at once. An overheated gun can't fire, so
+// holding the trigger then doesn't lower it (guard up while the coils vent).
+export function mandoGuarding(){
   if (!isMando() || !player.blockHeld) return false;
-  if (player.weapon === 'fists') return true;   // holstered: the gauntlet's shield stays up while he fights with his hands
+  if (player.weapon === 'fists') return true;   // holstered: the guard stays up while he fights with his hands
   if (player.weapon !== 'single' || mandoWeapon().melee) return false;
-  return !(player.shieldDropT > 0) && !(player.trigHeld && !player.overheat);
+  return !(player.guardDropT > 0) && !(player.trigHeld && !player.overheat);
+}
+// something met the raised vambrace and stopped there (a bolt: enemies/bolts.js; a blow: player/damage.js): gold
+// sparks off the beskar where the arm is, the ring of the metal, and the arm jolts back (player/animation.js)
+export function beskarBlock(heavy = 1){
+  const at = gauntletPoint();
+  player.guardJolt = Math.min(1.4, Math.max(player.guardJolt || 0, 0.7 * heavy));
+  sparks(at, 0xffd08a, heavy > 1.2 ? 9 : 6, 9, { life: 0.24, size: 0.42 });
+  inkSprite({ pos: at, shape: 'star', points: 6, sharp: 0.2, color: 0xfff1c8, size: [0.3, 0.7 + 0.2 * heavy], life: 0.12, steps: 2, coreW: 0.4 });
+  G.shake = Math.max(G.shake, 0.12 * heavy); G.hitstop = Math.max(G.hitstop, 0.02 * heavy);
+  sfx(1700, 0.05, 'square', 0.045, 820); sfx(430, 0.11, 'triangle', 0.05, 210);
+  return at;
+}
+// out of stamina: whatever it was went through the arm
+export function beskarCrushed(){
+  spawnHitSpark(gauntletPoint(), 0x556070, 0.6);
+  sfx(180, 0.08, 'square', 0.05, 90);
 }
 // You are only truly STEADY when bracing/scoping while NOT boosting — boosting (jetpack) is never steady, so
 // flying fast + shooting is the least accurate. Movement & air add INACCURACY (bloom + recoil); bracing while
@@ -432,7 +448,7 @@ function fireBlaster(W, hand){
   else if (W.slow){ S.blasterDual(); sfx(70, 0.07, 'square', 0.05, 40); }   // the repeater: a heavier chug under each shot
   else S.blaster();
   if (!hand) player.fireCd = shotGap(W);   // (a named pistol keeps its own cooldown: firePistol)
-  if (player.weapon === 'single') player.shieldDropT = SHIELD_RETURN;   // a shot drops the shield (see mandoShielding)
+  if (player.weapon === 'single') player.guardDropT = BESKAR_GUARD.back;   // a shot lowers the guard (see mandoGuarding)
   addHeat(W, hand);   // energy cap (a named twin pistol heats its own coils) — overheats if you don't pace your fire
 }
 function fireRifle(W){
@@ -623,7 +639,7 @@ export function updateMandoCombat(dt, f, r){
     player.aimOff.y += (clamp(sy, -12, 12) - player.aimOff.y) * Math.min(1, dt*5); }
   player.muzzleBlocked = muzzleBlocked(CW);
   updateReload(dt);
-  if (player.shieldDropT > 0) player.shieldDropT -= dt;
+  if (player.guardDropT > 0) player.guardDropT -= dt;
   if (player.firing && player.darkT <= 0) firePistols();   // auto weapons spray while held
   updateFlame(dt);
   updateDark(dt);
@@ -646,8 +662,9 @@ function muzzleBlocked(W){
 
 /* ===== BESKAR PARRY (data/mando.js BESKAR_PARRY) =====
    TAP RMB as a bolt arrives: the vambrace comes up across the body and the bolt RICOCHETS straight back at whoever
-   fired it (enemies/bolts.js beskarCatch). A press opens a short window; one that catches nothing leaves a lockout, so
-   it is timing, not mashing. Any gun but the Darksaber (that parries like a lightsaber), and in the air too. */
+   fired it (enemies/bolts.js beskarCatch). The same tap as a BLOW lands turns it on the beskar and its owner reels
+   (player/damage.js beskarTurn). A press opens a short window; one that catches nothing leaves a lockout, so it is
+   timing, not mashing. Any gun but the Darksaber (that parries like a lightsaber), and in the air too. */
 export function beskarPress(){
   if (G.hero !== 'mando' || G.mode !== 'play' || player.weapon === 'darksaber' || player.flaming) return;
   if (player.beskarLockT > 0){ sfx(260, 0.05, 'triangle', 0.025, 200); return; }   // the last one whiffed: this press only braces
@@ -663,12 +680,21 @@ function updateBeskar(dt){
     if (player.beskarT <= 0 && !player.beskarHit) player.beskarLockT = BESKAR_PARRY.lock;   // a whiff: no second try for a beat
   }
 }
+// a blow met the vambrace inside the tap's window (player/damage.js, which then plays the catch: mando/melee.js
+// mandoCatch): the window is spent on it, the arm stays up a beat, and the hero gets the parry's breath back
+export function beskarTurn(){
+  const P = BESKAR_PARRY;
+  player.beskarHit = true; player.beskarT = 0; player.beskarLockT = 0;
+  player.beskarPose = P.pose;
+  player.stam = Math.min(maxStam(), player.stam + P.stam);
+  tutEvent('beskarTurn');
+}
 // a bolt met the raised vambrace: called by enemies/bolts.js. Sends it home and pays the hero back.
 export function beskarCatch(b){
   const P = BESKAR_PARRY;
   player.beskarHit = true; player.beskarT = 0; player.beskarLockT = 0;
   player.beskarPose = P.pose;
-  // a clean ricochet bleeds heat off the gun and gives the shield arm its breath back
+  // a clean ricochet bleeds heat off the gun and gives the guard arm its breath back
   if (!mandoWeapon().melee){ player.heat = Math.max(0, player.heat * (1 - P.vent)); if (player.overheat && player.heat <= 0.02) player.overheat = false; }
   player.stam = Math.min(maxStam(), player.stam + P.stam);
   const at = gauntletPoint();

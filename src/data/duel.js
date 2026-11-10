@@ -325,10 +325,10 @@ export const MANDO_MELEE = {
      driven up under the chest plate, a floored one a drop to one knee and the blade driven down. The blow lands
      `contact` s in, when the knife does (the foe is held still until then). */
   takedown: { range: 2.6, dmg: 70, maxFrac: 0.6, contact: 0.2, recover: 0.6, floorContact: 0.26, floorRecover: 0.72 },   // + this fraction of a light foe's max health (not heavies/bosses)
-  /* SHIELD AND BLADE — E while the single blaster's shield is up (RMB). The wrist vibroblade cuts from behind the
-     disc and the shield STAYS UP (firing drops it, cutting doesn't), so this is the crowd tool: a wide hack, a
-     backhand, then a shield BASH that staggers the light foes in front of you for takedowns. Every beat spends the
-     stamina the shield soaks with, you still move at brace speed and your back is open, so it holds a line rather
+  /* GUARD AND BLADE — E while the single blaster's beskar guard is up (RMB). The wrist vibroblade cuts from behind the
+     vambrace and the guard STAYS UP (firing lowers it, cutting doesn't), so this is the crowd tool: a wide hack, a
+     backhand, then a gauntlet BASH that staggers the light foes in front of you for takedowns. Every beat spends the
+     stamina the guard soaks with, you still move at brace speed and your back is open, so it holds a line rather
      than out-damaging the blaster. `arc` is the half-angle in radians, `stam` the cost of the beat. */
   guard: {
     string: [
@@ -337,6 +337,6 @@ export const MANDO_MELEE = {
       { name: 'bash',  dmg: 10, knock: 6,  line: 'H', recover: 0.55, lunge: 5,   shove: 0.8, contact: 0.12, reach: 2.3, arc: 1.0,  stam: 14, heavy: true, stagger: true },
     ],
     posture: 22,          // what the bash costs a duellist's guard (on top of the cut it lands as)
-    takedownReach: 1.6,   // behind the shield a takedown reaches this much further: the bash stumbles foes back out of arm's length
+    takedownReach: 1.6,   // behind the guard a takedown reaches this much further: the bash stumbles foes back out of arm's length
   },
 };

@@ -144,7 +144,7 @@ export function startLevel(idx, opts){
   player.slamming = false; player.slamWind = 0; player.slamBig = false; resetAirCut();
   resetGrasp();
   player.doubleJumped = false;
-  player.firing = false; player.trigHeld = false; player.shieldDropT = 0; player.fireCd = 0; player.flaming = false; player.jetActive = false; player.boosting = false; player.meleeT = 0; player.lockOn = false;
+  player.firing = false; player.trigHeld = false; player.guardDropT = 0; player.fireCd = 0; player.flaming = false; player.jetActive = false; player.boosting = false; player.meleeT = 0; player.lockOn = false;
   catchDarksaber(true);   // a thrown Darksaber goes back in the hand before the next fight
   player.darkT = 0; player.darkApplied = false; if (player.darksaberMesh) player.darksaberMesh.visible = false;
   player.zoom = false; player.aiming = 0; player.recoilKick = 0; player.stabT = 0; player.stabQ = false; player.stabCdT = 0; player.missileT = 0; player.heat = 0; player.overheat = false; player.ventT = 0;

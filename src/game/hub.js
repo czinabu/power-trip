@@ -31,8 +31,10 @@ import { stepTempleFolk } from '../world/arenas/tython-folk.js';
 import { welcomeArrive, updateWelcome } from './hub-welcome.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 import { partnerWorlds } from '../net/partner.js';
+import { growthStale } from './hub-growth.js';
+import { stepGrowthStream } from '../world/arenas/growth-kit.js';
 
-let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0;
+let arrivedAt = 0, near = null, shownKey = '', moving = false, followT = 0, staleT = 2;
 const prompt = () => document.getElementById('hubp');
 // the hub to be in: your own hero's, or in a party the host's (a guest who hasn't heard the host's hero yet uses their own)
 export const hubIdFor = () => hubOf(net.role === 'guest' && connected() ? hostHero() || G.hero : G.hero);
@@ -90,9 +92,10 @@ export function startHub(wing, from){
 }
 
 /* walk through a door (or take the fast travel) to another wing: it loads behind the loading screen, in place of this one */
-export async function goWing(to, viaDoor){
+export async function goWing(to, viaDoor, stay){
   if (!G.hub || moving || !HUBS[hubIdFor()].wings[to]) return;
   moving = true; kept = null;   // (a place picked: its own arrival, never a spot left before)
+  if (stay) keepHubSpot();   // (the same wing built again: back where you stood)
   const from = viaDoor ? G.hubWing : null;
   G.paused = true;
   let built = false;
@@ -137,6 +140,7 @@ export function updateHub(dt){
   if (!G.hub || G.mode !== 'play'){ if (el && shownKey){ el.classList.remove('on'); shownKey = ''; } return; }
   for (const a of shared.hubAnim || []) a.fn(a.obj, G.gt, a.base);
   stepTempleFolk(dt);   // the temple's people going about their day (world/arenas/tython-folk.js)
+  stepGrowthStream();   // the trophy hall's pieces, a few a frame (world/arenas/growth-kit.js)
   near = pickNear();
   const key = near ? near.id + (pad.active ? ':pad' : '') : '';
   if (el && key !== shownKey){
@@ -154,6 +158,9 @@ export function updateHub(dt){
   // co-op: the host's hero calls a different hub home (they swapped hero, or this guest arrived before hearing who they
   // play): over to the host's hub, at its start
   if (net.role === 'guest' && connected() && hubIdFor() !== G.hubId){ goWing(hostAboard() ? SHIP_WING : HUBS[hubIdFor()].start); return; }
+  // co-op: the host's hub has grown (a wing restored, a trophy, a name on the wall) since this wing was built: build it again
+  // as the host sees it (game/hub-growth.js; checked now and then, not every frame)
+  if ((staleT -= dt) <= 0){ staleT = 2; if (growthStale()){ goWing(G.hubWing, false, true); return; } }
   // co-op: the host has set off on a run, and this guest is in the hub: follow them in
   if (followT > 0 && (followT -= dt) <= 0){ followT = 0; if (followHost && coopRun.on && net.role === 'guest') followHost(); }
 }

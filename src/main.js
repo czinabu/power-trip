@@ -151,6 +151,8 @@ import * as MEDAL_DATA from './data/medals.js';
 import { MISSIONS as MISSION_LIST } from './data/missions.js';
 import { SIDE_QUESTS as SIDE_ALL, SIDE_PREFIX as SIDE_PFX } from './data/side-quests.js';
 import { missionById as defById, randomArcadeId } from './data/arcade.js';
+import * as GROWTH from './game/hub-growth.js';
+import { growthStreaming } from './world/arenas/growth-kit.js';
 import * as NGPLUS from './data/ngplus.js';   // NEW GAME+ (window.GAME.NGPLUS, for the tests)
 import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
@@ -306,6 +308,7 @@ import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene, resolution: resolutionInfo }, killcam: { KC, killCam } });
 import * as APPRENTICE from './allies/apprentice.js';
+Object.assign(window.GAME, { growth: { ...GROWTH, streaming: growthStreaming } });   // the hub that grows with your group (game/hub-growth.js), for tests
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { duel: { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo } });   // duel mode (game/duel-mode.js), for tests

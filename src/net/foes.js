@@ -47,6 +47,7 @@ import { duelRec, updatePuppetDuel, netProfile, updateSaberLock, LOCK } from '..
 import { meetFoe, meetWarbringer } from '../game/codex.js';
 import { duelWon } from '../enemies/guardcue.js';
 import { bossDown } from '../game/autosave.js';
+import { noteTrophy } from '../game/hub-growth.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
 let sentAt = 0, hitsAt = 0, hostSent = false, runListeners = [];
@@ -183,7 +184,7 @@ function applyRec(e, rec){
     e.state = e.netState = state;
   }
   const dying = !!(flags & DEAD);
-  if (dying && !e.dead){ burst(e.group.position, 0x888888, 6, 4, 3); duelWon(e); if (e.warbringer && !e.look) bossDown(); }   // (the host's Warbringer down: this guest saves too, game/autosave.js; a finale boss's own 'down' does: boss/finale.js)   // (a duellist down: enemies/guardcue.js)
+  if (dying && !e.dead){ burst(e.group.position, 0x888888, 6, 4, 3); duelWon(e); if (e.warbringer && !e.look){ bossDown(); noteTrophy('warbringer'); } }   // (the host's Warbringer down: this guest saves too, game/autosave.js; a finale boss's own 'down' does: boss/finale.js)   // (a duellist down: enemies/guardcue.js)
   e.dead = dying;
   const u = e.group.userData;
   if (u.weaponArm){ u.weaponArm.rotation.x = wA; if (wZ != null) u.weaponArm.rotation.z = wZ; u.weaponArm.rotation.y = wY || 0; }

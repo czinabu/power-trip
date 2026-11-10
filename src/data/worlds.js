@@ -1049,6 +1049,11 @@ export const HUB_WORLDS = {
     light: { ...TY_LIGHT, sunI: 1.5, fill: 0.85, dir: [-14, 46, 20] },
     floor: { kind: 'flagstone', base: 0x6e6a66, seed: 41 }, outer: 0x5a5650, pal: TY_PAL, backdrop: TY_VIEW,
     ambient: { kind: 'dust', color: 0xd8f0ff, count: 90, size: 0.2 }, beats: { fog: 0x8a98a8, fill: 1.0, tint: 0xd8ecff }, sound: 'temple' },
+  // the trophy hall past the archives: warm lamplight on pale stone, a little dust in the air
+  tyTrophy: { mist: false, sky: TY_SKY, fog: 0xb0a490, fogStart: 1.1, fogEnd: 3.6,
+    light: { ...TY_LIGHT, sunI: 1.45, fill: 0.9, dir: [16, 46, -18] },
+    floor: { kind: 'flagstone', base: 0x847a6c, seed: 43 }, outer: 0x5a5650, pal: TY_PAL, backdrop: TY_VIEW,
+    ambient: { kind: 'dust', color: 0xfff0d0, count: 70, size: 0.2 }, beats: { fog: 0xb0a490, fill: 1.0, tint: 0xfff0d8 }, sound: 'temple' },
   tyForge: { mist: false, sky: { top: 0x0a0e1c, horizon: 0x1e3a5a, below: 0x0e1420, bands: 5, stars: 0 }, clear: 0x0a0e1c,
     fog: 0x1a2a3e, fogStart: 1.2, fogEnd: 3.8,
     light: { sun: 0xbfe6ff, sunI: 1.3, dir: [-10, 44, 18], hemiSky: 0x6ab8ff, hemiGround: 0x1e1a28, fill: 1.0, rim: 0x5ad2ff, rimI: 0.7 },

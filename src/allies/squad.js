@@ -46,6 +46,8 @@ import { goDown, getUp, downed, addHeroReviver, updateRevive, heroDownState } fr
 import { MISSION_COLOR } from '../data/missions.js';
 import { ALLY_COLOR, ALLY_DOWN, addFriendRing, updateFriendRing, makeFriendTag } from '../fx/friend.js';
 import { meetAlly } from '../game/codex.js';
+import { buildHeroAlly, attachHeroAlly, dropHeroAlly, stepHeroAlly, stepHeroPuppet, heroCut, heroDeflect, heroHurt, heroShot, heroMuzzle } from './hero-ally.js';
+import { heroAllyDef } from '../data/hero-allies.js';
 
 export const allies = [];
 /* CO-OP (net/squad.js fills this in; null in solo): the host's browser runs the squad and the guest's draws it as puppets
@@ -101,7 +103,10 @@ export function addSquadmate(at, opts){
   const spec = isTrooper() && !askRole && !(opts && opts.def) && def === full[0] ? squadSpecialist() : null;
   const role = (opts && opts.roleObj) || SQUAD.roles[spec ? spec.role : def.role];   // (roleObj: an apprentice's own numbers, allies/apprentice.js)
   const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
-  const g = buildEnemyMesh(t);
+  // a HERO-CLASS squadmate (data/hero-allies.js: a Jedi, a Mandalorian, an ARC trooper) is the hero's own model, posed by
+  // the hero's own animation (allies/hero-ally.js); everyone else is a trooper-model figure
+  const hs = def.hero ? buildHeroAlly(def) : null;
+  const g = hs ? hs.group : buildEnemyMesh(t);
   const pp = playerPos(), fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
   const want = at || { x: pp.x - fx * 3 + rand(-2, 2), z: pp.z - fz * 3 + rand(-2, 2) };
   const s = findClearSpawn(want.x, want.z, 0.9);
@@ -113,6 +118,7 @@ export function addSquadmate(at, opts){
   const a = { def, spec, name: def.name, role, t, group: g, tag, hp: role.hp, maxHp: role.hp, state: 'move', slot: allies.length, ord: FOLLOW, mark: null, markT: 0,
               mv: { x: 0, z: 0 }, fireT: rand(0.5, 1.5), burstLeft: 0, burstT: 0, target: null, seekT: 0, hitAt: -99,
               flash: 0, body: null, stuckT: 0, sideT: 0, side: 1, lastX: s.x, lastZ: s.z };
+  if (hs) attachHeroAlly(a, hs, () => allyCut(a));
   allies.push(a);
   meetAlly(def.name);   // its codex entry (game/codex.js)
   if (G.reviveLeft == null) refill();
@@ -162,6 +168,7 @@ export function dismissSquadmate(){
 function removeAlly(a){
   if (a.body){ const i = downed.indexOf(a.body); if (i >= 0) downed.splice(i, 1); if (a.body.mark) scene.remove(a.body.mark); a.body = null; }
   scene.remove(a.group, a.tag);
+  dropHeroAlly(a);
   a.tag.material.dispose();
   if (a.bar){ scene.remove(a.bar); a.bar = null; }
 }
@@ -388,12 +395,14 @@ export const grenadeLeft = () => SQ.netGren != null && guest() ? SQ.netGren : Ma
 export function hurtAlly(a, dmg, from){
   if (!a || a.net || !standing(a) || !(dmg > 0)) return;   // (a co-op guest's puppet: the host's browser does the harm)
   if (a.role.deflect && Math.random() < a.role.deflect){   // a Jedi turns it on the blade
+    if (a.hb) heroDeflect(a, from);   // (a hero-class Jedi catches it as you would: allies/hero-ally.js)
     const p = a.group.position, at = V3(p.x + Math.sin(a.group.rotation.y) * 0.5, p.y + 1.4 * a.t.scale, p.z + Math.cos(a.group.rotation.y) * 0.5);
     burst(at, a.t.eye, 5, 6, 3, 0.6); sfx(1500, 0.05, 'square', 0.03, 900);
     return;
   }
   a.hp -= dmg * SQUAD.takeDmg * diffDmgMul() * (a.inCover ? (a.eng ? ENGAGE.coverTake : COMMAND.coverTake) : 1) * (player.up.squadDr || 1);   // (the trooper's LEAD FROM THE FRONT)
   a.hitAt = G.gt; a.flash = 0.14;
+  if (a.hb && a.hp > 0) heroHurt(a, from);
   if (a.hp <= 0) downAlly(a);
 }
 // a blast (a detonator, a saboteur) catches any squadmate inside it. walls: a wall between shields them (a detonator's
@@ -544,8 +553,10 @@ function flankMul(a, e){
 }
 function shoot(a, e){
   const g = a.group, sc = a.t.scale;
-  const fy = g.rotation.y, mx = g.position.x + Math.sin(fy) * 0.55, mz = g.position.z + Math.cos(fy) * 0.55;
-  const muzzle = V3(mx, g.position.y + 1.42 * sc, mz);
+  const fy = g.rotation.y;
+  if (a.hb) heroShot(a);   // (a hero-class gunner: the kick, the guns held up)
+  const muzzle = (a.hb && heroMuzzle(a, V3(0, 0, 0))) || V3(g.position.x + Math.sin(fy) * 0.55, g.position.y + 1.42 * sc, g.position.z + Math.cos(fy) * 0.55);
+  const mx = muzzle.x, mz = muzzle.z;
   const tp = e.group.position, es = e.group.scale.x || 1;
   const dir = V3(tp.x - mx, tp.y + 1.3 * es - muzzle.y, tp.z - mz).normalize();
   const sp = a.role.spread;
@@ -565,6 +576,14 @@ function shoot(a, e){
 function meleeAlly(a, e, dt, dy){
   const R = a.role, g = a.group, arm = g.userData.weaponArm;
   a.fireT -= dt;
+  if (a.hb){   // a hero-class Jedi: the cut is its form's swing, and it lands as the blade strikes (allies/hero-ally.js)
+    if (!e || a.fireT > 0 || Math.abs(dy) > 0.5 || a.hb.S.state.atkT > 0 || a.hb.S.state.flip) return;
+    const p = g.position, tp = e.group.position;
+    if (Math.hypot(tp.x - p.x, tp.z - p.z) - bodyRadius(e) > R.reach) return;
+    a.fireT = rand(R.every[0], R.every[1]) * (a.fireMul || 1);
+    heroCut(a);
+    return;
+  }
   if (a.cutT > 0){
     a.cutT -= dt;
     const k = clamp(1 - a.cutT / R.windup, 0, 1);
@@ -1146,8 +1165,25 @@ function route(a, w, dt){
   _dir.x = dx / l; _dir.z = dz / l;
   return _dir;
 }
+// the body, this frame: a trooper-model figure's legs and upper body (enemies/gait.js, enemies/upper.js), or a hero-class
+// squadmate's whole hero pose (allies/hero-ally.js: c says what it is doing)
+function bodyStep(a, g, dt, legs, aim, up, c){
+  if (a.hb){ stepHeroAlly(a, dt, c); return; }
+  updateLegs(a, g, dt, legs); updateUpper(a, g, dt, aim, up);
+}
+// a hero-class Jedi's FORCE PUSH: the rank and file it throws back (the squad's hit: half XP, no streak)
+function heroPushHit(a){
+  return (list, Pu) => {
+    const p = a.group.position;
+    for (const e of list){
+      const dx = e.group.position.x - p.x, dz = e.group.position.z - p.z, d = Math.hypot(dx, dz) || 1;
+      damageEnemy(e, Pu.dmg * (SQUAD.dmg[diffKey()] || 1) * (a.dmgMul || 1) * rally, V3(dx / d, 0.25, dz / d), Pu.knock, false, false, { ally: true, by: a });
+    }
+  };
+}
 function updateAlly(a, dt, medic, pp){
   const g = a.group, u = g.userData, p = g.position;
+  if (a.hb && a.hb.applied){ p.y -= a.hb.applied; a.hb.applied = 0; }   // (a flip's or hop's height last frame: off again before the squad moves it)
   // the hit flash
   if (a.flash > 0){ a.flash -= dt; u.bodyMat.emissive.setHex(0xff4a3a); u.bodyMat.emissiveIntensity = 1.4; }
   else u.bodyMat.emissiveIntensity = 0;
@@ -1158,7 +1194,7 @@ function updateAlly(a, dt, medic, pp){
   updateFriendRing(g, !standing(a));
   if (!standing(a)){
     g.rotation.x += (-1.2 - g.rotation.x) * Math.min(1, dt * 7);
-    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    bodyStep(a, g, dt, 'off', null, 'off', { down: true, face: g.rotation.y });
     return;
   }
   if (g.rotation.x !== 0) g.rotation.x += (0 - g.rotation.x) * Math.min(1, dt * 8);
@@ -1166,7 +1202,7 @@ function updateAlly(a, dt, medic, pp){
   // till it passes or you get to them (a.turn: { dmg, every })
   if (a.turnT > G.gt && a.turn){
     g.rotation.z = Math.sin(G.gt * 3.4 + a.slot) * 0.08;
-    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    bodyStep(a, g, dt, 'off', null, 'off', { still: true, face: Math.atan2(pp.x - p.x, pp.z - p.z) });
     const dx = pp.x - p.x, dz = pp.z - p.z;
     g.rotation.y = dampAngle(g.rotation.y, Math.atan2(dx, dz), 6, dt);
     if ((a.turnFire = (a.turnFire ?? 0.6) - dt) <= 0 && !player.dead){
@@ -1179,7 +1215,7 @@ function updateAlly(a, dt, medic, pp){
   // dazed (a mission twist's signal got into their heads): they stand where they are and sway till it passes
   if (a.dazeT > G.gt){
     g.rotation.z = Math.sin(G.gt * 2.6 + a.slot) * 0.12;
-    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    bodyStep(a, g, dt, 'off', null, 'off', { still: true, face: g.rotation.y });
     return;
   }
   if (g.rotation.z) g.rotation.z = 0;
@@ -1288,16 +1324,16 @@ function updateAlly(a, dt, medic, pp){
              : DUEL.on ? Math.atan2(p.x - DUEL.cx, p.z - DUEL.cz) : SQ.fYaw;   // (on the duel's ring: eyes out, watching for troops)
   const dy = Math.atan2(Math.sin(face - g.rotation.y), Math.cos(face - g.rotation.y));
   g.rotation.y += clamp(dy, -9 * dt, 9 * dt);
-  if (a.role.melee){ meleeAlly(a, e, dt, dy); updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }
-  if (a.role.noFire){ updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground'); updateUpper(a, g, dt, e ? e.group.position : null); return; }   // (the foundling as a SPOTTER: eyes on, no shots: allies/apprentice.js)
+  const hc = a.hb ? { e, face, fodder: isFodder, push: heroPushHit(a) } : null;
+  if (a.role.melee){ meleeAlly(a, e, dt, dy); bodyStep(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground', e ? e.group.position : null, undefined, hc); return; }
+  if (a.role.noFire){ bodyStep(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground', e ? e.group.position : null, undefined, hc); return; }   // (the foundling as a SPOTTER: eyes on, no shots: allies/apprentice.js)
   if (a.burstLeft > 0 && e && (a.burstT -= dt) <= 0){ a.burstLeft--; a.burstT = a.role.burstGap; shoot(a, e); }
   if ((a.fireT -= dt) <= 0 && e && Math.abs(dy) < 0.3){
     a.fireT = rand(a.role.every[0], a.role.every[1]) * (a.fireMul || 1) * (a.inCover && !a.eng ? COMMAND.coverFire : 1) * (G.suppress && G.suppress.until > G.gt ? TROOPER.command.suppress.fire : 1);
     shoot(a, e);
     a.burstLeft = a.role.burst - 1; a.burstT = a.role.burstGap;
   }
-  updateLegs(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground');
-  updateUpper(a, g, dt, e ? e.group.position : null);   // rifle and eyes on its mark (enemies/upper.js)
+  bodyStep(a, g, dt, sp2 < 3.2 ? 'walk' : 'ground', e ? e.group.position : null, undefined, hc);   // rifle and eyes on its mark (enemies/upper.js)
 }
 
 /* ============================================================
@@ -1310,7 +1346,7 @@ const r2 = (n) => Math.round(n * 100) / 100;
 // chapter's guests by name (game/flow.js, game/mission.js note them as the chapter starts, on the host and the guest alike)
 const GUESTS = new Map();
 export function noteGuests(defs){ for (const d of defs || []) if (d && d.name) GUESTS.set(d.name, d); }
-const rosterIdx = (a) => { const i = heroKey(SQUAD.roster).indexOf(a.def); return i >= 0 ? i : GUESTS.has(a.def.name) ? a.def.name : i; };
+const rosterIdx = (a) => { const i = heroKey(SQUAD.roster).indexOf(a.def); return i >= 0 ? i : a.def.bsId ? 'hero:' + a.def.bsId : GUESTS.has(a.def.name) ? a.def.name : i; };   // (bsId: a battle setup's hero-class ally, data/hero-allies.js)
 export function squadSnap(nidOf){
   const mk = allies.map(a => standing(a) && markLive(a)).find(Boolean);
   return { h: G.hero, f: SQ.formation, e: SQ.engage, g: Math.round(grenadeLeft() * 10) / 10, mk: mk ? nidOf(mk) : null,
@@ -1319,7 +1355,7 @@ export function squadSnap(nidOf){
       const g = a.group;
       return [rosterIdx(a), r2(g.position.x), r2(g.position.y), r2(g.position.z), r2(g.rotation.y),
         r2(standing(a) ? a.hp / a.maxHp : a.body ? Math.min(1, a.body.prog / a.body.need) : 0), orderCode(a), a.ord.partner ? 1 : 0,
-        a.target ? nidOf(a.target) : null, a.kick ? 1 : 0, a.spec ? SPECIALISTS.indexOf(a.spec) : 0, engageCode(a)];
+        a.target ? nidOf(a.target) : null, a.kick ? 1 : 0, a.spec ? SPECIALISTS.indexOf(a.spec) : 0, engageCode(a), a.hb ? a.hb.act : 0];   // (a.hb.act: a hero-class squadmate's last move, allies/hero-ally.js)
     }) };
 }
 const netBeacons = [];
@@ -1328,7 +1364,7 @@ export function syncNetSquad(m, foeOf){
   while (allies.length > rows.length){ const a = allies.pop(); removeAlly(a); }
   rows.forEach((r, i) => {
     let a = allies[i];
-    const roster = SQUAD.roster[m.h] || SQUAD.roster.jedi, def = (typeof r[0] === 'string' && GUESTS.get(r[0])) || roster[r[0]] || roster[i % roster.length];   // (the host's hero's squad, or a story's guest by name)
+    const roster = SQUAD.roster[m.h] || SQUAD.roster.jedi, def = (typeof r[0] === 'string' && (r[0].startsWith('hero:') ? heroAllyDef(r[0].slice(5)) : GUESTS.get(r[0]))) || roster[r[0]] || roster[i % roster.length];   // (the host's hero's squad, or a story's guest by name)
     if (a && (a.def !== def || !a.net)){ removeAlly(a); allies.splice(i, 1); a = null; }   // (one this screen called in itself before it knew it was a guest: the host's puppet takes its place)
     if (!a){
       a = addSquadmateNet(def, r);
@@ -1340,6 +1376,7 @@ export function syncNetSquad(m, foeOf){
     a.target = r[8] != null ? foeOf(r[8]) : null;
     if (r[9]) a.kick = 1;
     a.spec = r[10] > 0 && SPECIALISTS[r[10]] || null;
+    a.netAct = r[12] || null;
     a.netEng = r[11] || 0;   // (FREE ENGAGE: off on its own spot, in cover or not)   // (the host's squad specialist: its tag in the squad panel)
   });
   SQ.formation = m.f || 'wide'; SQ.netGren = m.g || 0; SQ.netEngage = m.e || null;
@@ -1358,13 +1395,16 @@ function addSquadmateNet(def, r){
   meetAlly(def.name);   // the guest's codex too (game/codex.js)
   const role = SQUAD.roles[def.role];
   const t = { model: def.model, color: def.color, eye: def.eye, cloth: def.cloth, scale: def.scale || 1, ranged: !role.melee, weapon: def.weapon, look: def.look };   // (look: a named saber look, enemies/saberist.js)
-  const g = buildEnemyMesh(t);
+  const hs = def.hero ? buildHeroAlly(def) : null;   // (a hero-class squadmate: allies/hero-ally.js)
+  const g = hs ? hs.group : buildEnemyMesh(t);
   g.position.set(r[1], r[2], r[3]); g.rotation.y = r[4];
   scene.add(g);
   const tag = makeFriendTag(1); scene.add(tag);
   addFriendRing(g);
-  return { net: true, def, name: def.name, role, t, group: g, tag, hp: role.hp, maxHp: role.hp, state: 'move', slot: 0, ord: FOLLOW, mark: null,
+  const a = { net: true, def, name: def.name, role, t, group: g, tag, hp: role.hp, maxHp: role.hp, state: 'move', slot: 0, ord: FOLLOW, mark: null,
     want: V3(r[1], r[2], r[3]), wantYaw: r[4], netHp: 1, netKind: 'follow', mv: { x: 0, z: 0 }, target: null, flash: 0, body: null };
+  if (hs) attachHeroAlly(a, hs, null);   // (the host lands its cuts)
+  return a;
 }
 // the host stopped sending (the fight ended, or they left): the puppets go
 export function dropNetSquad(){
@@ -1384,10 +1424,12 @@ function updatePuppet(a, dt){
   updateFriendRing(g, !standing(a));
   if (!standing(a)){
     g.rotation.x += (-1.2 - g.rotation.x) * Math.min(1, dt * 7);
-    updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off');
+    if (a.hb) stepHeroPuppet(a, dt, a.netAct, true);
+    else { updateLegs(a, g, dt, 'off'); updateUpper(a, g, dt, null, 'off'); }
     return;
   }
   if (g.rotation.x !== 0) g.rotation.x += (0 - g.rotation.x) * Math.min(1, dt * 8);
+  if (a.hb){ stepHeroPuppet(a, dt, a.netAct, false); return; }   // (a hero-class squadmate: the host's moves, played on its own stand-in)
   updateLegs(a, g, dt, 'ground');
   const e = a.target && !a.target.dead ? a.target : null;
   updateUpper(a, g, dt, e ? e.group.position : null);

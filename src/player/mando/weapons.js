@@ -53,6 +53,7 @@ export const _look = new THREE.Vector3(), _lh = new THREE.Vector3();   // camera
 // the reticle's ray as mandoAimPoint last cast it (origin, direction)
 export const mandoAimRay = () => crosshairRay();   // (a call, not an alias: the dev server loads aim.js after this module)
 export function mandoAimPoint(){
+  if (player.npc) return player.npc.aim;   // a stand-in aims where its own eyes are (player/stand-in.js), not down the camera
   // through the floating reticle; with the Darksaber out, along the dynamic crosshair instead (player/aim.js)
   const p = player.weapon === 'darksaber' ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);
   player.lockOn = !!lastAim.target;

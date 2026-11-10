@@ -518,10 +518,11 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
     if (held){
       // (a spin-in doesn't cut until the body has come round to face the strike)
       const spun = sw.spin && sw.spin.turns && cue.k < ((sw.anim && sw.anim.ts) || 0.4) * 0.8;
-      const touched = sweepBlade(sw, !sw.recoil && !spun && cue.k >= ((sw.anim && sw.anim.tc) || 0.25) * 0.6 && cue.k <= 0.92 && !sw.drawing);
+      // (a stand-in, a hero the game plays itself: player/stand-in.js, lands its cuts its own way, at the strike below)
+      const touched = player.npc ? null : sweepBlade(sw, !sw.recoil && !spun && cue.k >= ((sw.anim && sw.anim.tc) || 0.25) * 0.6 && cue.k <= 0.92 && !sw.drawing);
       if (touched && touched.length && !sw.noHit){ applySwingDamage(sw.step, touched); sw.bite = BITE.time; }
       // JAR'KAI: the off hand's follow-up cuts on its own beat (anim/saber.js saberPose.offLive)
-      if (held.off){
+      if (held.off && !player.npc){
         const offT = sweepOffBlade(sw, saberPose.offLive && !spun && !sw.noHit);
         if (offT && offT.length){ applyOffBladeHit(offT); sw.bite = Math.max(sw.bite || 0, BITE.time * 0.6); }
       }
@@ -530,9 +531,9 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       const pp = playerPos(), f = fwd(), at = V3(pp.x + f.x * 0.35, pp.y, pp.z + f.z * 0.35);
       for (let i = 0; i < 3; i++) footDust(at, 7, 0.8);
     }
-    if (!sw.applied && cue.k > 0.35){ sw.applied = true; applySwingDamage(sw.step, held || sw.cutSet || sw.noHit ? [] : undefined); }   // (noHit: the aerial cut struck on contact, jedi/aerial.js)
+    if (!sw.applied && cue.k > 0.35){ sw.applied = true; if (player.npc) player.npc.strike(sw); else applySwingDamage(sw.step, held || sw.cutSet || sw.noHit ? [] : undefined); }   // (noHit: the aerial cut struck on contact, jedi/aerial.js)
     // IN-RHYTHM LINK (Jedi): one well-timed press this swing → the next cut leaves from the follow-through
-    if (player.queuedAtk && !sw.rushed && !sw.recoil && !isGunner() && sw.applied && cue.k >= FLOW.at){
+    if (player.queuedAtk && !player.npc && !sw.rushed && !sw.recoil && !isGunner() && sw.applied && cue.k >= FLOW.at){
       player.atkT = 0; player.queuedAtk = false; player.lastAtkEnd = G.gt;
       tryAttack(true);
       if (player.atkT <= 0){ vis.rotation.y = 0; player._swingDrop = 0; }   // the link failed (winded…): settle as normal
@@ -545,7 +546,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       if (!sw.recoil) vis.rotation.y = 0;   // (a recoil ends partway round: the guard eases the body back square, no pop)
       player._swingDrop = 0;
       if (!isGunner() && sw.step === 2 && !sw.recoil && stance().finisherRecover) player.swingLock = Math.max(player.swingLock || 0, stance().finisherRecover);   // the heavy finisher hangs a beat (its guard break's cost)
-      if (player.queuedAtk){ player.queuedAtk = false; tryAttack(); }   // buffered combo
+      if (player.queuedAtk && !player.npc){ player.queuedAtk = false; tryAttack(); }   // buffered combo
     }
     return;
   }
@@ -758,6 +759,12 @@ function forceHands(dr, vis, R, planted, moving, ph, inten){
   vis.rotation.y = dr(vis.rotation.y, 0, 12);
 }
 let forceLead = -1, forceTight = 0;
+// (another figure posed with this code for a moment takes its own: player/stand-in.js) returns what was here, puts `o` in
+export function animMemo(o){
+  const was = { regripped, forceLead, forceTight };
+  if (o){ regripped = o.regripped; forceLead = o.forceLead; forceTight = o.forceTight; }
+  return was;
+}
 const OWN_TORSO = { hook: 1, counter: 1, takedown: 1, takedownLow: 1 };   // the guard's lead hand (-1 left, 1 right) and how tight it is held (0 at ease → 1 trading blows)
 
 // the bladed weapon in hand right now (or null): the Jedi saber, or the Mando's darksaber when it's equipped

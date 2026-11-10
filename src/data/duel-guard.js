@@ -32,7 +32,7 @@ export const GUARD_TURN = {
   clean:  { stam: 0.6, chip: 0.4 },
   beaten: { stam: 2.2, chip: 2.3, push: 1.6 },
   // the crescent on your own guard: how far in front of the chest it sits (m), and its colours
-  ring: { fwd: 0.55, up: 1.3, colour: 0xdff4ff, turning: 0x8aa6c0, clean: 0xffe08a, beaten: 0xff6a3a },
+  ring: { faint: 0.2, fwd: 0.55, up: 1.3, colour: 0xdff4ff, turning: 0x8aa6c0, clean: 0xffe08a, beaten: 0xff6a3a },
   /* THE STRIKE MARK — where the next blow is coming from, and when. A wedge outside your guard's crescent on the side a
      duellist is winding up on (whether or not your guard is up), closing in on the crescent as the blow nears and
      meeting it as it lands: the side to guard, and the beat to parry on. Orange while that side is open, pale once your

@@ -69,6 +69,7 @@ function updateDuelSide(pp, f, rv, dt){
     if (Math.abs(gap) > 0.12) duelSign = Math.sign(gap);
     if (ahead > 0.5) want = C.duelSide * clamp(1 - Math.abs(lat) / C.duelSideLat, 0, 1) * clamp((C.duelSideFar - dist) / 4, 0, 1) * duelSign;
   }
+  if (player.focusOn) want *= C.focusSide;   // a focused duel: further round to the side, the hero clear of the middle
   duelSide += (want - duelSide) * Math.min(1, dt * 2.5);
   return duelSide;
 }
@@ -333,7 +334,7 @@ export function updateCamera(dt){
   if (jedi && !boss){ frame *= C.ja.frame; lift *= C.ja.frame; }   // (the boss still gets the full pull: its windups need the room)
   // DUEL FRAMING — locked onto a foe, back off with the gap between you so both blades stay on screen
   const lt = player.lockTarget, lp = lt && lt.group && lt.group.position;
-  if (lp) frame = Math.max(frame, clamp(Math.hypot(lp.x - pp.x, lp.z - pp.z) * C.duelPull, 0, C.duelMax));
+  if (lp) frame = Math.max(frame, clamp(Math.hypot(lp.x - pp.x, lp.z - pp.z) * C.duelPull, 0, C.duelMax)) + (player.focusOn ? C.focusBack : 0);
   if (adsFly) lift *= 0.3;   // don't drift the reticle's eye-line while aiming
   camLift += (lift - camLift) * Math.min(1, dt*2);
   const wantDist = ((jedi ? C.ja.range : C.mandoDist) + pullback + frame) * distMul;

@@ -237,11 +237,11 @@ const additive = (geo, color) => { const m = new THREE.Mesh(geo, new THREE.MeshB
   side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, toneMapped: false })); m.renderOrder = 6; return m; };
 function makeRing(){
   const grp = new THREE.Group();
-  const m = new THREE.Mesh(new THREE.RingGeometry(0.88, 1.0, 20, 1, -0.75, 1.5), new THREE.MeshBasicMaterial({ color: GUARD_TURN.ring.colour,
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.955, 1.0, 24, 1, -0.75, 1.5), new THREE.MeshBasicMaterial({ color: GUARD_TURN.ring.colour,
     transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   m.renderOrder = 5;
   // THE STRIKE MARK: a wedge outside the crescent (a blow on a line), a small ring on the middle (a thrust)
-  const mark = additive(new THREE.RingGeometry(1.0, 1.2, 20, 1, -0.5, 1.0), GUARD_TURN.mark.open);
+  const mark = additive(new THREE.RingGeometry(1.0, 1.3, 20, 1, -0.5, 1.0), GUARD_TURN.mark.open);
   const pip = additive(new THREE.RingGeometry(0.26, 0.34, 28), GUARD_TURN.mark.thrust);
   grp.add(m, mark, pip); grp.userData.arc = m; grp.userData.mark = mark; grp.userData.pip = pip; grp.visible = false;
   scene.add(grp);
@@ -262,7 +262,7 @@ function drawRing(dt, up, th){
   const marked = !!th && markOn() && G.mode === 'play' && !player.downed && !player.saberLock && !G.cutscene;
   if (!ring){ if (!show && !marked) return; ring = makeRing(); }
   const arc = ring.userData.arc, mat = arc.material, mark = ring.userData.mark, pip = ring.userData.pip;
-  const want = show ? 0.6 + GD.flash * 0.4 : 0;
+  const faint = GUARD_TURN.ring.faint, want = show ? faint + GD.flash * (1 - faint) : 0;   // (your own guard: a thin faint arc that only brightens on a blow, so it never hides the blade coming in)
   mat.opacity = dampToward(mat.opacity, want, dt, 12);
   drawMark(dt, marked ? th : null, mark, pip);
   arc.visible = mat.opacity > 0.01;
@@ -299,7 +299,7 @@ function drawMark(dt, th, mark, pip){
   if (!thrust) m.rotation.z = pop > 0 || m.material.opacity < 0.05 ? RING_ANG[th.line] : dampToward(m.rotation.z, m.rotation.z + wrap(RING_ANG[th.line] - m.rotation.z), dt, 30);
   _c.setHex(pop > 0 ? M.feint : thrust ? M.thrust : covers(th.line) ? M.covered : M.open);
   m.material.color.lerp(_c, Math.min(1, dt * 22));
-  m.material.opacity = dampToward(m.material.opacity, 0.55 + 0.4 * (1 - near) + 0.3 * pop, dt, 24);
+  m.material.opacity = dampToward(m.material.opacity, 0.7 + 0.3 * (1 - near) + 0.3 * pop, dt, 24);
   m.visible = true;
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));

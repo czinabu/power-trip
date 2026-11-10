@@ -288,6 +288,7 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
   font:600 13px/1.25 var(--font-ui);letter-spacing:.6px;color:#f2f6fa;text-shadow:0 1px 2px #000;opacity:0;will-change:transform,opacity}
 .bark::after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid rgba(6,12,18,.62)}
 .bark .bk-who{display:block;font-size:10px;letter-spacing:2px;color:var(--bk,#bfe8ff);margin-bottom:1px}
+.fl.call{font-size:30px;letter-spacing:2px;-webkit-text-stroke:1px rgba(0,0,0,.55);text-shadow:0 0 10px currentColor,0 0 4px #000,0 2px 3px #000;z-index:8}
 .fl{position:fixed;font:700 16px/1 var(--font-ui);letter-spacing:0.5px;text-shadow:0 0 6px #000,0 1px 2px #000;transform:translate(-50%,-50%);transition:all .7s ease-out;pointer-events:none}
 /* mando aiming reticle: DYNAMIC line gap, colour & ring driven by --gap / --col / --ringScale / --ringOp */
 #reticle{position:fixed;top:50%;left:50%;width:60px;height:60px;margin:-30px;display:none;pointer-events:none;z-index:7;

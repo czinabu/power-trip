@@ -28,7 +28,7 @@ export function floater(worldPos, text, color){
   if (!_floaters.length) initFloaters();
   const d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX;
   // snap back to the start pose WITHOUT animating, then let the CSS transition carry it up
-  d.style.transition = 'none';
+  d.style.transition = 'none'; d.className = 'fl';
   d.textContent = text;
   d.style.color = color || '#fff';
   d.style.left = ((TMP.x*0.5+0.5)*innerWidth + rand(-14,14)) + 'px';
@@ -39,6 +39,28 @@ export function floater(worldPos, text, color){
   requestAnimationFrame(()=>{
     d.style.transition = 'all .7s ease-out';
     d.style.transform = 'translate(-50%,-180%)';
+    d.style.opacity = '0';
+  });
+}
+
+/* A CALLOUT: the result of an exchange (CLEAN BLOCK, WRONG SIDE, PARRY, BLOCKED), where the eye already is: at
+   `worldPos` itself (between the two blades), big and bright, popping in over-size, held a beat, then gone */
+export function callout(worldPos, text, color){
+  TMP.copy(worldPos).project(camera);
+  if (TMP.z > 1) return;
+  if (!_floaters.length) initFloaters();
+  const d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX;
+  d.style.transition = 'none'; d.className = 'fl call';
+  d.textContent = text;
+  d.style.color = color || '#fff';
+  d.style.left = (Math.min(0.9, Math.max(0.1, TMP.x*0.5+0.5)) * innerWidth) + 'px';
+  d.style.top  = (Math.min(0.85, Math.max(0.12, -TMP.y*0.5+0.5)) * innerHeight) + 'px';
+  d.style.transform = 'translate(-50%,-50%) scale(1.5)';
+  d.style.opacity = '1';
+  void d.offsetWidth;
+  requestAnimationFrame(()=>{
+    d.style.transition = 'transform .12s ease-out, opacity .3s ease-in .45s';
+    d.style.transform = 'translate(-50%,-70%) scale(1)';
     d.style.opacity = '0';
   });
 }

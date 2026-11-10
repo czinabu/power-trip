@@ -10,7 +10,7 @@ import { sfx, S } from '../audio/sfx.js';
 import { BLADE_AUDIO } from '../audio/saber.js';
 import { V3, rand, clamp, TMP, dampToward, dampAngle } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { floater, screenFlash } from '../fx/floaters.js';
+import { floater, callout, screenFlash } from '../fx/floaters.js';
 import { sparks, clashFlash, clashSparks } from '../fx/ink.js';
 import { spawnHitSpark, spawnGroundShock } from '../fx/vfx.js';
 import { G, enemies, player, isGunner } from '../state.js';
@@ -682,7 +682,7 @@ export function duelDefend(e, line, kind, heavy, at){
   if (p.tire && !isGunner()){ player.stam = Math.max(0, player.stam - p.tire); player.stamDelay = stamDelay(); }   // SORESU: the wall wears you out
   if (e.lineStreak >= DUEL.adaptAfter) floater(V3(g.position.x, g.position.y + 1.3, g.position.z), 'READ YOU', '#ffb35a');
   // (a cut back in on the line you just faked: the guard you fooled is standing right there)
-  else floater(V3(g.position.x, g.position.y + 1.3, g.position.z), e.baitLine === line && G.gt < (e.baitUntil || 0) ? 'SAME SIDE' : 'BLOCKED', '#c8d4e0');
+  else callout(V3(g.position.x, g.position.y + 2.2, g.position.z), e.baitLine === line && G.gt < (e.baitUntil || 0) ? 'SAME SIDE' : 'BLOCKED', '#c8d4e0');
   // and the answer: a fast riposte, if it has the skill and the breath
   if (G.gt - e.counterAt > DUEL.counterCd && Math.random() < p.counter * m * (e.lineStreak >= DUEL.adaptAfter ? 1.5 : 1)
       && (e.breath == null || e.breath >= DUEL.breath.counter)){ e.counterQueued = true; if (p.riposte) e.riposteNext = true; }   // DJEM SO: the answer lands harder
@@ -1256,7 +1256,7 @@ function netDefend(e, line, kind, heavy, at){
   clashSparks(cp, 0xffe9b0, 4);
   S.clash(cp, false, e.form);
   G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.2);
-  floater(V3(g.position.x, g.position.y + 1.3, g.position.z), n[NG.read] ? 'READ YOU' : 'BLOCKED', n[NG.read] ? '#ffb35a' : '#c8d4e0');
+  callout(V3(g.position.x, g.position.y + 2.2, g.position.z), n[NG.read] ? 'READ YOU' : 'BLOCKED', n[NG.read] ? '#ffb35a' : '#c8d4e0');
   return 'block';
 }
 // host: the guest's blow met this duellist's guard (kind 'impact': a kick, a shove or a fall into it, amt its posture;

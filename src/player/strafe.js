@@ -7,7 +7,10 @@
 import { G, keys, player } from '../state.js';
 import { showBanner } from '../ui/banners.js';
 
-export const strafing = () => G.strafeMode === 'hold' ? !!keys['alt'] : !!(player.strafeLatch || player.padStrafe);
+// (the key alone: the training's strafe lesson asks for it)
+export const strafeHeld = () => G.strafeMode === 'hold' ? !!keys['alt'] : !!(player.strafeLatch || player.padStrafe);
+// ...and a duel you're focused on strafes by itself: squared to the foe, never turning your back (player/lockon.js)
+export const strafing = () => strafeHeld() || !!player.focusOn;
 
 export function toggleStrafe(){
   if (G.strafeMode === 'hold') return;

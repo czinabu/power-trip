@@ -32,7 +32,7 @@ const CONTROLS = {
       ['IN THE AIR', 'A leap is a commitment', 'Mid-fight you steer less, can\'t hold a guard, and a blow that lands hits harder and drops you', 1],
       ['W + AIR + LMB', 'Aerial cut', 'Leaping forward: a short lunge and a cut at the foe ahead · costs Force, 3s cooldown · a standing jump just swings', 1],
       ['LMB', 'Saber lock', 'Blades bound: mash to drive through · E kicks out · F shoves', 1],
-      ['T', 'Lock on', 'Keeps one foe framed; flick the mouse sideways to move it to the next foe; press again to release', 1],
+      ['T', 'Lock on', 'Keeps one foe framed; flick the mouse sideways to move it to the next foe; press again to release · DUEL FOCUS (Settings: AUTO by default, MANUAL, OFF): squaring up with a saber duellist locks on by itself. While it holds you circle the foe instead of walking off, a tapped direction aims a cut without moving your feet (hold it to step), and a mouse or stick flick steers your guard or aims a cut without swinging the view. It lets go when the foe falls, the gap opens or a crowd closes in, on T, or when you sweep the view away', 1],
       ['1 / 2 / 3', 'Saber form', 'The three forms in your loadout, or the mouse wheel'],
       ['G', 'Switch grip', 'In Niman, regular or reverse (swings hit the same either way) · in Djem So or Shien (Form V) it swaps to the other one if you know it · Shien always holds a reverse grip, every other form a forward one', 1, ['niman', 'djemso', 'shien']],
       ['4', 'Holster saber', 'Fight with the Force alone, both hands free: RMB wards, Force powers hit 20% harder, Force refills faster and every blow you land gives a little back · 4 again draws', 1],

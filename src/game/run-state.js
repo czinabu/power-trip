@@ -117,6 +117,18 @@ export const HOLDS = {
 };
 export const holds = () => Object.keys(HOLDS).filter(k => G[k]);
 
+/* ============================================================
+   WHERE THE RUN WAS STARTED FROM, which decides the way home on its pause and end screens (ui/menus.js). Still two
+   flags: G.fromHub (set leaving a hub for a run or a menu page, cleared by MAIN MENU) and G.partyRun (a co-op guest went
+   along with the host out of a hub: the host coming home calls it back, game/hub.js)
+   ============================================================ */
+export const ORIGINS = {
+  menu:  'started from the title screen: its screens offer MAIN MENU',
+  hub:   'started from a hub station or its ship: its screens offer RETURN TO the hub, and a won run goes home by itself',
+  party: 'followed the host out of a hub in co-op: as hub, and the host going home brings this guest along',
+};
+export const runOrigin = () => G.fromHub ? (G.partyRun ? 'party' : 'hub') : 'menu';
+
 // where the game is, in one object
 export const now = () => ({ screen: G.mode, kind: runKind(), phase: shared.levelPhase, phaseT: +(shared.phaseT || 0).toFixed(2),
-  holds: holds(), chapter: G.chapter, guest: !!G.coopGuest, fromHub: !!G.fromHub, resumable: !!G.resumeRun });
+  holds: holds(), chapter: G.chapter, guest: !!G.coopGuest, origin: runOrigin(), pick: G.modeSel, resumable: !!G.resumeRun });

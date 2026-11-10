@@ -72,6 +72,7 @@ async function play(page, seconds, push = true){
         const at = o.kind === 'hold' ? o.at : o.kind === 'sabotage' ? (S.cons.find(c => !c.done) || {}) : o.kind === 'capture' && S.cur ? S.cur : null;
         const x = Array.isArray(at) ? at[0] : at && at.x, z = Array.isArray(at) ? at[1] : at && at.z;
         if (x != null && G.gt - (window.__tp || 0) > 3){ window.__tp = G.gt; player.group.position.set(x + 1, 0, z + 1); }
+        if (o.kind === 'sabotage') player.force = 0;   // (worked at the plain pace: a Jedi's Force rip would open the panels before the twist is seen)
         if (o.kind === 'hold') S.prog = Math.min(o.time * 0.9, S.prog + o.time * 0.004);
         if (o.kind === 'escort' && S.P) S.d = Math.min(S.P.len * 0.9, S.d + S.P.len * 0.004);
         if (o.kind === 'capture' && S.cur) S.cur.prog = Math.min(o.time - 0.05, S.cur.prog + 0.05);

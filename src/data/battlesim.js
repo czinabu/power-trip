@@ -22,6 +22,10 @@ export const BATTLE_SIM = {
     { id: 'heavy', nm: 'HEAVY GUNNER' },
     { id: 'medic', nm: 'MEDIC', only: 'trooper' },
     { id: 'scout', nm: 'SCOUT', only: 'trooper' },
+    // HERO-CLASS allies (data/hero-allies.js): a Jedi, a Mandalorian and an ARC trooper, built and moving as heroes do
+    { id: 'hero-jedi', nm: 'JEDI KNIGHT' },
+    { id: 'hero-mando', nm: 'MANDALORIAN' },
+    { id: 'hero-trooper', nm: 'ARC TROOPER' },
   ],
 };
 

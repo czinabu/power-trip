@@ -11,6 +11,8 @@ const CODE_LEN = 5;
 export const MAX_GUESTS = 3;
 // what the host passes on from one guest to the rest, stamped with the sender's slot: poses, their shots and powers
 const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1, unmark: 1, tu: 1 };   // (mark / unmark: a player's ping marker going up / coming down, net/ping.js; tu: a team-up offer, game/teamup.js)
+// ...and a duel's (game/duel-mode.js, net/pvp.js): its challenge and answer, its state, the blows and their verdicts
+Object.assign(RELAY, { dch: 1, dans: 1, dst: 1, dpg: 1, drm: 1, dq: 1, dsw: 1, dhit: 1, dres: 1, dfp: 1 });
 // a guest whose link to the host drops tries the same room again this many times, this far apart (ms), before giving up
 const REJOIN = { tries: 10, wait: 2500 };   // (25 s: room for a host handoff, below, when the server is slow to free the code)
 const LAST = 'sw_coop_last';   // the last room joined, offered again in the co-op panel (a reload, a crash)
@@ -32,6 +34,9 @@ let heir = false;          // guest: this browser is taking the room over (or tr
 const conns = new Map();   // host: slot -> that guest's connection
 const hellos = new Map();  // host: slot -> that guest's last hello, handed to guests who join later
 const pings = new Map(), pingTimers = new Map();
+// ?netlag=120: hold every message this browser receives for that many ms (a slow link to test against; the round trip
+// it adds shows in the ping like a real one would)
+const NETLAG = (() => { try { return Math.max(0, Math.min(1000, +new URLSearchParams(location.search).get('netlag') || 0)); } catch(e){ return 0; } })();
 const listeners = {};
 export function on(event, fn){ (listeners[event] ||= []).push(fn); }
 function emit(event, ...args){ for (const fn of listeners[event] || []) fn(...args); }
@@ -173,7 +178,8 @@ function attach(c, slot){
     setStatus('connected');
     emit('open', slot);
   });
-  c.on('data', (m) => {
+  c.on('data', (m) => { if (NETLAG > 0) setTimeout(() => recv(m), NETLAG); else recv(m); });
+  const recv = (m) => {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'ping'){ if (net.role === 'guest' && m.s > 0 && net.slot !== m.s){ net.slot = m.s; emit('welcome', m.s); } return void c.send({ t: 'pong', at: m.at }); }
     if (m.t === 'pong'){ pings.set(slot, Math.round(performance.now() - m.at)); net.ping = Math.max(0, ...pings.values()); emit('ping', net.ping); return; }
@@ -186,7 +192,7 @@ function attach(c, slot){
       if (RELAY[m.t]) for (const [k, o] of conns) if (k !== slot && o.open) o.send(m);
     }
     emit(m.t, m);
-  });
+  };
   c.on('close', () => {
     clearInterval(pingTimers.get(slot)); pingTimers.delete(slot); pings.delete(slot);
     if (net.role === 'host'){

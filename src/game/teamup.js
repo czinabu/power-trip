@@ -74,7 +74,7 @@ const owns = (role) => !coop() ? true : sharedFight() ? net.role === 'host' : ro
 // can team-ups happen at all right now, here?
 function allowed(){
   if (G.mode !== 'play' || G.paused || G.skillSelect || G.cutscene || G.hub || G.noTeamups) return false;
-  if (pvpOn() || duelRingOn()) return false;   // the duel ring: one on one, always (a sparring duel, a boss duel's ring)
+  if (pvpOn() || G.duel || duelRingOn()) return false;   // the duel ring: one on one, always (a sparring or practice duel, a boss duel's ring)
   if (player.downed || G.zoneFallT > 0) return false;
   return true;
 }

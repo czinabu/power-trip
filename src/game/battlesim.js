@@ -21,6 +21,7 @@ import { spawnChampion } from './survival.js';
 import { showBanner } from '../ui/banners.js';
 import { clearGrenades } from '../enemies/grenades.js';
 import { allies, addSquadmate, removeSquadmate, clearSquad } from '../allies/squad.js';
+import { heroAllyDef } from '../data/hero-allies.js';
 import { clearDowned } from './revive.js';
 import { restartReadout } from './readout.js';
 import { SB, sandboxClear, placeHero, setSandboxMap } from './sandbox.js';
@@ -99,7 +100,8 @@ function centre(kind){
 function spawnUnit(u){
   u.ref = null;
   if (u.kind === 'ally'){
-    const a = addSquadmate({ x: u.x, z: u.z }, { role: u.id, cap: BATTLE_SIM.maxAllies });
+    const hd = heroAllyDef(u.id);   // (a hero-class ally: data/hero-allies.js)
+    const a = addSquadmate({ x: u.x, z: u.z }, hd ? { def: hd, cap: BATTLE_SIM.maxAllies } : { role: u.id, cap: BATTLE_SIM.maxAllies });
     if (!a) return false;
     a.group.position.set(u.x, 0, u.z);
     a.ord = { kind: 'hold', at: V3(u.x, 0, u.z) }; a.prevOrd = null;   // they hold where you put them until you give an order (H)
@@ -159,7 +161,7 @@ function adoptFloor(){
   for (const e of enemies) if (!e.dead && !e.converted)
     BS.plan.push({ kind: 'foe', id: e === shared.finale ? (e.fin && e.fin.id === 'kharel' ? 'raid' : 'boss') : e.warbringer ? 'warbringer' : e.type, x: e.group.position.x, z: e.group.position.z, elite: !!e.elite });
   if (shared.boss && shared.boss.hp > 0) BS.plan.push({ kind: 'foe', id: 'boss', x: shared.boss.group.position.x, z: shared.boss.group.position.z });
-  for (const a of allies) if (!a.net) BS.plan.push({ kind: 'ally', id: a.def.role, x: a.group.position.x, z: a.group.position.z });
+  for (const a of allies) if (!a.net) BS.plan.push({ kind: 'ally', id: a.def.bsId || a.def.role, x: a.group.position.x, z: a.group.position.z });
   if (BS.plan.length){ const pp = playerPos(); BS.hero = { x: pp.x, z: pp.z }; }
 }
 export const counts = () => ({ foes: BS.plan.filter(u => u.kind === 'foe').length, allies: BS.plan.filter(u => u.kind === 'ally').length });

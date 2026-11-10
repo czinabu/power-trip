@@ -46,6 +46,9 @@ import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
 import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
 import { apprenticeOf } from '../game/profile.js';
+import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState } from '../game/duel-mode.js';
+import { openChallenge, openHonours } from './duel-ui.js';
+import { pvpLinkMs } from '../net/pvp.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -163,6 +166,19 @@ function options(s){
     case 'apprentice': return apprenticeOptions();
     case 'training': return [B('TRAINING GROUNDS', 'Learn the controls and powers, lesson by lesson', () => hubLaunch('training'))];
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
+    // DUEL MODE (game/duel-mode.js): challenge a friend in this wing, watch the duel on from the balcony, or practise
+    case 'duel': {
+      if (G.hero !== 'jedi') return [B('JEDI AGAINST JEDI', 'Duels are fought with the saber, for now: come back as a Jedi', null)];
+      const out = [];
+      if (duelState() && !duelOnHere()) out.push(B('IN A DUEL', 'Finish the one you are in first', null));
+      else for (const c of challengeable()) out.push(B('CHALLENGE ' + c.name, 'Best of 3, both of you levelled · link about ' + Math.round(pvpLinkMs() * 2) + ' ms', () => openChallenge(c.slot, c.name)));
+      if (!out.length) out.push(B('NO ONE TO CHALLENGE', net.status === 'connected' ? 'Bring a friend (a Jedi) into the training wing' : 'Host or join a co-op room, then meet a friend here', null));
+      if (duelOnHere()) out.push(B('WATCH FROM THE BALCONY', 'A duel is on in the ring', () => toBalcony()));
+      out.push(B('PRACTICE RING', 'Duel a mirror of yourself in the sandbox', () => { practiceOnArrive(); hubLaunch('sandbox'); }, sandboxUnlocked() ? null : 'Clear Act I of the campaign'));
+      out.push(B('DUEL HONOURS', 'Your record against every friend', () => openHonours()));
+      return out;
+    }
+    case 'honours': return [B('DUEL HONOURS', 'Your record against every friend you have duelled', () => openHonours())];
     case 'proving': return [B('SURVIVAL', 'Endless waves, one high score', () => askParty('SURVIVAL', () => hubLaunch('endless')), survivalUnlocked() ? null : 'Beat the campaign as Jedi and Mando')];
     case 'codex': return [B('THE CODEX', 'Everyone you have met, foe or friend', () => hubOpenPanel(() => setCodex(true), codexOpen))];
     case 'profile': return [B('YOUR HOLOCRON', 'Your rank, the Force Tree and your path', () => hubOpenPanel(() => setProfile(true), profileOpen))];

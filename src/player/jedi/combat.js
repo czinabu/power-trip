@@ -44,6 +44,7 @@ import { addPosture } from '../../enemies/duel.js';
 import { assistTarget, comboRange } from './saberassist.js';
 import { armWeight, cutMul, holding } from './weight.js';
 import { weightOf } from '../../data/swing-weight.js';
+import { duelHooks } from '../../game/duel-hooks.js';
 
 /* COMBO RHYTHM — fractions of a swing. A press before `open` is too early (and costs this link its flow); a single
    press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). */
@@ -132,6 +133,7 @@ export function tryAttack(flow = false){
   player.atkT = cutDur;
   player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
+  if (G.duel && duelHooks.swingStart) duelHooks.swingStart(player.swing);   // DUEL MODE: the other fighter hears of it now (net/pvp.js)
   // (Juyo's forward rhythm link is the Onslaught's zig-zag, not a spin)
   const zigNow = !isGunner() && !!st.zigzag && dirKey === 'forward' && flow && !ripNow && !mom && player.grounded;
   const spin = zigNow ? null : pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
@@ -477,6 +479,8 @@ export function applySwingDamage(step, only){
     const b = barrels[i];
     tryHit(b.mesh.position, () => { if (b.fuse < 0) b.fuse = 0.1; }, b);
   }
+  // DUEL MODE: the blade reached the other fighter; their own screen judges it (net/pvp.js)
+  if (G.duel && only && duelHooks.swingHit) for (const o of only) if (o && o.duelBody){ duelHooks.swingHit(o, { dmg, knock, finisher, line, riposte, heavy: !!(sw0 && sw0.heavy), at: sw0 && sw0.hitAt && sw0.hitAt.get(o) }); }
   // the blade bounced off a guard and found nothing else: it jars the arm, costs breath and breaks the string
   // (a guard that turned it stops the blade where they met and throws it back: player/jedi/clash.js)
   if (turned && !hits && !(sw0 && sw0.finBeat)) bounceOff(blocker, blockAt);   // (a finisher's beat rides through: jedi/finisher.js)

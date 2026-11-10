@@ -8,6 +8,7 @@ import { pointHit, partsOf } from '../../enemies/bodyshape.js';
 import { meetBlades } from './clash.js';
 import { STAFF, saberIsStaff, saberIsDual } from '../model/weapons.js';
 import { tutEvent } from '../../game/tutor-bus.js';
+import { duelHooks } from '../../game/duel-hooks.js';
 export { bodyRadius } from '../../enemies/bodyshape.js';
 
 /* BODIES — foes use their real hitbox (enemies/bodyshape.js: legs, torso, head, turned and tipped over with the model);
@@ -161,5 +162,7 @@ export function sweepBlade(sw, live){
   const boss = shared.boss;
   if (boss && boss.hp > 0){ const p = boss.group.position; test(boss, p.x, p.z, p.y, p.y + BODY.bossH, BODY.bossR); }
   for (const b of barrels){ const p = b.mesh.position; test(b, p.x, p.z, p.y - BODY.barrelH / 2, p.y + BODY.barrelH / 2, BODY.barrelR); }
+  // DUEL MODE: the other fighter's body, an upright capsule where their puppet stands (game/duel-mode.js)
+  if (G.duel && duelHooks.bodies) for (const d of duelHooks.bodies()) test(d, d.pos.x, d.pos.z, d.pos.y, d.pos.y + d.h, d.r);
   return out;
 }

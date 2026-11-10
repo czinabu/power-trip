@@ -158,6 +158,9 @@ import { updateWaits } from './net/waits.js';
 import { updateWaiting, waitingUp } from './ui/waiting.js';
 import { voteState } from './game/group-choice.js';
 import './net/foefire.js';
+import { pvpTestBlow, guardAgo as pvpGuardAgo, pvpIncoming, pvpInfo } from './net/pvp.js';   // duel mode's blows between players
+import { updateDuel, duelInfo, startPractice, challenge as duelChallenge, answer as duelAnswer, rematch as duelRematch, leaveDuel, toBalcony, honours as duelHonours } from './game/duel-mode.js';
+import { updateDuelUi, openChallenge } from './ui/duel-ui.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
 import { updateTeamups, updateTeamupFlight, updateTeamupFx, teamupInfo, teamupPress, resetTeamups } from './game/teamup.js';
@@ -250,6 +253,8 @@ function tick(ts){
   updateWaiting(rawDt);   // and the card on the dark that names them (ui/waiting.js)
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
+  updateDuel();          // duel mode: the match, its referee's clock, the ring (game/duel-mode.js)
+  updateDuelUi();        // ...its prompt, cards and score bar (ui/duel-ui.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
   if (G.mode !== 'play') updateTeamups(0);   // (out of the fight: a team-up still playing is dropped, its prompt put away)
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
@@ -309,6 +314,7 @@ Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, a
 import * as APPRENTICE from './allies/apprentice.js';
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
+Object.assign(window.GAME, { duel: { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo } });   // duel mode (game/duel-mode.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 Object.assign(window.GAME, { gate: { start: startGate, open: gateOpen, veteranKit, finale: () => shared.finale } });   // ACT IV (game/gate.js), for tests
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';

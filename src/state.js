@@ -42,6 +42,7 @@ export const G = {
   mode: 'menu',          // menu | play | dead | victory
   paused: false,         // true while the pause/ESC overlay is up — freezes the whole sim
   cutscene: false,       // a cutscene is playing (game/cutscene.js): the fight holds, the lens and the input are the scene's
+  duel: null,            // a duel is on (game/duel-mode.js): { rule, pvp, widen }; levels both fighters and keeps the ring
   skillSelect: false, skillPoints: 0, skillSpent: 0,   // between-wave skill-tree pause
   saberGrip: 'regular',   // player preference: 'regular' or 'reverse' lightsaber grip (visual only)
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)
@@ -130,7 +131,9 @@ export const keys = {};
 /* ============================================================
    PLAYER
    ============================================================ */
-export const player = {
+/* the player's state, fresh. One is `player`, the hero you play; player/stand-in.js makes more for the heroes the game
+   plays itself (a hero-class squadmate), and runs the hero's own animation on them by swapping one in for a moment */
+const makePlayer = () => ({
   group: new THREE.Group(),
   vis: null,                     // visual rig — flips/leans without moving the logic root
   hp: CFG.player.maxHp, force: CFG.player.maxForce,
@@ -164,7 +167,9 @@ export const player = {
   zoom: false, aiming: 0, recoilKick: 0,
   jet: 100, jetMax: 100, stabT: 0,   // dedicated jetpack FUEL (separate from ability Force); disruptor stab timer
   aimOff: { x: 0, y: 0 },            // screen-space crosshair drift (free-aim like BF2 / Helldivers)
-};
+});
+export const player = makePlayer();
+export const freshPlayerState = makePlayer;
 
 /* THE BOSS ON THE FIELD, whichever kind he is: the old state-machine boss (shared.boss: the Iron Magistrate) or a final
    boss fought on a duellist's body (shared.finale: Darth Vexis, boss/finale.js). Anything that asks "is the boss fight

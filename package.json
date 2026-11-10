@@ -43,6 +43,7 @@
     "smoke:coop-temple": "node tools/smoke/coop-temple.mjs",
     "smoke:side": "node tools/smoke/side-quests.mjs",
     "smoke:medals": "node tools/smoke/medals.mjs",
+    "smoke:slice": "node tools/smoke/slice-ways.mjs",
     "smoke:ngplus": "node tools/smoke/ngplus.mjs",
     "smoke:alignment": "node tools/smoke/alignment.mjs",
     "smoke:coop-citadel": "HOST=trooper node tools/smoke/coop-temple.mjs",
@@ -63,7 +64,8 @@
     "smoke:gate": "node tools/smoke/gate.mjs",
     "smoke:raid": "node tools/smoke/raid.mjs",
     "smoke:coop-raid": "node tools/smoke/coop-raid.mjs",
-    "smoke:coop-teamup": "node tools/smoke/coop-teamup.mjs"
+    "smoke:coop-teamup": "node tools/smoke/coop-teamup.mjs",
+    "smoke:coop-duel": "node tools/smoke/coop-duel.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

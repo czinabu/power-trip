@@ -25,6 +25,7 @@ import { foeOffered, mapOffered, kitOffered, sandboxIsFull, sandboxProgress } fr
 import { battleArmed, replayBattle, savedSetups, saveSetup, loadSetup, BS } from '../game/battlesim.js';
 import { openBattleSetup } from './battlesim-ui.js';
 import { BATTLE_SIM } from '../data/battlesim.js';
+import { startPractice, leaveDuel, duelState } from '../game/duel-mode.js';
 
 const panel = document.getElementById('sandbox');
 const $ = (id) => document.getElementById(id);
@@ -73,6 +74,8 @@ const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
 function render(){
   const full = sandboxIsFull(), prog = sandboxProgress();
+  $('sbduelrow').style.display = isGunner() ? 'none' : '';
+  $('sbduelstop').style.display = duelState() ? '' : 'none';
   $('sbstory').style.display = full ? 'none' : '';
   $('sbstory').textContent = 'THE STORY SO FAR · ' + prog.n + ' OF ' + prog.of + ' CHAPTERS · beat the campaign to open everything';
   $('sbmap').innerHTML = SANDBOX_MAPS.map(m => { const ok = mapOffered(m.id);
@@ -149,6 +152,9 @@ panel.addEventListener('click', (e) => {
   if (t.closest('#sbroreset')){ restartReadout(); return; }
   if (t.closest('#sbsquadadd')){ addSquadmate(); render(); return; }
   if (t.closest('#sbsquaddrop')){ dismissSquadmate(); render(); return; }
+  // THE PRACTICE RING (game/duel-mode.js): a mirror duellist in your own form, under a duel's rules, levelled as a duel is
+  if (t.closest('[data-sbduel]')){ if (duelState()) leaveDuel(); closeSandboxPanel(); startPractice(t.closest('[data-sbduel]').dataset.sbduel); return; }
+  if (t.closest('#sbduelstop')){ leaveDuel(); render(); return; }
   if (t.closest('#sbclear')){ sandboxClear(); BS.live = false; return; }   // (a set-up battle swept away isn't a win)
   if (t.closest('#sbheal')){ sandboxHeal(); return; }
   if (t.closest('#sball')){ sandboxKitAll(true); render(); return; }

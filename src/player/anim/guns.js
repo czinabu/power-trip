@@ -28,6 +28,8 @@ const _u = new THREE.Vector3();
 
 /* per-gun live state: how "drawn" it is (0 hip → 1 aimed), smoothed so the draw is a fast snap, the re-holster slow */
 const draw = { R: 0, L: 0, rifle: 0, run: 0 };
+// (another figure posed with this code for a moment takes its own: player/stand-in.js) returns what was here, puts `o` in
+export function gunMemo(o){ const was = { ...draw }; if (o) Object.assign(draw, o); return was; }
 
 /* the reticle point (world) → a unit aim direction from a shoulder, in chest space */
 function aimFrom(chest, shoulder, worldPoint, out){

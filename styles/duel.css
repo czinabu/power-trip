@@ -1,0 +1,84 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
+/* DUEL MODE (ui/duel-ui.js): the walk-up prompt, the cards (on the hub panel's look: styles/hub.css .hb-box) and the score bar */
+
+#duelp{position:fixed;left:50%;top:calc(50% + 84px);transform:translate(-50%,4px);display:flex;align-items:center;gap:9px;
+  padding:6px 14px 6px 7px;border-radius:var(--r-lg);background:rgba(26,10,6,.7);box-shadow:0 4px 16px rgba(0,0,0,.3);
+  font:700 13px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;white-space:nowrap}
+#duelp.on{opacity:1;transform:translate(-50%,0)}
+#duelp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,190,110,.8);border-radius:5px;color:#ffd08a;background:rgba(255,160,80,.12)}
+body.cutscene #duelp{opacity:0 !important}
+
+#duelpanel{position:fixed;inset:0;z-index:31;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
+  background:rgba(1,6,14,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
+#duelpanel.open{display:flex}
+.dl-box{width:min(520px,100%)}
+.dl-rules{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.dl-o{cursor:pointer;user-select:none;-webkit-user-select:none}
+.dl-o span{font:500 13px/1.35 var(--font-ui);color:var(--ink-soft)}
+.dl-o.on{border-color:rgba(255,210,120,.85);background:rgba(255,200,90,.14)}
+.dl-o.on b::before{content:'▸ ';color:#ffd27a}
+.dl-row{display:flex;gap:8px;margin-top:8px}
+.dl-row .dl-o{flex:1 1 0;align-items:center;justify-content:center;min-height:46px}
+.dl-o.go{border-color:rgba(255,200,110,.6);background:rgba(255,170,70,.14)}
+.dl-o.wait{opacity:.6;cursor:default}
+.dl-link{font:700 12px/1.4 var(--font-ui);letter-spacing:2px;margin-top:4px}
+.dl-link i{display:block;font:500 12px/1.4 var(--font-ui);letter-spacing:.3px;font-style:normal;color:var(--ink-soft)}
+.dl-link.good,.dl-ms.good{color:#8ff0b0}
+.dl-link.fair,.dl-ms.fair{color:#ffd27a}
+.dl-link.poor,.dl-ms.poor{color:#ff8a6a}
+.dl-score{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0;font:700 15px/1.2 var(--font-ui);letter-spacing:2px;color:var(--ink-soft)}
+.dl-score b{font:700 40px/1 var(--font-display);color:var(--ink);letter-spacing:4px}
+.dl-hon{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.dl-hr{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;background:rgba(216,184,96,.08);border:1px solid rgba(216,184,96,.25);
+  font:700 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft)}
+.dl-hr b{flex:1;font:700 16px/1 var(--font-display);letter-spacing:2px;color:var(--ink)}
+
+/* the score bar: top middle, over the fight */
+#duelhud{position:fixed;left:50%;top:14px;transform:translateX(-50%);display:none;align-items:stretch;gap:10px;z-index:5;pointer-events:none;
+  font:700 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink)}
+#duelhud.on{display:flex}
+body.compass-on #duelhud{top:50px}   /* (under the compass strip, as the boss bar sits) */
+.dl-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:150px;padding:8px 12px;border-radius:10px;background:rgba(4,12,22,.66);
+  border:1px solid rgba(255,255,255,.08)}
+.dl-side.s1{align-items:flex-start}
+.dl-side.me{border-color:rgba(255,210,120,.5)}
+.dl-side b{font:700 15px/1 var(--font-display);letter-spacing:2px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-pips,.dl-rd{display:flex;gap:5px}
+.dl-pips i{width:16px;height:7px;border-radius:2px;background:rgba(255,255,255,.14)}
+.dl-pips i.on{background:#ffd24a;box-shadow:0 0 8px rgba(255,210,74,.7)}
+.dl-rd i{width:8px;height:8px;border-radius:50%;border:1px solid rgba(255,255,255,.4)}
+.dl-rd i.on{background:#fff;border-color:#fff}
+.dl-bar{width:130px;height:7px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;display:block}
+.dl-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff6a4a,#ffd24a);transition:width .15s}
+.dl-n{font:700 22px/1 var(--font-display)}
+.dl-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0 4px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.dl-mid b{font:700 16px/1 var(--font-display);letter-spacing:3px}
+.dl-ms{font:600 10px/1 var(--font-ui);letter-spacing:1.6px}
+
+/* THE PHONE PASS: a narrow screen keeps the bar to one compact row, the cards' buttons big enough for a thumb */
+@media (max-width:640px), (max-height:460px){
+  #duelhud{top:6px;gap:6px}
+  body.compass-on #duelhud{top:40px}
+  .dl-side{min-width:0;padding:5px 8px;gap:4px}
+  .dl-side b{font-size:12px;max-width:92px}
+  .dl-pips i{width:11px;height:6px}
+  .dl-bar{width:80px}
+  .dl-mid b{font-size:12px}
+  #duelpanel{padding:10px}
+  .dl-box{padding:14px 12px 12px}
+  .dl-row .dl-o{min-height:52px}
+  .dl-o span{font-size:12px}
+  #duelp{top:auto;bottom:24%}
+}
+
+/* the incoming cue (ui/duel-ui.js): a chevron on the side the other fighter's cut comes in on, brightening as it nears */
+#duelcue{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:4;--near:0}
+#duelcue i{position:absolute;display:none;width:26px;height:26px;margin:-13px 0 0 -13px;border:solid rgba(255,190,110,calc(.35 + var(--near) * .65));
+  border-width:0 4px 4px 0;filter:drop-shadow(0 0 calc(2px + var(--near) * 8px) rgba(255,150,60,.9))}
+#duelcue.l-R .dc-R{display:block;transform:translateX(calc(64px - var(--near) * 18px)) rotate(135deg)}
+#duelcue.l-L .dc-L{display:block;transform:translateX(calc(-64px + var(--near) * 18px)) rotate(-45deg)}
+#duelcue.l-H .dc-H{display:block;transform:translateY(calc(-64px + var(--near) * 18px)) rotate(45deg)}
+#duelcue.l-Lo .dc-Lo{display:block;transform:translateY(calc(64px - var(--near) * 18px)) rotate(-135deg)}
+#duelcue.l-T .dc-T{display:block;width:14px;height:14px;margin:-7px 0 0 -7px;border:4px solid rgba(255,190,110,calc(.35 + var(--near) * .65));border-radius:50%;
+  transform:scale(calc(1.6 - var(--near) * .6))}

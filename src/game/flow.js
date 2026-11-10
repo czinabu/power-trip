@@ -217,10 +217,7 @@ export function startLevel(idx, opts){
     G.forceLevel = 1; G.formRank = {}; G.formUse = {}; G.formSince = {};   // the Jedi's Force Level and form mastery (data/force-level.js)
     G.gunRank = {}; G.gunUse = {}; G.gunMoves = {};   // the gunners' gun mastery (data/gun-moves.js)
     G.boonOffer = null; G.boonPicked = false;
-    player.up = { dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
-                  atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,
-                  fireRate: 1, fuelEff: 1, flameDmg: 1, flameRange: 1, rocketDmg: 1, rocketR: 1, braceDR: 0, aim: 0, darksaber: false, abilityCostMul: 1,
-                  jetTier: 0, jetPow: 0.62, fjTier: 0, cellTier: 0, heatCap: 1, heatCool: 1 };
+    player.up = freshUp();
     player.boon = {}; player.boons = {}; player.momentumStacks = 0; player.momentumT = 0; player.phoenixReady = false;   // ROGUELITE BOONS
     player.focus = 0; player.focusHitT = 0; player._focusTier = 0; player.flow = 0; player.flowReady = false; player._flowTier = 0; player.flowSig = null;   // FORCE FOCUS meter
     player.skills = {};
@@ -255,6 +252,11 @@ export function startLevel(idx, opts){
   if (opts && opts.guests && !G.coopGuest && !opts.coopGuest) opts.guests.forEach(d => addSquadmate(null, { def: d, cap: 99 }));
   if (G.chapter >= 0) openFormsWindow();   // a chapter's start: the three can be re-picked until its fight is on (meditation.js)
 }
+// a fresh run's numbers: no upgrade, skill, crystal or perk on them (a duel levels both fighters to these: game/duel-mode.js)
+export const freshUp = () => ({ dmg: 1, forceRegen: 1, move: 1, knock: 1, parry: 0, lifesteal: 0, hpMax: 0, dashCdMult: 1, stamRegen: 1, maxStam: 0,
+  atkSpeed: 1, dr: 0, blockStam: 1, riposte: 1, parryForce: 0,
+  fireRate: 1, fuelEff: 1, flameDmg: 1, flameRange: 1, rocketDmg: 1, rocketR: 1, braceDR: 0, aim: 0, darksaber: false, abilityCostMul: 1,
+  jetTier: 0, jetPow: 0.62, fjTier: 0, cellTier: 0, heatCap: 1, heatCool: 1 });
 // after a death: restart this level from its checkpoint (the boss itself, if that's what killed you)
 export function retryLevel(){ if (G.chapter >= 0) retryChapter(); else startLevel(G.levelIdx, { retry: true }); }
 export function retryIsBoss(){ return !!(G.checkpoint && G.checkpoint.boss && G.checkpoint.idx === G.levelIdx && !G.endless && !G.training && !G.mission && !G.sandbox && !G.hub); }

@@ -122,7 +122,7 @@ export function updateMovement(dt, pp, st, f, r){
     // stop or turn back against your momentum brakes harder. In the AIR the jump keeps its takeoff momentum: WASD
     // only nudges it (no input = no steering at all), so a leap is a commitment instead of a floaty drift.
     const airborne = !player.grounded && !player.wallRun;
-    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? (isTrooper() ? TROOPER.sprint.mul : MOVE.sprintMul) : player.walking ? MOVE.walkMul : 1) * (G.hub ? HUB.stride : 1);   // (the temple's long halls: a longer stride there, data/hub.js)
+    const topSpeed = CFG.player.speed * speedMul * (player.sprinting ? (isTrooper() ? TROOPER.sprint.mul : MOVE.sprintMul) : player.walking ? MOVE.walkMul : 1) * (G.hub && !G.duel ? HUB.stride : 1);   // (the temple's long halls: a longer stride there, data/hub.js)
     if (moving && !(player.pivotT > 0)) want.normalize().multiplyScalar(topSpeed);
     else if (player.pivotT > 0) want.set(0, 0, 0);   // planted: kill the old momentum first
     if (!(airborne && !moving)){

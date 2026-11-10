@@ -516,6 +516,7 @@ function updateDrills(dt){
   const run = G.hero + ':' + (G.stats ? G.stats.startGt : 0);
   if (D.run !== run){ D.run = run; D.owned = ownedNow(); D.queue = []; if (D.cur){ D.cur = null; hidePanel(); } return; }
   const now = ownedNow();
+  if (G.duel){ D.owned = now; D.queue = []; if (D.cur){ D.cur = null; hidePanel(); } return; }   // (a duel's levelled powers are lent, not learned: no drill for them)
   for (const k of now) if (!D.owned.has(k) && heroKey(DRILLS)[k]) D.queue.push(k);
   D.owned = now;
   if (G.skillSelect || dt <= 0) return;

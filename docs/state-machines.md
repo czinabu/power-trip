@@ -17,7 +17,7 @@ In the browser console, or from a smoke test's `page.evaluate`:
 
 | Call | Gives |
 | --- | --- |
-| `GAME.run.now()` | `{ screen, kind, phase, phaseT, holds, chapter, guest, fromHub, resumable }` |
+| `GAME.run.now()` | `{ screen, kind, phase, phaseT, holds, chapter, guest, origin, pick, resumable }` |
 | `GAME.run.trace` | the last 60 moves of both machines, each with why, game time and run kind |
 | `GAME.run.illegal` | the moves no table allows |
 | `GAME.run.holds()` | which overlays hold the sim right now |
@@ -75,6 +75,18 @@ question ("is this a run a guest can follow?"). Keep the two apart.
 `HOLDS` names every overlay that stops or owns the fight (`paused`, `skillSelect`, `cutscene`, `cardUp`, `sbMenu`,
 `sbPlan`, `calm`) and who owns it. They are still booleans on `G`.
 
+### Launch: what BEGIN starts (`ui/menus.js LAUNCH`)
+
+One row per `G.modeSel` (`temple`, `zone`, `campaign`, `gate`, `mission`, `endless`, `training`, `sandbox`), each with
+`locked()` (BEGIN falls back to the campaign), `start()` and, where a co-op guest starts differently, `join()`. A new
+mode is a new row. RETRY (after a fall) and RESTART pick by the run's kind and are still chains, next to it.
+
+### Run origin: derived (`runOrigin()`)
+
+`menu | hub | party`, read off `G.fromHub` and `G.partyRun` (`ORIGINS` in `run-state.js`). It decides whether a run's
+pause and end screens offer RETURN TO the hub. `goHome()` clears it, so anything that uses `goHome()` as a reset on
+the way into another run must put it back (RETURN TO STORY from training does).
+
 ## Already explicit elsewhere
 
 - **Enemy AI**: `e.state` strings (`chase`, `think`, `windup`, `recover`…), `enemies/ai.js`, documented in
@@ -91,9 +103,9 @@ Ordered by how much trouble they can cause. None of these were changed.
 
 | # | Machine | Lives in | Why it is fragile |
 | --- | --- | --- | --- |
-| 1 | **Launch**: what BEGIN starts | `ui/menus.js` begin handler: `G.mode × G.modeSel × G.coopJoin × canResume() × G.ngNext` | One long if/else chain decides between 12 starts. Locked modes are swapped to `campaign` in two separate lines above it. |
+| 1 | **Retry and restart** | `ui/menus.js` `beginPlay` (dead branch) and `restartRun` | Two more chains over the run-kind flags, in different orders. The launch itself is a table now. |
 | 2 | **The run waiting on the menu** | `G.resumeRun`, written in 12 places over 5 files, plus `parked` and `latestRun` in `game/saves.js` | `resumeRun()` uses the run up as it begins, and every way back to the menu must put one back (`followHero`). A route that forgets leaves no CONTINUE. |
-| 3 | **Where a run came from, and the way home** | `G.fromHub`, `G.partyRun`, `G.hubArrive`, `G.hubWing`, `G.modeSel === 'temple'` | The RETURN TO button is `state !== 'menu' && G.fromHub && !G.hub`. `goHome` clears `fromHub`; `leaveHub`, `followHostRun` set it. A run reached any other way has no route back. |
+| 3 | **Where a run came from, and the way home** | `G.fromHub`, `G.partyRun`, `G.hubArrive`, `G.hubWing`, `G.modeSel === 'temple'` | The RETURN TO button is `state !== 'menu' && G.fromHub && !G.hub`. `goHome` clears `fromHub`; `leaveHub`, `followHostRun` set it. Now named by `runOrigin()`, still two flags. |
 | 4 | **Co-op role in a run** | `net.role`, `net.status`, `G.coopGuest` (11 writes, 6 files), `G.coopWasGuest` (9), `G.coopJoin` (8) | Three booleans encode solo / joining / following / fell out of the host's fight / host. The "back in the host's fight" check re-derives the run kind by hand. |
 | 5 | **Overlays** | `G.paused` (21 writes), `G.skillSelect` (29 writes, 14 files), `G.cardUp` (10), `G.sbMenu`, `G.sbPlan`, plus `setOverlayState` and the menu step in `ui/menus.js` | Many screens each flip the same flags; closing one can unfreeze under another. `HOLDS` lists them now, nothing owns them yet. |
 | 6 | **Campaign position** | `G.chapter`, `G.chapterClosed`, `G.checkpoint`, `G.actTwo`, `G.storyHero`, `G.ngPlus`, `G.ngNext` | The save's `closed` flag and `G.chapterClosed` say the same thing in two places. |
@@ -106,15 +118,16 @@ Leads only: none of these were reproduced or fixed here.
 
 - *A campaign that can't be resumed* → #2. Look for a way back to the menu that doesn't end in `followHero()`, and
   for a start that sets `G.resumeRun = null` without a save behind it.
-- *Mission runs with no route back to the temple* → #3. `G.fromHub` is the only thing that shows the button.
+- *Mission runs with no route back to the temple* → #3. One cause found and fixed: RETURN TO STORY from the training
+  grounds went through `goHome()`, which cleared `G.fromHub`, so a campaign started at a hub lost its way back after a
+  training detour. Other causes may remain.
 - *Side missions granting locked abilities* → #7.
 - *A screen popping up on scene changes in the Mando hub* → #8.
 
 ### Suggested order for the next passes
 
-1. **Launch** (#1) as a table: one row per `modeSel`, with its lock check and its start. Small, and it removes the
-   two "never launch a locked mode" patches.
-2. **Run origin** (#3) as one value (`G.origin: 'menu' | 'hub' | 'party'`) set by the launcher.
+1. **Retry and restart** (#1) as rows on the run kinds, beside `LAUNCH`.
+2. **Run origin** (#3) as one stored value set by the launcher, in place of the two flags.
 3. **The waiting run** (#2) behind `takeRun()` / `offerRun()` in `game/saves.js`, so no caller touches `G.resumeRun`.
 4. **Co-op role** (#4) as `coopRole(): 'solo' | 'host' | 'joining' | 'guest' | 'dropped'`.
 5. **Overlays** (#5) as a stack, so closing one screen can't unfreeze another.

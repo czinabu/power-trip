@@ -276,6 +276,22 @@ document.getElementById('mode-continue').addEventListener('click', (e) => {
   launch();
 });
 document.addEventListener('campaignmark', () => refreshContinue());   // (the hero or the saved run changed)
+/* WHAT BEGIN STARTS: one row per G.modeSel (the menu's pick, a hub station's, or the host's run a guest follows).
+   locked(): the pick can't launch as things stand, so BEGIN starts the campaign instead · start(): the mode, alone or
+   hosting · join(): the same mode as a co-op guest after the host (G.coopJoin), where that differs from start().
+   A pick with no row starts the campaign. (docs/state-machines.md) */
+const LAUNCH = {
+  temple:   { start: () => { const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); } },   // the hub: the hero's own (game/hub.js)
+  zone:     { start: () => startZone(G.zoneSel, { guest: G.coopJoin }) },   // an open zone (game/zone.js), alone or after the host
+  campaign: { start: () => { if (canResume() && G.ngNext == null) resumeRun(); else startCampaign(); },   // (NEW GAME+ armed: a fresh run at its tier, game/campaign.js)
+              join: () => { if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; G.ngPlus = coopRun.ng | 0; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); } },
+  gate:     { locked: () => !gateOpen() && !G.coopJoin, start: () => beginGate() },
+  mission:  { locked: () => !G.coopJoin && !missionOpen(G.missionId), start: () => startMission(G.missionId), join: () => startCoopMission(G.missionId) },
+  endless:  { locked: () => !survivalUnlocked() && !G.coopJoin, start: () => startEndless() },
+  training: { start: () => startTutorial() },
+  sandbox:  { locked: () => !sandboxUnlocked(), start: () => startSandbox() },
+};
+const launchRow = () => LAUNCH[G.modeSel] || LAUNCH.campaign;
 function beginPlay(){
   overlay.style.display = 'none';
   document.getElementById('banner').style.opacity = '0';
@@ -286,8 +302,7 @@ function beginPlay(){
   _endPick = null; overlay.classList.remove('vpicking');
   document.body.classList.remove('in-menu');
   setHowTo(false); setSettings(false);
-  if (G.modeSel === 'mission' && !G.coopJoin && !missionOpen(G.missionId)) G.modeSel = 'campaign';   // a locked mission never launches
-  if ((G.modeSel === 'endless' && !survivalUnlocked() && !G.coopJoin) || (G.modeSel === 'sandbox' && !sandboxUnlocked()) || (G.modeSel === 'gate' && !gateOpen() && !G.coopJoin)) G.modeSel = 'campaign';   // safety — never launch a locked mode
+  if (launchRow().locked && launchRow().locked()) G.modeSel = 'campaign';   // safety: a locked mode (or mission) never launches
   if (G.mode === 'victory' && !repick && G.modeSel === 'mission' && isArcadeId(G.missionId) && !G.coopJoin && !G.coopWasGuest) setMission(randomArcadeId());   // ARCADE: a won contract's PLAY AGAIN is the next random one
   if (G.modeSel === 'mission' && isRaidId(G.missionId) && !G.coopJoin && !G.coopWasGuest){ const r = parseRaidId(G.missionId); if (r && r.day !== today()) setMission(raidIdFor(r.raid)); }   // a RAID played again is today's rotation
   // a new run (or a retry) builds its level behind the loading screen (ui/loading.js): the screen paints first, then the
@@ -298,12 +313,9 @@ function beginPlay(){
     if (G.mode === 'menu' && !G.coopJoin) noteLastPlay();
     loadInto(() => {
       setScreen('play', 'launch'); G.slowmo = 1;
-      if (G.modeSel === 'temple'){ const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
-      G.hub = false; forgetHubSpot();   // (a run: coming back from it is a fresh arrival, not the spot left for it)
-      if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
-      if (G.coopJoin && G.modeSel === 'mission') startCoopMission(G.missionId);
-      else if (G.coopJoin && G.modeSel === 'campaign'){ if (coopRun.ch >= 0){ G.storyHero = coopRun.sh || null; G.ngPlus = coopRun.ng | 0; joinCampaign(coopRun.ch, coopRun.a2, coopRun.w, coopRun.wt); } else startCoopCampaign(coopRun.lv, coopRun.w, coopRun.wt); }
-      else if (G.modeSel === 'endless') startEndless(); else if (G.modeSel === 'training') startTutorial(); else if (G.modeSel === 'mission') startMission(G.missionId); else if (G.modeSel === 'sandbox') startSandbox(); else if (G.modeSel === 'gate') beginGate(); else if (canResume() && G.ngNext == null) resumeRun(); else startCampaign();   // (NEW GAME+ armed: a fresh run at its tier, game/campaign.js)
+      const row = launchRow();
+      if (G.modeSel !== 'temple'){ G.hub = false; forgetHubSpot(); }   // (a run: coming back from it is a fresh arrival, not the spot left for it)
+      if (G.coopJoin && row.join) row.join(); else row.start();
       G.paused = false;   // unfreeze the sim on entering play
     }, stillWanted);
   } else if (G.mode === 'dead'){
@@ -910,7 +922,7 @@ setTrainHook((formId) => {
 // the lesson board's RETURN TO STORY (game/tutorial.js): straight back into the waiting run, as CONTINUE CAMPAIGN would
 setStoryReturn({
   waiting: () => canResume(),
-  go: () => { setModeSel('campaign'); goHome(); launch(); },
+  go: () => { const origin = G.fromHub; setModeSel('campaign'); goHome(); G.fromHub = origin; launch(); },   // (goHome is the reset here, not a walk to the title screen: a run from the hub still has its way back)
 });
 // MAIN MENU — abandon the run and go back to the title screen. From pause it asks first (a run is easy to lose
 // by accident); from the fallen/victory screens the run is already over, so it goes straight there.

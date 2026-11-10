@@ -40,6 +40,7 @@ import { noteDamage, noteDefense } from '../game/readout.js';
 import { heroCanGoDown, downHero, hitDownedHero, heroCanSitOut, sitOut } from '../game/revive.js';
 import { coopRun } from '../net/run.js';
 import { flowHurt } from './gunner-flow.js';
+import { duelHooks } from '../game/duel-hooks.js';
 import { guardMeets, guardFlash } from './jedi/guardline.js';
 import { GUARD_TURN } from '../data/duel-guard.js';
 
@@ -372,6 +373,8 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     v.style.opacity = '1';
     setTimeout(()=>{ v.style.opacity = '0'; }, 120);
   }
+  // DUEL MODE (game/duel-mode.js): the blow is counted for the match, and nobody falls in the ring (the match decides)
+  if (G.duel){ if (duelHooks.taken) duelHooks.taken(dmg, opts, !!chip || !!silent); if (player.hp < 0.01) player.hp = 0.01; }
   // TRAINING — nobody dies in the training grounds: the teacher pulls you back up
   if (G.training && player.hp < 1){ player.hp = maxHp() * 0.4; floater(playerPos(), 'AGAIN', '#ffe27a'); }
   // SANDBOX god mode (game/sandbox.js): the blow lands, the hero stays up

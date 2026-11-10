@@ -93,7 +93,7 @@ export const MASTERY_TROOPER = [
 ];
 const BY_ID = Object.fromEntries([...MASTERY_JEDI, ...MASTERY_MANDO, ...MASTERY_TROOPER].map(m => [m.id, m]));
 export function masterySet(){ return isTrooper() ? MASTERY_TROOPER : isGunner() ? MASTERY_MANDO : MASTERY_JEDI; }
-export function masteryRank(id){ return (G.mastery && G.mastery[id]) || 0; }
+export function masteryRank(id){ return G.duel ? 0 : (G.mastery && G.mastery[id]) || 0; }   // (a duel: every power at base strength, game/duel-mode.js)
 
 // the ability's tuning with its mastery ranks applied. Built fresh on each call (a small copy), so live edits to
 // CFG / MANDO from the console still take effect.

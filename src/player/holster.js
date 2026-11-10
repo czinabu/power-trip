@@ -125,7 +125,7 @@ export function toggleBlade(){
   setUnlit(true);
 }
 // 5 with the blade put out: reach down for the hilt (still on its way to the belt: it's in the hand, so light it now)
-function lightFromBelt(){
+export function lightFromBelt(){   // (also a duel's FIGHT: game/duel-mode.js)
   if (player.reach) return;   // (mid-reach: let it finish)
   if (!player.stowed){ setUnlit(false); return; }
   startReach(1);

@@ -15,12 +15,12 @@ export const DIFFS = {
   knight: { hp:1,    dmg:1,   tell:1,    window:0,    bossCheckpoint:true },
   master: { hp:1.45, dmg:1.4, tell:0.88, window:0,    bossCheckpoint:false },
 };
-const diff = () => DIFFS[G.diff] || DIFFS.knight;
+const diff = () => G.duel ? DIFFS.knight : DIFFS[G.diff] || DIFFS.knight;   // (a duel is fought on Knight by both: game/duel-mode.js)
 // (a NEW GAME+ chapter stacks its tier on top: data/ngplus.js)
 export function diffHpMul(){ return diff().hp * ngScale('hp'); }
-export function diffDmgMul(){ return diff().dmg * ngScale('dmg'); }
+export function diffDmgMul(){ return G.duel ? 1 : diff().dmg * ngScale('dmg'); }
 export function diffTellMul(){ return diff().tell; }
-export function diffWindow(){ return diff().window; }
+export function diffWindow(){ return diff().window + (G.duel ? G.duel.widen || 0 : 0); }   // (a duel on a poor link widens both fighters' windows a little: data/duel-mode.js lag)
 export function diffBossCheckpoint(){ return diff().bossCheckpoint; }
 
 /* MASTERY XP — clean play pays. A casual run still earns every wave-clear payout; these sit on top of it.

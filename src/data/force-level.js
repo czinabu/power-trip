@@ -127,11 +127,12 @@ export function noteBestRank(id, r){
 }
 export function forceLevel(){
   if (isGunner()) return 0;
+  if (G.duel) return 1;   // (a duel levels both fighters: game/duel-mode.js)
   if (G.sandbox && G.sbForceLevel) return G.sbForceLevel;
   return Math.max(1, Math.min(FORCE_MAX, G.forceLevel || 1));
 }
 export function formRank(id){
-  if (!FORM_MASTERY[id]) return 0;
+  if (!FORM_MASTERY[id] || G.duel) return 0;
   if (G.sandbox && G.sbFormRank != null) return G.sbFormRank;
   if (G.sandbox || G.training) return bestRanks()[id] || 0;
   return (G.formRank && G.formRank[id]) || 0;

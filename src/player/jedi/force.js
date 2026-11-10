@@ -2,6 +2,7 @@
 // Force powers: push, jump attack, saber throw, pull (and the grasp, grasp.js), repulse, barrier, mend, judgement.
 
 import * as THREE from 'three';
+import { duelHooks } from '../../game/duel-hooks.js';
 import { CFG } from '../../data/config.js';
 import { abil, abilAt, masteryRank, healFrac } from '../../data/mastery.js';
 import { scene } from '../../engine/renderer.js';
@@ -135,6 +136,7 @@ export function forcePush(){
   // boss resists the push itself
   else if (shared.boss && shared.boss.hp > 0 && shared.boss.group.position.distanceTo(pp) < A.range && pushed === 0)
     floater(shared.boss.group.position, 'RESISTED', '#aa7788');
+  if (G.duel && duelHooks.power) duelHooks.power('push', aim, A);   // DUEL MODE: the other fighter, if the cone has them (net/pvp.js)
   if (pushed >= 4) floater(pp, 'CROWD CLEARED', '#7fd4ff');
 }
 
@@ -412,6 +414,7 @@ export function forcePull(){
       inkSprite({ pos: hand, shape: 'star', points: 6, sharp: 0.3, color: pcol, size: [0.12, 0.42], life: 0.12, delay: 0.26, steps: 2, coreW: 0.45 });
     }
   });
+  if (G.duel && duelHooks.power) duelHooks.power('pull', aim, A);
   if (n && flow){ queuePullStrike(); floater(pp, 'PULL-IN', '#7fd4ff'); tutEvent('pullStrike'); }
   else if (n) floater(pp, 'PULL', '#7fd4ff');
 }

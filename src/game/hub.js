@@ -106,7 +106,7 @@ export async function goWing(to, viaDoor){
 
 /* the station you're standing at, if any (nearest, within its reach, roughly in front of you) */
 function pickNear(){
-  if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect || G.cutscene) return null;
+  if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect || G.cutscene || G.duel) return null;   // (a duel in the ring: no station prompts under the fighters)
   const p = playerPos(), f = fwd();
   let best = null, bd = Infinity;
   for (const s of hubWing().stations){

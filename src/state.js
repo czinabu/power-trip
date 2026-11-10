@@ -42,6 +42,7 @@ export const G = {
   mode: 'menu',          // menu | play | dead | victory
   paused: false,         // true while the pause/ESC overlay is up — freezes the whole sim
   cutscene: false,       // a cutscene is playing (game/cutscene.js): the fight holds, the lens and the input are the scene's
+  duel: null,            // a duel is on (game/duel-mode.js): { rule, pvp, widen }; levels both fighters and keeps the ring
   skillSelect: false, skillPoints: 0, skillSpent: 0,   // between-wave skill-tree pause
   saberGrip: 'regular',   // player preference: 'regular' or 'reverse' lightsaber grip (visual only)
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)

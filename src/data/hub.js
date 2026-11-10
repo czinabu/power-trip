@@ -14,7 +14,8 @@
 //   its doors and its stations. A station's `act` is what tapping F at it does (ui/hub-ui.js options): x, z in metres
 //   from the wing's middle. The acts: travel, council (every mode), training, sparring (sandbox), proving (survival),
 //   codex, profile, records, forge (the saber bench for a Jedi, the customizer for all; ARMORY for a gunner), raid (the
-//   raid page: data/raids.js; every hub's mission table carries it too), shuttle (the ship to an open zone: data/zones.js).
+//   raid page: data/raids.js; every hub's mission table carries it too), shuttle (the ship to an open zone: data/zones.js),
+//   duel (the duel ring: challenge a friend, watch from the balcony, practise), honours (the trophy hall's duel record).
 
 import { KAMINO_WINGS } from './hub-kamino.js';   // the clone citadel's wings
 import { COVERT_WINGS, COVERT_ORDER } from './hub-covert.js';   // the hidden covert's wings
@@ -78,6 +79,9 @@ const TEMPLE_WINGS = {
       { id: 'sparring', x: 14, z: 0, name: 'SPARRING HALL', act: 'sparring' },
       { id: 'proving', x: -6, z: 18, name: 'PROVING GROUND', act: 'proving' },
       { id: 'waystone', x: -30, z: 9, name: 'WAYSTONE', act: 'travel' },
+      // DUEL MODE (game/duel-mode.js): the sparring hall's ring is the duel ring; its spectators' balcony and the trophy case
+      { id: 'duelring', x: 14, z: -11.6, name: 'DUEL RING', act: 'duel' },
+      { id: 'honours', x: 24.6, z: 16.6, name: 'DUEL HONOURS', act: 'honours' },
     ],
   },
   archives: {

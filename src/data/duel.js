@@ -126,11 +126,14 @@ export const DUEL = {
      keeps its two-at-a-time limit. */
   exchange: { decay: 0.8, recover: 0.22, window: 1.1, windup: [0.34, 0.3, 0.27, 0.24], breath: 10, gap: 3, lockAt: 4 },
   // ENEMY OFFENCE
+  /* (the three quick wind-ups below are × the difficulty's tell, data/difficulty.js: longer on Padawan, shorter on
+     Master. They are set so a line that shows up late still leaves time to see it and answer: about half a second from
+     a feint's switch to the blow on Knight.) */
   feintAt: 0.7,           // a feint breaks off this far into its wind-up...
-  feintRewind: 0.26,      // ...and the real strike winds up this fast from the other side
+  feintRewind: 0.45,      // ...and the real strike winds up this fast from the other side (it calls FEINT as it switches)
   delayHold: [0.22, 0.42],// extra seconds a delayed strike hangs at the apex
-  chainWindup: 0.3,       // wind-up of each follow-on cut in a string
-  counterWindup: 0.24,    // wind-up of a riposte after a block
+  chainWindup: 0.4,       // wind-up of each follow-on cut in a string
+  counterWindup: 0.34,    // wind-up of a riposte after a block
   counterCd: 1.6,         // a foe counters at most this often
   thrustDmg: 1.35,        // a thrust hits this much harder than a cut
   dodgeStep: 7,           // backstep speed when it slips a cut

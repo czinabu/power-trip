@@ -3,10 +3,11 @@
 // riposte up on the side it left open (data/duel.js GUARD_LINE).
 //
 // THE GUARD TURNS (data/duel-guard.js GUARD_TURN) — the soft directional block. The guard covers one line at a time.
-// Held, it goes on its own to the line of the soonest strike winding up at you, but a beat late (`react`, then `turn`),
-// so a strike that switches sides late (a feint, a quick string, a riposte) can find it still on the old side: that
-// blow is BEATEN (it still holds, at a heavy cost). Flick the mouse or the right stick toward the side the blow comes
-// from while you hold the guard and it goes there at once, and a blow on a guard you placed is a CLEAN block. A blow
+// Held, it goes on its own to the line of the soonest strike winding up at you, a beat late on the first strike of an
+// attack (`react`, then `turn`), at once on the cuts that follow it in a string, and too late on a FEINT (the line
+// switches mid wind-up: `fooled`): that blow is BEATEN (it still holds, at a heavy cost). Flick the mouse or the right
+// stick toward the side the blow comes from while you hold the guard and it goes there at once, and a blow on a guard you
+// placed is a CLEAN block. THE STRIKE MARK (GUARD_TURN.mark) shows which side that is and when the blow lands. A blow
 // with no line (a trooper's chop, a brute, a bolt) and a guard that has seen nothing coming are judged as before: the
 // guard holds whatever the side. Run on every screen for its own hero; the guard's state rides in the pose (net/pose.js).
 
@@ -22,6 +23,7 @@ import { netStrikeLine } from '../../enemies/duel.js';
 import { pvpOn } from '../../game/pvp-rules.js';
 import { stamDelay } from '../stamina.js';
 import { clamp, dampToward } from '../../utils.js';
+import { sfx } from '../../audio/sfx.js';
 
 const LINES = ['R', 'L', 'H', 'Lo'];   // the lines the guard covers (a thrust, T, is parry-or-dodge: no guard holds it)
 const RING_ANG = { R: 0, L: Math.PI, H: Math.PI / 2, Lo: -Math.PI / 2 };   // where the crescent sits for each (its right comes in on your left)
@@ -35,7 +37,7 @@ export function lineCatch(line){
 /* ---------------- the guard's state ---------------- */
 // line: the line it covers now (null: nothing seen coming, it holds anywhere) · to: the line it is turning to · goT: when
 // that turn starts (after the react delay) · dur: how long the turn takes · manual: placed by hand, until `until`
-const GD = { line: null, to: null, goT: 0, dur: 0, manual: false, until: 0, flash: 0, flashCol: 0, heldFor: 0, quietT: 0 };
+const GD = { line: null, to: null, goT: 0, dur: 0, manual: false, until: 0, flash: 0, flashCol: 0, heldFor: 0, quietT: 0, mRec: null, mSeq: 0, cueAt: -9 };
 const now = () => G.gt;
 const reactOf = () => GUARD_TURN.react[G.diff] ?? GUARD_TURN.react.knight;
 
@@ -45,9 +47,10 @@ function turnK(){
   if (now() < GD.goT) return 0;
   return GD.dur > 0 ? clamp((now() - GD.goT) / GD.dur, 0, 1) : 1;
 }
-function startTurn(to, manual){
+function startTurn(to, manual, delay = reactOf()){
   if (!to) return;
-  if (manual){ GD.manual = true; GD.until = now() + GUARD_TURN.hold; }
+  // (placed by hand: it answers the strike showing now; the next one hands it back to the automatic guard)
+  if (manual){ GD.manual = true; GD.until = now() + GUARD_TURN.hold; GD.mRec = TH && TH.rec || null; GD.mSeq = TH && TH.rec ? TH.rec.seq : 0; }
   if (!GD.line && !GD.to){ GD.line = to; return; }   // a guard that was waiting on nothing is simply there
   if (GD.to === to){   // already on its way there: a hand on it hurries it
     if (manual){ GD.goT = Math.min(GD.goT, now()); GD.dur = Math.min(GD.dur, GUARD_TURN.manual); }
@@ -55,7 +58,7 @@ function startTurn(to, manual){
   }
   if (GD.line === to){ GD.to = null; return; }   // back to the line it is still on: the turn is called off
   GD.to = to;
-  GD.goT = now() + (manual ? 0 : reactOf());
+  GD.goT = now() + (manual ? 0 : delay);
   GD.dur = manual ? GUARD_TURN.manual : GUARD_TURN.turn;
   if (!manual) GD.manual = false;
 }
@@ -70,35 +73,63 @@ function dropGuard(){ GD.line = null; GD.to = null; GD.manual = false; GD.heldFo
 // player's opponent in a sparring duel)
 const sources = [];
 export function addThreatSource(fn){ if (!sources.includes(fn)) sources.push(fn); }
+/* what each duellist near you has been doing, so the guard knows what kind of strike this is (GUARD_TURN react / string
+   / fooled). Read off its state and its line alone, so it is the same for a host's own foes and a guest's puppets:
+     seq     counts the lines it has shown (a new wind-up, the next cut of a string, a feint's switch)
+     struck  when it was last seen mid-strike (a wind-up soon after is the next cut of a string, or an exchange's beat)
+     feint   when its line last switched in the middle of a wind-up */
+const seen = new WeakMap();
+function track(e, line, striking){
+  let r = seen.get(e);
+  if (!r) seen.set(e, r = { line: null, wind: false, seq: 0, struck: -9, feint: -9 });
+  const t = now();
+  if (striking) r.struck = t;
+  if (line !== r.line){
+    if (line){ r.seq++; r.feint = r.wind && !striking && r.line ? t : -9; }
+    r.line = line;
+  }
+  r.wind = !!line && !striking;
+  return r;
+}
+const kindOf = r => !r ? 'first' : now() - r.feint < 0.9 ? 'feint' : now() - r.struck < 1.2 ? 'string' : 'first';
+const delayOf = th => { const k = kindOf(th.rec); return k === 'string' ? GUARD_TURN.string : k === 'feint' ? (GUARD_TURN.fooled[G.diff] ?? GUARD_TURN.fooled.knight) : reactOf(); };
+// { line, rec, eta } of the soonest strike in front (eta: s until it lands, null when only its line is known), or null
+let TH = null;
 function threat(){
   const pp = playerPos(), f = fwd(), R = GUARD_TURN.range;
   let best = null, bt = Infinity;
-  const take = (line, x, z, t) => {
+  const take = (line, x, z, t, rec, eta) => {
     if (!line) return;
     const dx = x - pp.x, dz = z - pp.z, d = Math.hypot(dx, dz);
     if (d > R || (d > 0.5 && (dx * f.x + dz * f.z) / d < 0.2)) return;
-    if (t < bt){ bt = t; best = line; }
+    if (t < bt){ bt = t; best = { line, rec: rec || null, eta: eta ?? null }; }
   };
   for (const e of enemies){
     if (e.dead || e.converted) continue;
+    const striking = e.state === 'strike';
     if (e.net){
-      const L = netStrikeLine(e);
-      if (L) take(L, e.group.position.x, e.group.position.z, e.state === 'strike' ? -1 : 0);
+      if (!e.ng) continue;
+      const L = netStrikeLine(e), rec = track(e, L, striking);
+      if (L) take(L, e.group.position.x, e.group.position.z, striking ? -1 : 0, rec);
       continue;
     }
-    if (!e.dp || e.dp.brace || !e.plan) continue;
-    if (e.state !== 'windup' && e.state !== 'strike') continue;
-    if (e.hero && e.hero !== localPlayer) continue;
-    take(e.plan.side, e.group.position.x, e.group.position.z, e.state === 'strike' ? -1 : e.st);
+    if (!e.dp || e.dp.brace) continue;
+    const mine = e.plan && (e.state === 'windup' || striking) && !(e.hero && e.hero !== localPlayer);
+    const rec = track(e, mine ? e.plan.side : null, striking);
+    if (!mine) continue;
+    // when it lands: the rest of the wind-up, then the strike up to the blow (enemies/ai.js)
+    const sw = (e.t.swing || 0.16) * (e.plan.swingMul || 1), hit = sw * (e.plan.hitK || 0.5);
+    const eta = striking ? (e.struck ? 0 : Math.max(0, hit - ((e.swDur || sw) - Math.max(e.st, 0)))) : Math.max(e.st, 0) + hit;
+    take(e.plan.side, e.group.position.x, e.group.position.z, striking ? -1 : e.st, rec, eta);
   }
   for (const fn of sources){
     const list = fn() || [];
-    for (const s of list) take(s.line, s.x, s.z, s.t ?? 0);
+    for (const s of list) take(s.line, s.x, s.z, s.t ?? 0, null, s.t != null ? Math.max(0, s.t) : null);   // (a duel's incoming cut knows when it lands: net/pvp.js)
   }
   return best;
 }
 // the line of the soonest strike in front (any kind: the old held-catch's read, kept for anyone who asks)
-export const threatLine = () => threat();
+export const threatLine = () => { const t = threat(); return t ? t.line : null; };
 
 /* ---------------- steering it by hand ---------------- */
 // a hard flick of the mouse or the right stick while the guard is held (engine/input.js and engine/gamepad.js feed
@@ -162,23 +193,32 @@ export function guardState(){
 export function updateGuardLine(dt = 0){
   const d = player.deflectAnim;
   const held = d && d.hold;
+  // RMB still down after a cut made from behind the guard (a riposte, the real cut after a feint: engine/input.js): the
+  // guard comes back up on its own once the cut is done
+  if (player.guardBack && !player.blockHeld && player.atkT <= 0){
+    if (player.guardKey && !isGunner() && !player.exhausted && !(player.gbT > 0) && G.mode === 'play'){ player.blockHeld = true; player.blockT = 0; }
+    player.guardBack = false;
+  }
   const up = !isGunner() && player.blockHeld && player.atkT <= 0 && !player.saberLock;
+  const th = TH = isGunner() ? null : threat();
   if (!up){
     if (held) player.deflectAnim = null;
     // let go a moment (a re-press for a parry) and the guard is still where it was: it doesn't snap to the new line
     if (!player.blockHeld && (GD.downT = (GD.downT || 0) + dt) > 0.5) dropGuard();
-    drawRing(dt, false); return;
+    drawRing(dt, false, th); return;
   }
   GD.downT = 0;
   GD.heldFor += dt; GD.quietT += dt;
-  const want = threat();
-  if (want && LINES.includes(want) && !(GD.manual && now() < GD.until)) startTurn(want, false);
+  const want = th && th.line;
+  // (a guard placed by hand stays put for the strike it was placed against; a new strike or a switch of line is the automatic guard's again)
+  const placed = GD.manual && now() < GD.until && th && GD.mRec === th.rec && GD.mSeq === (th.rec ? th.rec.seq : 0);
+  if (want && LINES.includes(want) && !placed) startTurn(want, false, delayOf(th));
   if (GD.manual && now() >= GD.until) GD.manual = false;
   settle();
   if (pvpOn() && GD.heldFor > DUEL_PVP.upkeepAfter && GD.quietT > 0.5 && player.stam > 0){   // a sparring duel: turtling costs
     player.stam = Math.max(0, player.stam - DUEL_PVP.upkeep * dt); player.stamDelay = Math.max(player.stamDelay || 0, stamDelay() * 0.5);
   }
-  drawRing(dt, true);
+  drawRing(dt, true, th);
   // where the blade waits: the line it is on, or (turning) the line it is going to once the turn has begun
   const line = GD.to && now() >= GD.goT ? GD.to : GD.line;
   if (!line){ if (held) player.deflectAnim = null; return; }
@@ -193,24 +233,40 @@ export function updateGuardLine(dt = 0){
    A pale arc in front of the hero on the covered side (the same shape a duellist's guard shows), only while a
    duellist is close: dim while it is still turning, gold while placed by hand, flaring as a blow meets it. */
 let ring = null;
+const additive = (geo, color) => { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0,
+  side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, toneMapped: false })); m.renderOrder = 6; return m; };
 function makeRing(){
   const grp = new THREE.Group();
   const m = new THREE.Mesh(new THREE.RingGeometry(0.88, 1.0, 20, 1, -0.75, 1.5), new THREE.MeshBasicMaterial({ color: GUARD_TURN.ring.colour,
     transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   m.renderOrder = 5;
-  grp.add(m); grp.userData.arc = m; grp.visible = false;
+  // THE STRIKE MARK: a wedge outside the crescent (a blow on a line), a small ring on the middle (a thrust)
+  const mark = additive(new THREE.RingGeometry(1.0, 1.2, 20, 1, -0.5, 1.0), GUARD_TURN.mark.open);
+  const pip = additive(new THREE.RingGeometry(0.26, 0.34, 28), GUARD_TURN.mark.thrust);
+  grp.add(m, mark, pip); grp.userData.arc = m; grp.userData.mark = mark; grp.userData.pip = pip; grp.visible = false;
   scene.add(grp);
   return grp;
 }
+// the strike mark follows the GUARD RINGS setting (data/guard-rings.js): Master reads the blade unless it is on ALWAYS
+const markOn = () => (G.guardRings || 'fading') !== 'off' && (G.diff !== 'master' || G.guardRings === 'always');
+// is the guard on `line` right now (as guardMeets would judge a blow landing this instant)?
+function covers(line){
+  if (!player.blockHeld || player.atkT > 0) return false;
+  const k = turnK();
+  return GD.to ? (GD.to === line && k >= GUARD_TURN.catchAt) || (GD.line === line && k < 0.25) : GD.line === line;
+}
 const _c = new THREE.Color();
-function drawRing(dt, up){
+function drawRing(dt, up, th){
   GD.flash = Math.max(0, GD.flash - dt * 3);
   const show = up && !player.holstered && (GD.line || GD.to) && duellistNear();
-  if (!ring){ if (!show) return; ring = makeRing(); }
-  const arc = ring.userData.arc, mat = arc.material;
+  const marked = !!th && markOn() && G.mode === 'play' && !player.downed && !player.saberLock && !G.cutscene;
+  if (!ring){ if (!show && !marked) return; ring = makeRing(); }
+  const arc = ring.userData.arc, mat = arc.material, mark = ring.userData.mark, pip = ring.userData.pip;
   const want = show ? 0.6 + GD.flash * 0.4 : 0;
   mat.opacity = dampToward(mat.opacity, want, dt, 12);
-  ring.visible = mat.opacity > 0.01;
+  drawMark(dt, marked ? th : null, mark, pip);
+  arc.visible = mat.opacity > 0.01;
+  ring.visible = arc.visible || mark.visible || pip.visible;
   if (!ring.visible) return;
   const pp = playerPos(), f = fwd(), T = GUARD_TURN.ring;
   ring.position.set(pp.x + f.x * T.fwd, pp.y + T.up, pp.z + f.z * T.fwd);
@@ -221,6 +277,30 @@ function drawRing(dt, up){
   arc.rotation.z = dampToward(arc.rotation.z, a, dt, 18);
   _c.setHex(GD.flash > 0.05 ? GD.flashCol : GD.to && k < 1 ? T.turning : GD.manual ? T.clean : T.colour);
   mat.color.lerp(_c, Math.min(1, dt * 14));
+}
+/* the strike mark for threat `th` (null: fade it out): on the line's side, closing from `from`× the crescent's radius to
+   `rest`× as the blow nears (a line known without its timing, a guest's puppet or a sparring partner, sits part way and
+   pulses); orange while that side is open, pale once the guard covers it; a feint's switch flashes it white, throws it
+   out and ticks twice */
+function drawMark(dt, th, mark, pip){
+  const M = GUARD_TURN.mark, thrust = !!th && th.line === 'T', on = !!th && !thrust && RING_ANG[th.line] != null;
+  const m = thrust ? pip : mark, other = thrust ? mark : pip;
+  other.material.opacity = dampToward(other.material.opacity, 0, dt, 20); other.visible = other.material.opacity > 0.01;
+  if (!on && !thrust){ m.material.opacity = dampToward(m.material.opacity, 0, dt, 20); m.visible = m.material.opacity > 0.01; return; }
+  const sinceFeint = th.rec ? now() - th.rec.feint : 9;
+  if (th.rec && sinceFeint < 0.12 && GD.cueAt !== th.rec.feint){   // the switch, once: a sharp double tick
+    GD.cueAt = th.rec.feint;
+    sfx(1750, 0.045, 'square', 0.05, 1200); setTimeout(() => sfx(2300, 0.05, 'square', 0.05, 1500), 70);
+  }
+  const pop = Math.max(0, 1 - sinceFeint / 0.22);
+  const near = th.eta == null ? 0.35 + 0.08 * Math.sin(now() * 14) : clamp(th.eta / M.lead, 0, 1);
+  const s = thrust ? 1 + near * 2.2 : M.rest + (M.from - M.rest) * near + M.pop * pop;
+  m.scale.setScalar(s);
+  if (!thrust) m.rotation.z = pop > 0 || m.material.opacity < 0.05 ? RING_ANG[th.line] : dampToward(m.rotation.z, m.rotation.z + wrap(RING_ANG[th.line] - m.rotation.z), dt, 30);
+  _c.setHex(pop > 0 ? M.feint : thrust ? M.thrust : covers(th.line) ? M.covered : M.open);
+  m.material.color.lerp(_c, Math.min(1, dt * 22));
+  m.material.opacity = dampToward(m.material.opacity, 0.55 + 0.4 * (1 - near) + 0.3 * pop, dt, 24);
+  m.visible = true;
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 

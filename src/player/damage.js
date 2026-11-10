@@ -285,7 +285,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         if (melee && opts && opts.line) guardFlash(meet);
         if (meet === 'beaten'){
           floater(pp, 'WRONG SIDE', '#ff6a3a'); sfx(150, 0.1, 'square', 0.05, 80); tutEvent('wrongSide');
-          if (!G.seenWrongSide){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'Your guard follows a strike a beat late. Flick toward the side it winds up on to send it there yourself.', 3.2); }
+          if (!G.seenWrongSide){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'A feint beat your guard. When the orange mark jumps sides, flick toward it to send your guard there yourself.', 3.2); }
         }
         else if (meet === 'clean'){ floater(pp, 'CLEAN BLOCK', '#ffe08a'); tutEvent('cleanBlock'); }
         else if (melee && opts && opts.line) tutEvent('lineBlock');

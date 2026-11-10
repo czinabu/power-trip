@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // The Mandalorian's close-quarters kit on E: a four-beat string (a brawler's swings when holstered) that steps him in to
-// arm's length, shield and blade, the jet charge, the dive kick, the vambrace catch, the clinch (hold E: headbutt, throw)
+// arm's length, guard and blade, the jet charge, the dive kick, the vambrace catch, the clinch (hold E: headbutt, throw)
 // and the vibroblade takedowns.
 
 import { MANDO_MELEE as M, DUEL } from '../../data/duel.js';
@@ -23,7 +23,7 @@ import { inkSprite, sparks, puff, clashFlash, clashSparks, thrust } from '../../
 import { tutEvent } from '../../game/tutor-bus.js';
 import { masteryXp } from '../../game/progression.js';
 import { diffWindow } from '../../data/difficulty.js';
-import { mandoShielding } from './weapons.js';
+import { mandoGuarding } from './weapons.js';
 import { flowTakedown } from '../gunner-flow.js';
 
 const DOWNED = { stagger: 1, knockdown: 1, getup: 1 };
@@ -37,19 +37,19 @@ export function mandoMelee(){
   if (player.saberLock){ lockKick(); return; }
   if (player.clinch){ headbutt(); return; }   // a foe by the collar: E is the helmet
   if (player.charge || player.dive) return;
-  const shielded = player.grounded && mandoShielding();   // behind the gauntlet shield: E cuts with the vibroblade
+  const guarded = player.grounded && mandoGuarding();   // behind the raised vambrace: E cuts with the vibroblade
   if (player.meleeT > 0){
-    // mid-string, a blow about to land on you takes priority: the press raises the vambrace instead (the shield
+    // mid-string, a blow about to land on you takes priority: the press raises the vambrace instead (the guard
     // already covers you, so behind it the press just queues the next cut)
-    if (!shielded && !(player.catchLockT > 0) && incoming()){ player.catchT = M.catchWindow + diffWindow(); player.meleeQueued = false; return; }
+    if (!guarded && !(player.catchLockT > 0) && incoming()){ player.catchT = M.catchWindow + diffWindow(); player.meleeQueued = false; return; }
     // a press late in the recovery queues the next beat of the string (early mashing is ignored)
     if (player.meleeT < player.meleeMax * 0.55) player.meleeQueued = true;
     return;
   }
-  if (!shielded && !(player.catchLockT > 0)) player.catchT = M.catchWindow + diffWindow();   // anything that lands in the next instant gets CAUGHT
-  const down = takedownTarget(shielded ? M.guard.takedownReach : 0);
+  if (!guarded && !(player.catchLockT > 0)) player.catchT = M.catchWindow + diffWindow();   // anything that lands in the next instant gets CAUGHT
+  const down = takedownTarget(guarded ? M.guard.takedownReach : 0);
   if (down){ takedown(down); return; }
-  if (shielded){ guardStrike(); return; }
+  if (guarded){ guardStrike(); return; }
   if (!player.grounded){ if (diveKick()) return; }
   else if (keys['w'] && G.gt - (player.lastCharge ?? -9) > M.charge.cd && player.jet >= M.charge.fuel){
     const t = chargeTarget();
@@ -122,13 +122,13 @@ function keepOut(e, gap){
   const vin = -(player.vel.x * TMP.x + player.vel.z * TMP.z); if (vin > 0){ player.vel.x += TMP.x * vin; player.vel.z += TMP.z * vin; }
   const min2 = -(player.moveVel.x * TMP.x + player.moveVel.z * TMP.z); if (min2 > 0){ player.moveVel.x += TMP.x * min2; player.moveVel.z += TMP.z * min2; }
 }
-/* ---------------- shield and blade: hack, backhand, bash (E with the shield up) ---------------- */
+/* ---------------- guard and blade: hack, backhand, gauntlet bash (E with the guard up) ---------------- */
 function guardStrike(){
   const S_ = M.guard.string, n = S_.length;
   const linked = G.gt - (player.meleeEndAt ?? -9) < M.combo && GUARD_BEAT[player.meleeKind] && (player.punchStep ?? -1) < n - 1;
   const step = linked ? player.punchStep + 1 : 0;
   const B = S_[step];
-  if (player.stam < B.stam){   // the same stamina the shield soaks with: swing it dry and the guard goes with it
+  if (player.stam < B.stam){   // the same stamina the guard soaks with: swing it dry and the guard goes with it
     if (G.gt - (player.lastWinded ?? -9) > 0.6){ player.lastWinded = G.gt; floater(playerPos(), 'WINDED', '#ffaa66'); }
     return;
   }
@@ -182,11 +182,11 @@ function landStrike(B){
   if (hit){
     G.hitstop = Math.max(G.hitstop, B.stop ?? (B.heavy ? 0.08 : 0.04));
     G.shake = Math.max(G.shake, B.heavy ? 0.55 : 0.3);
-    const violet = B.name === 'blade' || cut, blue = B.name === 'bash';
-    spawnHitSpark(ip, violet ? 0xc9a6ff : blue ? 0x9fe6ff : 0xffd28a, B.heavy ? 1.5 : 0.9);
-    sparks(ip, violet ? 0xc9a6ff : blue ? 0x9fe6ff : 0xffe7b0, B.heavy ? 4 : 3, 8, { dir: f, cone: cut ? 1.1 : 0.6, life: 0.18, size: 0.36 });
+    const violet = B.name === 'blade' || cut, bash = B.name === 'bash';
+    spawnHitSpark(ip, violet ? 0xc9a6ff : 0xffd28a, B.heavy ? 1.5 : 0.9);
+    sparks(ip, violet ? 0xc9a6ff : 0xffe7b0, B.heavy ? 4 : 3, 8, { dir: f, cone: cut ? 1.1 : 0.6, life: 0.18, size: 0.36 });
     if (cut){ sfx(1800, 0.08, 'square', 0.04, 720); }
-    if (blue){ player.shieldFlash = Math.max(player.shieldFlash || 0, 0.3); sfx(1100, 0.08, 'square', 0.05, 500); }   // the disc flares on the bash
+    if (bash) sfx(430, 0.12, 'triangle', 0.06, 190);   // the beskar's ring as the forearm lands
     if (B.name === 'blade'){   // the wrist VIBROBLADE: a sharp violet slash arc and a ringing edge
       inkSprite({ pos: ip, shape: 'ring', inner: 0.86, arc: 1.1, color: 0xc9a6ff, size: [0.6, 1.2], life: 0.12, steps: 2, coreW: 0.3, inkW: 0.25,
                   rot: Math.PI * (0.35 + Math.random() * 0.3) });

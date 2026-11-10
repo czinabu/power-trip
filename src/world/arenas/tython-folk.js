@@ -12,7 +12,7 @@ import { settleCloth } from '../../player/model/cloth.js';
 import { playerPos } from '../../player/helpers.js';
 import { groundAt } from '../collision.js';
 import { qualityLevel } from '../../engine/quality.js';
-import { TEMPLE_FOLK, FOLK_LOOKS } from '../../data/temple-folk.js';
+import { HUB_FOLK, FOLK_LOOKS } from '../../data/temple-folk.js';
 import * as THREE from 'three';
 import { slim } from '../../player/model/slim.js';
 export { slim };   // (moved to player/model/slim.js: co-op partners slim down too)
@@ -22,8 +22,8 @@ let folk = [];   // this wing's people: { F (the live hero figure), cheap (its f
 // the live one's cloth and face stop being worked. Only the nearest few are live at once (NEAR)
 
 function figure(kind, seed){
-  const L = FOLK_LOOKS[kind], look = L.looks[seed % L.looks.length];
-  const target = heroFigure({ kind: 'hero', as: 'jedi', look: { jedi: look }, saber: !!L.saber && !L.drawn });
+  const L = FOLK_LOOKS[kind], look = L.looks[seed % L.looks.length], as = L.as || 'jedi';
+  const target = heroFigure({ kind: 'hero', as, look: { [as]: look }, saber: !!L.saber && !L.drawn });
   const F = { g: target.group, target, kind: 'hero', own: true, scale: L.scale || 1, walk: null, talk: false, look: null, t: seed * 1.7, gest: 0, turn: 0 };
   target.group.scale.setScalar(F.scale);
   slim(target);
@@ -199,13 +199,16 @@ function onLoop(pts, speed, lead, t){
   return [s[0][0] + (s[1][0] - s[0][0]) * k, s[0][1] + (s[1][1] - s[0][1]) * k, Math.atan2(s[1][0] - s[0][0], s[1][1] - s[0][1])];
 }
 
-/* build a wing's people (world/arenas/tython.js, inside the wing's build: they go with the arena when it's cleared).
-   Each far figure starts as one frame; the rest of a mover's frames are baked a few a frame after (stepTempleFolk) */
-export function templeFolk(wing){
+/* build a wing's people (world/arenas/tython.js, covert-hub.js, inside the wing's build: they go with the arena when it's
+   cleared). `st` is how far the hub has grown (game/hub-growth.js): someone with `grow` is home only once it's restored,
+   someone with `ruin` only until then. Each far figure starts as one frame; the rest of a mover's frames are baked a few a
+   frame after (stepTempleFolk) */
+export function templeFolk(wing, hub = 'temple', st = null){
   folk = []; bakeQueue = []; baking = null;
-  let n = 0;
-  for (const p of TEMPLE_FOLK[wing] || []){
-    const seed = p.seed ?? n++, F = figure(p.kind, seed);
+  const done = (id) => !st || st.restored.has(id);
+  (HUB_FOLK[hub] && HUB_FOLK[hub][wing] || []).forEach((p, n) => {
+    if ((p.grow && !done(p.grow)) || (p.ruin && done(p.ruin))) return;
+    const seed = p.seed ?? n, F = figure(p.kind, seed);
     const at = p.loop ? onLoop(p.loop, p.speed, p.lead || 0, G.gt || 0) : [p.x, p.z, p.face || 0];
     if (p.toward) at[2] = Math.atan2(p.toward[0] - at[0], p.toward[1] - at[1]);
     put(F, at[0], at[1], at[2]);
@@ -219,7 +222,7 @@ export function templeFolk(wing){
     F.g.visible = false;
     for (let i = 1; i < f.frames.length; i++) bakeQueue.push([f, i]);
     folk.push(f);
-  }
+  });
 }
 let bakeQueue = [], baking = null;
 const BAKE_MS = { low: 2, medium: 3, high: 4 };   // (a frame's time spent baking far figures, by quality tier)

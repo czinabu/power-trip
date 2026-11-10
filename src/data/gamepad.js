@@ -83,7 +83,7 @@ export const PAD_BINDS = {
       Y:  { key: 'f', label: 'Flamethrower (hold)', note: 'Unlocks after wave 2 · with a prompt up (TALK, a temple station), interacts instead' },
       RB: { key: 'q', label: 'Wrist rocket' },
       RT: { mouse: 0, label: 'Fire', note: 'Headshots deal far more · Darksaber in hand: tap a light cut, hold a heavy one' },
-      LT: { mouse: 2, label: 'Brace / shield / scope', note: 'Tap LT as a bolt arrives: a beskar parry sends it back · Darksaber in hand: hold LT and pull RT to throw it · in the air, hover' },
+      LT: { mouse: 2, label: 'Guard / brace / scope', note: 'Tap LT as a bolt or a blow arrives: a beskar parry sends it back · Darksaber in hand: hold LT and pull RT to throw it · in the air, hover' },
       LB: { key: 'alt', label: 'Strafe', note: 'Hold: stay square to the crosshair and open the LB gadgets · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'c', label: 'Slide', note: 'Out of any run' },
       R3: { key: 'e', label: 'Close quarters', note: 'Forward + R3 jet charges, in the air a dive kick, on a floored foe a takedown · hold R3 through a blow to grab: R3 headbutts, RT throws' },

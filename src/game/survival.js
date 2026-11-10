@@ -2,6 +2,7 @@
 // Survival / endless mode: waves, mutators, champions, arena rotation.
 
 import * as THREE from 'three';
+import { setPhase } from './run-state.js';
 import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { BATTLE_MAPS } from '../data/battlemaps.js';
@@ -161,7 +162,7 @@ export function startEndlessWave(){
   for (let i = 0; i < list.length; i++){ t += (i>0 && i%pulse===0) ? surgeGap : 0.2; G.spawnQueue.push({ type:list[i], t }); }
   if (n >= 15) splitWaveWithLull(q0);   // deep survival waves breathe halfway
   if (G.pendingChampion){ G.pendingChampion = false; spawnChampion(); }
-  shared.levelPhase = 'fighting';
+  setPhase('fighting');
   G.waveHits = 0; G.waveDmg = 0;   // how cleanly this wave is fought (payWaveClear)
   beginWave('WAVE ' + n);
   checkUnlocks(1600);   // survival earns the same auto-kit (stances, Force jump/pull, dual blasters, jetpack tiers) as waves climb
@@ -181,7 +182,7 @@ export function endlessWaveCleared(){
   player.force = CFG.player.maxForce;
   if (isGunner()) player.jet = Math.min(player.jetMax, player.jet + player.jetMax*0.6);
   G.mut = null; G.eliteSurge = false;   // the mutator / surge ends with the wave
-  shared.levelPhase = 'between'; shared.phaseT = 2.2;
+  setPhase('between', 2.2);
   earnWavePoint();
   noteSurvivalWave();   // rank XP for your profile (game/profile.js)
   if (G.hero === 'trooper' && squadAllStanding()) noteSquadWave();   // (the armory locker's squad asks)

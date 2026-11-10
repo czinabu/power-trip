@@ -15,6 +15,7 @@ import { rankIndex, profileOf } from './profile.js';
 import { benchOf } from '../data/hero-benches.js';
 import { partEarned } from '../data/saber-parts.js';
 import { apprenticeMet } from '../allies/apprentice.js';
+import { takeGrowthNews, primeGrowth } from './hub-growth.js';
 
 const get = (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } };
 // what makes each piece of news true, for a hero
@@ -52,13 +53,15 @@ function stationFor(N, hub){
 }
 
 // every arrival in a hub (game/hub-welcome.js): makes sure this hero's list exists, so a brand new hero's first run counts
-export function primeNews(fresh){ if (hubOf(G.hero) === G.hubId) noted(G.hero, fresh); }   // (only at home: a guest's first look at a partner's hub says nothing of their own story)
+export function primeNews(fresh){ if (hubOf(G.hero) === G.hubId){ noted(G.hero, fresh); primeGrowth(); } }   // (only at home: a guest's first look at a partner's hub says nothing of their own story)
 /* home from a run (game/hub-welcome.js): the one piece of news to tell, marked told, or null
    (primeNews has made the list by now) */
 export function takeNews(){
   const h = G.hero, hub = G.hubId;
   if (hubOf(h) !== hub) return null;   // (a hero visiting another's hub: its guide isn't theirs to brief)
   const n = noted(h, false);
+  // first, the hub growing: a wing restored, a trophy in the hall (game/hub-growth.js: it remembers what it has told)
+  const grew = takeGrowthNews(); if (grew) return grew;
   for (const N of NEWS){
     if (n[N.id] || !truth(N.id, h)) continue;
     const at = stationFor(N, hub), say = N.say[hub];

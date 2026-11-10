@@ -179,7 +179,8 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
       const hurt = enemies.filter(e => e.maxHp && e.hp < e.maxHp).length;
       return { gameSeconds: +(G.gt - start).toFixed(1), frames: window.__frames, mode: G.mode, level: G.levelIdx,
                wave: G.waveTotal || 0, enemies: enemies.length, kills: (G.stats && G.stats.kills) || 0, hurt,
-               objective: document.getElementById('waveinfo').textContent, squad: GAME.squad.allies.length };
+               objective: document.getElementById('waveinfo').textContent, squad: GAME.squad.allies.length,
+               illegal: GAME.run.illegal.map(r => r.machine + ' ' + r.from + ' > ' + r.to + (r.why ? ' (' + r.why + ')' : '')) };
     }, startGt);
     if (mode === 'mission') result.skips = skips;
     result.everHit = everHit; result.sawDuel = sawDuel;
@@ -193,6 +194,8 @@ for (const [hero, mode, mission] of [['jedi', 'campaign'], ['mando', 'campaign']
   for (const e of errors) seen.set(e, (seen.get(e) || 0) + 1);
   const problems = [...seen].map(([e, n]) => n > 1 ? `${e}\n(×${n})` : e);
   if (result){
+    for (const m of new Set(result.illegal)) problems.push('a state move no table allows (src/game/run-state.js): ' + m);
+    delete result.illegal;
     if (result.frames < 30) problems.push(`only ${result.frames} frames rendered`);
     if (result.gameSeconds < GAME_SECONDS * 0.5) problems.push(`game only advanced ${result.gameSeconds}s`);
     if (result.mode !== 'play' && !(mode === 'mission' && result.mode === 'victory')) problems.push(`left play mode (mode: ${result.mode})`);

@@ -5,6 +5,7 @@
 // its own damageEnemy. Foes hurting the guest, their shots and tells are net/foefire.js. Not here yet: shared XP.
 
 import { pickingSeats } from './waits.js';
+import { setPhase } from '../game/run-state.js';
 import * as THREE from 'three';
 import { scene, camera } from '../engine/renderer.js';
 import { shared, G, enemies, player } from '../state.js';
@@ -47,6 +48,7 @@ import { duelRec, updatePuppetDuel, netProfile, updateSaberLock, LOCK } from '..
 import { meetFoe, meetWarbringer } from '../game/codex.js';
 import { duelWon } from '../enemies/guardcue.js';
 import { bossDown } from '../game/autosave.js';
+import { noteTrophy } from '../game/hub-growth.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
 let sentAt = 0, hitsAt = 0, hostSent = false, runListeners = [];
@@ -183,7 +185,7 @@ function applyRec(e, rec){
     e.state = e.netState = state;
   }
   const dying = !!(flags & DEAD);
-  if (dying && !e.dead){ burst(e.group.position, 0x888888, 6, 4, 3); duelWon(e); if (e.warbringer && !e.look) bossDown(); }   // (the host's Warbringer down: this guest saves too, game/autosave.js; a finale boss's own 'down' does: boss/finale.js)   // (a duellist down: enemies/guardcue.js)
+  if (dying && !e.dead){ burst(e.group.position, 0x888888, 6, 4, 3); duelWon(e); if (e.warbringer && !e.look){ bossDown(); noteTrophy('warbringer'); } }   // (the host's Warbringer down: this guest saves too, game/autosave.js; a finale boss's own 'down' does: boss/finale.js)   // (a duellist down: enemies/guardcue.js)
   e.dead = dying;
   const u = e.group.userData;
   if (u.weaponArm){ u.weaponArm.rotation.x = wA; if (wZ != null) u.weaponArm.rotation.z = wZ; u.weaponArm.rotation.y = wY || 0; }
@@ -222,14 +224,14 @@ export function takeOver(){
     const n = G.endlessWave;
     if (n > 1 && (n - 1) % 5 === 0) G.arenaRot = (G.arenaRot - 1 + ENDLESS_ARENAS.length) % ENDLESS_ARENAS.length;
     G.endlessWave--; G.waveTotal--;
-    shared.levelPhase = 'between'; shared.phaseT = 1.5;
+    setPhase('between', 1.5);
     return;
   }
   if (boss){
-    shared.levelPhase = 'bossfight';
+    setPhase('bossfight', undefined, { sync: true, why: 'host left' });
     const half = shared.arenaHalfZ || 30, sh = G.storyHero || G.hero;
     if (!shared.finale) spawnFinale(sh === 'trooper' ? 'marshal' : sh === 'mando' ? 'magistrate' : 'vexis', { x: 0, z: -half + 6 });
-  } else if (shared.levelPhase === 'fighting'){ shared.levelPhase = 'between'; shared.phaseT = 1.5; }   // the same wave again (game/flow.js startWave)
+  } else if (shared.levelPhase === 'fighting')setPhase('between', 1.5);   // the same wave again (game/flow.js startWave)
 }
 
 function endGuest(dropped){
@@ -241,7 +243,7 @@ function endGuest(dropped){
   // won. Hold in a lull while the rejoin runs (it puts this browser back in the fight); only if it never does, this
   // browser's own waves take the same wave on again
   if (dropped && !G.mission && shared.levelPhase === 'fighting'){
-    shared.levelPhase = 'between'; shared.phaseT = 30;
+    setPhase('between', 30);
     if (G.endless){ G.endlessWave--; G.waveTotal--; if (G.endlessWave > 0 && G.endlessWave % 5 === 0) G.arenaRot = (G.arenaRot - 1 + ENDLESS_ARENAS.length) % ENDLESS_ARENAS.length; }
   }
 }
@@ -267,7 +269,7 @@ on('e', (m) => {
     for (const e of enemies) removeEnemy(e);
     enemies.length = 0; byNid.clear(); G.spawnQueue.length = 0;
     G.coopGuest = true;
-    if (m.ph) shared.levelPhase = m.ph;   // (held in a lull while it was away, endGuest: the host's phase again)
+    if (m.ph) setPhase(m.ph, undefined, { sync: true });   // (held in a lull while it was away, endGuest: the host's phase again)
     showBanner('', 'BACK IN THE HOST\'S FIGHT', 2.0);
   }
   // ...or out of a shared mission (a dropped link ends this browser's copy of it, endGuest): the host's mission (or mission
@@ -299,7 +301,7 @@ on('e', (m) => {
     if (G.mission){ if (m.ms) coopMissionSync(m.ms); }   // a mission chapter: shown the host's objectives
     else if (m.ph === 'fighting' && (shared.levelPhase !== 'fighting' || G.wave !== m.w)) coopCampaignWave(m.w, m.wt);
     else if (m.ph === 'between' && shared.levelPhase === 'fighting') coopCampaignCleared();
-    else if (m.ph === 'bossfight' && shared.levelPhase !== 'bossfight'){ shared.levelPhase = 'bossfight'; showBanner('', 'THE HOST FACES THE BOSS', 2.4); }
+    else if (m.ph === 'bossfight' && shared.levelPhase !== 'bossfight'){ setPhase('bossfight', undefined, { sync: true }); showBanner('', 'THE HOST FACES THE BOSS', 2.4); }
   } else {
   if (G.mission){ endGuest(); return; }
   // the host's arena and wave: follow them
@@ -310,7 +312,7 @@ on('e', (m) => {
   G.mut = m.mut;
   if (G.endlessWave !== m.w){
     G.endlessWave = m.w; G.waveTotal = m.wt;
-    shared.levelPhase = 'fighting'; G.waveHits = 0; G.waveDmg = 0;
+    setPhase('fighting', undefined, { sync: true }); G.waveHits = 0; G.waveDmg = 0;
     beginWave('WAVE ' + m.w);
     checkUnlocks(1600);
     showBanner('', 'WAVE ' + m.w, 1.6);

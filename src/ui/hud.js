@@ -346,17 +346,17 @@ export function updateHud(){
     document.getElementById('ab-blaster').classList.toggle('nofp', !W.melee && player.overheat);
     document.getElementById('ab-reload').classList.toggle('cool', player.overheat || player.ventT > 0);
     document.getElementById('ab-reload').classList.toggle('nofp', !W.melee && player.heat <= 0.02);
-    // RMB chip tells you what bracing DOES on this weapon: SINGLE projects the deflecting SHIELD; DUAL is an
-    // offensive brace; the Darksaber GUARDS; the Disruptor SCOPES. Flag the shield when it's out of stamina to deflect.
+    // RMB chip tells you what bracing DOES on this weapon: SINGLE (and his fists) raises the beskar GUARD; DUAL is an
+    // offensive brace; the Darksaber GUARDS; the Disruptor SCOPES. Flag the guard when it's out of stamina to hold.
     const braceEl = document.getElementById('ab-brace');
     if (braceEl){
-      setText(braceEl.querySelector('.an'), W.fire === 'fists' ? 'SHIELD' : W.melee ? 'GUARD' : W.scope ? 'SCOPE' : player.weapon === 'single' ? 'SHIELD' : 'BRACE');
-      braceEl.classList.toggle('nofp', player.weapon === 'single' && player.blockHeld && player.stam <= 0);
+      setText(braceEl.querySelector('.an'), W.fire === 'fists' || W.melee ? 'GUARD' : W.scope ? 'SCOPE' : player.weapon === 'single' ? 'GUARD' : 'BRACE');
+      braceEl.classList.toggle('nofp', (player.weapon === 'single' || player.weapon === 'fists') && player.blockHeld && player.stam <= 0);
       braceEl.classList.toggle('cool', player.beskarLockT > 0);   // a whiffed beskar parry: no new window for a beat
     }
-    // E chip: behind the raised shield, E cuts with the vibroblade instead of punching
+    // E chip: behind the raised guard, E cuts with the vibroblade instead of punching
     const meleeEl = document.getElementById('ab-melee');
-    if (meleeEl) setText(meleeEl.querySelector('.an'), player.isShielding ? 'BLADE' : 'PUNCH');
+    if (meleeEl) setText(meleeEl.querySelector('.an'), player.guardUp ? 'BLADE' : 'PUNCH');
     // cooldown / fuel-gated abilities
     const cdab = [['ab-rocket','rocket',abil('rocket').cost],['ab-deto','deto',abil('deto').cost],
                   ['ab-birds','birds',abil('birds').cost],['ab-grapple','grapple',abil('grapple').cost],

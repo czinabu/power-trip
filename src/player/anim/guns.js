@@ -64,8 +64,8 @@ export function rexRest(R, pistols){
 }
 
 /* SINGLE or DUAL blasters. firing/aiming → draw; idle → back to the hip.
-   mode.braced (RMB, aimed fire): both guns stay drawn down the aim line; the single blaster's off arm comes up as
-   the gauntlet-shield arm. mode.backRun (running away from the reticle): only one hand draws, the chest twists that
+   mode.braced (RMB, aimed fire): both guns stay drawn down the aim line; the single blaster's off arm comes up
+   across the chest (the Mando's beskar guard lifts it on to the face from there: player/animation.js). mode.backRun (running away from the reticle): only one hand draws, the chest twists that
    shoulder back toward the target and the head turns to it, while the legs keep running the other way. The single
    blaster always shoots back with the gun hand; dual blasters shoot back with whichever hand is on the target's
    side (player.backHand, which weapons.js fires from). mode.rex: the trooper's DC-17s rest Rex's way (REX above)
@@ -103,7 +103,7 @@ export function pistolPose(dt, R, player, worldAim, dual, mode = {}){
     if (backRun) overShoulder(aimL, -1);
     pistolArm(R, R.armL, player.pistols.L, aimL, draw.L, backRun ? (backL ? rec : 0) : fired > 0 ? rec : rec * 0.3, POLE_L, rex ? restL : null);
   } else if (braced){
-    // shield arm: forearm up across the chest, fist forward, behind the gauntlet's energy disc
+    // off arm: forearm up across the chest, fist forward (where the Mando's guard arm waits while a shot has it lowered)
     solveArm(R.armL, _h.set(-0.14, 0.08, 0.42), POLE_L);
     R.armL.wr.quaternion.identity();
   } else {

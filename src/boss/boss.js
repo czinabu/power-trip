@@ -46,6 +46,7 @@ import './vexis.js';   // (registers Darth Vexis with the final boss layer)
 import './kharel.js';  // (and Darth Kharel, Act IV's gate guardian, built on Vexis's moves)
 import './magistrate.js';   // (and the Iron Magistrate)
 import './marshal.js';   // (and the Marshal)
+import { noteTrophy } from '../game/hub-growth.js';   // (a boss down: a trophy for the hub's hall)
 
 /* ============================================================
    BOSS — DARTH VEXIS
@@ -173,6 +174,7 @@ function killBoss(){
   shared.boss.state = 'dying'; shared.boss.st = (BOSS_FALLS[shared.boss.kind === 'mando' ? 'mando' : 'sith']).dur;   // his own fall (bossFall)
   if (G.stats) G.stats.bossKilled = true;
   bossDown();   // the game saves (game/autosave.js)
+  noteTrophy(shared.boss.kind === 'mando' ? 'magistrate' : 'vexis');   // the Herald's trophy for the hub's hall (game/hub-growth.js)
   gainXp(1400);   // the Herald's bounty — a climactic payout worthy of felling the boss
   if (shared.bossLight) shared.bossLight.visible = false;
   // a brief, BOUNDED kill-cam — slowmoT lets it recover on its own instead of sticking in slow motion

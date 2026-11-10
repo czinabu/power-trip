@@ -151,6 +151,8 @@ import * as MEDAL_DATA from './data/medals.js';
 import { MISSIONS as MISSION_LIST } from './data/missions.js';
 import { SIDE_QUESTS as SIDE_ALL, SIDE_PREFIX as SIDE_PFX } from './data/side-quests.js';
 import { missionById as defById, randomArcadeId } from './data/arcade.js';
+import * as GROWTH from './game/hub-growth.js';
+import { growthStreaming } from './world/arenas/growth-kit.js';
 import * as NGPLUS from './data/ngplus.js';   // NEW GAME+ (window.GAME.NGPLUS, for the tests)
 import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
@@ -285,7 +287,7 @@ function tick(ts){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
+window.GAME = { run: RUN_STATE, PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
   missionDefs: () => ({ ...MISSION_LIST, ...Object.fromEntries(SIDE_ALL.map(q => [SIDE_PFX + q.slug, defById(SIDE_PFX + q.slug)])) }),
   NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, teamup: { info: teamupInfo, press: teamupPress, reset: resetTeamups, TEAMUP, TEAMUPS }, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
@@ -312,6 +314,7 @@ import { BATTLE_MAPS } from './data/battlemaps.js';
 import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene, resolution: resolutionInfo }, killcam: { KC, killCam } });
 import * as APPRENTICE from './allies/apprentice.js';
+Object.assign(window.GAME, { growth: { ...GROWTH, streaming: growthStreaming } });   // the hub that grows with your group (game/hub-growth.js), for tests
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME, { duel: { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo } });   // duel mode (game/duel-mode.js), for tests
@@ -403,4 +406,5 @@ import { MANDO_SKILLS } from './data/skills.js';
 import { PATH_TREE, PATH_WORDS } from './data/alignment.js';
 Object.assign(window.GAME, { creed: { ...CREED_RT, MANDO_SKILLS, TROOPER_SKILLS, PATH_TREE, PATH_WORDS } });   // the gunners' light and dark cards (game/creed.js), for tests
 import * as RAIDS_RT from './data/raids.js';
+import * as RUN_STATE from './game/run-state.js';
 Object.assign(window.GAME, { raids: RAIDS_RT });   // the raids (data/raids.js): what the raid smoke suite (tools/smoke/raid.mjs) reads

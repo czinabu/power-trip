@@ -13,12 +13,13 @@ import { S } from '../audio/sfx.js';
 import { net } from '../net/session.js';
 import { nameOf } from '../net/names.js';
 import { challengeable, challenge, answer, rematch, leaveDuel, duelState, setDuelUi, honours, incomingChallenge, RULES } from '../game/duel-mode.js';
-import { pvpLinkMs } from '../net/pvp.js';
+import { pvpLinkMs, pvpIncoming } from '../net/pvp.js';
 
 const D = DUEL_MODE;
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const el = (id, tag = 'div', cls = '') => { let e = document.getElementById(id); if (!e){ e = document.createElement(tag); e.id = id; if (cls) e.className = cls; document.body.appendChild(e); } return e; };
-const panel = el('duelpanel'), hud = el('duelhud'), prompt = el('duelp');
+const panel = el('duelpanel'), hud = el('duelhud'), prompt = el('duelp'), cue = el('duelcue');
+cue.innerHTML = '<i class="dc-R"></i><i class="dc-L"></i><i class="dc-H"></i><i class="dc-Lo"></i><i class="dc-T"></i>';
 const linkCls = (ms) => ms > D.lag.poor ? 'poor' : ms > D.lag.poor * 0.6 ? 'fair' : 'good';
 const linkWord = (ms) => ms > D.lag.poor ? 'POOR LINK' : ms > D.lag.poor * 0.6 ? 'FAIR LINK' : 'GOOD LINK';
 
@@ -113,6 +114,12 @@ onInteract(() => {
 /* ---------------- the score bar ---------------- */
 let hudKey = '';
 export function updateDuelUi(){
+  // THE INCOMING CUE: the other fighter's cut announced the instant it started (net/pvp.js 'dsw'), shown on the side it
+  // comes in on and brightening as it nears, so the link's delay doesn't also cost you the read
+  const cutIn = pvpIncoming();
+  const line = cutIn && cutIn.t > -0.15 ? cutIn.line : '';
+  if (cue.dataset.line !== line){ cue.dataset.line = line; cue.className = line ? 'on l-' + line : ''; }
+  if (line) cue.style.setProperty('--near', Math.max(0, Math.min(1, 1 - cutIn.t / 0.35)).toFixed(2));
   // the prompt
   near = null;
   if (G.mode === 'play' && !G.paused && !G.skillSelect){ for (const c of challengeable()) if (c.near && (!near || c.d < near.d)) near = c; }

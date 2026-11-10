@@ -34,6 +34,9 @@ let heir = false;          // guest: this browser is taking the room over (or tr
 const conns = new Map();   // host: slot -> that guest's connection
 const hellos = new Map();  // host: slot -> that guest's last hello, handed to guests who join later
 const pings = new Map(), pingTimers = new Map();
+// ?netlag=120: hold every message this browser receives for that many ms (a slow link to test against; the round trip
+// it adds shows in the ping like a real one would)
+const NETLAG = (() => { try { return Math.max(0, Math.min(1000, +new URLSearchParams(location.search).get('netlag') || 0)); } catch(e){ return 0; } })();
 const listeners = {};
 export function on(event, fn){ (listeners[event] ||= []).push(fn); }
 function emit(event, ...args){ for (const fn of listeners[event] || []) fn(...args); }
@@ -175,7 +178,8 @@ function attach(c, slot){
     setStatus('connected');
     emit('open', slot);
   });
-  c.on('data', (m) => {
+  c.on('data', (m) => { if (NETLAG > 0) setTimeout(() => recv(m), NETLAG); else recv(m); });
+  const recv = (m) => {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'ping'){ if (net.role === 'guest' && m.s > 0 && net.slot !== m.s){ net.slot = m.s; emit('welcome', m.s); } return void c.send({ t: 'pong', at: m.at }); }
     if (m.t === 'pong'){ pings.set(slot, Math.round(performance.now() - m.at)); net.ping = Math.max(0, ...pings.values()); emit('ping', net.ping); return; }
@@ -188,7 +192,7 @@ function attach(c, slot){
       if (RELAY[m.t]) for (const [k, o] of conns) if (k !== slot && o.open) o.send(m);
     }
     emit(m.t, m);
-  });
+  };
   c.on('close', () => {
     clearInterval(pingTimers.get(slot)); pingTimers.delete(slot); pings.delete(slot);
     if (net.role === 'host'){

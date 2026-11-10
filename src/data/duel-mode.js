@@ -15,7 +15,7 @@ export const DUEL_MODE = {
   // the beats of a match (s): the fighters on their marks with the hilts on the belt, the countdown, the pause after a
   // round, and how long a trade has to land (a second blow this soon after a round-winning one counts too, the way a
   // double hit does in fencing)
-  beats: { enter: 1.2, count: 3, roundEnd: 2.6, trade: 0.18 },
+  beats: { enter: 1.2, count: 3, roundEnd: 2.6 },
   // THE RING: where it is (the training wing's sparring ring, data/hub.js; the sandbox room's floor), its radius, and how
   // far apart the fighters stand on their marks
   ring: {
@@ -32,7 +32,14 @@ export const DUEL_MODE = {
   // LAG: a blow is sent the moment the swing starts (with a timestamp) and its contact the moment the blade reaches the
   // other fighter; the DEFENDER's screen judges it. Above `poor` ms round trip the link counts as poor: the card warns
   // first, and both fighters' parry windows widen by `parryWiden` s for the match.
-  lag: { poor: 150, parryWiden: 0.05, pingEvery: 2000 },
+  lag: { poor: 150, parryWiden: 0.05, pingEvery: 2000,
+    // SPLIT THE LINK: the defender's screen sees a cut arrive a one-way trip after it landed on the attacker's. The guard
+    // is judged as it stood `share` of that trip ago (at most `rewindMax` s): a guard raised later than that is too late,
+    // and one dropped since still holds. Neither side's screen gets the whole say. `keep`: s of guard history kept
+    rewind: { share: 0.5, rewindMax: 0.09, keep: 0.6 },
+    // a trade (two blows in the same instant, both count) waits this long, plus a one-way trip of the link, at most `max`
+    trade: { base: 0.18, max: 0.4 },
+  },
   // FORCE POWERS in a duel: push and pull only, at base strength (data/mastery.js rank 0). knock: how hard a push shoves
   // the other fighter (m/s) and a pull hauls them in; stagger: the reel it leaves (s); near: a pull stops this far off you
   force: { push: { knock: 13, lift: 2.5, stagger: 0.3 }, pull: { knock: 11, stagger: 0.25, near: 2 } },

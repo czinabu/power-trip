@@ -71,3 +71,14 @@ body.compass-on #duelhud{top:50px}   /* (under the compass strip, as the boss ba
   .dl-o span{font-size:12px}
   #duelp{top:auto;bottom:24%}
 }
+
+/* the incoming cue (ui/duel-ui.js): a chevron on the side the other fighter's cut comes in on, brightening as it nears */
+#duelcue{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:4;--near:0}
+#duelcue i{position:absolute;display:none;width:26px;height:26px;margin:-13px 0 0 -13px;border:solid rgba(255,190,110,calc(.35 + var(--near) * .65));
+  border-width:0 4px 4px 0;filter:drop-shadow(0 0 calc(2px + var(--near) * 8px) rgba(255,150,60,.9))}
+#duelcue.l-R .dc-R{display:block;transform:translateX(calc(64px - var(--near) * 18px)) rotate(135deg)}
+#duelcue.l-L .dc-L{display:block;transform:translateX(calc(-64px + var(--near) * 18px)) rotate(-45deg)}
+#duelcue.l-H .dc-H{display:block;transform:translateY(calc(-64px + var(--near) * 18px)) rotate(45deg)}
+#duelcue.l-Lo .dc-Lo{display:block;transform:translateY(calc(64px - var(--near) * 18px)) rotate(-135deg)}
+#duelcue.l-T .dc-T{display:block;width:14px;height:14px;margin:-7px 0 0 -7px;border:4px solid rgba(255,190,110,calc(.35 + var(--near) * .65));border-radius:50%;
+  transform:scale(calc(1.6 - var(--near) * .6))}

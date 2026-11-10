@@ -65,7 +65,7 @@ duelHooks.swingHit = (body, b) => {
   const sw = player.swing, pp = playerPos();
   if (sw && sw.pvpSent) return;   // one verdict per cut
   if (sw) sw.pvpSent = true;
-  send({ t: 'dhit', to: body.slot, i: sw && sw.pvpId || ++swingN, at: Math.round(performance.now()), dm: r2(b.dmg), l: b.line || 'H', f: b.finisher ? 1 : 0, r: b.riposte ? 1 : 0, h: b.heavy ? 1 : 0, x: r2(pp.x), z: r2(pp.z) });
+  send({ t: 'dhit', to: body.slot, i: sw && sw.pvpId || ++swingN, at: Math.round(performance.now()), k: Math.round(pvpLinkMs()), dm: r2(b.dmg), l: b.line || 'H', f: b.finisher ? 1 : 0, r: b.riposte ? 1 : 0, h: b.heavy ? 1 : 0, x: r2(pp.x), z: r2(pp.z) });
 };
 
 /* a push or a pull: does its cone have the other fighter in it (on this screen, where you aimed it)? */
@@ -95,14 +95,53 @@ addThreatSource(() => {
   return incoming.map(c => ({ line: c.line, x: c.x, z: c.z, t: c.t - G.gt }));   // (t: seconds until it lands, as a foe's wind-up counts down)
 });
 
+/* SPLIT THE LINK (data/duel-mode.js lag.rewind): this screen sees the cut a one-way trip after it landed on theirs. The
+   guard is judged as it stood part of that trip ago: raised since, it was too late; dropped since, it still held. */
+const hist = [];   // { at (ms), block, parry, open, dash }, oldest first
+export function pvpTick(){
+  if (!fighting()){ hist.length = 0; return; }
+  const t = performance.now(), keep = DUEL_MODE.lag.rewind.keep * 1000;
+  hist.push({ at: t, block: !!player.blockHeld, parry: player.parryT || 0, open: player.parryOpen || 0, dash: player.dashT || 0 });
+  while (hist.length > 2 && hist[0].at < t - keep) hist.shift();
+}
+export const guardAgo = (ms) => {   // the guard as it stood `ms` ago (null: no history that far back)
+  const t = performance.now() - ms;
+  for (let i = hist.length - 1; i >= 0; i--) if (hist[i].at <= t) return hist[i];
+  return null;
+};
+const guarding = (s) => s.block || s.parry > 0;
+export const rewindMs = (theirShare) => Math.min(DUEL_MODE.lag.rewind.rewindMax * 1000, ((+theirShare || 0) + pvpLinkMs()) / 2 * DUEL_MODE.lag.rewind.share);
+function judgeThen(ms, fn){
+  const then = ms > 1 ? guardAgo(ms) : null;
+  if (!then) return { res: fn(), rw: 0 };
+  const nowS = { block: player.blockHeld, parry: player.parryT, open: player.parryOpen, dash: player.dashT };
+  const late = guarding(nowS) && !guarding(then), held = !guarding(nowS) && guarding(then);
+  const slip = (nowS.dash > 0) !== (then.dash > 0);
+  if (!late && !held && !slip) return { res: fn(), rw: 0 };
+  if (late || held){ player.blockHeld = then.block; player.parryT = then.parry; player.parryOpen = then.open; }
+  if (slip) player.dashT = then.dash > 0 ? Math.max(0.01, then.dash) : 0;
+  let res;
+  try { res = fn(); }
+  finally {
+    player.blockHeld = nowS.block;
+    if (late) player.parryT = nowS.parry, player.parryOpen = nowS.open;   // (the late guard is still up for the next blow)
+    else if (held) player.parryT = 0;
+    if (slip) player.dashT = nowS.dash;
+  }
+  const rw = late && res === 'hit' ? 'late' : held && res !== 'hit' ? 'held' : 0;
+  if (rw === 'late') floater(playerPos(), 'TOO LATE', '#ff9a6a');
+  return { res, rw };
+}
+
 on('dhit', (m) => {
   if (!fighting() || m.to !== net.slot || fromOf(m) !== foeSeat() || G.duel.phase !== 'fight') return;
   const P = partnerPuppet(fromOf(m)), at = P ? P.group.position : V3(+m.x, 0, +m.z);
   const dmg = Math.max(0, Math.min(DUEL_MODE.maxBlow, +m.dm || 0));
   const hp0 = player.hp;
-  const res = incomingBlow(dmg, V3(at.x, at.y, at.z), 'cut', false, null, { pvp: true, line: m.l || 'H', heavy: !!m.h, noClash: true });
-  const k = (i => i >= 0 ? incoming.splice(i, 1) : null)(incoming.findIndex(c => c.id === m.i));
-  const out = { t: 'dres', to: fromOf(m), i: m.i, r: res, hp: r2(Math.max(0, player.hp) / maxHp()), lost: r2(Math.max(0, hp0 - player.hp)) };
+  const { res, rw } = judgeThen(rewindMs(m.k), () => incomingBlow(dmg, V3(at.x, at.y, at.z), 'cut', false, null, { pvp: true, line: m.l || 'H', heavy: !!m.h, noClash: true }));
+  const k = (i => i >= 0 ? incoming.splice(i, 1)[0] : null)(incoming.findIndex(c => c.id === m.i));
+  cueAfter = { line: (k && k.line) || m.l || 'H', until: G.gt + 0.15 };   // (the cue stays a moment on the line it came in on)
+  const out = { t: 'dres', to: fromOf(m), i: m.i, r: res, rw, hp: r2(Math.max(0, player.hp) / maxHp()), lost: r2(Math.max(0, hp0 - player.hp)) };
   send(out);
   verdict({ ...out, from: net.slot }, true);
 });
@@ -133,8 +172,10 @@ on('dfp', (m) => {
 const verdictFns = [];
 export function onVerdict(fn){ verdictFns.push(fn); }
 on('dres', (m) => verdict(m, false));
+let lastVerdict = null;
 function verdict(m, mine){
   if (!G.duel || !G.duel.pvp) return;
+  lastVerdict = { r: m.r, rw: m.rw || 0, mine };
   for (const fn of verdictFns) fn(m, mine);
   if (mine || m.to !== net.slot || !fighting()) return;
   // the attacker's own feel of it
@@ -155,7 +196,25 @@ function verdict(m, mine){
   } else if (m.r === 'blocked' || m.r === 'clashed'){
     if (player.swing && player.atkT > 0) recoilSwing(cp);
     S.clash(cp, false, G.stance);
+    floater(pp, m.r === 'clashed' ? 'CLASHED' : 'BLOCKED', '#bfe8ff');
   } else if (m.r === 'none') floater(pp, 'MISSED', '#bfe8ff');
 }
 
-export const pvpInfo = () => ({ incoming: incoming.length, link: pvpLinkMs() });
+// the soonest cut on its way at this fighter: { line, t (s until it lands, < 0 once it should have) } or null (ui/duel-ui.js)
+let cueAfter = null;
+export function pvpIncoming(){
+  if (!fighting() || G.duel.phase !== 'fight') return null;
+  let best = null;
+  for (const c of incoming) if (c.until >= G.gt && (!best || c.t < best.t)) best = c;
+  if (best) return { line: best.line, t: best.t - G.gt };
+  return cueAfter && cueAfter.until > G.gt ? { line: cueAfter.line, t: 0 } : null;
+}
+// the smoke test's look at the judging (tools/smoke/coop-duel.mjs): a plain cut from the other fighter, judged as it
+// stood `ms` ago, taking no health
+export function pvpTestBlow(ms){
+  const pos = foePos(); if (!pos) return null;
+  const hp = player.hp, out = judgeThen(ms, () => incomingBlow(1, V3(pos.x, pos.y, pos.z), 'cut', false, null, { pvp: true, line: 'H', noClash: true }));
+  player.hp = hp;
+  return out;
+}
+export const pvpInfo = () => ({ incoming: incoming.length, link: pvpLinkMs(), hist: hist.length, last: lastVerdict });

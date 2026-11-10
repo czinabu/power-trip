@@ -3,7 +3,9 @@
 // temple's training wing. The host challenges the guest, who accepts on the card; both are put on their marks, levelled,
 // and after the count the blades come out. The host's real saber cuts reach the guest, whose own screen judges them
 // (the defender's verdict); three clean hits take the round for the host and the referee moves to round two. Then a
-// guest's parry is checked to come back as a parry, and leaving puts both heroes' own numbers back.
+// guest's parry is checked to come back as a parry, and leaving puts both heroes' own numbers back. The guest plays over a
+// slow link (?netlag): the cut's cue shows on the guest's screen before it lands, and a guard raised after a blow landed
+// is judged too late while one dropped since still holds (net/pvp.js, split the link).
 //   npm run build && npm run smoke:coop-duel
 
 import { chromium } from 'playwright';
@@ -19,7 +21,7 @@ const errors = [];
 const poll = { timeout: 90000, polling: 250 };
 const step = (what) => console.log('ok   ' + what);
 
-async function open(name){
+async function open(name, extra = ''){
   const page = await browser.newPage({ viewport: { width: 640, height: 360 } });
   page.on('pageerror', e => errors.push(name + ': ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(name + ': ' + m.text()); });
@@ -27,7 +29,7 @@ async function open(name){
     try { localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1'); for (const h of ['temple', 'kamino', 'covert']) localStorage.setItem('sw_hubwelcome_' + h, '1'); } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
   });
-  await page.goto(url);
+  await page.goto(url + extra);
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);
   return page;
 }
@@ -37,7 +39,7 @@ const info = (page) => page.evaluate(() => GAME.duel.info());
 
 let ok = false;
 try {
-  const host = await open('host'), guest = await open('guest');
+  const host = await open('host'), guest = await open('guest', process.env.NETLAG === undefined ? '&netlag=90' : '&netlag=' + process.env.NETLAG);
   await host.click('#mode-coop'); await host.fill('#coopname', 'Kira'); await host.click('#coophost');
   await host.waitForFunction(() => document.querySelector('#coopstatus .code'), null, poll);
   const code = await host.evaluate(() => document.querySelector('#coopstatus .code').textContent);
@@ -113,6 +115,32 @@ try {
   }
   if (!parried) throw new Error('a parry on the guest\'s screen should turn the host\'s cut and leave the host reeling');
   step('a parry on the defender\'s screen turns the cut, and the attacker reels');
+
+  // over the slow link: the guest's screen shows the cut coming before it lands
+  await guest.evaluate(() => { window.__cue = 0; setInterval(() => { if (document.getElementById('duelcue').classList.contains('on')) window.__cue = 1; }, 16); });
+  for (let i = 0; i < 6; i++){
+    await close();
+    await host.evaluate(() => { GAME.player.stam = 999; GAME.tryAttack(); });
+    await host.waitForTimeout(700);
+    if (await guest.evaluate(() => window.__cue)) break;
+  }
+  if (!await guest.evaluate(() => window.__cue)) throw new Error('the guest should see the host\'s cut coming');
+  if (await guest.evaluate(() => GAME.duel.info().M.lk) < 60) throw new Error('the slow link should show in the duel\'s link: ' + await guest.evaluate(() => GAME.duel.info().M.lk));
+  step('over a slow link, the defender sees the cut coming on its line');
+
+  // split the link: a guard raised after the blow landed is too late; one dropped since still holds
+  const face = () => guest.evaluate(() => { const { player, G } = GAME; const pp = player.group.position, hp = GAME.partnerMate(0).pos; G.yaw = player.faceYaw = Math.atan2(hp.x - pp.x, hp.z - pp.z); player.group.rotation.y = G.yaw; player.stam = 999; player.dashT = 0; player.flinchT = 0; });
+  await close(); await face();
+  await guest.evaluate(() => { GAME.player.blockHeld = false; GAME.player.parryT = 0; });
+  await guest.waitForTimeout(400);
+  const late = await guest.evaluate(() => { GAME.player.blockHeld = true; return GAME.duel.testBlow(200); });
+  const onTime = await guest.evaluate(() => GAME.duel.testBlow(0));
+  await guest.waitForTimeout(400); await face();
+  const held = await guest.evaluate(() => { GAME.player.blockHeld = false; GAME.player.parryT = 0; const r = GAME.duel.testBlow(200); return { ...r, still: GAME.player.blockHeld }; });
+  if (!late || late.res !== 'hit' || late.rw !== 'late') throw new Error('a guard raised after the blow landed should be too late: ' + JSON.stringify(late));
+  if (!onTime || onTime.res !== 'blocked') throw new Error('a guard up when the blow lands should block it: ' + JSON.stringify(onTime));
+  if (!held || held.res !== 'blocked' || held.rw !== 'held' || held.still) throw new Error('a guard dropped after the blow landed should still hold it: ' + JSON.stringify(held));
+  step('split the link: a late guard is too late, a guard dropped after the blow still held');
 
   await host.evaluate(() => GAME.duel.leave());
   await guest.waitForFunction(() => !GAME.duel.info().M && !GAME.duel.info().levelled && !GAME.G.duel, null, poll);

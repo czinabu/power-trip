@@ -31,7 +31,7 @@ import { S, sfx } from '../audio/sfx.js';
 import { net, on, send, connected } from '../net/session.js';
 import { nameOf, savedName } from '../net/names.js';
 import { partnerStand, partnerHero, partnerPuppet } from '../net/partner.js';
-import { onVerdict, pvpLinkMs } from '../net/pvp.js';
+import { onVerdict, pvpLinkMs, pvpTick } from '../net/pvp.js';
 
 const D = DUEL_MODE;
 const now = () => performance.now();
@@ -210,11 +210,15 @@ function scorePoint(by, n = 1){
   tell();
 }
 // the round's end is called: a trade still has a moment to land (both count, like a double hit in fencing)
+// (a trade's moment follows the link: the other fighter's verdict has a one-way trip to make. M.lk sums both fighters'
+// round trips to the host, so half of it is the one-way trip between them)
+const tradeS = () => Math.min(D.lag.trade.max, D.lag.trade.base + (M && M.pvp ? (M.lk || 0) / 2000 : 0));
 function roundDecided(){
   if (decideAt) return;
-  decideAt = now() + D.beats.trade * 1000;
+  const wait = tradeS();
+  decideAt = now() + wait * 1000;
   const id = M.id;   // (and a timer too, so a referee whose tab is in the background, with no frames, still calls it)
-  setTimeout(() => { if (M && M.id === id && M.ref && decideAt && now() >= decideAt) closeRound(); }, D.beats.trade * 1000 + 30);
+  setTimeout(() => { if (M && M.id === id && M.ref && decideAt && now() >= decideAt) closeRound(); }, wait * 1000 + 30);
 }
 function closeRound(){
   decideAt = 0;
@@ -389,6 +393,7 @@ export const duelOnHere = () => !!M && M.me < 0 && M.ph !== 'over';
 
 /* ---------------- each frame (main.js) ---------------- */
 export function updateDuel(){
+  pvpTick();   // (the guard's recent history, for judging a blow as it stood when it landed: net/pvp.js)
   const t = now();
   if (pending && t > pending.until){ pending = null; showBanner('', 'NO ANSWER', 1.4); }
   if (incoming && (t > incoming.until || !duelPlace())){ send({ t: 'dans', to: incoming.from, id: incoming.id, ok: 0 }); incoming = null; if (ui.close) ui.close(); }

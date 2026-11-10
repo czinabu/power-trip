@@ -73,6 +73,8 @@ import { noteMissionWon, noteSideWon, noteRaidWon } from './profile.js';
 import { RAIDS } from '../data/raids.js';
 import { medalsBegin, medalsEnd, medalNote, medalsTick, medalsMissed, medalsHostMissed, medalsResult } from './medals.js';
 import { noteMedals } from './profile.js';
+import { sliceRate } from './slice-ways.js';
+import { SLICE_WAY, SLICE_TEXT, CHARGE_COLOR } from '../data/slice-ways.js';
 import { showMedals } from '../ui/medals-ui.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
@@ -97,6 +99,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   clearMission();
   if (!opts.retry) rageCk = null;   // (a fresh start fights every duel from the top: retryMission)
   if (!opts.retry) resetScenes();   // a fresh start plays the mission's scenes again (a retry after a death or an escape doesn't)
+  if (!opts.retry) M.wayTold = false;   // (the hero's own way with a console is taught once a mission: data/slice-ways.js)
   const sub = def.level.sub && typeof def.level.sub === 'object' ? heroKey(def.level.sub) : def.level.sub;
   if (ch){
     startLevel(G.levelIdx, { level: { ...def.level, ...ch.arena, name: ch.name, sub: ch.sub || sub }, mission: true, resume: !ch.fresh, chapter: true, foeLook: def.foeLook, squadCap: def.squadCap });   // the run's hero and build, on the mission's arena (or the chapter's own; fresh: a new run that opens on a mission, a story's prologue, starts a new build)
@@ -253,6 +256,17 @@ function introHeld(s){
   return true;
 }
 
+// a console done: lit green, its line, and anything it was hiding
+function finishConsole(o, c){
+  if (c.done) return;
+  c.done = true;
+  setMarkerColor(c.m, GREEN); c.m.userData.beam.visible = false; c.m.userData.done = true;
+  burst(V3(c.x, 1.2, c.z), GREEN, 16, 6, 4, 0.8); S.reward(1);
+  floater(V3(c.x, 1.8, c.z), o.consoleName ? o.consoleName + ' ' + (o.consoleDone || (o.consoleName === 'CHARGE' ? 'SET' : 'SECURED')) : 'UPLINK DOWN', '#7bffae');
+  // a console can hold something more than its objective (the Jakku cruiser's holocron): its own banner
+  const found = c.def.found && (heroKey(c.def.found) !== undefined ? heroKey(c.def.found) : c.def.found);
+  if (found) showBanner(found[0], found[1] || '', 2.6, { kicker: 'FOUND' });
+}
 const KINDS = {
   hold: {
     cue: 'defend',
@@ -366,8 +380,29 @@ const KINDS = {
         pulseMarker(c.m, dt, G.gt);
         // a STYLED LOCK (Act IV: game/locks.js) is worked by every hero on it, faster in the way it was built for; a plain
         // console by anyone standing at it
-        const st = c.def.style, pace = st || c.def.y ? lockRate(c.x, c.z, o.r, st, c.def.y || 0) : heroIn(c.x, c.z, o.r) ? 1 : 0;
-        if (!pace) continue;
+        // a plain one by each hero their own way (game/slice-ways.js: the Jedi tears it open with the Force, the Mando
+        // sets a charge that burns down on its own, the trooper's squad slices it with him or alone)
+        const st = c.def.style;
+        let pace, onIt = true;
+        if (st || c.def.y) pace = lockRate(c.x, c.z, o.r, st, c.def.y || 0);
+        else {
+          const R = sliceRate(c, o.r, o.time, dt);
+          pace = R.pace; onIt = R.on; c.way = R.way;
+          if (c.charged === 'new'){
+            c.charged = true; setMarkerColor(c.m, CHARGE_COLOR);
+            floater(V3(c.x, 1.8, c.z), 'CHARGE SET', '#ffb060'); sfx(380, 0.12, 'square', 0.05, 760);
+          }
+          if (onIt && !M.wayTold && Math.hypot(playerPos().x - c.x, playerPos().z - c.z) < o.r){
+            const T = SLICE_TEXT[SLICE_WAY[G.hero] ? SLICE_WAY[G.hero].kind : 'rip'];
+            M.wayTold = true; showBanner(T.title, T.hint, 3.6, { kicker: 'YOUR WAY' });
+          }
+          if (!onIt && pace){   // nobody on it: a set charge burning down (or being pulled), or the squad slicing it alone
+            if (c.way === 'charge') s.burn = c;
+            const g = pace > 0 && o.twist && twistGate(c.x, c.z, twistCtx);
+            c.prog = Math.max(0, c.prog + dt * pace * (g ? g.rate : 1));
+          }
+        }
+        if (!pace || !onIt){ if (c.prog >= o.time) finishConsole(o, c); if (c.done) left--; continue; }
         at = c; c.pace = pace;
         if (st && !s.told?.[st]){ (s.told ||= {})[st] = true; showBanner(LOCK.name[st], LOCK.hint[st], 3.2, { kicker: 'EVERY HERO HAS A WAY' }); }
         // a hit sets the work back, once a second at most: a sniper and two blasters on you shouldn't pin it at zero forever
@@ -376,20 +411,15 @@ const KINDS = {
         const was = c.prog;
         c.prog += dt * (gate ? gate.rate : 1) * pace;
         if (Math.floor(c.prog * 4) !== Math.floor(was * 4) && c.prog > was) sfx(700 + c.prog * 160, 0.04, 'square', 0.02, 900 + c.prog * 160);
-        if (c.prog >= o.time){
-          c.done = true; left--; at = null;
-          setMarkerColor(c.m, GREEN); c.m.userData.beam.visible = false; c.m.userData.done = true;
-          burst(V3(c.x, 1.2, c.z), GREEN, 16, 6, 4, 0.8); S.reward(1);
-          floater(V3(c.x, 1.8, c.z), o.consoleName ? o.consoleName + ' ' + (o.consoleDone || (o.consoleName === 'CHARGE' ? 'SET' : 'SECURED')) : 'UPLINK DOWN', '#7bffae');
-          // a console can hold something more than its objective (the Jakku cruiser's holocron): its own banner
-          const found = c.def.found && (heroKey(c.def.found) !== undefined ? heroKey(c.def.found) : c.def.found);
-          if (found) showBanner(found[0], found[1] || '', 2.6, { kicker: 'FOUND' });
-        }
+        if (c.prog >= o.time){ finishConsole(o, c); left--; at = null; }
       }
       const n = s.cons.length; s.at = at;
+      const burning = !at && s.burn && !s.burn.done ? s.burn : null; s.burn = null;   // a Mando's charge burning down with nobody on it
       setObjectiveHud({ kicker: M.kick, title: o.title,
-        frac: at ? at.prog / o.time : (n - left) / n,
+        frac: at ? at.prog / o.time : burning ? burning.prog / o.time : (n - left) / n,
         status: at && gate && gate.status ? gate.status : at && at.def.style ? LOCK.name[at.def.style] + ' · WORKING' + (at.pace > 1.01 ? ' ×' + at.pace.toFixed(1) : '') + ' · STAY ON IT'
+                   : burning ? (hostilesIn(burning.x, burning.z, SLICE_WAY.mando.guard) ? 'THEY\'RE PULLING THE CHARGE · GET BACK TO IT' : 'CHARGE BURNING · KEEP THEM OFF IT')
+                   : at && at.way ? SLICE_TEXT[at.way].hud + (at.pace > 1.01 ? ' ×' + at.pace.toFixed(1) : '') + ' · ' + (at.way === 'charge' ? 'IT BURNS ON ITS OWN' : 'STAY ON IT')
                    : at ? (o.consoleName ? 'WORKING… STAY ON IT' : 'SLICING… STAY ON THE CONSOLE')
                    : (n - left) + ' / ' + n + (o.consoleName ? ' ' + o.consoleName + 'S DONE' : ' UPLINKS DOWN'), warn: !!(at && gate && gate.warn) });
       if (!left){ showBanner(o.doneLine || 'UPLINKS SILENCED', o.doneLine ? (o.doneSub || '') : 'The bombardment never comes.', 2.2); return true; }

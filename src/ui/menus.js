@@ -2,6 +2,7 @@
 // Main menu: hero, mode and difficulty pickers (the mission list has its own page: ui/missions-ui.js), pause, restart, return to menu and fullscreen.
 
 import { heroName, refreshWorn } from '../game/wardrobe.js';
+import { setScreen } from '../game/run-state.js';
 import { renderer } from '../engine/renderer.js';
 import { cycleQuality, resetQuality, FRAME_CAPS, frameCapNow, setFrameCap, autoResNow, setAutoRes, fpsCounterNow, setFpsCounter } from '../engine/quality.js';
 import { audioInit, setMasterVol, setMusicVol, setSfxVol, S } from '../audio/sfx.js';
@@ -296,7 +297,7 @@ function beginPlay(){
     G.paused = true;
     if (G.mode === 'menu' && !G.coopJoin) noteLastPlay();
     loadInto(() => {
-      G.mode = 'play'; G.slowmo = 1;
+      setScreen('play', 'launch'); G.slowmo = 1;
       if (G.modeSel === 'temple'){ const from = G.hubArrive; G.hubArrive = null; startHub(G.hubWing, from); G.paused = false; return; }   // the hub: the hero's own (game/hub.js)
       G.hub = false; forgetHubSpot();   // (a run: coming back from it is a fresh arrival, not the spot left for it)
       if (G.modeSel === 'zone'){ startZone(G.zoneSel, { guest: G.coopJoin }); G.paused = false; return; }   // an open zone (game/zone.js), alone or after the host
@@ -309,7 +310,7 @@ function beginPlay(){
     G.paused = true;
     // the same map again: a quick dip to black, not the loading screen (ui/loading.js dipInto)
     dipInto(() => {
-      G.mode = 'play'; G.slowmo = 1;
+      setScreen('play', 'retry'); G.slowmo = 1;
       if (G.zone) startZone(G.zone); else if (G.endless) startEndless(); else if (G.training) retryTutorial(); else if (G.mission) retryMission(); else if (G.sandbox) startSandbox({ replay: true }); else retryLevel();   // survival retry = a fresh survival run
       G.paused = false;
     }, stillWanted);
@@ -881,7 +882,7 @@ function restartRun(toTraining, after){
   document.getElementById('banner').style.opacity = '0';
   document.getElementById('skilltree').style.display = 'none';
   G.skillSelect = false; G.sbMenu = false;
-  G.mode = 'play'; G.slowmo = 1; G.paused = false;
+  setScreen('play', 'restart'); G.slowmo = 1; G.paused = false;
   document.body.classList.remove('in-menu'); setHowTo(false); setSettings(false);
   closeCard(true);
   // the fresh level builds behind the loading screen (ui/loading.js), the old one held still under it
@@ -926,7 +927,7 @@ export function goHome(){
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
   document.getElementById('runsummary').style.display = 'none';
   startLevel(0, { sweep: true });   // sweep the battlefield and reset the hero + kit, exactly as a fresh campaign would (no checkpoint: nothing is being played)
-  G.mode = 'menu'; G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.fromHub = false;
+  setScreen('menu', 'quit'); G.coopWasGuest = false; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.fromHub = false;
   G.ngPlus = 0; G.ngNext = null;   // (a NEW GAME+ run is over: CONTINUE brings its tier back from the save, game/saves.js restoreRun)
   overlay.style.display = 'flex';
   if (!G.coopJoin) followHero();   // the run just played was used up as it began: this hero's newest save waits again for CONTINUE CAMPAIGN
@@ -994,7 +995,7 @@ export function launchNow(){
 function leaveHub(){
   keepHubSpot();   // (closing the page and walking back in: the spot you left, game/hub.js)
   closeHubPanel(false);
-  G.fromHub = true; G.hub = false; G.mode = 'menu'; G.paused = false; G.skillSelect = false; G.sbMenu = false;
+  G.fromHub = true; G.hub = false; setScreen('menu', 'leave hub'); G.paused = false; G.skillSelect = false; G.sbMenu = false;
   G.ngPlus = 0;   // (the temple is between runs: a campaign from here is a first run unless NEW GAME+ arms one)
   overlay.style.display = 'flex';
   if (!G.coopJoin) followHero();
@@ -1050,7 +1051,7 @@ export function goTemple(auto){
   G.skillSelect = false; G.sbMenu = false;
   if (G.stats){ G.stats._ended = false; G.stats.summary = null; }
   document.getElementById('runsummary').style.display = 'none';
-  G.mode = 'menu'; G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.coopJoin = false;
+  setScreen('menu', 'to the hub'); G.paused = false; G.slowmo = 1; G.slowmoT = 0; G.hitstop = 0; G.coopJoin = false;
   setModeSel('temple'); setOverlayState('menu');
   if (auto) launchNow(); else launch();
 }
@@ -1083,7 +1084,7 @@ function followHostRun(){
   G.coopJoin = true; G.missionForms = null; G.missionKit = null; G.modeSel = coopRun.k === 'm' ? 'mission' : coopRun.k === 'c' ? 'campaign' : coopRun.k === 'z' ? 'zone' : 'endless';
   if (coopRun.k === 'm') G.missionId = coopRun.mid;
   if (coopRun.k === 'z') G.zoneSel = coopRun.mid.slice(ZONE_PREFIX.length);
-  G.mode = 'menu'; setOverlayState('menu');
+  setScreen('menu', 'follow host'); setOverlayState('menu');
   launchNow();
 }
 export function joinHostRun(){ followHostRun(); }   // (the council table's JOIN, ui/hub-ui.js)

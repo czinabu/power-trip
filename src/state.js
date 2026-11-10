@@ -29,7 +29,7 @@ export const shared = {
   ambient: null,   // drifting embers / ash / dust
   templeBrazier: null,
   refugeShip: null,   // the story mission's transport (world/arenas/refuge.js), animated by game/mission.js
-  levelPhase: 'idle',   // idle | between | fighting | bossfight | training | mission | sandbox
+  levelPhase: 'idle',   // the level's phase: written only through setPhase (game/run-state.js PHASES has every value and move)
   phaseT: 0,
   lockFallback: false,   // pointer lock unavailable (e.g. embedded preview) — play with plain mouse-move look
   lockWorked: false,     // pointer lock has succeeded at least once, so a refusal is transient (Esc cooldown), not unsupported
@@ -39,7 +39,7 @@ export const shared = {
    GAME STATE
    ============================================================ */
 export const G = {
-  mode: 'menu',          // menu | play | dead | victory
+  mode: 'menu',          // the screen: menu | play | dead | victory, written only through setScreen (game/run-state.js SCREENS)
   paused: false,         // true while the pause/ESC overlay is up — freezes the whole sim
   cutscene: false,       // a cutscene is playing (game/cutscene.js): the fight holds, the lens and the input are the scene's
   duel: null,            // a duel is on (game/duel-mode.js): { rule, pvp, widen }; levels both fighters and keeps the ring

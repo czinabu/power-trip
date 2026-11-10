@@ -21,6 +21,7 @@
 //              is what fades (the Jedi's siege into the archive)
 
 import { G, shared, enemies, keys } from '../state.js';
+import { setPhase } from './run-state.js';
 import { interactReady } from './interact.js';
 import { pad, padKeys } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
@@ -116,7 +117,7 @@ export function startCalm(){
   const door = c.doorway && (c.doorway.at || templeDoors()) ? c.doorway : null;   // (the way on: THE WAY ON above)
   Object.assign(A, { on: true, guest: false, t: 0, skipT: 0, at: null, said: false, reached: false, lines, door, label: (door && door.label) || (CALM[storyHero()] || CALM.jedi).label || 'REGROUP', who: '' });
   G.calm = true;
-  shared.levelPhase = 'aftermath'; shared.phaseT = 0;
+  setPhase('aftermath', 0);
   MUSIC.setCue('calm');
   return true;
 }
@@ -129,7 +130,7 @@ export function endCalm(quiet){
   dropComms(CALM_TAG);   // (the hero walked out, or the chapter's gone: the exchange's lines still to come aren't waited for)
   if (quiet || !host) return;
   clearComms(); finishCard();   // walked out: nothing left on the strip or the card keeps the upgrade screen waiting
-  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.6;   // (then the upgrade screen)
+  setPhase('chapterdone', 0.6);   // (then the upgrade screen)
 }
 
 // HOLD F TO MOVE ON: whoever doesn't want the walk can hold F (the pad's Y) and the chapter closes as if they'd reached the

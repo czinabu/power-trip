@@ -5,6 +5,7 @@
 // Act II the card asks which pair of chapters comes first.
 
 import { refreshWorn } from './wardrobe.js';
+import { setPhase } from './run-state.js';
 import { autosave, saveAtClose } from './autosave.js';
 import { G, shared, heroKey } from '../state.js';
 import { MISSIONS } from '../data/missions.js';
@@ -80,7 +81,7 @@ export function startChapter(pos, opts = {}){
     if (!opts.retry){ G.checkpoint = { idx: G.levelIdx, ch: pos, waveTotal: G.waveTotal, boss: false }; autosave('chapter'); }
     startMission(c.mission, 0, !!opts.guest, { retry: !!opts.retry, chapter: { name, sub, arena: c.arena, fresh: !!opts.fresh, guests: c.guests, evacuees: c.evacuees, harder: !!(c.harder && G.actTwo && c.harder === G.actTwo), kicker: no + ' · ' + title, clear: (c.lines && forHero(c.lines.clear, G.hero)) || null, done: chapterCleared } });
   }
-  if (opts.guest){ G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false; shared.levelPhase = G.mission ? 'mission' : 'between'; shared.phaseT = 0; }
+  if (opts.guest){ G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false; setPhase(G.mission ? 'mission' : 'between', 0, { sync: true }); }
   if (!opts.retry || opts.card) showCard(pos);
 }
 // after a death: the chapter again from its checkpoint (a wave chapter from its first wave, or the boss)
@@ -101,7 +102,7 @@ export function resumeChapter(run){
 export function resumeAtClose(run){
   G.actTwo = run.actTwo || null; G.storyHero = run.tale || null;
   G.chapter = run.chapter; G.chapterClosed = run.chapter;
-  shared.levelPhase = 'chapterdone'; shared.phaseT = 0.4;
+  setPhase('chapterdone', 0.4, { enter: true, why: 'resume at close' });
   showBanner('', 'BACK TO THE STORY', 1.6);
 }
 // co-op: a guest joins the host's campaign on its chapter, with the kit that far into a run earns
@@ -141,7 +142,7 @@ function chapterCleared(){
   if (G.coopGuest){ checkUnlocks(1600, true); saveAtClose(); guestCalm(openSkillTree); return; }   // (its own save at the close: its progress, the host's run stays the host's)   // (after the host's calm, if it has one: game/aftermath.js; a guest's new powers show at the close too)
   // after a duel or a hold: a calm walk back to the rally point first (game/aftermath.js), then the voice's last word, the
   // upgrade screen and the road on (game/flow.js)
-  if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.6; }
+  if (!startCalm()) setPhase('chapterdone', 2.6);
   checkUnlocks(1600, true);   // the powers and forms this chapter hands over: their screens now, at its end (not as the next chapter opens)
   saveAtClose();   // the chapter won (its boss with it) is saved now, with what it handed over (game/autosave.js)
 }

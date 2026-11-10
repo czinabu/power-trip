@@ -2,6 +2,7 @@
 // End of run: run summary and victory.
 
 import { autosave } from './autosave.js';
+import { setScreen } from './run-state.js';
 import { clamp } from '../utils.js';
 import { G, player } from '../state.js';
 import { BOON_BY_ID } from '../data/boons.js';
@@ -94,7 +95,7 @@ export function victory(afterEpilogue){
     autosave('ending', { finished: true });
   }
   endRun(true);
-  G.mode = 'victory';
+  setScreen('victory', 'run won');
   G.slowmo = 1; G.slowmoT = 0;   // the fight is won — drop out of slow motion
   const newlyUnlocked = !hadBoth && survivalUnlocked(), gateNew = !hadGate && gateOpen();
   refreshSurvivalLock(); refreshGateLock();

@@ -2,6 +2,7 @@
 // hurtPlayer() and kill streaks.
 
 import { FINISHER } from '../data/finishers.js';
+import { setScreen } from '../game/run-state.js';
 import { matchup } from '../enemies/foeform.js';
 import { CFG } from '../data/config.js';
 import { stamDelay } from './stamina.js';
@@ -410,7 +411,7 @@ export function onHeroFall(fn){ fallHook = fn; }
 export function killHero(){
   if (fallHook && fallHook()) return;
   player.hp = 0;
-  G.mode = 'dead';
+  setScreen('dead', 'hero fell');
   G.slowmo = 0.2;
   endRun(false);
   showBanner(isGunner() ? 'THE HUNT IS OVER' : 'THE FORCE FALLS SILENT', '', 999);

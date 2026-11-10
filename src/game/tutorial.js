@@ -85,6 +85,8 @@ function baseKit(){
   if (T.hero === 'mando'){
     G.unlocked = { rocket: true, dual: storyReached('dual'), carbine: storyReached('carbine'), repeater: storyReached('repeater'), flame: storyReached('flame') };
     player.up.darksaber = false;
+    // the jetpack and its boosters as far as the story has handed them out (none before the close of Act I: game/pack.js)
+    player.up.jetTier = ['jet1', 'jet2', 'jet3'].filter(k => storyReached(k)).length; applyJetTier(); player.jet = player.jetMax;
     setKit({ sidearm: 'single', primary: storyReached('carbine') ? 'carbine' : null });   // the pistol, and the first primary once the story has handed it out
     if (player.weapon !== 'single' && player.weapon !== 'fists') switchWeapon('single');
   } else if (T.hero === 'trooper'){   // the trooper's kit is whole from the start: its two guns, frags and the bash
@@ -139,7 +141,8 @@ export function skipStep(){
 
 function beginLesson(L){
   T.lesson = L; T.finished = false; T.i = 0;
-  T.steps = L.steps.filter(s => !s.needs || storyReached(s.needs));   // a step about something the story hasn't reached yet waits
+  T.steps = L.steps.filter(s => !s.needs || storyReached(s.needs))   // a step about something the story hasn't reached yet waits
+    .map(s => s.course ? { ...s, course: s.course.filter(c => !c.needs || storyReached(c.needs)) } : s);   // (and a course's leg: the jetpack's)
   baseKit();
   if (T.hero !== 'mando'){
     setLoadout(L.loadout || trainingLoadout());
@@ -496,7 +499,7 @@ function ownedNow(){
   const su = G.stanceUnlocked || {};
   if (su.ataru) o.add('ataru'); if (su.djemso) o.add('djemso');
   const up = player.up || {};
-  if (isGunner()){ if (up.jetTier >= 1) o.add('jet1'); if (up.jetTier >= 2) o.add('jet2'); if (up.darksaber) o.add('darksaber'); }
+  if (isGunner()){ if (up.jetTier >= 1) o.add('jet1'); if (up.jetTier >= 2) o.add('jet2'); if (up.jetTier >= 3) o.add('jet3'); if (up.darksaber) o.add('darksaber'); }
   else { if (up.fjTier >= 1) o.add('fj1'); if (up.fjTier >= 2) o.add('fj2'); }
   return o;
 }

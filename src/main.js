@@ -146,6 +146,11 @@ import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import './ui/profile-ui.js';
 import * as PROFILE from './game/profile.js';
+import * as MEDALS from './game/medals.js';
+import * as MEDAL_DATA from './data/medals.js';
+import { MISSIONS as MISSION_LIST } from './data/missions.js';
+import { SIDE_QUESTS as SIDE_ALL, SIDE_PREFIX as SIDE_PFX } from './data/side-quests.js';
+import { missionById as defById, randomArcadeId } from './data/arcade.js';
 import * as NGPLUS from './data/ngplus.js';   // NEW GAME+ (window.GAME.NGPLUS, for the tests)
 import * as ALIGNMENT from './game/alignment.js';
 import { updateFoes, updatePuppets, coopLive } from './net/foes.js';
@@ -275,7 +280,9 @@ function tick(ts){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, teamup: { info: teamupInfo, press: teamupPress, reset: resetTeamups, TEAMUP, TEAMUPS }, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
+window.GAME = { PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
+  missionDefs: () => ({ ...MISSION_LIST, ...Object.fromEntries(SIDE_ALL.map(q => [SIDE_PFX + q.slug, defById(SIDE_PFX + q.slug)])) }),
+  NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, teamup: { info: teamupInfo, press: teamupPress, reset: resetTeamups, TEAMUP, TEAMUPS }, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,

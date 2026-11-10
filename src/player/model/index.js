@@ -23,7 +23,8 @@ export function buildHeroModel(target, lookIn = {}){
 
   target.cloth = [];   // filled by k.cloth(); animation.js steps them
   const jedi = dress(R, S, look.jedi, JEDI_PARTS, target);
-  const mando = dress(R, S, look.mando, MANDO_PARTS, target);
+  // (a Mando who hasn't earned his jetpack yet: a bare back, no hoses: game/pack.js)
+  const mando = dress(R, S, look.mando.packless ? { ...look.mando, parts: { ...look.mando.parts, jetpack: 'none' } } : look.mando, MANDO_PARTS, target);
   for (const p of mando.parts) p.visible = false;
   // the clone trooper has its own palette, so it gets its own style: its suit and cloth never take the Mando's colours
   const trooper = dress(R, makeStyle(look.style, look.trooper.palette), look.trooper, TROOPER_PARTS, target);

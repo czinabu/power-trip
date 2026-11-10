@@ -87,8 +87,8 @@ export const MANDO_PARTS = {
       const coil = gear(-0.2, -0.06, -1.2);
       k.add(new THREE.TorusGeometry(0.045, 0.012, 5, 10), 'suit', coil, [0, -0.06, -0.01], [0, Math.PI/2, 0]);
       // JETPACK HOSES: from the belt up into the pack's underside, skinned over the hips, waist and chest so they bend
-      // and twist with the body instead of cutting through it
-      for (const sx of [-1, 1]) k.skin('suit', [
+      // and twist with the body instead of cutting through it (none on a bare back: no pack yet, game/pack.js)
+      if (k.parts.jetpack !== 'none') for (const sx of [-1, 1]) k.skin('suit', [
         { t:0.0, w:0.03, d:0.03, x:0.15*sx, z:-0.16 }, { t:0.1, w:0.03, d:0.03, x:0.16*sx, z:-0.2 },
         { t:0.22, w:0.03, d:0.03, x:0.15*sx, z:-0.24 }, { t:0.32, w:0.03, d:0.03, x:0.13*sx, z:-0.27 },
       ], { bones: [R.hips, R.torso, R.chest], at: [DIM.torsoY, DIM.torsoY + DIM.chestY], blend: 0.07, profile: ngon(6), dir: 1 });
@@ -143,6 +143,8 @@ export const MANDO_PARTS = {
     mandalore(R, k){ signet(R, k, MANDALORE); },
     brokenward(R, k){ signet(R, k, BROKEN_WARD); },
     gatefall(R, k){ signet(R, k, GATEFALL); },
+    honourstar(R, k){ signet(R, k, STAR5); },   // the mission medals' (data/medals.js)
+    sunburst(R, k){ signet(R, k, SUN8); },
   },
   // a helmet's silhouette piece, on top of whichever HELMET the customizer picked
   helmod: {
@@ -167,6 +169,9 @@ export const MANDO_PARTS = {
   },
 
   jetpack: {
+    // NO PACK: the Mando before the Armorer forges his at the close of Act I (game/pack.js). Nothing on the back, and
+    // nothing for flight.js, gadgets.js and net/pose.js to drive
+    none(R, k, player){ player.jetGlow = null; player.jetFuelSegs = null; player.jetMissileMesh = null; },
     // THE BESKAR FORGE's jetpacks (data/beskar-forge.js) are the standard pack with more bolted on: swept wings out past
     // the tanks, or a pair of reserve canisters slung outboard. Both change the hero's outline from behind
     winged(R, k, player){
@@ -305,6 +310,9 @@ const MANDALORE = [[0,0.03],[0.022,0.035],[0.028,0.072],[0.04,0.05],[0.055,0.075
 const BROKEN_WARD = [...Array.from({ length: 13 }, (_, i) => { const a = 0.9 + i / 12 * 4.6; return [Math.cos(a) * 0.06, Math.sin(a) * 0.06]; }),
   ...Array.from({ length: 13 }, (_, i) => { const a = 5.5 - i / 12 * 4.6; return [Math.cos(a) * 0.036, Math.sin(a) * 0.036]; })];
 const GATEFALL = [[0,0.07],[0.012,0.025],[0.05,0.03],[0.022,0.004],[0.06,-0.045],[0.005,-0.02],[-0.035,-0.06],[-0.018,-0.012],[-0.06,0.01],[-0.014,0.022]];
+// the mission medals': a five-pointed star, and an eight-rayed sun
+const STAR5 = Array.from({ length: 10 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.026 : 0.066; return [Math.cos(a) * r, Math.sin(a) * r]; });
+const SUN8 = Array.from({ length: 16 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 8, r = i % 2 ? 0.036 : 0.068; return [Math.cos(a) * r, Math.sin(a) * r]; });
 const OWL = [[0,0.03],[0.02,0.045],[0.07,0.03],[0.05,0.0],[0.028,-0.005],[0.012,-0.05],[0,-0.035],[-0.012,-0.05],[-0.028,-0.005],[-0.05,0.0],[-0.07,0.03],[-0.02,0.045]];
 // the frame on the outside of the left shoulder that a signet lies in (+z out of the shoulder), fitted to the arms worn
 function shoulderFace(R, k){

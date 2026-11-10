@@ -6,7 +6,7 @@ import { sfx, S } from '../../audio/sfx.js';
 import { V3, clamp, dampToward } from '../../utils.js';
 import { burst } from '../../fx/particles.js';
 import { floater } from '../../fx/floaters.js';
-import { G, keys, player, shared } from '../../state.js';
+import { G, keys, player, shared, hasPack } from '../../state.js';
 import { JET_CEILING } from '../../data/map-rules.js';
 import { MANDO } from '../../data/mando.js';
 import { _look, _lh } from './weapons.js';
@@ -14,6 +14,14 @@ import { thrust, jetIgnite } from '../../fx/ink.js';
 import { flowJetMul } from '../gunner-flow.js';
 
 export function updateMandoFlight(dt, pp, f, r){
+  // NO PACK YET (the Armorer forges it at the close of Act I: game/pack.js): he's on his feet, like the ARC trooper.
+  // Nothing lights; a drop still falls no faster than it ever did
+  if (!hasPack()){
+    player.jetActive = player.hovering = player.boosting = false; player.jetKickT = 0; player._wasFlying = false;
+    if (!keys['shift']) player.shiftGround = false;
+    if (!player.grounded && player.vy < -MANDO.fallCap) player.vy = -MANDO.fallCap;
+    return;
+  }
   // JETPACK — its OWN limited fuel (player.jet). Drains fast in the air, recovers on the ground.
   const fuelMul = player.up.fuelEff || 1;
   const holdJet = !!keys[' '] && !player.hang && player.jet > 0 && G.mode === 'play' && player.darkT <= 0;

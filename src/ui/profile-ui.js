@@ -14,7 +14,7 @@ import {
   seenFresh, anyFresh, onPromote, resetProfile, tierRank, onPart, partsOwned, partsTotal,
   owns, runLive, alignOf, alignStage, leanOf, alignOpen,
   ngBest, ngNextTier, hasRank, cardsSeen, seeCards,
-} from '../game/profile.js';
+  medalTotal } from '../game/profile.js';
 import { tierName, MAX_TIER } from '../data/ngplus.js';
 import { ALIGN, ALIGN_WORDS, ALIGN_RANK, PATH_TREE, PATH_WORDS } from '../data/alignment.js';
 import { TRIALS, RANK_SKILLS, TREES, branchOf } from '../data/profile.js';
@@ -183,7 +183,7 @@ function ngTile(h){
 function recTile(p, h){
   const rec = [['CHAPTERS', Object.keys(p.cleared).length], ['TRIALS', trialsPassed(p) + ' / 3'], ['MISSIONS', Object.keys(p.missions).length],
                ['CAMPAIGN WINS', p.won], ['DUELS WON', p.duels], h === 'jedi' ? ['FORM RANKS', p.forms] : ['MASTERY RANKS', p.powers],
-               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['SECRETS', Object.keys(p.secrets || {}).length],
+               ['SIDE MISSIONS', Object.keys(p.sides || {}).length], ['MEDALS', medalTotal(h)], ['SECRETS', Object.keys(p.secrets || {}).length],
                ['SPARED', (p.mercy || {}).spared || 0], ['STRUCK DOWN', (p.mercy || {}).struck || 0],
                ...((p.ng && p.ng.runs) ? [['NEW GAME+ WINS', p.ng.runs]] : [])];
   const got = rec.filter(r => !/^0(\b| \/)/.test(String(r[1])));
@@ -217,7 +217,7 @@ function nodeOf(h, s){
   const r = skillRank(s.id);
   if (r >= s.max) return { st: 'max', r, tag: 'TRAINED' };
   if (!mine) return { st: 'lock', r, tag: shortLock(h, s) };
-  if (s.avail && !s.avail()) return { st: 'out', r, tag: 'CLOSED' };
+  if (s.avail && !s.avail()) return { st: 'out', r, tag: s.availTag || 'CLOSED' };   // (availTag: why it waits, e.g. no jetpack yet)
   const gate = tierGate(s.tier);
   if (gate) return { st: 'gate', r, tag: 'LATER', why: gate };
   return runMode.points() > 0 ? { st: 'open', r, tag: r ? 'RANK ' + (r + 1) : 'TRAIN' } : { st: 'nopts', r, tag: r ? 'RANK ' + r : 'NO POINTS' };

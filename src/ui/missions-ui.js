@@ -22,6 +22,8 @@ import { SIDE_QUESTS, SIDE_PREFIX, SIDE_BY_ID, isSideId } from '../data/side-que
 import { rankIndex, track, sideLock } from '../game/profile.js';
 import { mutatorById } from '../data/ngplus.js';
 import { isRaidId, raidsOpen } from '../data/raids.js';
+import { medalsOf } from '../game/profile.js';
+import { medalPips, medalGoalsHtml } from './medals-ui.js';
 // a veteran side mission's mutators, as small coloured tags on its card
 const mutTags = (ids) => (ids || []).map(id => { const m = mutatorById(id); return m ? `<span class="msn-tag mut" style="color:${m.col}">${m.name}</span>` : ''; }).join('');
 import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
@@ -91,7 +93,7 @@ function sideCard(q){
   const need = sideLock(q);
   return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${id === G.missionId ? ' sel' : ''}" id="msn-${id.replace(':', '-')}" data-mission="${id}">
     <span class="mt"><span class="mtn">${q.title}</span><span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span><span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
-    <span class="mw">${open ? q.place : need + ' TO UNLOCK'}</span>${open ? pips(q.threat) + mutTags(q.muts) : ''}
+    <span class="mw">${open ? q.place : need + ' TO UNLOCK'}</span>${open ? pips(q.threat) + medalPips(medalsOf(id).m) + mutTags(q.muts) : ''}
   </div>`;
 }
 function sideShelf(){
@@ -109,7 +111,7 @@ function sideInfo(id){
   const marks = HEROES().map(h => HERO_NAME[h] + ' ' + (missionDone(id, h) ? '<span class="ok">✓</span>' : '<span class="no">–</span>')).join(' &nbsp;');
   infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span></div>
     <div class="mpi-w">${q.place}</div>
-    <div class="mpi-b">${q.ask}</div>${q.muts && q.muts.length ? `<div class="mpi-b">MUTATORS: ${q.muts.map(id => { const m = mutatorById(id); return m ? `<b style="color:${m.col}">${m.name}</b> (${m.tip})` : ''; }).join(' · ')}</div>` : ''}
+    <div class="mpi-b">${q.ask}</div>${medalGoalsHtml(missionById(id), medalsOf(id))}${q.muts && q.muts.length ? `<div class="mpi-b">MUTATORS: ${q.muts.map(id => { const m = mutatorById(id); return m ? `<b style="color:${m.col}">${m.name}</b> (${m.tip})` : ''; }).join(' · ')}</div>` : ''}
     <div class="mpi-meta"><span>THREAT ${pips(q.threat)}</span><span>${q.take.length} OBJECTIVE${q.take.length === 1 ? '' : 'S'}</span><span>${q.reward.toUpperCase()}</span><span class="mpi-won">${marks}</span></div>`;
 }
 
@@ -140,7 +142,7 @@ function card(m){
   const tags = open ? (m.squad ? '<span class="msn-tag">SQUAD</span>' : '') + (m.trial ? '<span class="msn-tag">TRIAL</span>' : '') : '';
   return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${m.id === G.missionId ? ' sel' : ''}" id="msn-${m.id}" data-mission="${m.id}">
     <span class="mt"><span class="mtn">${open ? missionTitle(m.id) : '???'}</span>${tags}<span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
-    <span class="mw">${open ? placeOf(m) : (ch ? 'COMPLETE ' + ch + ' TO UNLOCK' : 'LOCKED')}</span>${open ? pips(missionRank(m, G.hero)) : ''}
+    <span class="mw">${open ? placeOf(m) : (ch ? 'COMPLETE ' + ch + ' TO UNLOCK' : 'LOCKED')}</span>${open ? pips(missionRank(m, G.hero)) + medalPips(medalsOf(m.id).m) : ''}
   </div>`;
 }
 function render(){
@@ -187,7 +189,7 @@ function refreshInfo(){
   const n = m.objectives.length;
   infoEl.innerHTML = `<div class="mpi-t">${missionTitle(m.id)}${m.squad ? '<span class="msn-tag">SQUAD</span>' : ''}${m.trial ? '<span class="msn-tag">TRIAL</span>' : ''}</div>
     <div class="mpi-w">${where}</div>
-    <div class="mpi-b">${m.blurb.charAt(0).toUpperCase() + m.blurb.slice(1)}.</div>
+    <div class="mpi-b">${m.blurb.charAt(0).toUpperCase() + m.blurb.slice(1)}.</div>${medalGoalsHtml(m, medalsOf(m.id))}
     <div class="mpi-meta"><span>THREAT ${pips(missionRank(m, G.hero))}</span><span>${n} OBJECTIVE${n === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">${marks}</span></div>`;
 }
 function arcadeInfo(c){

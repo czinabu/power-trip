@@ -69,6 +69,9 @@ export const PAINTS = [
   { id: 'vessel', name: 'Vessel black', set: { palette: { plate: 0x2c2832, grey: 0x7a5ab0 } }, earn: { raids: 1 }, rare: true, line: 'Black plate with violet seams, the colours of the thing you put back in the dark.' },
   { id: 'warded', name: 'Ward violet', set: { palette: { plate: 0x8a74b8, grey: 0x2a2232 } }, earn: { raids: 5 }, rare: true, line: 'Painted the colour of his wards. The squad knows where you have been.' },
   // the post-game's LEGENDARY pieces (`legend`): looks only, like the rest
+  // the mission medals' (data/medals.js)
+  { id: 'honour', name: 'Honour blue', set: { palette: { plate: 0x3a5a8c, grey: 0xd0d4da } }, earn: { medals: 20 }, line: 'Deep blue plate with white seams, for a trooper who runs it again and runs it cleaner.' },
+  { id: 'victor', name: 'Victor bronze', set: { palette: { plate: 0x9a6a3e, grey: 0x2e2620 } }, earn: { medals: 60 }, line: 'Bronze plate. The company paints it on the ones with a medal for every job.' },
   { id: 'marshal', name: 'Marshal gold', set: { palette: { plate: 0xc29a45, grey: 0x3a3428 } }, earn: { top: 'Marshal Commander' }, legend: true, line: 'Gold plate. The legion knows who wears it.' },
 ];
 // COMPANY MARKINGS: painted in the legion colour (the customizer's LEGION row), over whatever plates he wears

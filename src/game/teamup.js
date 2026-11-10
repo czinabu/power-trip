@@ -18,7 +18,7 @@
 
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
-import { G, player, enemies, shared } from '../state.js';
+import { G, player, enemies, shared, hasPack } from '../state.js';
 import { V3, clamp } from '../utils.js';
 import { TEAMUP, TEAMUPS, PAIRS, SOLO, pairKey } from '../data/teamups.js';
 import { playerPos } from '../player/helpers.js';
@@ -181,7 +181,7 @@ function setupFor(k, A, B){
   return s ? { k, n: s.n, x: +s.p.x.toFixed(2), y: +(s.p.y || 0).toFixed(2), z: +s.p.z.toFixed(2) } : null;
 }
 
-const meNow = () => ({ slot: mySlot(), hero: G.hero, pos: playerPos(), yaw: player.faceYaw ?? player.group.rotation.y, packed: G.hero === 'mando' && (player.up.jetTier || 0) >= 1, me: true, group: player.group });
+const meNow = () => ({ slot: mySlot(), hero: G.hero, pos: playerPos(), yaw: player.faceYaw ?? player.group.rotation.y, packed: hasPack(), me: true, group: player.group });
 
 /* what this hero could team up on right now: online with the nearest partner in reach, solo with an ally */
 function findCandidate(){

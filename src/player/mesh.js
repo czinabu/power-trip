@@ -8,6 +8,7 @@ import { player } from '../state.js';
 import { buildHeroModel } from './model/index.js';
 import { SAMPLE_LOOKS, mergeLook } from './model/appearance.js';
 import { lookFromPicks, wornPicks } from '../data/customize.js';
+import { packPicks } from '../game/pack.js';
 
 /* the hero look: the player's customizer picks (saved in localStorage), with dev overrides on top:
    ?style=shard|ink|forged  ?look=<a SAMPLE_LOOKS name> */
@@ -18,13 +19,16 @@ export function loadPicks(){
   try { const p = JSON.parse(localStorage.getItem(PICKS_KEY)); return p && typeof p === 'object' ? p : {}; } catch(e){ return {}; }
 }
 export function savePicks(picks){ try { localStorage.setItem(PICKS_KEY, JSON.stringify(picks)); } catch(e){} }
-export const lookOf = (picks) => mergeLook(lookFromPicks(picks), DEV_LOOK);
+// (`packless`: the Mando hasn't earned his jetpack yet, so his back is bare: game/pack.js)
+export const lookOf = (picks) => mergeLook(lookFromPicks(picks), picks && picks.packless ? mergeLook(DEV_LOOK, { mando: { packless: true } }) : DEV_LOOK);
 // the picks the hero wears: what is picked, less what the campaign hasn't unlocked yet (data/customize.js wornPicks)
 export const wornLook = (picks = loadPicks()) => lookOf(wornPicks(picks));
+// ...and on the player himself, the jetpack only once the run has earned it (game/pack.js; the customizer's figure wears it always)
+const playerLook = (picks = loadPicks()) => lookOf(packPicks(wornPicks(picks)));
 
 function buildPlayer(){
   const g = player.group;
-  g.add(buildHeroModel(player, wornLook()));   // everything visual lives in player.vis so flips/leans don't move the root
+  g.add(buildHeroModel(player, playerLook()));   // everything visual lives in player.vis so flips/leans don't move the root
 
   scene.add(g);
 }
@@ -38,7 +42,7 @@ export function rebuildPlayerModel(picks){
   disposeTree(old);
   for (const k of ['wristBlade', 'shieldMesh']){ if (player[k]){ player[k].removeFromParent(); disposeTree(player[k]); } player[k] = null; }
   player._footing = null; player._legIK = null;
-  g.add(buildHeroModel(player, wornLook(picks)));
+  g.add(buildHeroModel(player, playerLook(picks)));
 }
 
 export function disposeTree(root){

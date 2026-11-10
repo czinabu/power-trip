@@ -15,6 +15,7 @@ import { ALIGN, ALIGN_RANK } from '../data/alignment.js';
 import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 import { NG_XP, MAX_TIER } from '../data/ngplus.js';
+import { MEDALS, MEDAL_BIT, MEDAL_XP } from '../data/medals.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
@@ -31,7 +32,7 @@ function save(){ try { localStorage.setItem(KEY, JSON.stringify(load())); } catc
 const blank = () => ({ xp: 0, rank: 0, cleared: {}, missions: {}, won: 0, duels: 0, waves: 0, forms: 0, powers: 0, arcade: 0, revives: 0, squadWaves: 0,
                        forks: {}, fresh: false, parts: null, sides: {}, secrets: {},
                        align: 0, alignPeak: { light: 0, dark: 0 }, sidePicks: {}, mercy: { spared: 0, struck: 0 },
-                       top: 0, ng: { best: 0, runs: 0 }, raids: 0, raidLog: {} });
+                       top: 0, ng: { best: 0, runs: 0 }, raids: 0, raidLog: {}, medals: {} });
 
 /* A HERO SEEN FOR THE FIRST TIME: a player from before profiles keeps what they did. Their cleared chapters, campaign
    wins and mission wins (the live progress and every save slot's) are counted once, as first clears, with no ceremony. */
@@ -186,6 +187,22 @@ export function noteRaidWon(raid){
   gain(first ? RANK_XP.raid : RANK_XP.raidAgain);
   settle(G.hero);
 }
+// MISSION MEDALS (data/medals.js, game/medals.js): a win's medals kept on the hero's record, each mission's best time
+// beside them. A medal won the first time pays its rank XP (MEDAL_XP); the total opens looks (`earn: { medals }`).
+// Returns the medals that are new to this hero, by name.
+export function noteMedals(r){
+  if (!r || !r.keep || !learning()) return [];
+  const p = profileOf(r.hero), rec = (p.medals ||= {})[r.id] ||= { m: 0, t: 0 };
+  const fresh = MEDALS.filter(k => (r.bits & MEDAL_BIT[k]) && !(rec.m & MEDAL_BIT[k]));
+  rec.m |= r.bits;
+  if (!rec.t || r.time < rec.t) rec.t = Math.round(r.time * 10) / 10;
+  for (const k of fresh) gain(MEDAL_XP[k] || 0, r.hero);
+  settle(r.hero);
+  return fresh;
+}
+export const medalsOf = (id, hero = G.hero) => (profileOf(hero).medals || {})[id] || { m: 0, t: 0 };
+export const medalBits = (n) => MEDALS.reduce((c, k) => c + ((n & MEDAL_BIT[k]) ? 1 : 0), 0);
+export const medalTotal = (hero = G.hero) => Object.values(profileOf(hero).medals || {}).reduce((n, r) => n + medalBits(r.m || 0), 0);
 export const raidsWon = (hero = G.hero) => profileOf(hero).raids || 0;
 export const raidWonOn = (id, day, hero = G.hero) => !!(((profileOf(hero).raidLog || {})[id] || {}).days || []).includes(day);
 // a side mission from the temple won (data/side-quests.js): more rank XP the first time

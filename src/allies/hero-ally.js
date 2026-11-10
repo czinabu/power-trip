@@ -19,7 +19,7 @@ import { G, enemies } from '../state.js';
 import { rand, clamp, V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { sfx } from '../audio/sfx.js';
-import { makeStandIn, poseStandIn, asStandIn, dropStandIn } from '../player/stand-in.js';
+import { makeStandIn, poseStandIn, asStandIn, dropStandIn, setStandInKit } from '../player/stand-in.js';
 import { launchFlip, flipStyle } from '../player/anim/agility.js';
 import { deflectAnim } from '../player/jedi/combat.js';
 import { SWING_PATTERNS, STANCES } from '../data/stances.js';
@@ -125,6 +125,26 @@ function heroPush(a, hit){
   sfx(70, 0.3, 'triangle', 0.06, 220);
   if (hit) hit();
   note(H, ACT.push);
+}
+
+// a power of its own thrown (the Padawan's: allies/apprentice.js): the palm out, as your push or pull is
+export function heroCast(a, kind = 'push'){
+  const H = a.hb;
+  if (!H) return;
+  const P = H.S.state;
+  P.castT = P.castMax = HERO_MOVES.jedi.push.cast; P.castKind = kind; P.lead = 'L';
+}
+// the form it holds follows yours (the Padawan learns the form you fight in)
+export function heroFollowForm(a, stance){
+  const H = a.hb;
+  if (H && H.hero === 'jedi' && stance && H.S.g.stance !== stance) setStandInKit(H.S, { stance });
+}
+/* a stand-in that only stands (the apprentice at their post in the hub): idle, eyes where it faces */
+export function poseHeroIdle(S, dt){
+  const P = S.state, g = S.group;
+  P.moveVel.set(0, 0, 0); P.vel.set(0, 0, 0); P.faceYaw = g.rotation.y; S.g.yaw = g.rotation.y;
+  const p = g.position; P.npc.aim.set(p.x + Math.sin(g.rotation.y) * 20, p.y + 1.3, p.z + Math.cos(g.rotation.y) * 20);
+  poseStandIn(S, dt, false);
 }
 
 /* the rank and file in front of it, within r */

@@ -46,6 +46,12 @@ export const HERO_LOOKS = {
   // the ARC trooper's Hoth chapter: a Jedi on the right flank (the same colours as the duellist's look he wore before:
   // data/saber-cast.js)
   'MASTER IRO': { jedi: { parts: { hair: 'topknot', beard: 'goatee', robe: 'outer' }, palette: { skin: 0xb07a56, hair: 0x2a2018, eyes: 0x5a3a20, robe: 0x5a4632, tabard: 0x6a4a2e, tunic: 0xc9b48f }, build: { bulk: 1.02 } } },
+  // TAVI, the Jedi's Padawan (data/apprentices.js), a stage apiece: the youngling's buzz, the braid, a mantle, a Knight's
+  // topknot (the same face and colours as the duellist's looks Tavi wore before: data/saber-cast.js)
+  'TAVI 0': { jedi: { parts: { hair: 'buzz', robe: 'none' }, palette: { skin: 0x8a5536, hair: 0x140e0a, eyes: 0x5a3a20, tunic: 0xe6e2d8, tabard: 0xb39d78, trim: 0x8c7656 }, build: { bulk: 0.88 } } },
+  'TAVI 1': { jedi: { parts: { hair: 'braid', robe: 'none' }, palette: { skin: 0x8a5536, hair: 0x140e0a, eyes: 0x5a3a20, tunic: 0xd8ccb0, tabard: 0x8c7656, trim: 0x6e4a2a }, build: { bulk: 0.9 } } },
+  'TAVI 2': { jedi: { parts: { hair: 'braid', robe: 'outer' }, palette: { skin: 0x8a5536, hair: 0x140e0a, eyes: 0x5a3a20, tunic: 0xcdb791, robe: 0x5a3d26, trim: 0x3a5a8a }, build: { bulk: 0.92 } } },
+  'TAVI 3': { jedi: { parts: { hair: 'topknot', robe: 'outer' }, palette: { skin: 0x8a5536, hair: 0x140e0a, eyes: 0x5a3a20, robe: 0x4a3422, trim: 0x3a5a8a }, build: { bulk: 0.96 } } },
   // the battle simulator's three (below)
   KNIGHT: { jedi: { parts: { hair: 'short', robe: 'outer' }, palette: { skin: 0x8a5536, hair: 0x140e0a, robe: 0x4a3a2a, tabard: 0x8c7656, tunic: 0xd2c4a2 } } },
   WARRIOR: { mando: { parts: { helmet: 'tvisor', cape: 'half' }, palette: { beskar: 0x6e7f8c, beskar2: 0x3a4652, cloth: 0x7a2a22, accent: 0x1f2126 } } },

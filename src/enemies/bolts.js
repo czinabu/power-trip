@@ -2,6 +2,7 @@
 // Blaster bolts (enemy and player) in flight.
 
 import { domeStops } from '../player/trooper/abilities.js';
+import { teamDomeStops } from '../fx/team-dome.js';
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { stamDelay } from '../player/stamina.js';
@@ -128,6 +129,7 @@ export function updateBolts(dt){
     }
     // a hostile bolt that meets one of the hero's squadmates on the way stops in it (allies/squad.js)
     if (!kill && !b.friendly && domeStops(b.mesh.position)) kill = true;   // the ARC trooper's bubble shield (player/trooper/abilities.js)
+    if (!kill && !b.friendly && teamDomeStops(b.mesh.position)) kill = true;   // a team-up's SHIELD DOME (fx/team-dome.js)
     // HUMAN SHIELD — a foe hanging in a hero's Force grasp (or a Mando's clinch) is a body in the line of fire: the bolt
     // stops in it and burns it, whoever's side fired it (shieldSweep below)
     if (!kill && !b.friendly){

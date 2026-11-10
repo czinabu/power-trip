@@ -10,7 +10,7 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no 0/O/1/I: easy to 
 const CODE_LEN = 5;
 export const MAX_GUESTS = 3;
 // what the host passes on from one guest to the rest, stamped with the sender's slot: poses, their shots and powers
-const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1, unmark: 1 };   // (mark / unmark: a player's ping marker going up / coming down, net/ping.js)
+const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1, unmark: 1, tu: 1 };   // (mark / unmark: a player's ping marker going up / coming down, net/ping.js; tu: a team-up offer, game/teamup.js)
 // a guest whose link to the host drops tries the same room again this many times, this far apart (ms), before giving up
 const REJOIN = { tries: 10, wait: 2500 };   // (25 s: room for a host handoff, below, when the server is slow to free the code)
 const LAST = 'sw_coop_last';   // the last room joined, offered again in the co-op panel (a reload, a crash)

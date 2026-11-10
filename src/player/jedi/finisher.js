@@ -88,12 +88,15 @@ function slip(e){
 }
 
 let lastFinCam = -1e9;
-/* START — called by tryAttack (jedi/combat.js) before a plain cut. Returns true when the attack became a finisher. */
-export function tryFinisher(){
-  if (player.fin) return true;
-  const e = finishTarget();
+/* START — called by tryAttack (jedi/combat.js) before a plain cut. Returns true when the attack became a finisher.
+   `target`: a team-up's PIN & FINISH (game/teamup.js) names the foe the trooper pinned: no reach check, no slipping
+   free (the fire holds it), the first beat closes the gap. */
+export function tryFinisher(target){
+  if (player.fin) return !target;
+  if (target && (target.dead || target.converted || !finishType(target) || !bladeHero())) return false;
+  const e = target || finishTarget();
   if (!e) return false;
-  if (Math.random() < slipChance(e)){ slip(e); return false; }
+  if (!target && Math.random() < slipChance(e)){ slip(e); return false; }
   const form = finisherForm(), D = finisherDef(form);
   const total = D.beats.reduce((s, b) => s + b.dur, 0);
   // THE FINISHER CAMERA (the push in and the slow motion on the killing blow) is kept for the big ones: a big foe or the

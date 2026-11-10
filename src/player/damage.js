@@ -184,6 +184,17 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     if (!silent) floater(playerPos(), 'OUT OF REACH', '#bfe8ff');
     return 'none';
   }
+  // BACK TO BACK (a team-up, game/teamup.js): for a while after it, a melee blow from behind you is turned by the partner
+  // at your back (online, they're on their own screen; this one only knows they've got it)
+  if (melee && fromPos && !silent && !pierce && G.gt < (player.backT || 0)){
+    TMP.subVectors(fromPos, playerPos()); TMP.y = 0;
+    if (TMP.lengthSq() > 0.001 && TMP.normalize().dot(fwd()) < -0.2){
+      const pp = playerPos();
+      spawnHitSpark(V3(pp.x + TMP.x * 0.7, 1.4, pp.z + TMP.z * 0.7), 0xffd24a, 1);
+      floater(pp, 'COVERED', '#ffd24a'); S.block(pp);
+      return 'blocked';
+    }
+  }
   // MANDO — beskar brace: hold RMB to soak frontal damage (no parry). DEFENSE IS A SINGLE-BLASTER PRIVILEGE: only
   // the SINGLE blaster raises the beskar SHIELD (player.isShielding). DUAL bracing is purely offensive — an
   // aggressive gunslinger stance with NO damage reduction. The DARKSABER skips this and uses the full lightsaber

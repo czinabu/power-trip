@@ -155,6 +155,8 @@ import { voteState } from './game/group-choice.js';
 import './net/foefire.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
+import { updateTeamups, updateTeamupFlight, updateTeamupFx, teamupInfo, teamupPress, resetTeamups } from './game/teamup.js';
+import { TEAMUP, TEAMUPS } from './data/teamups.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
 import { continueOnLaunch } from './ui/saves-ui.js';
@@ -195,7 +197,9 @@ function tick(ts){
   if ((!frozen || live) && (G.mode === 'play' || G.mode === 'dead')){
     G.gt += wdt;
     if (G.mode === 'play'){
+      updateTeamups(dt);       // team-up moves: the prompt, the two presses, the move as it plays (game/teamup.js)
       updatePlayer(dt);
+      updateTeamupFlight(dt);  // ...and a team-up's scripted flight, over the hero's own movement (the jetpack drop)
       updateFlow(wdt);
       updateMission(dt);
       updateDoorway(dt);     // the temple doors swinging open, and the walk through them (world/doorway.js)
@@ -242,6 +246,7 @@ function tick(ts){
   updateSquadNet();   // online co-op: the host's squad, sent to the guest and commanded from both screens (net/squad.js)
   updateCoop(rawDt);     // online co-op: send my pose, pose the partner's hero (net/partner.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
+  if (G.mode !== 'play') updateTeamups(0);   // (out of the fight: a team-up still playing is dropped, its prompt put away)
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
   // cutscene: frozen, they'd hang in its shots as a still of the last action beat
   const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;
@@ -250,6 +255,7 @@ function tick(ts){
   updateScorch(dt);
   updateSevered(fxDt);
   updateParticles(fxDt);
+  updateTeamupFx(fxDt);   // a team-up's tracers (game/teamup.js)
   updateVFX(fxDt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
@@ -269,7 +275,7 @@ function tick(ts){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
+window.GAME = { PROFILE, NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, teamup: { info: teamupInfo, press: teamupPress, reset: resetTeamups, TEAMUP, TEAMUPS }, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,

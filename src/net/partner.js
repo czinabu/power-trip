@@ -304,6 +304,7 @@ export function holdPartner(slot, x, y, z, yaw){
 }
 export function releasePartners(){ for (const P of partners.values()) P.hold = null; }
 // the partners standing in this fight on this screen: { slot, pos } (down ones stay where they fell)
-export const partnerStand = () => [...partners.values()].filter(P => P.mate.here && !P.mate.down).map(P => ({ slot: P.slot, pos: P.puppet.group.position, yaw: P.puppet.group.rotation.y, name: who(P) }));
+export const partnerStand = () => [...partners.values()].filter(P => P.mate.here && !P.mate.down).map(P => ({ slot: P.slot, pos: P.puppet.group.position, yaw: P.puppet.group.rotation.y, name: who(P),
+  hero: P.hero, packed: !(P.picks && P.picks.packless), away: P.mate.away, group: P.puppet.group }));   // (hero, packed, away, group: the team-up moves read them, game/teamup.js)
 export function dropPartner(P){ P.puppet.group.visible = false; P.playing = false; P.mate.here = false; P.dn = null; if (P.tag) P.tag.style.display = 'none'; downMarks(P, false); }
 on('status', (n) => { if (n.status !== 'connected'){ for (const P of partners.values()){ dropPartner(P); removePlayer(P.mate); } forgetAll(); } });

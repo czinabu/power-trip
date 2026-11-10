@@ -20,6 +20,7 @@ import { chapterClosed } from './flow.js';
 import { profileOpens } from './profile.js';
 import { packChanged } from './pack.js';
 import { ngScale } from '../data/ngplus.js';
+import { runEarns } from './run-state.js';
 
 export function skillSet(){ return isTrooper() ? TROOPER_SKILLS : isGunner() ? MANDO_SKILLS : SKILLS; }
 const TIER_NAME_TROOPER = TIER_NAME;   // (one set of tier names for every hero, clear of the ranks)
@@ -39,7 +40,7 @@ export function gainXp(n){
   if (G.endless){ if (G.mut === 'windfall') n *= 2; else if (G.mut === 'frenzy') n *= 1.5; }   // mutator XP bonuses
   n *= ngScale('xp');   // a NEW GAME+ chapter levels the run faster (data/ngplus.js)
   n = Math.round(n);
-  if (n <= 0 || G.duel) return;   // (nothing is earned in a duel: game/duel-mode.js)
+  if (n <= 0 || G.duel || !runEarns()) return;   // (nothing is earned in a duel, game/duel-mode.js, or in training: game/run-state.js)
   G.xp = (G.xp || 0) + n;
   G.xpEarned = (G.xpEarned || 0) + n;
   const el = document.getElementById('xpval'); if (el) el.textContent = G.xp;

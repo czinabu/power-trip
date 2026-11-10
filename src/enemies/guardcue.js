@@ -9,6 +9,7 @@ import { clamp } from '../utils.js';
 import { GUARD_RINGS, BLADE_CUE } from '../data/guard-rings.js';
 import { BLADE } from '../fx/blade-glow.js';
 import { noteDuelWon } from '../game/profile.js';
+import { runEarns } from '../game/run-state.js';
 
 const KEY = 'sw_duelwins';
 let wins = 0;
@@ -18,7 +19,7 @@ export const duelWins = () => wins;
 
 // a guarding duellist went down: one more duel won (the ring fades with these on Knight)
 export function duelWon(e){
-  if (!e || e.converted || e._duelWon) return;
+  if (!e || e.converted || e._duelWon || !runEarns()) return;   // (a sparring partner in training is no duel won: game/run-state.js)
   const guards = e.dp ? e.dp.block >= 0.4 : e.ng ? e.ng[5] >= 40 : false;   // (the puppet's snapshot: enemies/duel.js NG.block)
   if (!guards) return;
   e._duelWon = true; wins++;

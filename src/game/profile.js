@@ -16,11 +16,12 @@ import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 import { NG_XP, MAX_TIER } from '../data/ngplus.js';
 import { MEDALS, MEDAL_BIT, MEDAL_XP } from '../data/medals.js';
+import { runEarns } from './run-state.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
 let store = null;
-const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub;
+const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub && runEarns();
 
 function load(){
   if (store) return store;
@@ -157,7 +158,7 @@ export const onDeed = (fn) => { deedHook = fn; };
 const deed = (kind) => { if (deedHook) try { deedHook(kind); } catch(e){} };
 export const onRankGain = (fn) => { gainHook = fn; };   // (allies/apprentice.js: an apprentice who fought beside you earns a share)
 function gain(n, hero = G.hero){
-  if (!(n > 0)) return;
+  if (!(n > 0) || !runEarns()) return;   // (the training grounds earn nothing: game/run-state.js)
   profileOf(hero).xp += Math.round(n);
   if (gainHook) gainHook(n, hero);
 }

@@ -67,6 +67,10 @@ Two kinds of move skip the table on purpose, and say so in the trace:
 chapter can be a mission; a zone flies a mission's kit), which is why the order matters. `homePhase()` is the phase a
 level of that kind starts in.
 
+A kind can be marked `earns: false` (today: `training`). `runEarns()` is false there, and every progression hook checks
+it: run XP, profile rank XP, form/power/gun mastery, the best form and gun ranks, duel wins, best scores. A new hook that
+pays out progression should check `runEarns()` too, so practice never counts. The training's own lesson ticks still count.
+
 Co-op has its own one-letter kind for the wire (`net/foes.js runKind`: `z e c m`), which answers a different
 question ("is this a run a guest can follow?"). Keep the two apart.
 

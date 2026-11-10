@@ -2,7 +2,7 @@
 // End of run: run summary and victory.
 
 import { autosave } from './autosave.js';
-import { setScreen } from './run-state.js';
+import { setScreen, runEarns } from './run-state.js';
 import { clamp } from '../utils.js';
 import { G, player } from '../state.js';
 import { BOON_BY_ID } from '../data/boons.js';
@@ -35,7 +35,7 @@ export function endRun(won, medals = null){   // medals: a mission's (game/medal
   const mission = !!G.mission && G.chapter < 0;   // (a campaign chapter that is a mission still counts as the campaign)
   const key = endless ? 'sw_best_endless' : mission ? (isArcadeId(G.missionId) ? 'sw_best_arcade' : 'sw_best_mission') : 'sw_best_score';   // survival, missions and the arcade keep their OWN bests
   let best = 0; try { best = parseInt(localStorage.getItem(key) || '0', 10) || 0; } catch(e){}
-  const newBest = score > best;
+  const newBest = score > best && runEarns();   // (a fall in training sets no best: game/run-state.js)
   if (newBest){ try { localStorage.setItem(key, String(score)); } catch(e){} best = score; }
   st.summary = { won, elapsed, waves, acc, score, best, newBest, endless, mission, medals };
   renderRunSummary();

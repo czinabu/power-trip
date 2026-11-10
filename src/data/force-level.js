@@ -14,6 +14,7 @@ import { onFileSwitch } from '../engine/save-files.js';
 import { G, isGunner } from '../state.js';
 import { STANCES } from './stances.js';
 import { CFG } from './config.js';
+import { runEarns } from '../game/run-state.js';
 
 export const FORCE_MAX = 10;
 // each level and the chapter whose close brings it, with the same gates the unlocks it comes with use (data/store.js):
@@ -122,7 +123,7 @@ export function bestRanks(){
   return best;
 }
 export function noteBestRank(id, r){
-  const b = bestRanks(); if ((b[id] || 0) >= r) return;
+  const b = bestRanks(); if ((b[id] || 0) >= r || !runEarns()) return;
   b[id] = r; try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch(e){}
 }
 export function forceLevel(){

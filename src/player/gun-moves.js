@@ -21,6 +21,7 @@ import { upToast } from '../game/upgrades.js';
 import { tutEvent } from '../game/tutor-bus.js';
 import { onFileSwitch } from '../engine/save-files.js';
 import { inCover } from './trooper/cover.js';
+import { runEarns } from '../game/run-state.js';
 
 /* ---------------- which gun, and its numbers at its rank ---------------- */
 // the gun in hand as data/gun-moves.js names it (the DC-15 by its module), or null for anything without a move
@@ -49,7 +50,7 @@ export function bestGunRanks(){
   return best;
 }
 function noteBest(id, r){
-  const b = bestGunRanks(); if ((b[id] || 0) >= r) return;
+  const b = bestGunRanks(); if ((b[id] || 0) >= r || !runEarns()) return;
   b[id] = r; try { localStorage.setItem(BEST_KEY(), JSON.stringify(b)); } catch(e){}
 }
 // the sandbox, the training grounds and a mission fight at the best rank the gun has reached in any run (a mission

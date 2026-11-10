@@ -29,7 +29,7 @@ export const SCREENS = {
 export const KINDS = {
   hub:      { doc: 'a hero\'s hub (game/hub.js): no foes, no waves, no run', home: 'hub' },
   zone:     { doc: 'an open zone (game/zone.js): roaming fights, a waystone on a fall', home: 'zone' },
-  training: { doc: 'the training grounds (game/tutorial.js): its own steps', home: 'training' },
+  training: { doc: 'the training grounds (game/tutorial.js): its own steps. Practice only: it earns nothing (earns: false)', home: 'training', earns: false },
   mission:  { doc: 'a story mission, a contract, a raid, or a campaign chapter that is one (game/mission.js)', home: 'mission' },
   sandbox:  { doc: 'the sandbox, its battle setup and its duel ring (game/sandbox.js)', home: 'sandbox' },
   survival: { doc: 'survival (game/survival.js): endless waves, G.endless', home: 'between' },
@@ -39,6 +39,10 @@ export function runKind(){
   if (G.mode === 'menu') return '';
   return G.hub ? 'hub' : G.zone ? 'zone' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : G.endless ? 'survival' : 'campaign';
 }
+// DOES THIS RUN EARN? false in a kind marked `earns: false` (the training grounds): no run XP, no profile rank XP, no form,
+// power or gun mastery, no best ranks or scores, no duel wins. Every progression hook checks it (a backstop: most of them
+// also keep their own older mode checks). The training's own record (lessons passed) is not progression and still counts
+export const runEarns = () => { const k = runKind(); return !k || KINDS[k].earns !== false; };
 // the phase a level of this kind starts in (game/flow.js startLevel). Read off the flags, not G.mode: a level is also
 // built while the menu is up (the sweep on the way out of a run)
 export const homePhase = () => KINDS[G.hub ? 'hub' : G.zone ? 'zone' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'campaign'].home;

@@ -543,6 +543,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       // a FINISHER beat hands straight on to the next one (jedi/finisher.js), carrying the body's turn and hop with it
       if (player.fin && !sw.recoil && finisherNext()) return;
       player.lastAtkEnd = G.gt;
+      player.flowEnd = !isGunner() && !sw.rushed && !sw.recoil && sw.applied && !player.queuedAtk ? G.gt : -9;   // a press just after this still links in rhythm (jedi/combat.js FLOW.late)
       if (!sw.recoil) vis.rotation.y = 0;   // (a recoil ends partway round: the guard eases the body back square, no pop)
       player._swingDrop = 0;
       if (!isGunner() && sw.step === 2 && !sw.recoil && stance().finisherRecover) player.swingLock = Math.max(player.swingLock || 0, stance().finisherRecover);   // the heavy finisher hangs a beat (its guard break's cost)

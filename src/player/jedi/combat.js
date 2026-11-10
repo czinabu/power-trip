@@ -20,7 +20,7 @@ import { spawnHitSpark, spawnGroundShock } from '../../fx/vfx.js';
 import { inkSprite, sparks, clashFlash, clashSparks } from '../../fx/ink.js';
 import { scorchGround } from '../../fx/scorch.js';
 import { DUEL } from '../../data/duel.js';
-import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry, baitGuards } from '../../enemies/duel.js';
+import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry, baitGuards, canBait } from '../../enemies/duel.js';
 import { FEINT } from '../../data/duel-guard.js';
 import { bodyRadius } from './bladehit.js';
 import { bounceOff, contactPoint } from './clash.js';
@@ -47,8 +47,12 @@ import { weightOf } from '../../data/swing-weight.js';
 import { duelHooks } from '../../game/duel-hooks.js';
 
 /* COMBO RHYTHM — fractions of a swing. A press before `open` is too early (and costs this link its flow); a single
-   press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). */
-export const FLOW = { open: 0.5, at: 0.8 };
+   press from `open` on links in rhythm, and the next cut leaves at `at` (just after the follow-through). A press up to
+   `late` s after a swing that wasn't rushed has ended still links in rhythm: the beat has a far side as well as a near
+   one, so "cut again as the first one ends" works whether you are a touch early or a touch late.
+   spinHold: a rhythm link whose button has been down this long (s) by the time it leaves is being drawn into a heavy;
+   anything shorter is a click, and gets the form's spin (the Sarlacc Advance and the rest: pickSpin). */
+export const FLOW = { open: 0.4, at: 0.8, late: 0.2, spinHold: 0.14 };
 
 export function tryAttack(flow = false){
   // the blade is MID-FLIGHT (thrown) — no saber strikes until it returns to your hand. Force powers still work.
@@ -72,6 +76,9 @@ export function tryAttack(flow = false){
   }
   // a foe reeling with its guard broken, in reach in front of you: this attack is the form's FINISHER (jedi/finisher.js)
   if (tryFinisher()) return;
+  // a press just after a clean swing ended is still on the beat (FLOW.late; player/animation.js marks the swing's end)
+  if (!flow && !isGunner() && G.gt - (player.flowEnd ?? -9) < FLOW.late) flow = true;
+  player.flowEnd = -9;
   const st = stance();
   const step = (G.gt - player.lastAtkEnd < 0.9 * (st.comboGap || 1)) ? (player.comboStep + 1) % 3 : 0;
   // both the Jedi saber and the Mando DARKSABER spend stamina per swing (medium-high for the heavy darksaber)
@@ -131,13 +138,14 @@ export function tryAttack(flow = false){
   player.lastCut = ang != null ? { ang, at: G.gt } : null;
   const cutDur = flowCut ? dur * FL.speed : dur;
   player.atkT = cutDur;
-  player.swing = { t: 0, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
+  player.swing = { t: 0, at: G.gt, applied: false, step, dur: cutDur, flowCut, pat, dir: dirKey, h: cut.h, flick: !!cut.flick, back: backStrike, riposte: ripNow, ripLine: !!ripPat, cancelRip, fluid, stomp, flow, mom, perfect, pf: PF, air: !player.grounded };   // (air: data/poses.js SWING_STYLE hands)
   player.deflectAnim = null;   // a cut takes the blade over from any catch in progress
   if (G.duel && duelHooks.swingStart) duelHooks.swingStart(player.swing);   // DUEL MODE: the other fighter hears of it now (net/pvp.js)
+  player.feintUntil = 0;   // (the opening a feint made is spent on this cut: LMB behind the guard is the saber throw again)
   // (Juyo's forward rhythm link is the Onslaught's zig-zag, not a spin)
   const zigNow = !isGunner() && !!st.zigzag && dirKey === 'forward' && flow && !ripNow && !mom && player.grounded;
   const spin = zigNow ? null : pickSpin(st.form, step, cut.flick ? 'neutral' : dirKey, {   // (an aimed flick cut stays square: no strafe spin)
-    ripNow, backStrike, mom, flow, st, held: holding() });
+    ripNow, backStrike, mom, flow, st, held: holding() && G.gt - (player.atkPressAt ?? G.gt) >= FLOW.spinHold });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur;
     if (spin.label){ floater(playerPos(), spin.label, '#9cc4ff'); tutEvent('sarlacc'); } }
@@ -300,9 +308,23 @@ export function cancelSwing(feint){
   if (player.atkT <= 0 && player.darkT <= 0) return false;
   const k = player.swing ? clamp(player.swing.t / player.swing.dur, 0, 1) : 0.5;   // how far into the swing
   const sw = player.swing;
-  if (feint && sw && !isGunner() && !sw.riposte && !sw.recoil && !sw.back && k <= FEINT.by && !player.fin && player.stam >= FEINT.stam && baitGuards(cutLine(sw))){
-    player.stam -= FEINT.stam; player.stamDelay = stamDelay();
-    floater(playerPos(), 'FEINT', '#ffd27a');
+  let bit = false;
+  if (feint && sw && !isGunner() && !sw.riposte && !sw.recoil && !sw.back && !player.fin){
+    // early enough: inside the first part of the swing, or (a quick cut) the first moments after the press, and the
+    // blade hasn't met anything yet
+    const early = (k <= FEINT.by || G.gt - (sw.at ?? -9) <= FEINT.grace) && !(sw.cutSet && sw.cutSet.size) && !(sw.duel && sw.duel.size);
+    if (early && player.stam >= FEINT.stam && baitGuards(cutLine(sw))){
+      bit = true;
+      player.stam -= FEINT.stam; player.stamDelay = stamDelay();
+      floater(playerPos(), 'FEINT', '#ffd27a');
+      // the opening: LMB cuts from behind the guard while it lasts (engine/input.js), and the faked cut doesn't count
+      // toward the string, so the real one is the same cut of the string again (never pushed on into the finisher)
+      player.feintUntil = G.gt + FEINT.bait;
+      player.comboStep = sw.step === 2 ? 2 : (sw.step + 2) % 3;
+    } else if ((G.training || G.sandbox) && canBait()){   // practising: say why nothing happened
+      const why = !early ? 'TOO LATE TO FEINT' : player.stam < FEINT.stam ? 'NO BREATH TO FEINT' : '';
+      if (why) floater(playerPos(), why, '#c8d4e0');
+    }
   }
   player.atkT = 0;
   player.swing = null;
@@ -317,7 +339,7 @@ export function cancelSwing(feint){
   const pp = playerPos();
   burst(V3(pp.x + fwd().x*0.4, 1.5, pp.z + fwd().z*0.4), stance().blade, 8, 5, 4, 0.7);
   sfx(640, 0.08, 'sine', 0.045, 1600); sfx(300, 0.06, 'triangle', 0.04, 900);
-  return true;
+  return bit ? 'feint' : true;
 }
 /* A cut's damage. `only` (from anim: the blade's sweep, player/jedi/bladehit.js) lists exactly what the blade passed
    through this frame, and only those are struck. An empty list is the swing's once-per-cut pass at the strike point

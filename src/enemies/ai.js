@@ -174,7 +174,7 @@ export function updateEnemies(dtAll){
         // DUELLING — a foe that just turned your blade answers at once (duel.js), if a turn is free for it
         if (e.counterQueued && tgtPos && !e.converted && !onAlly){
           e.counterQueued = false;
-          const wind = e.exchWind || DUEL.counterWindup; e.exchWind = 0;   // (the exchange's next beat comes quicker: duel.js rallyParry)
+          const wind = e.exchWind || DUEL.counterWindup * diffTellMul(); e.exchWind = 0;   // (the exchange's next beat comes quicker: duel.js rallyParry)
           if (dist < t.range + 1.2 && claimToken(e)){ e.counterAt = G.gt; quickStrike(e, wind); break; }
           e.riposteNext = false;   // (no turn for it: the answer is gone)
         }

@@ -52,6 +52,9 @@ import { noteGuardFlick } from '../player/jedi/guardline.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
 import { flowSignature } from '../player/gunner-flow.js';
 
+// is a cut primed that should leave from behind a held guard (the mousedown below)?
+const answerReady = () => player.riposteT > 0 || G.gt < (player.feintUntil || 0)
+  || (player.grounded && !!player.momentum && player.momentum.kind === 'overflip' && G.gt <= player.momentum.until);
 const inputActive = () => !G.cutscene && !G.cardUp && !G.sbPlan && (document.pointerLockElement === renderer.domElement || (shared.lockFallback && G.mode === 'play'));   // (a cutscene takes no fight input)
 document.addEventListener('mousemove', (e) => {
   if (!inputActive()) return;
@@ -104,6 +107,10 @@ document.addEventListener('mousedown', (e) => {
   // LMB while guarding (RMB held) hurls the saber; otherwise it's a normal swing (holstered: a Force strike)
   if (e.button === 0){
     if (player.holstered) strikePress();   // tap: the strike string · hold: a charged palm, let go on release (jedi/palm.js)
+    // an answer is READY (a riposte off a parry or a block, the real cut after a feint that bit, the strike to the back
+    // out of Ataru's flip over): LMB makes that cut even with RMB still held, instead of throwing the blade or doing
+    // nothing. The guard comes back up after it if RMB is still down (player/jedi/guardline.js).
+    else if (player.blockHeld && answerReady()){ player.blockHeld = false; player.guardBack = true; if (!airCut()) tryAttack(); }
     else if (player.blockHeld && G.unlocked.throw) saberThrow();
     else if (!airCut()) tryAttack();   // in the air with the blade out: the AERIAL CUT, a dash at the foe ahead (jedi/aerial.js)
   }
@@ -111,6 +118,7 @@ document.addEventListener('mousedown', (e) => {
     if (player.exhausted || player.gbT > 0){   // guard broken — can't defend until stamina recovers
       if (G.gt - player.lastWinded > 0.5){ player.lastWinded = G.gt; floater(playerPos(), 'GUARD BROKEN', '#ff6a3a'); sfx(120, 0.12, 'square', 0.06, 70); }
     } else {
+      player.guardKey = true;   // RMB is down (the guard comes back to it after a cut made from behind it)
       const cancelled = cancelSwing(true);   // RMB interrupts a swing at any point — feint straight into the guard (an early one at a duellist baits its guard: enemies/duel.js baitGuards)
       if (cancelled) tutEvent('cancel');
       // HOLD = block (absorb only). Each fresh CLICK opens a brief, timed DEFLECT/PARRY window —
@@ -118,7 +126,8 @@ document.addEventListener('mousedown', (e) => {
       player.blockHeld = true;
       player.blockT = 0;
       let pwin = CFG.player.parryWindow + (stance().parryBonus || 0) + player.up.parry + diffWindow() + finParry();   // (+ Vaapad's Shatterpoint finisher: jedi/finisher.js)
-      if (cancelled){
+      // (a FEINT that bit stays in measure: no step off the line, no slow recovery: data/duel-guard.js FEINT)
+      if (cancelled && cancelled !== 'feint'){
         // STANCE-SPECIFIC CANCEL FEEL
         if (G.stance === 'ataru'){
           // ATARU — a quick repositioning step in the way you're moving (or hop back if still)
@@ -148,7 +157,7 @@ document.addEventListener('mousedown', (e) => {
 });
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0){ atkRelease(); player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
-  if (e.button === 2){ player.blockHeld = false; player.zoom = false; }
+  if (e.button === 2){ player.blockHeld = false; player.zoom = false; player.guardKey = false; player.guardBack = false; }
   if (e.button === 1) wheelKeyUp();   // middle mouse let go: the order (allies/wheel.js)
   if (e.button === 3 || e.button === 4) e.preventDefault();   // (a side button is the browser's Back: never leave the game on a swap)
 });
@@ -270,7 +279,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'f') fInteract = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck
 // on, and no sprint or slide. Losing focus releases everything; any key event that says ALT is up releases ALT.
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; fInteract = false; atkRelease(); });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; fInteract = false; atkRelease(); player.guardKey = false; player.guardBack = false; });
 // (only for real input: the pad's own key events never say ALT, and LB held + a face button must keep the strafe)
 document.addEventListener('keydown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);
 document.addEventListener('mousedown', (e) => { if (e.isTrusted && !e.altKey && keys['alt']) keys['alt'] = false; }, true);

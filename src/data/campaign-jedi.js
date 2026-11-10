@@ -244,7 +244,7 @@ export const JEDI_CHAPTERS = {
              spared: [ILSA, 'He made me stand watch over it the night I opened the temple. I never asked where it went. I should have.'],
              struck: [HERO, 'Then we take his road.'] }] },
     opening: { lines: [[KAST, 'The last time you stood here, it was burning. Now it is only dark. Watch the shadows.']] },
-    says: ['The Inquisitors left three seals round the dais and a garrison to keep them. Stand at each seal until it breaks.',
+    says: ['The Inquisitors left a garrison on the courtyard, a post at each of their three seals. Take the posts and the seals go with them.',
            { by: 'ilsa', spared: 'Ilsa is reading the gate. Hold the dais until she has it open, and keep off the summit while it burns.',
                          struck: 'The gate is waking on its own. Hold the dais until it opens, and keep off the summit while it burns.' },
            'The gate shows you something with a blade. It is not real. Its strikes are.'],

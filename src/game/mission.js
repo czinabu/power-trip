@@ -128,7 +128,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
     showBanner('CO-OP MISSION', 'Fighting alongside the host.', 3.0);
     return;
   }
-  if (def.quarry) placeQuarry(def.objectives[fromObjective]);
+  if (def.quarry) placeQuarry(def.objectives[fromObjective], fromObjective);
   if (def.escort) placeVip(fromObjective);
   // a STRIKE TEAM mission: the squad forms up beside the hero (allies/squad.js), and the wider battle rages past the walls
   if (def.squad) spawnSquad(def.squadCap ? Math.max(0, def.squadCap - allies.length) : def.squad, st);   // (a capped squad counts the trooper's own, already called in)
@@ -541,6 +541,7 @@ const KINDS = {
       for (const c of s.cuts) M.markers.push(c.beacon);
       s.onCut = false;
       M.markers.push(s.last = makeBeacon(0, 0, 0, RED, 1.2)); s.last.visible = false;   // where it was last seen
+      if (M.quarry.hidden){ M.quarry.hidden = false; M.quarry.g.visible = true; burst(V3(M.quarry.g.position.x, 1.2, M.quarry.g.position.z), 0xb46bff, 18, 6, 4, 0.8); }   // (it steps out now)
       placeOnPath(s, M.quarry);
     },
     update(o, s, dt){
@@ -998,12 +999,16 @@ function makeQuarry(q = heroKey(M.def.quarry)){
   return { g, tag, def: q };
 }
 // on (re)start: the quarry waits at the start of the leg you begin on, or where the run ended if you begin at the duel
-function placeQuarry(o0){
+// (a mission whose chase comes later, after it has done something else: the quarry isn't there yet. It waits out of
+// sight at the start of that chase's leg, and steps out as the chase begins)
+function placeQuarry(o0, from = 0){
   M.quarry = makeQuarry();
-  const leg = o0.kind === 'pursuit' ? o0.leg : M.def.route.length - 1;
+  const later = o0.kind !== 'pursuit' && M.def.objectives.slice(from).find(o => o.kind === 'pursuit');
+  const leg = o0.kind === 'pursuit' ? o0.leg : later ? later.leg : M.def.route.length - 1;
   const s = { P: legPath(leg), d: 0, y: 0, vy: 0 };
-  if (o0.kind !== 'pursuit') s.d = s.P.len;
+  if (o0.kind !== 'pursuit' && !later) s.d = s.P.len;
   placeOnPath(s, M.quarry);
+  if (later){ M.quarry.hidden = true; M.quarry.g.visible = false; }
 }
 // stand the quarry at s.d along its leg (dt > 0: moving at spd, so its feet ease over cover and it leans into the run)
 function placeOnPath(s, q, dt = 0, spd = 0){
@@ -1611,7 +1616,7 @@ export function missionSnap(){
     hud: hud ? [hud.status || '', hud.frac == null ? -1 : r2(hud.frac), hud.warn ? 1 : 0] : null,
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
-    q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
+    q: q && !q.hidden ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
     v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }

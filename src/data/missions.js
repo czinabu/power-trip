@@ -904,7 +904,7 @@ export const MISSIONS = {
     done: 'Ilsa yields, laughing. It is the last time you will hear her laugh for a long while.',
   },
   // RETURN TO JEDHA (the Jedi's Act III): the burned temple at night. Under the dais is an old Sith gate, Vexis's own road
-  // to Exegol. Break the Inquisitors' seals on it, hold the dais while it wakes, then face what it shows you.
+  // to Exegol. Take the courtyard from the Inquisitors' garrison, hold the dais while the gate wakes, then face what it shows you.
   'jedha-night': {
     id: 'jedha-night',
     title: 'RETURN TO JEDHA',
@@ -917,14 +917,15 @@ export const MISSIONS = {
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
     squad: 2,
     objectives: [
-      { kind: 'sabotage', title: 'BREAK THE SEALS', consoleName: 'SEAL', consoleDone: 'BROKEN', doneLine: 'THE SEALS ARE BROKEN', doneSub: 'The dais is opening.', music: 'battle',
-        say: 'The Inquisitors left three seals round the dais and a garrison to keep them. Stand at each seal until it breaks.',
-        task: 'Stand at each seal to break it',
-        consoles: [ { at: [-15, 4], guards: { grunt: 2, blaster: 1 } },   // (spread out round the courtyard: the map-size pass)
-                    { at: [15, 4], guards: { grunt: 2, lancer: 1 } },
-                    { at: [0, -16], guards: { phalanx: 1, grunt: 1, officer: 1 } } ],
-        time: 4.5, r: 2.4, hitLoss: 1.2,
-        trickle: { every: 15, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
+      { kind: 'capture', title: 'TAKE THE COURTYARD', music: 'battle', postName: 'POST',
+        doneLine: 'THE COURTYARD IS OURS', doneSub: 'The Inquisitors\' seals are broken with it.',
+        say: 'The Inquisitors left a garrison on the courtyard, one post at each of their seals. Take the posts and the seals go with them. Stand in each with no trooper inside, or send the squad onto it.',
+        task: 'Take each of the garrison\'s posts',
+        posts: [ { at: [-15, 4], guards: { grunt: 2, blaster: 1 } },   // (spread out round the courtyard: the map-size pass)
+                 { at: [15, 4], guards: { grunt: 2, lancer: 1 } },
+                 { at: [0, -16], guards: { phalanx: 1, grunt: 1, officer: 1 } } ],
+        r: 4.5, time: 4, squadRate: 0.6, perMate: 0.3,
+        trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3], aggro: 8 },
 
       { kind: 'hold', title: 'HOLD THE DAIS', music: 'defend', holding: 'THE GATE IS WAKING',
         say: 'The gate is waking. Hold the dais until it opens, and keep off the summit while it burns.',

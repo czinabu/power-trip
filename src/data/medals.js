@@ -65,7 +65,7 @@ export const MISSION_MEDALS = {
   graveyard:     { bonus: 'slice' },
   forge:         { bonus: 'deathless' },
   pursuit:       { bonus: 'chase' },
-  'jedha-night': { bonus: 'slice' },
+  'jedha-night': { bonus: 'duel' },
   strike:        { bonus: 'squad' },
   chains:        { bonus: 'evacuees' },
   // the Mandalorian's
@@ -86,8 +86,8 @@ export const MISSION_MEDALS = {
   lastassault:   { bonus: 'squad' },
   broadcast:     { bonus: 'deathless' },
   // Act IV, the Sith gate
-  'gate-wake':   { bonus: 'slice' },
-  'gate-vault':  { bonus: 'deathless' },
+  'gate-wake':   { bonus: 'chase' },
+  'gate-vault':  { bonus: 'escort' },
   'gate-yard':   { bonus: 'duel' },
   'gate-order':  { bonus: 'squad' },
   'gate-heart':  { bonus: 'duel' },

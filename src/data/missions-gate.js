@@ -8,6 +8,8 @@
 // jump) and the line (the trooper works it faster, and squadmates hold it on their own). Every hero can work every
 // one, and every mission brings a squad (General Kast's troopers), so a party of one Jedi, one Mando, three troopers
 // or any other mix can finish it. A console up on a deck has `y`: it's worked from up there.
+// The rest ask the same of any hero: the Cantor's chase at Jedha, the ward walked to the throne, the archive breached a
+// door at a time (the doors are Kamino's own when its level is `sealed`: world/arenas/kamino.js).
 
 import { KAMINO_SPOTS } from '../world/arenas/kamino.js';
 import { SITH_GATE_SPOTS } from '../world/arenas/sith-gate.js';
@@ -22,18 +24,24 @@ const GATE_SHELF = { story: 'gate', act: 0 };
 
 export const GATE_MISSIONS = {
   // 1 · THE GATE WAKES (together): the temple on Jedha at night. The old Jedi seals round the dais are failing; hold all
-  // three, each its own way, then hold the dais while the gate opens, and meet the Choir's voice coming up the stair.
+  // three, each its own way, and the Choir's voice comes up out of the gate to see who knocked. It runs: chase it round
+  // the hall, through the ruins and past the columns, and catch it at the foot of the dais before it gets back through.
   'gate-wake': {
     id: 'gate-wake', ...GATE_SHELF, order: 0,
     title: 'THE GATE WAKES', voice: 'GENERAL KAST',
-    blurb: 'hold the old seals under Jedha, every hero their own way, and meet what comes up the stair',
+    blurb: 'hold the old seals under Jedha, every hero their own way, and run down what comes up the stair',
     level: { name: 'MISSION — THE GATE WAKES', sub: all('The temple at night. The gate under the dais is breathing again.'),
              arena: 56, floor: 0x3a3440, fog: 0x1a1626, sky: 0x08060e, layout: 'jedhaNight', waves: [], hazards: {} },
     start: [0, 18, Math.PI],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
+    // the Cantor's run: out of the gate's north side, twice round the hall (over the ruins, between the columns), and back
+    // to the dais's south foot to get through it again. One leg; it stops once, at the east arcade, to break the old seal
+    route: [[[0, -6], [0, -13], [-9.2, -9.2], [-13, 0], [-9.2, 9.2], [0, 13], [9.2, 9.2], [13, 0], [9.2, -9.2], [0, -13],
+             [-9.2, -9.2], [-13, 0], [-9.2, 9.2], [0, 13], [0, 6]]],
+    quarry: all({ foe: 'acolyte', name: 'THE CANTOR', kicker: 'THE HOLLOW CHOIR', tint: 0x6a3a8a, scale: 1.04 }),
     objectives: [
       { kind: 'sabotage', title: 'HOLD THE OLD SEALS', consoleName: 'SEAL', consoleDone: 'HELD', music: 'battle',
-        doneLine: 'THE SEALS HOLD', doneSub: 'For now. Something is climbing the stair.',
+        doneLine: 'THE SEALS HOLD', doneSub: 'Something is coming up the stair.',
         say: all('Three seals round the dais, each built to be held a different way. A Jedi holds the Force seal, the high lock on the summit is worked from above, and the squad can hold the line. Any of you can work any of them.'),
         task: all('Work each seal: the Force seal, the high lock and the line'),
         consoles: [ { at: [-15, 4], style: 'seal', guards: { grunt: 2, blaster: 1 } },
@@ -42,22 +50,21 @@ export const GATE_MISSIONS = {
         time: 5, r: 2.6, hitLoss: 1.0,
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
 
-      { kind: 'hold', title: 'HOLD THE DAIS', music: 'defend', holding: 'THE GATE IS OPENING', start: [0, 10, Math.PI],
-        say: all('The seals held long enough for the gate to open on our terms. Hold the dais until it does, and jump the rings it breathes out.'),
-        task: all('Stay by the dais until the gate opens'),
-        twist: { kind: 'pulse', at: [0, 0], r0: 4.2, every: [10, 6], spd: [7, 10], len: 30, w: 0.75, dmg: 14, foeDmg: 30, first: 6,
-                 line: all('The gate breathes out. Each ring runs along the ground: jump it as it reaches you.') },
-        at: [0, 0], r: 7, time: 40, awayRate: 0.35, squadRate: 0.55,
-        overrun: 'CLEAR THE DAIS', unguarded: 'DAIS UNGUARDED', doneLine: 'THE GATE IS OPEN', doneSub: 'Someone is walking up out of it.',
-        pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, lancer: 1, grenadier: 1 }, { grunt: 2, officer: 1, flyer: 1 }, { grunt: 2, duelist: 1, sniper: 1 } ],
-        every: [8, 12], cap: 8, from: [-Math.PI, Math.PI], aggro: 8 },
+      { kind: 'pursuit', leg: 0, title: 'CHASE THE CANTOR', start: [0, -14, 0],
+        say: all('The Choir\'s voice. It came up to see who knocked, and now it is running for the gate. Do not let it back through. Over the ruins, not around them.'),
+        task: all('Keep the Cantor in sight'),
+        sight: 42, lost: 6, shove: 3.0,
+        pace: [[-6, 11], [6, 9.8], [14, 8.8], [24, 8.0], [36, 7.2]],
+        clash: { dmg: 0.12, time: 9, every: 16 },
+        standoff: [ { at: [13, 0], spots: [[10, -4], [10, 4], [16.5, -2.5], [16.5, 2.5]], group: { grunt: 2, blaster: 1, acolyte: 1 },
+                      line: all('It stops at the east arcade to break an old seal. The Choir holds you off.') } ],
+        ambush: [ { at: [-13, 0], spots: [[-17, -3], [-17, 3], [-10, 5]], group: { grunt: 2, blaster: 1 } } ] },
 
-      { kind: 'duel', title: 'MEET THE CANTOR', music: 'duel', start: [0, 10, Math.PI],
-        say: all('The Choir\'s voice. It came up the stair to see who knocked. Make it tell us who it sings for.'),
+      { kind: 'duel', quarry: true, title: 'MEET THE CANTOR', music: 'duel', start: [0, 12, Math.PI],
+        say: all('Cornered at the dais. Make it tell us who it sings for.'),
         task: all('Beat the Cantor'),
-        enter: all('A figure in a choir robe walks up out of the gate, humming.'), kicker: 'THE HOLLOW CHOIR',
         line: all('You came to the door. He has waited a thousand years for someone to knock.'),
-        foe: 'acolyte', form: 'makashi', name: 'THE CANTOR', hp: 3.2, dmg: 1.05, scale: 1.04, tint: 0x6a3a8a, at: [0, -6],
+        form: 'makashi', hp: 3.2, dmg: 1.05,
         duel: { posture: 150, feint: 0.4, chain: 3, counter: 0.45 },
         rage: 0.55, rageDuel: { feint: 0.5, delay: 0.32, chain: 3 },
         escape: 0.3, escapeLine: all('The Cantor backs into the gate\'s light, still humming, and is gone.'), escapeScene: 'cantor-escape',
@@ -66,20 +73,23 @@ export const GATE_MISSIONS = {
     done: all('The gate is open, and it is not going to close on its own. The Cantor went through it. So do we.'),
   },
 
-  // 2 · THE VOICE UNDER THE THRONE (the Jedi's payoff): through the gate, under the throne on Exegol where Vexis sat. The stones
-  // there still whisper; silence them, hold the circle, and face the echo of the one who listened to them.
+  // 2 · THE VOICE UNDER THE THRONE (the Jedi's payoff): through the gate, under the throne on Exegol where Vexis sat. The
+  // stones there still whisper; silence them, then walk the temple's old ward across the floor and set it on the
+  // throne's step. The voice is not fought: it is shut up, the way the temple on Jedha shut it up the first time.
   'gate-vault': {
     id: 'gate-vault', ...GATE_SHELF, order: 1,
     title: 'THE VOICE UNDER THE THRONE', voice: 'MASTER VAEL',
-    blurb: 'silence the whispering stones under the throne, and face the echo of the one who listened',
+    blurb: 'silence the whispering stones under the throne, and carry the old ward to the throne\'s step',
     level: { name: 'MISSION — THE VOICE UNDER THE THRONE', sub: all('Under the old throne. The stones are whispering.'),
              arena: 64, floor: 0x2f2832, fog: 0x2a1430, sky: 0x0e0612, layout: 'sith', waves: [], hazards: {} },
     start: [0, 16, Math.PI],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
+    // who carries the ward: one of Kast's troopers, the temple's warding stone strapped to his back
+    escort: all({ model: 'clone', name: 'THE WARD-BEARER', kicker: 'CARRYING THE TEMPLE\'S WARD', color: 0xd8d0b8, eye: 0x9ad8ff, scale: 1, hp: 340 }),
     objectives: [
       { kind: 'sabotage', title: 'SILENCE THE STONES', consoleName: 'STONE', consoleDone: 'SILENT', music: 'battle',
         doneLine: 'THE STONES ARE SILENT', doneSub: 'All but one voice.',
-        say: all('Three whispering stones round the floor. One is a seal of the old kind, one sits on the throne\'s top step, one is on the line where the cult stands. Any of you can quiet any of them.'),
+        say: all('Three whispering stones round the floor. One is a seal of the old kind, one sits on the throne\'s top step, one is on the line where the cult stands. Any of you can quiet any of them. The ward-bearer waits for them to go quiet.'),
         task: all('Silence each stone: the Force seal, the high lock and the line'),
         consoles: [ { at: [-18, -23], style: 'seal', guards: { grunt: 2, blaster: 1, acolyte: 1 } },
                     { at: [0, -30.4], y: 1.2, style: 'sky', guards: { grunt: 1, blaster: 2 } },
@@ -87,27 +97,38 @@ export const GATE_MISSIONS = {
         time: 5, r: 2.6, hitLoss: 1.0,
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1 } }, from: [-0.6, 0.6] },
 
-      { kind: 'hold', title: 'HOLD THE CIRCLE', music: 'defend', holding: 'THE LAST VOICE IS RISING', start: [0, 6, Math.PI],
-        say: all('Something is gathering in the middle of the floor. Hold the circle while it takes a shape, and keep the Choir off it.'),
-        task: all('Hold the circle in the middle of the floor'),
-        twist: { kind: 'pulse', at: [0, 0], r0: 4.5, every: [10, 6], spd: [7, 10], len: 30, w: 0.75, dmg: 14, foeDmg: 30, first: 6,
-                 line: all('The floor breathes out. Jump the rings as they reach you.') },
-        at: [0, 0], r: 8, time: 40, awayRate: 0.35, squadRate: 0.55,
-        overrun: 'CLEAR THE CIRCLE', unguarded: 'CIRCLE UNGUARDED', doneLine: 'IT HAS A FACE', doneSub: 'The face of the last one who listened.',
-        pulses: [ { grunt: 2, blaster: 2 }, { grunt: 2, acolyte: 1 }, { grunt: 2, officer: 1, flyer: 1 }, { grunt: 2, phalanx: 1, sniper: 1 } ],
-        every: [8, 12], cap: 8, from: [-Math.PI, Math.PI], aggro: 8 },
+      { kind: 'escort', title: 'CARRY THE WARD', music: 'battle', start: [2, 16, Math.PI],
+        say: all('The stones are quiet, but the voice is not. The temple on Jedha kept it shut with a ward, and we brought it. Walk the ward-bearer up the east side. He will not walk into fire, so clear it ahead of him.'),
+        task: all('Stay near the ward-bearer and keep foes off him'),
+        path: [[0, 14], [10, 5], [18, 3], [18, -6]],
+        speed: 2.3, leash: 15, threat: 6, dps: 4, regen: 3, aggro: 7, ambushLine: 'THE CHOIR IS COMING FOR THE WARD',
+        ambush: [ { at: [10, 5], group: { grunt: 2, blaster: 2 }, from: [-0.7, 0.7] },
+                  { at: [18, -2], group: { grunt: 2, lancer: 1, acolyte: 1 }, from: [-0.7, 0.7] } ],
+        trickle: { every: 16, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-0.7, 0.7] },
 
-      { kind: 'duel', title: 'FACE THE VOICE', music: 'duel', start: [0, 6, Math.PI],
-        say: all('It wears the face of the last one who listened to it. Do not fight the face. Fight what is behind it.'),
-        task: all('Beat the echo'),
-        enter: all('A shape of violet light rises off the floor and takes a face.'), kicker: 'THE OLD THRONE',
-        line: all('He sat here and thought my voice was his own ambition. They all do.'),
-        foe: 'acolyte', form: 'juyo', name: 'THE ECHO', hp: 4.4, dmg: 1.2, scale: 1.12, tint: 0x6a4ad2, at: [0, -8],
-        duel: { posture: 170, feint: 0.38, chain: 3, counter: 0.5 },
-        rage: 0.5, rageDuel: { feint: 0.45, delay: 0.32, chain: 4 },
-        trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-0.6, 0.6] },
+      { kind: 'escort', title: 'CARRY THE WARD', music: 'battle', start: [18, -2, Math.PI],
+        say: all('Across the floor to the west stair. The voice has the cult\'s singers up in the stands: when one of them finds him, a red line runs from its mouth to the ward. Stand in the line and the song is yours, or silence the singer first.'),
+        task: all('Get the ward-bearer across the floor'),
+        twist: { kind: 'marked', nests: [ { at: [26, -18], from: 0.08 }, { at: [-11, -27], from: 0.45 }, { at: [-28, -6], from: 0.7 } ], aim: [5, 3], hit: 0.2, dmg: 14,
+                 line: all('A singer in the stands has the ward. Stand in the red line and the song hits you instead, or silence the singer first.') },
+        path: [[18, -6], [10, -9], [6, -14], [-8, -14], [-12, -20], [-17, -20]],
+        speed: 2.3, leash: 15, threat: 6, dps: 4.5, regen: 3, aggro: 7, ambushLine: 'THE CHOIR IS COMING FOR THE WARD',
+        ambush: [ { at: [6, -14], group: { grunt: 2, blaster: 1, grenadier: 1 }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
+                  { at: [-12, -20], group: { grunt: 2, acolyte: 1, blaster: 1 }, from: [Math.PI - 0.3, Math.PI + 0.3] } ],
+        trickle: { every: 16, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [Math.PI - 0.3, Math.PI + 0.3] },
+
+      { kind: 'escort', title: 'SET THE WARD', music: 'defend', start: [-16, -17, Math.PI],
+        say: all('The throne\'s step. Get him onto it and the ward goes down where the voice is loudest. It will throw everything it has left at him. Hold it off for the last few steps.'),
+        task: all('Get the ward-bearer to the throne\'s step'),
+        path: [[-17, -20], [-8, -23], [0, -23]],
+        speed: 2.0, leash: 14, threat: 6, dps: 5, regen: 2, aggro: 8, ambushLine: 'THE VOICE IS SCREAMING',
+        doneLine: 'THE WARD IS SET', doneSub: 'Under the throne, the voice goes quiet.',
+        // (they come in off the floor's sides, never out of the throne it is walking to)
+        ambush: [ { at: [-15, -21], group: { grunt: 2, acolyte: 1, phalanx: 1 }, from: [Math.PI - 0.3, Math.PI + 0.3] },
+                  { at: [-6, -23], group: { grunt: 2, duelist: 1, blaster: 1 }, from: [-0.5, 0.2] } ],
+        trickle: { every: 13, cap: 7, group: { grunt: 1, acolyte: 1 } }, from: [-0.5, 0.2] },
     ],
-    done: all('The echo is gone, and it left a name behind it: Darth Kharel, the Unburied. The temple on Jedha was built on his grave, to keep the door shut. We forgot why.'),
+    done: all('The ward is set and the voice is gone, and it left a name behind it: Darth Kharel, the Unburied. The temple on Jedha was built on his grave, to keep the door shut. We forgot why.'),
   },
 
   // 3 · THE BUYER (the Mando's payoff): the yard past the Rim where the Magistrate's missing beskar went. Take the yard,
@@ -151,44 +172,39 @@ export const GATE_MISSIONS = {
     done: all('A vessel. They were forging a body out of the clans\' beskar, one a lightsaber will not cut. It left this yard a month ago, for Jedha.'),
   },
 
-  // 4 · WHO GAVE THE ORDER (the trooper's payoff): the sealed archive under Tipoca City. Take the floor, pull the
-  // contract nobody signed, hold the pad, and the Cantor comes for the file itself.
+  // 4 · WHO GAVE THE ORDER (the trooper's payoff): the sealed archive under Tipoca City, walled in two rooms deep and
+  // locked from the inside. Breach it a door at a time with the squad, pull the contract nobody signed, and the Cantor
+  // comes for the file itself.
   'gate-order': {
     id: 'gate-order', ...GATE_SHELF, order: 3,
     title: 'WHO GAVE THE ORDER', voice: 'THE CAPTAIN',
-    blurb: 'pull the chip contract nobody signed from Kamino\'s sealed archive, and face who signed it',
+    blurb: 'breach Kamino\'s sealed archive a door at a time, pull the contract nobody signed, and face who signed it',
     level: { name: 'MISSION — WHO GAVE THE ORDER', sub: all('Tipoca City, the sealed archive. Where the order was bought.'),
-             arena: 80, floor: 0x9aa4ae, fog: 0x3a4a56, sky: 0x1a2632, layout: 'kamino', waves: [], hazards: {} },
+             arena: 80, floor: 0x9aa4ae, fog: 0x3a4a56, sky: 0x1a2632, layout: 'kamino', sealed: true, waves: [], hazards: {} },
     start: KAMINO_SPOTS.start,
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
     objectives: [
-      { kind: 'sabotage', title: 'PULL THE CONTRACT', consoleName: 'ARCHIVE', consoleDone: 'PULLED', music: 'infiltrate', start: [0, -6, 0],
-        doneLine: 'THE CONTRACT IS OURS', doneSub: 'And the name on it.',
-        say: all('Three sealed stacks. One is locked the Jedi way, one is up on the gantry deck, one is behind the line the squad can hold. The contract is split across all three. Pull it.'),
-        task: all('Pull each part of the contract: the Force seal, the high lock and the line'),
-        consoles: [ { at: KAMINO_SPOTS.archives[0], style: 'seal', guards: { grunt: 2, blaster: 1 } },
-                    { at: KAMINO_SPOTS.archives[1], style: 'sky', guards: { blaster: 2, grenadier: 1 } },
-                    { at: KAMINO_SPOTS.archives[2], style: 'line', guards: { grunt: 2, blaster: 1, officer: 1 } } ],
-        time: 5, r: 2.6, hitLoss: 1.0,
-        trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
+      { kind: 'breach', title: 'BREACH THE ARCHIVE', start: [0, 6, 0], doors: 0,
+        say: all('The archive is sealed from the inside, two doors deep. Stack up on the first with the squad, set the charge, and go in fast. Any of you can set it. Every brother stacked with you sets it faster.'),
+        task: all('Stand at the door to set the charge, then clear the room'),
+        door: 0, stack: KAMINO_SPOTS.sealed.stack[0], time: 2.6, fuse: 1.1, stun: 1.5,
+        guards: { grunt: 2, blaster: 2, sniper: 1 }, spots: KAMINO_SPOTS.sealed.rooms[0].spots, breachLine: 'BREACH', breachSub: 'Go, go, go.' },
+      { kind: 'breach', title: 'BREACH THE VAULT', start: [-4, 18, 0], doors: 1,
+        say: all('The vault is through the partition. They have heard us now, so they will be waiting behind it. The contract is in the stack at the back. Stack up and go.'),
+        task: all('Stack up on the vault door and clear the vault'),
+        door: 1, stack: KAMINO_SPOTS.sealed.stack[1], time: 2.4, fuse: 1.0, stun: 1.2,
+        guards: { grunt: 2, blaster: 2, grenadier: 1, officer: 1 }, spots: KAMINO_SPOTS.sealed.rooms[1].spots,
+        doneLine: 'THE CONTRACT IS OURS', doneSub: 'And the name on it.' },
 
-      { kind: 'hold', title: 'HOLD THE PAD', music: 'defend', start: [0, -16, Math.PI],
-        say: all('The Choir knows we have it. Back to the pad and hold it until the gunship is down. Every brother in that archive was bought, and they want the receipt back.'),
-        task: all('Hold the landing pad until the gunship is down'),
-        at: KAMINO_SPOTS.pad, r: 6.5, time: 45, awayRate: 0.35, squadRate: 0.55, holding: 'GUNSHIP INBOUND',
-        overrun: 'CLEAR THE PAD', unguarded: 'PAD UNGUARDED', doneLine: 'THE GUNSHIP IS DOWN', doneSub: 'And the Cantor is on the pad.',
-        pulses: [ { grunt: 2, blaster: 2 }, { blaster: 2, grenadier: 1 }, { grunt: 2, officer: 1, sniper: 1 }, { grunt: 2, blaster: 1, brute: 1 }, { grunt: 3, blaster: 2 } ],
-        every: [8, 11], cap: 9, from: [Math.PI / 2 - 0.9, Math.PI / 2 + 0.9], aggro: 8 },
-
-      { kind: 'duel', title: 'FACE THE CANTOR', music: 'duel', start: [0, -16, Math.PI],
-        say: all('The Cantor. It signed for every chip in the order. It does not run this time.'),
+      { kind: 'duel', title: 'FACE THE CANTOR', music: 'duel', start: [0, 6, 0], doors: 2,
+        say: all('The Cantor. It signed for every chip in the order, and it came for the receipt. It does not run this time.'),
         task: all('Beat the Cantor'),
-        enter: all('The Cantor steps off a Choir shuttle onto the pad, humming the same three notes.'), kicker: 'THE HOLLOW CHOIR · IT SIGNED THE ORDER',
+        enter: all('The Cantor walks in out of the rain past the pods, humming the same three notes.'), kicker: 'THE HOLLOW CHOIR · IT SIGNED THE ORDER',
         line: all('An army that would hear him when he woke. I signed for every one of you.'),
         foe: 'acolyte', form: 'makashi', name: 'THE CANTOR', hp: 4.4, dmg: 1.2, scale: 1.06, tint: 0x6a3a8a, at: KAMINO_SPOTS.duel,
         duel: { posture: 170, feint: 0.45, chain: 3, counter: 0.5 },
         rage: 0.5, rageDuel: { feint: 0.5, delay: 0.3, chain: 4 },
-        trickle: { every: 14, cap: 3, group: { grunt: 2, blaster: 1 } }, from: [Math.PI / 2 - 0.8, Math.PI / 2 + 0.8] },
+        trickle: { every: 14, cap: 3, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI / 2 - 0.8, -Math.PI / 2 + 0.8] },
     ],
     done: all('The signal in the chips was his voice. Every one was built to hear it. Three roads, one name: Kharel. Back to the gate.'),
   },

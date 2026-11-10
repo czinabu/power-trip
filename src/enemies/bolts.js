@@ -27,8 +27,8 @@ import { spawnHitSpark, spawnParryFlash } from '../fx/vfx.js';
 import { boltImpact, clashFlash } from '../fx/ink.js';
 import { scorchSolid } from '../fx/scorch.js';
 import { sweepSolids, sweepT } from '../world/collision.js';
-import { mandoWeapon, mandoShielding, boltDamage, hitMarker, beskarCatch } from '../player/mando/weapons.js';
-import { BESKAR_PARRY } from '../data/mando.js';
+import { mandoWeapon, mandoGuarding, beskarBlock, boltDamage, hitMarker, beskarCatch } from '../player/mando/weapons.js';
+import { BESKAR_PARRY, BESKAR_GUARD } from '../data/mando.js';
 import { hurtPlayer } from '../player/damage.js';
 import { deflectAnim, anticipateDeflect } from '../player/jedi/combat.js';
 import { deflectPlayerBolt } from './duel.js';
@@ -176,11 +176,12 @@ export function updateBolts(dt){
       const spinSend = near && !isGunner() && player.spinGuardUntil > G.gt;
       const deflecting = near && ((facing && (player.atkT > 0 || player.parryT > 0) && airOk) || guardSend || spinSend);
       const parried = near && facing && player.parryT > 0 && airOk;
-      // SINGLE-BLASTER GAUNTLET SHIELD — a held energy shield that REFLECTS frontal bolts back (not just absorbs).
-      // Each deflect spends stamina; run dry and the shield can't hold a bolt (it bleeds through, soaked by the beskar).
-      const shielding = near && facing && mandoShielding() && player.stam > 0;   // dropped while the blaster fires
+      // THE BESKAR GUARD — the vambrace held up (mando/weapons.js mandoGuarding) STOPS a bolt from the front: no return
+      // (that is the timed tap just below). Each one costs stamina; run dry and it goes through the arm.
+      const guarding = near && mandoGuarding() && player.stam > 0   // lowered while the blaster fires
+        && TMP.subVectors(b.mesh.position, pp).setY(0).lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > BESKAR_GUARD.bolts;
       // BESKAR PARRY — a freshly-timed RMB tap (mando/weapons.js beskarPress): the bare vambrace RICOCHETS the bolt
-      // straight back at its shooter, harder than the shield's deflect, free of stamina. Any gun, in the air too.
+      // straight back at its shooter, free of stamina. Any gun, in the air too.
       const beskar = near && facing && G.hero === 'mando' && player.beskarT > 0;
       // bolt-ABSORB (no reflect) is the other defensive guard — Jedi (any stance) or the Mando DARKSABER. DUAL/DISRUPTOR
       // bracing is offensive-only and lets bolts straight through.
@@ -234,20 +235,14 @@ export function updateBolts(dt){
         if (G.stats) G.stats.parries++; noteDefense('parries', null, { src: b.src }); masteryXp('boltParry');
         addFocus(FOCUS.gainParry);
         addFlow('ricochet');   // HUNTER'S EYE (player/gunner-flow.js)
-      } else if (d < 2.5 && shielding){
-        // GAUNTLET SHIELD — catch the bolt on the disc and HURL it back at the nearest threat. Costs stamina per catch.
-        player.stam = Math.max(0, player.stam - 5 * player.up.blockStam);
+      } else if (d < 2.2 && guarding){
+        // stopped dead on the vambrace: gold sparks off the beskar, nothing sent back
+        player.stam = Math.max(0, player.stam - BESKAR_GUARD.bolt * player.up.blockStam);
         player.stamDelay = stamDelay();
-        b.friendly = true; b.deflected = true; b.speed *= 1.35; b.dmg = Math.max(8, Math.round(b.dmg * 0.85));
-        const tgt = nearestEnemyInCone(40, -1);
-        if (tgt && tgt !== shared.boss) b.dir.subVectors(tgt.group.position, b.mesh.position).setY(0).normalize();
-        else b.dir.negate();
-        b.mesh.material.color.setHex(0x6fd0ff);
-        player.shieldFlash = 0.22;   // the disc flares on the catch (drawn in updatePlayer)
-        clashFlash(b.mesh.position.clone(), 0x6fd0ff, false);
-        G.shake = Math.max(G.shake, 0.12); G.hitstop = Math.max(G.hitstop, 0.02);
-        S.shieldHit(b.mesh.position); S.deflect(b.mesh.position); floater(pp, 'DEFLECT', '#7fd4ff'); if (G.stats) G.stats.deflects++; noteDefense('deflects', null, { src: b.src });
-        tutEvent('shieldReflect');
+        beskarBlock();
+        floater(pp, 'BLOCK', '#ffd08a'); noteDefense('blocks', null, { src: b.src });
+        tutEvent('guardBlock');
+        kill = true;
       } else if (d < 2.2 && blocking){
         // absorbed on the guard — costs stamina, no reflection
         deflectAnim(b.mesh.position);

@@ -83,7 +83,7 @@ document.addEventListener('mousedown', (e) => {
       // LMB while guarding with the Darksaber hurls it; the grappling line reels it back (player/mando/darksaber.js)
       if (player.weapon === 'darksaber' && player.blockHeld){ darksaberThrow(); return; }
       const W = mandoWeapon();
-      player.trigHeld = true;                        // single: a held trigger keeps the shield down
+      player.trigHeld = true;                        // single: a held trigger keeps the guard down
       if (W.fire === 'auto') player.firing = true;   // dual: hold to spray
       else fireTrigger();                            // single (semi) & disruptor (bolt-action): one shot per click
     }
@@ -97,7 +97,7 @@ document.addEventListener('mousedown', (e) => {
         cancelSwing();
         player.blockHeld = true; player.blockT = 0;
         if (!(player.parryLockT > 0)) player.parryOpen = player.parryT = CFG.player.parryWindow + (stance().parryBonus || 0) + (player.up.parry || 0) + diffWindow();
-      } else if (!(player.gbT > 0)) player.blockHeld = true;   // beskar brace — pure damage soak, no parry
+      } else if (!(player.gbT > 0)) player.blockHeld = true;   // the brace: the single blaster's beskar guard (mando/weapons.js mandoGuarding), the others' steadier aim
     }
     return;
   }

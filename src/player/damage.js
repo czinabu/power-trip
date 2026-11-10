@@ -13,7 +13,7 @@ import { burst } from '../fx/particles.js';
 import { floater, screenFlash } from '../fx/floaters.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
 import { trooperHurtMul } from './trooper/cover.js';
-import { MANDO } from '../data/mando.js';
+import { MANDO, BESKAR_GUARD } from '../data/mando.js';
 import { fwd, playerPos, stance, maxHp } from './helpers.js';
 import { flinchEnemy, staggerEnemy } from '../enemies/damage.js';
 import { FOCUS, addFocus, riposteWindow } from './jedi/focus.js';
@@ -34,7 +34,7 @@ import { startLock, lockKindAt } from '../enemies/duel.js';
 import { contactPoint, parryContact, recoilSwing, knockWeapon, formWeight, theirSparks } from './jedi/clash.js';
 import { mandoCatch } from './mando/melee.js';
 import { tutEvent } from '../game/tutor-bus.js';
-import { mandoShielding } from './mando/weapons.js';
+import { mandoGuarding, beskarBlock, beskarCrushed, beskarTurn } from './mando/weapons.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { refundCharge, airGuardLost, airParryOk, airDamageMul, airborneInCombat, knockOutOfAir } from './mobility.js';
 import { noteDamage, noteDefense } from '../game/readout.js';
@@ -186,39 +186,39 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     if (!silent) floater(playerPos(), 'OUT OF REACH', '#bfe8ff');
     return 'none';
   }
-  // MANDO — beskar brace: hold RMB to soak frontal damage (no parry). DEFENSE IS A SINGLE-BLASTER PRIVILEGE: only
-  // the SINGLE blaster raises the beskar SHIELD (player.isShielding). DUAL bracing is purely offensive — an
-  // aggressive gunslinger stance with NO damage reduction. The DARKSABER skips this and uses the full lightsaber
-  // block/parry path below instead (it guards & parries just like the Jedi medium stance).
-  // MANDO — the VAMBRACE CATCH: a blow that lands just after E is turned on the beskar, and the attacker reels
-  if (isGunner() && melee && fromPos && !silent && !open && player.catchT > 0){
+  // MANDO — THE BESKAR GUARD (data/mando.js BESKAR_GUARD): hold RMB and the vambrace soaks what comes from the front.
+  // DEFENSE IS A SINGLE-BLASTER PRIVILEGE (and his bare hands'): DUAL bracing is purely offensive — an aggressive
+  // gunslinger stance with NO damage reduction. The DARKSABER skips this and uses the full lightsaber block/parry
+  // path below instead (it guards & parries just like the Jedi medium stance).
+  // MANDO — a blow TURNED ON THE BESKAR: one that lands just after a tap of RMB (the beskar parry: mando/weapons.js
+  // beskarPress) or just after E (the vambrace catch: mando/melee.js) is caught on the vambrace, and the attacker reels
+  if (isGunner() && melee && fromPos && !silent && !open && (player.catchT > 0 || (player.beskarT > 0 && !(opts && opts.blast)))){
     TMP.subVectors(fromPos, playerPos()); TMP.y = 0;
-    if (TMP.lengthSq() < 0.001 || TMP.normalize().dot(fwd()) > -0.2){ mandoCatch(fromPos); return 'parried'; }
+    const ahead = TMP.lengthSq() < 0.001 ? 1 : TMP.normalize().dot(fwd());
+    const tapped = player.beskarT > 0 && !(opts && opts.blast) && ahead > 0.1;
+    if (tapped || (player.catchT > 0 && ahead > -0.2)){ if (tapped) beskarTurn(); mandoCatch(fromPos); return 'parried'; }
   }
   if (isGunner() && player.weapon !== 'darksaber'){
-    if (!silent && !pierce && !open && mandoShielding() && fromPos){
+    if (!silent && !pierce && !open && mandoGuarding() && fromPos){
       TMP.subVectors(fromPos, playerPos()); TMP.y = 0;
-      if (TMP.lengthSq() < 0.001 || TMP.normalize().dot(fwd()) > -0.25){
-        const pp = playerPos(), cpp = V3(pp.x + fwd().x*0.55, 1.5, pp.z + fwd().z*0.55);
-        // STAMINA-GATED, like the bolt-catch path right above (same 5-per-hit cost) and like the Jedi's block —
-        // this melee soak used to be entirely free regardless of stamina, the one hole in an otherwise-costed
-        // defense economy. Runs dry → the beskar can't soak this swing, full damage bleeds through.
+      if (TMP.lengthSq() < 0.001 || TMP.normalize().dot(fwd()) > (melee ? BESKAR_GUARD.blows : BESKAR_GUARD.bolts)){
+        // STAMINA-GATED like the bolts it stops (enemies/bolts.js) and like the Jedi's block: a heavy blow costs
+        // more, a duellist's blade more again (the beskar holds; the arm behind it tires). Runs dry → the arm can't
+        // take this swing, full damage goes through, and a heavy one breaks the guard open.
         if (player.stam > 0){
+          const BG = BESKAR_GUARD, heavy = melee ? Math.max(1, raw / CFG.player.blockHeavy) : 1;
+          const blade = melee && opts && (opts.line || (opts.by && opts.by.ff)) ? BG.saber : 1;
           const dr = MANDO.braceDR + (player.up.braceDR || 0);   // skill can push the soak higher
           dmg *= (1 - Math.min(0.88, dr));
-          player.stam = Math.max(0, player.stam - 5 * player.up.blockStam);
+          if (melee) player.vel.addScaledVector(TMP, -BG.push * heavy);   // the blow drives him back a step
+          player.stam = Math.max(0, player.stam - BG.blow * heavy * blade * player.up.blockStam);
           noteDefense('blocks', fromPos, opts);
           player.stamDelay = stamDelay();
-          // ENERGY SHIELD soak — a blue ripple across the disc + a metallic beskar ring underneath
-          clashSparks(cpp, 0x6fd0ff, 4);
-          spawnHitSpark(cpp, 0x9fe6ff, 0.9);
-          G.shake = Math.max(G.shake, 0.18); G.hitstop = Math.max(G.hitstop, 0.03);
+          beskarBlock(melee ? Math.min(2, 1.4 * heavy * (blade > 1 ? 1.2 : 1)) : 1);   // gold sparks off the vambrace, the ring of beskar
           player.braceFlash = 0.12;   // chest plate glints (drawn in updatePlayer)
-          player.shieldFlash = 0.18;  // the gauntlet disc ripples on the hit
-          sfx(1100, 0.06, 'square', 0.05, 700); sfx(240, 0.08, 'triangle', 0.05, 90);
+          if (melee && G.gt - (player.guardSaidAt ?? -9) > 0.5){ player.guardSaidAt = G.gt; floater(playerPos(), 'BLOCK', '#ffd08a'); }
         } else {
-          spawnHitSpark(cpp, 0x556070, 0.6);   // GUARD CRUSHED — dim spark, no soak, no flares
-          sfx(180, 0.08, 'square', 0.05, 90);
+          beskarCrushed();   // GUARD CRUSHED — dim spark, no soak
           if (heavyMelee){ guardBreak(fromPos); broke = true; }
         }
       }

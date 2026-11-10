@@ -6,3 +6,5 @@
   One file per entry keeps parallel PRs from conflicting.
 - **Other shared append-only lists:** avoid appending to the same spot in a shared file from many PRs;
   prefer a new file per addition where practical.
+- **Screens and level phases:** never assign `G.mode` or `shared.levelPhase`. Use `setScreen` / `setPhase` from
+  `src/game/run-state.js`, and add a new state or move to its tables first (map and debugging: `docs/state-machines.md`).

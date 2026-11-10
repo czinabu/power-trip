@@ -279,7 +279,7 @@ function tick(ts){
 tick();
 
 /* expose configs + API for live tweaking and future edits (dev console) */
-window.GAME = { PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
+window.GAME = { run: RUN_STATE, PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
   missionDefs: () => ({ ...MISSION_LIST, ...Object.fromEntries(SIDE_ALL.map(q => [SIDE_PFX + q.slug, defById(SIDE_PFX + q.slug)])) }),
   NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
@@ -397,4 +397,5 @@ import { MANDO_SKILLS } from './data/skills.js';
 import { PATH_TREE, PATH_WORDS } from './data/alignment.js';
 Object.assign(window.GAME, { creed: { ...CREED_RT, MANDO_SKILLS, TROOPER_SKILLS, PATH_TREE, PATH_WORDS } });   // the gunners' light and dark cards (game/creed.js), for tests
 import * as RAIDS_RT from './data/raids.js';
+import * as RUN_STATE from './game/run-state.js';
 Object.assign(window.GAME, { raids: RAIDS_RT });   // the raids (data/raids.js): what the raid smoke suite (tools/smoke/raid.mjs) reads

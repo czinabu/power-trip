@@ -69,6 +69,7 @@ import { stageHolds } from '../ui/hud-stage.js';
 import { setFoeLook } from '../enemies/look.js';
 import { queueSecrets } from './secrets.js';
 import { resetGunMoves } from '../player/gun-moves.js';
+import { setPhase, homePhase } from './run-state.js';
 import { fadeTo, liftFade, fadedOut, doorDark } from '../world/doorway.js';
 
 /* ============================================================
@@ -237,11 +238,11 @@ export function startLevel(idx, opts){
   applyJetTier();   // size the jetpack to the current booster tier
   document.getElementById('xpval').textContent = (G.xp || 0);
   checkUnlocks();
-  shared.levelPhase = G.hub ? 'hub' : G.zone ? 'zone' : G.training ? 'training' : G.mission ? 'mission' : G.sandbox ? 'sandbox' : 'between'; shared.phaseT = 2.6;   // training, missions and the sandbox run their own steps, no waves
+  setPhase(homePhase(), 2.6, { enter: true });   // training, missions and the sandbox run their own steps, no waves
   { const [lvl, place] = L.name.split('—').map(t => t.trim());   // 'LEVEL 1 — TEMPLE STEPS' → tag + headline
     showBanner(place || lvl, L.sub, 2.6, place ? { kicker: lvl } : null); }
   if (bossRetry){
-    G.wave = G.waveEnd; shared.levelPhase = 'bossfight';
+    G.wave = G.waveEnd; setPhase('bossfight', undefined, { enter: true, why: 'boss retry' });
     spawnBossWhenReady(() => G.mode === 'play' && G.levelIdx === idx && shared.levelPhase === 'bossfight' && !shared.boss && !shared.finale, 2600);
   }
   if (!G.hub) trooperSquad();   // the ARC trooper's clones (allies/squad.js); the temple is peaceful, no squad
@@ -479,7 +480,7 @@ export function startWave(){
     G.spawnQueue.push({ type: list[i], t });
   }
   if (L.lullWaves && L.lullWaves.includes(G.wave)) splitWaveWithLull(q0);   // the longest campaign waves breathe halfway
-  shared.levelPhase = 'fighting';
+  setPhase('fighting');
   G.waveHits = 0; G.waveDmg = 0;   // how cleanly this wave is fought (payWaveClear)
   beginWave('L' + (G.levelIdx + 1) + ' · WAVE ' + (G.wave + 1));
   G.waveTotal++;   // cumulative wave count drives Mando ability unlocks
@@ -518,14 +519,14 @@ export function startCoopCampaign(lv, wave, waveTotal){
   G.waveTotal = waveTotal;
   if (lv > 0) startLevel(lv, { resume: true });   // the same level as the host, keeping that build
   G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false;
-  G.wave = wave; shared.levelPhase = 'between'; shared.phaseT = 0;
+  G.wave = wave; setPhase('between', 0, { sync: true });
   checkUnlocks();
   showBanner('CO-OP CAMPAIGN', 'Fighting alongside the host.', 3.0);
 }
 // the host's wave began (campaign): this browser's wave banner and readout
 export function coopCampaignWave(wave, waveTotal){
   G.wave = wave; G.waveTotal = waveTotal;
-  shared.levelPhase = 'fighting'; G.waveHits = 0; G.waveDmg = 0;
+  setPhase('fighting', undefined, { sync: true }); G.waveHits = 0; G.waveDmg = 0;
   beginWave('L' + (G.levelIdx + 1) + ' · WAVE ' + (wave + 1));
   showBanner('', waveLine(), 1.5);
   MUSIC.waveSting();
@@ -537,7 +538,7 @@ export function coopCampaignCleared(){
   G.wave++;
   campaignWaveRewards();
   earnWavePoint();
-  shared.levelPhase = 'between';
+  setPhase('between', undefined, { sync: true });
   if (chapterEnds() && !bossDue(L)){
     G.chapterClosed = G.chapter; showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
     if (G.chapter >= 0){ checkUnlocks(1600, true); saveAtClose(); }   // what the chapter hands over, at its end (each screen waits for the upgrade page), and saved there
@@ -615,10 +616,10 @@ export function updateFlow(dt){
   if (shared.levelPhase === 'between' && shared.phaseT <= 0 && !holdForPicks){
     if (G.endless) startEndlessWave(); else startWave();
   } else if (shared.levelPhase === 'chapterdone' && shared.phaseT <= 0 && !G.skillSelect && !abilityChoicePending() && (!popups || shared.phaseT < -40) && !forceToastHolds() && ((!commsBusy() && !stageHolds()) || shared.phaseT < -14)){   // a chapter's close (game/campaign.js): its last line said, its card read (ui/hud-stage.js) and its Force Level's rise up (ui/force-toast.js), then the upgrade screen
-    shared.levelPhase = 'travel'; shared.phaseT = 1.6;
+    setPhase('travel', 1.6);
     openSkillTree();
   } else if (shared.levelPhase === 'travel' && shared.phaseT <= 0 && !holdScene){
-    shared.levelPhase = 'idle';
+    setPhase('idle');
     onTheDark(() => { if (G.chapter >= 0) nextChapter(); else startLevel(G.levelIdx + 1); });
   } else if (shared.levelPhase === 'fighting'){
     let hostiles = 0;
@@ -631,12 +632,12 @@ export function updateFlow(dt){
       campaignWaveRewards();
       earnWavePoint();   // a skill point for the clear (game/upgrades.js); it is spent when the chapter ends
       if (!chapterEnds()){
-        shared.levelPhase = 'between'; shared.phaseT = 2.2;
+        setPhase('between', 2.2);
         player.force = CFG.player.maxForce;
         noteWavePoint();   // no screen mid-chapter: a note in the corner, and the fight goes on
       } else if (bossDue(L)){
         noteWavePoint();
-        shared.levelPhase = 'bossfight';
+        setPhase('bossfight');
         if (G.checkpoint){ G.checkpoint.boss = diffBossCheckpoint(); G.checkpoint.bossWaveTotal = G.waveTotal; if (!G.endless) autosave('boss checkpoint'); }
         showBanner('', '...something approaches.', 2.4);
         storyBeat('boss');
@@ -645,8 +646,8 @@ export function updateFlow(dt){
         // LEVEL CLEARED — the chapter's upgrade page opens (its skill points + a chance to shop), then the
         // 'travel' beat runs out on sim time (frozen while the overlay is up) and the next world loads.
         showBanner(G.chapter >= 0 ? 'CHAPTER COMPLETE' : 'AREA CLEARED', 'The Force flows onward.', 1.6);
-        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear', { brisk: true }); if (!startCalm()){ shared.levelPhase = 'chapterdone'; shared.phaseT = 2.2; } checkUnlocks(1600, true); saveAtClose(); }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
-        else { shared.levelPhase = 'travel'; shared.phaseT = 1.6; openSkillTree(); }
+        if (G.chapter >= 0){ G.chapterClosed = G.chapter; storyBeat('clear', { brisk: true }); if (!startCalm()) setPhase('chapterdone', 2.2); checkUnlocks(1600, true); saveAtClose(); }   // (a chapter: the voice's last word first, and the calm after the hold: game/aftermath.js)
+        else { setPhase('travel', 1.6); openSkillTree(); }
       }
     }
   }

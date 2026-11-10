@@ -51,6 +51,7 @@ import { noteFlick } from '../player/jedi/cutaim.js';
 import { noteGuardFlick } from '../player/jedi/guardline.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
 import { flowSignature } from '../player/gunner-flow.js';
+import { teamupPress, teamupBusy } from '../game/teamup.js';
 
 // is a cut primed that should leave from behind a held guard (the mousedown below)?
 const answerReady = () => player.riposteT > 0 || G.gt < (player.feintUntil || 0)
@@ -71,6 +72,7 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mousedown', (e) => {
   if (!inputActive()) return;
   if (player.downed) return;   // down: nothing to fight with until you're back up (game/revive.js)
+  if (teamupBusy() && e.button !== 1) return;   // committed to a team-up: it plays out first (game/teamup.js)
   if (e.button === 1){ e.preventDefault(); wheelKeyDown(); return; }   // middle mouse: SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
   if (e.button === 3 || e.button === 4){ e.preventDefault(); swapShoulder(); return; }   // a mouse side button: SHOULDER SWAP, as K (engine/camera.js)
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
@@ -181,6 +183,8 @@ document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && G.mode === 'play' && !G.paused && k !== 'control') e.preventDefault();
   if (G.cutscene && G.mode === 'play' && k !== 'p' && k !== 'm') return;   // a cutscene: only its skip keys (game/cutscene.js), quality and music
   if (player.downed && G.mode === 'play' && k !== 'p' && k !== 'm' && k !== 'escape') return;   // down: wait for your squad
+  if (teamupBusy() && k !== 'p' && k !== 'm' && k !== 'escape' && k !== 'tab') return;   // committed to a team-up: it plays out first (game/teamup.js)
+  if (k === 'u' && !e.repeat && G.mode === 'play' && teamupPress()) return;   // TEAM-UP: a partner (or an ally) close and the setup right (game/teamup.js)
   if (wheelOpen()){   // the squad's command wheel is up: 1-4 pick a squadmate, Esc puts it away; you can still move, but nothing else fires
     if (k.length === 1 && '1234'.includes(k)){ wheelPickMate(+k - 1); return; }
     if (k === 'escape'){ wheelCancel(); return; }

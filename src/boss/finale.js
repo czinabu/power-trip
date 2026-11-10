@@ -195,6 +195,15 @@ function breakVessel(e, F){
   if (hooks.fin) hooks.fin({ k: 'sb', n: e.nid });
 }
 
+/* A TEAM-UP on a raid boss (game/teamup.js): its payoff goes into the sunder bar, a share of the bar, rather than his
+   health (which only takes a capped share). Not while he is already broken open. */
+export function teamupSunder(e, share){
+  const F = e && e.fin;
+  if (!F || !F.sd || F.over || G.gt < F.sd.openUntil) return;
+  F.sd.v = Math.min(F.sd.max, F.sd.v + F.sd.max * share); F.sd.idle = 0;
+  roleSay(e, F, 'flank');
+}
+
 /* ---------------- THE PINCER (a party: boss/duo.js) ----------------
    Two heroes struck him from either side within a breath: he's caught between them. He staggers open, or a raid boss's
    sunder bar takes a big share instead. (Not while a move that can't be broken, his phase beat or a ward has him, nor

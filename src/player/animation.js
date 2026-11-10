@@ -122,6 +122,7 @@ function poseBody(dt, dr, vis, planted, POSE, moving){
   // SABER LOCK — squared to the blade he's bound with for the whole bind, whatever the camera does (enemies/duel.js)
   const bound = player.saberLock && player.lockFace != null;
   if (bound) face = player.lockFace;
+  if (!bound && player.teamFace != null) face = player.teamFace;   // committed to a team-up: square to its target (game/teamup.js)
   // (the dive and the slide turn him the way they go: anim/agility.js mandoBody)
   if (bound) player.faceYaw += wrapAngle(dampAngle(player.faceYaw, face, 30, dt) - player.faceYaw);
   else if (isGunner()) player.faceYaw = mandoTurn(player.flip && player.flip.face != null ? player.flip.face : face, player.flip ? 30 : player.backRun ? 11 : player._unwindT > 0 ? 12 : 26, dt);

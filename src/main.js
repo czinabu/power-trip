@@ -165,6 +165,8 @@ import { updateDuel, duelInfo, startPractice, challenge as duelChallenge, answer
 import { updateDuelUi, openChallenge } from './ui/duel-ui.js';
 import { updateSquadNet } from './net/squad.js';
 import { updatePings, pingHere, pingInfo } from './net/ping.js';
+import { updateTeamups, updateTeamupFlight, updateTeamupFx, teamupInfo, teamupPress, resetTeamups } from './game/teamup.js';
+import { TEAMUP, TEAMUPS } from './data/teamups.js';
 import { dropLink as coopDrop, net as coopNet } from './net/session.js';
 import { hooks as coopHooks, coopRun } from './net/run.js';
 import { continueOnLaunch } from './ui/saves-ui.js';
@@ -205,7 +207,9 @@ function tick(ts){
   if ((!frozen || live) && (G.mode === 'play' || G.mode === 'dead')){
     G.gt += wdt;
     if (G.mode === 'play'){
+      updateTeamups(dt);       // team-up moves: the prompt, the two presses, the move as it plays (game/teamup.js)
       updatePlayer(dt);
+      updateTeamupFlight(dt);  // ...and a team-up's scripted flight, over the hero's own movement (the jetpack drop)
       updateFlow(wdt);
       updateMission(dt);
       updateDoorway(dt);     // the temple doors swinging open, and the walk through them (world/doorway.js)
@@ -254,6 +258,7 @@ function tick(ts){
   updateDuel();          // duel mode: the match, its referee's clock, the ring (game/duel-mode.js)
   updateDuelUi();        // ...its prompt, cards and score bar (ui/duel-ui.js)
   updatePings();         // pings: yours and the other players' (net/ping.js)
+  if (G.mode !== 'play') updateTeamups(0);   // (out of the fight: a team-up still playing is dropped, its prompt put away)
   // the fight's leftover flourishes (a blade's trail, sparks, a push's rings, a severed limb) play out on real time under a
   // cutscene: frozen, they'd hang in its shots as a still of the last action beat
   const fxDt = G.cutscene && !G.paused && !G.skillSelect ? rawDt : dt;
@@ -262,6 +267,7 @@ function tick(ts){
   updateScorch(dt);
   updateSevered(fxDt);
   updateParticles(fxDt);
+  updateTeamupFx(fxDt);   // a team-up's tracers (game/teamup.js)
   updateVFX(fxDt);
   updateCutscene();   // a cutscene's lens, actors and words (game/cutscene.js); the play camera stands down while one is on
   updateCamera(dt);
@@ -283,7 +289,7 @@ tick();
 /* expose configs + API for live tweaking and future edits (dev console) */
 window.GAME = { run: RUN_STATE, PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => randomArcadeId(),
   missionDefs: () => ({ ...MISSION_LIST, ...Object.fromEntries(SIDE_ALL.map(q => [SIDE_PFX + q.slug, defById(SIDE_PFX + q.slug)])) }),
-  NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
+  NGPLUS, ALIGNMENT, shared, coopRun, coopHooks, partnerShown, partnerInfo, partnerMate, teamup: { info: teamupInfo, press: teamupPress, reset: resetTeamups, TEAMUP, TEAMUPS }, CFG, ENEMY_TYPES, LEVELS, BOSS_CFG, BOSS_MANDO, STANCES, SKILLS, MANDO, MANDO_WEAPONS, G, enemies, player, pillars, solids, rockets, bolts,
   startLevel, startWave, spawnEnemy, startTutorial, startMission, skipObjective, startSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll, missionState, twistState, skipStep, trainingProgress, lessonList, openLessonBoard, spawnBoss, queueSpawn, checkUnlocks, switchStance, setHero,
   openSkillTree, damageEnemy, damageBoss, updateHud, nextStoreGoal, enemyHpScale, eliteChance, ELITES, cycleQuality, forceBarrier, forceMend, updatePlayer, updateEnemies, updateBolts, fireBolt, endRun, updateFlow, startEndless, startEndlessWave, genEndlessWave, MUTATORS, ENDLESS_POWERS, buyPower, keys, camera, SEE, charFadeState, CHAR_SEE,
   tryAttack, castGesture, saberThrow, forcePush, forceSlam, forceRepulse, stance, applySwingDamage, spawnChampion, startWave, bomberExplode, MUSIC, audioInit,

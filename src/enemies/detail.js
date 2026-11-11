@@ -15,6 +15,13 @@ import * as THREE from 'three';
 import { loft, plate, block, shard, chamfer, ngon, HEAD } from '../player/model/shapes.js';
 import { rounded } from '../player/model/skin.js';
 
+/* THE FRAME: how the trooper body is proportioned. The cuirass, the waist and the arms were drawn barrel-wide (a chest
+   two thirds as wide as the figure is tall at the shoulder line, as deep as a keg); these bring them to a soldier's
+   build while every joint, hitbox and pose stays where it was. chest/depth scale the whole torso shell and what sits
+   on it (chestDetail below included), hips the pelvis and belt, shx is the shoulder joints' (and the
+   pauldrons') distance out from the spine as a fraction of the body width, arm the arms' thickness. */
+export const FRAME = { chest: 0.84, depth: 0.86, hips: 0.92, shx: 0.37, arm: 0.86 };
+
 const PI = Math.PI;
 const SOFT_HEAD = rounded(HEAD), SOFT_LIMB = rounded(chamfer(0.4)), SOFT = rounded(chamfer(0.42));
 const NO_INK = { outline: false };
@@ -187,10 +194,10 @@ export function thighDetail(k, L, w){
 /* a rolled rim round each pauldron's lower edge, in the darker plate: the plate gets a thickness and a seam where it
    meets the arm (sizes and placement match enemies/mesh.js pauldrons) */
 export function pauldronRims(k, w, size = 1){
-  const W = 0.24 * w * size, D = 0.24 * size;
+  const W = 0.22 * w * size, D = 0.22 * size;
   for (const s of [-1, 1]){
-    k.add(loft([{ y:-0.092, w:W*1.05, d:D*1.05 }, { y:-0.07, w:W*1.04, d:D*1.04 }], SOFT), 'armor2', k.root, [0.39*w*s, 1.8, 0], [0, 0, -0.32*s]);
-    rivets(k, k.group(k.root, [0.39*w*s, 1.8, 0], [0, 0, -0.32*s]), [[0, 0.0, D*0.5]], [0, 0, 0]);
+    k.add(loft([{ y:-0.092, w:W*1.05, d:D*1.05 }, { y:-0.07, w:W*1.04, d:D*1.04 }], SOFT), 'armor2', k.root, [(FRAME.shx - 0.03)*w*s, 1.8, 0], [0, 0, -0.32*s]);
+    rivets(k, k.group(k.root, [(FRAME.shx - 0.03)*w*s, 1.8, 0], [0, 0, -0.32*s]), [[0, 0.0, D*0.5]], [0, 0, 0]);
   }
 }
 
@@ -198,7 +205,7 @@ export function pauldronRims(k, w, size = 1){
 
 // the Imperial roundel on the left pauldron's outer face: a dark disc, a ring of the plate's trim, six spokes
 export function shoulderBadge(k, w, size = 1, ring = 'armor2'){
-  const pg = k.group(k.root, [-0.39*w, 1.8, 0], [0, 0, 0.32]);
+  const pg = k.group(k.root, [-(FRAME.shx - 0.03)*w, 1.8, 0], [0, 0, 0.32]);
   const at = k.group(pg, [-0.124*w*size, -0.035, 0.0], [0, -PI/2, 0]);
   const disc = n => ngon(n).map(([x, y]) => [x, y]);
   k.add(plate(disc(12).map(([x, y]) => [x * 0.05 * size, y * 0.05 * size]), 0.006, 0), 'black', at, [0, 0, 0], [0, 0, 0], NO_INK);

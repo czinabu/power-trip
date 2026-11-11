@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { loft, limb, plate, block, chamfer, ngon, hoodRing, cowlDrape, warpGeo, KEEL, shard } from '../player/model/shapes.js';
 import { rounded } from '../player/model/skin.js';
-import { face } from './detail.js';
+import { face, FRAME } from './detail.js';
 import { lookColors } from '../data/saber-cast.js';
 
 const PI = Math.PI;
@@ -47,7 +47,10 @@ export function buildSaberist(k, t, L, H){
   const thighs = legs(k, hw, jedi, H.legBones);
   hipsAndSkirt(k, hw, L, thighs, robed ? 'cloth' : 'armor');
   k = H.upper(k);
-  chest(k, w, f, L);
+  // the tunic and any plate over it in the troopers' FRAME (enemies/detail.js): a fighter's chest, not a barrel. A static
+  // group (no bones in it), so it bakes into the chest's mesh
+  const kb = (() => { const T = k.group(k.root); T.scale.set(FRAME.chest, 1, FRAME.depth); return k.within(T); })();
+  chest(kb, w, f, L);
   if (robed) outerRobe(k, w);
   if (L.cloak){
     // (a Sith lord's cloak is wider and longer, its hem torn into points: lordPlates)
@@ -65,10 +68,10 @@ export function buildSaberist(k, t, L, H){
   }
   if (L.hood) cowl(k, w);
   if (L.mantle) mantle(k, w, L.mantle);
-  if (L.armour === 'inq') inqPlates(k, w);
-  if (L.armour === 'warden') wardenPlates(k, w);
-  if (L.armour === 'general') generalPlates(k, w);
-  if (L.armour === 'lord') lordPlates(k, w);
+  if (L.armour === 'inq') inqPlates(kb, w);
+  if (L.armour === 'warden') wardenPlates(kb, w);
+  if (L.armour === 'general') generalPlates(kb, w);
+  if (L.armour === 'lord') lordPlates(kb, w);
   H.sideArm(k, w, -1, [-0.3, 0, 0.12], { bend: -0.5, elbow: 'elbowOff' });   // (its elbow a bone: the free hand takes its form's pose, or the hilt: enemies/foestance.js)
   H.weaponArm(k, t, w);
   head(k, t, L, f, H);
@@ -134,7 +137,7 @@ function chest(k, w, f, L){
     k.add(plate(p, 0.012, 0.003), 'armor2', k.root, [0.11*w*s, 1.88, 0.15*b], [-0.16*b, 0, -0.2*s], NO_INK);
     k.add(plate(p, 0.012, 0.003), 'armor2', k.root, [0.11*w*s, 1.88, -0.15], [0.12, 0, -0.2*s], NO_INK);
     // the shoulder's roll of cloth (no pauldron)
-    k.add(loft([{ y:-0.07, w:0.19*w, d:0.2 }, { y:0.01, w:0.19*w, d:0.2 }, { y:0.06, w:0.14*w, d:0.16 }, { y:0.085, w:0.07*w, d:0.09 }], ngon(12)), 'armor', k.root, [0.39*w*s, 1.74, 0], [0, 0, -0.42*s]);
+    k.add(loft([{ y:-0.07, w:0.19*w, d:0.2 }, { y:0.01, w:0.19*w, d:0.2 }, { y:0.06, w:0.14*w, d:0.16 }, { y:0.085, w:0.07*w, d:0.09 }], ngon(12)), 'armor', k.root, [(FRAME.shx + 0.01)*w*s / FRAME.chest, 1.74, 0], [0, 0, -0.42*s]);   // (on the FRAME's shoulder line once scaled)
   }
   if (L.side !== 'jedi') k.add(plate([[-0.012,0],[0.012,0],[0.012,-0.62],[-0.012,-0.62]], 0.006, 0.002), 'trim', k.root, [0, 1.86, 0.17*b + 0.005], [-0.1, 0, 0], NO_INK);   // red piping down the front
 }

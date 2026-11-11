@@ -129,7 +129,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
     showBanner('CO-OP MISSION', 'Fighting alongside the host.', 3.0);
     return;
   }
-  if (def.quarry) placeQuarry(def.objectives[fromObjective]);
+  if (def.quarry) placeQuarry(def.objectives[fromObjective], fromObjective);
   if (def.escort) placeVip(fromObjective);
   // a STRIKE TEAM mission: the squad forms up beside the hero (allies/squad.js), and the wider battle rages past the walls
   if (def.squad) spawnSquad(def.squadCap ? Math.max(0, def.squadCap - allies.length) : def.squad, st);   // (a capped squad counts the trooper's own, already called in)
@@ -542,6 +542,7 @@ const KINDS = {
       for (const c of s.cuts) M.markers.push(c.beacon);
       s.onCut = false;
       M.markers.push(s.last = makeBeacon(0, 0, 0, RED, 1.2)); s.last.visible = false;   // where it was last seen
+      if (M.quarry.hidden){ M.quarry.hidden = false; M.quarry.g.visible = true; burst(V3(M.quarry.g.position.x, 1.2, M.quarry.g.position.z), 0xb46bff, 18, 6, 4, 0.8); }   // (it steps out now)
       placeOnPath(s, M.quarry);
     },
     update(o, s, dt){
@@ -678,8 +679,36 @@ const KINDS = {
         return;
       }
       s.left = s.foes.filter(e => !e.dead && enemies.includes(e)).length;
-      setObjectiveHud({ kicker: M.kick, title: o.title, frac: 1 - s.left / Math.max(1, s.n), status: 'CLEAR THE ROOM · ' + s.left + ' LEFT', warn: s.left > 0 });
-      if (!s.left){
+      const al = o.alarm, gr = o.grab;
+      // an ALARM: the room's on the comm the moment the door goes. Clear it before the count runs out, or more come in
+      // through its back hatches (once)
+      if (al && !s.rang && s.left){
+        if (s.alarmT == null){ s.alarmT = al.time; showBanner('', al.startLine || 'THEY\'RE CALLING IT IN', 1.6); }
+        if (Math.ceil(s.alarmT) !== Math.ceil(s.alarmT - dt) && s.alarmT < 5) sfx(880, 0.06, 'square', 0.04, 880);
+        if ((s.alarmT -= dt) <= 0){
+          s.rang = true; let k = 0;
+          for (const t in al.group) for (let n = 0; n < al.group[t]; n++){
+            const [x, z] = al.at[k++ % al.at.length];
+            const e = fieldSpawn(t, x + (Math.random() - 0.5) * 0.8, z + (Math.random() - 0.5) * 0.8);
+            if (e){ e.state = 'chase'; s.foes.push(e); s.n++; s.left++; }
+          }
+          showBanner('ALARM', al.line || 'More of them, through the back.', 2.0, { kicker: 'TOO SLOW' });
+        }
+      }
+      // a GRAB: something in the room to get to while they're still fighting for it (the contract on the vault's
+      // terminal). Stand at it to pull it; it slips back while you're away, and goes slower with foes on top of it
+      if (gr && !s.got){
+        if (!s.grab){ s.gp = 0; M.markers.push(s.grab = makeBeacon(gr.at[0], gr.at[1], 0, heroKey(MISSION_COLOR), gr.r ?? 1.3)); }
+        const on = heroIn(gr.at[0], gr.at[1], (gr.r ?? 1.3) + 0.4), pressed = on && hostilesIn(gr.at[0], gr.at[1], 3.5) > 0;
+        s.gp = on ? s.gp + dt * (pressed ? 0.45 : 1) : Math.max(0, s.gp - dt * 0.35);
+        pulseMarker(s.grab, dt, G.gt); s.grab.userData.beam.visible = !on;
+        if (s.gp >= gr.time){ s.got = true; s.grab.visible = false; showBanner('', gr.line || 'GOT IT', 1.6); S.reward(1); }
+      }
+      const pull = gr && !s.got;
+      setObjectiveHud({ kicker: M.kick, title: o.title, frac: pull ? s.gp / gr.time : 1 - s.left / Math.max(1, s.n),
+        status: (pull ? (gr.status || 'GET TO THE TERMINAL') + (s.left ? ' · ' + s.left + ' LEFT' : '') : 'CLEAR THE ROOM · ' + s.left + ' LEFT')
+              + (al && !s.rang && s.left && s.alarmT != null ? ' · ALARM ' + Math.max(0, Math.ceil(s.alarmT)) : ''), warn: s.left > 0 });
+      if (!s.left && !pull){
         if (o.opens != null) setDoorsOpen(o.opens);   // (the last room can open more: a cell, the way back out)
         if (o.joins){   // someone freed in there takes their place in the squad
           G.squadCap = Math.min(SQUAD.max, Math.max(G.squadCap || 0, allies.length + o.joins));
@@ -999,12 +1028,16 @@ function makeQuarry(q = heroKey(M.def.quarry)){
   return { g, tag, def: q };
 }
 // on (re)start: the quarry waits at the start of the leg you begin on, or where the run ended if you begin at the duel
-function placeQuarry(o0){
+// (a mission whose chase comes later, after it has done something else: the quarry isn't there yet. It waits out of
+// sight at the start of that chase's leg, and steps out as the chase begins)
+function placeQuarry(o0, from = 0){
   M.quarry = makeQuarry();
-  const leg = o0.kind === 'pursuit' ? o0.leg : M.def.route.length - 1;
+  const later = o0.kind !== 'pursuit' && M.def.objectives.slice(from).find(o => o.kind === 'pursuit');
+  const leg = o0.kind === 'pursuit' ? o0.leg : later ? later.leg : M.def.route.length - 1;
   const s = { P: legPath(leg), d: 0, y: 0, vy: 0 };
-  if (o0.kind !== 'pursuit') s.d = s.P.len;
+  if (o0.kind !== 'pursuit' && !later) s.d = s.P.len;
   placeOnPath(s, M.quarry);
+  if (later){ M.quarry.hidden = true; M.quarry.g.visible = false; }
 }
 // stand the quarry at s.d along its leg (dt > 0: moving at spd, so its feet ease over cover and it leans into the run)
 function placeOnPath(s, q, dt = 0, spd = 0){
@@ -1232,8 +1265,20 @@ function leadHero(P){
 function buildVip(d){
   const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.person ? { person: d.person } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
   const tag = makeFriendTag(1.2); addFriendRing(g);
+  if (d.ward) carryWard(g, d.ward);
   scene.add(g, tag); M.props.push(g, tag);
   return M.vip = { g, tag, def: d, hp: d.hp, maxHp: d.hp };
+}
+// what an escort carries on its back (escort `ward`: its colour): a glowing stone in a soft halo, turning, so the one
+// you are walking reads at a glance from the squad round it
+function carryWard(g, col){
+  const s = 1 / (g.scale.x || 1), w = new THREE.Group();
+  const stone = new THREE.Mesh(new THREE.OctahedronGeometry(0.26), new THREE.MeshBasicMaterial({ color: col, toneMapped: false }));
+  stone.scale.y = 1.5;
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }));
+  w.add(stone, halo); w.position.set(0, 1.75 * s, -0.38 * s); w.scale.setScalar(s);
+  stone.onBeforeRender = () => { stone.rotation.y = G.gt * 1.6; halo.scale.setScalar(1 + Math.sin(G.gt * 3) * 0.12); };
+  g.add(w);
 }
 function placeVip(fromObjective){
   const d = heroKey(M.def.escort), { g, tag } = buildVip(d);
@@ -1612,7 +1657,7 @@ export function missionSnap(){
     hud: hud ? [hud.status || '', hud.frac == null ? -1 : r2(hud.frac), hud.warn ? 1 : 0] : null,
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
-    q: q ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
+    q: q && !q.hidden ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
     v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }

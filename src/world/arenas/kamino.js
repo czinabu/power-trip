@@ -5,8 +5,10 @@
 
 import * as THREE from 'three';
 import { spawnBarrel } from '../hazards.js';
+import { shared, solids } from '../../state.js';
 import { V3 } from '../../utils.js';
 import { arenaKit, seeded } from './kit.js';
+import { addDoor } from '../doors.js';
 
 /* THE DROWNED LEVELS (60 across, half 30), in the storm.
      · the LANDING PLATFORM in the south (z −30…−12): the gunship sets the band down on the pad, with crates and cargo
@@ -23,6 +25,19 @@ export const KAMINO_SPOTS = {
   archives: [[-16, 8], [16, 8], [0, 22]],     // the batch file stacks (THE DROWNED CITY)
   posts: [[-16, -4], [16, 0], [0, 17]],       // the drill's posts (THE OLD KILL HOUSE)
   duel: [0, 12],                              // where the Marshal's record steps out
+  // THE SEALED ARCHIVE (a level with `sealed`: WHO GAVE THE ORDER): the training level walled in round the third stack,
+  // three rooms deep. Door 0 in its south face into the ante-room, door 1 through the partition into the records room
+  // (the stack), door 2 through the records room's east wall into the vault
+  sealed: {
+    stack: [[0, 14.4], [-6, 18.6], [0.4, 26.5]],   // where the squad stacks up on doors 0, 1, 2
+    rooms: [
+      { at: [0, 18.2], spots: [[-7.5, 17.6], [-3, 19.2], [3, 17.4], [8, 18.8], [6, 19.4]] },               // the ante-room
+      { at: [-4, 25], spots: [[-7, 22.5], [-4, 26.5], [-8, 29], [-1.5, 28.8], [-5, 23.5]] },              // the records room
+      { at: [6, 25], spots: [[5, 22.5], [8, 23], [5, 26], [7, 27.5], [5, 29], [8.2, 29.2]] },            // the vault
+    ],
+    hatch: [[-8.6, 28.6], [-8.8, 22.4]],   // the records room's back hatches, where its alarm brings more in
+    contract: [8.0, 27.4],                 // the vault's terminal, where the contract is being wiped
+  },
 };
 const PODS = [[-22, -4], [-22, 4], [-22, 12], [-10, -4], [-10, 4], [-10, 14], [10, -4], [10, 4], [10, 14], [22, -4], [22, 4], [22, 12]];
 
@@ -84,8 +99,10 @@ export function buildKaminoArena(L){
   for (const [x, z, ax] of [[-20, 22, 1], [20, 22, 1], [-9, 27, 0], [9, 27, 0], [-24, 27, 0], [24, 27, 0]])
     K.box(x, z, ax ? 2.6 : 0.5, ax ? 0.5 : 2.2, 1.6, wallD);
   for (const [x, z] of [[-20, 21.4], [20, 21.4]]) picture(K.deco(new THREE.BoxGeometry(5.2, 0.12, 0.05), red, x, 1.4, z));
-  K.box(0, 29, 4, 0.8, 1.2, metal, { climbable: true });   // the instructor's box: a step up at the back
+  if (!L.sealed) K.box(0, 29, 4, 0.8, 1.2, metal, { climbable: true });   // the instructor's box: a step up at the back (the sealed archive's wall runs through it)
   picture(K.deco(new THREE.PlaneGeometry(3.2, 1.2), screen, 0, 3.0, 29.7, 0, Math.PI, 0));
+
+  if (L.sealed) buildSealedArchive(K, wall, wallD, metalD, red);
 
   // ---- the city around it: a wall past the east and west edges, the storm beyond, lamps overhead ----
   for (const sx of [-1, 1]){
@@ -102,4 +119,41 @@ export function buildKaminoArena(L){
     const r = 0.8 + R() * 1.6;
     picture(K.deco(new THREE.CircleGeometry(r, 14), sea, (R() - 0.5) * 50, 0.025, -20 + (R() - 0.5) * 14, -Math.PI / 2)).receiveShadow = false;
   }
+}
+
+/* THE SEALED ARCHIVE: 4.2 m walls round the training level (x −10…10, z 16…30), no roof (the camera looks in from
+   above), in three rooms: the ante-room across the front (z 16…20.5), then behind the partition the records room (west of
+   x 2.5, the third stack in it) and the vault (east). Blast doors in each gap, in breach order (world/doors.js): 0 the
+   south face at x 0, 1 the partition at x −6, 2 the vault's wall at z 26.5. The pods at the corners keep a lane past it;
+   the drill walls inside are cover. */
+const AH = 4.2, AT = 0.3;
+function buildSealedArchive(K, wall, wallD, metalD, red){
+  const door = new THREE.MeshStandardMaterial({ color: 0x8a96a2, roughness: 0.45, metalness: 0.55 });
+  const stripe = new THREE.MeshStandardMaterial({ color: 0x3a8ac8, roughness: 0.5, metalness: 0.3 });
+  const capped = (m, geo) => { const c = new THREE.Mesh(geo, wallD); c.position.y = AH / 2 + 0.1; c.castShadow = c.receiveShadow = true; m.add(c); };
+  const wx = (x0, x1, z) => capped(K.box((x0 + x1) / 2, z, (x1 - x0) / 2, AT, AH, wall), new THREE.BoxGeometry(x1 - x0, 0.2, AT * 2 + 0.2));
+  const wz = (z0, z1, x) => capped(K.box(x, (z0 + z1) / 2, AT, (z1 - z0) / 2, AH, wall), new THREE.BoxGeometry(AT * 2 + 0.2, 0.2, z1 - z0));
+  wx(-10.3, -1.3, 16); wx(1.3, 10.3, 16);       // the south face, door 0 at x 0
+  wx(-10, -7.3, 20.5); wx(-4.7, 10, 20.5);      // the partition, door 1 at x −6
+  wz(20.8, 25.2, 2.5); wz(27.8, 29.7, 2.5);     // the vault's wall, door 2 at z 26.5
+  wx(-10.3, 10.3, 30);
+  wz(16, 30, -10); wz(16, 30, 10);
+  const blastDoor = (x, z, alongX = true) => {
+    const hx = alongX ? 1.3 : 0.22, hz = alongX ? 0.22 : 1.3, dh = 3.3, g = new THREE.Group();
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(hx * 2, dh, hz * 2), door); leaf.position.y = dh / 2; g.add(leaf);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(hx * 2 + (alongX ? 0 : 0.04), 0.22, hz * 2 + (alongX ? 0.04 : 0)), stripe); band.position.y = 1.6; g.add(band);
+    for (const y of [0.8, 2.5]){ const r = new THREE.Mesh(new THREE.BoxGeometry(alongX ? hx * 1.6 : hx * 2 + 0.06, 0.08, alongX ? hz * 2 + 0.06 : hz * 1.6), metalD); r.position.y = y; g.add(r); }
+    g.position.set(x, 0, z); g.traverse(m => { if (m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
+    K.deco(new THREE.BoxGeometry(alongX ? 2.6 : AT * 2, AH - dh, alongX ? AT * 2 : 2.6), wall, x, dh + (AH - dh) / 2, z);   // the lintel
+    K.slab(x, z, alongX ? 1.3 : AT, alongX ? AT : 1.3, dh, AH);
+    const solid = { x, z, hx, hz, h: dh, box: true };
+    solids.push(solid);
+    const lamp = K.deco(new THREE.BoxGeometry(alongX ? 0.6 : 0.06, 0.25, alongX ? 0.06 : 0.6), red, x - (alongX ? 0 : 0.34), dh + 0.25, z - (alongX ? 0.34 : 0)); lamp.userData.passThrough = true;
+    shared.arenaGroup.add(g); addDoor(g, solid, [x, z]);
+  };
+  blastDoor(0, 16); blastDoor(-6, 20.5); blastDoor(2.5, 26.5, false);
+  // the vault's terminal (the contract's on it), against the east wall; and a hatch low in each of the records room's back corners
+  K.box(9.2, 27.4, 0.35, 0.7, 1.15, metalD);
+  const scr = K.deco(new THREE.PlaneGeometry(1.2, 0.6), stripe, 8.84, 1.45, 27.4, 0, -Math.PI / 2, 0); scr.userData.passThrough = true;
+  for (const [x, z] of [[-9.7, 28.6], [-9.7, 22.4]]) K.deco(new THREE.BoxGeometry(0.1, 1.1, 1.2), metalD, x, 0.55, z);
 }

@@ -79,7 +79,7 @@ export function switchWeapon(name){
   if (!weaponUnlocked(name)){ floater(playerPos(), 'LOCKED', '#ff9a66'); sfx(120, 0.1, 'square', 0.05, 70); return; }
   const W = MANDO_WEAPONS[name], was = player.weapon, wasUnlit = !!player.unlit;
   player.unlit = false; player.stowed = false; player.reach = null; player.stowPend = false; if (wasUnlit) extendBlade(0);   // (the Darksaber put out with 5 comes back lit next time it's drawn: player/holster.js)
-  player.weapon = name; player.zoom = false;
+  player.weapon = name; player.zoom = false; player.scopeT = 0;
   player.heat = 0; player.overheat = false; player.ventT = 0; player.fireCd = 0.12; player.fireCdL = 0;
   player.spin = 0; player.burstLeft = 0; player.burstQ = false; player.gunSlow = 1;
   syncWeaponMesh();
@@ -538,7 +538,7 @@ export function updateFlame(dt){
   fl.intensity += ((active ? 5.5 + Math.random()*1.5 : 0) - fl.intensity) * Math.min(1, dt*14);   // faded, never toggled: a light count change recompiles every shader (the first-flame hitch)
   if (!active) return;
   // the flame owns both hands: it cancels any shot, scope or guard already up, and those stay locked out until it ends
-  player.firing = false; player.trigHeld = false; player.zoom = false; player.blockHeld = false; player.parryT = 0; player.stabQ = false;
+  player.firing = false; player.trigHeld = false; player.zoom = false; player.scopeT = 0; player.blockHeld = false; player.parryT = 0; player.stabQ = false;
   player.force = Math.max(0, player.force - A.fuel * (player.up.abilityCostMul || 1) * dt);
   trainHeld('flame', dt);   // each second of fire teaches the flamethrower (game/upgrades.js)
   const pp = playerPos();
@@ -673,12 +673,32 @@ export function beskarPress(){
   player.beskarPose = Math.max(player.beskarPose, player.beskarT);   // the arm comes up for the window (player/animation.js)
 }
 function updateBeskar(dt){
+  // the scope a parry's press held back (engine/input.js): RMB is still down past the tap, so the sight comes up now
+  if (player.scopeT > 0){
+    player.scopeT -= dt;
+    if (player.scopeT <= 0 && isMando() && mandoWeapon().scope && G.mode === 'play' && !(player.gbT > 0) && !player.flaming) player.zoom = true;
+  }
+  guardCue();
   if (player.beskarLockT > 0) player.beskarLockT -= dt;
   if (player.beskarPose > 0) player.beskarPose -= dt;
   if (player.beskarT > 0){
     player.beskarT -= dt;
     if (player.beskarT <= 0 && !player.beskarHit) player.beskarLockT = BESKAR_PARRY.lock;   // a whiff: no second try for a beat
   }
+}
+/* IS THE GUARD UP? — said once, the same way, wherever the answer changes (the reticle draws it: ui/hud.js). The rule
+   is the pistol's own: RMB raises the arm, the trigger lowers it, and it is back half a second after the last shot.
+   player.guardCue: 0 no guard asked for · 1 UP, it stops what comes from the front · 2 asked for (RMB held on the
+   pistol) but DOWN, lowered by the shot. The arm going up and coming down each make a sound of their own, so a busy
+   fight says "covered" and "open" without a look at the arm. */
+function guardCue(){
+  const up = mandoGuarding() && G.mode === 'play';
+  const cue = up ? 1 : isMando() && player.blockHeld && player.weapon === 'single' && !mandoWeapon().melee && G.mode === 'play' ? 2 : 0;
+  const was = player.guardCue || 0;
+  if (cue === was) return;
+  player.guardCue = cue;
+  if (cue === 1){ player.guardCueAt = G.gt; sfx(520, 0.05, 'triangle', 0.04, 880); sfx(1500, 0.03, 'square', 0.014, 2100); }   // up: a rising clack of plate
+  else if (was === 1) sfx(640, 0.06, 'triangle', 0.028, 300);   // down: the same plate, falling away
 }
 // a blow met the vambrace inside the tap's window (player/damage.js, which then plays the catch: mando/melee.js
 // mandoCatch): the window is spent on it, the arm stays up a beat, and the hero gets the parry's breath back

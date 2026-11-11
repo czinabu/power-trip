@@ -422,7 +422,7 @@ export const LESSONS = {
           keys: 'LMB · R', do: 'Fire, then vent your heat', ev: 'vent', need: 1 },
         { say: 'Beskar does not burn. Raise your arm to their fire and it stops there. Face it: the arm covers your front, and every bolt it stops costs you breath.',
           keys: 'HOLD RMB', do: 'Block 3 bolts on your vambrace', ev: 'guardBlock', need: 3, spawn: shooter([9, 6]) },
-        { say: 'You guard or you shoot. The moment you fire, the arm comes down on its own, and it is back up half a second after your last shot. Guard up, wait for your gap, then shoot.',
+        { say: 'You guard or you shoot. The moment you fire, the arm comes down on its own, and it is back up half a second after your last shot. Guard up, wait for your gap, then shoot. The gold brackets round your reticle tell you which: closed on it, you are covered; hanging open, you are not.',
           keys: 'HOLD RMB · LMB', do: 'Shoot down the trooper: firing lowers your guard, so pick your moment', ev: 'kill', of: 'blaster', need: 1,
           spawn: [{ type: 'blaster', at: [9, 6], rooted: true }] },
         { say: 'Every clean shot sharpens your eye: headshots, ricochets, a kill on the wing. When the eye is full, the hunt slows for you. Take all three before they know it.',

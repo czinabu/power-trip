@@ -79,7 +79,7 @@ export const PAD_CONTROLS = {
     { title: 'FIGHT', rows: [
       ['{lmb}', 'Fire', 'Headshots deal far more damage'],
       ['{r}', 'Vent heat', 'Cool down before you overheat'],
-      ['TAP {rmb}', 'Beskar parry', 'Just as a bolt reaches you: the vambrace ricochets it back at the shooter, harder · just as a blow lands: it turns on the beskar and the attacker reels · any gun but the Darksaber, in the air too · mistimed, it locks out for a moment'],
+      ['TAP {rmb}', 'Beskar parry', 'Just as a bolt reaches you: the vambrace ricochets it back at the shooter, harder · just as a blow lands: it turns on the beskar and the attacker reels · every blaster and your fists, in the air too (the Darksaber parries like a lightsaber) · with the Disruptor a tap parries and a hold scopes · mistimed, it locks out for a moment'],
       ['HOLD {rmb}', 'Guard / brace / scope', 'Single blaster or fists: the beskar guard, a raised vambrace that stops bolts and soaks blows from the front for stamina (firing lowers it for a moment) · other guns: a steadier aim or the scope · scoped look speed is the SCOPE SENS setting'],
       ['{lmb} (disruptor)', 'Spear stab', 'Unscoped, the disruptor is an electric spear: a quick thrust that lunges in and stuns · pull again to keep jabbing', 1],
       ['{e}', 'Close quarters', 'Jab, cross, knee, vibroblade, each one stepping you in to arm\'s length · tap {e} as a blow lands to catch it on the vambrace'],

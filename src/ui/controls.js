@@ -76,7 +76,7 @@ const CONTROLS = {
     { title: 'FIGHT', rows: [
       ['LMB', 'Fire', 'Headshots deal far more damage'],
       ['R', 'Vent heat', 'Cool down before you overheat'],
-      ['TAP RMB', 'Beskar parry', 'Just as a bolt reaches you: the vambrace ricochets it back at the shooter, harder · just as a blow lands: it turns on the beskar and the attacker reels · any gun but the Darksaber, in the air too · mistimed, it locks out for a moment'],
+      ['TAP RMB', 'Beskar parry', 'Just as a bolt reaches you: the vambrace ricochets it back at the shooter, harder · just as a blow lands: it turns on the beskar and the attacker reels · every blaster and your fists, in the air too (the Darksaber parries like a lightsaber) · with the Disruptor a tap parries and a hold scopes · mistimed, it locks out for a moment'],
       ['HOLD RMB', 'Guard / brace / scope', 'Single blaster or fists: the beskar guard, a raised vambrace that stops bolts and soaks blows from the front for stamina (firing lowers it for a moment) · other guns: a steadier aim or the scope · scoped look speed is the SCOPE SENS setting'],
       ['LMB (disruptor)', 'Spear stab', 'Unscoped, the disruptor is an electric spear: a quick thrust that lunges in and stuns · click again to keep jabbing', 1],
       ['E', 'Close quarters', 'Jab, cross, knee, vibroblade, each one stepping you in to arm\'s length · tap E as a blow lands to catch it on the vambrace'],
@@ -178,9 +178,9 @@ const TIPS = {
     'The reticle turns <b>gold</b> when a target is under it.',
     '<b>Hunter\'s Eye</b> (the amber bar over vitality) fills with headshots, ricochets, kills on the wing and takedowns. Full, <b>T</b> is <b>Dead Eye</b>: time slows and you drop up to three heads.',
     'Every gun has a <b>signature move</b> of its own: the pistol\'s quickdraw, the dual blasters\' gun kata, the carbine\'s tag burst, the repeater\'s plant and the disruptor\'s overcharge. Each gun earns <b>ranks I to III</b> by use. The <b>ARMORY</b> on the pause screen shows how.',
-    'Tap <b>RMB</b> just as a bolt reaches you for a <b>beskar parry</b>: it ricochets straight back at the shooter. The same tap as a blow lands turns it and staggers the attacker. It works with any gun.',
+    'Tap <b>RMB</b> just as a bolt reaches you for a <b>beskar parry</b>: it ricochets straight back at the shooter. The same tap as a blow lands turns it and staggers the attacker. It works with any gun and with your fists: only the held guard is the pistol\'s. A thin gold ring on the reticle shows the tap is live.',
     'You carry two guns: a <b>sidearm</b> on 1 and a <b>primary</b> on 2. When a run hands you a gun for a full slot, you choose which to carry.',
-    'Hold RMB with the single blaster to raise your <b>beskar guard</b>: the vambrace stops bolts and soaks blows from the front, for stamina. Firing lowers it; it comes back half a second after you stop. A held guard sends nothing back: that is the timed tap. Press E behind it to cut with the vibroblade and bash with the gauntlet.',
+    'Hold RMB with the single blaster to raise your <b>beskar guard</b>: the vambrace stops bolts and soaks blows from the front, for stamina. Firing lowers it; it comes back half a second after you stop. Two gold brackets close on the reticle while it is up and hang open while a shot has it down. A held guard sends nothing back: that is the timed tap. Press E behind it to cut with the vibroblade and bash with the gauntlet.',
     '<b>Sith acolytes</b> bat blaster fire back. Close in: punch through their guard, charge them with W + E, catch their cuts with E and finish them with a takedown.',
     'Your gadgets <b>master themselves</b> as you use them, and the story hands you new gear. Every 500 <b>XP</b> earns a <b>training point</b>: spend them on weapon upgrades when a chapter ends.',
   ],  trooper: [

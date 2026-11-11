@@ -36,6 +36,7 @@ import { MOCAP_ON, MOCAP_LAND_T, mocapLand, mocapAirLegs, airPhase, mocapCut } f
 import { footingLegs, releaseFooting, restLocal } from './anim/footing.js';
 import { easePose, easeAmount, atEase, relaxed, flourishReset, flourishApply } from './anim/ease.js';
 import { stepHandoffs, handoffReset } from './anim/handoff.js';
+import { inertiaReset, inertiaApply } from './anim/inertia.js';
 import { clearHeldBlades } from './anim/bladeclear.js';
 import { stepCloth } from './model/cloth.js';
 import { blink, gripHands, express } from './model/life.js';
@@ -53,6 +54,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   const POSE = footwork();
 
   const vis = player.vis, R = player.rig;
+  inertiaReset();   // every joint back as the pose left it, before the pose damps from it (anim/inertia.js)
   handoffReset(); flourishReset();   // the hilt back to its grip before the pose aims it (anim/ease.js: the ignite / retract spin goes on after)
   mocapUpper(R, null);   // take last frame's captured chest twist off, so every pose below works from its own values
   poseBody(dt, dr, vis, planted, POSE, moving);
@@ -67,6 +69,7 @@ export function animatePlayer(dt, pp, st, f, r, moving){
   flourishApply(dt, R);   // the hilt spinning in the fingers as the blade lights or goes out (5)   // (and in play while the blade is put out: the stride swings the arms)   // in a cutscene every hero stands up straight, arms at their sides (anim/ease.js)
   stepHandoffs(dt);   // a hilt changing hands (the belt and back) slides into its new hold (anim/handoff.js)
   clearHeldBlades(R);   // last of all: no lit blade left inside the body, whatever turned it after the pose (anim/bladeclear.js)
+  inertiaApply(dt);   // a change of move blends in instead of snapping (anim/inertia.js)
   secondaryMotion(dt, vis, R);
   stepCloth(player, dt, player.group.position.y + 0.02);   // the robe panels and cape hem (model/cloth.js), after the pose
   blink(player, dt); gripHands(player, dt, handGrip());   // the eyes blink, the fingers close on what they hold (model/life.js)

@@ -60,7 +60,10 @@ export function tryAttack(flow = false){
     if (G.gt - (player.lastWinded || -9) > 0.5){ player.lastWinded = G.gt; floater(playerPos(), 'NO BLADE', '#bfe8ff'); sfx(220, 0.06, 'sine', 0.04, 160); }
     return;
   }
-  if (G.mode !== 'play' || player.blockHeld || player.judgeT > 0 || player.mendT > 0 || player.swingLock > 0 || player.mantle || player.hang || player.flinchT > 0) return;
+  if (G.mode !== 'play' || player.blockHeld || player.judgeT > 0 || player.mendT > 0 || player.mantle || player.hang) return;
+  // a press while the blade is held up for a moment (the tail of a roll, a finisher's recovery, reeling from a blow) isn't
+  // thrown away: it waits, and the cut leaves as the hold ends if that is soon (player/update.js, data/movement.js MOVE.buffer)
+  if (player.swingLock > 0 || player.flinchT > 0){ player.atkBuf = G.gt; return; }
   if (player.fin) return;   // a SABER FINISHER plays out on its own (jedi/finisher.js): nothing queues behind it
   // input buffering, but ONLY in the back half of the current swing — early mashing is ignored so
   // the combo flows on rhythm instead of spraying three swings off one frantic burst of clicks.

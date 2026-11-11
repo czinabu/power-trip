@@ -306,7 +306,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
       e.vel.copy(knockDir.clone().multiplyScalar(slideCap(shoveCap(knockPow * 0.5, opts), opts)));
       e.vel.y = opts && opts.shove ? 3 : 4.5;
     } else {
-      e.group.position.addScaledVector(knockDir, 0.8);  // otherwise brutes only stagger
+      nudgeFoe(e, knockDir, 0.8);  // otherwise brutes only stagger (rocked back a step)
       // ...and a light blow does NOT break a brute's wind-up or swing: parry it, floor it, or get clear
       if (e.state !== 'windup' && e.state !== 'strike'){ e.state = 'recover'; e.st = 0.5; }
     }
@@ -314,7 +314,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   // the Jedi's front kick (config kickStagger): a short step back and a stagger, never a launch (its knock sits under the knockdown bar)
   if (knockDir && knockPow === CFG.player.kickStagger.knock && !e.dead && !tick && !byAlly && !(opts && opts.slide)){
     const K = CFG.player.kickStagger;
-    e.group.position.addScaledVector(knockDir.clone().setY(0).normalize(), K.step * (e.t.heavy ? 0.4 : 1));
+    nudgeFoe(e, knockDir.clone().setY(0).normalize(), K.step * (e.t.heavy ? 0.4 : 1));
     staggerEnemy(e, knockDir.x, knockDir.z, 'STAGGERED');
     e.st = K.stun * (e.t.staff ? 1.3 : e.t.heavy ? 1.2 : 1);
   }
@@ -322,6 +322,17 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   if (player.boon && player.boon.echo && !byAlly && !guest && !tick && knockDir && !e.dead && !e._echoing && dmg > 0){
     e._echoing = true; damageEnemy(e, dmg*0.4, knockDir, 0, false, false); e._echoing = false;
   }
+}
+
+/* A KNOCKED STEP — the short shove a blow gives a foe that stays on its feet (a bolt's flinch, a kick, a brute rocked
+   back). The ground is the same as it always was, but the body covers it over a few frames (enemies/ai.js runs
+   e.nudge, fast off the blow and easing to a stop, with pillars and the arena's edge still in the way) instead of
+   jumping there in one. A foe the host owns (co-op) is placed by the host's word, so it steps at once as before. */
+export function nudgeFoe(e, dir, dist){
+  if (!e || !dir || !(dist > 0)) return;
+  if (e.net){ e.group.position.addScaledVector(dir, dist); return; }
+  const n = e.nudge || (e.nudge = { x: 0, z: 0 });
+  n.x += dir.x * dist; n.z += dir.z * dist;
 }
 
 /* SHOVE SLIDE — a Force shove too light to floor the foe (data/config.js abilities.shove): it skids back along `dir`,
@@ -382,7 +393,7 @@ export function flinchEnemy(e, dir, push){
   if (!e || e.dead || e.converted) return;
   const heavy = !!e.t.heavy;
   e.flinch = Math.max(e.flinch || 0, heavy ? 0.08 : 0.15);
-  const d = dir.clone().setY(0); if (d.lengthSq() > 0.0001){ d.normalize(); e.flinchDir = d; e.group.position.addScaledVector(d, push * (heavy ? 0.22 : 1)); }
+  const d = dir.clone().setY(0); if (d.lengthSq() > 0.0001){ d.normalize(); e.flinchDir = d; nudgeFoe(e, d, push * (heavy ? 0.22 : 1)); }
   // hammering a lightly-armored foe mid-wind-up can stagger the swing right out of them
   if (!heavy && (e.state === 'windup' || e.state === 'strike' || e.state === 'order' || e.state === 'lungewind') && Math.random() < 0.5){ e.state = 'recover'; e.st = 0.3; e.volley = false; easeWeaponHome(e.group, 0.016); }
 }
@@ -406,7 +417,7 @@ export function interruptEnemy(e, dir, heavyBlow){
   e.group.userData.bodyMat.emissiveIntensity = 0;
   if (e.aimLine) e.aimLine.visible = false;
   easeWeaponHome(e.group, 0.016);
-  if (dir){ const d = dir.clone().setY(0); if (d.lengthSq() > 0.0001){ e.flinchDir = d.normalize(); e.group.position.addScaledVector(d, 0.35); } }
+  if (dir){ const d = dir.clone().setY(0); if (d.lengthSq() > 0.0001){ e.flinchDir = d.normalize(); nudgeFoe(e, d, 0.35); } }
   if (e.token) dropToken(e, true);
   floater(V3(e.group.position.x, e.group.position.y + 1.2, e.group.position.z), 'INTERRUPT', '#9fe6ff');
   S.clash(V3(e.group.position.x, 1.5, e.group.position.z), false);

@@ -79,7 +79,7 @@ function stickOr(dflt){
    (no keys: a roll back, out of reach). The body move is the form's (data/agility.js roll). */
 export function groundRoll(){
   const R = MOBILITY.roll, F = formMob().roll || {};
-  if (player.cds.roll > 0) return false;
+  if (player.cds.roll > 0){ player.rollBuf = G.gt; return false; }   // too soon after the last one: the press waits for the gap to close (player/update.js)
   const cost = (R.stam || 0) * (F.stam ?? 1);
   if (player.stam < cost){   // no breath for it: the feet won't carry a roll
     if (G.gt - (player.lastWinded ?? -9) > 0.6){ player.lastWinded = G.gt; floater(playerPos(), 'WINDED', '#ffaa66'); }

@@ -26,7 +26,9 @@ import { animatePlayer } from './animation.js';
 import { updateLockOn } from './lockon.js';
 import { updateGuardLine } from './jedi/guardline.js';
 import { holstered, updateBladeAuto } from './holster.js';
-import { updateDashCharges } from './mobility.js';
+import { updateDashCharges, groundRoll, inCombat } from './mobility.js';
+import { tryAttack } from './jedi/combat.js';
+import { MOVE } from '../data/movement.js';
 import { updateJetCharges } from './mando/mobility.js';
 import { updateForceStrike } from './jedi/palm.js';
 import { noteStamina } from '../game/readout.js';
@@ -41,6 +43,7 @@ export function updatePlayer(dt){
   const pp = playerPos();
   const st = stance();
   updatePlayerMeters(dt, pp, st);
+  flushBuffered();
   updateLockOn(dt);   // a soft lock steers the view before anything reads fwd()
   const f = fwd(), r = rightV();
   const moving = updateMovement(dt, pp, st, f, r);
@@ -57,6 +60,22 @@ export function updatePlayer(dt){
   animatePlayer(dt, pp, st, f, r, moving);
   syncOffSaber(player, !isGunner());   // Jar'Kai's second saber keeps in step with the first (model/weapons.js)
   clearHeldBlades(player.rig);   // (and kept out of the body once it's there: anim/bladeclear.js)
+}
+
+/* HELD PRESSES (data/movement.js MOVE.buffer) — a cut or a roll pressed a moment too soon goes as soon as it can. */
+function flushBuffered(){
+  if (G.mode !== 'play') return;
+  const fresh = t => t != null && G.gt - t >= 0 && G.gt - t < MOVE.buffer;
+  if (player.atkBuf != null && !(player.swingLock > 0) && !(player.flinchT > 0)){
+    const go = fresh(player.atkBuf);
+    player.atkBuf = null;
+    if (go && (!isGunner() || player.weapon === 'darksaber') && !player.holstered) tryAttack();
+  }
+  if (player.rollBuf != null && !(player.cds.roll > 0)){
+    const go = fresh(player.rollBuf);
+    player.rollBuf = null;
+    if (go && player.grounded && inCombat() && !(player.flinchT > 0) && !player.mantle && !player.hang && !(player.landStagT > 0)) groundRoll();
+  }
 }
 
 // Cooldowns, regen, Force barrier/mend upkeep, and the low-stamina guard break + danger vignette.

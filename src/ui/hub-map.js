@@ -82,6 +82,7 @@ function glyph(s){
     case 'ship': case 'shuttle': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
     case 'raid': return [`<circle cx="${n(x)}" cy="${n(z)}" r="2" fill="none" stroke="#b46bff" stroke-width=".9"/><circle cx="${n(x)}" cy="${n(z)}" r=".7" fill="#b46bff"/>`, 2.8];   // the raid table's gate-ring
     case 'galaxy': return [`<circle cx="${n(x)}" cy="${n(z)}" r="${n(Math.min(4, r * 0.7))}" fill="none" style="stroke:${BLUE}" stroke-width=".7"/><circle cx="${n(x)}" cy="${n(z)}" r="1.1" style="fill:${GOLD}"/>`, Math.min(4, r * 0.7) + 1.4];   // a ship's galaxy table
+    case 'helm': return [`<path d="M${n(x - 3)} ${n(z + 1.4)}L${n(x)} ${n(z - 2)}L${n(x + 3)} ${n(z + 1.4)}" fill="none" style="stroke:${BLUE}" stroke-width=".9"/><circle cx="${n(x)}" cy="${n(z + 1)}" r=".9" style="fill:${GOLD}"/>`, 3.4];   // a ship's helm: a chevron pointing forward
     case 'deeds': return [`<path d="M${n(x)} ${n(z - 2.4)}L${n(x + 2)} ${n(z + 1.6)}L${n(x - 2)} ${n(z + 1.6)}Z" style="fill:${GOLD}"/>`, 2.6];   // the hall's ledger: a trophy's point
     case 'bounties': return [`<rect x="${n(x - 3.5)}" y="${n(z - 1.2)}" width="7" height="2.4" style="fill:${GOLD}"/>`, 2];
   }

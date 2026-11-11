@@ -2,6 +2,7 @@
 // CO-OP MISSION SMOKE TEST — a shared story mission: two browsers on the BUILT game, the host starts a mission, the guest
 // joins it from the co-op panel; then the guest must follow the host's objectives, markers and chase quarry, and its
 // mission must end when the host's does.
+// MISSION=remix:pursuit plays the chase's remix instead: the guest must build the same remix (twist and faction) too.
 //   npm run build && npm run smoke:coop-mission
 
 import { chromium } from 'playwright';
@@ -32,6 +33,7 @@ async function open(name){
 }
 const connected = (page) => page.waitForFunction(() => /Connected/.test(document.getElementById('coopstatus').textContent), null, poll);
 
+const MID = process.env.MISSION || 'pursuit', SRC = MID.replace(/^remix:/, '').split(':')[0];
 let ok = false;
 try {
   const host = await open('host'), guest = await open('guest');
@@ -42,8 +44,8 @@ try {
   await Promise.all([connected(host), connected(guest)]);
   await host.click('#coopclose');
   // the host starts Survival
-  await host.evaluate(() => localStorage.setItem('sw_mission_pursuit_jedi', '1'));   // missions stay locked until the campaign clears them
-  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-mission', el => el.click()); await host.evaluate(() => document.getElementById('msn-pursuit').click());   // (its act's fold can be shut: the card is picked as a click on it would)
+  await host.evaluate((m) => localStorage.setItem('sw_mission_' + m + '_jedi', '1'), SRC);   // missions stay locked until the campaign clears them
+  await host.$eval('#hero-jedi', el => el.click()); await host.$eval('#mode-mission', el => el.click()); await host.evaluate((id) => document.getElementById('msn-' + id.replace(/:/g, '-')).click(), MID);   // (its act's fold can be shut: the card is picked as a click on it would)
   for (let i = 0; i < 5 && !(await host.evaluate(() => GAME.G.mode === 'play')); i++){
     if (await host.isVisible('#goText')) await host.click('#goText', { timeout: 2000 }).catch(() => {});
     if (await host.isVisible('#forms [data-go]')) await host.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
@@ -59,7 +61,10 @@ try {
     if (await guest.isVisible('#forms [data-go]')) await guest.click('#forms [data-go]', { timeout: 2000 }).catch(() => {});   // the Jedi's forms page before the fight: FIGHT
     await guest.waitForTimeout(800);
   }
-  if (!(await guest.evaluate(() => GAME.G.coopGuest && GAME.G.mission && GAME.G.missionId === 'pursuit'))) throw new Error('the guest did not join the host\'s mission');
+  if (!(await guest.evaluate((m) => GAME.G.coopGuest && GAME.G.mission && GAME.G.missionId === m, MID))) throw new Error('the guest did not join the host\'s mission');
+  const built = (p) => p.evaluate(() => { const d = GAME.missionState().def; return JSON.stringify({ id: d.id, sig: d.sig, faction: d.faction, tw: d.objectives.map(o => o.twist && o.twist.kind) }); });
+  const hb = await built(host), gb = await built(guest);
+  if (hb !== gb) throw new Error('the guest built another mission: ' + gb + ' (the host: ' + hb + ')');
   // the host's first objective begins: the guest follows, with its markers
   await host.waitForFunction(() => GAME.missionState().o, null, poll);
   await guest.waitForFunction(() => GAME.missionState().begun === 0 && GAME.missionState().o, null, poll);

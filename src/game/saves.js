@@ -124,6 +124,13 @@ function nextPos(run, hero = run.hero){
 // a loaded save's run waits on the menu (G.resumeRun) until BEGIN picks it up, as long as the same hero is picked
 export function canResume(){ return !!(G.resumeRun && G.resumeRun.hero === G.hero); }   // (a declaration: menus.js can call it while modules are still loading)
 export const resumeLabel = () => savedChapter(G.resumeRun, G.hero);
+// the chapter BEGIN / CONTINUE CAMPAIGN plays next for the hero in hand: the saved run's, or the story's first
+// (the ship's helm puts it up as NEXT IN YOUR STORY and jumps to its world: ui/galaxy-ui.js)
+export function nextChapter(){
+  const run = canResume() ? G.resumeRun : null;
+  const list = run ? chapterOrder(run.actTwo, run.tale || run.hero) : chapterOrder(null, G.hero), pos = run ? nextPos(run) : 0;
+  return list[pos] ? { c: list[pos], no: chapterNo(pos, list), resume: !!run } : null;
+}
 // 'ACT II · CH 6' for the saved run the menu would continue (the campaign tile)
 export function resumeProgress(){
   const run = G.resumeRun; if (!run) return '';
@@ -241,7 +248,7 @@ const placeOf = (L) => (L && L.name.split('—').map(t => t.trim())[1]) || '';
 function whereNow(){
   if (inCampaignRun()) return 'CAMPAIGN · ' + (G.chapter >= 0 && G.ngPlus > 0 ? 'NG+ ' + ['', 'I', 'II', 'III'][G.ngPlus] + ' · ' : '') + (G.chapter >= 0 ? chapterLabel() : 'LEVEL ' + (G.levelIdx + 1) + ' · ' + placeOf(LEVELS[G.levelIdx]));
   if ((G.mode === 'menu' || G.training) && canResume()) return 'CAMPAIGN · ' + savedChapter(G.resumeRun, G.resumeRun.hero);
-  if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'CHALLENGE · ' : G.missionId && G.missionId.startsWith('raid:') ? 'RAID · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
+  if (G.mode === 'play' && G.mission) return (isArcadeId(G.missionId) ? 'CHALLENGE · ' : G.missionId && G.missionId.startsWith('remix:') ? 'REMIX · ' : G.missionId && G.missionId.startsWith('raid:') ? 'RAID · ' : 'MISSION · ') + forHero((missionById(G.missionId) || {}).title || '', G.hero);
   if (G.mode === 'play' && G.endless) return 'SURVIVAL';
   if (G.mode === 'play' && G.training) return 'TRAINING';
   if (G.mode === 'play' && G.sandbox) return 'SANDBOX';

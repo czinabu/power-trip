@@ -2,11 +2,14 @@
 // HERO SHIP SMOKE TEST — boots the BUILT game (dist/index.html) and, for each hero, walks into their hub, boards their ship
 // from the station that flies to Jedha (data/hero-ships.js, ui/hub-ui.js), and on board:
 //   · the cabin builds (the ship's wing) with its stations;
-//   · the GALAXY MAP opens (ui/galaxy-ui.js), lists the worlds, and picking a world shows what can be played there;
-//   · a challenge launched from it runs, and its RETURN button (named for the ship) brings the run back aboard;
+//   · the GALAXY MAP opens (ui/galaxy-ui.js), lists the worlds, picking a world shows what can be played there, and it
+//     plots a course there (it launches nothing itself);
+//   · TAKE THE HELM on the map opens the helm's panel; the HELM (or cockpit), walked to, shows that course and what's on
+//     the world at the end of it, and holds the voyages (NEXT IN YOUR STORY first);
+//   · a challenge launched from the helm runs, and its RETURN button (named for the ship) brings the run back aboard;
 //   · walking down the ramp lets you out into the hub, at the foot of it;
 //   · (the trooper) STRAIGHT TO THE CITADEL skips the ship, back into the hub at the foot of the ramp.
-// SHOTS=dir also saves a picture of each cabin and its galaxy map there.
+// SHOTS=dir also saves a picture of each cabin, its galaxy map and its helm there.
 // Fails on any page error or console error, or a step that doesn't land where it should.
 //   npm run build && npm run smoke:ship
 
@@ -110,11 +113,28 @@ for (const hero of HEROES){
     const jedha = await page.locator('#hubpanel .gx-card .gx-n').textContent();
     check(/JEDHA/.test(jedha || ''), `${hero}: the picked world is shown (${jedha})`);
     check(await page.locator('#hubpanel .gx-list .hb-o', { hasText: 'OPEN ZONE' }).count() > 0, `${hero}: Jedha lists its open zone`);
+    check(!(await page.locator('#hubpanel .hb-o', { hasText: 'CHALLENGE' }).count()), `${hero}: the galaxy map launches no voyages (the helm does)`);
+    check(await pick('PLOT A COURSE'), `${hero}: the galaxy map offers to plot a course to Jedha`);
+    await page.waitForTimeout(250);
+    check(await panelUp() && await page.locator('#hubpanel .gx-w.aim[data-w="jedha"]').count() === 1, `${hero}: the course is plotted, the map still up`);
+    check(await page.locator('#hubpanel .gx-course').count() === 1, `${hero}: the course line is drawn`);
     await page.waitForTimeout(400); await shot('galaxy-jedha');
-    // a challenge from the voyages, and back aboard
-    check(await pick('CHALLENGE'), `${hero}: the galaxy map offers a challenge`);
+    // TAKE THE HELM / COCKPIT: the map hands straight over to the helm's panel
+    check(await pick('TAKE THE '), `${hero}: the map offers to take the helm`);
+    check(await page.waitForFunction(() => document.querySelector('#hubpanel .hl-route'), null, { timeout: 5000 }).then(() => true, () => false), `${hero}: and the helm's panel opens from it`);
+    await page.click('#hubpanel [data-x]'); await page.waitForTimeout(300);
+    // THE HELM, walked to: the course, what's on Jedha, the voyages
+    check(await tapF(0, -6.8, Math.PI), `${hero}: the helm opens`);
+    const route = await page.locator('#hubpanel .hl-route').textContent().catch(() => '');
+    check(/COURSE PLOTTED FOR\s*JEDHA/.test(route || ''), `${hero}: the helm shows the course to Jedha (${(route || '').replace(/\s+/g, ' ').trim()})`);
+    check(await page.locator('#hubpanel .gx-list .hb-o', { hasText: 'OPEN ZONE' }).count() > 0, `${hero}: the helm lists Jedha's open zone`);
+    check(await page.locator('#hubpanel .gx-voy .hb-o', { hasText: 'THE GALAXY MAP' }).count() === 1, `${hero}: the helm links back to the galaxy map`);
+    check(await page.locator('#hubpanel .gx-voy .hb-o.hl-story', { hasText: 'NEXT IN YOUR STORY' }).count() === 1, `${hero}: the helm names the next chapter of the story`);
+    await page.waitForTimeout(400); await shot('helm');
+    // a challenge from the helm's voyages, and back aboard
+    check(await pick('CHALLENGE'), `${hero}: the helm offers a challenge`);
     await fight();
-    check(await page.waitForFunction(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.mission, null, { timeout: 120000 }).then(() => true, () => false), `${hero}: the challenge launches from the ship`);
+    check(await page.waitForFunction(() => GAME.G.mode === 'play' && !GAME.G.hub && GAME.G.mission, null, { timeout: 120000 }).then(() => true, () => false), `${hero}: the challenge launches from the helm`);
     await page.waitForTimeout(800);
     await page.evaluate(() => { document.getElementById('overlay').style.display = 'flex'; GAME.G.paused = true; GAME.setOverlayState('pause'); });
     await page.waitForTimeout(300);

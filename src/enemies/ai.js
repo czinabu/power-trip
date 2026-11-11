@@ -94,6 +94,7 @@ function inSwingArc(g, tgt, fx, fz, cm){
 
 const CORPSE = 1.4;   // seconds a body lies (the last 0.6 of them sinking away) before it is cleared
 const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1, yield: 1, spared: 1 };   // states that own the whole body
+const NUDGE_RATE = 20;   // 1/s: a knocked step covers ~85% of its ground in 0.1 s (damage.js nudgeFoe)
 const NO_SKID = { ragdoll: 1, knockdown: 1, fade: 1, spawn: 1, lock: 1, grasped: 1, stasis: 1, yield: 1, spared: 1 };   // states a shove's skid stops in (they place the body themselves)
 const LUNGING = { lungewind: 1, lunge: 1 };
 const HOLD_DROP = { windup: 1, strike: 1, lungewind: 1, leapwind: 1, order: 1 };   // what a held foe (e.aiHold) lets go of
@@ -798,6 +799,17 @@ export function updateEnemies(dtAll){
       const flyH = clamp(heroFor(e).pos.y + 1.5, 2.4, 9) + Math.sin(G.gt*2 + i) * 0.22;
       g.position.y = dampToward(g.position.y, flyH, dt, 4);
       if (g.userData.thrusters){ const fl = 0.7 + Math.abs(Math.sin(G.gt*18 + i)) * 0.5; for (const th of g.userData.thrusters) th.material.opacity = fl; }
+    }
+    // KNOCKED A STEP: a blow's short shove (a bolt's flinch, a kick, a brute rocked back: damage.js nudgeFoe) is covered
+    // over a few frames, fast off the blow and easing to a stop, instead of the body jumping there in one
+    if (e.nudge){
+      if (e.dead || NO_SKID[e.state]) e.nudge = null;
+      else {
+        const k = 1 - Math.exp(-NUDGE_RATE * dt);
+        g.position.x += e.nudge.x * k; g.position.z += e.nudge.z * k;
+        e.nudge.x *= 1 - k; e.nudge.z *= 1 - k;
+        if (e.nudge.x * e.nudge.x + e.nudge.z * e.nudge.z < 1e-4) e.nudge = null;
+      }
     }
     // SHOVED: a Force shove too light to floor it skids it back on its feet, easing to a stop (damage.js shoveSlide).
     // Run before the solids below, so a pillar or crate in the way stops the skid

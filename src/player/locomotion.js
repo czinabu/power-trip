@@ -136,6 +136,14 @@ export function updateMovement(dt, pp, st, f, r){
       const gunRun = isGunner() && !airborne;   // Mando and trooper on their feet: quick start, firm plant
       let accel = gunRun ? (against ? MOVE.gunnerBrake : MOVE.gunnerAccel) * (st.accel || 1) : run ? (against ? MOVE.runBrake : MOVE.runAccel) * (st.accel || 1)
                       : (against ? MOVE.brake : MOVE.accel) * (st.accel || 1) * (player.sprinting && !against ? MOVE.sprintAccel : 1);
+      // WEIGHT (MOVE.ease): the feet answer at once, but the last of the speed builds and the last of a stop settles
+      // instead of both clipping flat, so a start leans in and a stop sits back for a beat
+      if (!airborne && topSpeed > 0.5){
+        const E = MOVE.ease, sp = Math.hypot(player.moveVel.x, player.moveVel.z) / topSpeed;
+        const along = moving && sp > 0.01 ? want.dot(player.moveVel) / (want.length() * sp * topSpeed) : 0;   // (a turn keeps its full bite: only speeding up along the way you're going tapers)
+        if (moving && !against && sp > E.from && along > 0.95) accel *= 1 - (1 - E.accel) * Math.min(1, (sp - E.from) / (1 - E.from));
+        else if (!moving && !(player.pivotT > 0) && sp < E.stopBelow) accel *= E.brake;
+      }
       if (airborne) accel = MOVE.accel * (st.accel || 1) * (player.gliding ? 0.5 : isTrooper() ? TROOPER.jump.airControl : MOVE.airControl) * airControlMul();   // a leap in a fight steers less
       if (dl > 0.001) player.moveVel.addScaledVector(TMP.normalize(), Math.min(dl, accel * dt));
     }

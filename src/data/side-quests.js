@@ -26,10 +26,12 @@
 //   escort / quarry (optional) replace the source mission's own (who you walk, who you chase)
 //   post      a VETERAN side mission (the post-game): it waits for the hero's campaign to be beaten, as NEW GAME+ does
 //   muts      the mutators it always runs with (data/ngplus.js NG_MUTATORS), shown on its card
+//   sig       [n, twist] a signature twist from the deck (data/twist-deck.js) laid on its n-th objective, shown on its card
 //   choice    (light and dark, data/alignment.js) asked on a card once it is won, the first time only: { title, lines,
 //             options: [{ key, side: 'light' | 'dark', label, line }] }. It moves the hero's meter, and nothing else
 
 import { MISSIONS } from './missions.js';
+import { DECK } from './twist-deck.js';
 
 export const SIDE_PREFIX = 'side:';
 export const SIDE_VOICE = 'THE TEMPLE KEEPER';
@@ -149,7 +151,7 @@ export const SIDE_QUESTS = [
 ];
 // ---- THE VETERAN CALLS: the post-game's own side missions, once the hero's campaign is beaten. Each carries mutators ----
 SIDE_QUESTS.push(
-  { slug: 'long-trench', title: 'THE LONG TRENCH', place: 'THE ICE FRONT ON HOTH', threat: 5, rank: 0, post: true, from: 'icefront', muts: ['ironhide', 'marksmen'],
+  { slug: 'long-trench', title: 'THE LONG TRENCH', place: 'THE ICE FRONT ON HOTH', threat: 5, rank: 0, post: true, from: 'icefront', muts: ['ironhide', 'marksmen'], sig: [0, 'standard'],
     blurb: 'hold the old trench line against a veteran regiment',
     ask: 'The regiment that broke the Hoth line is back on the ice, and they have learned. A listening post is still in the old trenches. Hold the line while it gets out.',
     take: [
@@ -163,7 +165,7 @@ SIDE_QUESTS.push(
     done: all('The listening post is clear of the ice. Whatever that regiment came back for, it did not get.'),
     reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
 
-  { slug: 'forge-rekindled', title: 'THE FORGE REKINDLED', place: 'THE MUSTAFAR FORGE', threat: 5, rank: 0, post: true, from: 'forge', muts: ['frenzy', 'vanguard'],
+  { slug: 'forge-rekindled', title: 'THE FORGE REKINDLED', place: 'THE MUSTAFAR FORGE', threat: 5, rank: 0, post: true, from: 'forge', muts: ['frenzy', 'vanguard'], sig: [0, 'stamp'],
     blurb: 'blow the rebuilt forge before its new masters arm themselves',
     ask: 'Someone has lit the Mustafar forge again, and its new guard are the best the Empire has left. Charge the feeds, then hold the lane until it goes up.',
     take: [
@@ -177,16 +179,19 @@ SIDE_QUESTS.push(
     done: all('The forge is slag again. Whoever lit it will have to find somewhere else to arm.'),
     reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
 
-  { slug: 'wreckers-toll', title: 'THE WRECKERS\' TOLL', place: 'THE STARSHIP GRAVEYARD OF JAKKU', threat: 5, rank: 0, post: true, from: 'graveyard', muts: ['volatile', 'berserk'],
-    blurb: 'beat a wrecking crew to the cores, then hold out in the storm',
+  { slug: 'wreckers-toll', title: 'THE WRECKERS\' TOLL', place: 'THE STARSHIP GRAVEYARD OF JAKKU', threat: 5, rank: 0, post: true, from: 'graveyard', muts: ['volatile', 'berserk'], sig: [0, 'barrage'],
+    blurb: 'beat a wrecking crew to the cores, then walk the crawler out through the storm',
     ask: 'A wrecking crew is stripping the graveyard, and they wire their own people to blow when they fall. There are cores out there worth saving. Get to them first.',
     take: [
       { i: 0, title: 'SALVAGE THE CORES', doneLine: 'EVERY CORE RECOVERED', doneSub: 'The crew is coming for them.',
         say: all('They come fast, and they burst when they drop. Pull the cores out of the wrecks, and do not finish anyone at arm\'s length.'),
         task: all('Stand at each wreck to pull its core') },
-      { i: 1, title: 'HOLD THE FREIGHTER', doneLine: 'ENGINES HOT', doneSub: 'Off the sand, cores and all.',
-        say: all('The freighter needs a minute. Hold the camp. The storm will hide them until they are close.'),
-        task: all('Hold the camp while the freighter warms up') },
+      { i: 1, title: 'GET THE CRAWLER OUT',
+        say: all('The cores are on the crawler. Walk it back across the yard, and keep the crew off it. They burst when they drop, so not next to it.'),
+        task: all('Stay with the crawler and keep foes off it') },
+      { i: 2, title: 'GET THE CRAWLER OUT', doneLine: 'THE CRAWLER IS HOME', doneSub: 'Off the sand, cores and all.',
+        say: all('The storm is in. They will be on the crawler before you see them. Stay right by it.'),
+        task: all('Get the crawler to the freighter through the storm') },
     ],
     done: all('The cores are aboard, and the wreckers are scattered over the dunes.'),
     reward: 'Veteran rank XP · for heroes who have beaten their campaign' },
@@ -205,6 +210,7 @@ export function sideQuest(id){
     if (t.startFrom != null) o.start = clone(src.objectives[t.startFrom].start);
     for (const [k, v] of Object.entries(t)) if (v === undefined) delete o[k];   // (a field set to undefined is taken off)
     if (n === 0) delete o.start;   // (the first one plays from the mission's start)
+    if (q.sig && q.sig[0] === n && DECK[q.sig[1]]){ const D = DECK[q.sig[1]]; o.twist = { kind: q.sig[1], ...D.make(o, src), line: D.line }; }
     return o;
   });
   const first = q.take[0].i, st = src.objectives[first].start;
@@ -220,7 +226,7 @@ export function sideQuest(id){
     quarry: objectives.some(o => o.kind === 'pursuit' || o.quarry) ? q.quarry || src.quarry : undefined,
     route: q.legs && src.route ? src.route.slice(0, q.legs) : src.route,
     voice: SIDE_VOICE,
-    muts: q.muts ? [...q.muts] : [], veteran: !!q.post,   // (data/ngplus.js: game/mission.js puts them on as it starts)
+    muts: q.muts ? [...q.muts] : [], veteran: !!q.post, sig: q.sig && DECK[q.sig[1]] ? [DECK[q.sig[1]].name] : [],   // (data/ngplus.js: game/mission.js puts them on as it starts)
     objectives,
     done: q.done,
   };

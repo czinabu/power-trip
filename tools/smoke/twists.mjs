@@ -21,12 +21,15 @@ const poll = { timeout: 150000, polling: 250 };
 const SECONDS = +(process.env.TWIST_SECONDS || 16);
 // [hero, mission, twist kind]
 const RUNS = [
-  ['jedi', 'refuge', 'barrage'], ['mando', 'covert', 'gap'], ['jedi', 'academy', 'stragglers'], ['mando', 'gallows', 'list'],
+  ['jedi', 'refuge', 'barrage'], ['mando', 'covert', 'gap'], ['mando', 'gallows', 'list'],
   ['mando', 'holdfast', 'stalker'], ['jedi', 'strike', 'standard'], ['jedi', 'grassland', 'minefield'], ['jedi', 'breakout', 'searchlight'],
   ['jedi', 'pens', 'cage'], ['jedi', 'jedha-night', 'pulse'], ['jedi', 'chains', 'vael'],
   ['trooper', 'order66', 'marked'], ['trooper', 'chipfiles', 'decompress'], ['trooper', 'drowned', 'tide'], ['trooper', 'chipworks', 'stamp'],
   ['trooper', 'warcamp', 'gunship'], ['trooper', 'hunt', 'rockslide'], ['trooper', 'lastassault', 'guns'], ['trooper', 'broadcast', 'signal'],
 ].filter(r => !ONLY || ONLY.includes(r[2]));
+// …and the deck's travelling twists (data/twist-deck.js) away from home: each on a remix that deals it (data/remixes.js),
+// found in the page (DECK=0 leaves them out)
+const DECK_RUNS = process.env.DECK === '0' ? [] : ['stalker', 'blackout', 'gunship', 'cage', 'standard', 'signal', 'sandstorm', 'barrage', 'stamp', 'tide', 'guns'].filter(k => !ONLY || ONLY.includes(k));
 
 const server = PeerServer({ port: PORT, host: '127.0.0.1', path: '/' });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
@@ -55,7 +58,14 @@ async function toPlay(page){
 }
 const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + '.png'), timeout: 180000 }).catch(() => {}); };
 // a mission's objective with this twist
-const twistAt = (page, mid, kind) => page.evaluate(([m, k]) => GAME.MISSIONS[m].objectives.findIndex(o => o.twist && o.twist.kind === k), [mid, kind]);
+const twistAt = (page, mid, kind) => page.evaluate(([m, k]) => GAME.missionById(m).objectives.findIndex(o => o.twist && o.twist.kind === k), [mid, kind]);
+// a remix that deals this twist away from its home mission: [hero, remix id], the hero one who can play it
+const remixWith = (page, kind) => page.evaluate((k) => {
+  const has = (id) => { const d = GAME.missionById(id); return d && (d.sig || []).includes(GAME.TWIST_DECK[k].name) ? d : null; };
+  const pool = GAME.remixes.pool();
+  for (let w = 0; w < 400; w++) for (const mid of pool){ const id = w ? 'remix:' + mid + ':' + w : GAME.remixes.idFor(mid), d = has(id); if (d) return [d.heroes ? d.heroes[0] : 'jedi', id]; }
+  return null;
+}, kind);
 
 // a few game seconds of the objective: the hero kept standing and on it, its progress pushed along at a steady clip
 async function play(page, seconds, push = true){
@@ -87,6 +97,12 @@ async function play(page, seconds, push = true){
 
 const rows = [];
 try {
+  if (DECK_RUNS.length){   // find a remix for each of the deck's twists, then play them with the rest
+    const p0 = await open('deck');
+    for (const k of DECK_RUNS){ const f = await remixWith(p0, k); if (f) RUNS.push([f[0], f[1], k]); else errors.push('deck: no remix deals ' + k); }
+    await p0.close();
+    RUNS.sort((a, b) => a[0].localeCompare(b[0]));   // (one page per hero)
+  }
   let page = null, hero = null;
   for (const [h, mid, kind] of RUNS){
     if (h !== hero){
@@ -112,7 +128,7 @@ try {
     const tw = s.tw || {}; tw.events -= ev0;
     const ok = tw.kind === kind && (tw.events > 0 || tw.props > 0 || tw.k > 0.05);   // (an event, a prop, or its mood: the listing deck has only the last)
     rows.push({ mission: mid, hero: h, kind, running: tw.kind, events: tw.events, props: tw.props, ok });
-    console.log((ok ? 'ok   ' : 'FAIL ') + kind.padEnd(12) + mid.padEnd(13) + h.padEnd(8) + 'events ' + tw.events + ' · props ' + tw.props + ' · t ' + (tw.t || 0).toFixed(1));
+    console.log((ok ? 'ok   ' : 'FAIL ') + kind.padEnd(12) + mid.padEnd(24) + h.padEnd(8) + 'events ' + tw.events + ' · props ' + tw.props + ' · t ' + (tw.t || 0).toFixed(1));
     if (!ok) errors.push(mid + ': the ' + kind + ' twist ' + (tw.kind !== kind ? 'was not running (' + tw.kind + ')' : 'put nothing in the world'));
     // and it lets go cleanly when the objective is done
     await page.evaluate(() => GAME.skipObjective());

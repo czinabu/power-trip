@@ -111,8 +111,8 @@ function chest(k, w, f, o = {}){
   for (const s of [-1, 1]) k.add(loft([{ y:-0.07, w:0.16*w, d:0.17 }, { y:0.01, w:0.16*w, d:0.17 }, { y:0.06, w:0.12*w, d:0.13 }, { y:0.085, w:0.065*w, d:0.08 }], ngon(12)), 'armor', k.root, [FRAME.shx*w*s, 1.74, 0], [0, 0, -0.42*s]);
   { const T = k.group(k.root); T.scale.set(FRAME.chest, 1, FRAME.depth); k = k.within(T); }
   k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.86 : 1), d:0.25 }], ROBE), 'armor');
-  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.53*w, d:0.31*b, z:0.01*b }, { y:1.58, w:0.58*w, d:0.33*b, z:0.014*b }, { y:1.7, w:0.6*w, d:0.31 },
-              { y:1.79, w:0.52*w, d:0.27 }, { y:1.86, w:0.37*w, d:0.22 }, { y:1.92, w:0.23, d:0.18 }], ROBE), 'armor');
+  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.47*w, d:0.29*b, z:0.01*b }, { y:1.58, w:0.53*w, d:0.31*b, z:0.014*b }, { y:1.72, w:0.58*w, d:0.3 },
+              { y:1.81, w:0.54*w, d:0.26 }, { y:1.87, w:0.4*w, d:0.21 }, { y:1.92, w:0.23, d:0.18 }], ROBE), 'armor');
   if (o.suit){
     k.add(loft([{ y:1.84, w:0.25, d:0.2 }, { y:1.95, w:0.2, d:0.17 }], SOFT), 'armor2');   // the jumpsuit's collar
     k.add(block(0.018, 0.6, 0.015, 0.3), 'armor2', k.root, [0, 1.56, 0.163*b], [-0.05, 0, 0], NO_INK);   // its zip

@@ -19,8 +19,8 @@ import { rounded } from '../player/model/skin.js';
    two thirds as wide as the figure is tall at the shoulder line, as deep as a keg); these bring them to a soldier's
    build while every joint, hitbox and pose stays where it was. chest/depth scale the whole torso shell and what sits
    on it (chestDetail below included), hips the pelvis and belt, shx is the shoulder joints' (and the
-   pauldrons') distance out from the spine as a fraction of the body width, arm the arms' thickness. */
-export const FRAME = { chest: 0.84, depth: 0.86, hips: 0.92, shx: 0.37, arm: 0.86 };
+   pauldrons') distance out from the spine as a fraction of the body width, arm the arms' thickness, pad the shoulder pads' size. */
+export const FRAME = { chest: 0.84, depth: 0.86, hips: 0.92, shx: 0.37, arm: 0.86, pad: 0.9 };
 
 const PI = Math.PI;
 const SOFT_HEAD = rounded(HEAD), SOFT_LIMB = rounded(chamfer(0.4)), SOFT = rounded(chamfer(0.42));

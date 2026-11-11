@@ -118,6 +118,7 @@ export function torso(k, w, o = {}){
 }
 
 export function pauldrons(k, w, key = 'armor', size = 1){
+  size *= FRAME.pad;   // (the FRAME's shoulder pads: a touch under the old size, so they cap the shoulder rather than wing out)
   for (const s of [-1, 1]){
     k.add(loft(cap(0.22*w*size, 0.22*size), SOFT),
       k.v === 1 && s < 0 ? 'mark' : key, k.root, [(FRAME.shx - 0.03)*w*s, 1.8, 0], [0, 0, -0.32*s]);

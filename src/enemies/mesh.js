@@ -20,7 +20,6 @@ import { lookPool, lookKey, FOE_LOOKS } from '../data/foe-looks.js';
 import { buildSaberist, lookPalette } from './saberist.js';
 import { ACOLYTES, lookById, lookBlade } from '../data/saber-cast.js';
 import { softBody, newRig } from './softbody.js';
-import { isSoft } from '../data/soft-body.js';
 import { FRAME, face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling, strap } from './detail.js';
 
 const PI = Math.PI;
@@ -147,9 +146,10 @@ export function arm(k, parent, w, o = {}){
      (k.bell). Everyone else: an upper arm, an elbow cop and a forearm plate */
   let el;
   if (k.sleeve){
-    k.add(loft([{ y:-UPPER - 0.02, w:0.14*w, d:0.14 }, { y:-0.3, w:0.15*w, d:0.15 }, { y:-0.08, w:0.165*w, d:0.165 }, { y:0.06, w:0.17*w, d:0.17 }], ngon(12)), k.sleeve, parent);
+    if (!k.soft) k.add(loft([{ y:-UPPER - 0.02, w:0.14*w, d:0.14 }, { y:-0.3, w:0.15*w, d:0.15 }, { y:-0.08, w:0.165*w, d:0.165 }, { y:0.06, w:0.17*w, d:0.17 }], ngon(12)), k.sleeve, parent);
     el = k.bone(o.elbow || foreName(parent), parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
-    k.add(loft([{ y:-0.075, w:0.1*w, d:0.1 }, { y:-0.05, w:0.135*w, d:0.135 }, { y:0, w:0.148*w, d:0.148 }, { y:0.05, w:0.135*w, d:0.135 }, { y:0.075, w:0.1*w, d:0.1 }], ngon(12)), k.sleeve, el);
+    if (k.rig) k.rig.arms.push({ sh: parent, el, w, upper: UPPER, key: k.sleeve, sleeve: true });   // (soft: the sleeve is one skin, shoulder to cuff)
+    if (!k.soft) k.add(loft([{ y:-0.075, w:0.1*w, d:0.1 }, { y:-0.05, w:0.135*w, d:0.135 }, { y:0, w:0.148*w, d:0.148 }, { y:0.05, w:0.135*w, d:0.135 }, { y:0.075, w:0.1*w, d:0.1 }], ngon(12)), k.sleeve, el);
     const bell = k.bell ? 1 : 0;
     k.add(loft([{ y:-0.35, w:(0.15 + 0.06*bell)*w, d:0.15 + 0.055*bell }, { y:-0.28, w:(0.145 + 0.035*bell)*w, d:0.145 + 0.035*bell },
                 { y:-0.14, w:(0.14 + 0.01*bell)*w, d:0.14 + 0.01*bell }, { y:0.02, w:0.14*w, d:0.14 }], ngon(12)), o.fore || 'armor', el);
@@ -820,14 +820,15 @@ export const MODELS = {
   b1(k, t){
     for (const s of [-1, 1]){
       const L = legBones(k, 0.13 * s);
-      k.add(limb(0.48, [[-0.03,0.09,0.09],[1,0.07,0.07]], chamfer(0.35)), 'armor', L.thigh);
+      if (!k.soft) k.add(limb(0.48, [[-0.03,0.09,0.09],[1,0.07,0.07]], chamfer(0.35)), 'armor', L.thigh);   // (soft: a strut out of the pelvis and through the knee, enemies/softbody.js softDroid)
       k.add(block(0.1, 0.07, 0.1, 0.4), 'metal', L.shin);
       k.add(limb(0.38, [[0,0.075,0.08],[0.7,0.09,0.1],[1,0.06,0.07]], KEEL), 'armor', L.shin);
       k.add(plate([[-0.06,0.03],[-0.06,-0.06],[0.17,-0.06],[0.19,-0.03],[0.04,0.03]], 0.09, 0.008), 'armor2', L.foot, [0, -0.03, 0], [0, -PI/2, 0]);
     }
     k.add(loft([{ y:0.86, w:0.32, d:0.18 }, { y:1.0, w:0.34, d:0.2 }], chamfer(0.4)), 'armor2');
     k = upper(k);
-    k.add(loft([{ y:1.0, w:0.06, d:0.06 }, { y:1.32, w:0.06, d:0.06 }], ngon(6)), 'metal');   // spine
+    if (k.rig) k.rig.droid = true;
+    if (!k.soft) k.add(loft([{ y:1.0, w:0.06, d:0.06 }, { y:1.32, w:0.06, d:0.06 }], ngon(6)), 'metal');   // spine (soft: a ribbed conduit that flexes at the waist)
     k.add(loft([{ y:1.28, w:0.36, d:0.2 }, { y:1.5, w:0.44, d:0.28 }, { y:1.72, w:0.42, d:0.26 }, { y:1.8, w:0.3, d:0.2 }], SOFT_BODY), 'armor');
     k.add(block(0.32, 0.4, 0.18, 0.3), 'armor2', k.root, [0, 1.52, -0.2]);   // backpack
     k.add(loft([{ y:1.78, w:0.05, d:0.05 }, { y:2.02, w:0.045, d:0.045 }], ngon(6)), 'metal', k.root, [0, 0, 0.03], [0.18, 0, 0]);   // neck
@@ -1119,15 +1120,14 @@ export function buildEnemyMesh(t, o = {}){
   const carry = L.bare && ((t.bare && typeof t.bare === 'string' && t.bare) || (FOE_LOOKS[t.model] && FOE_LOOKS[t.model].carry) || BARE[t.model]);
   const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
     : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + lookKey(L);
-  const soft = !look && isSoft(t.model);   // one continuous body under the plates (data/soft-body.js)
   const pal = look ? lookPalette(look) : null;
   if (pal && !(o.look && lookById(o.look))){   // the rank and file keep their type's colours (deeper: black robes, not grey plate), unless their face's look names its own
     const own = look.colors || {};
     if (own.tunic == null) pal.armor = { ...pal.armor, c: shade(t.color, 0.6) };
     if (own.cloak == null) pal.cloth = t.cloth ?? pal.cloth;
   }
-  const baked = bakeDesign(soft ? id + ':soft' : id, k => {
-    if (soft){ k.soft = true; k.rig = newRig({ ...LEG_E, waist: WAIST }); }
+  const baked = bakeDesign(id, k => {
+    k.soft = true; k.rig = newRig({ ...LEG_E, waist: WAIST });   // one continuous body under the plates (enemies/softbody.js)
     k.v = L.v || 0; k.dv = L.dv || 0; k.face = F; k.badge = IMPERIAL.has(t.model); k.look = look;
     k.fem = !!L.fem; k.bw = L.fem ? 0.86 : 1; k.hv = L.hv || 0; k.kit = L.kit || 0; k.hat = L.hat || null; k.cap = L.cap;
     if (carry){
@@ -1136,7 +1136,7 @@ export function buildEnemyMesh(t, o = {}){
       k.bareHelmet = g => HELMETS[carry]({ ...k, root: g, glow: () => new THREE.Object3D(), live: o => o }, g, t);
     }
     MODELS[t.model](k, t);
-    if (soft) softBody(k);
+    softBody(k);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
     kitcloth: kitCloth(t.color), rag: t.rag ?? 0x5a2c22, gold: { c: t.trim ?? 0xc9a040, r: 0.35, m: 0.8 },
@@ -1159,6 +1159,7 @@ export function buildEnemyMesh(t, o = {}){
   const u = g.userData = vis.userData;
   u.armSwing = ARM_SWING[t.model] || null;
   u.model = t.model;   // its stance (enemies/upper.js STANCE)
+  u.soft = true;       // one continuous body: the trunk can bend further without opening a seam (enemies/upper.js BEND)
   u.look = look;       // a saber wielder's look (data/saber-cast.js): its blade colour, its side
   if (look && u.bladeGlow) u.bladeGlow.material.color.setHex(lookBlade(look));
   if (u.lids) u.lids.scale.y = LID_OPEN;   // a face's eyes rest open (enemies/upper.js faceLife blinks them)

@@ -229,13 +229,21 @@
 .ov-actions{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:28px}
 #overlay.st-menu .ov-actions{justify-content:flex-start}
 /* menu column: BEGIN gets the full width; settings / help / co-op / roadmap share one quiet row under it (fullscreen
-   is a small icon in the hint row on the menu, see .fsmini, and keeps its button on the pause screen) */
+   is an icon button at the end of that row on the menu, and the small corner toggle on the pause screen, see .fsmini) */
 #overlay.st-menu .ov-actions{gap:6px;margin-top:22px}
 #overlay.st-menu .ov-actions .btn{box-sizing:border-box}
 #overlay.st-menu .ov-actions .go{flex:1 0 100%;margin-bottom:4px}
 #overlay.st-menu .ov-actions .btn:not(.go){flex:1 1 30%;min-width:0;white-space:nowrap;padding:9px 6px;font-size:12px;letter-spacing:1.5px;
   background:rgba(8,18,33,.45)}
-#overlay.st-menu #fsBtn{display:none}
+#fsBtn .fsic{display:none}
+#overlay.st-menu #fsBtn{order:9;position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:0;padding:9px 10px}
+#overlay.st-menu #fsBtn .fs-l{display:none}
+#overlay.st-menu #fsBtn .fsic{display:block;width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#fsBtn .fsic .fs-out,html.is-fs #fsBtn .fsic .fs-in{display:none}
+html.is-fs #fsBtn .fsic .fs-out{display:inline}
+/* a pad's press can't go fullscreen (fullscreen.js refused): the button says how, for a moment */
+#overlay.st-menu #fsBtn.fs-nudge::after{content:'click or press a key';position:absolute;right:0;bottom:calc(100% + 8px);padding:5px 8px;white-space:nowrap;
+  font:600 11px/1 var(--font-ui);letter-spacing:1px;color:var(--accent);background:rgba(6,14,26,.92);border:1px solid var(--edge)}
 #overlay .go{animation:none}
 #restartBtn{display:none;color:#ffcfa0;border-color:rgba(200,120,60,.45)}
 #restartBtn:hover{border-color:#ffb060;color:#ffe2c4}
@@ -290,13 +298,13 @@ html.desktop-app #exitBtn{display:inline-flex}
 #overlay.st-menu .ov-foot kbd{font-size:12px;min-width:2.1em;height:2.1em;margin:0 2px}
 /* the main menu's quiet fullscreen toggle: an icon + word at the end of the hint row (the pause screen's hint row has it too,
    SETTINGS keeps its pill). fullscreen.js hides it where the browser can't go fullscreen (iPhone Safari) */
-/* the title screen keeps only the fullscreen toggle (and, on a pad, A select · B back): Tab, Enter, M and P are play's keys,
-   shown on the pause screen */
+/* the title screen's foot keeps only, on a pad, A select · B back: Tab, Enter, M and P are play's keys, shown on the pause
+   screen, and fullscreen is a button in the row above */
 #overlay.st-menu .ov-foot{display:flow-root}
 #overlay.st-menu .ov-foot :is(.kbonly,.ingame){display:none}
 .fsmini{display:none;align-items:center;gap:5px;float:right;margin:-3px -6px 0 12px;padding:3px 6px;border-radius:var(--r-chip);
   color:var(--ink-faint);cursor:pointer;pointer-events:auto;transition:color .15s,background .15s}
-#overlay:is(.st-menu,.st-pause) .fsmini{display:inline-flex}
+#overlay.st-pause .fsmini{display:inline-flex}
 .fsmini:hover{color:var(--ink-soft);background:rgba(92,198,255,.08)}
 .fsmini svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .fsmini .fs-out{display:none}
@@ -791,7 +799,7 @@ html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-t
   cursor:pointer;pointer-events:auto;color:var(--ink-soft);border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(6,14,26,.72);transition:border-color .15s}
 #fileline .fl-emb{flex:none;display:flex;width:58px;height:58px;box-sizing:border-box;padding:7px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(255,255,255,.04)}
 #fileline .fl-emb svg{width:100%;height:100%}
-#fileline .fl-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+#fileline .fl-main{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
 #fileline .fl-file{font:600 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint)}
 #fileline .fl-t{font:700 28px/1 var(--font-display);letter-spacing:2px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #fileline .fl-r{display:flex;align-items:center;gap:10px;font:600 12.5px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-dim);white-space:nowrap}
@@ -800,6 +808,12 @@ html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-t
 #fileline .fl-pips{display:flex;gap:3px}
 #fileline .fl-pips i{width:16px;height:5px;background:var(--edge)}
 #fileline .fl-pips i.on{background:var(--accent)}
+/* the next rank, between the name and SWITCH: what it is, a bar, and the first thing it still asks */
+#fileline .fl-next{flex:1 1 0;min-width:110px;max-width:220px;margin-left:auto;display:flex;flex-direction:column;gap:6px;font:600 11px/1 var(--font-ui);letter-spacing:1.4px;color:var(--ink-dim);white-space:nowrap}
+#fileline .fl-nk{overflow:hidden;text-overflow:ellipsis}
+#fileline .fl-bar{display:block;height:5px;background:var(--edge)}
+#fileline .fl-bar i{display:block;height:100%;width:0;background:var(--accent)}
+#fileline .fl-nv{color:var(--ink-soft);letter-spacing:.6px;overflow:hidden;text-overflow:ellipsis}
 #fileline .fl-k{flex:none;align-self:center;padding:9px 14px;border:1px solid var(--edge);background:rgba(6,14,26,.85);border-radius:6px;font:600 12px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-dim);transition:color .15s,border-color .15s}
 #fileline:is(:hover,.padfocus){border-color:var(--edge-lit)}
 #fileline:is(:hover,.padfocus) .fl-k{color:var(--ink);border-color:var(--edge-lit)}
@@ -809,7 +823,10 @@ html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-t
   #fileline .fl-t{font-size:20px}
   #fileline .fl-pips i{width:12px;height:4px}
   #fileline .fl-k{padding:7px 10px;font-size:11px}
-  #fileline .fl-lv{display:none}
+  #overlay.st-menu #fileline{flex-wrap:wrap}
+  #fileline .fl-main{flex:1 1 0}
+  #fileline .fl-next{order:3;flex:1 0 100%;max-width:none;margin-left:0;flex-direction:row;align-items:center;gap:10px;font-size:10.5px}
+  #fileline .fl-bar{flex:1 1 auto;min-width:40px}
 }
 #files{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
@@ -1541,7 +1558,7 @@ body.wb-open #overlay{background:none}
 #overlay.st-menu .ov-actions .btn.icbtn :is(.cx-badge,.pf-badge){margin-left:0}
 /* the quiet row sizes each button to its own name (they wrap to a second row rather than squeeze), and the CODEX count and the
    PROFILE NEW tag sit on the button's top-right corner so they never push into the next button */
-#overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){flex:1 1 auto;min-width:max-content;position:relative;padding:9px 10px;justify-content:center}
+#overlay.st-menu .ov-actions .btn.btn.icbtn.icbtn:not(.go){flex:1 1 auto;min-width:max-content;position:relative;padding:9px 6px;gap:5px;justify-content:center}   /* (snug, so the fullscreen icon fits on the row's end) */
 #overlay.st-menu .ov-actions .btn.icbtn :is(.cx-badge,.pf-badge){position:absolute;top:-7px;right:-5px;margin:0;pointer-events:none;z-index:1;box-shadow:0 0 0 2px #07101c}
 #overlay.st-menu .ov-actions .btn.icbtn .pf-badge{padding:2px 4px;font-size:9px}
 #overlay.st-menu .ov-actions #exitBtn:not(.go){flex:1 1 auto;min-width:max-content}

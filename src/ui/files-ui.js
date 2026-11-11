@@ -6,7 +6,8 @@
 
 import { G } from '../state.js';
 import { FILES, activeFile, fileExists, fileInfo, fileGet, noteActive, switchFile, deleteFile } from '../engine/save-files.js';
-import { profileOf } from '../game/profile.js';
+import { profileOf, rankNeeds } from '../game/profile.js';
+import { chapterOrder, forHero } from '../data/campaign.js';
 import { heroName } from '../game/wardrobe.js';
 import { TRACKS } from '../data/profile.js';
 import { connected } from '../net/session.js';
@@ -35,12 +36,26 @@ const when = (t) => { const d = new Date(t);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };
 
 /* ---------- the hero card under the title ---------- */
+const num = (n) => Number(n || 0).toLocaleString('en-US');
+const chapterName = (id, h) => { const c = chapterOrder(null, h).find(x => x.id === id) || chapterOrder(null, 'jedi').find(x => x.id === id); return c ? forHero(c.title, h) : id.toUpperCase(); };
+// how far to the next rank: its name, a 0..1 fill (as the profile page's rank track: each of its asks counts the same) and
+// the first ask still open, in words ('340 / 1,500 RANK XP', '2 / 3 TRIALS', 'Clear THE PENS', 'Beat the campaign')
+function nextRank(hero, p, R, r){
+  const next = R[r + 1];
+  if (!next) return { k: 'TOP RANK', f: 1, v: 'Every rank earned' };
+  const nx = rankNeeds(hero, p, r + 1);
+  const f = nx.length ? nx.reduce((a, x) => a + (x.ok ? 1 : x.need ? Math.min(1, x.have / x.need) : 0), 0) / nx.length : 0;
+  const open = nx.find(x => !x.ok) || nx[0];
+  const v = !open ? '' : open.what === 'xp' ? num(Math.min(open.have, open.need)) + ' / ' + num(open.need) + ' ' + (TRACKS[hero] || TRACKS.jedi).unit
+    : open.what === 'trials' ? open.have + ' / ' + open.need + ' TRIALS' : open.what === 'chapter' ? 'Clear ' + chapterName(open.id, hero) : 'Beat the campaign';
+  return { k: 'NEXT · ' + next.nm, f, v };
+}
 let shown = '';
 function refreshLine(){
   if (!line) return;
   const hero = HEROES.includes(G.hero) ? G.hero : 'jedi';
-  const R = (TRACKS[hero] || TRACKS.jedi).ranks, r = Math.min(profileOf(hero).rank | 0, R.length - 1);
-  const name = heroName(hero), rank = R[r].nm, key = [activeFile(), name, rank, r].join('|');
+  const p = profileOf(hero), R = (TRACKS[hero] || TRACKS.jedi).ranks, r = Math.min(p.rank | 0, R.length - 1);
+  const name = heroName(hero), rank = R[r].nm, nx = nextRank(hero, p, R, r), key = [activeFile(), name, rank, r, nx.k, nx.f, nx.v].join('|');
   if (key === shown) return;
   shown = key;
   const q = (c) => line.querySelector(c);
@@ -48,7 +63,9 @@ function refreshLine(){
   q('.fl-t').textContent = name;
   q('.fl-rank').textContent = rank === name ? '' : rank;   // (the trooper's first rank is TROOPER: said once)
   q('.fl-pips').innerHTML = R.map((_, i) => '<i' + (i <= r ? ' class="on"' : '') + '></i>').join('');
-  q('.fl-lv').textContent = 'RANK ' + (r + 1) + ' OF ' + R.length;
+  q('.fl-pips').title = 'Rank ' + (r + 1) + ' of ' + R.length;
+  q('.fl-nk').textContent = nx.k; q('.fl-nv').textContent = nx.v;
+  q('.fl-bar i').style.width = Math.round(nx.f * 100) + '%';
   const pic = document.querySelector('#hero-' + hero + ' .hi');   // the hero's own emblem from its card on the hero step
   const emb = pic && pic.cloneNode(true); if (emb) emb.removeAttribute('class');
   q('.fl-emb').replaceChildren(...(emb ? [emb] : []));

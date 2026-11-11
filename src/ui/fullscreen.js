@@ -22,7 +22,7 @@ function enter(){
 function refused(){
   if (!wantFullscreen() || fsEl()) return;
   armFirstGesture();
-  document.querySelectorAll('.fsmini').forEach((el) => {
+  document.querySelectorAll('.fsmini, #fsBtn').forEach((el) => {
     el.classList.add('fs-nudge');
     clearTimeout(el._nudgeT); el._nudgeT = setTimeout(() => el.classList.remove('fs-nudge'), 2600);
   });

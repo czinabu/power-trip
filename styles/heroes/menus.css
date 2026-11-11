@@ -391,7 +391,9 @@ body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent
 #overlay.st-menu #fileline .fl-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);text-shadow:0 2px 0 var(--hx-ink)}
 #overlay.st-menu #fileline .fl-rank{color:var(--hx-accent-hi)}
 #overlay.st-menu #fileline .fl-emb{border:0;border-radius:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
-#overlay.st-menu #fileline .fl-pips i{background:var(--hx-line)}
+#overlay.st-menu #fileline :is(.fl-pips i,.fl-bar){background:var(--hx-line)}
+#overlay.st-menu #fileline .fl-bar i{background:var(--hx-accent)}
+#overlay.st-menu #fileline .fl-next{font-family:var(--hx-label)}
 #overlay.st-menu #fileline .fl-pips i.on{background:var(--hx-accent)}
 [data-hero="mando"] #overlay.st-menu #fileline{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
 [data-hero="mando"] #overlay.st-menu #fileline:is(:hover,.padfocus){box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}

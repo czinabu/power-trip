@@ -214,7 +214,7 @@
       <h2 id="ovsub">CHOOSE YOUR LEGEND</h2>
       <!-- THE HERO CARD (ui/files-ui.js): who you are playing, in which save file, and their rank. A click (or the pad's A)
            opens the files panel to switch, start a new one or delete -->
-      <div id="fileline" role="button" title="Switch save file or start a new one"><span class="fl-emb"></span><span class="fl-main"><span class="fl-file">SAVE FILE 1</span><span class="fl-t">JEDI</span><span class="fl-r"><span class="fl-rank"></span><span class="fl-pips"></span><span class="fl-lv"></span></span></span><span class="fl-k">SWITCH</span></div>
+      <div id="fileline" role="button" title="Switch save file or start a new one"><span class="fl-emb"></span><span class="fl-main"><span class="fl-file">SAVE FILE 1</span><span class="fl-t">JEDI</span><span class="fl-r"><span class="fl-rank"></span><span class="fl-pips"></span></span></span><span class="fl-next"><span class="fl-nk"></span><span class="fl-bar"><i></i></span><span class="fl-nv"></span></span><span class="fl-k">SWITCH</span></div>
       <div id="ovctx"></div>
     </header>
     <div id="runsummary"></div>
@@ -233,7 +233,7 @@
           <div class="modeopt brk major wide continue" id="mode-continue" hidden><span class="mt">CONTINUE</span><span class="md" id="contMd"></span></div>
           <div class="mgroups">
             <!-- the hub, a row like the rest: it steps aside while CONTINUE already goes there -->
-            <div class="modeopt brk mgroup temple" id="mode-temple"><span class="mt">THE HIDDEN TEMPLE</span><span class="md">Walk the temple on Tython, gather your party and pick a mission together</span></div>
+            <div class="modeopt brk mgroup temple" id="mode-temple"><span class="mt">THE HIDDEN TEMPLE</span><span class="md">Your hub on Tython: gather your party, pick a mission</span></div>
             <div class="modeopt brk mgroup" id="grp-story" data-grp="story"><span class="mt">STORY</span><span class="md" id="grpStoryMd">Campaign and missions</span></div>
             <div class="modeopt brk mgroup" id="grp-arcade" data-grp="arcade"><span class="mt">QUICK PLAY</span><span class="md">Challenges and survival</span></div>
             <div class="modeopt brk mgroup" id="grp-freeplay" data-grp="freeplay"><span class="mt">FREEPLAY</span><span class="md" id="grpFreeMd">Sandbox and training</span></div>
@@ -358,7 +358,7 @@
       <div class="btn" id="newBtn">NEW GAME</div>
       <div class="btn" id="saveBtn">SAVE GAME</div>
       <div class="btn" id="loadBtn">LOAD GAME</div>
-      <div class="btn fsctl" id="fsBtn" title="Fill the whole screen">FULLSCREEN <span class="fsval">OFF</span></div>
+      <div class="btn fsctl" id="fsBtn" title="Fill the whole screen"><svg class="fsic" viewBox="0 0 16 16" aria-hidden="true"><path class="fs-in" d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/><path class="fs-out" d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg><span class="fs-l">FULLSCREEN <span class="fsval">OFF</span></span></div>
       <div class="btn" id="settoggle">SETTINGS</div>
       <div class="btn" id="ctltoggle">CONTROLS</div>
       <div class="btn" id="cxtoggle">CODEX<span class="cx-badge"></span></div>

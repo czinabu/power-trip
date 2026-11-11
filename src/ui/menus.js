@@ -132,6 +132,7 @@ export function showMenuStep(step, group = null){
    to the list its mode was picked from. */
 let _group = null;
 const GROUPS = ['story', 'arcade', 'freeplay'];
+let _contTo = null;   // where CONTINUE goes now ('campaign', 'temple'…, null while it's down: refreshContinue)
 const GROUP_OF = { campaign: 'story', gate: 'story', mission: 'story', endless: 'arcade', sandbox: 'freeplay', training: 'freeplay' };
 const groupOf = (m) => m === 'mission' && isArcadeId(G.missionId) ? 'arcade' : GROUP_OF[m];
 export const menuGroup = () => _group;
@@ -152,9 +153,10 @@ function refreshGroups(){
   for (const k of GROUPS) document.getElementById('grp-' + k).classList.toggle('sel', groupOf(G.modeSel) === k);
   document.getElementById('mode-arcade').classList.toggle('sel', arc);
   document.getElementById('mode-mission').classList.toggle('sel', G.modeSel === 'mission' && !arc);
-  // STORY carries where the campaign stands, so a saved run reads from the top level
+  // STORY carries where the campaign stands, so a saved run reads from the top level (unless CONTINUE, right above it,
+  // already says so)
   const md = document.getElementById('grpStoryMd');
-  if (md) md.textContent = canResume() ? 'Continue · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') : 'Campaign and missions';
+  if (md) md.textContent = canResume() && !continuesStory() ? 'Continue · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') : 'Campaign and missions';
 }
 for (const k of GROUPS) document.getElementById('grp-' + k).addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openGroup(k); });
 for (const b of document.querySelectorAll('.msub-back')) b.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); openGroup(null); });
@@ -296,10 +298,16 @@ function continueLine(to){
     default:        return dedupe('Story · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + who);
   }
 }
+// is CONTINUE up and taking you into the saved story run? (then the STORY row doesn't repeat it)
+function continuesStory(){
+  const el = document.getElementById('mode-continue');
+  return !!el && !el.hidden && _contTo === 'campaign';
+}
 function refreshContinue(state = _ovState){
   const el = document.getElementById('mode-continue'); if (!el) return;
   const to = state === 'menu' && G.mode === 'menu' && !G.coopJoin ? continueTarget() : null;
   el.hidden = !to;
+  if ((to && to.m) !== _contTo){ _contTo = to && to.m; refreshGroups(); }
   // the temple row steps aside while CONTINUE already goes there, and is the marked way in while there's no CONTINUE
   const temple = document.getElementById('mode-temple');
   temple.hidden = !!to && to.m === 'temple';

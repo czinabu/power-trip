@@ -78,6 +78,8 @@ import { noteMedals } from './profile.js';
 import { sliceRate } from './slice-ways.js';
 import { SLICE_WAY, SLICE_TEXT, CHARGE_COLOR } from '../data/slice-ways.js';
 import { showMedals } from '../ui/medals-ui.js';
+import { INFILTRATE, setInfiltrateKit, endInfiltrate, infiltrateFrac, infiltrateSnap, infiltrateGuestBegin, infiltrateGuestFrame } from './infiltrate.js';
+import { INFIL } from '../data/infiltrate.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -117,7 +119,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   G.arcadeDmg = def.dmgMul || 1;   // an arcade twist can make foes hit harder (game/survival.js enemyDmgScale)
   if (!ch) G.ngMuts = def.muts ? [...def.muts] : [];   // a veteran side mission's mutators (data/side-quests.js `muts`, data/ngplus.js); a chapter's are its own (game/campaign.js)
   Object.assign(M, { on: true, def, i: fromObjective, o: null, s: null, fx: [], panelT: 0, endT: 0, won: false, failT: 0, quarry: null, qHp: 0, vip: null, run: M.run + 1, guest, begun: -1, net: null,
-                     chapter: ch, title, kick: ch ? ch.kicker : (def.raid ? 'RAID · ' : def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
+                     alarmed: opts.retry ? !!M.alarmed : false, chapter: ch, title, kick: ch ? ch.kicker : (def.raid ? 'RAID · ' : def.arcade ? 'CHALLENGE · ' : def.side ? 'SIDE MISSION · ' : 'MISSION · ') + title });
   medalsBegin(rawDef, !!opts.retry);   // the medals' count (game/medals.js): a retry keeps it running
   const st = (fromObjective && def.objectives[fromObjective].start) || def.start;   // a retry may begin further along
   shared.secretFrom = def.start || st || null;   // where the map's secrets are walked out from (game/secrets.js): the same for every player and every retry
@@ -162,6 +164,7 @@ function clearMission(){
   CIV.list.length = 0; CIV.onAim = null;
   clearLanes();
   endTwist(true);
+  endInfiltrate();
   stopBattleFx();
   if (M.on) hidePanel();
   M.on = false;
@@ -209,6 +212,7 @@ function queueGroup(g, opts){
   for (const t of partyWave(list)) queueSpawn(t, opts);
   const first = Object.keys(g)[0];
   if (M.chapter && M.chapter.harder && first) queueSpawn(first, opts);
+  if (M.alarmed && first) for (let k = 0; k < INFIL.after; k++) queueSpawn(first, opts);   // the alarm went up on an infiltrate (game/infiltrate.js): they send more from then on
 }
 // a clear spot on the edge ring, within an arc of it, never in reach of a hero or the people being protected (game/lanes.js)
 function arcSpawn(a0, a1){ return safeSpot(() => arcPoint(a0, a1)); }
@@ -809,7 +813,19 @@ const KINDS = {
       if (gone){ showBanner(o.name + ' FALLS', '', 2.2); clearScars(o.name); return true; }
     },
   },
+  infiltrate: INFILTRATE,   // get in unseen: guards, cameras and lights with sight cones, and the alarm (game/infiltrate.js)
 };
+// what the infiltrate objective borrows from here (game/infiltrate.js)
+setInfiltrateKit({
+  fieldSpawn, sightBlocked, puppet: puppetOf,
+  beacon(x, z, col, r){ const m = makeBeacon(x, z, 0, col, r); M.markers.push(m); return m; },
+  edgeSpawn(t){ const p = arcSpawn(-Math.PI, Math.PI); return fieldSpawn(t, p.x, p.z); },
+  queue: (g) => queueGroup(g),
+  hostiles: () => hostilesAlive() + G.spawnQueue.length,
+  setAlarmed(){ M.alarmed = true; },
+  color: () => heroKey(MISSION_COLOR),
+  kick: () => M.kick,
+});
 
 /* ============================================================
    THE EVACUATION — the evacuees file from the shelter to the ramp as the hold's progress climbs, and the transport
@@ -1451,6 +1467,7 @@ function objectiveFrac(o, s){
     case 'escort': return s.P ? s.d / s.P.len : 0;
     case 'capture': return s.cur ? (s.k + s.cur.prog / o.time) / o.posts.length : (s.k || 0) / o.posts.length;
     case 'sabotage': return s.cons ? s.cons.filter(c => c.done).length / s.cons.length : 0;
+    case 'infiltrate': return infiltrateFrac(o, s);
   }
   return 0;
 }
@@ -1463,6 +1480,7 @@ const guestCtx = { guest: true, frac: 0, get o(){ return M.o; }, s: null, get vi
 } };
 function completeObjective(){
   endTwist();   // (it eases off over the breather)
+  endInfiltrate();
   clearLanes();
   for (const m of M.markers) removeMarker(m);
   M.markers = [];
@@ -1506,6 +1524,7 @@ function nextSpot(o){
     case 'sabotage': return near(o.consoles.map(c => c.at));
     case 'capture': return o.posts[0] && o.posts[0].at;
     case 'breach': return o.stack;
+    case 'infiltrate': return near((o.marks || []).map(m => m.at));
     case 'escort': { const g = M.vip && M.vip.g; return g ? [g.position.x, g.position.z] : o.path && o.path[0]; }
     case 'pursuit': { const q = M.quarry ? M.quarry.g.position : M.net && M.net.q ? { x: M.net.q[0], z: M.net.q[2] } : null; return q ? [q.x, q.z] : null; }
   }
@@ -1712,7 +1731,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
     q: q && !q.hidden ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(), inf: infiltrateSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }
 // the hold's line as the guest draws it: per evacuee, how far along, pushed aside how far, and down which way (99: up)
@@ -1750,10 +1769,11 @@ export function coopMissionSync(ms){
     M.props = []; M.quarry = null; M.vip = null; M.gk = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
     clearLanes();
     endTwist(true);
+    endInfiltrate();
   }
   if (ms.i !== M.i){
     const handed = M.i >= 0 && ms.i === M.i + 1;
-    if (M.i >= 0){ MUSIC.objectiveSting(); patchUp(); endTwist(); }   // the last objective is done: this hero's own breather too
+    if (M.i >= 0){ MUSIC.objectiveSting(); patchUp(); endTwist(); endInfiltrate(); }   // the last objective is done: this hero's own breather too
     M.i = ms.i;
     if (handed && !ms.b) handOff(ms.i, true);   // the host's hand-off: its line comes over comms, the glance is this screen's own
   }
@@ -1762,6 +1782,7 @@ export function coopMissionSync(ms){
     M.o = forHero(M.def.objectives[ms.i]);
     say(M.o, { told: M.told === ms.i });
     if (M.o.twist) beginTwist(M.o, true, guestCtx);   // the host's twist, on this screen too
+    if (M.o.kind === 'infiltrate') infiltrateGuestBegin(M.o);   // its cones and cameras, drawn here from the host's (game/infiltrate.js)
   }
   M.net = ms;
   medalsHostMissed(ms.md);   // what the mission itself has missed, as the host saw it (game/medals.js)
@@ -1793,6 +1814,7 @@ function updateMissionGuest(dt){
   guestCtx.frac = ms && ms.hud && ms.hud[1] >= 0 ? ms.hud[1] : guestCtx.frac;
   updateTwist(dt, guestCtx);
   guestEvacuees(ms, dt);
+  if (M.o && M.o.kind === 'infiltrate') infiltrateGuestFrame(ms && ms.inf, dt);
   updateLanes(dt, G.gt);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);

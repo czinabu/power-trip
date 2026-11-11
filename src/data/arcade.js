@@ -42,6 +42,9 @@ const KIND = {
   pursuit: { name: 'CHASE', titles: ['RUN IT DOWN', 'NO ESCAPE', 'THE HUNT'],
     say: [ { jedi: 'It is running. Keep it in sight. Over the cover, not around it.', mando: 'Runner. Don\'t lose sight of it. Go over things, not around them.', trooper: 'Target is running. Keep eyes on it at all times.' },
            { jedi: 'Stay on its heels. Look for the shortcuts.', mando: 'Chase it down. Shortcuts are marked.', trooper: 'Pursue. Take the marked shortcuts if you can.' } ] },
+  infiltrate: { name: 'SNEAK', titles: ['GHOST', 'NOT A SOUND', 'IN AND OUT'],
+    say: [ { jedi: 'Get in unseen. Stay out of their sight lines, and turn a guard away when you need to.', mando: 'Quiet job. Stay out of their eyes. Anyone in your way, take him from behind.', trooper: 'Recon job. Stay out of their sight. The squad holds back, and the smoke is yours.' },
+           { jedi: 'They will not fail you for being seen. They will just send everyone.', mando: 'Get spotted and the whole place comes down on you. Don\'t.', trooper: 'If the alarm goes, it\'s a fight. Better it doesn\'t.' } ] },
 };
 export const kindName = (k) => (KIND[k] || {}).name || String(k).toUpperCase();
 
@@ -115,6 +118,11 @@ function rerollObjective(o, r, threat, swarm){
   if (o.pulses) o.pulses = o.pulses.map(G2);
   if (o.trickle) o.trickle.group = G2(o.trickle.group);
   for (const list of [o.ambush, o.standoff]) if (list) for (const a of list) a.group = G2(a.group);
+  if (o.alarm){ o.alarm.group = G2(o.alarm.group); if (o.alarm.trickle) o.alarm.trickle.group = G2(o.alarm.trickle.group); }
+  if (o.guards && Array.isArray(o.guards)){   // an infiltrate's guards on their beats: about half swapped, for troops that walk a beat
+    const walkers = FOE_TIERS.slice(0, threat).flat().filter(t => !DUELLISTS[t] && t !== 'flyer' && t !== 'bomber');
+    for (const gd of o.guards) if (r() < 0.5) gd.type = r.pick(walkers);
+  }
   if (o.kind === 'duel'){
     o.hp = (o.hp || 1) * DUEL_HP_AT[threat - 1];
     delete o.escape; delete o.escapeLine;   // an arcade duel is fought to the end

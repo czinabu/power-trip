@@ -211,7 +211,7 @@ export const TROOPER_CHAPTERS = {
     title: 'THE HUNT', world: 'THE RED CANYONS OF KESH',
     mission: 'hunt',
     brief: ['The Marshal\'s gunship put down in the canyons of Kesh to refuel, and he is not in a hurry. He wants to be followed.',
-            'So follow him. Every camp he leaves, we take. At the top, he turns around.'],
+            'So follow him. Trackers on his supplies first, quietly. Then every camp he leaves, we take. At the top, he turns around.'],
     talk: { where: 'THE GUNSHIP, OVER THE CANYONS',
       lines: [[VANT, 'He is leaving a trail a cadet could follow.'],
               [BRISK, 'Then it is a trap.'],

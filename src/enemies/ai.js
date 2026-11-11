@@ -39,6 +39,7 @@ import { updateLegs } from './gait.js';
 import { updateUpper } from './upper.js';
 import { defeatMotion, defeatLife } from './defeat.js';
 import { MOVE } from '../data/movement.js';
+import { patrolStep } from './patrol.js';
 import { foeAllyTarget, hurtAlly } from '../allies/squad.js';
 import { mutOn } from '../data/ngplus.js';
 import { heroFor } from './targets.js';
@@ -191,6 +192,7 @@ export function updateEnemies(dtAll){
         if (e.st <= 0){ g.position.y = 0; e.state = 'chase'; }
         break;
       case 'chase': {
+        if (e.patrol && patrolStep(e, dt)) break;   // a guard on his beat who hasn't seen you (enemies/patrol.js): no fight yet
         if (tgtPos) turnToward(g, Math.atan2(tx, tz), dist < t.range + ENGAGE.ringPad + 3 ? MOVE.combatTurnRate : MOVE.turnRate, dt);
         if (e.stunT > 0) break;   // reeling from a saber hit — no step, no swing this beat
         if (e.dummy || e.aiHold){   // TRAINING target (or a held foe: e.aiHold above): it stands and takes it, and walks back to its post when knocked off it

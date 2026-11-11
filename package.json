@@ -46,6 +46,7 @@
     "smoke:side": "node tools/smoke/side-quests.mjs",
     "smoke:medals": "node tools/smoke/medals.mjs",
     "smoke:remixes": "node tools/smoke/remixes.mjs",
+    "smoke:infiltrate": "node tools/smoke/infiltrate.mjs",
     "smoke:reworks": "node tools/smoke/reworks.mjs",
     "smoke:slice": "node tools/smoke/slice-ways.mjs",
     "smoke:ngplus": "node tools/smoke/ngplus.mjs",

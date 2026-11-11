@@ -75,6 +75,15 @@
 //               alarm: { time, at: [[x, z]…], group, startLine, line } the room calls it in: clear it inside `time`
 //               seconds or `group` comes in at `at` (once) · grab: { at: [x, z], time, r, status, line } something in
 //               the room to stand at and pull while they fight for it (slower with foes on it); the room isn't done till it's got
+//   infiltrate get in unseen (game/infiltrate.js, data/infiltrate.js has the sight and the alarm's numbers): reach and work
+//               each of `marks` [{ at: [x, z] }] (any order; `time` seconds on each, `r` how close; markName / markDone
+//               name them) while guards walk their beats (guards: [{ type, path: [[x, z]…], pause } | { type, at, face,
+//               sweep, period }]), cameras sweep (cams: [{ at, y, yaw, sweep, period, ph }]) and searchlights rake the
+//               floor (lights: the searchlight twist's beams). Being seen fills the alarm; full, every guard turns on
+//               you, alarm.group comes in at alarm.at (then alarm.trickle) and the rest of the mission sends more. It
+//               never fails the mission. quiet: [banner, sub] when it's done unseen. Each hero has their own way through
+//               on F (the Jedi turns a guard with the Force, the Mando takes one down from behind, the trooper has smoke
+//               and a squad that holds back)
 // Any objective can set `doors`: how many of the arena's doors are open when it begins (a retry rebuilds them
 // shut), and `squad`: the squad's size by then (someone freed on the way joined it).
 // Any objective can set `twist`: its one signature hook, taught then tested ({ kind: 'blackout' | 'sandstorm' | 'heat' |
@@ -208,7 +217,7 @@ export const MISSIONS = {
     id: 'covert',
     title: 'THE LAST SHIP',
     heroes: ['mando'],   // (the Mandalorian's own story: the covert, its foundlings, VX-7)
-    blurb: 'hold the ramp, kill the jammers, duel VX-7',
+    blurb: 'hold the ramp, rig the jammers unseen, duel VX-7',
     level: { name: 'MISSION — THE COVERT', sub: 'The Magistrate has found the covert. One ship is left to carry the foundlings out.',
              arena: 60, floor: 0x8a5a44, fog: 0x6a3428, sky: 0x1a1830, layout: 'covert', waves: [], hazards: {} },
     start: [0, 3, 0],   // in the yard south of the blast wall, looking up at the ship and the line filing aboard
@@ -228,15 +237,23 @@ export const MISSIONS = {
                   { grunt: 2, lancer: 1 }, { grunt: 2, blaster: 1, officer: 1 }, { grunt: 1, duelist: 1, blaster: 1 } ],
         every: [9, 14], cap: 7, from: [-Math.PI + 0.35, -0.35], aggro: 8 },
 
-      { kind: 'sabotage', title: 'KILL THE JAMMERS', consoleName: 'JAMMER', doneLine: 'THE JAMMERS ARE DOWN', doneSub: 'The ship can call the clan.', start: [0, 3, Math.PI],
-        say: { jedi: 'Three jammers on the canyon floor are keeping the ship from calling for help. Silence them.',
-               mando: 'Three jammers on the canyon floor. While they stand, the ship can\'t call the rest of the clan. Kill them.' },
-        task: { jedi: 'Stand at each jammer\'s console to slice it', mando: 'Stand at each jammer\'s console to slice it' },
-        consoles: [ { at: COVERT_SPOTS.jammers[0], guards: { grunt: 2, blaster: 1 } },
-                    { at: COVERT_SPOTS.jammers[1], guards: { lancer: 1, grunt: 2 } },
-                    { at: COVERT_SPOTS.jammers[2], guards: { grenadier: 1, blaster: 1, officer: 1 } } ],
-        time: 4, r: 2.2, hitLoss: 1.2,
-        trickle: { every: 16, cap: 5, group: { grunt: 2, blaster: 1 } } },
+      // INFILTRATE (game/infiltrate.js): the yard's patrols think the fight is at the ramp. Rig the jammers before they look round
+      { kind: 'infiltrate', title: 'RIG THE JAMMERS', markName: 'JAMMER', markDone: 'RIGGED', doneLine: 'THE JAMMERS ARE DOWN', doneSub: 'The ship can call the clan.', start: [0, 3, Math.PI],
+        quiet: ['THE JAMMERS ARE DOWN', 'Not one of them looked round.'],
+        say: { jedi: 'Three jammers on the canyon floor are keeping the ship from calling for help. Their patrols think the fight is still at the ramp. Rig the jammers before they look round.',
+               mando: 'Three jammers on the canyon floor. Their patrols think the fight\'s still at the ramp. Get down there quiet and rig every one before they look round.' },
+        task: { jedi: 'Rig each jammer without being seen', mando: 'Rig each jammer without being seen' },
+        marks: [ { at: COVERT_SPOTS.jammers[0] }, { at: COVERT_SPOTS.jammers[1] }, { at: COVERT_SPOTS.jammers[2] } ], time: 3, r: 2.2,
+        guards: [ { type: 'blaster', path: [[-9, -3], [-21, -3]] },
+                  { type: 'grunt', path: [[8, -5], [21, -5]], pause: 2.0 },
+                  { type: 'blaster', path: [[-5, -12], [12, -14]] },
+                  { type: 'officer', at: [4, -19.5], face: 0, sweep: 1.0, period: 8 } ],
+        cams: [ { at: [-22, 0], y: 3.2, yaw: Math.PI / 2, sweep: 0.7, period: 7 },
+                { at: [22, -3], y: 3.2, yaw: -Math.PI / 2, sweep: 0.7, period: 9, ph: 1.4 } ],
+        lights: [ { from: [0, 16, -34], c: [0, -9], a: [12, 5], period: 16, r: 3.2 } ],
+        alarm: { group: { grunt: 2, blaster: 2, grenadier: 1 }, at: [[-20, -24], [20, -24]],
+                 line: { jedi: 'They have seen you. Rig the jammers anyway.', mando: 'Spotted. Rig them anyway.' },
+                 trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1 } } } },
 
       { kind: 'duel', title: 'DEFEAT VX-7', start: [0, 3, Math.PI],
         say: { jedi: 'The Magistrate\'s hunter droid. It is fast, and it reads a blade. Make it commit.',
@@ -945,15 +962,19 @@ export const MISSIONS = {
     grant: { jedi: ['throw', 'slam'], mando: ['grapple', 'birds'] },
     squad: 2,
     objectives: [
-      { kind: 'capture', title: 'TAKE THE COURTYARD', music: 'battle', postName: 'POST',
-        doneLine: 'THE COURTYARD IS OURS', doneSub: 'The Inquisitors\' seals are broken with it.',
-        say: 'The Inquisitors left a garrison on the courtyard, one post at each of their seals. Take the posts and the seals go with them. Stand in each with no trooper inside, or send the squad onto it.',
-        task: 'Take each of the garrison\'s posts',
-        posts: [ { at: [-15, 4], guards: { grunt: 2, blaster: 1 } },   // (spread out round the courtyard: the map-size pass)
-                 { at: [15, 4], guards: { grunt: 2, lancer: 1 } },
-                 { at: [0, -16], guards: { phalanx: 1, grunt: 1, officer: 1 } } ],
-        r: 4.5, time: 4, squadRate: 0.6, perMate: 0.3,
-        trickle: { every: 14, cap: 6, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3], aggro: 8 },
+      // INFILTRATE (game/infiltrate.js): the garrison hasn't seen you. Break the seals before it does
+      { kind: 'infiltrate', title: 'BREAK THE SEALS', markName: 'SEAL', markDone: 'BROKEN',
+        doneLine: 'THE SEALS ARE BROKEN', quiet: ['THE SEALS ARE BROKEN', 'The garrison never knew you were here.'],
+        say: 'The Inquisitors left a garrison walking the courtyard, and three seals on the gate. They have not seen you. Break the seals before they do. The squad waits on the steps.',
+        task: 'Break each seal without being seen',
+        marks: [ { at: [-15, 4] }, { at: [15, 4] }, { at: [0, -16] } ], time: 3, r: 2.2,
+        guards: [ { type: 'blaster', path: [[-20, -2], [-20, 10]] },
+                  { type: 'blaster', path: [[20, 10], [20, -2]], pause: 2.2 },
+                  { type: 'grunt', path: [[-9, -13], [9, -13]] },
+                  { type: 'lancer', at: [0, 9], face: Math.PI, sweep: 1.1, period: 7 } ],
+        lights: [ { from: [0, 16, -34], c: [0, -2], a: [16, 9], period: 15, ph: 0.6, r: 3.2 } ],
+        alarm: { group: { grunt: 2, blaster: 2, lancer: 1 }, at: [[-16, -22], [16, -22]], line: 'The garrison knows. Break the seals anyway.',
+                 trickle: { every: 12, cap: 7, group: { grunt: 1, blaster: 1 } } } },
 
       { kind: 'hold', title: 'HOLD THE DAIS', music: 'defend', holding: 'THE GATE IS WAKING',
         say: 'The gate is waking. Hold the dais until it opens, and keep off the summit while it burns.',
@@ -1437,7 +1458,7 @@ export const MISSIONS = {
     id: 'hunt',
     title: 'THE HUNT',
     campaignOnly: true,
-    blurb: 'follow the Marshal\'s trail up the canyon, camp by camp, and catch him at the top',
+    blurb: 'tag his supplies unseen, take his camps one by one, and catch him at the top',
     level: { name: 'MISSION — THE HUNT', sub: all('His trail runs up the canyon. So do we.'),
              arena: 84, floor: 0xb08058, fog: 0xd8a878, sky: 0x4a7ab0, layout: 'canyon', waves: [], hazards: {} },
     start: CANYON_SPOTS.start,
@@ -1446,6 +1467,19 @@ export const MISSIONS = {
     squad: 4, squadCap: 4,
     foeLook: PURGE,
     objectives: [
+      // INFILTRATE (game/infiltrate.js): before the camps, trackers on his supply sleds, with his sentries none the wiser
+      { kind: 'infiltrate', title: 'TAG HIS SUPPLIES', markName: 'SLED', markDone: 'TAGGED',
+        doneLine: 'TRACKERS ON', doneSub: 'Now we know which way he runs.', quiet: ['TRACKERS ON', 'His sentries never saw you.'],
+        say: all('Before we hit the camps, brother: trackers on his supply sleds, so we know where he runs. His sentries have not seen us. The squad holds at the mouth. Smoke if you need it.'),
+        task: all('Tag each sled without being seen'),
+        marks: [ { at: [-20, -9] }, { at: [7, -13.5] }, { at: [-4, -2] } ], time: 3, r: 2.2,
+        guards: [ { type: 'blaster', path: [[-18, -16], [-18, -6]] },
+                  { type: 'sniper', at: [6, -16], face: -Math.PI / 2, sweep: 0.8, period: 8 },
+                  { type: 'grunt', path: [[4, -10], [16, -10]], pause: 2.0 },
+                  { type: 'blaster', path: [[-10, -2], [-10, 6]] } ],
+        cams: [ { at: [-3, -11], y: 3, yaw: Math.PI, sweep: 0.9, period: 8 } ],
+        alarm: { group: { grunt: 2, blaster: 2, sniper: 1 }, at: [[-20, 10], [20, 10]], line: all('They have seen us. Tag the sleds anyway, then we take the camps the hard way.'),
+                 trickle: { every: 13, cap: 6, group: { grunt: 1, blaster: 1 } } } },
       { kind: 'capture', title: 'FOLLOW HIS TRAIL', music: 'battle', postName: 'CAMP',
         say: all('Three camps up the canyon, brother, and he has left a rear guard at every one. Take each camp. Tally, eyes on the ridges.'),
         task: all('Take each of his camps, one after another'),

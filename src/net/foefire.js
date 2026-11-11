@@ -25,6 +25,7 @@ import { bossBlowResult, spawnBossRing } from '../boss/boss.js';
 import { finaleNet } from '../boss/finale.js';
 import { victory } from '../game/summary.js';
 import { coopMissionDone } from '../game/mission.js';
+import { sneakFromGuest } from '../game/infiltrate.js';
 import { showBanner } from '../ui/banners.js';
 import { remoteComms } from '../game/story.js';
 import { blockedOnBlade } from '../player/jedi/clash.js';
@@ -247,6 +248,9 @@ hooks.hold = (e, st) => { if (asGuest()) send({ t: 'ctl', n: e.nid, s: 'stagger'
 hooks.bossDead = () => { if (asHost()) send({ t: 'bdead' }); };
 // story missions: the host's banners reach the guest, and its mission ending ends theirs
 hooks.mbanner = (a, b, c, o) => { if (asHost()) send({ t: 'mbn', a, b, c, k: o && o.kicker }); };
+// the stealth objective: a guest's F (a distraction, a takedown, smoke: game/infiltrate.js), done on the host
+hooks.sneak = (m) => { if (asGuest()) send({ t: 'snk', a: m.a, n: m.n, x: m.x, z: m.z }); };
+on('snk', (m) => { if (asHost()) sneakFromGuest(m); });
 on('mbn', (m) => { if (asGuest() && G.mission) showBanner(m.a, m.b, m.c, m.k ? { kicker: m.k } : undefined); });
 hooks.comms = (list, now, front) => { if (asHost()) send({ t: 'cms', l: list, n: now ? 1 : 0, f: front ? 1 : 0 }); };
 on('cms', (m) => { if (asGuest()) remoteComms(m.l, !!m.n, !!m.f); });

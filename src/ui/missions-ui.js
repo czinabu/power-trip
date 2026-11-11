@@ -19,7 +19,8 @@ import { missionShelves, missionRank, missionShelf, missionForHero, STORIES } fr
 import { audioInit } from '../audio/sfx.js';
 import { missionById, isArcadeId, arcadeBoard, newSeed, randomArcadeId, kindName, TWISTS, arcadeWins } from '../data/arcade.js';
 import { SIDE_QUESTS, SIDE_PREFIX, SIDE_BY_ID, isSideId } from '../data/side-quests.js';
-import { rankIndex, track, sideLock } from '../game/profile.js';
+import { rankIndex, track } from '../game/profile.js';
+import { sideLock, sideLockLine } from '../game/zone-gate.js';
 import { mutatorById } from '../data/ngplus.js';
 import { isRaidId, raidsOpen } from '../data/raids.js';
 import { medalsOf } from '../game/profile.js';
@@ -38,7 +39,7 @@ export const placeOf = (m) => m.level.name.replace(/^(MISSION|TRIAL)\s*—\s*/, 
 const trialSeen = (id) => !MISSIONS[id] || !MISSIONS[id].trial || HEROES().some(h => missionDone(id, h));
 // a mission stays locked and unspoiled until the campaign has cleared it (game/sandbox-unlocks.js)
 // a side mission (data/side-quests.js) opens at its rank, the same as at the temple's CALLS FOR AID stone
-const sideOpen = (id) => !!SIDE_BY_ID[id] && !sideLock(SIDE_BY_ID[id]);   // (a veteran one waits for the campaign beaten: game/profile.js sideLock)
+const sideOpen = (id) => !!SIDE_BY_ID[id] && !sideLock(SIDE_BY_ID[id]);   // (its chapter, its rank, or a veteran's beaten campaign: game/zone-gate.js sideLock)
 export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : isRaidId(id) ? !!missionById(id) && raidsOpen() : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open; a raid once Act IV is beaten (data/raids.js)
 const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) || isRaidId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
@@ -104,7 +105,9 @@ function sideShelf(){
 function sideInfo(id){
   const q = SIDE_BY_ID[id]; if (!q || !infoEl) return;
   if (!sideOpen(id)){
+    const need = sideLock(q);
     infoEl.innerHTML = q.post ? `<div class="mpi-t">${q.title}<span class="msn-tag">VETERAN</span></div><div class="mpi-b">A veteran's call: it opens once you have beaten this hero's campaign.</div>`
+      : need && need.startsWith('CLEAR ') ? `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div><div class="mpi-b">The Council hands this one out further into your story. ${sideLockLine(q)} to unlock it.</div>`
       : `<div class="mpi-t">${q.title}<span class="msn-tag">SIDE</span></div><div class="mpi-b">The Council hands this one out at ${track().ranks[Math.min(q.rank, track().ranks.length - 1)].nm}. Rise in rank to unlock it.</div>`;
     return;
   }

@@ -71,6 +71,7 @@ import { CIV, CIV_TUNE } from './civilians.js';
 import { LANE, pickLanes, setLanes, clearLanes, warnLane, updateLanes, laneSpawn, safeSpot, firstWarning, lanesSnap, lanesSync } from './lanes.js';
 import { meetNamed } from './codex.js';
 import { noteMissionWon, noteSideWon, noteRaidWon } from './profile.js';
+import { grantEarned } from './zone-gate.js';
 import { RAIDS } from '../data/raids.js';
 import { medalsBegin, medalsEnd, medalNote, medalsTick, medalsMissed, medalsHostMissed, medalsResult } from './medals.js';
 import { noteMedals } from './profile.js';
@@ -106,7 +107,7 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
     startLevel(G.levelIdx, { level: { ...def.level, ...ch.arena, name: ch.name, sub: ch.sub || sub }, mission: true, resume: !ch.fresh, chapter: true, foeLook: def.foeLook, squadCap: def.squadCap });   // the run's hero and build, on the mission's arena (or the chapter's own; fresh: a new run that opens on a mission, a story's prologue, starts a new build)
   } else {
     startLevel(0, { level: { ...def.level, sub }, mission: true, foeLook: def.foeLook, squadCap: def.squadCap });   // fresh hero, kit and stats, on the mission's arena
-    for (const k of (def.grant && heroKey(def.grant)) || []) G.unlocked[k] = true;
+    for (const k of (def.grant && heroKey(def.grant)) || []) if (grantEarned(k)) G.unlocked[k] = true;   // (only what this hero's story has handed out: game/zone-gate.js)
     G.waveTotal = def.kit; checkUnlocks();                 // a mid-run kit: forms, Force jump / jetpack boosters, dual blasters
     G.waveTotal = def.foeTier || 0;   // ...but foes as tough as the first wave (HP and elite odds climb with waveTotal); an arcade contract's threat sets its own
   }

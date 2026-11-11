@@ -171,11 +171,13 @@ function options(s){
     case 'sparring': return [B('THE SANDBOX', 'Call in any foe you have met, switch any power on or off', () => hubLaunch('sandbox'), sandboxUnlocked() ? null : 'Clear Act I of the campaign')];
     // DUEL MODE (game/duel-mode.js): challenge a friend in this wing, watch the duel on from the balcony, or practise
     case 'duel': {
-      if (G.hero !== 'jedi') return [B('JEDI AGAINST JEDI', 'Duels are fought with the saber, for now: come back as a Jedi', null)];
-      const out = [];
+      // any hero may step in: a Jedi against Jedi under SABERS ONLY, or anyone under ANY HERO (the challenge card picks)
+      const out = [], here = duelState() && !duelOnHere() ? [] : challengeable();
+      const heroWord = { jedi: 'Jedi', mando: 'Mandalorian', trooper: 'ARC trooper' };
       if (duelState() && !duelOnHere()) out.push(B('IN A DUEL', 'Finish the one you are in first', null));
-      else for (const c of challengeable()) out.push(B('CHALLENGE ' + c.name, 'Best of 3, both of you levelled · link about ' + Math.round(pvpLinkMs() * 2) + ' ms', () => openChallenge(c.slot, c.name)));
-      if (!out.length) out.push(B('NO ONE TO CHALLENGE', net.status === 'connected' ? 'Bring a friend (a Jedi) into the training wing' : 'Host or join a co-op room, then meet a friend here', null));
+      else for (const c of here) out.push(B('CHALLENGE ' + c.name, (heroWord[c.hero] || 'Hero') + ' · best of 3, both of you levelled · link about ' + Math.round(pvpLinkMs() * 2) + ' ms', () => openChallenge(c.slot, c.name)));
+      if (here.length > 1) out.push(B('FREE-FOR-ALL', 'Everyone here at once: ' + here.map(c => c.name).join(', '), () => openChallenge(here[0].slot, here[0].name, true)));
+      if (!out.length) out.push(B('NO ONE TO CHALLENGE', net.status === 'connected' ? 'Bring a friend into the training wing' : 'Host or join a co-op room, then meet a friend here', null));
       if (duelOnHere()) out.push(B('WATCH FROM THE BALCONY', 'A duel is on in the ring', () => toBalcony()));
       out.push(B('PRACTICE RING', 'Duel a mirror of yourself in the sandbox', () => { practiceOnArrive(); hubLaunch('sandbox'); }, sandboxUnlocked() ? null : 'Clear Act I of the campaign'));
       out.push(B('DUEL HONOURS', 'Your record against every friend', () => openHonours()));

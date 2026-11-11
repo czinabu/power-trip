@@ -14,7 +14,7 @@ export const MAX_GUESTS = 3;
 // what the host passes on from one guest to the rest, stamped with the sender's slot: poses, their shots and powers
 const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1, unmark: 1, tu: 1 };   // (mark / unmark: a player's ping marker going up / coming down, net/ping.js; tu: a team-up offer, game/teamup.js)
 // ...and a duel's (game/duel-mode.js, net/pvp.js): its challenge and answer, its state, the blows and their verdicts
-Object.assign(RELAY, { dch: 1, dans: 1, dst: 1, dpg: 1, drm: 1, dq: 1, dsw: 1, dhit: 1, dres: 1, dfp: 1 });
+Object.assign(RELAY, { dch: 1, dans: 1, dst: 1, dpg: 1, drm: 1, dq: 1, dsw: 1, dhit: 1, dres: 1, dfp: 1, dbl: 1, dfl: 1 });
 // a guest whose link to the host drops tries the same room again this many times, this far apart (ms), before giving up
 const REJOIN = { tries: 10, wait: 2500 };   // (25 s: room for a host handoff, below, when the server is slow to free the code)
 const LAST = 'sw_coop_last';   // the last room joined, offered again in the co-op panel (a reload, a crash)

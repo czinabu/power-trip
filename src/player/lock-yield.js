@@ -5,23 +5,25 @@
      · fire coming in from OUTSIDE the duel (a shooter off to the side, behind you) at you or at someone beside you
        (a squadmate, an evacuee, a co-op partner): you need to turn and put the blade in its path
      · a live thermal detonator on the ground near you or them: you need to turn and push it back
-   outsideThreat() says whether one of those is happening right now; DUEL FOCUS lets go while it is (and for a beat
-   after), so the view is yours again. A lock taken on T is the player's own choice and stays, but a Push thrown while
+   outsideThreat() says whether one of those is happening right now; DUEL FOCUS goes LOOSE while it is (and for a beat
+   after: player/lockon.js), so the view, the aim and the feet are yours again. A lock taken on T is the player's own choice and stays, but a Push thrown while
    locked goes for the nearest live detonator before the locked foe (pushGrenade, read by jedi/force.js).
      bolt     a hostile bolt within `range` m whose line passes within `pass` m of you (or `ally` m of someone you
               protect, who stands within `guard` m of you), and that comes from outside the front `arc` (cos) of the view:
               one coming in over the duellist's shoulder is already in front of the blade, so it doesn't count
      gren     a live detonator (lobbed or landed, not yet pushed) whose mark is within `near` m of you, or within its own
               blast + `ally` m of someone you protect
-     hold     after the last threat, how long (s) before the focus may take hold again */
-import { bolts, player } from '../state.js';
+     civ      a foe (not the one you're duelling) within `civ` m of an evacuee who stands within `guard` m of you:
+              someone is about to be cut down beside you
+     hold     after the last threat, how long (s) the focus stays loose (or off) */
+import { bolts, enemies, player } from '../state.js';
 import { playerPos, fwd } from './helpers.js';
 import { grenades } from '../enemies/grenades.js';
 import { allies } from '../allies/squad.js';
 import { CIV, civUp } from '../game/civilians.js';
 import { players } from './players.js';
 
-export const LOCK_YIELD = { range: 16, pass: 3, ally: 1.6, guard: 9, arc: 0.5, near: 9, hold: 2.5 };
+export const LOCK_YIELD = { range: 16, pass: 3, ally: 1.6, guard: 9, arc: 0.5, near: 9, hold: 2.5, civ: 3.5 };
 
 // the people around you worth standing in front of: standing squadmates, evacuees, partners, within `guard` m
 function protectees(pp, out){
@@ -60,13 +62,22 @@ export function outsideThreat(lockT){
     if (passGap(b, pp) < Y.pass) return true;
     for (const p of near) if (passGap(b, p) < Y.ally) return true;
   }
+  for (const c of CIV.list){
+    if (!civUp(c)) continue;
+    const q = c.m.position;
+    if (Math.hypot(q.x - pp.x, q.z - pp.z) > Y.guard) continue;
+    for (const e of enemies){
+      if (e === lockT || e.dead || e.converted || e.state === 'spawn') continue;
+      if (Math.hypot(e.group.position.x - q.x, e.group.position.z - q.z) < Y.civ) return true;
+    }
+  }
   return false;
 }
 
 /* a Push thrown while locked on: the nearest live detonator within `range` m of you (lobbed or landed, not yet pushed),
    or null. The push goes at it instead of the locked foe: a detonator at your feet is the more pressing answer. */
 export function pushGrenade(range){
-  if (!player.lockTarget) return null;
+  if (!player.lockTarget || player.lockLoose) return null;   // (a loose focus leaves the aim yours already)
   const pp = playerPos();
   let best = null, bd = range;
   for (const g of grenades){

@@ -33,7 +33,7 @@ async function open(name, cleared){
       if (cleared) localStorage.setItem('sw_camp_ch_jedi', JSON.stringify(['siege', 'archive', 'refuge', 'trial-first']));
     } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
-  }, [SHOTS ? 'medium' : 'low', cleared]);
+  }, [process.env.QUALITY || (SHOTS ? 'medium' : 'low'), cleared]);
   await page.addInitScript('window.__heel = ' + heel.toString());
   await page.goto(url, { timeout: 180000 });
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, poll);

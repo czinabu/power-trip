@@ -98,15 +98,15 @@ function placeQuarry(dt, x, z, yaw, moving){
 
 /* ---------- the gates ---------- */
 const put = (m, x, y, z) => { m.position.set(x, y, z); return m; };
-const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, metalness: 0.4, ...o });
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, metalness: 0.1, ...o });   // (low metal: it reads on every quality, with no sky to reflect)
 // a barrier across the street at `at`, `w` wide, square to the route there; its lock stands on the side you come from
 function buildGate(def, P){
   const d = project(P, def.at[0], def.at[1]), p = pathAt(P, d), H = CHASE_TUNE.gate.h, w = def.w || 7;
   const g = new THREE.Group(), col = LOCK.color[def.style];
   if (def.style === 'seal'){   // a blast door, sealed shut: a seam of light down its middle
-    g.add(put(new THREE.Mesh(new THREE.BoxGeometry(w, H, 0.8), mat(0x4a4e58)), 0, H / 2, 0));
+    g.add(put(new THREE.Mesh(new THREE.BoxGeometry(w, H, 0.8), mat(0x8a8a86)), 0, H / 2, 0));
     g.add(put(new THREE.Mesh(new THREE.BoxGeometry(0.25, H * 0.92, 0.9), new THREE.MeshBasicMaterial({ color: col, toneMapped: false })), 0, H / 2, 0));
-    for (const s of [-1, 1]) g.add(put(new THREE.Mesh(new THREE.BoxGeometry(0.8, H + 0.6, 1.2), mat(0x2e3238)), s * (w / 2 + 0.2), (H + 0.6) / 2, 0));
+    for (const s of [-1, 1]) g.add(put(new THREE.Mesh(new THREE.BoxGeometry(0.8, H + 0.6, 1.2), mat(0x5a5c60)), s * (w / 2 + 0.2), (H + 0.6) / 2, 0));
   } else if (def.style === 'sky'){   // a barricade piled high, a lit cable winch on top
     for (let i = 0; i < Math.ceil(w / 1.6); i++) for (let j = 0; j < 3; j++){
       const c = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.45, 1.4), mat(j % 2 ? 0x6a5a44 : 0x5a4c3a, { metalness: 0.1 }));
@@ -114,7 +114,7 @@ function buildGate(def, P){
     }
     g.add(put(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.2, 8), new THREE.MeshBasicMaterial({ color: col, toneMapped: false })), 0, H + 0.3, 0));
   } else {   // a checkpoint's shield gate: two posts and the field between them
-    for (const s of [-1, 1]) g.add(put(new THREE.Mesh(new THREE.BoxGeometry(0.7, H + 0.8, 0.7), mat(0x3a3e46)), s * w / 2, (H + 0.8) / 2, 0));
+    for (const s of [-1, 1]) g.add(put(new THREE.Mesh(new THREE.BoxGeometry(0.7, H + 0.8, 0.7), mat(0x5a5c60)), s * w / 2, (H + 0.8) / 2, 0));
     g.add(put(new THREE.Mesh(new THREE.PlaneGeometry(w, H), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false, toneMapped: false })), 0, H / 2, 0));
   }
   g.position.set(p.x, groundAt(p.x, p.z, 3), p.z); g.rotation.y = p.yaw;

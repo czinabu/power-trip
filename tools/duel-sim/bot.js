@@ -8,7 +8,11 @@
 //   · OFFENCE — it cuts into openings freely (a riposte, a foe recovering, winded or staggered); into a guard it spaces
 //     its cuts (so it isn't parried for mashing) and usually picks a line the guard isn't covering. It mashes a lock.
 //   · FORMS — a fixed-form bot stays in its form; an adaptive one switches to the counter form when a master switches.
-// Saber only: no Force powers, kicks or dashes, so the numbers are the forms' own.
+//   · DODGE — a red DODGE tell (fx/tells.js, seen through game/sim-watch.js) is rolled through: a ring on or round him
+//     (a choke, a repulse) a beat before it closes, a charge from across the floor (Vexis's Last Stand) as it arrives.
+//     Skill keys `dodge` (how often it goes for it), `dodgeLead` (how early before the blow), `dodgeReact` (the beat to see it).
+//   · UPGRADES — cfg.kit is a run's skill cards (data/skills.js ids), laid on before the fight (sim.mjs --upgrades).
+// No Force powers or kicks, so the numbers are the forms' (and the cards') own.
 (() => {
   // ---------- the clock ----------
   let vt = 0, pump = null;
@@ -80,7 +84,7 @@
     const { G, player, enemies, keys, shared, CFG, STANCES } = GAME;
     seed = cfg.seed || 1;
     const S = Object.assign({ see: 0.25, parry: 0.6, sigma: 0.07, react: 0.32, read: 0.8, mash: 0.15, gap: 0.9, bite: 0.3, lockRate: 0.13,
-                              catch: 0.85, jump: 0.75, heavy: 0, turtle: false }, cfg.skill || {});
+                              catch: 0.85, jump: 0.75, heavy: 0, turtle: false, dodge: 0.85, dodgeLead: 0.15, dodgeReact: 0.25 }, cfg.skill || {});
     GAME.sandboxClear();
     G.seenTypes = Object.assign(G.seenTypes || {}, { __forms: true });
     for (const k in keys) keys[k] = false;
@@ -95,6 +99,8 @@
     if (!GAME.__up0) GAME.__up0 = JSON.parse(JSON.stringify(player.up));
     Object.assign(player.up, JSON.parse(JSON.stringify(GAME.__up0)));
     for (const [k, op, v] of cfg.fx || []) player.up[k] = op === '*' ? (player.up[k] ?? 1) * v : (player.up[k] ?? 0) + v;
+    // a run's skill cards (sim.mjs --upgrades): each card's own apply(), as the upgrade screen does it
+    for (const id of cfg.kit || []){ const k = GAME.SKILLS.find(c => c.id === id); if (k) k.apply(); }
     // a fresh hero in the middle of the room, facing +z
     const maxHp = CFG.player.maxHp + (player.up.hpMax || 0), maxStam = CFG.player.maxStam + (player.up.maxStam || 0);
     player.hp = maxHp; player.stam = maxStam; player.force = CFG.player.maxForce;
@@ -136,8 +142,13 @@
     G.sbFoeForm = null; G.sbFoeRank = null;
     G.waveTotal = cfg.depth || 0;
     const R = { frames: 0, dmg: 0, hits: 0, stam: 0, parries: 0, parryTry: 0, blocks: 0, swings: 0, heavies: 0, switches: 0, foeSwitch: 0, locks: 0, kills: 0, firstKill: null,
-                src: {}, dealt: { open: 0, closed: 0 }, states: {}, breaks: 0, deflects: 0, clashes: 0, phaseAt: {}, reflects: 0, novaJumps: 0, idle: 0, maxIdle: 0, lastDealt: 0 };
-    const st = { rmb: false, plan: null, nextAtk: 0, lockAt: 0, badT: 0, lastStam: player.stam, wasLock: false, lastForm: foes.map(e => e.ff), lmbUp: 0, light: null, ringJ: new Set() };
+                dodgeTells: 0, dodges: 0, src: {}, dealt: { open: 0, closed: 0 }, states: {}, breaks: 0, deflects: 0, clashes: 0, phaseAt: {}, reflects: 0, novaJumps: 0, idle: 0, maxIdle: 0, lastDealt: 0 };
+    const st = { rmb: false, plan: null, nextAtk: 0, lockAt: 0, badT: 0, lastStam: player.stam, wasLock: false, lastForm: foes.map(e => e.ff), lmbUp: 0, light: null, ringJ: new Set(), tells: [], rollAt: -9 };
+    // every red DODGE tell as it flashes (game/sim-watch.js): the bot rolls through it in step()
+    // (and a final boss's PARRY-OR-DODGE tells: his signature palm and blink cuts aren't swings the defence below reads;
+    // a plain duellist's thrust tell is, so those are left to it)
+    const finUp = () => foes.some(e => e.fin && isLive(e));
+    if (GAME.simWatch) GAME.simWatch.tell = (kind, pos, r, dur) => { if (kind === 'dodge' || (kind === 'parry' && finUp())) st.tells.push({ kind, t: G.gt, x: pos.x, z: pos.z, r: r || 2, dur: dur ?? 0.45, plan: null }); };
     const stats0 = { p: (G.stats && G.stats.parries) || 0 };
     F = { cfg, S, foes, R, st, stats0, maxHp, maxStam, dt: 1 / 60, tmax: cfg.tmax || 90, end: null };
   }
@@ -183,6 +194,57 @@
         const d = Math.hypot(pp.x - r.center.x, pp.z - r.center.z), gap = d - r.r;
         if (gap > 0 && gap < 3.2 && player.grounded){ st.ringJ.add(r); if (rnd() < S.jump){ document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true })); R.novaJumps++; } }
       }
+      // DODGE: a red tell is rolled through (the roll's i-frames: data/mobility.js roll.iframes)
+      let rolled = false;
+      for (const T of st.tells){
+        if (T.done) continue;
+        if (!T.plan){
+          if (T.kind !== 'parry') R.dodgeTells++;
+          const d0 = Math.hypot(pp.x - T.x, pp.z - T.z);
+          // a ring on or round him (a choke under his feet, a repulse off the foe he's on): roll as it closes
+          const ring = d0 < T.r * 2 + 3;
+          // else a charge from across the floor: the foe nearest the flash, rolled past as it arrives
+          let src = null, sd = 1e9;
+          if (!ring) for (const e of live){ const d = Math.hypot(e.group.position.x - T.x, e.group.position.z - T.z); if (d < sd){ sd = d; src = e; } }
+          if (T.kind === 'parry'){
+            // parry it (a fresh click timed off when it lands) or roll through it; a palm or a blink cut lands about this
+            // long after its flash (boss/vexis.js: guardBreak.windup 0.6, blink tell + 0.12)
+            const land = T.t + 0.55, parry = rnd() < S.parry;
+            T.plan = { go: parry || rnd() < S.dodge, parry, ring: true, at: Math.max(T.t + S.dodgeReact, land - (parry ? pwin * 0.5 : S.dodgeLead) + gauss() * S.sigma), until: land + 0.2, side: rnd() < 0.5 ? 'a' : 'd' };
+            if (ring) R.parryTry += parry ? 1 : 0;
+            if (!ring) T.plan.go = false;
+          } else
+          T.plan = { go: rnd() < S.dodge, ring, src, at: Math.max(T.t + S.dodgeReact, T.t + T.dur - S.dodgeLead + gauss() * S.sigma), until: T.t + T.dur + (ring ? 0.3 : 2.5),
+                     side: rnd() < 0.5 ? 'a' : 'd', last: null };
+        }
+        const P = T.plan;
+        if (G.gt > P.until){ T.done = true; continue; }
+        if (!P.go || rolled) continue;
+        let now = false;
+        if (P.ring) now = G.gt >= P.at;
+        else if (P.src && G.gt >= T.t + S.dodgeReact){
+          const q = P.src.group.position, d = Math.hypot(q.x - pp.x, q.z - pp.z);
+          const closing = P.last != null ? (P.last - d) / dt : 0;   // (m/s toward him)
+          P.last = d;
+          now = d < 5.5 && closing > 8;
+        }
+        if (now && P.parry){
+          if (st.rmb) mouse('mouseup', 2);
+          mouse('mousedown', 2); st.rmb = true; st.holdUntil = G.gt + 0.35;
+          rolled = true; T.done = true; continue;
+        }
+        if (now && G.gt - st.rollAt > 0.35){
+          // a side roll off the line he's coming down (or off the ring's edge)
+          keys[P.side] = true;
+          if (st.rmb){ mouse('mouseup', 2); st.rmb = false; }
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true }));
+          document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
+          keys[P.side] = false;
+          if (player.dashT > 0 && player.dashStartT === G.gt){ if (T.kind !== 'parry') R.dodges++; st.rollAt = G.gt; }
+          rolled = true; T.done = true;
+        }
+      }
+      st.tells = st.tells.filter(T => !T.done);
       if (player.saberLock){
         R.locks += st.wasLock ? 0 : 1; st.wasLock = true;
         if (G.gt >= st.lockAt){ mouse('mousedown', 0); mouse('mouseup', 0); st.lockAt = G.gt + S.lockRate * (0.8 + rnd() * 0.4); }
@@ -265,6 +327,9 @@
       const bState = boss ? boss.state : null, bSwings = boss ? boss.swingsLeft : 0, ringsUp = GAME.rings.length;
       const open0 = main && isLive(main) ? isOpen(main) : false, mhp0 = main ? main.hp : 0, phase0 = boss ? boss.phase : 0;
       if (bState) R.states[bState] = (R.states[bState] || 0) + dt;
+      // a final boss (boss/finale.js): which of his moves is on, so the damage taken is split by move
+      const fe = live.find(e => e.fin), fMove = fe ? (fe.fin.sig ? fe.fin.sig.id : 'blade') : null;
+      if (fMove) R.states[fMove] = (R.states[fMove] || 0) + dt;
       player.hp = maxHp;
       const s0 = player.stam;
       frame(1000 * dt);
@@ -272,7 +337,7 @@
       const lost = maxHp - player.hp;
       if (lost > 0.01){
         R.dmg += lost; R.hits++;
-        const src = bState === 'lightning' ? 'lightning' : ringsUp ? 'nova' : (bState === 'windup' || bState === 'gapclose') ? 'melee' : boss ? 'adds' : 'melee';
+        const src = fMove ? fMove : bState === 'lightning' ? 'lightning' : ringsUp ? 'nova' : (bState === 'windup' || bState === 'gapclose') ? 'melee' : boss ? 'adds' : 'melee';
         R.src[src] = (R.src[src] || 0) + lost;
       }
       if (player.stam < s0) R.stam += s0 - player.stam;
@@ -294,6 +359,7 @@
     const { G, enemies, keys } = GAME;
     const { foes, R, stats0, dt } = F;
     clearKeys(keys); mouse('mouseup', 0); mouse('mouseup', 2);
+    if (GAME.simWatch) GAME.simWatch.tell = null;
     const live = foes.filter(isLive);
     const hpLeft = foes.reduce((a, e) => a + (isLive(e) ? Math.max(0, e.hp) / e.maxHp : 0), 0) / Math.max(1, foes.length);
     R.parries = ((G.stats && G.stats.parries) || 0) - stats0.p;
@@ -303,7 +369,7 @@
     return { end, t: +(R.frames * dt).toFixed(2), dmg: +R.dmg.toFixed(1), hits: R.hits, stam: Math.round(R.stam), parries: R.parries, parryTry: R.parryTry,
              swings: R.swings, heavies: R.heavies, locks: R.locks, switches: R.switches, foeSwitch: R.foeSwitch, kills: R.kills, of: foes.length, hpLeft: +hpLeft.toFixed(3),
              firstKill: R.firstKill, foeForms: foes.map(e => e.ff), foeRank: foes.map(e => e.rank),
-             src: rd(R.src), dealt: rd(R.dealt), states: rd(R.states), breaks: R.breaks, deflects: R.deflects, reflects: R.reflects, novaJumps: R.novaJumps,
+             dodgeTells: R.dodgeTells, dodges: R.dodges, src: rd(R.src), dealt: rd(R.dealt), states: rd(R.states), breaks: R.breaks, deflects: R.deflects, reflects: R.reflects, novaJumps: R.novaJumps,
              phaseAt: R.phaseAt, maxIdle: +R.maxIdle.toFixed(1) };
   }
   function fight(cfg){

@@ -315,6 +315,8 @@ import { setSandboxMap } from './game/sandbox.js';
 Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, arena: arenaInfo, ENDLESS_ARENAS, BATTLE_MAPS, setSandboxMap, gfx: { renderer, composer, scene, resolution: resolutionInfo }, killcam: { KC, killCam } });
 import * as APPRENTICE from './allies/apprentice.js';
 Object.assign(window.GAME, { growth: { ...GROWTH, streaming: growthStreaming } });   // the hub that grows with your group (game/hub-growth.js), for tests
+import { SIM_WATCH } from './game/sim-watch.js';
+Object.assign(window.GAME, { simWatch: SIM_WATCH });   // the combat sims' listeners (tools/duel-sim, trooper-sim, mando-sim)
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME.duel, { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo });   // duel mode (game/duel-mode.js), for tests

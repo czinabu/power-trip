@@ -2,7 +2,7 @@
 // TROOPER SIM — scripted, headless ARC trooper fights on the BUILT game (dist/index.html), in the sandbox's hangar, the
 // real combat code end to end and as fast as the CPU allows (tools/trooper-sim/bot.js drives the clock and the hero).
 // Prints JSON lines, one per fight, then a table per plan.
-//   npm run build && npm run sim:trooper -- <plan> [--reps 4] [--workers 2] [--out file.jsonl] [--trace]
+//   npm run build && npm run sim:trooper -- <plan> [--reps 4] [--workers 2] [--squad on|off|both] [--out file.jsonl] [--trace]
 // plans:
 //   line     a firing line (blaster troopers and a grenadier) against the bot standing in the open, then taking cover
 //   boss     the Marshal (the trooper's end boss) the same two ways, with a late run's cards
@@ -10,7 +10,9 @@
 //   forks    a late-run fight (blasters, a grenadier, a brute, an officer) with each signature path fully upgraded, both bots
 //   all      every plan
 // bots: stand (plants his feet and shoots, aim held) · cover (takes cover, leans out, moves when flanked)
-import { chromium } from 'playwright';
+// --squad: on (the default: his squad fights beside him), off (alone), both (every fight twice, tagged ':alone'). The
+// table's 'squad dmg' is the share of the damage on the foes his squad dealt (game/sim-watch.js).
+import { launchSimBrowser } from '../sim-browser.mjs';
 import { existsSync, readFileSync, appendFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -22,6 +24,7 @@ const BOT = readFileSync(path.join(root, 'tools/trooper-sim/bot.js'), 'utf8');
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf('--' + k); return i >= 0 ? argv[i + 1] : d; };
 const PLAN = argv[0] || 'all', REPS = +opt('reps', 4), WORKERS = +opt('workers', 2), OUT = opt('out', null);
+const SQUAD = opt('squad', 'on'), SQUADS = SQUAD === 'both' ? ['on', 'off'] : [SQUAD === 'off' ? 'off' : 'on'];
 
 // where the fights stand in the hangar: the hero at the south end, the foes at the north, cover between
 const AT = [0, 18], YAW = Math.PI, FOE_AT = [0, -12];
@@ -49,7 +52,8 @@ const FULL = (fork) => `
 
 function jobs(){
   const J = []; let s = 1;
-  const add = (tag, bot, cfg) => { for (let r = 0; r < REPS; r++) J.push({ tag, bot, cfg: { bot, at: bot === 'stand' ? STAND_AT : AT, yaw: YAW, tmax: 120, seed: s++ * 7919 + r, course: COURSE, squad: 2, trace: argv.includes('--trace'), ...cfg } }); };
+  // (with the squad off, the same seeds: a squad-on and a squad-off fight differ only by the squad)
+  const add = (tag, bot, cfg) => { const s0 = s; for (const sq of SQUADS){ s = s0; for (let r = 0; r < REPS; r++) J.push({ tag: tag + (sq === 'off' ? ':alone' : ''), bot, cfg: { bot, at: bot === 'stand' ? STAND_AT : AT, yaw: YAW, tmax: 120, seed: s++ * 7919 + r, course: COURSE, squad: 2, trace: argv.includes('--trace'), ...cfg, ...(sq === 'off' ? { squad: 0 } : {}) } }); } };
   if (PLAN === 'line' || PLAN === 'all'){ add('line', 'stand', { foes: LINE }); add('line', 'cover', { foes: LINE }); }
   if (PLAN === 'boss' || PLAN === 'all'){ // (he meets the Marshal at the end of a run: the cards bought, no signature yet)
     const B = { foes: [{ boss: true }], head: true, tmax: 180, setup: FULL('none') };
@@ -81,9 +85,12 @@ async function open(browser){
   await page.$eval('#hero-trooper', el => el.click());
   await page.$eval('#mode-sandbox', el => el.click());
   for (let i = 0; i < 10; i++){
-    for (const sel of ['#goText', '#trainNo']) if (await page.isVisible(sel)) await page.click(sel, { timeout: 1500 }).catch(() => {});
+    // (a DOM click, not page.click: Playwright's wait for a still, unobscured button never settles on a page whose clock
+    // the bot runs, so a busy machine timed out on it every time and the fight started on the menu, 0 s, no shot)
+    for (const sel of ['#goText', '#trainNo']) if (await page.isVisible(sel)) await page.$eval(sel, el => el.click()).catch(() => {});
     if (await page.waitForFunction(() => GAME.G.mode === 'play' && !GAME.G.paused, null, { timeout: 3000 }).then(() => true, () => false)) break;
   }
+  if (!(await page.evaluate(() => GAME.G.mode === 'play'))) throw new Error('the sandbox did not start (still on ' + await page.evaluate(() => GAME.G.mode) + ')');
   await page.evaluate(() => { GAME.gfx.composer.render = () => {}; GAME.gfx.renderer.render = () => {}; });
   // which way G.pitch turns the lens (so the bot's aim converges)
   await page.evaluate(() => { const { G, camera } = GAME; G.pitch = 0; TSIM.frame(3); const a = camera.getWorldDirection(camera.position.clone()).y; G.pitch = 0.2; TSIM.frame(3); const b = camera.getWorldDirection(camera.position.clone()).y; TSIM.AIM.sign = b < a ? 1 : -1; G.pitch = 0.05; });
@@ -104,7 +111,7 @@ async function worker(browser, queue, results){
   await page.close();
 }
 
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--mute-audio'] });
+const browser = await launchSimBrowser();
 const queue = jobs(), results = [];
 await Promise.all(Array.from({ length: Math.min(WORKERS, queue.length) }, () => worker(browser, queue, results)));
 await browser.close();
@@ -113,10 +120,11 @@ await browser.close();
 const groups = new Map();
 for (const r of results){ const k = r.tag + ' · ' + r.bot; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
 const avg = (a, f) => a.length ? a.reduce((s, r) => s + (f(r) || 0), 0) / a.length : 0;
-console.log('\nplan · bot                 fights  won   time s  hp lost  downs  in cover  peeking  flanked  boss hp left');
+const broke = results.filter(r => r.error || r.endMode); if (broke.length) console.log(`\n${broke.length} fight(s) ended early (an error, or the game left play): see their lines`);
+console.log('\nplan · bot                 fights  won   time s  hp lost  downs  in cover  peeking  flanked  squad dmg  boss hp left');
 for (const [k, a] of groups){
   console.log(k.padEnd(26) + String(a.length).padStart(6) + (Math.round(avg(a, r => r.win ? 100 : 0)) + '%').padStart(6)
     + avg(a, r => r.t).toFixed(1).padStart(9) + avg(a, r => r.hpLost).toFixed(0).padStart(9) + avg(a, r => r.downs).toFixed(2).padStart(7)
     + (avg(a, r => r.coverT / Math.max(1, r.t)) * 100).toFixed(0).padStart(9) + '%' + (avg(a, r => r.peekT / Math.max(1, r.t)) * 100).toFixed(0).padStart(8) + '%'
-    + (avg(a, r => r.flankedT / Math.max(1, r.t)) * 100).toFixed(0).padStart(8) + '%' + (a.some(r => r.bossHp != null) ? avg(a, r => r.bossHp).toFixed(2).padStart(14) : ''));
+    + (avg(a, r => r.flankedT / Math.max(1, r.t)) * 100).toFixed(0).padStart(8) + '%' + (avg(a, r => r.squadShare) * 100).toFixed(0).padStart(10) + '%' + (a.some(r => r.bossHp != null) ? avg(a, r => r.bossHp).toFixed(2).padStart(14) : ''));
 }

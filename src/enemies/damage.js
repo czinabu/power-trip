@@ -38,6 +38,7 @@ import { mutOn } from '../data/ngplus.js';
 import { roleTags, takesRoles } from '../boss/roles.js';
 import { pickCuts } from './scars.js';
 import { noteTrophy } from '../game/hub-growth.js';   // (the Warbringer down: a trophy for the hub's hall)
+import { SIM_WATCH } from '../game/sim-watch.js';
 
 /* opts.launch === false: a blow with no rocket behind it (the Mandalorian's fists, knee and blade). It never floors or
    throws a live foe (the caller staggers or shoves it), and a foe it kills crumples where it stands instead of flying. */
@@ -188,6 +189,7 @@ export function damageEnemy(e, dmg, knockDir, knockPow, isFinisher, tick, opts){
   // a JET TROOPER caught by a big blast (see blastKnock in data/enemies.js) doesn't get knocked about: its pack goes up
   const blownUp = e.t.fly && e.t.blastKnock && knockDir && !tick && knockPow >= e.t.blastKnock && !(opts && opts.launch === false);
   if (blownUp) dmg = Math.max(dmg, e.hp);
+  if (SIM_WATCH.hit && dmg > 0) SIM_WATCH.hit(e, Math.min(dmg, Math.max(0, e.hp)), opts);   // (the sims: who did the work, game/sim-watch.js)
   e.hp -= dmg;
   e.flash = Math.max(e.flash, tick ? 0.06 : 0.16);
   const p = e.group.position;

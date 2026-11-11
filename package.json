@@ -17,6 +17,7 @@
     "smoke:coop": "node tools/smoke/coop.mjs",
     "smoke:trooper": "node tools/smoke/trooper.mjs",
     "sim:trooper": "node tools/trooper-sim/sim.mjs",
+    "sim:mando": "node tools/mando-sim/sim.mjs",
     "smoke:maps": "node tools/smoke/maps.mjs",
     "smoke:pathing": "node tools/smoke/pathing.mjs",
     "smoke:saves": "node tools/smoke/saves.mjs",

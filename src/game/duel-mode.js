@@ -22,6 +22,7 @@ import { worldKey } from '../player/players.js';
 import { stowForScene, lightFromBelt, clearUnlit } from '../player/holster.js';
 import { cancelSwing } from '../player/jedi/combat.js';
 import { freshUp, syncJediChips } from './flow.js';
+import { storyReached } from './sandbox-unlocks.js';
 import { spawnEnemy } from '../enemies/spawn.js';
 import { removeEnemy } from '../enemies/cleanup.js';
 import { setFoeForm } from '../enemies/foeform.js';
@@ -167,7 +168,8 @@ function level(){
   if (kept) return;
   kept = { wk: worldKey(), up: player.up, skills: player.skills, boon: player.boon, boons: player.boons, unlocked: G.unlocked, phoenix: player.phoenixReady, hp: player.hp };
   player.up = freshUp(); player.skills = {}; player.boon = {}; player.boons = {}; player.phoenixReady = false;
-  G.unlocked = { ...DUEL_POWERS };
+  // the duel's even kit, less a power the story hasn't handed out yet (Force Pull waits for the siege: game/sandbox-unlocks.js)
+  G.unlocked = Object.fromEntries(Object.entries(DUEL_POWERS).filter(([k, on]) => on && storyReached(k)));
   syncJediChips();
 }
 function unlevel(){

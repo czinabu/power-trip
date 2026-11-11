@@ -108,7 +108,7 @@ export const dynamicCrosshair = () => !isGunner() || player.weapon === 'darksabe
    the foe he's locked onto (the lock frames it, so that's where he means) */
 export function aimPoint(){
   const lt = player.lockTarget;
-  if (!isGunner() && lt && lt.group && (lt === shared.boss ? lt.hp > 0 : !lt.dead)){
+  if (!isGunner() && lt && !player.lockLoose && lt.group && (lt === shared.boss ? lt.hp > 0 : !lt.dead)){   // (a loose focus only marks the foe: player/lockon.js)
     lastAim.target = lt; lastAim.floor = false;
     return lt.t ? chestPos(lt) : lt.group.position.clone().setY(lt.group.position.y + 1.8);
   }
@@ -125,7 +125,7 @@ function bandOf(e, pt){
   return e.t ? bandAt(e, pt) : null;
 }
 export function aimBand(){
-  if (player.lockTarget || !player.group) return null;
+  if ((player.lockTarget && !player.lockLoose) || !player.group) return null;
   const pt = dynamicCrosshair() ? heroCrosshair() : crosshairPoint(player.aimOff.x, player.aimOff.y);
   if (lastAim.target) return bandOf(lastAim.target, pt);
   const o = lastAim.o, d = lastAim.d, dh2 = d.x*d.x + d.z*d.z, hp = player.group.position;

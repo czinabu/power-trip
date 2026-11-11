@@ -75,7 +75,8 @@ export function restoreRun(run){
   G.story = clone(run.story) || {};   // the story's choices so far (game/choices.js)
   G.ngPlus = run.ng || 0; G.ngNext = null;   // NEW GAME+'s tier (data/ngplus.js; a save from before it: a first run)
   G.formFork = run.formFork || null; clearMeditation();   // (forms the saved chapter has passed are taught again as it starts)
-  G.xp = run.xp || 0; G.xpEarned = run.xpEarned || 0; G.skillPoints = run.skillPoints || 0; G.skillSpent = run.skillSpent || 0;
+  G.xp = Math.round(run.xp || 0); G.xpEarned = Math.round(run.xpEarned || 0);   // (whole XP: a save from before XP was rounded)
+  G.skillPoints = run.skillPoints || 0; G.skillSpent = run.skillSpent || 0;
   G.powerLv = clone(run.powerLv) || {}; G.mastery = clone(run.mastery) || {}; G.seenTypes = clone(run.seenTypes) || {};
   G.masteryUse = clone(run.masteryUse) || {};
   G.forceLevel = run.forceLevel || 1; G.formRank = clone(run.formRank) || {}; G.formUse = clone(run.formUse) || {}; G.formSince = clone(run.formSince) || {}; G.gunRank = clone(run.gunRank) || {}; G.gunUse = clone(run.gunUse) || {}; G.gunMoves = clone(run.gunMoves) || {};   // (an older save: level 1, recomputed by checkUnlocks on load)

@@ -237,9 +237,9 @@ export const JEDI_PARTS = {
         // (under the outer robe its own sleeve covers the shoulder, stretching from the armhole: the tunic's deltoid and
         // sleeve top would only poke out of it as the arm lifts)
         const robed = k.parts.robe === 'outer';
-        if (!robed) k.add(loft([{ y:-0.1, w:0.16, d:0.156 }, { y:-0.01, w:0.172, d:0.165 }, { y:0.045, w:0.142, d:0.142 }, { y:0.075, w:0.07, d:0.08 }], SOFT), 'tunic', A.sh, [0.012*s, 0.02, 0], [0, 0, -0.38*s]);   // deltoid
+        if (!robed) k.add(loft([{ y:-0.1, w:0.15, d:0.146 }, { y:-0.02, w:0.156, d:0.15 }, { y:0.025, w:0.128, d:0.128 }, { y:0.05, w:0.065, d:0.075 }], SOFT), 'tunic', A.sh, [0.012*s, -0.01, 0], [0, 0, -0.38*s]);   // deltoid (rounding the shoulder off, not standing up over it)
         k.skin('tunic', [
-          ...seg(0.34, [[robed ? 0.12 : -0.2,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
+          ...seg(0.34, [[robed ? 0.12 : -0.1,0.145,0.145],[0.06,0.155,0.152],[0.5,0.128,0.13],[1,0.102,0.106]]),
           ...seg(0.3, [[0.1,0.098,0.098],[0.45,0.114,0.114],[0.78,0.148,0.145]], 0.34),
         ], { bones: [A.sh, A.el], at: [0.34], blend: 0.05, profile: chamfer(0.4) });
         k.add(limb(0.3, [[0.6,0.085,0.085],[1,0.075,0.075]], chamfer(0.3)), 'leather', A.el);

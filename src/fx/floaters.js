@@ -39,6 +39,8 @@ export const wordStats = () => ({ ..._stats, up: wordUp(), waiting: _next ? _nex
 export function clearWords(){ if (_cur){ _cur.el.style.transition = 'none'; _cur.el.style.opacity = '0'; } _cur = _next = null; clearTimeout(_nextTimer); _taught.clear(); }
 
 const isNumber = (t) => typeof t === 'number' || /^[+\-−]?\d+$/.test(t);
+// whole numbers only on screen: a number, or a long decimal inside a label ('+32.1234 XP'), is rounded before it shows
+const tidy = (t) => typeof t === 'number' ? Math.round(t) : String(t).replace(/\d+\.\d{3,}/g, (m) => String(Math.round(+m)));
 function tierFor(r){ return isGunner() && r.tier < TIER.NOTICE ? TIER.NOTICE : r.tier; }   // (ROUTINE and MINOR only quiet the Jedi)
 
 function say(worldPos, text, color, big, kind){
@@ -87,6 +89,7 @@ function take(){
 /* floater(pos, text, color[, kind]): a number rises and fades as ever; a word goes through the ranking above.
    `kind` (optional) is the call site's own rank for a label built from data: see data/callouts.js KINDS */
 export function floater(worldPos, text, color, kind){
+  text = tidy(text);
   if (!isNumber(text)) return say(worldPos, String(text), color, false, kind);
   TMP.copy(worldPos); TMP.y += 2.2;
   TMP.project(camera);

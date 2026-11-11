@@ -11,6 +11,7 @@ import { TIER_REQ, TIER_NAME, SKILLS, TIER_NAME_MANDO, MANDO_SKILLS, TIER_CHAPTE
 import { MANDO_STORE, JEDI_STORE } from '../data/store.js';
 import { forceReady } from '../data/force-level.js';
 import { TROOPER_STORE, TROOPER_SKILLS } from '../data/trooper-progression.js';
+import { zoneReached, loneMission } from './zone-gate.js';
 import { renderProgress } from '../ui/store-ui.js';
 import { MASTERY_XP } from '../data/difficulty.js';
 import { MANDO } from '../data/mando.js';
@@ -95,6 +96,7 @@ export function storeSet(){ return isTrooper() ? TROOPER_STORE : isGunner() ? MA
 export function storeStageOpen(n){
   if (!forceReady(n.force)) return false;   // a Jedi power waits for the Force Level it needs (data/force-level.js)
   if (n.chapter && G.chapter >= 0) return chapterClosed(n.chapter);
+  if ((G.zone || loneMission()) && !zoneReached(n)) return false;   // a zone or a lone mission: never past this hero's story (game/zone-gate.js)
   const s = (n.stage != null) ? n.stage : (STORE_TIER_STAGE[n.tier] || 0); return (G.waveTotal || 0) >= s;
 }
 // what a node costs: nothing in the story, where the chapters hand the powers out (data/store.js); XP in survival

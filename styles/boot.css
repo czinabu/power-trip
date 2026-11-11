@@ -2,20 +2,25 @@
    The first thing painted: the title over a dark field and a lightsaber whose blade ignites as the game loads. The menu
    and the HUD stay hidden under it until the title screen's 3D stage has drawn, then the loader fades away over it. */
 body:not(.booted) #overlay,body:not(.booted) #hud{visibility:hidden}
-#boot{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;
-  background:radial-gradient(ellipse 70% 60% at 50% 46%,#0b1a2c 0%,#050b14 55%,#010205 100%);
+#boot{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  background:radial-gradient(ellipse 60% 50% at 50% 46%,rgba(60,140,220,.16) 0%,transparent 70%),radial-gradient(ellipse 70% 60% at 50% 46%,#0b1a2c 0%,#050b14 55%,#010205 100%);
   color:var(--ink,#e8f4ff);font-family:var(--font-display,'Barlow Condensed','Arial Narrow',sans-serif);
   transition:opacity .55s ease;cursor:default}
 #boot.out{opacity:0;pointer-events:none}
 #boot[hidden]{display:none}   /* between loads (ui/loading.js brings it back for each mode) */
 /* back for a mode's build: all there at once, no rise-in, since the build holds the page and would freeze it half-risen */
-#boot.again .bt-title,#boot.again .bt-saber,#boot.again .bt-status{animation:none}
-#boot .bt-title{margin:0;font:700 clamp(46px,9vw,104px)/1 var(--font-display,'Barlow Condensed','Arial Narrow',sans-serif);
-  letter-spacing:.09em;padding-left:.09em;text-shadow:0 0 28px rgba(92,198,255,.28);
+#boot.again :is(.bt-title,.bt-saber,.bt-status){animation:none}
+/* the stack is as wide as the title: the saber's full length runs exactly under it, and the line under the saber centers on it */
+#boot .bt-stack{display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100vw - 32px)}
+#boot .bt-title{margin:0;text-align:center;font:700 clamp(46px,9vw,104px)/.9 var(--font-display);
+  letter-spacing:.05em;padding-left:.05em;color:#f2f8ff;text-transform:uppercase;
+  text-shadow:0 2px 0 rgba(0,0,0,.4),0 0 40px rgba(60,170,255,.25);
   animation:bt-rise 1s cubic-bezier(.2,.8,.2,1) both}
 /* the saber: a hilt on the left, the blade growing out of it with the progress (--p, 0..1) */
-#boot .bt-saber{position:relative;display:flex;align-items:center;width:min(420px,78vw);height:22px;
+#boot .bt-saber{position:relative;display:flex;align-items:center;width:100%;height:22px;margin-top:clamp(18px,3.2vw,34px);
   animation:bt-rise 1s .12s cubic-bezier(.2,.8,.2,1) both}
+/* the unlit track the blade grows along: it shows how far there is to go */
+#boot .bt-saber::before{content:'';position:absolute;left:66px;right:0;top:50%;height:2px;margin-top:-1px;border-radius:1px;background:var(--edge)}
 #boot .bt-hilt{flex:none;width:62px;height:14px;border-radius:2px 1px 1px 2px;
   background:linear-gradient(180deg,#d8dee4 0%,#8d979f 45%,#4b545b 100%);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);position:relative}
@@ -23,12 +28,12 @@ body:not(.booted) #overlay,body:not(.booted) #hud{visibility:hidden}
   background:repeating-linear-gradient(90deg,#1b2025 0 3px,transparent 3px 6px)}   /* the grip ridges */
 #boot .bt-hilt::after{content:'';position:absolute;right:-4px;top:-2px;width:6px;height:18px;border-radius:1px;
   background:linear-gradient(180deg,#e9eef2,#69737b)}   /* the emitter shroud */
-#boot .bt-blade{flex:1;height:7px;margin-left:4px;border-radius:0 6px 6px 0;background:#f4fbff;
+#boot .bt-blade{position:relative;flex:1;height:7px;margin-left:4px;border-radius:0 6px 6px 0;background:#f4fbff;
   box-shadow:0 0 6px 2px #5cc6ff,0 0 18px 5px rgba(92,198,255,.55),0 0 40px 10px rgba(60,160,255,.22);
   transform-origin:left center;transform:scaleX(var(--p,0));transition:transform .45s cubic-bezier(.2,.8,.2,1);
   animation:bt-hum 1.4s ease-in-out infinite}
-#boot .bt-status{min-height:1em;font:600 13px/1 var(--font-ui,'Barlow Condensed','Arial Narrow',sans-serif);
-  letter-spacing:.34em;padding-left:.34em;color:var(--ink-dim,#7393ab);text-transform:uppercase;
+#boot .bt-status{min-height:1em;margin-top:clamp(16px,2.6vw,26px);text-align:center;
+  font:600 15px/1.2 var(--font-ui);letter-spacing:3px;padding-left:3px;color:var(--ink-dim);text-transform:uppercase;
   animation:bt-rise 1s .24s cubic-bezier(.2,.8,.2,1) both}
 #boot .bt-fan{position:absolute;left:16px;right:16px;bottom:8px;text-align:center;
   font:500 11px/1.2 var(--font-ui,'Barlow Condensed','Arial Narrow',sans-serif);letter-spacing:.06em;color:var(--ink-dim,#7393ab);opacity:.55}

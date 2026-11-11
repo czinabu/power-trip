@@ -24,12 +24,12 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
-import { damageEnemy } from '../enemies/damage.js';
+import { damageEnemy, staggerEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, segBlockedTall, clampToArena, collideSolids, findClearSpawn, blastCovered } from '../world/collision.js';
 import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
 import { diffDmgMul } from '../data/difficulty.js';
-import { SQUAD, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING, ENGAGE } from '../data/allies.js';
+import { SQUAD, INTERCEPT, FODDER, REVIVE, COMMAND, ORDERS, SUPPRESS_ORDER, DUEL_RING, ENGAGE } from '../data/allies.js';
 import { BUBBLE } from '../data/duel-bubble.js';
 import { anyDuelFoe } from '../enemies/bubble.js';
 import { TROOPER } from '../data/trooper.js';
@@ -58,7 +58,7 @@ const guest = () => !!G.coopGuest && !!squadLink.order;
 // each squadmate carries its own order (a.ord: follow · hold · move · cover · revive) and may have a mark (a.mark: the foe
 // ATTACK TARGET put on it). The squad shares the formation (wide or tight), the grenade cooldown and fYaw, the
 // formation's facing, eased after yours
-const SQ = { formation: 'wide', moves: new Set(), grenadeAt: -99, fYaw: 0, fYawT: 0, fighting: false, saidYours: -99, tipped: false,
+const SQ = { formation: 'wide', moves: new Set(), grenadeAt: -99, fYaw: 0, fYawT: 0, fighting: false, saidYours: -99, saidRush: -99, rushT: 0, tipped: false,
              lv: { x: 0, z: 0 }, lp: null, pv: { x: 0, z: 0 }, pp: null, slotT: 0,   // lv/pv: the hero's and the partner's own pace, measured
              engage: savedStance(), hot: false, calmT: 0, engaged: false, netEngage: null };   // FREE ENGAGE (the stance, kept between runs) · hot: a fight on
 // THE STANCE: 'free' (FREE ENGAGE, the default: in a fight they take their own cover and angles, then regroup) or 'follow'
@@ -483,6 +483,10 @@ export const squadDown = () => allies.filter(a => !standing(a)).length;
 // duel: the hero it would go after is in a 1v1 (enemies/bubble.js), so the squad is the fight it looks for first
 export function foeAllyTarget(e, pp, duel){
   if (!allies.length || e.converted || e.dummy || e.dead || !isFodder(e) || e.t.bomber){ e.allyTgt = null; e.onAlly = false; return null; }
+  if (e.icBy){   // INTERCEPTED (updateIntercept): it's on the squadmate who stepped into its path, for as long as that holds
+    if (standing(e.icBy) && allies.includes(e.icBy) && G.gt < e.icT){ e.allyTgt = e.icBy; e.onAlly = true; return e.icBy; }
+    e.icBy = null; e.allyCheck = 0;
+  }
   if (G.gt >= (e.allyCheck || 0)){
     e.allyCheck = G.gt + rand(0.6, 1.0);
     const g = e.group.position;
@@ -524,6 +528,8 @@ function pickTarget(a){
   const m = markLive(a);
   if (m && Math.hypot(m.group.position.x - g.x, m.group.position.z - g.z) < a.role.range * 1.3 &&
       !segBlockedBySolids(g.x, g.z, m.group.position.x, m.group.position.z)) return m;
+  const rs = a.rush && !a.rush.dead && enemies.includes(a.rush) ? a.rush : null;   // the rusher it stepped out to take
+  if (rs && !segBlockedBySolids(g.x, g.z, rs.group.position.x, rs.group.position.z)) return rs;
   const focus = G.squadFocus && G.gt - (G.squadFocusT || -99) < SQUAD.focusFor ? G.squadFocus : null;
   const sup = G.suppress && G.suppress.until > G.gt ? G.suppress : null;   // SUPPRESS: the foes in the zone first
   let best = null, bs = 1e9;
@@ -700,6 +706,10 @@ function wantSpot(a, medic, dt){
   if (medic) return { x: medic.x, z: medic.z, r: 1.3 };
   const i = a.slot % SQUAD.slots.length;
   if (o.kind === 'revive'){ const v = o.who.group.position; return { x: v.x, z: v.z, r: 1.2 }; }
+  if (a.rush && o.kind === 'follow'){   // INTERCEPT: out along the rusher's line to the hero, in its path
+    const q = a.rush.group.position, hx = q.x - pp.x, hz = q.z - pp.z, hl = Math.hypot(hx, hz) || 1, out = clamp(hl - 1.8, 1.5, INTERCEPT.guard);
+    return { x: pp.x + hx / hl * out, z: pp.z + hz / hl * out, r: 0.6, chase: true };
+  }
   // a MELEE fighter (the Jedi) on a follow order goes in to its foe, blade's length short of it, on a leash to the hero
   if (a.role.melee && o.kind === 'follow' && a.target && !a.target.dead){
     const tp = a.target.group.position, p0 = a.group.position, d = Math.hypot(tp.x - p0.x, tp.z - p0.z) || 1, k = Math.min(1, a.role.reach * 0.75 / d);
@@ -1092,10 +1102,51 @@ export function updateSquad(dt){
   }
   for (const o of SQ.moves) pulseMarker(o.beacon, dt, G.gt);
   updateMarkTag(dt);
+  if (!guest()) updateIntercept(dt, pp);
   const revivers = [];
   for (const a of allies){ if (a.net) updatePuppet(a, dt); else updateAlly(a, dt, a === medic ? medicTo : null, pp); }
   for (const a of allies) if (standing(a)) revivers.push({ kind: a.ord.kind === 'revive' ? 'medic' : 'ally', pos: a.group.position, hitAt: a.hitAt });
   updateRevive(dt, revivers);
+}
+/* INTERCEPT (data/allies.js INTERCEPT): a plain melee trooper or a saboteur running at the hero is called out, and the
+   nearest free squadmate steps into its path. The rusher turns on it (foeAllyTarget), the squadmate shoots it first and
+   shoves it back with a rifle butt when it arrives */
+function updateIntercept(dt, pp){
+  const I = INTERCEPT;
+  for (const a of allies){
+    const r = a.rush;
+    if (r && (r.dead || r.converted || !enemies.includes(r) || !standing(a) || G.gt > a.rushT || r.icBy !== a)) a.rush = null;
+  }
+  if (!I.heroes[G.hero] || DUEL.on || player.downed) return;
+  for (const a of allies) if (a.rush) rushShove(a);
+  if ((SQ.rushT -= dt) > 0) return;
+  SQ.rushT = I.every;
+  for (const e of enemies){
+    if (e.dead || e.converted || e.state !== 'chase' || !I.types[e.type] || !isFodder(e) || (e.icBy && G.gt < e.icT)) continue;
+    const q = e.group.position, d = Math.hypot(q.x - pp.x, q.z - pp.z);
+    if (d > I.watch || d < I.min || (e.onAlly && !e.icBy)) continue;
+    const hx = (q.x - pp.x) / d, hz = (q.z - pp.z) / d, sx = pp.x + hx * Math.min(d - 1.8, I.guard), sz = pp.z + hz * Math.min(d - 1.8, I.guard);
+    let best = null, bd = I.reach;
+    for (const a of allies){
+      if (a.net || a.rush || !standing(a) || a.role.heal || a.ord.kind !== 'follow' || a.turnT > G.gt || a.dazeT > G.gt) continue;
+      const ad = Math.hypot(a.group.position.x - sx, a.group.position.z - sz);
+      if (ad < bd){ bd = ad; best = a; }
+    }
+    if (!best) continue;
+    best.rush = e; best.rushT = G.gt + I.hold; best.shoveT = Math.max(best.shoveT || 0, G.gt + 0.2);
+    e.icBy = best; e.icT = G.gt + I.hold; e.allyCheck = 0;
+    if (G.gt - SQ.saidRush > I.sayEvery){ SQ.saidRush = G.gt; say(best, isTrooper() ? 'RUSHER! I\'VE GOT HIM, SIR!' : 'RUSHER! I\'VE GOT HIM!', 'RUSHER. MINE.'); }
+  }
+}
+// the rifle butt: a squadmate close on its rusher knocks it back and staggers it (a saboteur's fuse is broken too)
+function rushShove(a){
+  const e = a.rush, p = a.group.position, q = e.group.position;
+  if (!e || G.gt < (a.shoveT || 0) || e.state === 'stagger') return;
+  const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz) || 1;
+  if (d - bodyRadius(e) > INTERCEPT.shove) return;
+  a.shoveT = G.gt + INTERCEPT.shoveCd; a.kick = 1;
+  q.x += dx / d * 0.9; q.z += dz / d * 0.9;
+  staggerEnemy(e, dx / d, dz / d, 'SHOVED');
 }
 // ATTACK TARGET: a gold diamond spins over the foe the squad was ordered onto, while anyone still has it marked
 let markTag = null;

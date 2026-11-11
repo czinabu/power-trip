@@ -94,6 +94,25 @@ export const SQUAD = {
   getUpHp: 0.5,              // ...with this share of its health
 };
 
+/* INTERCEPTING RUSHERS (allies/squad.js updateIntercept): a plain melee trooper (or a saboteur) running at the ARC
+   trooper is called out ("RUSHER!") and a squadmate steps into its path to take it: the rusher turns on that squadmate
+   (a saboteur can't be turned, so it's shot and shoved instead), the squadmate shoots it first and shoves it back with
+   a rifle butt (a stagger) when it arrives. The hero's own rifle bash stays his. One squadmate per rusher, one rusher per
+   squadmate, only on a follow order (HOLD / MOVE / COVER stand), never in a boss duel, never the medic */
+export const INTERCEPT = {
+  heroes: { trooper: true },  // whose squads do it (by G.hero)
+  types: { grunt: 1, bomber: 1 },   // the rushers
+  watch: 15,                  // a rusher this close to the hero, running at him, is called out (m)
+  min: 3.2,                   // ...but one already on top of him is the hero's (m)
+  reach: 14,                  // the squadmate must be within this of the spot it'd meet the rusher at (m)
+  guard: 5,                   // that spot: this far out from the hero along the rusher's line (m)
+  every: 0.25,                // how often the squad looks for a rusher (s)
+  hold: 4,                    // a squadmate keeps a rusher this long before it's looked at again (s)
+  shove: 2.3,                 // the rifle butt lands within this of the rusher (m)
+  shoveCd: 3.5,               // ...and a squadmate shoves again no sooner than this (s)
+  sayEvery: 6,                // the callout, at most this often (s)
+};
+
 /* THE DUEL IS YOURS (allies/squad.js, THE DUEL RING): while the hero fights a boss (the level's boss, a story's named
    champion, survival's warbringer) and stands within `start` m of it, a squad on ON ME stops following. It spreads to a
    ring round the duel, out on its flanks and well off the lane between the two of you, and fights only the troops that

@@ -16,7 +16,7 @@ import { skipScene, holdSkip } from '../game/cutscene.js';
 import { wheelStick } from '../allies/wheel.js';
 import { padAimAssist } from '../player/aim-assist.js';
 import { updateRumble } from './rumble.js';
-import { lockStickFlick } from '../player/lockon.js';
+import { lockStickFlick, focusStick, focusPitch } from '../player/lockon.js';
 
 /* the left stick as a camera-relative move: x = right, y = forward (player/locomotion.js reads it for a smooth
    direction; the W A S D keys are pressed too, for everything that reads those) */
@@ -193,11 +193,11 @@ function fight(btn, down, up, lx, ly, rx, ry, dt){
     const sens = G.padSens * aimLookScale() * assist;
     const dyaw = -(rx / r) * mag * PAD_TUNE.yawRate * sens * dt;
     const dpitch = (ry / r) * mag * PAD_TUNE.pitchRate * sens * dt * (G.padInvert ? -1 : 1);
-    G.yaw += dyaw;
-    G.pitch = clamp(G.pitch + dpitch, -0.62, 1.2);
+    G.yaw += dyaw * focusStick(rx, dt);   // (a focused duel holds the view on the foe: player/lockon.js)
+    G.pitch = clamp(G.pitch + dpitch * focusPitch(), -0.62, 1.2);
     noteFlick(-dyaw / 0.0023, dpitch / 0.0021);   // a fast flick of the stick aims a cut, as the mouse does (CUT AIM: MOUSE)
     noteGuardFlick(-dyaw / 0.0023, dpitch / 0.0021);   // ...and with the guard up, steers it to that side (player/jedi/guardline.js)
-  }
+  } else focusStick(0, dt);
 }
 
 /* ---------- MENUS: a focus ring that moves between whatever can be clicked ---------- */

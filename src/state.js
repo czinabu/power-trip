@@ -47,6 +47,7 @@ export const G = {
   saberGrip: 'regular',   // player preference: 'regular' or 'reverse' lightsaber grip (visual only)
   formFork: null,        // this run's Form VII: 'juyo' or 'vaapad' once chosen (game/meditation.js)
   missionForms: null,    // the three forms chosen before a mission (ui/forms-ui.js)
+  duelFocus: 'auto',     // player preference: squaring up with a saber duellist focuses on it by itself ('auto'), only on T ('manual'), or never ('off') (player/lockon.js)
   strafeMode: 'toggle',  // player preference: ALT strafe is a 'toggle' (press on, press off) or a 'hold' (player/strafe.js)
   guardRings: 'fading', // player preference: a duellist's guard ring, 'fading' | 'always' | 'off' (enemies/guardcue.js)
   aimHint: true,        // player preference: the Jedi's crosshair turns red on a foe (ui/hud.js); off for a challenge

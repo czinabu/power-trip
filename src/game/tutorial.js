@@ -8,7 +8,7 @@ import { MUSIC } from '../audio/music.js';
 import { V3 } from '../utils.js';
 import { burst } from '../fx/particles.js';
 import { shared, G, enemies, player, keys, isGunner, heroKey } from '../state.js';
-import { strafing } from '../player/strafe.js';
+import { strafeHeld } from '../player/strafe.js';
 import { playerPos, maxHp, maxStam, heldGrip } from '../player/helpers.js';
 import { CFG } from '../data/config.js';
 import { floater } from '../fx/floaters.js';
@@ -338,7 +338,7 @@ function updateCourse(s, pp){
 const POLL = {
   glide: () => player.gliding && !player.grounded,
   sprint: () => player.sprinting,
-  strafe: () => strafing() && player.grounded && !!(keys['a'] || keys['d'] || keys['s']),   // strafing (ALT, or LB on a pad) while stepping sideways or back
+  strafe: () => strafeHeld() && player.grounded && !!(keys['a'] || keys['d'] || keys['s']),   // strafing (ALT, or LB on a pad) while stepping sideways or back
   boost: () => player.boosting && !player.grounded,
   single: () => player.weapon === 'single',
   holstered: () => isGunner() ? player.weapon === 'fists' : !!player.holstered,

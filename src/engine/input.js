@@ -24,7 +24,7 @@ import { atkPress, atkRelease } from '../player/jedi/weight.js';
 import { forceDash, doJump } from '../player/movement.js';
 import { trySlide } from '../player/parkour.js';
 import { pullPress, pullRelease, graspThrow, graspDrop } from '../player/jedi/grasp.js';
-import { toggleLock, lockMouseFlick } from '../player/lockon.js';
+import { toggleLock, lockMouseFlick, focusLook, focusPitch } from '../player/lockon.js';
 import { toggleStrafe } from '../player/strafe.js';
 import {
   bactaStim, mandoRocket, mandoJetMissile, whistlingBirds, thermalDetonator, grappleHook, jetSlam
@@ -62,9 +62,9 @@ document.addEventListener('mousemove', (e) => {
   if (wheelLook(e.movementX, e.movementY)) return;   // the squad's command wheel is up: the mouse points at an order (allies/wheel.js)
   // down the sights the look slows with the zoom, and in a scope to the SCOPE SENS setting too (engine/camera.js aimLookScale)
   const sens = G.mouseSens * aimLookScale();
-  G.yaw -= e.movementX * 0.0023 * sens;
+  G.yaw -= e.movementX * 0.0023 * sens * focusLook(e.movementX);   // (a focused duel holds the view on the foe: the flick still aims, the view barely turns: player/lockon.js)
   // allow looking well UP (was capped at -0.15, so you couldn't aim high on the ground) as well as down
-  G.pitch = clamp(G.pitch + e.movementY * 0.0021 * sens, -0.62, 1.2);
+  G.pitch = clamp(G.pitch + e.movementY * 0.0021 * sens * focusPitch(), -0.62, 1.2);
   noteFlick(e.movementX, e.movementY);   // a flick just before a cut aims it (player/jedi/cutaim.js)
   noteGuardFlick(e.movementX, e.movementY);   // ...and with the guard up, a flick steers it to that side (player/jedi/guardline.js)
   lockMouseFlick(e.movementX);   // locked on: a quick flick sideways moves the lock to the next foe (player/lockon.js)

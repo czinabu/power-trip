@@ -10,7 +10,7 @@ import { abil } from '../data/mastery.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, TMP } from '../utils.js';
 import { burst } from '../fx/particles.js';
-import { floater, screenFlash } from '../fx/floaters.js';
+import { floater, callout, screenFlash } from '../fx/floaters.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
 import { trooperHurtMul } from './trooper/cover.js';
 import { MANDO, BESKAR_GUARD } from '../data/mando.js';
@@ -158,6 +158,8 @@ export function bladeClash(fromPos, foe, at){
   return true;
 }
 
+// where a guard's result is called out: between the two fighters, head high (fx/floaters.js callout)
+const between = (pp, from) => from ? V3((pp.x + from.x) / 2, pp.y + 2.05, (pp.z + from.z) / 2) : V3(pp.x + fwd().x * 1.2, pp.y + 2.05, pp.z + fwd().z * 1.2);
 export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   const pierce = !!(opts && opts.unblockable);   // a THRUST (or a lost lock): a held guard can't stop it, only a parry
   if (G.mode !== 'play') return 'none';
@@ -265,9 +267,9 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         if (!isGunner() && player.holstered){   // a Force parry: the blow is turned aside, its owner rocked, and the next strike is a free COUNTER
           const by = opts && opts.by;
           if (by && !by.dead && !by.net){ TMP.subVectors(by.group.position, pp); TMP.y = 0; flinchEnemy(by, TMP.lengthSq() > 0.001 ? TMP.normalize() : fwd(), 1.0); }
-          floater(pp, 'FORCE PARRY ⟲ COUNTER READY', '#ffe27a');
+          callout(between(pp, fromPos), 'FORCE PARRY ⟲ COUNTER READY', '#ffe27a');
         } else
-        floater(pp, (player.cancelRiposte ? 'PARRY! ⟲ CRUSHING RIPOSTE' : 'PARRY! ⟲ RIPOSTE READY'), '#ffe27a');
+        callout(between(pp, fromPos), (player.cancelRiposte ? 'PARRY! ⟲ CRUSHING RIPOSTE' : 'PARRY! ⟲ RIPOSTE READY'), '#ffe27a');
         S.parry(fp);   // a bright ringing clash
         if (G.stats) G.stats.parries++;
         noteDefense('parries', fromPos, opts);
@@ -278,7 +280,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         return 'parried';
       }
       if (guard && pierce){
-        floater(pp, 'GUARD PIERCED', '#ff6a3a');   // it drove straight through the block: full force
+        callout(between(pp, fromPos), 'GUARD PIERCED', '#ff6a3a');   // it drove straight through the block: full force
         sfx(160, 0.12, 'square', 0.06, 70);
       } else if (guard && player.stam > 0){
         // a heavy blow (a brute's maul) jars the guard far harder than a grunt's chop
@@ -295,10 +297,10 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         player.vel.addScaledVector(fwd(), -2.5 * heavy * (GT && GT.push || 1));   // the blow drives you back a step
         if (melee && opts && opts.line) guardFlash(meet);
         if (meet === 'beaten'){
-          floater(pp, 'WRONG SIDE', '#ff6a3a'); sfx(150, 0.1, 'square', 0.05, 80); tutEvent('wrongSide');
+          callout(between(pp, fromPos), 'WRONG SIDE', '#ff6a3a'); sfx(150, 0.1, 'square', 0.05, 80); tutEvent('wrongSide');
           if (!G.seenWrongSide){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'A feint beat your guard. When the orange mark jumps sides, flick toward it to send your guard there yourself.', 3.2); }
         }
-        else if (meet === 'clean'){ floater(pp, 'CLEAN BLOCK', '#ffe08a'); tutEvent('cleanBlock'); }
+        else if (meet === 'clean'){ callout(between(pp, fromPos), 'CLEAN BLOCK', '#ffe08a'); tutEvent('cleanBlock'); }
         else if (melee && opts && opts.line) tutEvent('lineBlock');
         S.deflect(contact || V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8));   // the one blade-contact sound (clash + pyew), whatever weapon it was
         noteDefense('blocks', fromPos, opts);

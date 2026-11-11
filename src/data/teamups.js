@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // TEAM-UP MOVES (game/teamup.js): things two heroes do together that neither can do alone. A prompt comes up when a
-// partner is close and the setup is right; both players press U (a pad: D-pad down while the prompt is up) within a
+// partner is close and the setup is right; both players press 4 (a pad: D-pad down) while the prompt is up within a
 // couple of seconds of each other, and a short shared move plays on every screen. Solo, the hero's apprentice or a
 // squadmate does a simpler version on one press.
 //
@@ -12,7 +12,8 @@
 // plays part A. Everything here is in metres and seconds.
 
 export const TEAMUP = {
-  key: 'u',            // the keyboard key (a pad: D-pad down, while a prompt is up: data/gamepad.js `teamup`)
+  key: '4',            // the keyboard key while a prompt is up (HOLSTER otherwise: engine/input.js); a pad: D-pad down, data/gamepad.js `teamup`
+  alt: 'u',            // the old key, still taken (and the key a pad's D-pad down sends)
   near: 16,            // a partner (or an ally, solo) must be within this of you for any prompt
   window: 2.5,         // s: the second press has to come this soon after the first
   cd: 22,              // s each hero waits after a team-up before the next (co-op)

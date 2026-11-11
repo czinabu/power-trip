@@ -4,7 +4,7 @@
 //
 //   THE PROMPT   every few frames this screen looks for a partner in reach (online: net/partner.js partnerStand; solo:
 //                the apprentice or a squadmate) and a setup that's right for the pair (a foe to lift, a crowd to drop into,
-//                a duellist to pin...). The first one found is shown under the crosshair: U (a pad: D-pad down) and its name.
+//                a duellist to pin...). The first one found is shown under the crosshair: 4 (a pad: D-pad down) and its name.
 //   THE PRESS    online, a press is an OFFER ('tu', passed on to every screen by the host: net/session.js RELAY). Your
 //                partner's prompt lights up ("KIRA IS READY"); when they press too, within TEAMUP.window, the host (the
 //                referee, even when it isn't one of the two) matches the two offers and sends GO ('tug') to everyone.
@@ -715,7 +715,7 @@ function prompt(p){
   T.shown = key; T.padShown = pad.active;
   if (!T.el){ T.el = document.createElement('div'); T.el.id = 'teamupp'; document.getElementById('hud').appendChild(T.el); }
   if (!p){ T.el.className = ''; return; }
-  const K = pad.active ? padKeys(TEAMUP.key.toUpperCase()) : TEAMUP.key.toUpperCase(), name = TEAMUPS[p.k].name, who = esc(p.name || '');
+  const K = pad.active ? padKeys(TEAMUP.alt.toUpperCase()) : TEAMUP.key.toUpperCase(), name = TEAMUPS[p.k].name, who = esc(p.name || '');
   T.el.innerHTML = p.kind === 'ready' ? '<kbd>' + K + '</kbd><span><b>' + who + '</b> IS READY · ' + name + '</span>'
     : p.kind === 'wait' ? '<span>' + name + ' · WAITING FOR <b>' + who + '</b></span>'
     : p.kind === 'cd' ? '<span>TEAM-UP · ' + name + ' · ' + Math.ceil(T.cdUntil - G.gt) + 'S</span>'
@@ -723,7 +723,8 @@ function prompt(p){
   T.el.className = 'on ' + p.kind;
 }
 // a prompt you can answer is up (a pad's D-pad down answers it instead of its own bind: engine/gamepad.js)
-shared.teamupUp = () => !!(T.el && / (go|ready)$/.test(T.el.className));
+export const teamupAnswerable = () => !!(T.el && / (go|ready)$/.test(T.el.className));
+shared.teamupUp = teamupAnswerable;
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /* ---------------- the pieces the moves are drawn with ---------------- */

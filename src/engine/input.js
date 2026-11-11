@@ -51,7 +51,8 @@ import { noteFlick } from '../player/jedi/cutaim.js';
 import { noteGuardFlick } from '../player/jedi/guardline.js';
 import { trooperMouseDown, trooperKey, trooperCycle } from '../player/trooper/kit.js';
 import { flowSignature } from '../player/gunner-flow.js';
-import { teamupPress, teamupBusy } from '../game/teamup.js';
+import { teamupPress, teamupBusy, teamupAnswerable } from '../game/teamup.js';
+import { TEAMUP } from '../data/teamups.js';
 
 // is a cut primed that should leave from behind a held guard (the mousedown below)?
 const answerReady = () => player.riposteT > 0 || G.gt < (player.feintUntil || 0)
@@ -186,7 +187,9 @@ document.addEventListener('keydown', (e) => {
   if (G.cutscene && G.mode === 'play' && k !== 'p' && k !== 'm') return;   // a cutscene: only its skip keys (game/cutscene.js), quality and music
   if (player.downed && G.mode === 'play' && k !== 'p' && k !== 'm' && k !== 'escape') return;   // down: wait for your squad
   if (teamupBusy() && k !== 'p' && k !== 'm' && k !== 'escape' && k !== 'tab') return;   // committed to a team-up: it plays out first (game/teamup.js)
-  if (k === 'u' && !e.repeat && G.mode === 'play' && teamupPress()) return;   // TEAM-UP: a partner (or an ally) close and the setup right (game/teamup.js)
+  // TEAM-UP: a partner (or an ally) close and the setup right (game/teamup.js). 4 (above E and R, in reach of WASD) answers it
+  // while a prompt you can answer is up, as a pad's D-pad down does, and is HOLSTER the rest of the time; U still works too
+  if ((k === TEAMUP.key || k === TEAMUP.alt) && !e.repeat && G.mode === 'play' && (k === TEAMUP.alt || teamupAnswerable()) && teamupPress()) return;
   if (wheelOpen()){   // the squad's command wheel is up: 1-4 pick a squadmate, Esc puts it away; you can still move, but nothing else fires
     if (k.length === 1 && '1234'.includes(k)){ wheelPickMate(+k - 1); return; }
     if (k === 'escape'){ wheelCancel(); return; }

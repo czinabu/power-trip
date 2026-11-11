@@ -30,6 +30,7 @@ import { castFrom, castHands } from '../../fx/palms.js';
 import { hooks } from '../../net/run.js';
 import { tutEvent } from '../../game/tutor-bus.js';
 import { pushGrenades } from '../../enemies/grenades.js';
+import { pushGrenade } from '../lock-yield.js';
 import { flowReady, queuePullStrike } from './palm.js';
 import { trainAbility } from '../../game/upgrades.js';
 import { floorCost, baseCost } from '../../data/force-level.js';
@@ -83,8 +84,18 @@ export function forcePush(){
   player.force -= cost; player.cds.push = A.cd * (st.cdMult || 1); trainAbility('push');
   if (hooks.power) hooks.power('push', st.blade, A.range * 0.5);   // co-op: the partner sees the shove
   faceAbilityAim(A.range);                          // square up to the threat before the shove
-  const f = fwd(), pp = playerPos();
+  let f = fwd();
+  const pp = playerPos();
   const aim = heroAim();                           // the shove goes where the crosshair points, up or down
+  // locked on, a live detonator close by comes first: the shove goes at it, not the locked foe (player/lock-yield.js)
+  const gren = pushGrenade(A.range);
+  if (gren){
+    const gp = gren.ball.position;
+    aim.dir.set(gp.x - aim.origin.x, 0, gp.z - aim.origin.z);
+    if (aim.dir.lengthSq() < 1e-4) aim.dir.copy(f);
+    aim.dir.normalize(); f = aim.dir.clone();
+    aim.point = gp.clone(); aim.target = null; aim.floor = false;
+  }
   const col = stance().blade;
   S.push();
   G.shake = Math.max(G.shake, 0.3);

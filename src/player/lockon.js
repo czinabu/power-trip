@@ -10,6 +10,7 @@ import { shared, G, enemies, player, isGunner } from '../state.js';
 import { camera } from '../engine/renderer.js';
 import { playerPos, fwd } from './helpers.js';
 import { duelHooks } from '../game/duel-hooks.js';
+import { outsideThreat, LOCK_YIELD } from './lock-yield.js';
 
 const alive = t => !!t && (t === rival ? rivalUp() : t === shared.boss ? t.hp > 0 : !t.dead && !t.converted && t.state !== 'spawn');
 /* DUEL MODE: the other fighter, as something to lock onto (game/duel-hooks.js bodies: there only while a round is being
@@ -47,7 +48,8 @@ function pickTarget(exclude){
      · the mouse and the right stick barely turn the view, so a flick places the guard or aims a cut (jedi/guardline.js,
        jedi/cutaim.js) and the fight stays framed
    It lets go when the foe falls or the gap opens, when a crowd closes in, on T, or when you sweep the view away on
-   purpose. MANUAL: the lock is T's alone and behaves as it always has. OFF: no lock at all.
+   purpose; and while something outside the duel comes for you or someone beside you (fire from off to the side, a live
+   detonator: player/lock-yield.js), so you can turn to block it or push it back. MANUAL: the lock is T's alone and behaves as it always has. OFF: no lock at all.
      on / off   the gap (m) it takes hold inside, and lets go beyond
      cone       how squarely in front the foe must be (cos) to take hold; settle: for how long (s)
      crowd/max  with more than `max` foes inside `crowd` m it won't take hold (a melee, not a duel); past `drop` it lets go
@@ -141,6 +143,9 @@ export function updateLockOn(dt){
     // a focus the duel took by itself: gone with the foe, the gap or the duel (a crowd), and with the setting
     const pp = playerPos();
     if (!auto() || !alive(t) || Math.hypot(posOf(t).x - pp.x, posOf(t).z - pp.z) > FOCUS.off + (t === rival ? 1.5 : 0) || crowded(pp)) t = player.lockTarget = null;
+    // ...and it yields to defence: fire or a detonator from outside the duel, at you or someone beside you (a duel
+    // with another player is only ever the two of you)
+    else if (t !== rival && outsideThreat(t)){ dropLock(LOCK_YIELD.hold); t = null; sfx(420, 0.05, 'triangle', 0.02, 300); }
   } else if (t){
     const pp = playerPos();
     // the foe fell or ran out of reach: hand the lock to the next foe in view, or let it go
@@ -149,6 +154,8 @@ export function updateLockOn(dt){
   if (!t){
     player.lockAuto = false;
     // DUEL FOCUS: squared up with a lone duellist a moment, the lock takes hold by itself
+    // (not while a threat from outside the duel is still about: that holds it off a beat longer each frame it lasts)
+    if (auto() && !rivalUp() && outsideThreat(null)) player.focusOffUntil = Math.max(player.focusOffUntil || 0, G.gt + LOCK_YIELD.hold);
     const c = auto() && player.grounded && G.gt >= (player.focusOffUntil || 0) ? duelPick() : null;
     if (c && c === seenPick){ seenT += dt; if (seenT >= FOCUS.settle){ t = player.lockTarget = c; player.lockAuto = true; seenT = 0; sfx(760, 0.05, 'triangle', 0.02, 1100); } }
     else { seenPick = c; seenT = 0; }

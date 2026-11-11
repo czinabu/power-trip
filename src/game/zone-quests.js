@@ -6,6 +6,8 @@
 //     the compass points the way: walk somewhere, tap F at a few things (lamps to light, a box to carry), beat the foes
 //     waiting somewhere, then back to whoever asked. Done, it counts as a side mission won (game/profile.js noteSideWon:
 //     rank XP, the workbench's side-mission parts), and its light-or-dark choice is asked, once (game/alignment.js).
+//   · A CHASE (a `chase` step, game/zone-chase.js): somebody bolts through the districts, shutting styled gates behind
+//     them; run them down, and the quest's next step (its fight) is fought where they're caught.
 //   · A MOMENT: no steps, only the choice, asked there and then.
 //   Your profile keeps what you've done (game/profile.js noteZone 'quests'), so a giver thanks you on a later visit.
 //
@@ -29,6 +31,7 @@ import { askChoice } from './campaign.js';
 import { sideChoice, sideChoiceDue } from './alignment.js';
 import { noteSideWon, noteZone, zoneMemo } from './profile.js';
 import { sendQuestFoes } from './zone-fights.js';
+import { startChase, stopChase, updateChaseHost, updateChaseGuest, chaseEnd, chaseStatus, chaseMarks } from './zone-chase.js';
 import { partnerStand } from '../net/partner.js';
 import { net, on, send, connected } from '../net/session.js';
 import { showBanner } from '../ui/banners.js';
@@ -52,7 +55,7 @@ const sideId = (id) => 'zone:' + Q.key + ':' + id;
 const questOf = (id) => Q.life && Q.life.quests.find(q => q.id === id);
 const done = (id) => !!(Q.key && (zoneMemo(Q.key).quests || {})[id]);
 const host = () => net.role !== 'guest' || !connected();   // (solo, or the host: this screen keeps the quest)
-export const zoneQuest = () => Q.act ? { id: Q.act.id, i: Q.act.i, got: Q.act.got.slice() } : null;   // (tests)
+export const zoneQuest = () => Q.act ? { id: Q.act.id, i: Q.act.i, got: Q.act.got.slice(), at: Q.act.at || null } : null;   // (tests)
 export const zoneGivers = () => Q.people.map(p => ({ id: p.q.id, x: p.x, z: p.z, done: done(p.q.id) }));   // (tests)
 
 /* into a zone (game/zone.js startZone): its people stand where they stand; they're built as a hero first comes near */
@@ -72,6 +75,7 @@ function dropAll(){
   for (const p of Q.people) if (p.F && p.F.g.parent) p.F.g.parent.remove(p.F.g);
   for (const t of Q.things) if (t.g.parent) t.g.parent.remove(t.g);
   Q.people = []; Q.things = []; Q.act = null;
+  stopChase();
 }
 export function stopZoneQuests(){ dropAll(); Q.Z = null; Q.life = null; const e = prompt(); if (e) e.classList.remove('on'); Q.shownKey = ''; }
 
@@ -107,6 +111,7 @@ function showThings(){
   for (const t of Q.things) if (t.g.parent) t.g.parent.remove(t.g);
   Q.things = [];
   const a = Q.act, s = a && questOf(a.id).steps[a.i];
+  if (s && s.kind === 'chase') startChase(a.id, s, host()); else stopChase();
   if (!s || s.kind !== 'take') return;
   s.at.forEach((at, k) => { const t = thing(s, at, k); Q.things.push(t); if (a.got.includes(k)) mark(t, s); });
 }
@@ -228,13 +233,14 @@ function hookUp(){
 
 /* ---------------- co-op ---------------- */
 // the host's quest, to every guest (on a change, and now and then for one who just came in)
-function tell(){ if (net.role === 'host' && connected()) send({ t: 'zq', a: Q.act ? { id: Q.act.id, i: Q.act.i, got: Q.act.got } : null }); }
+function tell(){ if (net.role === 'host' && connected()) send({ t: 'zq', a: Q.act ? { id: Q.act.id, i: Q.act.i, got: Q.act.got, at: Q.act.at || null } : null }); }
 on('zq', (m) => {
   if (net.role !== 'guest' || !G.zone || !Q.life) return;
   const a = m.a, was = Q.act;
   if (!a){ if (was){ Q.act = null; showThings(); } return; }
   const q = questOf(a.id); if (!q) return;
-  if (!was || was.id !== a.id){ Q.act = { id: a.id, i: a.i, got: [...a.got], foes: null }; heard(q); showThings(); return; }
+  if (!was || was.id !== a.id){ Q.act = { id: a.id, i: a.i, got: [...a.got], foes: null, at: a.at || null }; heard(q); showThings(); return; }
+  was.at = a.at || null;
   if (was.i !== a.i){ was.i = a.i; was.got = [...a.got]; showThings(); showBanner('', (q.steps[a.i] || {}).task || '', 2.0); return; }
   if (a.got.length !== was.got.length){ was.got = [...a.got]; const s = q.steps[a.i]; for (const t of Q.things) if (was.got.includes(t.k) && !t.taken) mark(t, s); }
 });
@@ -269,6 +275,7 @@ export function updateZoneQuests(dt){
   }
   for (const t of Q.things) if (!t.taken) t.orb.rotation.y += dt * 1.6;
   if (host() && Q.act && dt > 0) stepQuest(dt);
+  else if (!host() && dt > 0) updateChaseGuest(dt);
   if (host() && net.role === 'host' && connected() && (Q.syncT -= dt) <= 0){ Q.syncT = 2.5; tell(); }
   // the prompt
   Q.near = pick();
@@ -280,13 +287,15 @@ export function updateZoneQuests(dt){
   }
 }
 // the host's (or a solo hero's) quest moves on: a place reached, the foes beaten
-function stepQuest(){
+function stepQuest(dt){
   const a = Q.act, q = questOf(a.id), s = q.steps[a.i];
   const H = [playerPos(), ...(net.role === 'host' && connected() ? partnerStand().map(P => P.pos) : [])];
   const near = (at, r) => H.some(h => Math.hypot(h.x - at[0], h.z - at[1]) < r);
   if (s.kind === 'go'){ if (near(s.at, s.r || 6)) next(); return; }
+  if (s.kind === 'chase'){ if (updateChaseHost(dt)){ a.at = chaseEnd(); next(); } return; }   // (the fight after it is where it was caught)
   if (s.kind === 'clear'){
-    if (!a.foes){ if (near(s.at, QUEST_TUNE.wake)) a.foes = sendQuestFoes(a.id, s.foes, s.at); return; }
+    const at = a.at || s.at;
+    if (!a.foes){ if (near(at, QUEST_TUNE.wake)) a.foes = sendQuestFoes(a.id, s.foes, at); return; }
     if (!enemies.some(e => e.zq === a.id && !e.dead)) next();
   }
 }
@@ -295,7 +304,9 @@ function stepQuest(){
 export function zoneQuestHud(){
   const a = Q.act, q = a && questOf(a.id);
   if (!q) return null;
-  const s = q.steps[a.i], n = s.kind === 'take' ? ' · ' + a.got.length + ' / ' + s.at.length : s.kind === 'clear' && a.foes ? ' · ' + enemies.filter(e => e.zq === a.id && !e.dead).length + ' LEFT' : '';
+  const s = q.steps[a.i];
+  if (s.kind === 'chase') return { kicker: 'SIDE QUEST · ' + q.kicker, title: q.title, status: (chaseStatus() || s.task.toUpperCase()) + ' · STEP ' + (a.i + 1) + ' / ' + q.steps.length };
+  const n = s.kind === 'take' ? ' · ' + a.got.length + ' / ' + s.at.length : s.kind === 'clear' && a.foes ? ' · ' + enemies.filter(e => e.zq === a.id && !e.dead).length + ' LEFT' : '';
   return { kicker: 'SIDE QUEST · ' + q.kicker, title: q.title, status: s.task.toUpperCase() + n + ' · STEP ' + (a.i + 1) + ' / ' + q.steps.length };
 }
 export function zoneQuestMarks(){
@@ -305,7 +316,8 @@ export function zoneQuestMarks(){
   if (s){
     if (s.kind === 'back'){ const p = Q.people.find(p => p.q === q); if (p) out.push({ x: p.x, z: p.z, kind: 'obj' }); }
     else if (s.kind === 'take'){ for (const t of Q.things) if (!t.taken) out.push({ x: t.x, z: t.z, kind: 'obj' }); }
-    else out.push({ x: s.at[0], z: s.at[1], kind: 'obj' });
+    else if (s.kind === 'chase') out.push(...chaseMarks());
+    else { const at = (s.kind === 'clear' && a.at) || s.at; out.push({ x: at[0], z: at[1], kind: 'obj' }); }
   }
   for (const p of Q.people) if (!done(p.q.id) && (!a || a.id !== p.q.id)) out.push({ x: p.x, z: p.z, kind: 'spot', label: p.q.giver.name });
   return out;

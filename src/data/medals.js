@@ -126,6 +126,7 @@ export const PAR = {
   pursuit: { speed: 8, standoff: 30, add: 20 },   // the route at this m/s, each standoff, + this
   duel: [45, 22],                 // + this × its foe's hp multiplier
   breach: 40,                     // a door: stack, fuse, the room
+  walker: 80,                     // the walker takedown: three legs tangled, the neck charge, the fall
   round: 15,
   min: 60,
 };
@@ -144,6 +145,7 @@ function objCost(o, def, S){
     case 'pursuit': { const leg = (def.route || [])[o.leg || 0]; return len(leg) * S / PAR.pursuit.speed + (o.standoff || []).length * PAR.pursuit.standoff + PAR.pursuit.add; }
     case 'duel': return PAR.duel[0] + PAR.duel[1] * (o.hp || 1);
     case 'breach': return PAR.breach;
+    case 'walker': return PAR.walker;
   }
   return 30;
 }

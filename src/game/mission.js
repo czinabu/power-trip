@@ -78,6 +78,7 @@ import { noteMedals } from './profile.js';
 import { sliceRate } from './slice-ways.js';
 import { SLICE_WAY, SLICE_TEXT, CHARGE_COLOR } from '../data/slice-ways.js';
 import { showMedals } from '../ui/medals-ui.js';
+import { WALKER_KIND, bindWalker, clearWalker, walkerSnap, walkerSync, updateWalkerGuest, walkerWreck, walkerSkip } from './walker.js';
 import { armDropIn } from './drop-in.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
@@ -143,6 +144,9 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   if (def.battle) startBattleFx(isMando() ? 0xffa040 : 0x4aa8ff);
   // retrying past the evacuation: the transport has already gone
   if (def.objectives.slice(0, fromObjective).some(o => o.kind === 'hold' && o.evacuees)) shipGone();
+  // retrying past the walker: it already lies where it fell (game/walker.js)
+  const wi = def.objectives.findIndex((o, k) => k < fromObjective && o.kind === 'walker');
+  if (wi >= 0) walkerWreck(forHero(def.objectives[wi]), wi);
   // the opening banner (startLevel's) gets its moment before the first objective begins
   M.waitT = 2.8;
   setObjectiveHud({ kicker: M.kick, title: forHero(def.objectives[fromObjective]).title, status: 'STAND READY', frac: null });
@@ -166,6 +170,7 @@ function clearMission(){
   CIV.list.length = 0; CIV.onAim = null;
   clearLanes();
   endTwist(true);
+  clearWalker();
   stopBattleFx();
   if (M.on) hidePanel();
   M.on = false;
@@ -819,6 +824,16 @@ const KINDS = {
    THE EVACUATION — the evacuees file from the shelter to the ramp as the hold's progress climbs, and the transport
    lifts off when it's done
    ============================================================ */
+// THE WALKER TAKEDOWN, a set piece with a file of its own (game/walker.js): what it borrows from the mission
+KINDS.walker = WALKER_KIND;
+bindWalker({
+  mark(m){ M.markers.push(m); return m; },
+  unmark(m){ removeMarker(m); M.markers = M.markers.filter(k => k !== m); },
+  kick: () => M.kick, index: () => M.i,
+  group(g, at){ queueGroup(g, at ? { at } : undefined); },
+  arc: (from) => arcSpawn(from[0], from[1]),
+  fail(line, sub){ showBanner(line, sub, 2.6, { kicker: 'MISSION FAILED' }); S.uiDeny(); M.failT = 2.8; },
+});
 function pathPoint(P, d){
   for (let i = 0; i < P.length - 1; i++){
     const [ax, az] = P[i], [bx, bz] = P[i+1], len = Math.hypot(bx - ax, bz - az);
@@ -1511,6 +1526,7 @@ function nextSpot(o){
     case 'capture': return o.posts[0] && o.posts[0].at;
     case 'breach': return o.stack;
     case 'escort': { const g = M.vip && M.vip.g; return g ? [g.position.x, g.position.z] : o.path && o.path[0]; }
+    case 'walker': return o.path && o.path[0];
     case 'pursuit': { const q = M.quarry ? M.quarry.g.position : M.net && M.net.q ? { x: M.net.q[0], z: M.net.q[2] } : null; return q ? [q.x, q.z] : null; }
   }
   return null;
@@ -1628,6 +1644,7 @@ export function skipObjective(){
     completeObjective();
   }
   else if (M.o.kind === 'escort'){ M.s.d = M.s.P.len; walkVip(M.s, 0); completeObjective(); }   // it reaches the end of its leg
+  else if (M.o.kind === 'walker'){ walkerSkip(); completeObjective(); }   // it lies where it stood, a wreck
   else completeObjective();
   return true;
 }
@@ -1716,7 +1733,7 @@ export function missionSnap(){
     mk: M.markers.map(m => [m.userData.con ? 1 : 0, r2(m.position.x), r2(m.position.z), r2(m.userData.r || 1), m.userData.ring.material.color.getHex(),
                             m.userData.beam.visible ? 1 : 0, m.visible ? 1 : 0, r2(m.userData.yaw || 0), r2(m.position.y)]),
     q: q && !q.hidden ? [r2(q.g.position.x), r2(q.g.position.y), r2(q.g.position.z), r2(q.g.rotation.y), q.tag.visible ? 1 : 0] : null,
-    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(),
+    v: v ? [r2(v.g.position.x), r2(v.g.position.z), r2(v.g.rotation.y)] : null, ev: evacSnap(), ln: lanesSnap(), md: medalsMissed(), dr: doorsOpen(), pn: M.pn || undefined, tw: twistSnap(), wk: walkerSnap(),
     sw: M.o && M.o.kind === 'duel' && M.s && M.s.scar && M.s.foe && !M.s.foe.dead ? [M.s.foe.nid, M.s.scar.fx, M.s.scar.n] : undefined };   // a wounded duel foe: the guest wears and trails it too
 }
 // the hold's line as the guest draws it: per evacuee, how far along, pushed aside how far, and down which way (99: up)
@@ -1754,6 +1771,7 @@ export function coopMissionSync(ms){
     M.props = []; M.quarry = null; M.vip = null; M.gk = null; M.begun = -1; M.i = -1; M.run = ms.run; M.told = -1;
     clearLanes();
     endTwist(true);
+    clearWalker();
   }
   if (ms.i !== M.i){
     const handed = M.i >= 0 && ms.i === M.i + 1;
@@ -1770,6 +1788,7 @@ export function coopMissionSync(ms){
   M.net = ms;
   medalsHostMissed(ms.md);   // what the mission itself has missed, as the host saw it (game/medals.js)
   if (ms.tw) twistSync(ms.tw);
+  { const wo = ms.wk && M.def.objectives[ms.wk.i]; walkerSync(wo && forHero(wo), ms.wk); }   // the host's walker (game/walker.js)
   lanesSync(ms.ln);   // the host's approach lanes, lit as its waves are called in
   if (ms.pn && ms.pn[0] !== M.pnSeen){ M.pnSeen = ms.pn[0]; punchIn({ x: ms.pn[1], y: 0, z: ms.pn[2] }, ms.pn[3]); }   // the host's foe hit its rage: this lens punches in too
   if (ms.dr != null) setDoorsOpen(ms.dr);   // the doors the host has breached
@@ -1797,6 +1816,7 @@ function updateMissionGuest(dt){
   guestCtx.frac = ms && ms.hud && ms.hud[1] >= 0 ? ms.hud[1] : guestCtx.frac;
   updateTwist(dt, guestCtx);
   guestEvacuees(ms, dt);
+  updateWalkerGuest(dt);
   updateLanes(dt, G.gt);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);

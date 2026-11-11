@@ -39,6 +39,9 @@ const KIND = {
   escort: { name: 'ESCORT', titles: ['SAFE PASSAGE', 'PRECIOUS CARGO', 'THE LONG WALK'],
     say: [ { jedi: 'Walk it through. It stops when anything gets close to it, so clear the way ahead.', mando: 'Package walks, you clear the road. It freezes when anyone gets near it.', trooper: 'Escort duty. It halts under fire, so keep the route clear.' },
            { jedi: 'It cannot fight. You can. Stay close and keep its path clear.', mando: 'It can\'t shoot back. You can. Stay near it.', trooper: 'Stay on the package. If it drops, we start over.' } ] },
+  walker: { name: 'WALKER', titles: ['BRING IT DOWN', 'THE BIG ONE', 'TRIP THE GIANT'],
+    say: [ { jedi: 'A walker, heading for the line. Tangle three of its legs at the tow points, then set a charge on its neck.', mando: 'Walker on the field. Cable three legs, then a charge on the neck. Watch its feet.', trooper: 'Walker inbound. Tow cables on three legs, then a charge on its neck. Stay out from under it.' },
+           { jedi: 'It is big, not clever. Stay off its feet and work the tow points.', mando: 'Big target. Trip it, then finish it.', trooper: 'Trip it, drop it, then the neck charge. By the numbers.' } ] },
   pursuit: { name: 'CHASE', titles: ['RUN IT DOWN', 'NO ESCAPE', 'THE HUNT'],
     say: [ { jedi: 'It is running. Keep it in sight. Over the cover, not around it.', mando: 'Runner. Don\'t lose sight of it. Go over things, not around them.', trooper: 'Target is running. Keep eyes on it at all times.' },
            { jedi: 'Stay on its heels. Look for the shortcuts.', mando: 'Chase it down. Shortcuts are marked.', trooper: 'Pursue. Take the marked shortcuts if you can.' } ] },
@@ -114,6 +117,8 @@ function rerollObjective(o, r, threat, swarm){
   for (const list of [o.consoles, o.posts]) if (list) for (const p of list) p.guards = G2(p.guards);
   if (o.pulses) o.pulses = o.pulses.map(G2);
   if (o.trickle) o.trickle.group = G2(o.trickle.group);
+  if (o.drop) o.drop.group = G2(o.drop.group);
+  if (o.crew) o.crew = G2(o.crew);
   for (const list of [o.ambush, o.standoff]) if (list) for (const a of list) a.group = G2(a.group);
   if (o.kind === 'duel'){
     o.hp = (o.hp || 1) * DUEL_HP_AT[threat - 1];

@@ -1237,8 +1237,20 @@ function leadHero(P){
 function buildVip(d){
   const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.person ? { person: d.person } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
   const tag = makeFriendTag(1.2); addFriendRing(g);
+  if (d.ward) carryWard(g, d.ward);
   scene.add(g, tag); M.props.push(g, tag);
   return M.vip = { g, tag, def: d, hp: d.hp, maxHp: d.hp };
+}
+// what an escort carries on its back (escort `ward`: its colour): a glowing stone in a soft halo, turning, so the one
+// you are walking reads at a glance from the squad round it
+function carryWard(g, col){
+  const s = 1 / (g.scale.x || 1), w = new THREE.Group();
+  const stone = new THREE.Mesh(new THREE.OctahedronGeometry(0.26), new THREE.MeshBasicMaterial({ color: col, toneMapped: false }));
+  stone.scale.y = 1.5;
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }));
+  w.add(stone, halo); w.position.set(0, 1.75 * s, -0.38 * s); w.scale.setScalar(s);
+  stone.onBeforeRender = () => { stone.rotation.y = G.gt * 1.6; halo.scale.setScalar(1 + Math.sin(G.gt * 3) * 0.12); };
+  g.add(w);
 }
 function placeVip(fromObjective){
   const d = heroKey(M.def.escort), { g, tag } = buildVip(d);

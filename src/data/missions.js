@@ -41,7 +41,8 @@
 //               escape (optional): at this fraction of hp it breaks off and is gone instead of falling, with
 //               escapeLine ({ jedi, mando }) under its banner
 //               trickle (optional): { every, cap, group } troops for the squad to hold off during the duel · from
-//   escort    walk the mission's `escort` (a droid, a courier) along a path to where it's needed
+//   escort    walk the mission's `escort` (a droid, a courier) along a path to where it's needed (its `ward`: a colour,
+//               a glowing stone it carries on its back)
 //               path: [[x, z]…] its route · speed: m/s while it walks · leash: it waits for you when you're further
 //               off than this · threat: a foe this close pins it down (it stops and takes fire) · dps: hp a second
 //               each such foe takes off it · regen: hp a second back while nothing is on it · ambush: [{ at: [x, z]

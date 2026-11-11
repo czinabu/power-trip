@@ -75,7 +75,7 @@ export const GATE_CHAPTERS = [
     lines: {
       chapter: all([{ by: 'marshal', home: say('THE MARSHAL', 'I remember the voice now, brother. It was not the Empire\'s. Let me help you find it.'),
                       else: 'Whoever gave that order was listening to someone. Let us find out who.' }]),
-      breach: [['Door one. Stack up, brothers. Whoever sealed this did it from the inside.'], ['The vault. The contract is in the stack at the back.']],
+      breach: [['Door one. Stack up, brothers. Whoever sealed this did it from the inside.'], ['Records room. Every chip they ever fitted, filed by number.'], ['The vault. The contract is in there.']],
       duel: all([rival(CANTOR, 'I signed it with his name. Every chip was built to hear him say one word.')]),
       clear: all(['The signal in the chips was his voice. Every one was built to hear it.', 'Three roads, one name: Kharel. Back to the gate.']),
     } },

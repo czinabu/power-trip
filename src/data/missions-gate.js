@@ -34,10 +34,11 @@ export const GATE_MISSIONS = {
              arena: 56, floor: 0x3a3440, fog: 0x1a1626, sky: 0x08060e, layout: 'jedhaNight', waves: [], hazards: {} },
     start: [0, 18, Math.PI],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
-    // the Cantor's run: out of the gate's north side, twice round the hall (over the ruins, between the columns), and back
-    // to the dais's south foot to get through it again. One leg; it stops once, at the east arcade, to break the old seal
+    // the Cantor's run: out of the gate's north side, round the hall (over the ruins, between the columns), out to the
+    // north stair, then back across the hall to the dais's south foot to get through it again. One leg; it stops twice to
+    // break an old seal (the east arcade, the north stair). The hall is dark: past 18 m it's lost in the shadows
     route: [[[0, -6], [0, -13], [-9.2, -9.2], [-13, 0], [-9.2, 9.2], [0, 13], [9.2, 9.2], [13, 0], [9.2, -9.2], [0, -13],
-             [-9.2, -9.2], [-13, 0], [-9.2, 9.2], [0, 13], [0, 6]]],
+             [0, -23], [-13, 0], [-9.2, 9.2], [0, 13], [9.2, 9.2], [6, 6]]],
     quarry: all({ foe: 'acolyte', name: 'THE CANTOR', kicker: 'THE HOLLOW CHOIR', tint: 0x6a3a8a, scale: 1.04 }),
     objectives: [
       { kind: 'sabotage', title: 'HOLD THE OLD SEALS', consoleName: 'SEAL', consoleDone: 'HELD', music: 'battle',
@@ -51,14 +52,17 @@ export const GATE_MISSIONS = {
         trickle: { every: 14, cap: 7, group: { grunt: 1, blaster: 1 } }, from: [-Math.PI + 0.3, -0.3] },
 
       { kind: 'pursuit', leg: 0, title: 'CHASE THE CANTOR', start: [0, -14, 0],
-        say: all('The Choir\'s voice. It came up to see who knocked, and now it is running for the gate. Do not let it back through. Over the ruins, not around them.'),
+        say: all('The Choir\'s voice. It came up to see who knocked, and now it is running for the gate. The hall is dark: drop back and you lose it in the shadows. Over the ruins, not around them.'),
         task: all('Keep the Cantor in sight'),
-        sight: 42, lost: 6, shove: 3.0,
-        pace: [[-6, 11], [6, 9.8], [14, 8.8], [24, 8.0], [36, 7.2]],
+        sight: 18, lost: 5, shove: 3.0,
+        pace: [[-6, 11.2], [6, 10.0], [12, 9.0], [18, 8.0], [26, 7.0]],
         clash: { dmg: 0.12, time: 9, every: 16 },
         standoff: [ { at: [13, 0], spots: [[10, -4], [10, 4], [16.5, -2.5], [16.5, 2.5]], group: { grunt: 2, blaster: 1, acolyte: 1 },
-                      line: all('It stops at the east arcade to break an old seal. The Choir holds you off.') } ],
-        ambush: [ { at: [-13, 0], spots: [[-17, -3], [-17, 3], [-10, 5]], group: { grunt: 2, blaster: 1 } } ] },
+                      line: all('It stops at the east arcade to break an old seal. The Choir holds you off.') },
+                    { at: [0, -23], spots: [[-5, -21], [5, -21], [-3, -25], [3, -25]], group: { grunt: 2, blaster: 1, grenadier: 1 },
+                      line: all('The north stair. It is cutting through the seal on the stair door, and its choir is between you.') } ],
+        ambush: [ { at: [-13, 0], spots: [[-17, -3], [-17, 3], [-10, 5]], group: { grunt: 2, blaster: 1 } },
+                  { at: [0, 13], spots: [[-5, 17], [5, 17], [0, 20]], group: { grunt: 2, lancer: 1 } } ] },
 
       { kind: 'duel', quarry: true, title: 'MEET THE CANTOR', music: 'duel', start: [0, 12, Math.PI],
         say: all('Cornered at the dais. Make it tell us who it sings for.'),
@@ -84,8 +88,8 @@ export const GATE_MISSIONS = {
              arena: 64, floor: 0x2f2832, fog: 0x2a1430, sky: 0x0e0612, layout: 'sith', waves: [], hazards: {} },
     start: [0, 16, Math.PI],
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
-    // who carries the ward: one of Kast's troopers, the temple's warding stone strapped to his back
-    escort: all({ model: 'clone', name: 'THE WARD-BEARER', kicker: 'CARRYING THE TEMPLE\'S WARD', color: 0xd8d0b8, eye: 0x9ad8ff, scale: 1, hp: 340 }),
+    // who carries the ward: one of Kast's troopers in the temple's pale gold, its warding stone glowing on his back
+    escort: all({ model: 'clone', name: 'THE WARD-BEARER', kicker: 'CARRYING THE TEMPLE\'S WARD', color: 0xe8dcb0, eye: 0xffd27a, scale: 1.08, hp: 340, ward: 0xffd27a }),
     objectives: [
       { kind: 'sabotage', title: 'SILENCE THE STONES', consoleName: 'STONE', consoleDone: 'SILENT', music: 'battle',
         doneLine: 'THE STONES ARE SILENT', doneSub: 'All but one voice.',
@@ -172,7 +176,7 @@ export const GATE_MISSIONS = {
     done: all('A vessel. They were forging a body out of the clans\' beskar, one a lightsaber will not cut. It left this yard a month ago, for Jedha.'),
   },
 
-  // 4 · WHO GAVE THE ORDER (the trooper's payoff): the sealed archive under Tipoca City, walled in two rooms deep and
+  // 4 · WHO GAVE THE ORDER (the trooper's payoff): the sealed archive under Tipoca City, walled in three rooms deep and
   // locked from the inside. Breach it a door at a time with the squad, pull the contract nobody signed, and the Cantor
   // comes for the file itself.
   'gate-order': {
@@ -185,18 +189,24 @@ export const GATE_MISSIONS = {
     kit: 9, grant: GRANT, squad: 2, foeLook: CHOIR,
     objectives: [
       { kind: 'breach', title: 'BREACH THE ARCHIVE', start: [0, 6, 0], doors: 0,
-        say: all('The archive is sealed from the inside, two doors deep. Stack up on the first with the squad, set the charge, and go in fast. Any of you can set it. Every brother stacked with you sets it faster.'),
+        say: all('The archive is sealed from the inside, three doors deep. Stack up on the first with the squad, set the charge, and go in fast. Any of you can set it. Every brother stacked with you sets it faster.'),
         task: all('Stand at the door to set the charge, then clear the room'),
         door: 0, stack: KAMINO_SPOTS.sealed.stack[0], time: 2.6, fuse: 1.1, stun: 1.5,
         guards: { grunt: 2, blaster: 2, sniper: 1 }, spots: KAMINO_SPOTS.sealed.rooms[0].spots, breachLine: 'BREACH', breachSub: 'Go, go, go.' },
-      { kind: 'breach', title: 'BREACH THE VAULT', start: [-4, 18, 0], doors: 1,
-        say: all('The vault is through the partition. They have heard us now, so they will be waiting behind it. The contract is in the stack at the back. Stack up and go.'),
+      { kind: 'breach', title: 'BREACH THE RECORDS ROOM', start: [-4, 18, 0], doors: 1,
+        say: all('Through the partition, west side. The records room. They have heard us now, so they will be waiting behind it. Stack up and go.'),
+        task: all('Stack up on the next door and clear the records room'),
+        door: 1, stack: KAMINO_SPOTS.sealed.stack[1], time: 2.4, fuse: 1.0, stun: 1.3,
+        guards: { grunt: 2, blaster: 2, grenadier: 1 }, spots: KAMINO_SPOTS.sealed.rooms[1].spots,
+        doneLine: 'RECORDS ROOM CLEAR', doneSub: 'The order is filed here. The contract is not.' },
+      { kind: 'breach', title: 'BREACH THE VAULT', start: [-3, 26, Math.PI / 2], doors: 2,
+        say: all('The vault is through the east wall. The contract is in there, and so is whoever they left to burn it. Last door.'),
         task: all('Stack up on the vault door and clear the vault'),
-        door: 1, stack: KAMINO_SPOTS.sealed.stack[1], time: 2.4, fuse: 1.0, stun: 1.2,
-        guards: { grunt: 2, blaster: 2, grenadier: 1, officer: 1 }, spots: KAMINO_SPOTS.sealed.rooms[1].spots,
+        door: 2, stack: KAMINO_SPOTS.sealed.stack[2], time: 2.2, fuse: 1.0, stun: 1.1,
+        guards: { grunt: 2, blaster: 1, grenadier: 1, officer: 1, phalanx: 1 }, spots: KAMINO_SPOTS.sealed.rooms[2].spots,
         doneLine: 'THE CONTRACT IS OURS', doneSub: 'And the name on it.' },
 
-      { kind: 'duel', title: 'FACE THE CANTOR', music: 'duel', start: [0, 6, 0], doors: 2,
+      { kind: 'duel', title: 'FACE THE CANTOR', music: 'duel', start: [0, 6, 0], doors: 3,
         say: all('The Cantor. It signed for every chip in the order, and it came for the receipt. It does not run this time.'),
         task: all('Beat the Cantor'),
         enter: all('The Cantor walks in out of the rain past the pods, humming the same three notes.'), kicker: 'THE HOLLOW CHOIR · IT SIGNED THE ORDER',

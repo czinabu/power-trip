@@ -2,9 +2,9 @@
 // REWORKED MISSIONS SMOKE TEST — boots the BUILT game (dist/index.html) and plays the missions that got a new shape
 // through, objective by objective, the way a player would (standing where the objective wants you, putting down what's
 // in the way), instead of skipping them:
-//   · THE GATE WAKES: the seals, then the Cantor's chase round the hall (hidden until it starts), then its duel;
+//   · THE GATE WAKES: the seals, then the Cantor's chase round the hall (hidden until it starts, two standoffs), then its duel;
 //   · THE VOICE UNDER THE THRONE: the stones, then the ward walked to the throne in three legs, the singers on the second;
-//   · WHO GAVE THE ORDER: Kamino's sealed archive breached a door at a time (its two doors open in turn), then the Cantor;
+//   · WHO GAVE THE ORDER: Kamino's sealed archive breached a door at a time (its three doors open in turn), then the Cantor;
 //   · RETURN TO JEDHA: the courtyard's posts taken, the dais held, the echo.
 // Each must reach the win with the right objectives in the right order. Fails on any page or console error.
 // HEROES=jedi,trooper picks who plays the gate's three (each one plays every gate mission; Return to Jedha is the Jedi's).
@@ -29,7 +29,7 @@ const check = (ok, what) => { console.log((ok ? 'ok: ' : 'FAIL: ') + what); if (
 const errors = [];
 
 const RUNS = [];
-for (const h of HEROES) for (const [id, kinds] of [['gate-wake', 'sabotage,pursuit,duel'], ['gate-vault', 'sabotage,escort,escort,escort'], ['gate-order', 'breach,breach,duel']]) RUNS.push([h, id, kinds]);
+for (const h of HEROES) for (const [id, kinds] of [['gate-wake', 'sabotage,pursuit,duel'], ['gate-vault', 'sabotage,escort,escort,escort'], ['gate-order', 'breach,breach,breach,duel']]) RUNS.push([h, id, kinds]);
 if (HEROES.includes('jedi')) RUNS.push(['jedi', 'jedha-night', 'capture,hold,duel']);
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;   // ONLY=gate-vault plays just those
 if (ONLY) RUNS.splice(0, RUNS.length, ...RUNS.filter(r => ONLY.includes(r[1])));
@@ -54,6 +54,10 @@ const STEP = () => {
     }
     case 'pursuit': {
       const q = M.quarry; info.hidden = !!(q && q.hidden); info.visible = !!(q && q.g.visible);
+      if (s.clash){   // it turned to fight: hurt it till it breaks away
+        const e = s.clash; put(e.group.position.x + 2, e.group.position.z + 2); GAME.damageEnemy(e, Math.max(30, e.maxHp * 0.05), null, 0, false, false);
+        info.clash = true; info.t = Math.round(s.clashT * 10); break;
+      }
       if (!s.P || !q) break;
       // run on its heels, a few metres back along its line, and put down whatever it leaves to hold you off
       const d = Math.max(0, s.d - 5), pts = s.P.pts; let k = 0; while (k < pts.length - 2 && d > s.P.cum[k + 1]) k++;
@@ -118,7 +122,7 @@ try {
         if (process.env.DEBUG){ const g0 = await page.evaluate(() => GAME.G.gt); await page.waitForTimeout(3000); console.log('pace', info.i, info.kind, (await page.evaluate(() => GAME.G.gt)) - g0, await page.evaluate(() => ({ foes: GAME.enemies.length, live: GAME.enemies.filter(e => !e.dead).length, q: GAME.G.spawnQueue.length, kids: GAME.camera.parent ? GAME.camera.parent.children.length : -1 }))); }
         if (info.kind === 'pursuit') notes.hiddenBefore = await page.evaluate(() => { const M = GAME.missionState(); return M.quarry ? !M.quarry.g.visible || M.quarry.hidden === false : null; });
       }
-      if (info.kind === 'pursuit'){ notes.chaseVisible = notes.chaseVisible || info.visible; if (info.stand) notes.standoff = true; if (info.clash) notes.clash = true; }
+      if (info.kind === 'pursuit'){ notes.chaseVisible = notes.chaseVisible || info.visible; if (info.stand && !notes.inStand) notes.standoffs = (notes.standoffs || 0) + 1; notes.inStand = info.stand; if (info.clash) notes.clash = true; }
       if (info.kind === 'escort' && info.tw) notes.twist = info.tw;
       if (info.kind === 'breach') notes.doors = Math.max(notes.doors || 0, info.doors);
       if (SHOTS && info.kind && info.kind !== 'sabotage' && info.kind !== 'hold' && shot !== info.i && ((info.d || 0) > 12 || info.kind === 'breach' || info.kind === 'capture' || info.kind === 'duel')){
@@ -136,9 +140,9 @@ try {
     const doors = await page.evaluate(() => (GAME.shared.doors || []).filter(d => d.open).length);
     check(won, `${h}: ${id} is won${won ? '' : ' (stuck at ' + lastInfo + ')'}`);
     check(seen.join() === kinds, `${h}: ${id} plays ${kinds} (${seen.join()})`);
-    if (id === 'gate-wake') check(notes.chaseVisible && notes.standoff, `${h}: the Cantor steps out for the chase and stops once to hold you off (${JSON.stringify(notes)})`);
+    if (id === 'gate-wake') check(notes.chaseVisible && notes.standoffs === 2, `${h}: the Cantor steps out for the chase and stops twice to hold you off (${JSON.stringify(notes)})`);
     if (id === 'gate-vault') check(notes.twist === 'marked', `${h}: the singers mark the ward-bearer on the second leg (${notes.twist})`);
-    if (id === 'gate-order') check(doors >= 2, `${h}: both of the archive's doors are breached (${doors} open)`);
+    if (id === 'gate-order') check(doors >= 3, `${h}: all three of the archive's doors are breached (${doors} open)`);
     await page.evaluate(() => { const pick = document.querySelector('#chapcard.open .cc-opt'); if (pick) pick.click(); GAME.G.mode = 'menu'; });
   }
   // the quarry waits out of sight while the seals are held: start the Gate Wakes and look before the chase

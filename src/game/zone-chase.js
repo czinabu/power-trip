@@ -48,7 +48,7 @@ export const CHASE_TUNE = {
   send: 0.1,       // s between the host's words to its guests
 };
 const GREEN = 0x7bffae;
-const C = { on: false, host: true, def: null, qid: null, P: null, d: 0, v: 0, q: null, gates: [], lostT: 0, state: 'run', t: 0, run: 0, net: null, sendT: 0, caught: null, said: false };
+const C = { on: false, host: true, def: null, qid: null, P: null, d: 0, v: 0, q: null, gates: [], lostT: 0, state: 'run', t: 0, run: 0, net: null, sendT: 0, caught: null };
 
 /* ---------- the route ---------- */
 function pathOf(pts){
@@ -171,7 +171,7 @@ const paceFor = (gap) => { for (const [g, v] of CHASE_TUNE.pace) if (gap < g) re
 export function startChase(qid, step, host){
   if (C.on && C.qid === qid && C.def === step) return;
   stopChase();
-  Object.assign(C, { on: true, host, def: step, qid, P: pathOf(step.route), d: 0, v: 0, lostT: 0, state: 'run', t: 0, run: 0, net: null, sendT: 0, caught: null, said: false });
+  Object.assign(C, { on: true, host, def: step, qid, P: pathOf(step.route), d: 0, v: 0, lostT: 0, state: 'run', t: 0, run: 0, net: null, sendT: 0, caught: null });
   C.q = buildQuarry(step.quarry || {});
   C.gates = (step.gates || []).map(g => buildGate(g, C.P));
   const p = pathAt(C.P, 0); placeQuarry(0, p.x, p.z, p.yaw, false);

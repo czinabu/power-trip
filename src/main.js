@@ -143,7 +143,8 @@ import { updateOnSet, onSetFigures } from './game/onset.js';
 import { updateAftermath, calmOn, calmTarget } from './game/aftermath.js';
 import { updateDoorway, doorState, goThrough, doorDark } from './world/doorway.js';
 import { CALM_CFG } from './data/calm.js';
-import './ui/coop-ui.js';
+import { lastInvite, arrive as coopArrive } from './ui/coop-ui.js';
+import { parseInvite } from './net/invite.js';
 import './ui/profile-ui.js';
 import * as PROFILE_MOD from './game/profile.js';
 import { sideLock, sideLockLine } from './game/zone-gate.js';
@@ -321,7 +322,8 @@ Object.assign(window.GAME, { cutHeight, pingHere, pingInfo, coopDrop, coopNet, a
 import * as APPRENTICE from './allies/apprentice.js';
 Object.assign(window.GAME, { growth: { ...GROWTH, streaming: growthStreaming } });   // the hub that grows with your group (game/hub-growth.js), for tests
 import { SIM_WATCH } from './game/sim-watch.js';
-Object.assign(window.GAME, { simWatch: SIM_WATCH });   // the combat sims' listeners (tools/duel-sim, trooper-sim, mando-sim)
+Object.assign(window.GAME, { simWatch: SIM_WATCH });
+Object.assign(window.GAME, { invite: { last: lastInvite, open: (link) => coopArrive(parseInvite(link)) } });   // co-op invite links (net/invite.js), for tests   // the combat sims' listeners (tools/duel-sim, trooper-sim, mando-sim)
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME.duel, { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo });   // duel mode (game/duel-mode.js), for tests

@@ -487,16 +487,18 @@
       <div class="coop-grid">
         <div class="coop-col">
           <h4>HOST A GAME</h4>
-          <p>Get a room code, then read it out to your friends (up to 3).</p>
+          <p>Get a room code and an invite link for your friends (up to 3).</p>
           <div class="btn primary" id="coophost">HOST</div>
         </div>
         <div class="coop-col">
           <h4>JOIN A GAME</h4>
-          <p>Type the 5-letter code your friend gives you.</p>
-          <div class="coop-join"><input id="coopcode" maxlength="5" autocomplete="off" spellcheck="false" placeholder="CODE"><div class="btn primary" id="coopjoin">JOIN</div></div>
+          <p>Open your friend's invite link, or type (or paste) their code here.</p>
+          <div class="coop-join"><input id="coopcode" autocomplete="off" spellcheck="false" placeholder="CODE"><div class="btn primary" id="coopjoin">JOIN</div></div>
         </div>
       </div>
       <div id="coopstatus"></div>
+      <div class="coop-invite" id="coopinvite"><div class="btn primary" id="coopcopy">COPY INVITE LINK</div><div class="btn" id="cooplock">LOCK ROOM</div><div id="coopcopied"></div></div>
+      <a class="coop-app" id="coopapp" href="#">Playing on the Windows app? Open this invite there</a>
       <div id="cooproster"></div>
       <div class="btn primary" id="coopjoinrun">JOIN THE HOST'S RUN</div>
       <div class="btn primary" id="coopjointemple">JOIN THEM IN THE TEMPLE</div>

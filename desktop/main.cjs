@@ -5,6 +5,8 @@
 //   - fetch('/api/turn') for co-op's relay credentials is answered here by asking the live website (WEB_URL below),
 //     from Node, so there is no cross-origin problem; if that fails the game falls back to STUN, as it does on file://
 //   - online co-op (PeerJS + WebRTC) runs exactly as in Chrome, and desktop players and browser players can share a room
+//   - a co-op INVITE LINK opens here too: powertrip://join?join=CODE&inv=… (the web page's "open it in the Windows app",
+//     src/net/invite.js) starts the app on that invite, or hands it to the copy already open
 
 const { app, BrowserWindow, protocol, net, shell, session, ipcMain } = require('electron');
 const path = require('node:path');
@@ -36,7 +38,12 @@ function serveGame(){
   });
 }
 
-function createWindow(){
+// a powertrip:// invite among a launch's arguments (Windows passes the link as one), or ''
+const PROTOCOL = 'powertrip';
+const inviteIn = (argv) => (argv || []).find(a => typeof a === 'string' && a.toLowerCase().startsWith(PROTOCOL + '://')) || '';
+const inviteQuery = (link) => { const i = link.indexOf('?'); return i >= 0 ? link.slice(i).replace(/[^\w?&=%.\-]/g, '') : ''; };
+
+function createWindow(invite = ''){
   const win = new BrowserWindow({
     width: 1600, height: 900, minWidth: 960, minHeight: 540,
     title: 'Power Trip', backgroundColor: '#000000', show: false,
@@ -53,17 +60,26 @@ function createWindow(){
   win.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown' && input.key === 'F12') win.webContents.toggleDevTools();
   });
-  win.loadURL('app://game/index.html');
+  win.loadURL('app://game/index.html' + (invite ? inviteQuery(invite) : ''));   // (the game reads ?join=… as it starts: src/ui/coop-ui.js)
   return win;
 }
 
 // one copy at a time: a second launch brings the open window forward
 if (!app.requestSingleInstanceLock() && !process.env.POWER_TRIP_MULTI) app.quit();
 else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (e, argv) => {
     const [win] = BrowserWindow.getAllWindows();
-    if (win){ if (win.isMinimized()) win.restore(); win.focus(); }
+    if (win){
+      if (win.isMinimized()) win.restore(); win.focus();
+      const invite = inviteIn(argv);   // an invite opened while the game is running: hand it over, the game joins it
+      if (invite) win.webContents.send('power-trip:invite', inviteQuery(invite));
+    }
   });
+  // powertrip:// links open this app (an installed copy registers it too: package.json build.protocols)
+  try {
+    if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+    else app.setAsDefaultProtocolClient(PROTOCOL);
+  } catch(e){}
   app.setAppUserModelId('com.czinabu.powertrip');   // Windows: notifications carry the game's name and icon
   app.whenReady().then(() => {
     // the game asks for fullscreen, the gamepad, pointer lock and keyboard lock: allow what it asks for, nothing else
@@ -71,7 +87,7 @@ else {
       cb(['fullscreen', 'pointerLock', 'keyboardLock', 'clipboard-sanitized-write'].includes(perm)));
     ipcMain.on('power-trip:quit', () => app.quit());   // the game's EXIT GAME button (desktop/preload.cjs)
     serveGame();
-    createWindow();
+    createWindow(inviteIn(process.argv));
     startUpdateCheck();
   });
   app.on('window-all-closed', () => app.quit());

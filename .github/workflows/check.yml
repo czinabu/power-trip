@@ -28,6 +28,7 @@ jobs:
       - run: npm run smoke:coop-run
       - run: npm run smoke:coop-campaign
       - run: npm run smoke:coop-mission
+      - run: npm run smoke:coop-invite
       - run: npm run smoke:coop-four
       - run: npm run smoke:coop-three
       - run: npm run smoke:cutscenes

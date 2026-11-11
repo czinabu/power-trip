@@ -78,6 +78,7 @@ import { noteMedals } from './profile.js';
 import { sliceRate } from './slice-ways.js';
 import { SLICE_WAY, SLICE_TEXT, CHARGE_COLOR } from '../data/slice-ways.js';
 import { showMedals } from '../ui/medals-ui.js';
+import { armDropIn } from './drop-in.js';
 
 const RED = 0xff4a3a, GREEN = 0x7bffae;
 const M = { on: false, def: null, i: 0, o: null, s: null, markers: [], props: [], fx: [], panelT: 0, waitT: 0, endT: 0, won: false,
@@ -124,10 +125,13 @@ export function startMission(id = 'refuge', fromObjective = 0, guest = false, op
   if (st){ playerPos().set(st[0], 0, st[1]); G.yaw = player.faceYaw = st[2] || 0; }
   noteGuests(ch && ch.guests);   // (both screens: a co-op guest draws them by name, allies/squad.js syncNetSquad)
   if (guest){   // co-op guest: the host runs the objectives; this browser shows them (coopMissionSync)
+    const fresh = G.coopJoin;   // (joining from the menu, not back in after a dropped link)
     G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false;
     M.i = -1; M.run = -1;
     if (def.battle) startBattleFx(isMando() ? 0xffa040 : 0x4aa8ff);
     showBanner('CO-OP MISSION', 'Fighting alongside the host.', 3.0);
+    // joined after the host moved on: set down with the party, or at the objective they're on (game/drop-in.js)
+    if (fresh) armDropIn('mission', { fallback: () => { const o = M.def && M.net && M.net.i > 0 && M.def.objectives[M.net.i]; return o && o.start ? o.start : null; } });
     return;
   }
   if (def.quarry) placeQuarry(def.objectives[fromObjective], fromObjective);

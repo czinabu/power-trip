@@ -62,8 +62,7 @@ function refreshLine(){
   q('.fl-file').textContent = 'SAVE FILE ' + activeFile();
   q('.fl-t').textContent = name;
   q('.fl-rank').textContent = rank === name ? '' : rank;   // (the trooper's first rank is TROOPER: said once)
-  q('.fl-pips').innerHTML = R.map((_, i) => '<i' + (i <= r ? ' class="on"' : '') + '></i>').join('');
-  q('.fl-pips').title = 'Rank ' + (r + 1) + ' of ' + R.length;
+  q('.fl-r').title = 'Rank ' + (r + 1) + ' of ' + R.length;
   q('.fl-nk').textContent = nx.k; q('.fl-nv').textContent = nx.v;
   q('.fl-bar i').style.width = Math.round(nx.f * 100) + '%';
   const pic = document.querySelector('#hero-' + hero + ' .hi');   // the hero's own emblem from its card on the hero step

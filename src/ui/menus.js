@@ -288,14 +288,13 @@ function continueTarget(){
 }
 const dedupe = (s) => s.split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
 function continueLine(to){
-  const who = heroName(G.hero);
   switch (to.m){
-    case 'temple':  return 'Back to ' + nextHub().name + ' · ' + who;
+    case 'temple':  return 'Back to ' + nextHub().name;
     case 'gate':    return 'Act IV · ' + resumeProgressOf(gateRun());
-    case 'mission': return to.arcade ? 'Challenges · a new random contract · ' + who : 'Mission · ' + missionTitle(to.id) + ' · ' + who;
-    case 'endless': return 'Survival · ' + who;
-    case 'sandbox': return 'Sandbox · ' + who;
-    default:        return dedupe('Story · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + who);
+    case 'mission': return to.arcade ? 'Challenges · a new random contract' : 'Mission · ' + missionTitle(to.id);
+    case 'endless': return 'Survival';
+    case 'sandbox': return 'Sandbox';
+    default:        return dedupe('Story · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, ''));
   }
 }
 // is CONTINUE up and taking you into the saved story run? (then the STORY row doesn't repeat it)

@@ -8,12 +8,14 @@
 // builds the exact mission the host is playing from its id alone. missionById resolves either kind of id.
 //
 // Tuning, all below: KIND (each objective kind's name and dispatch lines), FOE_TIERS (who can turn up at each threat),
-// TWISTS, and the contract's shape in deal(). Threat runs 1 to 5: it sets the kit you start with (KIT_AT), how tough the
+// TWISTS (and the signature twists it deals from data/twist-deck.js), and the contract's shape in arcadeContract(). Threat runs 1 to 5: it sets the kit you start with (KIT_AT), how tough the
 // foes are (FOE_TIER_AT, the waves-deep the foes are scaled as) and the duellists' health.
 
 import { MISSIONS } from './missions.js';
 import { isSideId, sideQuest } from './side-quests.js';
 import { isRaidId, raidMission } from './raids.js';
+import { dealTwists, deckName } from './twist-deck.js';
+import { isRemixId, remixMission } from './remixes.js';
 
 export const ARCADE_VOICE = 'DISPATCH';
 export const ARCADE_PREFIX = 'arcade:';
@@ -68,7 +70,7 @@ const DONE = [ { jedi: 'Contract complete. Another is waiting when you are.', ma
                { jedi: 'Well fought. Dispatch has more where that came from.', mando: 'Clean work. There\'s always another job.', trooper: 'Mission accomplished. Stand by for the next one.' } ];
 
 /* ---------- seeded dice ---------- */
-function dice(seed){   // mulberry32: the same seed rolls the same numbers on every machine
+export function dice(seed){   // mulberry32: the same seed rolls the same numbers on every machine
   let a = seed >>> 0;
   const r = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   r.int = (n) => Math.floor(r() * n);
@@ -143,11 +145,15 @@ export function arcadeContract(seed){
     o.say = r.pick((KIND[o.kind] || KIND.hold).say);
     return o;
   });
+  // a SIGNATURE twist (data/twist-deck.js) on one of its objectives, more often the higher the threat; at threat 4 and 5
+  // a contract of two or more objectives can carry two, each on its own objective
+  const sigN = r() < 0.3 + threat * 0.1 ? (threat >= 4 && objectives.length > 1 && r() < 0.5 ? 2 : 1) : 0;
+  const sig = dealTwists(objectives, src, r, sigN, objectives.map(o => o.twist && o.twist.kind).filter(Boolean));
   const lead = objectives[0], kinds = objectives.map(o => o.kind);
   const where = place(src);
   const def = {
     ...src,
-    id: ARCADE_PREFIX + seed, arcade: true, seed, source: src.id, threat, twist, kinds,
+    id: ARCADE_PREFIX + seed, arcade: true, seed, source: src.id, threat, twist, kinds, sig: sig.map(deckName),
     trial: false, campaignOnly: false, story: undefined, opening: undefined,
     title: r.pick((KIND[lead.kind] || KIND.hold).titles),
     place: where,
@@ -169,6 +175,7 @@ export function missionById(id){
   if (MISSIONS[id]) return MISSIONS[id];
   if (isSideId(id)) return sideQuest(id);
   if (isRaidId(id)) return raidMission(id);
+  if (isRemixId(id)) return remixMission(id);
   if (isArcadeId(id)){ const s = parseInt(id.slice(ARCADE_PREFIX.length), 10); if (s > 0) return arcadeContract(s); }
   return null;
 }

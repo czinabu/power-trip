@@ -151,7 +151,8 @@ export const CFG = {
                               // moves); a boss still gets its full pull-back
     },
     lookAhead: 5,             // the lens aims this far past the hero...
-    lookUp: -0.15,            // ...and this high over the pivot (a hair under it keeps the hero's boots in frame)
+    lookUp: 0.15,             // ...and this high over the pivot (the gunners' rig): on the line from the raised lens (mandoLensUp) to a
+                              // foe's head 10-20 m out, so a headshot there needs next to no tilt and the lens stays up over the helmet
     topDownFrom: 0.45,        // past this pitch (radians, looking down) the aim point starts drawing in toward the hero...
     topDownAhead: 0.5,        // ...losing up to this share of the look-ahead at the steepest pitch...
     topDownDrop: 0.5,         // ...and sinking this far, so a hero seen from overhead sits in frame, not off the bottom edge
@@ -162,8 +163,9 @@ export const CFG = {
     // MANDO — Helldivers 2's rig: a closer boom held well off the right shoulder, so the hero stands left of centre with the
     // crosshair clear past them, and it tucks in tighter still while aiming
     mandoDist: 4.5,           // resting follow distance (aiming / flight scale it)
-    mandoLensUp: 0.45,        // the lens rides this much over the pivot, so the helmet sits under the crosshair's eye-line (kept low: a
-                              // high lens looks down on the arena like a tabletop)
+    mandoLensUp: 1.1,         // the lens rides this much over the pivot: over the helmet (the heroes' heads ride ~2.2-2.4 m up), so with the
+                              // crosshair on a foe's head the hero's own helmet sits just UNDER it, out of the shot's way (Caleb's
+                              // reference shot). No higher: a high lens looks down on the arena like a tabletop
     mandoShoulder: 0.95,      // MANDO lens offset off the shoulder (never centred, see camera.js)...
     mandoShoulderAim: 1.25,   // ...wider while aiming / bracing, so the reticle is always clear of the helmet...
     mandoShoulderFly: 1.05,   // ...and in the air

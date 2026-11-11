@@ -75,6 +75,12 @@
 //               alarm: { time, at: [[x, z]…], group, startLine, line } the room calls it in: clear it inside `time`
 //               seconds or `group` comes in at `at` (once) · grab: { at: [x, z], time, r, status, line } something in
 //               the room to stand at and pull while they fight for it (slower with foes on it); the room isn't done till it's got
+//   walker    a set piece (game/walker.js, data/walker.js): a full-size walker strides along `path` toward the line,
+//               shelling heroes and letting troops down. Tangle three of its legs at their tow points (anchors: [{ leg:
+//               0..3 (front left, front right, hind left, hind right), style: 'seal' | 'sky' | 'line' }], styled locks
+//               any hero can work: game/locks.js), then set the charge on its neck once it's down. It reaching the end
+//               of its path fails the objective. drop: { group } troops from its belly · crew: { type: count } who bail
+//               out when it goes down · trickle, from (see sabotage) · any of data/walker.js WALKER's numbers
 // Any objective can set `doors`: how many of the arena's doors are open when it begins (a retry rebuilds them
 // shut), and `squad`: the squad's size by then (someone freed on the way joined it).
 // Any objective can set `twist`: its one signature hook, taught then tested ({ kind: 'blackout' | 'sandstorm' | 'heat' |
@@ -593,16 +599,17 @@ export const MISSIONS = {
                   { grunt: 3, officer: 1, sniper: 1 }, { grunt: 2, blaster: 1, brute: 1 }, { grunt: 2, blaster: 2, flyer: 1 } ],
         every: [8, 11], cap: 10, from: [-Math.PI + 0.4, -0.4], aggro: 9 },
 
-      { kind: 'sabotage', title: 'BRING DOWN THE WALKER', start: [0, 18, Math.PI], consoleName: 'CHARGE', doneLine: 'THE WALKER FALLS', doneSub: 'Its guns go quiet.',
-        say: { jedi: 'That walker is shelling the trench. Get out to it and set charges on its legs. The squad will cover you.',
-               mando: 'The walker\'s guns will level the trench. Fly out and plant charges on it. Don\'t stop to trade shots.',
-               trooper: 'That walker is shelling the trench. Run out to it and set charges on its legs. The band will cover you.' },
-        task: { jedi: 'Stand at each leg to set a charge', mando: 'Stand at each leg to set a charge' },
-        consoles: [ { at: [16, -16], guards: { grunt: 2, blaster: 1 } },
-                    { at: [28, -24], guards: { phalanx: 1, grunt: 1, blaster: 1 } },
-                    { at: [17, -27], guards: { grenadier: 1, lancer: 1, blaster: 1 } } ],
-        time: 3.5, r: 2.4, hitLoss: 1.0,
-        trickle: { every: 14, cap: 8, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI + 0.4, -0.4] },
+      // THE WALKER TAKEDOWN (game/walker.js): a real one, striding in from the Imperial line to shell the trench
+      { kind: 'walker', title: 'BRING DOWN THE WALKER', start: [0, 18, Math.PI], music: 'battle', doneLine: 'THE WALKER FALLS', doneSub: 'Its guns go quiet.',
+        say: { jedi: 'That walker is coming for the trench. There are tow points at three of its legs: hold one with the Force, and get the cables round the others. When it goes down, set a charge on its neck.',
+               mando: 'That walker will level the trench. Three tow points on its legs: fly the cable round its knees and winch the rest. When it drops, put a charge on its neck. This is the Way.',
+               trooper: 'Walker inbound, brother. Tow cables on three of its legs, and the band can hold the winch line. Trip it, then set a charge on its neck.' },
+        task: all('Work the tow points at its legs, then set the charge on its neck'),
+        path: [[-25, -64], [-22, -42], [-14, -22], [-6, -2]],
+        anchors: [{ leg: 0, style: 'seal' }, { leg: 1, style: 'sky' }, { leg: 3, style: 'line' }],
+        drop: { group: { grunt: 2, blaster: 1 } },
+        crew: { officer: 1, blaster: 2, grunt: 1 },
+        trickle: { every: 15, cap: 8, group: { grunt: 2, blaster: 1 } }, from: [-Math.PI + 0.4, -0.4] },
 
       { kind: 'hold', title: 'FALL BACK TO THE REAR TRENCH', music: 'battle', start: [0, 40, Math.PI],
         say: { jedi: 'The transports are launching. Fall back to the rear trench and hold it until the last one clears the shield.',

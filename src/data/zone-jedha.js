@@ -13,6 +13,9 @@
 //     take   { at: [[x, z]…], name, task } tap F at each (a lamp to light, a box to carry): every one of them
 //     clear  { at, foes, task }            the foes are there as you come near: beat every one
 //     back   { task }                      go back to whoever asked
+//     chase  { route: [[x, z]…], gates: [{ at, style, w }…], quarry: { name, foe }, gateLine, task }   run them down
+//            (game/zone-chase.js): each gate shuts behind them, a styled lock (seal, sky, line); the next step, if a
+//            `clear`, is fought where they're caught
 //   A MOMENT is a quest with no steps: walk up, tap F, and its choice is asked there and then (once per hero).
 // SECRETS: the holocrons, crystal caves and meditation spots, set by hand (a map without `spots` has its found for it):
 //   { id, kind, at: [x, z], page (a holocron's page: data/secrets.js HOLOCRONS) }. Each stands on the nearest open ground.
@@ -85,6 +88,24 @@ export const JEDHA_LIFE = {
       choice: { title: 'THE KYBER HEART', lines: ['A crystal the size of a fist, warm, singing faintly. The acolyte would seal it in the temple.', 'Held in your hand, it makes the Force feel very close. And very loud.'],
         options: [ { key: 'seal', side: 'light', label: 'SEAL IT IN THE TEMPLE', line: 'It goes under the dome with the others, where it can sleep again.' },
                    { key: 'keep', side: 'dark', label: 'KEEP ITS POWER', line: 'You pocket it. The song follows you all the way to the shuttle.' } ] },
+      reward: 'Rank XP · counts as a side mission' },
+    // A CHASE: the courier bolts from the gate, down the Pilgrim Way, across the square and west into the bazaar, then
+    // south through the back lanes, shutting a gate behind him in each district
+    { id: 'courier', title: 'THE COURIER', kicker: 'THE PILGRIM GATE',
+      giver: { name: 'A GATE WARDEN', at: [12, 74], face: -1.6, look: robe(0x5a4a3a, 0xb8a888, 0xa87c5e, 0x2a2018, { beard: 'stubble' }) },
+      ask: 'That man in the grey coat is carrying the names of every family hiding a Jedi in this city. He is running them to the garrison. Stop him before he gets there!',
+      done: 'The names are ash. Nobody knocks on those doors tonight. Thank you.',
+      steps: [
+        { kind: 'chase', task: 'Run down the courier',
+          route: [[4, 66], [0, 52], [0, 26], [-24, 0], [-40, 0], [-40, -40], [-8, -40], [0, -50]],
+          gates: [ { at: [-33, 0], style: 'seal', w: 13 }, { at: [-40, -22], style: 'sky', w: 7 }, { at: [-22, -40], style: 'line', w: 7 } ],
+          quarry: { name: 'THE COURIER', foe: 'officer' },
+          gateLine: { seal: 'A blast door, sealed behind him. A Jedi tears it open twice as fast.',
+                      sky: 'Crates piled across the lane. Work the winch on top: fly, jump or climb.',
+                      line: 'A checkpoint\'s shield gate. The trooper and his squad hold it open fastest.' } },
+        { kind: 'clear', at: [0, -50], foes: ['officer', 'blaster', 'grunt', 'blaster'], task: 'He called his escort. Beat them and take the names' },
+        { kind: 'back', task: 'Back to the gate warden' },
+      ],
       reward: 'Rank XP · counts as a side mission' },
     // MOMENTS: no steps, only a choice
     { id: 'informer', title: 'THE INFORMER', kicker: 'THE PILLAR SQUARE', moment: true,

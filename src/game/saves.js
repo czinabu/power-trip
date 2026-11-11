@@ -123,6 +123,13 @@ function nextPos(run, hero = run.hero){
 // a loaded save's run waits on the menu (G.resumeRun) until BEGIN picks it up, as long as the same hero is picked
 export function canResume(){ return !!(G.resumeRun && G.resumeRun.hero === G.hero); }   // (a declaration: menus.js can call it while modules are still loading)
 export const resumeLabel = () => savedChapter(G.resumeRun, G.hero);
+// the chapter BEGIN / CONTINUE CAMPAIGN plays next for the hero in hand: the saved run's, or the story's first
+// (the ship's helm puts it up as NEXT IN YOUR STORY and jumps to its world: ui/galaxy-ui.js)
+export function nextChapter(){
+  const run = canResume() ? G.resumeRun : null;
+  const list = run ? chapterOrder(run.actTwo, run.tale || run.hero) : chapterOrder(null, G.hero), pos = run ? nextPos(run) : 0;
+  return list[pos] ? { c: list[pos], no: chapterNo(pos, list), resume: !!run } : null;
+}
 // 'ACT II · CH 6' for the saved run the menu would continue (the campaign tile)
 export function resumeProgress(){
   const run = G.resumeRun; if (!run) return '';

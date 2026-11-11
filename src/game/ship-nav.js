@@ -50,6 +50,10 @@ export function arriveAt(id, hubId = G.hubId){
   if (course === id) course = null;
   shareNav();
 }
+/* the raid, picked at the helm with a course plotted: its page opens first, and BEGIN there makes the jump (ui/hub-ui.js) */
+let raidJump = null;
+export const armRaidJump = (w) => { raidJump = w || null; };
+export const takeRaidJump = () => { const w = raidJump; raidJump = null; return w; };
 /* host: tell the party where the ship is and where it's headed */
 export function shareNav(){
   if (net.role !== 'host' || net.status !== 'connected') return;

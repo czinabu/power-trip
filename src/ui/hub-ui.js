@@ -44,6 +44,8 @@ import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 import { galaxyPanel, helmPanel, galaxyPick } from './galaxy-ui.js';
+import { takeRaidJump, arriveAt } from '../game/ship-nav.js';
+import { hyperjump } from './hyperspace.js';
 import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
 import { apprenticeOf } from '../game/profile.js';
 import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState, honours } from '../game/duel-mode.js';
@@ -253,6 +255,7 @@ function render(){
 function open(s){
   if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return false;
   station = s;
+  if (s.act !== 'raid' && s.act !== 'ready') takeRaidJump();   // (a raid picked at the helm jumps only from its own page)
   welcomeStation(s);   // (the welcome tour's stop reached, or the hero off on their own: game/hub-welcome.js)
   G.skillSelect = true; G.sbMenu = true;   // holds the temple still and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open');
@@ -316,6 +319,8 @@ function shipCtx(act, again){
   return { B, again, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
     rerender: () => { if (isOpen() && station && station.act === act) renderShip(act, true); },
     openMap: () => open({ id: 'galaxy', name: 'GALAXY MAP', act: 'galaxy' }),
+    openHelm: () => { const h = shipOf(G.hubId).wing.stations.find(x => x.id === 'helm'); open({ id: 'helm', name: h ? h.name : 'THE HELM', act: 'helm' }); },
+    launchCampaign: () => hubLaunch('campaign'),
     joinButton: () => coopRun.on ? B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()) : null,
     everyMode: () => B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
     survival: survivalButton, campaign: () => campaignButton(),
@@ -348,7 +353,10 @@ function renderRaid(){
   if (guest()){
     if (coopRun.on) list.push(B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()));
     list.push(B('THE HOST BEGINS IT', 'In a party the host starts the raid, and everyone in ' + curHub().home.toLowerCase() + ' goes in together.', null));
-  } else list.push(B('BEGIN THE RAID', heroes > 1 ? heroes + ' heroes · the party goes in together' : 'Alone, with ' + mates + ' of the squad beside you', () => askParty('THE RAID', () => hubLaunch('mission', raidIdFor(R.id, day))), open_ ? null : 'Beat Act IV to open the raid table'));
+  } else list.push(B('BEGIN THE RAID', heroes > 1 ? heroes + ' heroes · the party goes in together' : 'Alone, with ' + mates + ' of the squad beside you', () => askParty('THE RAID', () => {
+    const go = () => hubLaunch('mission', raidIdFor(R.id, day)), w = takeRaidJump();   // (picked at the ship's helm with a course plotted: the jump first)
+    if (w){ arriveAt(w.id); hyperjump(w, go); } else go();
+  }), open_ ? null : 'Beat Act IV to open the raid table'));
   const role = (h) => { const r = R.roles[h]; return '<div class="rd-role rd-' + h + (h === hero ? ' you' : '') + '"><i>' + HERO_TAG[h] + (h === hero ? ' · YOU' : '') + '</i><b>' + r.job + '</b><span>' + escH(r.line) + '</span></div>'; };
   const part = (x) => { const got = x.e.have >= x.e.need;
     return '<div class="rd-part' + (got ? ' got' : '') + '"><i>' + escH(x.row) + '</i><b>' + escH(x.p.name) + '</b><span>' + (got ? 'YOURS' : 'WIN ' + x.e.need + ' RAID' + (x.e.need === 1 ? '' : 'S') + ' · ' + Math.min(x.e.have, x.e.need) + '/' + x.e.need) + '</span>' +

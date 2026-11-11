@@ -4,7 +4,8 @@
 //   · the cabin builds (the ship's wing) with its stations;
 //   · the GALAXY MAP opens (ui/galaxy-ui.js), lists the worlds, picking a world shows what can be played there, and it
 //     plots a course there (it launches nothing itself);
-//   · the HELM (or cockpit) shows that course and what's on the world at the end of it, and holds the voyages;
+//   · TAKE THE HELM on the map opens the helm's panel; the HELM (or cockpit), walked to, shows that course and what's on
+//     the world at the end of it, and holds the voyages (NEXT IN YOUR STORY first);
 //   · a challenge launched from the helm runs, and its RETURN button (named for the ship) brings the run back aboard;
 //   · walking down the ramp lets you out into the hub, at the foot of it;
 //   · (the trooper) STRAIGHT TO THE CITADEL skips the ship, back into the hub at the foot of the ramp.
@@ -118,13 +119,17 @@ for (const hero of HEROES){
     check(await panelUp() && await page.locator('#hubpanel .gx-w.aim[data-w="jedha"]').count() === 1, `${hero}: the course is plotted, the map still up`);
     check(await page.locator('#hubpanel .gx-course').count() === 1, `${hero}: the course line is drawn`);
     await page.waitForTimeout(400); await shot('galaxy-jedha');
+    // TAKE THE HELM / COCKPIT: the map hands straight over to the helm's panel
+    check(await pick('TAKE THE '), `${hero}: the map offers to take the helm`);
+    check(await page.waitForFunction(() => document.querySelector('#hubpanel .hl-route'), null, { timeout: 5000 }).then(() => true, () => false), `${hero}: and the helm's panel opens from it`);
     await page.click('#hubpanel [data-x]'); await page.waitForTimeout(300);
-    // THE HELM: the course, what's on Jedha, the voyages
+    // THE HELM, walked to: the course, what's on Jedha, the voyages
     check(await tapF(0, -6.8, Math.PI), `${hero}: the helm opens`);
     const route = await page.locator('#hubpanel .hl-route').textContent().catch(() => '');
     check(/COURSE PLOTTED FOR\s*JEDHA/.test(route || ''), `${hero}: the helm shows the course to Jedha (${(route || '').replace(/\s+/g, ' ').trim()})`);
     check(await page.locator('#hubpanel .gx-list .hb-o', { hasText: 'OPEN ZONE' }).count() > 0, `${hero}: the helm lists Jedha's open zone`);
     check(await page.locator('#hubpanel .gx-voy .hb-o', { hasText: 'THE GALAXY MAP' }).count() === 1, `${hero}: the helm links back to the galaxy map`);
+    check(await page.locator('#hubpanel .gx-voy .hb-o.hl-story', { hasText: 'NEXT IN YOUR STORY' }).count() === 1, `${hero}: the helm names the next chapter of the story`);
     await page.waitForTimeout(400); await shot('helm');
     // a challenge from the helm's voyages, and back aboard
     check(await pick('CHALLENGE'), `${hero}: the helm offers a challenge`);

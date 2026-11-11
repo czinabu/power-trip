@@ -163,3 +163,6 @@
 .hyp-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:hypflash 1.05s ease-in both}
 @keyframes hypflash{0%,80%{opacity:0}100%{opacity:.9}}
 @media (prefers-reduced-motion:reduce){ .hyp-lines{display:none} .hyp-flash{animation:none} }
+/* the helm's NEXT IN YOUR STORY: the whole first row of the voyages */
+#hubpanel .gx-voy .hb-o.hl-story{grid-column:1 / -1}
+#hubpanel .gx-voy .hb-o.hl-story span{display:block}

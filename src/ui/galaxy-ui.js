@@ -22,7 +22,8 @@
 
 import { G } from '../state.js';
 import { GALAXY, LANES, shipOf } from '../data/hero-ships.js';
-import { shipAt, shipCourse, plotCourse, clearCourse, arriveAt, shareNav } from '../game/ship-nav.js';
+import { shipAt, shipCourse, plotCourse, clearCourse, arriveAt, shareNav, armRaidJump } from '../game/ship-nav.js';
+import { nextChapter } from '../game/saves.js';
 import { hyperjump } from './hyperspace.js';
 import { MISSIONS } from '../data/missions.js';
 import { missionForHero } from '../data/mission-groups.js';
@@ -132,10 +133,10 @@ export function galaxyPanel(ctx){
   const helm = helmWord(hubId), isAt = W.id === at.id, isAim = course && W.id === course.id;
   const plot = (id) => () => { if (plotCourse(id)) S.uiHover(); ctx.rerender(); };
   const plotB = ctx.guest ? ctx.B('THE HOST PLOTS THE COURSE', course ? 'Plotted for ' + course.name + '. They fly it from ' + helm + '.' : 'They pick where the ship goes, from here and ' + helm + '.', null)
-    : isAt ? ctx.B('YOUR SHIP IS HERE', course ? 'Pick here to clear the course to ' + course.name : 'Launch what\'s here from ' + helm + ', or plot a course to another world', course ? () => { clearCourse(); S.uiHover(); ctx.rerender(); } : null)
-    : isAim ? ctx.B('COURSE PLOTTED  ✓', 'Take ' + helm + ', forward, to make the jump', null)
-    : ctx.B('PLOT A COURSE · ' + W.name, 'Then take ' + helm + ', forward, to make the jump', plot(W.id));
-  if (plotB.go) plotB.stay = true;
+    : isAt && course ? { ...ctx.B('YOUR SHIP IS HERE', 'Pick here to clear the course to ' + course.name, () => { clearCourse(); S.uiHover(); ctx.rerender(); }), stay: true }
+    : isAt ? ctx.B('TAKE ' + helmName(hubId), 'Your ship is here. Launch what\'s here, or plot a course to another world first', () => ctx.openHelm())
+    : isAim ? ctx.B('TAKE ' + helmName(hubId), 'Course plotted for ' + W.name + '. Fly it from ' + helm, () => ctx.openHelm())
+    : { ...ctx.B('PLOT A COURSE · ' + W.name, 'Then take ' + helm + ' to make the jump', plot(W.id)), stay: true };
   const pi = add(plotB);
   // the picked world's card, and what's there (picking one plots the course)
   const plays = () => plot(W.id);
@@ -154,14 +155,25 @@ export function galaxyPanel(ctx){
   const crew = crewHTML(ctx, list, add);
   const html = '<div class="hb-box gx-box hero-' + G.hero + '">' +
     '<div class="gx-head"><div class="hb-k">' + esc(ship.name) + ' · ' + esc(ship.kind) + '</div><div class="gx-t">THE GALAXY MAP</div>' +
-      '<div class="gx-sub">' + (ctx.guest ? 'You\'re aboard the host\'s ship. They plot the course and fly it.' : 'Pick a world and plot a course. ' + cap(helm) + ', forward, makes the jump.') + '</div></div>' +
+      '<div class="gx-sub">' + (ctx.guest ? 'You\'re aboard the host\'s ship. They plot the course and fly it.' : 'Pick a world and plot a course, then take ' + helm + ' to make the jump.') + '</div></div>' +
     '<div class="gx-body">' +
       '<div class="gx-map"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g class="gx-lanes">' + lanes + '</g>' + line + '</svg>' + nodes + shipMark + '</div>' +
-      '<div class="gx-side">' + worldCard(W, tags) + '<div class="hb-list gx-plot">' + optHTML(plotB, pi, { main: !!plotB.go && !isAt, ic: 'compass', cls: isAim ? 'gx-set' : '' }) + '</div>' +
+      '<div class="gx-side">' + worldCard(W, tags) + '<div class="hb-list gx-plot">' + optHTML(plotB, pi, { main: !!plotB.go, ic: plotB.stay ? 'compass' : 'ship', cls: isAim ? 'gx-set' : '' }) + '</div>' +
         '<div class="hb-list gx-list">' + listHtml + '</div></div>' +
     '</div>' + story + crew +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   return { html, list };
+}
+
+/* NEXT IN YOUR STORY, first of the helm's voyages: the chapter the campaign plays next (the saved run's, or the story's
+   first), named, with the world it's on. The ship jumps there, then the campaign picks up. Falls back to the plain
+   campaign button when no chapter can be named */
+function storyButton(ctx, fly){
+  const N = nextChapter(); if (!N) return ctx.campaign();
+  const mid = N.c.mission, wid = mid && worldOfMission().get(mid), W = GALAXY.find(w => w.id === wid);
+  const title = String(N.c.title || '').toUpperCase();
+  return { ...ctx.B('NEXT IN YOUR STORY · ' + title, cap(N.no.toLowerCase()) + (W ? ' · on ' + W.name : '') + (N.resume ? ' · your run picks up here' : ' · the story from its start'),
+    () => ctx.askParty('THE CAMPAIGN', () => fly(W, ctx.launchCampaign))), story: true };
 }
 
 /* THE HELM: { html, list }, the same way. Flies the course, launches, and holds the voyages */
@@ -170,13 +182,12 @@ export function helmPanel(ctx){
   if (!ctx.again) shareNav();
   const list = [];
   const add = (b) => { list.push(b); return list.length - 1; };
-  // a run on the course's world: the jump, the ship parked there, then the run
-  const play = (label, run) => () => ctx.askParty(label, () => {
-    if (!course){ run(); return; }
-    arriveAt(course.id, hubId);
-    hyperjump(course, run);
-  });
+  // a run on another world: the jump, the ship parked there, then the run (on the world it's at: just the run)
+  const fly = (w, run) => { if (!w || w.id === at.id){ run(); return; } arriveAt(w.id, hubId); hyperjump(w, run); };
+  const play = (label, run) => () => ctx.askParty(label, () => fly(course, run));
   const entries = worldEntries(T, ctx, play);
+  // (the raid opens its own page first: BEGIN there makes the jump, ui/hub-ui.js)
+  if (course && !ctx.guest) for (const e of entries) if (e.kind === 'raid' && e.b.go){ const open = e.b.go; e.b.go = () => { armRaidJump(course); open(); }; }
   const first = list.length;
   for (const e of entries) add(e.b);
   const listHtml = entries.length ? entries.map((e, k) => optHTML(e.b, first + k, { main: k === entries.findIndex(x => x.b.go && !x.b.lock), cls: 'gx-' + e.kind })).join('')
@@ -187,7 +198,7 @@ export function helmPanel(ctx){
     const j = ctx.joinButton(); if (j) voy.push(j);
     voy.push(ctx.B('THE HOST CHOOSES', 'In a party the host flies the ship, and everyone aboard goes with them.', null));
   } else {
-    voy.push(...ctx.foldLater([ctx.campaign(), ctx.gateButton(), ...ctx.ngButton(), ctx.challenge(), ctx.survival(), ctx.everyMode()]));
+    voy.push(...ctx.foldLater([storyButton(ctx, fly), ctx.gateButton(), ...ctx.ngButton(), ctx.challenge(), ctx.survival(), ctx.everyMode()]));
     if (course) voy.push({ ...ctx.B('CLEAR THE COURSE', 'Stay over ' + at.name + ' and launch what\'s here', () => { clearCourse(); S.uiHover(); ctx.rerender(); }), stay: true });
   }
   voy.push(ctx.B('THE GALAXY MAP', course ? 'Plot a different course' : 'Plot a course to another world', () => ctx.openMap()));
@@ -202,7 +213,7 @@ export function helmPanel(ctx){
       '<div class="gx-sub">' + esc(sub) + '</div></div>' + route +
     '<div class="hl-body">' +
       '<div class="gx-side">' + worldCard(T, [T.region, course ? 'ONE JUMP' : 'YOU ARE HERE', storyTag(T)]) + '<div class="hb-list gx-list">' + listHtml + '</div></div>' +
-      '<div class="gx-side"><div class="gx-sec">VOYAGES</div><div class="hb-list gx-voy">' + voy.map((b, k) => optHTML(b, v0 + k, { main: !ctx.guest && k === 0 && !entries.some(e => e.b.go && !e.b.lock), ic: b.t === 'THE GALAXY MAP' ? 'map' : undefined })).join('') + '</div></div>' +
+      '<div class="gx-side"><div class="gx-sec">VOYAGES</div><div class="hb-list gx-voy">' + voy.map((b, k) => optHTML(b, v0 + k, { main: !ctx.guest && k === 0, cls: b.story ? 'hl-story' : '', ic: b.t === 'THE GALAXY MAP' ? 'map' : b.story ? 'saga' : undefined })).join('') + '</div></div>' +
     '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   return { html, list };

@@ -36,7 +36,7 @@ const HERO_NAME = { jedi: 'JEDI', mando: 'MANDALORIAN', trooper: 'ARC TROOPER' }
 let hero = 'jedi', armed = false, view = 'home';   // view: the right column's OVERVIEW, TREE or PATHS
 const sel = {};   // per hero: the path card whose detail shows (PATHS)
 const rankAt = {};   // per hero: the rank stop tapped on the rank track (none: the box shows the next rank)
-const SET_OF = { jedi: SKILLS, mando: MANDO_SKILLS, trooper: TROOPER_SKILLS };
+const SET_OF = { jedi: SKILLS, mando: MANDO_SKILLS, get trooper(){ return TROOPER_SKILLS; } };   // (read when used: this module can load before data/trooper-progression.js in an import cycle)
 // the trooper's story ranks open looks, not cards (game/wardrobe.js PROMOTIONS, data/ability-cards.js promote-*)
 const LOOK_OF_RANK = { trooper: { sergeant: 'Sergeant green marks', lieutenant: 'Lieutenant blue marks', captain: 'Captain helmet and pauldron',
   commander: 'Commander yellow marks', arc: 'ARC kit and the ARC TROOPER name' } };

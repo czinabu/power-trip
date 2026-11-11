@@ -16,6 +16,7 @@ import { fireBolt } from './bolts.js';
 import { damageBoss } from '../boss/boss.js';
 import { spawnGroundShock } from '../fx/vfx.js';
 import { tellFx } from '../fx/tells.js';
+import { floater } from '../fx/floaters.js';
 import { segBlockedBySolids, segBlockedTall, clampToArena, collideSolids } from '../world/collision.js';
 import { hurtPlayer } from '../player/damage.js';
 import { blockedOnBlade } from '../player/jedi/clash.js';
@@ -72,6 +73,23 @@ function wallBetween(ax, az, b){
   const c = segBlockedBySolids(ax, az, b.x, b.z);
   if (!c || c.h < 1.3) return false;   // low walls you can still be struck over
   return b.y < c.h - 0.5;
+}
+
+/* COMMITTED SWINGS (data/enemies.js ENGAGE.commit) — a plain melee foe of a listed type locks its facing late in the
+   wind-up and swings down that line, so stepping out to the side gets you clear. Null: it tracks its target all the way. */
+const commitOf = e => !e.warbringer && !e.t.ranged && ENGAGE.commit[e.type] || null;
+// the line a committed foe is aimed down (e.faceY), picked up from how it stands as its attack begins; a planned cut's
+// body turn (duel.js cutYaw) goes on top of it each frame
+function commitFace(e, g){
+  if (!e.cmOn){ e.cmOn = true; e.faceY = g.rotation.y; }
+  g.rotation.y = e.faceY;
+}
+// is the target inside the swing: within `arc` degrees of the line (fx, fz) from the foe, give or take its own body?
+function inSwingArc(g, tgt, fx, fz, cm){
+  const rx = tgt.x - g.position.x, rz = tgt.z - g.position.z, d = Math.hypot(rx, rz);
+  if (d < 0.05) return true;
+  const off = Math.acos(clamp((rx * fx + rz * fz) / d, -1, 1));
+  return off <= cm.arc * Math.PI / 180 + Math.asin(Math.min(1, ENGAGE.commit.pad / d));
 }
 
 const CORPSE = 1.4;   // seconds a body lies (the last 0.6 of them sinking away) before it is cleared
@@ -158,6 +176,7 @@ export function updateEnemies(dtAll){
     // momentum belongs to the chase: any other state (a windup, a stagger, a knockdown) starts it again from a standstill
     if (e.mv && (e.state !== 'chase' || e.stunT > 0)){ e.mv.x = e.mv.z = 0; e.pivotT = 0; }
     e.walking = false;
+    if (e.cmOn && e.state !== 'windup' && e.state !== 'strike') e.cmOn = false;   // (a committed swing's line ends with the attack)
     switch (e.state){
       case 'spawn':
         g.position.y = Math.min(0, -e.st * 6);
@@ -405,7 +424,13 @@ export function updateEnemies(dtAll){
         break;
       }
       case 'windup': {
-        g.rotation.y = Math.atan2(tx, tz);
+        // a COMMITTED swing turns with its target at a capped rate, then locks where it's aimed a beat before it comes
+        const cm = commitOf(e);
+        if (!cm) g.rotation.y = Math.atan2(tx, tz);
+        else {
+          commitFace(e, g);
+          if (tgtPos && e.st > cm.lock * (e.converted || onAlly ? 1 : diffTellMul())){ turnToward(g, Math.atan2(tx, tz), cm.turn, dt); e.faceY = g.rotation.y; }
+        }
         const heavy = !!t.heavy;
         g.userData.bodyMat.emissive.setHex(e.converted ? 0x33cc55 : (e.plan && e.plan.side === 'T') ? 0xfff0e0 : (e.plan && e.plan.fin) ? 0xffa020 : 0xff2a18);   // a thrust white, a string's finisher amber
         // (a held strike's extra beat sits at the apex: the coil completes over the base wind-up, then waits)
@@ -462,15 +487,17 @@ export function updateEnemies(dtAll){
             g.userData.bodyMat.emissiveIntensity = 0;
           } else {
             // melee: commit to a visible swing the player can time a parry against
-            e.state = 'strike'; e.st = e.swDur = (t.swing || 0.16) * (e.plan && e.plan.swingMul || 1); e.struck = false;
-            if (e.plan) startCut(e, dist);   // its step in, spread through the strike (duel.js)
+            e.state = 'strike'; e.st = e.swDur = (t.swing || 0.16) * (e.plan && e.plan.swingMul || 1); e.struck = false; e.whiffT = 0;
+            if (e.plan) startCut(e, cm ? dist * Math.max(0, tx * Math.sin(e.faceY) + tz * Math.cos(e.faceY)) : dist);   // its step in, spread through the strike (duel.js); a committed cut steps down its own line
             if (e.form || t.weapon === 'saber') S.swing(e.form || 'niman', g.position); else S.whoosh(g.position, heavy);   // (a lightsaber foe: the saber's swing, placed)   // the whoosh of the swing starting (a form master's blade in its form's voice)
           }
         }
         break;
       }
       case 'strike': {
-        g.rotation.y = Math.atan2(tx, tz);
+        const cm = commitOf(e);   // a committed swing keeps the line it locked in the wind-up
+        if (cm) commitFace(e, g); else g.rotation.y = Math.atan2(tx, tz);
+        const sx = cm ? Math.sin(e.faceY) : tx, sz = cm ? Math.cos(e.faceY) : tz;
         const heavy = !!t.heavy;
         const sw = e.swDur || t.swing || 0.16;
         const k = clamp(1 - Math.max(e.st,0)/sw, 0, 1);   // 0→1 through the chop
@@ -489,7 +516,7 @@ export function updateEnemies(dtAll){
           g.userData.weaponArm.rotation.z = (1 - chop) * (heavy ? 0.9 : 0.6);
         }
         // the blow lands at the apex of the swing — parry by clicking RMB right here
-        const stepNow = e.plan && !e.struck ? cutStep(e, k, tx, tz) : 0;   // a duellist's cut carries its feet in (duel.js)
+        const stepNow = e.plan && !e.struck ? cutStep(e, k, sx, sz) : 0;   // a duellist's cut carries its feet in (duel.js)
         if (!e.struck && k >= (e.plan ? e.plan.hitK : 0.5)){
           e.struck = true;
           const thrust = !!(e.plan && e.plan.side === 'T');
@@ -497,10 +524,18 @@ export function updateEnemies(dtAll){
           const unblockable = thrust || !!(e.dp && e.dp.brace);   // a thrust, or the Warbringer's overhead
           // REACH — the blow lands only if the weapon really gets there: the lunge closes in (never into the body), then
           // the target has to be inside the weapon's reach. Step back out of a slow wind-up and it whiffs.
-          const lunge = e.plan ? stepNow : Math.min(heavy ? 0.9 : 0.5, Math.max(0, dist - 1.2));   // (a planned cut has stepped in through the strike)
-          if (!e.plan){ g.position.x += tx*lunge; g.position.z += tz*lunge; }   // lunge into the strike
-          if (dist - lunge <= t.range * ENGAGE.reach + (thrust ? ENGAGE.thrustReach : 0)){
-            if (heavy){ G.shake = Math.max(G.shake, 0.3); burst(V3(g.position.x+tx, 0.3, g.position.z+tz), 0xbbbbbb, 6, 6, 3); }
+          // (a committed swing lunges down its own line: how far the target is along it, not how far away)
+          const lunge = e.plan ? stepNow : Math.min(heavy ? 0.9 : 0.5, Math.max(0, dist * (cm ? tx*sx + tz*sz : 1) - 1.2));   // (a planned cut has stepped in through the strike)
+          if (!e.plan){ g.position.x += sx*lunge; g.position.z += sz*lunge; }   // lunge into the strike
+          const reached = (cm && tgtPos ? Math.hypot(tgtPos.x - g.position.x, tgtPos.z - g.position.z) : dist - lunge) <= t.range * ENGAGE.reach + (thrust ? ENGAGE.thrustReach : 0);
+          // SIDESTEPPED — in reach, but out to the side of where the swing was aimed: it cuts air (the maul, the ground)
+          // and the foe is left facing where you were, a little longer in its recovery
+          if (reached && cm && tgtPos && !inSwingArc(g, tgtPos, sx, sz, cm)){
+            e.whiffT = cm.whiff;
+            if (heavy){ G.shake = Math.max(G.shake, 0.12); burst(V3(g.position.x+sx*1.6, 0.3, g.position.z+sz*1.6), 0xbbbbbb, 6, 6, 3); }
+            if (!e.converted && !onAlly && !remote && tgtPos === hp) floater(V3(g.position.x, g.position.y + 1.2, g.position.z), 'SIDESTEPPED', '#9fe6ff');
+          } else if (reached){
+            if (heavy){ G.shake = Math.max(G.shake, 0.3); burst(V3(g.position.x+sx, 0.3, g.position.z+sz), 0xbbbbbb, 6, 6, 3); }
             if (e.converted){
               if (tgtEnemy) damageEnemy(tgtEnemy, t.dmg * CFG.convertDmgMult, V3(tx,0,tz), 10);
               else if (tgtBoss) damageBoss(t.dmg * CFG.convertDmgMult);
@@ -545,8 +580,9 @@ export function updateEnemies(dtAll){
         if (e.st <= 0 && e.state === 'strike'){
           if (chainNext(e)) break;   // a duellist's STRING: the next cut winds up straight out of this one
           if (e.plan && !e.dead) stringDone(e);   // the string is over: a duellist skips back out of reach (duel.js)
-          if (!e.dead){ e.state = 'recover'; e.st = t.recover; }
-          if (!e.dead && !e.converted) e.openUntil = G.gt + t.recover * DUEL.open.share;   // OPENING: it has swung, it's open (data/duel.js)
+          const whiff = e.whiffT || 0; e.whiffT = 0;   // (a sidestepped swing: longer getting its weapon back)
+          if (!e.dead){ e.state = 'recover'; e.st = t.recover + whiff; }
+          if (!e.dead && !e.converted) e.openUntil = G.gt + (t.recover + whiff) * DUEL.open.share;   // OPENING: it has swung, it's open (data/duel.js)
           if (e.token) dropToken(e, true);   // swung — step back into the ring and let the next foe in
           g.userData.bodyMat.emissiveIntensity = 0;
         }

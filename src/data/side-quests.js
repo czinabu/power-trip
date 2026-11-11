@@ -54,7 +54,7 @@ export const SIDE_QUESTS = [
                  { key: 'example', side: 'dark', label: 'MAKE AN EXAMPLE', line: 'Nobody hunts near this shrine again. Everyone will know why.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, after: 'lothal', from: 'pens',
+  { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, after: 'trial-knight', from: 'pens',   // (a Knight takes a Padawan: TRIAL OF GENERAL KAST knights you)
     blurb: 'open one cell block and walk a child from the Ledger out',
     ask: 'One name in the Ledger was never brought out: Tavi, eight years old, in the last cell block on Tessaril. The Inquisitors moved the child there after the breakout. Bring Tavi home.',
     take: [

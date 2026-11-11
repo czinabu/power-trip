@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // STORY GATES SMOKE — nothing past the hero's own story, in any mode that plays away from the campaign:
 //   · a side mission waits for its campaign chapter (data/side-quests.js `after`), cleared in this hero's own story: none
-//     is open on a fresh save, the first opens at the close of Act I, and A NAME IN THE LEDGER (the Padawan) after THE PENS
+//     is open on a fresh save, the first opens at the close of Act I, and A NAME IN THE LEDGER (the Padawan) once the hero is knighted (TRIAL OF GENERAL KAST)
 //   · a lone mission (a story mission off the list, a side mission, an arcade contract) hands out the story's kit and
 //     nothing past it: no Force Pull before the siege, no Jump Attack or Saber Throw before the chapters that teach them,
 //     however generous the mission's own kit (game/zone-gate.js loneMission)
@@ -69,15 +69,19 @@ check(!L['forest-shrine'], 'the close of Act I opens THE FOREST SHRINE');
 check(/^CLEAR /.test(L['ledger-child']), 'A NAME IN THE LEDGER still waits (' + L['ledger-child'] + ')');
 check(await page.evaluate(() => /campaign/i.test(GAME.PROFILE.sideLockLine(GAME.SIDE_QUESTS.find(q => q.slug === 'ledger-child')))), 'its locked line says where in the campaign');
 
-// PAST THE PENS: the Ledger (and the Padawan with it) opens
+// PAST THE PENS: Pull, still no Jump Attack, and the Ledger still waits for the knighting
 await story('jedi', ['last-lesson', 'siege', 'archive', 'refuge', 'trial-first', 'lothal']);
 L = await locks();
-check(!L['ledger-child'], 'THE PENS opens A NAME IN THE LEDGER');
-k = await kitIn('side:ledger-child');
+check(/^CLEAR /.test(L['ledger-child']), 'THE PENS alone doesn\'t open A NAME IN THE LEDGER (' + L['ledger-child'] + ')');
+k = await kitIn('holdfast');
 check(k.pull && !k.slam, 'still no Jump Attack before Sera Quill\'s trial ' + JSON.stringify(k));
+// KNIGHTED (TRIAL OF GENERAL KAST): the Ledger (and the Padawan with it) opens
+await story('jedi', ['last-lesson', 'siege', 'archive', 'refuge', 'trial-first', 'lothal', 'trial-acrobat', 'hoth', 'trial-knight']);
+L = await locks();
+check(!L['ledger-child'], 'the Knight\'s trial opens A NAME IN THE LEDGER');
 
 // THE OTHER HEROES go by their own story: a Mando save that has done the pens doesn't open the Jedi's
-await story('mando', ['siege', 'archive', 'refuge', 'trial-first', 'lothal']);
+await story('mando', ['siege', 'archive', 'refuge', 'trial-first', 'lothal', 'trial-acrobat', 'hoth', 'trial-knight']);
 await story('jedi', []);
 L = await locks();
 check(!!L['ledger-child'], 'another hero\'s story opens nothing for this one');

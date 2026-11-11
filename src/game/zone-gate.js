@@ -58,7 +58,7 @@ export function zoneLock(key, hero){
   return chapterLock(id, hero);
 }
 // the words for a story chapter still to clear: 'Finish Act I of your campaign (chapter 5, TRIAL OF THE WALL)' or 'Clear
-// chapter 6 of your campaign, THE PENS' (a zone's gate above, a side mission's: game/profile.js sideLock)
+// chapter 9 of your campaign, TRIAL OF GENERAL KAST' (a zone's gate above, a side mission's: game/profile.js sideLock)
 export function chapterLock(id, hero){
   hero = heroOf(hero);
   const list = chapterOrder(null, hero), at = list.findIndex(c => c.id === id), c = list[at];
@@ -128,7 +128,7 @@ export function grantEarned(key, hero){
 }
 
 /* ---------- a side mission's gate (data/side-quests.js) ---------- */
-// what a side mission (data/side-quests.js) still waits for, in words ('CLEAR THE PENS', 'REACH KNIGHT', 'BEAT THE
+// what a side mission (data/side-quests.js) still waits for, in words ('CLEAR TRIAL OF GENERAL KAST', 'REACH KNIGHT', 'BEAT THE
 // CAMPAIGN'), or null: open. The story comes first: its `after` chapter, cleared in this hero's own campaign, then its rank.
 // The temple's CALLS FOR AID stone, the galaxy map and the Missions page all ask this
 export function sideLock(q, hero = G.hero){
@@ -138,7 +138,7 @@ export function sideLock(q, hero = G.hero){
   const T = track(hero);
   return rankIndex(hero) < q.rank ? 'REACH ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
 }
-// the same, as a line for a locked button: 'Clear chapter 6 of your campaign, THE PENS', 'Reach KNIGHT', 'Beat the campaign'
+// the same, as a line for a locked button: 'Clear chapter 9 of your campaign, TRIAL OF GENERAL KAST', 'Reach KNIGHT', 'Beat the campaign'
 export function sideLockLine(q, hero = G.hero){
   const need = sideLock(q, hero);
   if (!need) return null;

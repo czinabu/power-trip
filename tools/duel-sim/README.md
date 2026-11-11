@@ -13,7 +13,9 @@ Plans: `matrix` (every hero form × every foe form × ranks I–IV; narrow with 
 `adapt` (masters that switch form), `crowd` (acolyte, trooper and magnaguard packs), `early` (wave acolytes 1–8),
 `one` (`--form ataru --foe djemso --rank knight`), `bosses` (Darth Vexis, survival's warbringer and the Jedi story's
 champions as their missions scale them: `tools/duel-sim/bosses.mjs`; narrow with `--foes vexis,warden`; `--adaptive`
-answers a counter by switching form). Skills: `good`, `average`, or a JSON object of bot keys.
+answers a counter by switching form; `--mission` fights them as the Missions list does, a fresh hero against foes at
+the first wave's depth, instead of that deep into a campaign run). Each champion carries its mission's duel profile and
+its rage (the profile it sharpens to at that share of health). Skills: `good`, `average`, or a JSON object of bot keys.
 
 What it does not model: Force powers, kicks, deliberate bolt blocking and crowd positioning. Five duels a cell is noisy;
 read rows and columns, not single cells. About 2 fights a second on 4 workers.

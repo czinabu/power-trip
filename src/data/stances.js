@@ -21,7 +21,7 @@ import { STARTING_FORMS } from './forms.js';
    second is where it was.
    BALANCE (damage a second = dmg × speed, before each form's own edge): Djem So ~1.4 and ~2.75 on armour and the boss ·
    Juyo ~1.4, ~1.85 at full fury, at 8 stamina and 5 Force a swing · Makashi ~1.2, ~1.75 on blades · Shien, Vaapad ~1.15 ·
-   Ataru ~1.1, ~1.75 on the back line · Niman ~1.0, the cheapest powers · Shii-Cho ~0.95 with the widest arc · Soresu
+   Ataru ~1.1, ~1.75 on the back line · Niman ~1.1, the cheapest powers · Shii-Cho ~0.95 with the widest arc · Soresu
    ~0.75, the best guard. The saber staff ~1.05 a blade, with two blades sweeping. Jar'Kai ~1.15 on one foe, its two beats
    together (dmg × (1 + offDmg) × speed). How far a cut throws a foe is capped for every form (data/config.js saberShove). Keep a form's edge where its role is; tools/form-balance.mjs prints the table. */
 export const STANCES = {
@@ -30,11 +30,11 @@ export const STANCES = {
      knocks a blaster out of a trooper's hands (DISARMING SLASH). Its clumsier bladework is what duellists read. */
   shiicho: { name: 'SHII-CHO — CROWDS', form: 'shiicho', formNo: 'I', blade: 0x4a86ff,
             dmg: 1.35, heavyDmg: 1.0, speed: 0.7, knock: 1.1, stamina: 9, lunge: 1.15, move: 1.0, accel: 1.0, twist: 0.6, bladeLen: 1.0,
-            radiusMult: 1.35, comboGap: 1.0, fovKick: 0, postureMul: 1.0,
+            radiusMult: 1.35, comboGap: 1.0, fovKick: 0, postureMul: 1.0, parryBonus: 0.05,   // (FORGIVING: the first form's parry window runs a little wide)
             finisherArc: 1.3,     // ROLE: the Sarlacc Sweep reaches ~30% further, all the way round (SWING_STYLE.shiicho finisher spin)
             disarm: 6,            // DISARMING SLASH: a finisher on a blaster trooper knocks its gun loose for this many seconds
             sweepThrough: true,   // ROLE: a flat cut, a spin or the finisher rolls off a guard that turns it and carries on to the next foe (jedi/clash.js)
-            duelBlockMul: 1.1,    // LORE: a skilled duellist reads Form I's broad cuts and turns 10% more of them
+            duelBlockMul: 1.0,    // LORE: Form I's broad cuts are easy to read, but a duellist no longer turns extra of them (was +10%: the starting form lost every boss duel)
             deflectScatter: 0.08, // basic blast deflection, taught early: bolts go back loosely (rad)
             gait: { amp: 1.0, lift: 1.0, bob: 0.5, lean: 1.0 },   // MOVEMENT: plain, square, athletic
             syn: 'CROWDS · sweeps roll off a guard to the next foe · W in rhythm: Sarlacc Advance · finisher disarms blaster troopers · duellists read it' },
@@ -81,9 +81,10 @@ export const STANCES = {
             gait: { amp: 1.0, lift: 1.3, bob: 0.45, lean: 1.25 },   // MOVEMENT: light, high-kneed, springy — a duelist on the balls of their feet
             syn: 'BACK LINE · +60% vs officers, snipers, grenadiers, jet troopers · +35% air cuts · dash into a cut: Hawk-Bat Swoop · guard, W, SPACE: flip over a foe · snappy Force casts · tires in long strings · WEAK vs armor' },
   niman:  { name: 'NIMAN — BALANCED', form: 'niman', formNo: 'VI', blade: 0x3aff8c,
-            dmg: 1.5, heavyDmg: 1.25, speed: 0.64, knock: 0.85, stamina: 9, lunge: 1.15, move: 1.0, accel: 1.0, twist: 0.55, bladeLen: 1.0,
-            radiusMult: 1.0, cdMult: 0.85, defCdMult: 0.5, postureMul: 1.0, parryBonus: 0.10, comboGap: 1.0, fovKick: 0,
-            parryRefund: 16,      // PASSIVE: the duelist's form — a clean parry feeds extra Force back
+            dmg: 1.7, heavyDmg: 1.25, speed: 0.64, knock: 0.85, stamina: 9, lunge: 1.15, move: 1.0, accel: 1.0, twist: 0.55, bladeLen: 1.0,
+            radiusMult: 1.0, cdMult: 0.85, defCdMult: 0.5, postureMul: 1.1, parryBonus: 0.12, comboGap: 1.0, fovKick: 0,
+            parryRefund: 16,      // PASSIVE: the duelist's form — a clean parry feeds extra Force back…
+            parryBreath: 20,      // …and steadies the breath: this much stamina back (FORGIVING: Niman lost most boss duels; player/damage.js)
             powerCostMul: 0.85,   // LORE: saber and Force as one — powers cost 15% less…
             castMul: 0.85,        // …snap off a little quicker…
             castFlow: true,       // …and a power cast mid-string keeps the string going: no late-cancel stamina cost (combat.js)
@@ -91,7 +92,7 @@ export const STANCES = {
             blockStamMul: 0.55,   // SYNERGY: economical guard — blocking/parrying drains far less stamina
             deflectScatter: 0.05, // LORE: Niman, the jack of all forms — deflects go back roughly down the line (rad)
             gait: { amp: 1.08, lift: 1.0, bob: 0.4, lean: 1.0 },   // MOVEMENT: smooth, balanced, even strides
-            syn: 'VERSATILE · cheap swings and powers · cast mid-string · cast mid-dash: Flow Cast · −50% defence cooldowns · cheap guard · parries refund +Force' },
+            syn: 'VERSATILE · cheap swings and powers · cast mid-string · cast mid-dash: Flow Cast · −50% defence cooldowns · cheap guard · parries refund Force and stamina' },
   djemso: { name: 'DJEM SO — STRONG', form: 'djemso', formNo: 'V', blade: 0xb24bff,
             // HEAVY & momentum-driven, not slow-motion: still the slowest swing but it now flows; the big LUNGE
             // carries the blade through. High dmg, shreds armor, weak Force synergy (forceRegen < 1, no powerDmg).
@@ -116,28 +117,33 @@ export const STANCES = {
      gives up Djem So's raw power against armour. G swaps between the two Form V variants. */
   shien:  { name: 'SHIEN — REDIRECT', form: 'shien', formNo: 'V', blade: 0x2ee6c8,
             dmg: 2.05, heavyDmg: 1.35, speed: 0.6, knock: 1.3, stamina: 12, lunge: 1.25, move: 0.98, accel: 0.95, twist: 0.8, bladeLen: 1.0,
-            radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.04,
+            radiusMult: 1.05, postureMul: 1.2, comboGap: 0.85, fovKick: -1, parryBonus: 0.11,
+            riposteSweep: 1.7,    // THE WHEELING RIPOSTE: the cut answering a parry or block wheels all the way round, 70% further: every blade closing in on you is floored at once (jedi/combat.js)
+            crowdRiposte: { n: 2, r: 4.5 },   // …and pressed by two or more blades within 4.5m, a blow taken square on the held guard readies that riposte, as Djem So's always does (player/damage.js FLUID RIPOSTE)
+            blockStamMul: 0.8,    // FORGIVING: the reverse grip holds the blade close to the body: a block costs 20% less stamina
             deflectScatter: 0,    // ROLE: every deflect goes home, dead on the shooter…
             deflectDmg: 1.5,      // …and lands half again as hard (enemies/bolts.js)
             spinAdvance: 1.0,     // THE SPIN ADVANCE: a forward roll is an upright spin that sends home every bolt that meets it, from any side, for this share of the roll (player/mobility.js)
             gait: { amp: 1.1, lift: 0.9, bob: 0.6, lean: 1.0 },   // MOVEMENT: low and prowling, weight forward
-            syn: 'BLASTERS · every deflect goes home and hits +50% · roll forward: Spin Advance sends bolts home · reverse grip · strong cuts · G: Djem So' },
+            syn: 'BLASTERS · every deflect goes home and hits +50% · roll forward: Spin Advance sends bolts home · parry (or block when ringed by blades), riposte: a wheeling cut floors every blade round you · reverse grip · strong cuts · G: Djem So' },
   /* FORM VII JUYO — the most ferocious form (Mace Windu's root, Vader's rage): bursts of savage, unpredictable cuts
      driven by the Force itself. Each swing burns Force as well as breath, every cut that lands feeds FURY (up to +35%
      damage), and it gives its defence away for it. Juyo and Vaapad fork: learning one closes the other for the run. */
   juyo:   { name: 'JUYO — FURY', form: 'juyo', formNo: 'VII', blade: 0xff3a3a,
             dmg: 1.75, heavyDmg: 1.35, speed: 0.78, knock: 1.1, stamina: 8, lunge: 1.4, move: 1.08, accel: 1.2, twist: 0.9, bladeLen: 1.0,
-            radiusMult: 1.1, postureMul: 1.3, comboGap: 1.2, fovKick: 4, parryBonus: -0.03, forceRegen: 1.1,
+            radiusMult: 1.1, postureMul: 1.3, comboGap: 1.2, fovKick: 4, parryBonus: 0, forceRegen: 1.1,
             forceSwing: 5,        // ROLE: each swing burns this much Force on top of its stamina (no Force: double the stamina)
             furyHit: 0.12,        // every cut that lands feeds fury (player/jedi/fury.js)…
             furyDmg: 1.35,        // …up to +35% saber damage at full
             furySpeed: 0.2,       // …and quickens the blade: at full fury each cut takes 20% less time
-            dmgTaken: 1.1,        // LORE: it opens the user up: blows land 10% harder…
-            furyTaken: 1.3,       // …and the fuller the fury, the more open (×1.3 more at full: 43% in all) (player/damage.js)
+            furyPosture: 0.5,     // PAYOFF: a raging Juyo bears down on a guard: each cut strains it up to 50% more at full fury (player/jedi/fury.js formPostureMul)…
+            furyBreath: 0.35,     // …and every cut that lands at full fury hands back 35% of the swing's stamina, so the onslaught feeds itself
+            dmgTaken: 1.05,       // LORE: it opens the user up: blows land 5% harder…
+            furyTaken: 1.3,       // …and the fuller the fury, the more open (×1.3 more at full: 37% in all) (player/damage.js)
             zigzag: { reach: 1.1, fwd: 1.2, furyReach: 0.8, fast: 0.15 },   // THE ONSLAUGHT: W in rhythm breaks the cut in on a slant, zig then zag; further and quicker with fury (jedi/combat.js)
             deflectScatter: 0.12,
             gait: { amp: 1.15, lift: 1.15, bob: 0.6, lean: 1.3 },   // MOVEMENT: driving forward, never still
-            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg, quicker cuts) · W in rhythm: the Onslaught zig-zags in · TAKES more damage the fuller the fury' },
+            syn: 'FURY · Force-fuelled swings · hits build fury (+35% dmg, quicker cuts, breaks guards, hands breath back) · W in rhythm: the Onslaught zig-zags in · TAKES more damage the fuller the fury' },
   /* FORM VII VAAPAD — Mace Windu's own Form VII: Juyo's ferocity let in and turned outward. It feeds on the opponent's
      aggression: every blow turned on its guard builds fury, a parry finds the attacker's SHATTERPOINT (the next cut on
      that foe lands double and floors it). Juyo and Vaapad fork. */
@@ -158,8 +164,8 @@ export const STANCES = {
      block, and with both hands on it the Force comes a beat slower. bladeLen is each blade's (shorter than a saber's). */
   staff:  { name: 'SABER STAFF — SWEEPS', form: 'staff', formNo: null, blade: 0xffd23a,
             dmg: 1.2, heavyDmg: 0.85, speed: 0.88, knock: 0.7, stamina: 7, lunge: 1.25, move: 1.06, accel: 1.2, twist: 0.7, bladeLen: 0.82,
-            radiusMult: 1.15, comboGap: 1.2, fovKick: 3, postureMul: 0.85, parryBonus: 0.02,
-            blockStamMul: 1.25,   // COST: a long hilt is slow to bring square: every block and caught bolt costs 25% more
+            radiusMult: 1.15, comboGap: 1.2, fovKick: 3, postureMul: 1.0, parryBonus: 0.07,
+            blockStamMul: 1.1,    // COST: a long hilt is slow to bring square: every block and caught bolt costs 10% more
             castMul: 1.2,         // …and with both hands on it, a Force cast comes 20% slower
             vaultStrike: 1,       // POLE VAULT: a cut out of a roll or a Force dash plants the staff and vaults in, feet first (jedi/combat.js)
             deflectScatter: 0.08,

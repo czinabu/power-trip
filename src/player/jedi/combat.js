@@ -37,7 +37,7 @@ import { CUT_ANGLE } from '../../data/stances.js';
 import { disarmBlade } from '../../enemies/disarm.js';
 import { OVERFLIP } from './overflip.js';
 import { lineCatch, ripostePattern } from './guardline.js';
-import { addFury, furyMul } from './fury.js';
+import { addFury, furyMul, furyBreath } from './fury.js';
 import { tryFinisher, finisherStrike, endFinisher, finishType } from './finisher.js';
 import { PERFECT } from '../../data/finishers.js';
 import { addPosture } from '../../enemies/duel.js';
@@ -407,7 +407,7 @@ export function applySwingDamage(step, only){
   if (st.airCutDmg && !player.grounded) dmg *= st.airCutDmg;   // ATARU: a cut struck off the ground lands harder
   // FAST cleaves wide through crowds; STRONG is a narrow, focused blow. FAST's finisher fans ~10% wider still.
   const radius = (finisher ? CFG.player.hitRadius + 1 : CFG.player.hitRadius) * (st.radiusMult || 1)
-                 * (finisher && st.finisherArc ? st.finisherArc : 1) * (sw0 && sw0.scissor ? 1.25 : 1);
+                 * (finisher && st.finisherArc ? st.finisherArc : 1) * (sw0 && sw0.scissor ? 1.25 : 1) * (riposte && st.riposteSweep ? st.riposteSweep : 1);   // (SHIEN's riposte wheels round: wider)
   if (sw0 && sw0.scissor) dmg *= st.scissor;
   const back = !!(player.swing && player.swing.back);
   const f = fwd(); if (back) f.negate();   // back strike cleaves & knocks toward your rear
@@ -417,7 +417,7 @@ export function applySwingDamage(step, only){
   // the ARC: a cut covers what's in front of you, a strafe sweep a little wider, the finisher wider still (data/config.js)
   const A = CFG.player.swingArc, sdir = player.swing && player.swing.dir;
   const scissor = !!(sw0 && sw0.scissor);   // JAR'KAI's Scissor Slide: the two blades cross at the knees, as wide as a finisher
-  const arcCos = finisher || scissor ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
+  const arcCos = finisher || scissor || (riposte && st.riposteSweep) ? A.finisher : (sdir === 'left' || sdir === 'right' || back) ? A.sweep : A.cut;
   const reachUp = radius * 0.85;   // VERTICAL reach — a swing from the air can't hit foes far below you
   const reachDown = player.grounded ? reachUp : radius * 1.4;   // ...but a cut struck mid-leap still reaches the ground at your feet (Ataru's lesson)
   const tryHit = (pos, fn, obj) => {
@@ -472,6 +472,7 @@ export function applySwingDamage(step, only){
       foesHit++;
       trainForm(e.dead ? 'kill' : 'hit', { finisher, air: !player.grounded, backLine: backLineMul(st, e) > 1, heavy: !!e.t.heavy, blade: swordMul(st, e) > 1 });   // FORM MASTERY (game/upgrades.js)
       addFury(st.furyHit);   // JUYO (and a little VAAPAD): every cut that lands feeds the fury
+      furyBreath();          // JUYO's payoff: the fuller the fury, the more breath a landed cut gives back
       if (shat && !e.dead) staggerEnemy(e, f.x, f.z);
       // the blade leaves its mark: a burnt cut where it crossed, and a killing blow may take the sword arm (enemies/scars.js)
       scarBody(e.group, f, sw0 && sw0.dir, finisher || G.stance === 'djemso' || isDark, sw0 && sw0.hitAt && sw0.hitAt.get(e));

@@ -37,7 +37,7 @@ import { LEVELS } from '../data/levels.js';
 import { buildArena } from '../world/arena.js';
 import { findClearSpawn } from '../world/collision.js';
 import { playerPos, heldGrip } from '../player/helpers.js';
-import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHero, latestRun } from '../game/saves.js';
+import { canResume, resumeRun, resumeLabel, resumeProgress, captureRun, followHero, latestRun, furthestRun } from '../game/saves.js';
 import { startGate, gateOpen, gateBeaten } from '../game/gate.js';
 import { storyHero } from '../data/campaign.js';
 import { autosave } from '../game/autosave.js';
@@ -244,12 +244,12 @@ function fitMenu(){
 window.addEventListener('resize', queueFit);
 new MutationObserver(queueFit).observe(overlay, { attributes: true, attributeFilter: ['class'] });   // customizing on and off
 
-/* CONTINUE — the title screen's first tile, when this save file has somewhere to go back to: one click puts you back in
-   the last thing you were playing. That is the run itself, wherever it was started from: a story chapter picked at the
-   hub's holotable continues that chapter, not the hub. The hub (or an open zone, reached through it) counts when it was
-   the last stop. The training grounds and a co-op guest's runs leave the note as it was (practice, and the host's run).
-   Kept per save file (engine/save-files.js). It skips the Forms page and the training offer: the run's own loadout is
-   already saved, as RESUME and a retry do. */
+/* CONTINUE — the title screen's first tile: one click back into the story, at the furthest chapter this hero's campaign
+   has reached (game/saves.js furthestRun: of the saves since the last NEW GAME, the furthest one, not just the newest).
+   With no story run to go on with, Act IV's run if one is under way; with neither (the story beaten, say), the last thing
+   played: the hub (or an open zone, reached through it), a mission, survival or the sandbox. The training grounds and a
+   co-op guest's runs leave that note as it was (practice, and the host's run). Kept per save file (engine/save-files.js).
+   It skips the Forms page and the training offer: the run's own loadout is already saved, as RESUME and a retry do. */
 const LAST_PLAY = 'sw_last_play';
 const CONTINUES = ['campaign', 'gate', 'mission', 'endless', 'sandbox', 'temple'];
 function noteLastPlay(){
@@ -272,18 +272,19 @@ function continueMission(id){
   if (isRaidId(id)){ const r = parseRaidId(id); return r ? raidIdFor(r.raid) : null; }
   return missionOpen(id) ? id : null;
 }
-// where CONTINUE goes: { m, id? }, or null. The noted stop if it can still be played, else the hero's saved story run
+// where CONTINUE goes: { m, id?, run? }, or null. The furthest story run first, then Act IV's, then the last stop if it can
+// still be played
 function continueTarget(){
+  let run = null; try { run = furthestRun(G.hero); } catch(e){}   // (the menu first draws while game/saves.js is still loading: it draws again once it has)
+  if (run) return { m: 'campaign', run };
+  if (gateOpen() && gateRun()) return { m: 'gate' };
   const last = lastPlay();
   if (last){
-    if (last.m === 'campaign' && canResume()) return last;
-    if (last.m === 'gate' && gateOpen() && gateRun()) return last;
     if (last.m === 'temple') return last;
     if (last.m === 'endless' && survivalUnlocked()) return last;
     if (last.m === 'sandbox' && sandboxUnlocked()) return last;
     if (last.m === 'mission'){ const id = continueMission(last.id); if (id) return { m: 'mission', id, arcade: isArcadeId(last.id) }; }
   }
-  if (canResume()) return { m: 'campaign' };
   return null;
 }
 const dedupe = (s) => s.split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
@@ -294,7 +295,7 @@ function continueLine(to){
     case 'mission': return to.arcade ? 'Challenges · a new random contract' : 'Mission · ' + missionTitle(to.id);
     case 'endless': return 'Survival';
     case 'sandbox': return 'Sandbox';
-    default:        return dedupe('Story · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, ''));
+    default:        return dedupe('Story · ' + resumeProgressOf(to.run));
   }
 }
 // is CONTINUE up and taking you into the saved story run? (then the STORY row doesn't repeat it)
@@ -316,7 +317,7 @@ function refreshContinue(state = _ovState){
 document.getElementById('mode-continue').addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   const to = continueTarget(); if (!to) return refreshContinue();
-  if (to.m === 'campaign') pickUpSavedRun();
+  if (to.m === 'campaign'){ G.resumeRun = to.run; G.ngNext = null; pickUpSavedRun(); }   // (the furthest run, on the menu in place of the newest)
   if (to.m === 'mission') setMission(to.id);
   if (!setModeSel(to.m)) return;
   G.missionKit = null;
@@ -967,6 +968,15 @@ document.getElementById('restartBtn').addEventListener('click', (e) => { e.stopP
 // goes and the card is in front (a panel open on it, settings or the like, is left alone: RESUME then reaches the card)
 // (an event, not a hook: game/campaign.js and this file load in a loop, and a hook set from here could be reset as it loads)
 window.addEventListener('chapcard-open', () => { if (G.mode === 'play' && overlay.style.display === 'flex' && _ovState === 'pause' && !panelOpen()) beginPlay(); });
+// the chapter card's RETURN TO THE TEMPLE (game/campaign.js showCard): between chapters, home to the hub. The run waits on
+// the menu as it stands, on this chapter, so the hub's campaign table and CONTINUE go on from here (a reload too: autosave)
+shared.hubHome = () => nextHub().home;
+window.addEventListener('chapcard-hub', () => {
+  if (G.mode !== 'play' || G.chapter < 0 || G.coopGuest) return;
+  G.resumeRun = captureRun();
+  autosave('to the hub between chapters');
+  goTemple();
+});
 setTrainHook((formId) => {
   G.resumeRun = captureRun();   // (saved at the chapter's close: the trial stays won, game/saves.js resumeRun)
   trainOnForm(formId);

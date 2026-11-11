@@ -145,7 +145,7 @@ export function switchStance(id, silent){
   if (!silent){
     const pp = playerPos();
     burst(V3(pp.x, 1.6, pp.z), st.blade, 10, 4, 3);
-    floater(pp, st.name, hex(st.blade));
+    floater(pp, st.name, hex(st.blade), 'minor');
     S.reignite(id, from);   // the snap-hiss: the blade drops and lights again, pitched to the new form's hum (audio/saber.js)
   }
 }

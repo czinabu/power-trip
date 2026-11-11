@@ -108,7 +108,7 @@ export function tryFinisher(target){
   // the string is spent: the next attack after it starts a fresh one; a riposte waiting is folded into it
   player.comboStep = 2; player.queuedAtk = false; player.riposteT = 0; player.flowRun = 0;
   const pp = playerPos();
-  floater(V3(pp.x, pp.y + 0.4, pp.z), D.name, '#ffd98a');
+  floater(V3(pp.x, pp.y + 0.4, pp.z), D.name, '#ffd98a', 'minor');
   G.hitstop = Math.max(G.hitstop, 0.05);
   sfx(880, 0.12, 'sine', 0.04, 1500); sfx(220, 0.18, 'triangle', 0.05, 120);
   startBeat(0);

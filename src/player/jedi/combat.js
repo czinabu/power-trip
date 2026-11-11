@@ -148,7 +148,7 @@ export function tryAttack(flow = false){
     ripNow, backStrike, mom, flow, st, held: holding() && G.gt - (player.atkPressAt ?? G.gt) >= FLOW.spinHold });
   if (spin){
     player.stam -= spin.stam * st.stamina; player._spinT = G.gt; player.swing.spin = spin; player.swing.dur *= spin.dur; player.atkT = player.swing.dur;
-    if (spin.label){ floater(playerPos(), spin.label, '#9cc4ff'); tutEvent('sarlacc'); } }
+    if (spin.label){ floater(playerPos(), spin.label, '#9cc4ff', 'move'); tutEvent('sarlacc'); } }
   // LIGHT OR HEAVY (jedi/weight.js): a tap is a light cut, a hold draws back into a heavy. A riposte, a momentum strike,
   // a spin or a cut in the air keeps its own weight.
   armWeight(player.swing, !ripNow && !mom && !spin && player.grounded);
@@ -316,7 +316,7 @@ export function cancelSwing(feint){
     if (early && player.stam >= FEINT.stam && baitGuards(cutLine(sw))){
       bit = true;
       player.stam -= FEINT.stam; player.stamDelay = stamDelay();
-      floater(playerPos(), 'FEINT', '#ffd27a');
+      floater(playerPos(), 'FEINT', '#ffd27a', 'move');   // (your own: the foe's BAITED / NOT FOOLED is the word)
       // the opening: LMB cuts from behind the guard while it lasts (engine/input.js), and the faked cut doesn't count
       // toward the string, so the real one is the same cut of the string again (never pushed on into the finisher)
       player.feintUntil = G.gt + FEINT.bait;

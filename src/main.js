@@ -407,4 +407,8 @@ import { PATH_TREE, PATH_WORDS } from './data/alignment.js';
 Object.assign(window.GAME, { creed: { ...CREED_RT, MANDO_SKILLS, TROOPER_SKILLS, PATH_TREE, PATH_WORDS } });   // the gunners' light and dark cards (game/creed.js), for tests
 import * as RAIDS_RT from './data/raids.js';
 import * as RUN_STATE from './game/run-state.js';
+import './fx/cues.js';   // what a quiet callout does instead of its word (data/callouts.js)
+import { wordUp, wordStats, clearWords, floater as sayWord, callout as sayBig } from './fx/floaters.js';
+import { CALL as CALLOUTS, rankOf as calloutRank } from './data/callouts.js';
 Object.assign(window.GAME, { raids: RAIDS_RT });   // the raids (data/raids.js): what the raid smoke suite (tools/smoke/raid.mjs) reads
+Object.assign(window.GAME, { words: { up: wordUp, stats: wordStats, clear: clearWords, say: sayWord, big: sayBig, rank: calloutRank, cfg: CALLOUTS } });   // one word at a time (fx/floaters.js, data/callouts.js), for tests

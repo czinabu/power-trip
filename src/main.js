@@ -145,7 +145,9 @@ import { updateDoorway, doorState, goThrough, doorDark } from './world/doorway.j
 import { CALM_CFG } from './data/calm.js';
 import './ui/coop-ui.js';
 import './ui/profile-ui.js';
-import * as PROFILE from './game/profile.js';
+import * as PROFILE_MOD from './game/profile.js';
+import { sideLock, sideLockLine } from './game/zone-gate.js';
+const PROFILE = { ...PROFILE_MOD, sideLock, sideLockLine };   // (a side mission's lock lives with the story gates now: game/zone-gate.js)
 import * as MEDALS from './game/medals.js';
 import * as MEDAL_DATA from './data/medals.js';
 import { MISSIONS as MISSION_LIST } from './data/missions.js';

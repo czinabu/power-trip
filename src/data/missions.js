@@ -555,10 +555,11 @@ export const MISSIONS = {
         task: { jedi: 'Win the duel', mando: 'Win the duel' },
         // the act III rematch: tougher than the refuge's, but every clash on the run carries into it (and it can't
         // come in with less than 60% of this, game/mission.js)
-        hp: 5.5, dmg: 1.3,
-        duel: { block: 0.78, posture: 170, feint: 0.45, chain: 3, counter: 0.6 },
-        rage: 0.5, rageDuel: { feint: 0.55, delay: 0.35, chain: 3, thrust: 0.3 },
-        hero: { mando: { hp: 6.5, duel: { block: 0.72, posture: 160, feint: 0.35, chain: 2, counter: 0.55 } } } },
+        hp: 5.3, dmg: 1.25,   // (BALANCE: was 5.5 / 1.3, feint 0.45, rage feint 0.55: a step up from the Warden, not a wall)
+        duel: { block: 0.78, posture: 170, feint: 0.42, chain: 3, counter: 0.6 },
+        rage: 0.5, rageDuel: { feint: 0.52, delay: 0.35, chain: 3, thrust: 0.3 },
+        hero: { mando: { hp: 6.5, dmg: 1.3, duel: { block: 0.72, posture: 160, feint: 0.35, chain: 2, counter: 0.55 },
+                         rageDuel: { feint: 0.55, delay: 0.35, chain: 3, thrust: 0.3 } } } },
     ],
     done: { jedi: 'The coordinates die with it. The younglings stay hidden. Well run, and well fought.',
             mando: 'The trail is wiped and the bounty is claimed. The foundlings stay hidden. This is the Way.' },
@@ -1017,9 +1018,9 @@ export const MISSIONS = {
         task: 'Win the duel while the squad holds',
         enter: 'The Grand Inquisitor comes down off the dais, both blades spinning.', kicker: 'THE CITADEL',
         line: 'Every name in that Ledger was mine to collect.',
-        foe: 'acolyte', form: 'djemso', name: 'THE GRAND INQUISITOR', hp: 4.5, dmg: 1.2, scale: 1.11, tint: 0x8a1a22, at: [0, -18],
+        foe: 'acolyte', form: 'djemso', name: 'THE GRAND INQUISITOR', hp: 4.3, dmg: 1.12, scale: 1.11, tint: 0x8a1a22, at: [0, -18],   // (BALANCE: was 4.5 / 1.2)
         duel: { posture: 170, feint: 0.35, chain: 3, counter: 0.5 },
-        rage: 0.5, rageDuel: { feint: 0.42, delay: 0.3, chain: 3 },   // (BALANCE: was feint 0.5, chain 4: the finale's hardest duel, not its unfairest)
+        rage: 0.5, rageDuel: { feint: 0.4, delay: 0.3, chain: 3 },   // (BALANCE: was feint 0.5, chain 4, then 0.42: the finale's hardest duel, not its unfairest)
         trickle: { every: 14, cap: 3, group: { grunt: 2 } }, from: [-Math.PI + 0.4, -0.4] },
     ],
     done: 'Vael is free and the children are out. Only Vexis is left.',
@@ -1622,10 +1623,11 @@ export const MISSIONS = {
         task: { jedi: 'Win the trial', mando: 'Win the fight' },
         enter: { jedi: 'The Knight walks out past the last transport.', mando: 'The champion steps out past the last transport.' }, kicker: 'TRIAL',
         line: { jedi: 'Show me what you learned out there.', mando: 'Beskar to beskar.' },
-        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 4.5, dmg: 1.1, scale: 1.08, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
-        duel: { block: 0.75, posture: 160, feint: 0.3, chain: 2, counter: 0.7 },
-        rage: 0.45, rageDuel: { chain: 3, counter: 0.72 },   // (BALANCE: was hp 5, dmg 1.15, counter 0.8)
-        hero: { mando: { foe: 'duelist', form: null, name: 'THE CLAN CHAMPION', tint: 0x6a7a8a } } },
+        foe: 'acolyte', form: 'djemso', name: 'THE KNIGHT', hp: 4, dmg: 1, scale: 1.08, tint: 0xd2b23a, at: [0, -8],   // a Djem So master
+        duel: { block: 0.72, posture: 160, feint: 0.3, chain: 2, counter: 0.55 },
+        rage: 0.45, rageDuel: { chain: 3, counter: 0.6 },   // (BALANCE: was hp 4.5, dmg 1.1, block 0.75, counter 0.7 / 0.72: a trial, not the hardest duel of the act)
+        hero: { mando: { foe: 'duelist', form: null, name: 'THE CLAN CHAMPION', tint: 0x6a7a8a, hp: 4.5, dmg: 1.1,
+                         duel: { block: 0.75, posture: 160, feint: 0.3, chain: 2, counter: 0.7 }, rageDuel: { chain: 3, counter: 0.72 } } } },
     ],
     done: { jedi: 'The Knight sheathes its blade. Where you go now, it goes too.',
             mando: 'The champion stands with you. The clan is whole again. This is the Way.' },

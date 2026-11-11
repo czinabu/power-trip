@@ -136,6 +136,7 @@
         e.t = { ...e.t, dmg: e.t.dmg * f.champ.dmg };
         if (f.champ.rep) e.ffRep = f.champ.rep.slice();
         if (f.champ.duel && e.dp) Object.assign(e.dp, f.champ.duel);
+        if (f.champ.rage && e.dp) e.simRage = { at: f.champ.rage, duel: f.champ.rageDuel || {} };   // its mission's rage (game/mission.js: the duel sharpens at this share of health)
       }
       foes.push(e);
     });
@@ -162,6 +163,7 @@
     const alive = () => foes.filter(isLive);
     for (let fN = 0; fN < nFrames; fN++){
       const live = alive();
+      for (const e of live) if (e.simRage && e.hp <= e.maxHp * e.simRage.at){ e.dp = { ...e.dp, ...e.simRage.duel }; e.simRage = null; }
       let end = null;
       if (!live.length) end = 'win';
       else if (R.dmg >= maxHp) end = 'loss';

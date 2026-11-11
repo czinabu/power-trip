@@ -85,10 +85,12 @@ function jobs(){
   } else if (PLAN === 'bosses'){
     // the boss duels: Darth Vexis, survival's warbringer and the Jedi story's named duellists, scaled the way their
     // missions scale them (data/missions.js duel entries, game/mission.js spawnInquisitor), against every form
-    const B = bossFoes(HPM), only = opt('foes', null);
+    // --mission: as the Missions list plays them (game/mission.js startMission: a fresh hero, foes at the first wave's
+    // depth); the default is as the campaign meets them, that deep into a run
+    const MIS = argv.includes('--mission'), B = bossFoes(MIS ? () => 1 : HPM), only = opt('foes', null);
     const forms = opt('forms', FORMS.join()).split(',');
     for (const [foe, b] of Object.entries(B)) if (!only || only.split(',').includes(foe)) for (const form of forms) for (let r = 0; r < REPS; r++)
-      J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', adaptive: ADAPT || undefined, cfg: { form, loadout: loadoutFor(form), adaptive: ADAPT, foes: b.foes, depth: b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
+      J.push({ tag: 'bosses', form, foe, rank: b.foes[0].rank || '-', adaptive: ADAPT || undefined, cfg: { form, loadout: loadoutFor(form), adaptive: ADAPT, foes: b.foes, depth: MIS && b.foes[0].champ ? 0 : b.depth, seed: s++ * 6007 + r, tmax: b.tmax || 180 } });
   } else if (PLAN === 'crystals'){
     // each crystal's attunement laid on player.up (bot.js begin: cfg.fx), in the same fights: 'form' is the baseline
     const B = bossFoes(HPM), only = opt('crystals', null);

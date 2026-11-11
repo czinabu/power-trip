@@ -178,36 +178,36 @@ export const MANDO_PARTS = {
       MANDO_PARTS.jetpack.standard(R, k, player);
       const wing = [[0,0.14],[0.12,0.1],[0.26,-0.02],[0.24,-0.08],[0.1,-0.04],[0,-0.12]];
       for (const sx of [-1, 1]){
-        k.add(plate(wing, 0.022, 0.006), 'beskar', R.back, [0.19*sx, 0.03, -0.2], [0, 0, -0.25*sx], { scale: [sx*0.85, 0.85, 1] });
-        k.add(plate([[0,0.02],[0.2,-0.04],[0.2,-0.06],[0,-0.02]], 0.024, 0.004), 'accent', R.back, [0.21*sx, 0.04, -0.215], [0, 0, -0.25*sx], { outline: false, scale: [sx*0.85, 0.85, 1] });
+        k.add(plate(wing, 0.022, 0.006), 'beskar', R.back, [0.23*sx, 0.03, -0.2], [0, 0, -0.25*sx], { scale: [sx*0.85, 0.85, 1] });
+        k.add(plate([[0,0.02],[0.2,-0.04],[0.2,-0.06],[0,-0.02]], 0.024, 0.004), 'accent', R.back, [0.25*sx, 0.04, -0.215], [0, 0, -0.25*sx], { outline: false, scale: [sx*0.85, 0.85, 1] });
       }
     },
     heavy(R, k, player){
       MANDO_PARTS.jetpack.standard(R, k, player);
       for (const sx of [-1, 1]){
-        k.add(loft([{ y:-0.17, w:0.1, d:0.1 }, { y:0.12, w:0.1, d:0.1 }, { y:0.16, w:0.06, d:0.06 }], ngon(8, Math.PI/8)), 'beskar', R.back, [0.27*sx, -0.04, -0.19]);
-        for (const y of [-0.1, 0.06]) k.add(block(0.14, 0.02, 0.1, 0.2), 'strap', R.back, [0.22*sx, y, -0.19], [0, 0, 0], { outline: false });
-        k.add(loft([{ y:-0.035, w:0.05, d:0.05 }, { y:0.025, w:0.085, d:0.085 }], ngon(8, Math.PI/8)), 'beskar2', R.back, [0.27*sx, -0.25, -0.19]);
+        k.add(loft([{ y:-0.17, w:0.1, d:0.1 }, { y:0.12, w:0.1, d:0.1 }, { y:0.16, w:0.06, d:0.06 }], ngon(8, Math.PI/8)), 'beskar', R.back, [0.31*sx, -0.04, -0.19]);
+        for (const y of [-0.1, 0.06]) k.add(block(0.14, 0.02, 0.1, 0.2), 'strap', R.back, [0.26*sx, y, -0.19], [0, 0, 0], { outline: false });
+        k.add(loft([{ y:-0.035, w:0.05, d:0.05 }, { y:0.025, w:0.085, d:0.085 }], ngon(8, Math.PI/8)), 'beskar2', R.back, [0.31*sx, -0.25, -0.19]);
       }
     },
     // THE STANDARD PACK, after Din's: slim and close to the back, sitting between the shoulder blades. A flat ribbed core,
     // two narrow tanks either side, small bell nozzles just above the belt and the missile mount on top. It keeps the
     // body-side face where the old big pack had it (the cape still hangs in the gap: see `cape` above), but is about
-    // two-thirds as wide and half as deep, so it no longer fills the over-the-shoulder view.
+    // four-fifths as wide and half as deep, so it no longer fills the over-the-shoulder view.
     standard(R, k, player){
       const jet = k.group(R.back, [0, 0.02, -0.22]);   // its -z faces the camera
-      k.add(block(0.26, 0.4, 0.1, 0.3), 'suit', jet, [0, 0, 0.04]);
-      k.add(block(0.13, 0.34, 0.05, 0.3), 'beskar2', jet, [0, -0.01, -0.025]);
+      k.add(block(0.34, 0.4, 0.1, 0.3), 'suit', jet, [0, 0, 0.04]);
+      k.add(block(0.16, 0.34, 0.05, 0.3), 'beskar2', jet, [0, -0.01, -0.025]);
       k.add(block(0.022, 0.3, 0.02, 0.3), 'accent', jet, [0, -0.01, -0.055]);
       for (const sx of [-1, 1]){
-        k.add(block(0.03, 0.3, 0.03, 0.3), 'beskar', jet, [0.085*sx, -0.01, -0.02]);
-        for (let i = 0; i < 3; i++) k.add(new THREE.BoxGeometry(0.034, 0.01, 0.02), 'suit', jet, [0.085*sx, -0.11 + i*0.1, -0.036], [0,0,0], { outline: false });
+        k.add(block(0.03, 0.3, 0.03, 0.3), 'beskar', jet, [0.1*sx, -0.01, -0.02]);
+        for (let i = 0; i < 3; i++) k.add(new THREE.BoxGeometry(0.034, 0.01, 0.02), 'suit', jet, [0.1*sx, -0.11 + i*0.1, -0.036], [0,0,0], { outline: false });
         // tank: a slim cylinder with a domed cap
-        k.add(loft([{ y:-0.19, w:0.1, d:0.1 }, { y:0.14, w:0.1, d:0.1 }, { y:0.19, w:0.075, d:0.075 }, { y:0.235, w:0.03, d:0.03 }], ngon(8, Math.PI/8)), 'beskar2', jet, [0.15*sx, 0, 0.015]);
+        k.add(loft([{ y:-0.19, w:0.115, d:0.11 }, { y:0.14, w:0.115, d:0.11 }, { y:0.19, w:0.085, d:0.08 }, { y:0.235, w:0.03, d:0.03 }], ngon(8, Math.PI/8)), 'beskar2', jet, [0.19*sx, 0, 0.015]);
         // a collar under the tank, then a small bell that flares downward
-        k.add(loft([{ y:-0.02, w:0.07, d:0.07 }, { y:0.02, w:0.07, d:0.07 }], ngon(8, Math.PI/8)), 'suit', jet, [0.15*sx, -0.21, 0.015]);
-        k.add(loft([{ y:-0.075, w:0.085, d:0.085 }, { y:-0.02, w:0.05, d:0.05 }, { y:0.02, w:0.05, d:0.05 }], ngon(8, Math.PI/8)), 'beskar', jet, [0.15*sx, -0.24, 0.015]);
-        k.seam(new THREE.BoxGeometry(0.005, 0.14, 0.005), SEAM_COOL, jet, [0.15*sx, 0.02, -0.036]);
+        k.add(loft([{ y:-0.02, w:0.07, d:0.07 }, { y:0.02, w:0.07, d:0.07 }], ngon(8, Math.PI/8)), 'suit', jet, [0.19*sx, -0.21, 0.015]);
+        k.add(loft([{ y:-0.075, w:0.085, d:0.085 }, { y:-0.02, w:0.05, d:0.05 }, { y:0.02, w:0.05, d:0.05 }], ngon(8, Math.PI/8)), 'beskar', jet, [0.19*sx, -0.24, 0.015]);
+        k.seam(new THREE.BoxGeometry(0.005, 0.14, 0.005), SEAM_COOL, jet, [0.19*sx, 0.02, -0.036]);
       }
       // the missile mount: a short collar on top of the core
       k.add(loft([{ y:-0.03, w:0.1, d:0.1 }, { y:0.03, w:0.075, d:0.075 }], ngon(8, Math.PI/8)), 'beskar', jet, [0, 0.22, 0.01]);
@@ -219,10 +219,10 @@ export const MANDO_PARTS = {
 
       player.jetGlow = [-1, 1].map(sx => {
         const g = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.016, 0.09, 8), jetGlowMat());
-        g.position.set(0.15*sx, -0.36, 0.015); jet.add(g); return g;
+        g.position.set(0.19*sx, -0.36, 0.015); jet.add(g); return g;
       });
       // diegetic fuel gauge: LED strips on the tanks' camera-facing side, filled bottom → top by flight.js
-      player.jetFuelSegs = fuelGauge(jet, 0.15, -0.038, -0.15, 0.05, [0.024, 0.022, 0.012]);
+      player.jetFuelSegs = fuelGauge(jet, 0.19, -0.038, -0.15, 0.05, [0.024, 0.022, 0.012]);
     },
     // Boba Fett's: bigger and boxier than the standard pack, a ribbed core between twin fat domed tanks, wide bell
     // nozzles, the antenna, and the missile riding high in the middle. A little smaller than the game's first pack

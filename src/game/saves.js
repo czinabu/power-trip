@@ -146,6 +146,27 @@ export function latestRun(hero, tale = null){
   }
   return best ? { ...clone(best.run), hero: best.hero } : null;
 }
+// THE FURTHEST STORY RUN for a hero (the title screen's CONTINUE): of the runs saved since the last NEW GAME, and the one
+// waiting on the menu, the one furthest into the campaign. A higher NEW GAME+ tier is further on; then the later chapter;
+// a tie goes to the run on the menu, then the newest save
+export function furthestRun(hero = G.hero){
+  let since = 0; try { since = +localStorage.getItem(NEWGAME_AT) || 0; } catch(e){}
+  let best = null, bestKey = null;
+  const consider = (run, at) => {
+    if (!run || run.tale) return;   // (Act IV's runs are its own: the gate tile)
+    const key = [run.ng | 0, nextPos(run, hero), at];
+    const k = bestKey ? key.findIndex((v, j) => v !== bestKey[j]) : 0;
+    if (!best || (k >= 0 && key[k] > bestKey[k])){ best = run; bestKey = key; }
+  };
+  if (G.resumeRun && G.resumeRun.hero === hero) consider(G.resumeRun, Infinity);
+  if (parked[hero]) consider(parked[hero], Infinity);   // (set aside by a switch of hero on the menu)
+  for (const i of [AUTO, ...Array.from({ length: SLOTS }, (_, k) => k)]){
+    const d = readSlot(i);
+    if (!d || !d.run || (d.at || 0) < since || d.hero !== hero) continue;
+    consider({ ...clone(d.run), hero }, d.at || 0);
+  }
+  return best;
+}
 export function followHero(){
   if (canResume()) return;
   if (G.resumeRun) parked[G.resumeRun.hero] = G.resumeRun;

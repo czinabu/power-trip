@@ -240,6 +240,10 @@ function lore(lines, who, opts = {}){
         t.lines.map(([w, say]) => '<p' + (w === 'YOU' ? ' class="you"' : '') + '><b>' + esc(w) + '</b><span>' + esc(say) + '</span></p>').join('') + '</div>' : '') +
       '</details>' : '') + '</div>';
 }
+// the briefing's RETURN TO THE TEMPLE (citadel, covert): the hero's own hub instead of the chapter, for now. Not for a co-op
+// guest (the host's run) or Act IV (its run is kept apart from the story's: game/saves.js latestRun). Its name is the hub's
+// own (shared.hubHome, set by ui/menus.js: the two files load in a loop)
+const hubWay = () => !G.coopGuest && storyHero() !== 'gate';
 // THE BRIEFING: where you are, what to do and one line of the story. The rest of the story isn't on the card (it would give
 // away the opening scene's words): the chapter's talk is heard as it starts
 export function showCard(pos){
@@ -248,8 +252,12 @@ export function showCard(pos){
   const lines = [...(opensAct && pos !== actTwoAt() ? [actOpen(c.act)] : []), ...forHero(c.brief, G.hero)];   // (Act II's opening line was on its pick)
   const line = lines[lines.length > 1 && opensAct && pos !== actTwoAt() ? 1 : 0];
   openCard('<div class="cc-inner cc-brief hero-' + G.hero + '">' + head(c, pos) + (c.recap ? gateRecapHtml() : '') + goals(c) + (line ? lore([line], storyVoice(undefined, c)) : '') + roster(c.act, pos) +
-    '<div class="cc-btns"><div class="btn primary go" data-go="1">' + (G.coopGuest ? 'READY' : 'BEGIN') + '</div></div>' +
-    beginHint(G.coopGuest ? 'when ready' : 'to begin') + '</div>', () => {
+    '<div class="cc-btns"><div class="btn primary go" data-go="1">' + (G.coopGuest ? 'READY' : 'BEGIN') + '</div>' +
+    (hubWay() ? '<div class="btn cc-hub" data-go="hub">RETURN TO ' + esc(shared.hubHome ? shared.hubHome() : 'THE HUB') + '</div>' : '') + '</div>' +
+    beginHint(G.coopGuest ? 'when ready' : 'to begin') + '</div>', (k) => {
+      // THE WAY HOME between chapters: the run is kept where it stands (this chapter, not yet begun) and CONTINUE picks it up
+      // here again (ui/menus.js 'chapcard-hub'; an event, as the two files load in a loop)
+      if (k === 'hub'){ if (hubWay()) window.dispatchEvent(new Event('chapcard-hub')); return; }
       closeCard(); S.reward(1);
       // Act IV's veteran: the upgrade page first, its free pairs and its skill points (game/gate.js veteranKit)
       if (G.gateKitDue){ G.gateKitDue = false; setTimeout(() => { if (G.mode === 'play' && G.chapter === pos) openSkillTree(); }, 300); }

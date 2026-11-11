@@ -99,6 +99,7 @@ export function torso(k, w, o = {}){
   k.add(ab, 'armor2', k.root, [0, 1.25, 0.13], [0.06, 0, 0], { scale: [w * 1.06, 1, 1] });
   // an officer's TUNIC (o.tunic): cloth, not a cuirass. Straight and square through the chest, so it reads as a uniform
   // (a woman's only a shallow contour), with the skirts running on below the belt
+  if (o.tunic && k.rig) k.rig.spine = 'armor';   // (soft: the trunk under a tunic is the tunic's cloth, shoulder to skirt)
   if (o.tunic) k.add(loft(f ? [{ y:1.3, w:0.38*w, d:0.25 }, { y:1.45, w:0.46*w, d:0.275 }, { y:1.58, w:0.5*w, d:0.3, z:0.01 }, { y:1.7, w:0.55*w, d:0.285 },
                                { y:1.8, w:0.5*w, d:0.27 }, { y:1.88, w:0.26, d:0.21 }]
                            : [{ y:1.3, w:0.4*w, d:0.26 }, { y:1.5, w:0.5*w, d:0.275 }, { y:1.72, w:0.58*w, d:0.28 }, { y:1.82, w:0.5*w, d:0.27 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');

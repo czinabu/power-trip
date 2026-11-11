@@ -16,7 +16,8 @@ const ROUND = ngon(8, Math.PI / 8);   // a limb's section (the loft rounds it on
 const up = o => { for (o = o.parent; o && !o.userData.slot && !o.userData.bone; o = o.parent); return o; };   // the joint a part hangs from
 
 /* the joints a soft body needs, noted as the model is built */
-export const newRig = dims => ({ legs: [], arms: [], chest: null, head: null, w: 1, neck: 1.96, ...dims });   // dims: hipY, kneeY, ankY, waist (enemies/mesh.js LEG_E, WAIST)
+// (spine: the trunk's material when it isn't the body suit: an officer's tunic is cloth to the collar)
+export const newRig = dims => ({ legs: [], arms: [], chest: null, head: null, spine: null, w: 1, neck: 1.96, ...dims });   // dims: hipY, kneeY, ankY, waist (enemies/mesh.js LEG_E, WAIST)
 
 export function softBody(k){
   const R = k.rig, w = R.w, body = k.body;
@@ -26,7 +27,7 @@ export function softBody(k){
   {
     const y0 = 0.8, wh = w * FRAME.hips * (k.fem ? 1.12 : 1), wc = w * FRAME.chest, dc = FRAME.depth;
     const ring = (y, ww, d, z = 0) => ({ t: y - y0, w: ww, d, z });
-    k.skin('suit', [
+    k.skin(R.spine || 'suit', [
       ring(0.8, 0.2 * wh, 0.16), ring(0.86, 0.38 * wh, 0.26), ring(0.98, 0.44 * wh, 0.29), ring(1.07, 0.39 * wh, 0.265),
       ring(1.2, 0.37 * wc, 0.24 * dc), ring(1.33, 0.4 * wc, 0.25 * dc), ring(1.5, 0.5 * wc, 0.29 * dc),
       ring(1.64, 0.6 * wc, 0.3 * dc), ring(1.72, FRAME.shx * 1.74 * w, 0.21), ring(1.78, FRAME.shx * 1.6 * w, 0.2),

@@ -5,7 +5,10 @@
 
 export const SOFT_BODY = {
   on: false,
-  models: ['purge'],   // the sword trooper first (enemies/mesh.js MODELS); the rest follow once this one is judged
+  // every trooper built from the shared armoured parts (enemies/mesh.js MODELS): the foes, the clone and Mandalorian
+  // squadmates, and the armoured bosses. Droids (magna, b1) and the robed duelists (acolyte) keep their own bodies
+  models: ['purge', 'storm', 'heavy', 'jet', 'riot', 'scout', 'officer', 'grenadier', 'lancer',
+           'clone', 'mandalorian', 'marshal', 'commander', 'magistrate'],
 };
 try { const q = new URLSearchParams(location.search).get('softbody'); if (q != null) SOFT_BODY.forced = q !== '0'; } catch(e){}
 

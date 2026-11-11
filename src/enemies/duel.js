@@ -35,6 +35,7 @@ import { forceCostMul } from '../data/force-level.js';
 import { updateDisarm, endDisarm } from './disarm.js';
 import { FEINT, DUEL_PVP } from '../data/duel-guard.js';
 import { pvpOn } from '../game/pvp-rules.js';
+import { diffTellMul } from '../data/difficulty.js';
 // a light cut strains a guard a little less, a heavy one far more (player/jedi/weight.js); other blows keep their own
 const weighed = kind => kind === 'cut' || kind === 'finisher' ? cutMul(player.swing, 'posture') : 1;
 
@@ -237,6 +238,7 @@ export function updateDuel(e, dt, dist){
     const a = g.userData.guardArc, up = guarding && !e.dead && !e.winded;   // (disarmed: no guard, so no arc)   // winded: the guard is down
     const read = up && e.lineStreak >= DUEL.adaptAfter;
     e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
+    if (e.baitLine && G.gt < (e.baitUntil || 0)) e.arcFlash = Math.max(e.arcFlash, 0.45);   // fooled by your feint: the crescent burns for as long as the opening lasts
     if (up){
       const want = e.guard === 'R' ? 0 : e.guard === 'L' ? Math.PI : e.guard === 'Lo' ? -Math.PI / 2 : Math.PI / 2;
       a.rotation.z = dampToward(a.rotation.z, want, dt, 14);
@@ -550,8 +552,11 @@ export function maybeFeint(e, wk){
     setCut(pl, null); pl.side = o[(Math.random() * o.length) | 0];
   }
   pl.w0 = armNow(e);
+  pl.feinted = true;
   e.lastSide = pl.side;
-  e.wu = e.wuBase = DUEL.feintRewind; e.st = e.wu;
+  e.wu = e.wuBase = DUEL.feintRewind * diffTellMul(); e.st = e.wu;
+  // it says so: the switch is called out over its head, and your strike mark jumps sides (player/jedi/guardline.js)
+  floater(V3(e.group.position.x, e.group.position.y + 1.75, e.group.position.z), 'FEINT', '#ffb35a');
   if (e.form || (e.t && e.t.weapon === 'saber')) S.swing(e.form || 'niman', e.group.position); else S.whoosh(e.group.position, false);
   sparks(V3(e.group.position.x, 1.9, e.group.position.z), e.t.eye, 4, 5, { life: 0.2 });
   return true;
@@ -573,7 +578,8 @@ export function chainNext(e){
   pl.n++;
   e.lastSide = pl.side;
   pl.hold = 0; pl.feint = false;
-  const wu = pl.fin ? Math.max(DUEL.chainWindup, e.t.windup * 0.8) * (pl.c.wind || 1) : DUEL.chainWindup;
+  const cw = DUEL.chainWindup * diffTellMul();
+  const wu = pl.fin ? Math.max(cw, e.t.windup * 0.8) * (pl.c.wind || 1) : cw;
   e.state = 'windup'; e.wu = e.wuBase = wu; e.st = e.wu;
   if (pl.side === 'T') thrustTell(e);
   S.windup(e.group.position, pl.fin);
@@ -675,7 +681,8 @@ export function duelDefend(e, line, kind, heavy, at){
   G.hitstop = Math.max(G.hitstop, 0.05); G.shake = Math.max(G.shake, 0.2);
   if (p.tire && !isGunner()){ player.stam = Math.max(0, player.stam - p.tire); player.stamDelay = stamDelay(); }   // SORESU: the wall wears you out
   if (e.lineStreak >= DUEL.adaptAfter) floater(V3(g.position.x, g.position.y + 1.3, g.position.z), 'READ YOU', '#ffb35a');
-  else floater(V3(g.position.x, g.position.y + 1.3, g.position.z), 'BLOCKED', '#c8d4e0');
+  // (a cut back in on the line you just faked: the guard you fooled is standing right there)
+  else floater(V3(g.position.x, g.position.y + 1.3, g.position.z), e.baitLine === line && G.gt < (e.baitUntil || 0) ? 'SAME SIDE' : 'BLOCKED', '#c8d4e0');
   // and the answer: a fast riposte, if it has the skill and the breath
   if (G.gt - e.counterAt > DUEL.counterCd && Math.random() < p.counter * m * (e.lineStreak >= DUEL.adaptAfter ? 1.5 : 1)
       && (e.breath == null || e.breath >= DUEL.breath.counter)){ e.counterQueued = true; if (p.riposte) e.riposteNext = true; }   // DJEM SO: the answer lands harder
@@ -726,10 +733,11 @@ export function baitGuards(line){
     const g = e.group, dx = g.position.x - pp.x, dz = g.position.z - pp.z, dl = Math.hypot(dx, dz) || 1;
     if (dl > F.reach || (f.x * dx + f.z * dz) / dl < F.face) continue;
     const recent = G.gt - (e.feintAt ?? -99) < F.memory ? (e.feintN || 0) : 0;
-    e.feintN = recent + 1; e.feintAt = G.gt;
     const sharp = diffMul() * (e.net ? (e.dp && e.dp.elite ? eliteRamp() : 1) : skill(e));
     const at = V3(g.position.x, g.position.y + 1.45, g.position.z);
-    if (!(Math.random() < F.bite * Math.pow(F.wary, recent) / Math.max(0.5, sharp))){ floater(at, 'NOT FOOLED', '#c8d4e0'); continue; }
+    // (a training partner always bites: the lesson is the move, not the dice. A feint it saw through doesn't make it warier)
+    if (!e.sparring && !(Math.random() < F.bite * Math.pow(F.wary, recent) / Math.max(0.5, sharp))){ floater(at, 'NOT FOOLED', '#c8d4e0'); continue; }
+    e.feintN = recent + 1; e.feintAt = G.gt;
     e.baitLine = line; e.baitUntil = G.gt + F.bait;
     if (!e.net){
       if (LINES.includes(line)){ e.guard = line; e.guardT = Math.max(e.guardT, F.bait); }   // the crescent swings over to the fake
@@ -741,6 +749,17 @@ export function baitGuards(line){
   }
   if (n) tutEvent('feint');
   return n;
+}
+// is there a guard close in front of you that a feint could fool right now? (for the "too late" note: jedi/combat.js)
+export function canBait(){
+  const F = FEINT, pp = playerPos(), f = fwd();
+  for (const e of enemies){
+    if (e.dead || e.converted || !isGuarding(e)) continue;
+    if (!(e.net ? !!(e.ng && e.ng[NG.block] >= 40 && !e.ng[NG.brace]) : !!(showsGuard(e) && !e.dp.brace && canGuard(e)))) continue;
+    const g = e.group, dx = g.position.x - pp.x, dz = g.position.z - pp.z, dl = Math.hypot(dx, dz) || 1;
+    if (dl <= F.reach && (f.x * dx + f.z * dz) / dl >= F.face) return true;
+  }
+  return false;
 }
 // is its guard still stuck on your feint's line (a cut on `line` won't be turned)?
 const baited = (e, line) => !!e.baitLine && G.gt < (e.baitUntil || 0) && line !== e.baitLine;
@@ -1281,6 +1300,7 @@ export function updatePuppetDuel(e, dt){
     if (!a) makeGuardArc(e);
     const arc = g.userData.guardArc, up = !!n[NG.up] && !e.dead && dist < DUEL.guardRange, read = up && !!n[NG.read];
     e.arcFlash = Math.max(0, (e.arcFlash || 0) - dt * 4);
+    if (e.baitLine && G.gt < (e.baitUntil || 0)) e.arcFlash = Math.max(e.arcFlash, 0.45);   // fooled by this player's feint (as updateDuel)
     if (up){
       const L = LINES[n[NG.line]];
       const want = L === 'R' ? 0 : L === 'L' ? Math.PI : L === 'Lo' ? -Math.PI / 2 : Math.PI / 2;

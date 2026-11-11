@@ -46,9 +46,10 @@ import { SHIP_WING, shipOf } from '../data/hero-ships.js';
 import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
 import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
 import { apprenticeOf } from '../game/profile.js';
-import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState } from '../game/duel-mode.js';
+import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState, honours } from '../game/duel-mode.js';
 import { openChallenge, openHonours } from './duel-ui.js';
 import { pvpLinkMs } from '../net/pvp.js';
+import { ledger } from '../game/hub-growth.js';
 
 const panel = document.getElementById('hubpanel');
 const isOpen = () => panel.classList.contains('open');
@@ -237,6 +238,7 @@ function render(){
   if (ready) return renderReady();
   if (station.act === 'welcome') return renderWelcome();
   if (station.act === 'raid') return renderRaid();
+  if (station.act === 'deeds') return renderDeeds();
   if (station.act === 'travel') return renderMap();
   if (station.act === 'galaxy') return renderGalaxy();
   const W = hubWing(), list = options(station);
@@ -359,6 +361,46 @@ function renderRaid(){
     '<div class="hb-list rd-go">' + list.map((b, i) => '<div class="hb-o' + (b.go ? '' : ' off') + (b.lock ? ' locked' : '') + (i === 0 && b.go ? ' rd-main' : '') + '" data-i="' + i + '"><b>' + b.t + '</b><span>' + (b.lock ? 'LOCKED · ' + b.lock : b.d) + '</span></div>').join('') + '</div>' +
     '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
   panel._list = list;
+}
+
+/* ---------------- THE LEDGER OF DEEDS (data/hub-growth.js, game/hub-growth.js) ----------------
+   The trophy hall's station: how far this hub has been restored (each wing, and what brings it back), the trophies it
+   keeps and who stood there, the raid banners and the friends on the wall. In a party it's the host's hub, said so. Drawn
+   in the hero's look like the raid page (styles/heroes/raid.css, styles/heroes/deeds.css). */
+const fmtDay = (d) => d > 0 ? new Date(d * 86400000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+function renderDeeds(){
+  const L = ledger(), hero = G.hero, Hb = curHub(), done = L.rows.filter(r => r.done).length;
+  const row = (r) => '<div class="rd-part' + (r.done ? ' got' : '') + '"><i>' + escH(r.wingName) + '</i><b>' + escH(r.name) + '</b><span>' +
+    (r.done ? 'RESTORED · ' + escH(r.line) : escH(r.needText).toUpperCase() + (r.prog ? ' · ' + r.prog.have + '/' + r.prog.need : '')) + '</span>' +
+    (r.done || !r.prog ? '' : '<u><s style="width:' + Math.round(Math.min(1, r.prog.have / r.prog.need) * 100) + '%"></s></u>') + '</div>';
+  const cup = (t) => '<div class="rd-part' + (t.won ? ' got' : '') + '"><i>' + escH(t.name) + '</i><b>' + escH(t.won ? t.what : '? ? ?') + '</b><span>' +
+    (t.won ? (t.who.length ? 'WITH ' + escH(t.who.join(', ')) : 'WON') : 'NOT YET BEATEN') + '</span></div>';
+  const ban = L.banners.length ? L.banners.map(b => { const m = raidMods(b.id, b.day); return '<i class="gw-ban" title="' + escH(m.map(k => MODS[k].name).join(' · ')) + '" style="--b1:' + (MODS[m[0]] || {}).col + ';--b2:' + (MODS[m[1]] || {}).col + '"><em>' + fmtDay(b.day) + '</em></i>'; }).join('')
+    : '<span class="gw-none">No raid won yet. Each day\'s raid you win hangs a banner here, in that day\'s colours.</span>';
+  const pals = L.friends.length ? L.friends.map(f => '<i class="gw-pal"><b>' + escH(f.name) + '</b><em>× ' + f.n + '</em></i>').join('')
+    : '<span class="gw-none">Win a raid, an Act IV chapter or a side mission with friends, and their names go on the wall.</span>';
+  const whose = L.host ? '<p class="rd-blurb"><b>The host\'s ' + escH(Hb.home.toLowerCase().replace(/^the /, '')) + '.</b> Every win you share here counts in your own hub too.</p>' : '';
+  panel.innerHTML = '<div class="hb-box rd-box gw-box hero-' + hero + '">' +
+    '<div class="rd-head"><div class="hb-k">' + escH(hubWing().name) + '</div><div class="rd-t">' + escH(station.name) + '</div>' +
+      '<div class="rd-w">' + escH(Hb.name) + ' · ' + done + ' OF ' + L.rows.length + ' RESTORED</div></div>' + whose +
+    '<div class="rd-sec"><span>Restoration</span><em>Side missions, Act IV and raids bring it back to life</em></div>' +
+    '<div class="rd-parts">' + L.rows.map(row).join('') + '</div>' +
+    '<div class="rd-sec"><span>Trophies</span><em>' + L.trophies.filter(t => t.won).length + ' of ' + L.trophies.length + ' · ' + escH(L.hall ? L.hall.kicker.toLowerCase() : '') + '</em></div>' +
+    '<div class="rd-parts">' + L.trophies.map(cup).join('') + '</div>' +
+    '<div class="rd-sec"><span>Raid banners</span><em>' + L.banners.length + ' hung</em></div><div class="gw-bans">' + ban + '</div>' +
+    '<div class="rd-sec"><span>' + escH(L.hall ? L.hall.friendsTitle.toLowerCase() : 'friends') + '</span><em>' + L.friends.length + ' named</em></div><div class="gw-pals">' + pals + '</div>' +
+    duelRow() +
+    '<div class="btn hb-x" data-x="1">CLOSE</div></div>';
+  panel._list = [];
+}
+// the duel ring's record (game/duel-mode.js honours), on the same page: your own, so not shown in a host's hub
+function duelRow(){
+  if (ledger().host) return '';
+  const rec = Object.entries(honours()).map(([name, r]) => ({ name, w: r.w | 0, l: r.l | 0 })).filter(r => r.w + r.l).sort((a, b) => b.w - a.w || a.l - b.l).slice(0, 12);
+  const wins = rec.reduce((n, r) => n + r.w, 0);
+  const body = rec.length ? rec.map(r => '<i class="gw-pal"><b>' + escH(r.name) + '</b><em>' + r.w + ' – ' + r.l + '</em></i>').join('')
+    : '<span class="gw-none">Duel a friend in the ring and your record against them is kept here.</span>';
+  return '<div class="rd-sec"><span>Duels</span><em>' + wins + ' won in the ring</em></div><div class="gw-pals">' + body + '</div>';
 }
 
 /* ---------------- THE WELCOME (game/hub-welcome.js) ----------------

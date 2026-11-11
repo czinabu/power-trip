@@ -778,3 +778,19 @@ body.objview #objlist{opacity:.25}
 /* the boss bar steps down under it */
 body.compass-on #bosswrap{top:48px}
 @media (max-width:700px){ #compass{width:min(300px,34vw);top:4px} #compass .cp-l{font-size:12px} #compass .cp-l.mid{font-size:9px} body.compass-on #bosswrap{top:40px} }
+
+/* ---------- TEAM-UP (game/teamup.js): the prompt under the crosshair when a partner (or an ally) is close and the setup is right ---------- */
+#teamupp{position:fixed;left:50%;top:calc(50% + 78px);transform:translate(-50%,4px);display:flex;align-items:center;gap:8px;
+  padding:6px 14px 6px 6px;border-radius:var(--r-lg);background:rgba(4,10,20,.72);box-shadow:0 4px 16px rgba(0,0,0,.35);border:1px solid rgba(255,210,90,.25);
+  font:700 13px/1 var(--font-ui);letter-spacing:2.2px;color:var(--ink);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;white-space:nowrap}
+#teamupp.on{opacity:1;transform:translate(-50%,0)}
+#teamupp.go,#teamupp.ready{border-color:rgba(255,210,90,.6);animation:teamupPop .28s cubic-bezier(.2,1.6,.4,1)}
+#teamupp kbd{font:700 13px/1 var(--font-ui);min-width:24px;height:24px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,210,90,.7);border-radius:5px;color:var(--gold);background:rgba(255,210,90,.08)}
+#teamupp b{color:var(--gold);font-weight:700}
+#teamupp.ready{border-color:rgba(255,210,90,.9);animation:teamupPop .28s cubic-bezier(.2,1.6,.4,1),teamupPulse .8s ease-in-out .28s infinite alternate}
+#teamupp.wait,#teamupp.cd{padding-left:12px;color:rgba(220,232,245,.7)}
+#teamupp.cd{opacity:.55}
+@keyframes teamupPop{from{transform:translate(-50%,0) scale(.82)}to{transform:translate(-50%,0) scale(1)}}
+@keyframes teamupPulse{from{box-shadow:0 0 0 rgba(255,210,90,0)}to{box-shadow:0 0 18px rgba(255,210,90,.55)}}
+body.cutscene #teamupp{opacity:0 !important}

@@ -77,7 +77,7 @@ export const MANDO_SKILLS = [
     fl:'Draw fast. Draw first.', apply(){ player.up.fireRate = (player.up.fireRate || 1) * 1.1; player.up.move *= 1.06; } },
   { id:'optics',  ico:'◈', nm:'TARGETING VISOR', tier:1, max:2, ds:'+10% blaster damage · steadier aim',
     fl:'The HUD never blinks.', apply(){ player.up.dmg *= 1.1; player.up.aim = (player.up.aim || 0) + 0.35; } },
-  { id:'grit',    ico:'❖', nm:'BATTLE STAMINA',  tier:1, max:3, ds:'+20 max stamina · +10% regen (Darksaber &amp; shield)',
+  { id:'grit',    ico:'❖', nm:'BATTLE STAMINA',  tier:1, max:3, ds:'+20 max stamina · +10% regen (Darksaber &amp; beskar guard)',
     fl:'The Way is walked, not sprinted.', apply(){ player.up.maxStam += 20; player.up.stamRegen *= 1.1; player.stam += 20; } },
   // ---- TIER II — VERD (warrior): specialised gear ----
   { id:'gam',     ico:'⛨', nm:'FULL BESKAR\'GAM', tier:2, max:2, ds:'Brace soaks +18% · +15 max vit',

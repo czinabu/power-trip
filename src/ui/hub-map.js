@@ -82,6 +82,7 @@ function glyph(s){
     case 'ship': case 'shuttle': return [`<path d="M${n(x)} ${n(z - 7)}L${n(x + 5)} ${n(z + 5)}L${n(x)} ${n(z + 3)}L${n(x - 5)} ${n(z + 5)}Z" style="fill:${STONE}" opacity=".75"/>`, 5.6];
     case 'raid': return [`<circle cx="${n(x)}" cy="${n(z)}" r="2" fill="none" stroke="#b46bff" stroke-width=".9"/><circle cx="${n(x)}" cy="${n(z)}" r=".7" fill="#b46bff"/>`, 2.8];   // the raid table's gate-ring
     case 'galaxy': return [`<circle cx="${n(x)}" cy="${n(z)}" r="${n(Math.min(4, r * 0.7))}" fill="none" style="stroke:${BLUE}" stroke-width=".7"/><circle cx="${n(x)}" cy="${n(z)}" r="1.1" style="fill:${GOLD}"/>`, Math.min(4, r * 0.7) + 1.4];   // a ship's galaxy table
+    case 'deeds': return [`<path d="M${n(x)} ${n(z - 2.4)}L${n(x + 2)} ${n(z + 1.6)}L${n(x - 2)} ${n(z + 1.6)}Z" style="fill:${GOLD}"/>`, 2.6];   // the hall's ledger: a trophy's point
     case 'bounties': return [`<rect x="${n(x - 3.5)}" y="${n(z - 1.2)}" width="7" height="2.4" style="fill:${GOLD}"/>`, 2];
   }
   return [`<circle cx="${n(x)}" cy="${n(z)}" r="1.6" style="fill:${BLUE}"/>`, 2.2];
@@ -101,6 +102,8 @@ const ART = {
   tanks: (h) => { let o = ''; for (const z of [-0.72, -0.5, 0.5, 0.72]) for (const x of [-0.6, -0.3, 0, 0.3, 0.6]) o += `<circle cx="${n(x * h)}" cy="${n(z * h)}" r="${n(h * 0.06)}" fill="none" style="stroke:${BLUE}" stroke-width=".6" opacity=".55"/>`; return o; },
   // a fire pit in the floor, as round the covert's great forge
   fire: (h) => `<circle cx="0" cy="0" r="${n(h * 0.2)}" style="fill:${FIRE}" opacity=".25"/><circle cx="0" cy="0" r="${n(h * 0.1)}" style="fill:${FIRE}" opacity=".6"/>`,
+  // trophy plinths round the walls, as in the temple's trophy hall
+  plinths: (h) => { let o = ''; for (const [x, z] of [[-0.38, -0.44], [0, -0.53], [0.38, -0.44], [-0.38, 0.44], [0.38, 0.44]]) o += `<rect x="${n(x * h - h * 0.05)}" y="${n(z * h - h * 0.05)}" width="${n(h * 0.1)}" height="${n(h * 0.1)}" style="fill:${GOLD}" opacity=".55"/>`; return o; },
   // racks along the walls, as in an armory
   racks: (h) => { let o = ''; for (const x of [-0.86, 0.86]) for (const z of [-0.5, 0, 0.5]) o += `<rect x="${n(x * h - h * 0.04)}" y="${n(z * h - h * 0.13)}" width="${n(h * 0.08)}" height="${n(h * 0.26)}" style="fill:${STONE}" opacity=".4"/>`; return o; },
   // a hero's ship (data/hero-ships.js): the hull's outline round the cabin, the nose forward (north), the ramp aft

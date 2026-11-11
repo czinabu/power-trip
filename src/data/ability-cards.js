@@ -41,7 +41,7 @@ export const ABILITY_CARDS = {
                               'Hold SPACE in the air, as before.'] },
   flame:{ clip: flame, lines: ['Hold F to sweep a cone of flame in front of you. It burns every foe it touches over time, so it clears crowds.',
                                'It runs on your Gadget Power bar.'] },
-  dual: { clip: dual, lines: ['A second sidearm: two blasters on 1. Hold LMB to fire both, for far more fire up close than the single blaster, but no shield behind them.',
+  dual: { clip: dual, lines: ['A second sidearm: two blasters on 1. Hold LMB to fire both, for far more fire up close than the single blaster, but no guard behind them.',
                               'You carry one sidearm: choose next which goes on 1. The other waits in the armory.'] },
   jet1: { clip: jet, lines: ['Hold SPACE to fly. Hold RMB in the air to hover and aim; hold SHIFT in the air to boost, and look down to dive.',
                              'SHIFT in the air is now an air dodge, and SHIFT twice from a dive lights the pack. It all burns fuel, which comes back fast on the ground.'] },

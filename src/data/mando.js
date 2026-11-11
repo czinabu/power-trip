@@ -8,7 +8,7 @@ import { TROOPER_WEAPONS } from './trooper.js';
 export const HEADSHOT_MULT = 2.4;   // a blaster bolt to the head zone hits this much harder
 export const MANDO = {
   boltSpeed: 90, spread: 0.003,   // bolts go through the crosshair, fast enough that a strafing trooper at range needs only a small lead
-  braceDR: 0.6,                                             // beskar brace: incoming damage ×(1-this)
+  braceDR: 0.6,                                             // the beskar guard (BESKAR_GUARD): a blow soaked on the vambrace lands ×(1-this)
   // JETPACK runs on its OWN fuel (player.jet, separate from ability Force). Limited: drains fast, regen on the ground.
   jetThrust: 46, jetMaxUp: 8.0, jetDrain: 20, jetRegen: 7, jetRegenGround: 30, fallCap: 15, jetHover: 8,   // fuel is a real commitment: barely trickles back in the air, recovers only on the ground (touch down to refuel)
   // MOMENTUM FLIGHT. SPACE = vertical thrust (hover/climb). SHIFT (tap, airborne) = AIR DODGE (data/mobility.js); held = directional BOOST that drives
@@ -72,7 +72,7 @@ export const MANDO_WEAPONS = {
   dual:      { name: 'DUAL BLASTERS', short: 'DUAL', slot: 'sidearm', fire: 'auto', fireCd: 0.11, dmg: 13, dual: true,  heat: 0.066, cool: 0.66, overCool: 0.5,
                hipSpread: 0.014, braceSpread: 0.006, braceDmg: 1.12, foStart: 8, foEnd: 24, foMin: 0.35, kick: 0.18, adsZoom: 12, vent: 0.6 },    // a touch looser, but still honest to the reticle
   // PULSE CARBINE — the mid-range primary: three-round bursts that kick up the target (the reticle settles back on
-  // its own between bursts), accurate even from the hip, shorter falloff than the pistol, no shield behind it
+  // its own between bursts), accurate even from the hip, shorter falloff than the pistol, no guard behind it
   carbine:   { name: 'PULSE CARBINE', short: 'CARBINE', slot: 'primary', fire: 'burst', burst: 3, burstGap: 0.068, fireCd: 0.36, dmg: 21, heat: 0.046, cool: 0.72, overCool: 0.55,
                hipSpread: 0.007, braceSpread: 0.003, braceDmg: 1.1, foStart: 22, foEnd: 52, foMin: 0.55, kick: 0.17, climb: 3.2, flinch: 0.5,
                size: 1.25, col: 0x8fe8ff, twoHand: true, adsZoom: 17, vent: 0.55 },
@@ -112,15 +112,15 @@ export const ARMORY_PATH = [
 ];
 // THE ARMORY CODEX — what each gun is for, shown on the armory page (ui/armory-ui.js). Keep in step with MANDO_WEAPONS.
 export const ARMORY_CODEX = {
-  single:   { tag: 'PRECISION', best: 'Single targets, headshots, and holding a line', lore: 'A Mandalorian\'s first gun: a heavy blaster pistol on the same arm as the gauntlet\'s shield.',
-              pros: ['Pinpoint, with the longest reach of the blasters', 'The gauntlet shield: hold RMB to send frontal fire back', 'Headshots hit 2.4×'],
-              cons: ['One bolt at a time', 'Firing drops the shield for half a second'] },
+  single:   { tag: 'PRECISION', best: 'Single targets, headshots, and holding a line', lore: 'A Mandalorian\'s first gun: a heavy blaster pistol in one hand, and the other arm free to guard with.',
+              pros: ['Pinpoint, with the longest reach of the blasters', 'The beskar guard: hold RMB and the vambrace stops fire and blows from the front', 'Headshots hit 2.4×'],
+              cons: ['One bolt at a time', 'Firing lowers the guard for half a second'] },
   dual:     { tag: 'CLOSE WORK', best: 'Rushing troopers and anything within ten metres', lore: 'Two pistols, one in each hand. Fire poured out up close, and nothing behind it.',
               pros: ['Hold the trigger: they pour fire', 'The fastest kill up close', 'Bracing (RMB) tightens them into real damage'],
-              cons: ['Harsh falloff past ten metres', 'No shield: bracing is offence only'] },
+              cons: ['Harsh falloff past ten metres', 'No guard: bracing is offence only'] },
   carbine:  { tag: 'MID RANGE', best: 'Troopers at mid range, officers, jet troopers', lore: 'A shouldered pulse carbine. Three bolts a pull, steady from the hip.',
               pros: ['Three-round bursts, accurate even moving', 'Long reach before damage drops off', 'A quick vent'],
-              cons: ['Each burst kicks up: land the first bolt where you want it', 'No shield behind it'] },
+              cons: ['Each burst kicks up: land the first bolt where you want it', 'No guard behind it'] },
   repeater: { tag: 'SUPPRESSION', best: 'Crowds, brutes and shields', lore: 'A heavy repeating blaster off a dead gunner\'s emplacement. It has to wind up, and then it does not stop.',
               pros: ['Spins up to the highest fire rate of any gun', 'Every bolt rocks the foe it hits', 'Holds a crowd back on its own'],
               cons: ['Slow to wind up, wide cone, heavy recoil', 'You walk slower while it fires', 'Cooks fast, and an overheat or a vent costs a long beat'] },
@@ -144,7 +144,7 @@ export function cleanKit(kit, owned = weaponOwned){
   return out;
 }
 export const kitOf = () => G.mandoKit || RUN_KIT;
-// the best kit for what the hero owns: the pistol (its shield) and the newest primary
+// the best kit for what the hero owns: the pistol (its guard) and the newest primary
 export function bestKit(owned = weaponOwned){
   const prim = ARMORY_PATH.map(p => p.weapon).filter(w => MANDO_WEAPONS[w].slot === 'primary' && owned(w)).pop() || null;
   return cleanKit({ sidearm: 'single', primary: prim }, owned);
@@ -161,6 +161,19 @@ export function carriedOrder(){ const kit = kitOf(); return [kit.sidearm, kit.pr
 // damage, × the bolt's (at least min) · speed: × the bolt's speed · vent: share of the gun's heat it bleeds off ·
 // stam: stamina handed back · pose: how long the vambrace stays up after a catch (the left arm's block pose)
 export const BESKAR_PARRY = { window: 0.2, lock: 0.4, dmg: 2.4, min: 34, speed: 1.6, vent: 0.35, stam: 10, pose: 0.22 };
+/* THE BESKAR GUARD — HOLD RMB with the single blaster (or holstered, with his fists): the left vambrace comes up before
+   the face and what meets it STOPS there. A bolt is blocked, not sent back (the ricochet is the timed tap above); a
+   blow is soaked (MANDO.braceDR), a lightsaber's too, since beskar turns a blade. Hold blocks, tap answers: the same
+   split as a Jedi's guard, and the tap now turns a blow as well as a bolt (player/damage.js). It is one forearm, not a
+   wall: it covers the front only, every hit on it costs stamina, and a shot lowers it for a moment (`back`).
+     bolts   how far round the front it stops a bolt: the least dot of the bolt's bearing on the way he faces (1 dead ahead)
+     blows   the same for a blow, a little wider: he turns the arm into a swing
+     bolt    stamina a stopped bolt costs · blow: a soaked blow (× how heavy it is: data/config.js blockHeavy)
+     saber   × that for a duellist's blade: the beskar holds, the arm behind it tires fast
+     push    how hard a soaked blow drives him back (× how heavy)
+     back    s after the last shot before the arm is up again
+     low     the share of his stamina under which the arm starts to sag: the guard is about to give */
+export const BESKAR_GUARD = { bolts: 0.34, blows: 0.1, bolt: 5, blow: 5, saber: 2, push: 2, back: 0.5, low: 0.2 };
 // JEDI aerial Force-control — only kicks in when you HOLD space (a tap is just a normal jump). The TAKEOFF
 // costs the bulk of the Force up front, then a slow drain while held; it arcs to an apex under gentled gravity
 // then a graceful (not floaty) glide-down. Power LEVELS UP automatically (player.up.fjTier), like the jetpack.

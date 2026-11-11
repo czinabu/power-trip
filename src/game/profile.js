@@ -16,11 +16,12 @@ import { partEarned } from '../data/saber-parts.js';
 import { benchOf, earnableOf, BENCH_NAME, BENCH_BUTTON, BENCH_KICKER } from '../data/hero-benches.js';
 import { NG_XP, MAX_TIER } from '../data/ngplus.js';
 import { MEDALS, MEDAL_BIT, MEDAL_XP } from '../data/medals.js';
+import { runEarns } from './run-state.js';
 
 const KEY = 'sw_profile';
 const HEROES = ['jedi', 'mando', 'trooper'];
 let store = null;
-const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub;
+const learning = () => G.mode === 'play' && !G.training && !G.sandbox && !G.hub && runEarns();
 
 function load(){
   if (store) return store;
@@ -150,10 +151,14 @@ function settleParts(hero, p, atClose, topCard = false){
 }
 
 /* ---------- rank XP: the hooks ---------- */
-let gainHook = null;
+let gainHook = null, deedHook = null;
+// a deed worth remembering who helped with (a raid, an Act IV chapter, a side mission): game/hub-growth.js puts the party's
+// names on the hub's wall
+export const onDeed = (fn) => { deedHook = fn; };
+const deed = (kind) => { if (deedHook) try { deedHook(kind); } catch(e){} };
 export const onRankGain = (fn) => { gainHook = fn; };   // (allies/apprentice.js: an apprentice who fought beside you earns a share)
 function gain(n, hero = G.hero){
-  if (!(n > 0)) return;
+  if (!(n > 0) || !runEarns()) return;   // (the training grounds earn nothing: game/run-state.js)
   profileOf(hero).xp += Math.round(n);
   if (gainHook) gainHook(n, hero);
 }
@@ -164,6 +169,7 @@ export function noteChapterCleared(id){
   const first = !p.cleared[id];
   p.cleared[id] = (p.cleared[id] || 0) + 1;
   gain(first ? (TRIALS.includes(id) ? RANK_XP.trial : RANK_XP.chapter) : G.ngPlus > 0 ? NG_XP.chapter : RANK_XP.replay);   // (a NEW GAME+ chapter pays more: data/ngplus.js)
+  if (id.startsWith('gate-')) deed('gate');   // (Act IV: its chapters restore the hub, game/hub-growth.js)
   settle(G.hero, true);
 }
 // a story mission won from the Missions page (not a campaign chapter: that's its close), or an arcade contract
@@ -185,6 +191,7 @@ export function noteRaidWon(raid){
   const first = !L.days.includes(raid.day);
   L.wins++; if (first) L.days = [...L.days.slice(-13), raid.day];
   gain(first ? RANK_XP.raid : RANK_XP.raidAgain);
+  deed('raid');
   settle(G.hero);
 }
 // MISSION MEDALS (data/medals.js, game/medals.js): a win's medals kept on the hero's record, each mission's best time
@@ -213,6 +220,7 @@ export function noteSideWon(id){
   const first = !p.sides[id];
   p.sides[id] = (p.sides[id] || 0) + 1;
   gain(first ? RANK_XP.side : RANK_XP.sideAgain);
+  deed('side');
   settle(G.hero);
 }
 // what a side mission (data/side-quests.js) still waits for, in words ('REACH KNIGHT', 'BEAT THE CAMPAIGN'), or null: open.
@@ -371,10 +379,13 @@ export function seeCards(hero, ids){
 }
 export function seenFresh(hero = G.hero){ const p = profileOf(hero); if (p.fresh){ p.fresh = false; save(); } }
 export const anyFresh = () => HEROES.some(h => load().heroes[h] && load().heroes[h].fresh);
-// the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable
+// the public face of a profile, sent to the other players (net/partner.js) and read by the hub: small and stable. `g`:
+// how far this hero's hub has grown (game/hub-growth.js growthCard), so a party standing in it sees it as its owner does
+let cardExtra = null, cardClean = null;
+export const setCardExtra = (make, clean) => { cardExtra = make; cardClean = clean; };
 export function profileCard(hero = G.hero){
   const p = profileOf(hero);
-  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: [], d: null, a: Math.round(p.align || 0) };
+  return { h: hero, r: p.rank, n: track(hero).ranks[p.rank].nm, t: [], d: null, a: Math.round(p.align || 0), g: cardExtra ? cardExtra(hero) : null };
 }
 // a card heard from another player: kept to what it should hold
 export function cleanCard(c){
@@ -382,7 +393,7 @@ export function cleanCard(c){
   const ranks = track(c.h).ranks, r = Math.max(0, Math.min(ranks.length - 1, c.r | 0));
   return { h: c.h, r, n: ranks[r].nm, t: Array.isArray(c.t) ? c.t.filter(id => JEDI_TREE.some(n => n.prof === id)).slice(0, 8) : [],
            d: Array.isArray(c.d) ? c.d.filter(id => typeof id === 'string' && /^[a-z0-9_]{1,24}$/.test(id)).slice(0, 12) : null,
-           a: Math.max(-ALIGN.max, Math.min(ALIGN.max, Math.round(Number(c.a) || 0))) };
+           a: Math.max(-ALIGN.max, Math.min(ALIGN.max, Math.round(Number(c.a) || 0))), g: cardClean ? cardClean(c.g) : null };
 }
 // the profile page's RESET: this hero starts over at the first rank (the save slots and their wins are untouched)
 export function resetProfile(hero){ const s = load(); s.heroes[hero] = blank(); save(); }

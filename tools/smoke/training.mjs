@@ -76,6 +76,26 @@ for (const [hero, full, lessons] of RUNS){
       const leak = ['SORESU', 'ATARU', 'DJEM SO', 'SHIEN', 'MAKASHI', 'NIMAN', 'JUYO', 'VAAPAD', 'DARKSABER', 'DISRUPTOR', 'FLAMETHROWER'].filter(w => board.text.includes(w));
       check(board.sealed > 0 && !leak.length, `${label}: the board seals what the story hasn't taught (${board.sealed} sealed${leak.length ? ', names ' + leak.join(', ') : ''})`);
     } else check(board.sealed === 0, `${label}: a beaten campaign opens every lesson (${board.open.length})`);
+    // TRAINING EARNS NOTHING (game/run-state.js runEarns): foes cut down, powers and forms used, a duellist beaten, none
+    // of it moves the profile, the best form/gun ranks, the duel wins or the run's own XP and mastery
+    const kept = () => page.evaluate(() => {
+      const ls = {}; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (/^sw_(profile|duelwins|formrank_|gunrank_|best_)/.test(k)) ls[k] = localStorage.getItem(k); }
+      const G = GAME.G; return JSON.stringify({ ls, xp: G.xp || 0, earned: G.xpEarned || 0, sp: G.skillPoints || 0, mastery: G.mastery || {}, use: G.masteryUse || {}, formUse: G.formUse || {}, formRank: G.formRank || {}, gunUse: G.gunUse || {}, gunRank: G.gunRank || {} });
+    });
+    const before = await kept();
+    const farmed = await page.evaluate(async () => {
+      const at = (dx) => GAME.camera.position.clone().set(dx, 0, -4);   // (a Vector3 off the camera's: the training floor's middle)
+      let kills = 0;
+      for (let round = 0; round < 3; round++){
+        for (const t of ['grunt', 'duelist', 'brute']) GAME.spawnEnemy(t, at(round * 2 - 2));
+        for (let n = 0; n < 40; n++){ GAME.trainAbility('push'); GAME.force.trainForm('kill'); GAME.force.trainForm('hit', { finisher: true }); }
+        for (const e of [...GAME.enemies]) if (!e.dead){ GAME.damageEnemy(e, 1e6); if (e.dead) kills++; }
+        await new Promise(r => setTimeout(r, 300));
+      }
+      return kills;
+    });
+    const after = await kept();
+    check(farmed > 0 && before === after, `${label}: training earns nothing (${farmed} foes cut down)` + (before === after ? '' : '\n  before ' + before + '\n  after  ' + after));
     for (const id of lessons){
       await page.click(`#lessonboard [data-lesson="${id}"]`);
       await page.waitForFunction(() => GAME.trainingProgress().total > 0, null, { timeout: 30000 });

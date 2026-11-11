@@ -23,7 +23,7 @@
 //   say    the teacher's line · keys: keycaps ('/' and '+' stay as separators, '·' splits groups) · do: the task
 //   needs  the step only runs once the story has reached this form or unlock (else the lesson skips it)
 //   ev     a training event to count (game/tutor-bus.js): doubleJump dash slide vault climb roll wallrun finisher parry
-//          deflect perfectDodge cancel pushHit kill headshot vent shieldReflect catch charge takedown bash rocketHit
+//          deflect perfectDodge cancel pushHit kill headshot vent guardBlock beskarTurn catch charge takedown bash rocketHit
 //          heavyHit heavyDraw kick riposte swoop shatter palmHit chargedPalm palmPush pullStrike sweep forceTakedown forceCounter grab headbutt throw
 //          cutHit (data.dir: which key picked a cut that landed) cutHeight (data.h: high / mid / low, where it was aimed)
 //          guardBreak (a duellist's guard shattered) saberFinisher (a form's finisher landed on a broken guard)
@@ -83,6 +83,7 @@ const CIRCLE = [[-2.2, -2.5], [0, -3.2], [2.2, -2.5]];   // three spots across t
 const CROWD = [[-1.2, -3], [1.2, -3], [-0.6, -4.4], [0.6, -4.4]];   // a tight knot of four, for a sweeping finisher
 const dummies = (spots, o = {}) => spots.map(at => ({ type: 'grunt', at, dummy: true, ...o }));
 const partner = (type = 'grunt', at = [0, -4]) => [{ type, at, sparring: true }];
+const guardOnly = (type = 'duelist', at = [0, -4]) => [{ type, at, dummy: true, sparring: true }];   // holds its guard and turns your cuts, never swings: for learning a move on a guard
 const shooter = (at = [0, -9]) => [{ type: 'blaster', at, sparring: true, rooted: true }];
 const BASE = ['shiicho', null, null];   // the basics teach in Shii-Cho, Form I, the form every initiate starts with
 
@@ -146,7 +147,7 @@ export const LESSONS = {
           keys: 'LMB LMB LMB', do: 'Land 2 Sarlacc Sweep finishers on the crowd', ev: 'finisher', need: 2, respawn: true,
           spawn: dummies(CROWD, { sparring: true }) },
         { say: 'Press on into a crowd. Hold W and cut again in rhythm, and the blade wheels round you as you walk through them. That is the Sarlacc Advance.',
-          keys: 'LMB · W + LMB', do: 'Land 2 Sarlacc Advances: cut, then hold W and cut again as the first one ends', ev: 'sarlacc', need: 2, respawn: true,
+          keys: 'LMB · W + LMB', do: 'Land 2 Sarlacc Advances: cut, then hold W and click again as the first cut ends (a click, not a hold)', ev: 'sarlacc', need: 2, respawn: true,
           spawn: dummies(CROWD, { sparring: true }) },
       ] },
     { id: 'guard', group: 'basics', name: 'GUARD AND COUNTER', sub: 'Parry, deflect, dodge, cancel and kick', loadout: BASE,
@@ -218,19 +219,19 @@ export const LESSONS = {
     { id: 'duelcraft', group: 'more', name: 'DUELCRAFT', sub: 'Guard sides, steering your guard, the feint', loadout: BASE,
       done: 'Every duel is a conversation. Now you can lie in it, and hear when you are lied to.',
       steps: [
-        { sec: 'YOUR GUARD', say: 'Hold your guard and watch the blade. Yours goes to meet each blow on the side it comes from, but always a beat behind. The arc in front of you shows where it is.',
+        { sec: 'YOUR GUARD', say: 'Hold your guard and watch. The orange mark shows the side each blow is coming from, and closes in as it falls. Your blade goes to meet it on its own. The pale arc shows where your guard is.',
           keys: 'HOLD RMB', do: 'Block 3 of your partner\'s strikes on your guard', ev: 'lineBlock', alt: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
-        { say: 'A blow that switches sides late finds your guard still on the old one. Do not wait for it. As the strike winds up, send your guard there yourself.',
-          keys: 'HOLD RMB + FLICK MOUSE / RIGHT STICK', do: 'Make 3 clean blocks: while guarding, flick toward the side the strike winds up on (left, right, up for overhead, down for low)',
+        { say: 'Your guard follows a string of cuts by itself. A feint is the one that beats it: the mark jumps sides and your guard is still on the lie. Do not wait for it. Send your guard to the mark yourself.',
+          keys: 'HOLD RMB + FLICK MOUSE / RIGHT STICK', do: 'Make 3 clean blocks: while guarding, flick toward the orange mark (left, right, up for overhead, down for low)',
           ev: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
         { say: 'Better than any block is to meet the blow as it lands.',
           keys: 'TAP RMB', do: 'Parry 2 strikes', ev: 'parry', need: 2, spawn: partner('duelist', [0, -5]) },
         { sec: 'THE FEINT', say: 'A guard that reads your blade will chase a lie. Show it a cut, then take it back.',
-          keys: 'LMB · RMB', do: 'Start a cut at your partner and break it off into your guard at once: bait its guard twice', ev: 'feint', need: 2,
-          spawn: partner('duelist', [0, -4]) },
+          keys: 'LMB · RMB', do: 'Click LMB to start a cut at your partner, then press RMB right away, before the blade lands: bait its guard twice', ev: 'feint', need: 2,
+          spawn: guardOnly() },
         { say: 'Now finish the lie. Feint one side, and while its guard is still there, cut the other.',
-          keys: 'A + LMB · RMB · D + LMB', do: 'Land 2 cuts through a baited guard: feint one side, then cut the other', ev: 'feintHit', need: 2,
-          spawn: partner('duelist', [0, -4]) },
+          keys: 'A + LMB · RMB · D + LMB', do: 'Land 2 cuts through a baited guard: feint with A held, then hold D and cut while its arc still burns (you can keep RMB held)', ev: 'feintHit', need: 2,
+          spawn: guardOnly() },
         { sec: 'THE DUEL', say: 'All of it, against a blade that knows it too.',
           keys: '', do: 'Defeat the Sith acolyte', clear: true, heal: true, spawn: 'wave', wave: { acolyte: 1 } },
       ] },
@@ -408,8 +409,8 @@ export const LESSONS = {
             { at: [0, 3.6], after: 'dash', keys: 'SHIFT', do: 'Dive into the forge', hint: 'DIVE IN (SHIFT)' },
           ] },
       ] },
-    { id: 'blaster', group: 'basics', name: 'THE BLASTER', sub: 'Headshots, heat, and the gauntlet shield',
-      done: 'Shoot clean, keep cool, and let the shield take what you cannot dodge.',
+    { id: 'blaster', group: 'basics', name: 'THE BLASTER', sub: 'Headshots, heat, and the beskar guard',
+      done: 'Shoot clean, keep cool, and let the beskar take what you cannot dodge.',
       steps: [
         { sec: 'THE BLASTER', say: 'A clean shot ends the fight before it starts. Aim for the head.',
           keys: 'LMB', do: 'Land 3 headshots on the targets', ev: 'headshot', need: 3, respawn: true, mark: [0, -6],
@@ -419,24 +420,26 @@ export const LESSONS = {
           spawn: dummies([[-3, -12], [3, -12]]) },
         { say: 'A hot barrel is a dead hunter. Clear the heat before it locks.',
           keys: 'LMB · R', do: 'Fire, then vent your heat', ev: 'vent', need: 1 },
-        { say: 'The gauntlet shield returns what is sent. Raise it to their fire.',
-          keys: 'HOLD RMB', do: 'Reflect 3 bolts with your shield', ev: 'shieldReflect', need: 3, spawn: shooter([9, 6]) },
-        { say: 'Shield and blaster share one gauntlet. The moment you fire, the shield drops on its own, and it comes back half a second after your last shot. Shield up, wait for your gap, then shoot.',
-          keys: 'HOLD RMB · LMB', do: 'Shoot down the trooper: firing lowers your shield, so pick your moment', ev: 'kill', of: 'blaster', need: 1,
+        { say: 'Beskar does not burn. Raise your arm to their fire and it stops there. Face it: the arm covers your front, and every bolt it stops costs you breath.',
+          keys: 'HOLD RMB', do: 'Block 3 bolts on your vambrace', ev: 'guardBlock', need: 3, spawn: shooter([9, 6]) },
+        { say: 'You guard or you shoot. The moment you fire, the arm comes down on its own, and it is back up half a second after your last shot. Guard up, wait for your gap, then shoot.',
+          keys: 'HOLD RMB · LMB', do: 'Shoot down the trooper: firing lowers your guard, so pick your moment', ev: 'kill', of: 'blaster', need: 1,
           spawn: [{ type: 'blaster', at: [9, 6], rooted: true }] },
         { say: 'Every clean shot sharpens your eye: headshots, ricochets, a kill on the wing. When the eye is full, the hunt slows for you. Take all three before they know it.',
           keys: 'T', do: 'With HUNTER\'S EYE full, press T for Dead Eye and drop the targets', ev: 'deadEye', need: 1, grant: 'flow', respawn: true,
           spawn: dummies([[-5, -13], [0, -15], [5, -13]]) },
       ] },
-    { id: 'beskar', group: 'basics', name: 'BESKAR', sub: 'The parry: send their fire home, with any gun',
-      done: 'The shield takes fire. Beskar gives it back.',
+    { id: 'beskar', group: 'basics', name: 'BESKAR', sub: 'The parry: send their fire home and turn their blows, with any gun',
+      done: 'Hold, and the beskar takes it. Time it, and the beskar gives it back.',
       steps: [
-        { sec: 'BESKAR', say: 'The shield holds what you cannot dodge. Beskar does more. Raise your arm the instant their bolt arrives and it goes straight back to the one who fired it.',
+        { sec: 'BESKAR', say: 'A held guard only stops what you cannot dodge. Timing does more. Raise your arm the instant their bolt arrives and it goes straight back to the one who fired it.',
           keys: 'TAP RMB', do: 'Ricochet 3 bolts: tap RMB just as each one reaches you', ev: 'beskarParry', need: 3, spawn: shooter([0, -9]) },
         { say: 'It is timing, not luck. Raise it too early and you will not raise it again in time. Any gun, even in the air: the armour is always with you.',
           keys: 'HOLD SPACE · TAP RMB', do: 'Ricochet 2 more (try one from the air)', ev: 'beskarParry', need: 2, spawn: shooter([0, -9]) },
+        { say: 'A blade or a fist is no different. Meet the blow with the same tap and it turns on the beskar, and the one who threw it reels.',
+          keys: 'TAP RMB', do: 'Turn a strike: tap RMB as the blow lands', ev: 'beskarTurn', need: 1, spawn: partner() },
       ] },
-    { id: 'close', group: 'basics', name: 'CLOSE QUARTERS', sub: 'Catch, charge, takedown, the shield bash, the clinch, your fists',
+    { id: 'close', group: 'basics', name: 'CLOSE QUARTERS', sub: 'Catch, charge, takedown, the gauntlet bash, the clinch, your fists',
       done: 'Your armour is a weapon. Never forget it.',
       steps: [
         { sec: 'CLOSE QUARTERS', say: 'When they come close, your armour is a weapon. Catch the blow on your vambrace.',
@@ -446,8 +449,8 @@ export const LESSONS = {
         { say: 'Strike until it reels. Then end it.',
           keys: 'E E E E · E', do: 'Stagger the target with the full string, then take it down', ev: 'takedown', need: 1, respawn: true,
           spawn: dummies([[0, -4]], { sparring: true }) },
-        { say: 'Keep the shield up and the blade does the work. Cut, cut, then drive the beskar into them.',
-          keys: 'HOLD RMB + E · E · E', do: 'Behind the shield, cut twice and land the shield bash', ev: 'bash', need: 1, respawn: true,
+        { say: 'Keep the guard up and the blade does the work. Cut, cut, then drive the beskar into them.',
+          keys: 'HOLD RMB + E · E · E', do: 'Behind your guard, cut twice and land the gauntlet bash', ev: 'bash', need: 1, respawn: true,
           spawn: dummies([[-0.8, -5], [0.8, -5]], { sparring: true }) },
         { say: 'Close enough to touch is close enough to hold. Keep the button down as you strike and take it by the collar.',
           keys: 'HOLD E', do: 'Grab the target', ev: 'grab', need: 1, respawn: true, spawn: dummies([[0, -3]], { sparring: true }) },
@@ -491,7 +494,7 @@ export const LESSONS = {
     { id: 'dual', group: 'more', kit: 'dual', name: 'TWO BLASTERS', sub: 'Your sidearm: precision or close work',
       done: 'One for the shot, two for the storm.',
       steps: [
-        { sec: 'SIDEARMS', say: 'One blaster is for precision: the headshot, and the shield on the same arm. Two blasters are for close work: hold the trigger and they pour fire, but there is no shield behind them.',
+        { sec: 'SIDEARMS', say: 'One blaster is for precision: the headshot, and an arm free to guard with. Two blasters are for close work: hold the trigger and they pour fire, but there is no guard behind them.',
           keys: '1 · HOLD LMB', do: 'Draw the dual blasters and drop the 3 targets up close', ev: 'kill', weapon: 'dual', need: 3, grant: 'dual', kit: { sidearm: 'dual' }, respawn: true,
           spawn: dummies([[-1.6, -5.4], [0, -6], [1.6, -5.4]]) },
         { say: 'Never stop shooting. Dive, or dodge in the air, with the trigger held: both guns stay true, and every bolt bites harder. Gun kata.',

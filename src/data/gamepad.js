@@ -10,7 +10,8 @@
    strafe: held, the layer and the strafe go together; a lone tap toggles strafe, player/strafe.js). Anything not in 'lb' falls through to 'base'.
    SLOTS: D-pad left / up / right are the three loadout slots (keys 1 / 2 / 3: the Jedi's forms, the Mando's weapons).
    A form loadout or a fourth slot only has to change the key here.
-   A bind's `sandbox` / `zone` key stands in for its own in the sandbox / an open zone (LB + VIEW: the zone's map).
+   A bind's `sandbox` / `zone` key stands in for its own in the sandbox / an open zone (LB + VIEW: the zone's map), and
+   `teamup` for its own while a team-up prompt is up (D-pad down: game/teamup.js).
    The ARC trooper has its own layout (the Mandalorian's shape with its kit on it): padLayout picks. */
 
 // standard mapping (https://w3c.github.io/gamepad/#remapping) button index → name
@@ -59,7 +60,7 @@ export const PAD_BINDS = {
       L3: { key: 'control', label: 'Force slide', note: 'Out of a run' },
       R3: { key: 't', label: 'Lock on', note: 'Again to release · flick the right stick to move it to the next foe' },
       ...SLOTS,
-      DOWN: { key: '4', label: 'Holster saber' },
+      DOWN: { key: '4', label: 'Holster saber', note: 'With a TEAM-UP prompt up: the team-up', teamup: 'u' },
       VIEW: { key: 'h', label: 'Squad orders', note: 'Tap for the smart order · hold for the command wheel: the right stick picks, the D-pad picks one squadmate, let go to give it · in the sandbox, opens the sandbox panel (LB + VIEW gives orders there)', sandbox: 'b' },
     },
     lb: {
@@ -82,12 +83,12 @@ export const PAD_BINDS = {
       Y:  { key: 'f', label: 'Flamethrower (hold)', note: 'Unlocks after wave 2 · with a prompt up (TALK, a temple station), interacts instead' },
       RB: { key: 'q', label: 'Wrist rocket' },
       RT: { mouse: 0, label: 'Fire', note: 'Headshots deal far more · Darksaber in hand: tap a light cut, hold a heavy one' },
-      LT: { mouse: 2, label: 'Brace / shield / scope', note: 'Tap LT as a bolt arrives: a beskar parry sends it back · Darksaber in hand: hold LT and pull RT to throw it · in the air, hover' },
+      LT: { mouse: 2, label: 'Guard / brace / scope', note: 'Tap LT as a bolt or a blow arrives: a beskar parry sends it back · Darksaber in hand: hold LT and pull RT to throw it · in the air, hover' },
       LB: { key: 'alt', label: 'Strafe', note: 'Hold: stay square to the crosshair and open the LB gadgets · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'c', label: 'Slide', note: 'Out of any run' },
       R3: { key: 'e', label: 'Close quarters', note: 'Forward + R3 jet charges, in the air a dive kick, on a floored foe a takedown · hold R3 through a blow to grab: R3 headbutts, RT throws' },
       ...SLOTS,
-      DOWN: { key: '4', label: 'Holster' },
+      DOWN: { key: '4', label: 'Holster', note: 'With a TEAM-UP prompt up: the team-up', teamup: 'u' },
       VIEW: { key: 'h', label: 'Squad orders', note: 'Tap for the smart order · hold for the command wheel: the right stick picks, the D-pad picks one squadmate, let go to give it · in the sandbox, opens the sandbox panel (LB + VIEW gives orders there)', sandbox: 'b' },
     },
     lb: {
@@ -120,7 +121,7 @@ export const PAD_BINDS = {
       LEFT:  { key: '1', label: 'DC-15 rifle', note: 'Again with the rifle in hand: its next module' },
       UP:    { key: '2', label: 'Twin DC-17s' },
       RIGHT: { key: '3', label: 'AT launcher', note: 'The Commando' },
-      DOWN: { key: 'g', label: 'Frag grenade' },
+      DOWN: { key: 'g', label: 'Frag grenade', note: 'With a TEAM-UP prompt up: the team-up', teamup: 'u' },
       VIEW: { key: 'h', label: 'Squad orders', note: 'Tap for the smart order · hold for the command wheel: the right stick picks, the D-pad picks one squadmate, let go to give it · in the sandbox, opens the sandbox panel (LB + VIEW gives orders there)', sandbox: 'b' },
     },
     lb: {

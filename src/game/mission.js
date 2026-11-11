@@ -4,6 +4,7 @@
 // Built from the objective kit (game/objectives.js) so later modes can reuse the same pieces.
 
 import { champRule, trooperInFight } from '../enemies/coverfight.js';
+import { setScreen } from './run-state.js';
 import { autosave } from './autosave.js';
 import * as THREE from 'three';
 import { scene } from '../engine/renderer.js';
@@ -1455,7 +1456,7 @@ function missionComplete(){
   card(false);
   endTwist(true);   // (the sim stops on the victory screen: a twist still easing off would stay half done behind it)
   endRun(true, medals ? { ...medals, fresh: freshMedals } : null);
-  G.mode = 'victory'; G.slowmo = 1; G.slowmoT = 0;
+  setScreen('victory', 'mission won'); G.slowmo = 1; G.slowmoT = 0;
   showBanner(def.raid ? 'RAID CLEARED' : 'MISSION COMPLETE', M.title, 999);
   // a side mission's choice (data/side-quests.js `choice`, light and dark: game/alignment.js), the first time it is won:
   // each screen asks its own, before the results

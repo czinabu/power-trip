@@ -55,6 +55,7 @@ export const COVERT_WINGS = {
       { id: 'archive', x: 0, z: 0, name: 'BOUNTY ARCHIVE', act: 'codex', r: 4.2 },
       { id: 'signet', x: -22, z: -6, name: 'YOUR SIGNET', act: 'profile' },
       { id: 'records', x: -22, z: 6, name: 'MISSION RECORDS', act: 'records' },
+      { id: 'deeds', x: -4, z: -16, name: 'TROPHIES OF THE CLAN', act: 'deeds' },   // what the covert has restored, won and who hunted with you (data/hub-growth.js)
       { id: 'console', x: 27, z: 10, name: 'COVERT MAP', act: 'travel' },
     ],
   },

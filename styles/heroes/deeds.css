@@ -1,0 +1,20 @@
+/* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
+   ============================================================
+   THE LEDGER OF DEEDS (ui/hub-ui.js renderDeeds, data/hub-growth.js): the trophy hall's page, on the raid page's frame
+   (styles/heroes/raid.css) in the hero's own accent instead of the raid's violet. The raid banners are small pennants
+   in their day's two colours, the friends small name plates.
+   ============================================================ */
+.gw-box .rd-part b{color:var(--hx-text)}
+.gw-box .rd-part u s{background:var(--hx-accent)}
+.gw-box .rd-part.got{box-shadow:0 0 0 2px var(--hx-ink),inset 0 0 0 1px var(--hx-accent)}
+.gw-box .rd-part.got span{color:var(--hx-accent-hi)}
+.gw-box .rd-part:not(.got) b{color:var(--hx-soft)}
+.gw-bans,.gw-pals{display:flex;flex-wrap:wrap;gap:8px}
+.gw-ban{position:relative;display:block;width:34px;height:52px;font-style:normal;background:linear-gradient(90deg,var(--b1) 0 50%,var(--b2) 50%);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.25)}
+.gw-ban em{position:absolute;left:0;right:0;top:4px;text-align:center;font:700 9px/1 var(--font-ui);font-style:normal;letter-spacing:.06em;color:#111;mix-blend-mode:multiply}
+.gw-pal{display:flex;gap:8px;align-items:baseline;padding:7px 11px;font-style:normal;background:var(--hx-paper);box-shadow:0 0 0 2px var(--hx-ink)}
+.gw-pal b{font:700 14px/1 var(--font-ui);letter-spacing:.08em;color:var(--hx-text)}
+.gw-pal em{font:600 11px/1 var(--font-ui);font-style:normal;color:var(--hx-dim)}
+.gw-none{font:500 13px/1.4 var(--hx-read);color:var(--hx-dim)}
+.rd-box.hero-mando.gw-box .gw-pal{clip-path:var(--hx-chamfer)}

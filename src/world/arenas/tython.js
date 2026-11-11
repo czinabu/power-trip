@@ -17,16 +17,22 @@ import { HUBS, SIDE_OUT, wingByLayout } from '../../data/hub.js';
 import { PI, std, glowM, holoM, waterM, live, anim, spinner, roundStep, hubStations, hubDoorSigns } from './hub-kit.js';
 import { templeFolk } from './tython-folk.js';
 import { put, turned, radiusAt, seamRing, profile, plan, engine, leg, navLight } from './ship-kit.js';
+import { growWing } from './growth-kit.js';
+import { buildGrowth } from '../../game/hub-growth.js';
 
 /* the dispatcher: world/arena.js hands every ty* layout here */
 export function buildTythonArena(L){
   shared.hubAnim = [];
   const wings = HUBS.temple.wings, found = wingByLayout(L.layout), wing = found && found.hub === 'temple' ? found.id : 'hall';
   const pal = L.pal || {}, K = arenaKit(), R = seeded(wing.length * 31 + 7), W = wings[wing];
-  ({ hall, council, landing, training, archives, forge })[wing](L, K, pal, R);
+  const st = buildGrowth('temple');   // how far this temple has grown (game/hub-growth.js): the host's, in a party
+  ({ hall, council, landing, training, archives, trophies, forge })[wing](L, K, pal, R, st);
+  // a wing still to be restored: its dark and its rubble; the trophy hall: its trophies, banners and friends (world/arenas/growth-kit.js)
+  growWing(K, 'temple', wing, st, { stone: pal.stone ?? 0xd6cfbe, stoneD: pal.stoneD ?? 0xa89f8c, trim: pal.trim ?? 0xd8b860, wood: pal.wood ?? 0x7a5230,
+    cloth: pal.cloth ?? 0x2e6a8a, ink: '#ffe2a0', edge: 'rgba(255,214,130,.85)', plate: 'rgba(30,24,16,.92)' });
   hubStations(W, K, { ring: pal.kyber ?? 0x5ad2ff, beacon: (x, z) => waystone(K, pal, x, z), stone: { stone: pal.stoneD ?? 0xa89f8c, trim: pal.trim ?? 0xd8b860, glow: pal.kyber ?? 0x5ad2ff } });
   hubDoorSigns(W, wings, K, { runner: pal.kyber ?? 0x5ad2ff });
-  templeFolk(wing);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js)
+  templeFolk(wing, 'temple', st);   // the Jedi, younglings and archivists going about the temple (world/arenas/tython-folk.js): who's home depends on what's restored
 }
 
 /* ---------------- the pieces every wing shares ---------------- */
@@ -363,7 +369,7 @@ function training(L, K, pal, R){
 function archives(L, K, pal, R){
   const stone = std(pal.stone ?? 0xd6cfbe), stoneD = std(0x8a8270), trim = std(pal.trim ?? 0xd8b860, 0.45, 0.55), dark = std(0x3a2e24, 0.9);
   buildSanctum({ style: 'archive', seed: 63, wallH: 32, rise: 16, bay: 8, gallery: [11, 21], windowY0: 23.5,
-    doors: ['e'], sigilSide: 'w', doorW: 7, doorH: 10, doorArch: true, light: [-14, 46, 20],
+    doors: ['e', 'w'], sigilSide: null, doorW: 7, doorH: 10, doorArch: true, light: [-14, 46, 20],   // (west: on to the trophy hall)
     hole: (x, z) => Math.hypot(x, z) < 6, holeShafts: [[0, 0, 4]], holeOp: 0.18, shaftOp: 0.16, shaftColor: 0xd8ecff,
     stone: 0xc4bcaa, stoneD: 0x8a8270, rib: 0xd0c8b6, roof: 0x6e675a, coffer: 0x5a5448, trim: 0xd8b860, cloth: 0x2e4a6a,
     glass: 0xd8ecff, door: 0xffe8c0, cardTint: 0xd8f0ff, vaultGlow: 0.4 });
@@ -402,6 +408,47 @@ function archives(L, K, pal, R){
     const cube = live(K.deco(new THREE.BoxGeometry(0.7, 0.7, 0.7), glowM(z < 0 ? 0x7ad8ff : 0xffd27a), -22, 2.2, z, PI / 4, 0, PI / 4));
     anim(cube, (o, t, b) => { o.rotation.y = t * 0.8; o.position.y = b.y + Math.sin(t * 1.3) * 0.1; });
   }
+}
+
+/* ---------------- THE TROPHY HALL ----------------
+   Past the archives: a long pale hall with a carved screen wall at the north end for the raid banners, another at the west
+   for the wall of friends, five plinths for the trophies (world/arenas/growth-kit.js stands them, and streams their
+   pieces in), and the ledger of deeds on its dais in the middle, a book of light turning over it. */
+function trophies(L, K, pal, R){
+  const stone = std(pal.stone ?? 0xd6cfbe), stoneD = std(pal.stoneD ?? 0xa89f8c), trim = std(pal.trim ?? 0xd8b860, 0.45, 0.55);
+  const H = shared.arenaHalf;
+  const s = buildSanctum({ style: 'temple', seed: 83, wallH: 28, rise: 14, bay: 8, gallery: [13], windowW: 2.4,
+    doors: ['e'], sigilSide: null, doorW: 7, doorH: 10, doorArch: true, statueH: 8, light: [16, 46, -18],
+    arcade: ['s'], arcadeTop: 20, shaftOp: 0.12, shaftColor: 0xfff0d0,
+    stone: 0xd6cfbe, stoneD: 0xb0a794, rib: 0xe2dccc, roof: 0xbcb4a2, coffer: 0x9a9282, trim: 0xd8b860, cloth: 0x6a2a24,
+    door: 0xffe8c0, vaultGlow: 0.45 });
+  terrace('s', s.off, H * 2, stoneD, trim);
+  // the BANNER SCREEN: a carved wall across the north end, pilasters, a gold band; the raid banners hang on its face
+  K.box(0, -30.6, 26, 0.6, 18, stone);
+  K.deco(new THREE.BoxGeometry(52.4, 0.6, 1.6), trim, 0, 18.2, -30.6);
+  K.deco(new THREE.BoxGeometry(52.4, 0.4, 1.5), trim, 0, 4.2, -30.4);
+  for (let x = -24; x <= 24; x += 7) K.deco(new THREE.BoxGeometry(1.1, 18, 0.5), stoneD, x, 9, -29.9);
+  // the FRIENDS' SCREEN on the west: a lower wall, its plaque hung on it (world/arenas/growth-kit.js friendsWall)
+  K.box(-30.6, 0, 0.6, 12, 13, stone);
+  K.deco(new THREE.BoxGeometry(1.6, 0.6, 24.4), trim, -30.6, 13.2, 0);
+  // the DAIS and the LEDGER: a round step, a lectern of stone, and an open book of light turning over it
+  roundStep(K, 0, 0, 6, 0.35, stoneD, 40);
+  K.deco(new THREE.TorusGeometry(6, 0.12, 8, 64), trim, 0, 0.35, 0, -PI / 2).userData.noOutline = true;
+  K.column(0, 0, 0.9, 1.25, stone, { wallKick: false, seg: 12, taper: 0.8 });
+  K.deco(new THREE.BoxGeometry(1.8, 0.14, 1.2), trim, 0, 1.3, 0, -0.25);
+  const book = new THREE.Group(); book.position.set(0, 2.5, 0); shared.arenaGroup.add(book);
+  { const hm = holoM(pal.trim ?? 0xd8b860, 0.35), hw = holoM(0xfff0d0, 0.45);
+    for (const sx of [-1, 1]){ const p = live(new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), hm)); p.position.set(sx * 0.36, 0, 0); p.rotation.y = sx * 0.35; book.add(p); }
+    for (let k = 0; k < 4; k++){ const l = live(new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.03), hw)); l.position.set(-0.36, 0.25 - k * 0.15, 0.02); l.rotation.y = -0.35; book.add(l); }
+    const ring = live(new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.02, 4, 48), hm)); ring.rotation.x = PI / 2; ring.position.y = -0.6; book.add(ring); }
+  anim(book, (o, t, b) => { o.rotation.y = t * 0.3; o.position.y = b.y + Math.sin(t * 1.1) * 0.1; });
+  // lamps on tall stands between the plinths, and benches down the south arcade
+  for (const [x, z] of [[-6, -15.5], [6, -15.5], [0, 15], [-20, -6], [-20, 6]]){
+    K.column(x, z, 0.16, 3.2, std(pal.bronze ?? 0x9a7440, 0.5, 0.5), { wallKick: false, seg: 8, taper: 1 });
+    live(K.deco(new THREE.SphereGeometry(0.32, 12, 8), glowM(0xffd890), x, 3.45, z));
+  }
+  for (const x of [-18, 18]) K.box(x, 24, 2.4, 0.6, 0.5, stoneD, { climbable: true });
+  for (const [x, z] of [[-26, 26], [26, -24]]) planter(K, x, z, pal, R, 0.75);
 }
 
 /* ---------------- THE SABER FORGE ---------------- */

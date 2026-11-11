@@ -40,7 +40,7 @@ export function rebuildPlayerModel(picks){
   const g = player.group, old = player.vis;
   g.remove(old);
   disposeTree(old);
-  for (const k of ['wristBlade', 'shieldMesh']){ if (player[k]){ player[k].removeFromParent(); disposeTree(player[k]); } player[k] = null; }
+  for (const k of ['wristBlade']){ if (player[k]){ player[k].removeFromParent(); disposeTree(player[k]); } player[k] = null; }
   player._footing = null; player._legIK = null;
   g.add(buildHeroModel(player, playerLook(picks)));
 }

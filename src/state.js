@@ -29,7 +29,7 @@ export const shared = {
   ambient: null,   // drifting embers / ash / dust
   templeBrazier: null,
   refugeShip: null,   // the story mission's transport (world/arenas/refuge.js), animated by game/mission.js
-  levelPhase: 'idle',   // idle | between | fighting | bossfight | training | mission | sandbox
+  levelPhase: 'idle',   // the level's phase: written only through setPhase (game/run-state.js PHASES has every value and move)
   phaseT: 0,
   lockFallback: false,   // pointer lock unavailable (e.g. embedded preview) — play with plain mouse-move look
   lockWorked: false,     // pointer lock has succeeded at least once, so a refusal is transient (Esc cooldown), not unsupported
@@ -39,7 +39,7 @@ export const shared = {
    GAME STATE
    ============================================================ */
 export const G = {
-  mode: 'menu',          // menu | play | dead | victory
+  mode: 'menu',          // the screen: menu | play | dead | victory, written only through setScreen (game/run-state.js SCREENS)
   paused: false,         // true while the pause/ESC overlay is up — freezes the whole sim
   cutscene: false,       // a cutscene is playing (game/cutscene.js): the fight holds, the lens and the input are the scene's
   duel: null,            // a duel is on (game/duel-mode.js): { rule, pvp, widen }; levels both fighters and keeps the ring
@@ -161,7 +161,7 @@ const makePlayer = () => ({
   cds: { roll:0, push:0, slam:0, throw:0, dash:0, pull:0, judge:0, repulse:0, barrier:0, mend:0, rocket:0, flame:0, dark:0, birds:0, deto:0, grapple:0, missile:0, bacta:0, darkThrow:0, throwOff:0, airCut:0, airDodge:0, slide:0, scan:0, bshield:0, ion:0, breach:0, artillery:0, strafe:0 },
   saberPivot: null, saberHand: null, blade: null, rig: null,
   // mando
-  fireCd: 0, firePistol: 1, firing: false, trigHeld: false, shieldDropT: 0, jetActive: false, mandoParts: null, pistols: null, lockOn: false,
+  fireCd: 0, firePistol: 1, firing: false, trigHeld: false, guardDropT: 0, jetActive: false, mandoParts: null, pistols: null, lockOn: false,
   darkT: 0, darkApplied: false, darksaberMesh: null, darkLight: null,
   weapon: 'single', drawnWeapon: 'single', heat: 0, overheat: false, ventT: 0, heatDelay: 0, grappleActive: null,
   zoom: false, aiming: 0, recoilKick: 0,

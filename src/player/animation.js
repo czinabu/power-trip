@@ -9,7 +9,7 @@ import { chargeFrac } from './jedi/palm.js';
 import { burst } from '../fx/particles.js';
 import { G, keys, player, isGunner, isTrooper } from '../state.js';
 import { strafing as isStrafing } from './strafe.js';
-import { MANDO, MANDO_WEAPONS } from '../data/mando.js';
+import { MANDO, MANDO_WEAPONS, BESKAR_GUARD } from '../data/mando.js';
 import { gunLook, TROOPER } from '../data/trooper.js';
 import { MANDO_MELEE } from '../data/duel.js';
 import { MOVE, GAIT } from '../data/movement.js';
@@ -22,7 +22,7 @@ const HL = SWING_WEIGHT.look;
 import { finisherNext } from './jedi/finisher.js';
 import { assistFace } from './jedi/saberassist.js';
 import { inCombat } from './mobility.js';
-import { mandoAimPoint, mandoWeapon, mandoShielding } from './mando/weapons.js';
+import { mandoAimPoint, mandoWeapon, mandoGuarding } from './mando/weapons.js';
 import { saberIsDual } from './model/weapons.js';
 import { DARK_DUR } from './mando/darksaber.js';
 import { FORM_OF, FOOTWORK, FOOTWORK_GRIP, SWING_STYLE } from '../data/poses.js';
@@ -122,6 +122,7 @@ function poseBody(dt, dr, vis, planted, POSE, moving){
   // SABER LOCK — squared to the blade he's bound with for the whole bind, whatever the camera does (enemies/duel.js)
   const bound = player.saberLock && player.lockFace != null;
   if (bound) face = player.lockFace;
+  if (!bound && player.teamFace != null) face = player.teamFace;   // committed to a team-up: square to its target (game/teamup.js)
   // (the dive and the slide turn him the way they go: anim/agility.js mandoBody)
   if (bound) player.faceYaw += wrapAngle(dampAngle(player.faceYaw, face, 30, dt) - player.faceYaw);
   else if (isGunner()) player.faceYaw = mandoTurn(player.flip && player.flip.face != null ? player.flip.face : face, player.flip ? 30 : player.backRun ? 11 : player._unwindT > 0 ? 12 : 26, dt);
@@ -543,6 +544,7 @@ function animateArms(dt, dr, vis, R, st, planted, moving, ph, inten, gait){
       // a FINISHER beat hands straight on to the next one (jedi/finisher.js), carrying the body's turn and hop with it
       if (player.fin && !sw.recoil && finisherNext()) return;
       player.lastAtkEnd = G.gt;
+      player.flowEnd = !isGunner() && !sw.rushed && !sw.recoil && sw.applied && !player.queuedAtk ? G.gt : -9;   // a press just after this still links in rhythm (jedi/combat.js FLOW.late)
       if (!sw.recoil) vis.rotation.y = 0;   // (a recoil ends partway round: the guard eases the body back square, no pop)
       player._swingDrop = 0;
       if (!isGunner() && sw.step === 2 && !sw.recoil && stance().finisherRecover) player.swingLock = Math.max(player.swingLock || 0, stance().finisherRecover);   // the heavy finisher hangs a beat (its guard break's cost)
@@ -798,7 +800,6 @@ const _IDQ = new THREE.Quaternion(), _gwV = new THREE.Vector3();
 const LAND_T = 0.34;
 const MANDO_GAIT = { amp: 0.95, lift: 0.7, bob: 0.45 };   // armour and a pack: shorter, lower, heavier steps than the Jedi
 const BITE = { time: 0.05, slow: 0.3 };   // a saber cut drags this long, at this speed, as it passes through a body
-const SHIELD_SIZE = 0.6;   // gauntlet shield disc scale (visual only; what it blocks is decided in player/damage.js)
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
 /* A THROWN BLOW in four beats, over seconds since the press: a short CHAMBER that loads it (→ -1), a SNAP that
@@ -945,7 +946,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     // close-quarters beats below pose the swings)
     mandoAimPoint();
     if (player.meleeT <= 0){
-      const bob = Math.sin(G.gt * 4.4) * 0.035, sh = player.isShielding;   // RMB: the lead forearm holds the gauntlet's disc out across the front
+      const bob = Math.sin(G.gt * 4.4) * 0.035, sh = player.guardUp;   // RMB: the lead forearm comes up as the beskar guard (the pose itself is laid on below)
       R.armL.sh.rotation.x = dr(R.armL.sh.rotation.x, sh ? -1.5 : -1.4 - bob, 12); R.armL.sh.rotation.y = dr(R.armL.sh.rotation.y, sh ? 0.25 : 0.05, 12);
       R.armL.el.rotation.x = dr(R.armL.el.rotation.x, sh ? -1.6 : -1.25, 12);
       R.armR.sh.rotation.x = dr(R.armR.sh.rotation.x, -1.1 + bob, 12); R.armR.sh.rotation.y = dr(R.armR.sh.rotation.y, 0.2, 12);
@@ -1066,7 +1067,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
         R.head.rotation.z = dr(R.head.rotation.z, -strafeLean * 0.65 * MIRROR, 10);
       }
 
-      // (the gauntlet SHIELD disc is driven below, OUTSIDE the grounded branch, so it also shows mid-flight)
+      // (the BESKAR GUARD's arm is laid on below, OUTSIDE the grounded branch, so it also holds mid-flight)
     }
     vis.position.y = dr(vis.position.y, 0, 10);   // settle the body height (the jedi-only lean block no longer does this for us)
     R.head.rotation.x = dr(R.head.rotation.x, 0, 9);   // level the head when grounded
@@ -1081,7 +1082,6 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
   if (!(player.meleeT > 0)) R.torso.rotation.x = dr(R.torso.rotation.x, (player.weapon === 'fists' && player.grounded ? 0.1 : 0) + mLean + sLean + (isTrooper() ? TROOPER.sprint.hunch * (player._sprK || 0) : 0), mLean > 0 || sLean ? 18 : 12);   // settle a knee/charge/dive hunch (the fighting stance keeps the chin down)
   if (mLean > 0.01) headToReticle(R, mandoAimPoint(), dt, 16);
   wristBlade(dt, R, player.meleeT > 0 && BLADE_OUT[player.meleeKind]);
-  player.bashOut = 0;
   if (player.meleeT > 0){
     const dur = player.meleeMax || 0.32, age = dur - player.meleeT + (player.meleeSkip || 0);
     const mk = clamp(age / dur, 0, 1);                                       // 0→1 through the move
@@ -1184,7 +1184,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
       R.torso.position.z = dr(R.torso.position.z, ld * 0.3, snap);
       vis.position.y = dr(vis.position.y, -0.08 * ld, 26);   // sinks into the cut
     } else if (kind === 'hackA' || kind === 'hackB'){
-      // SHIELD AND BLADE: the gun hand carves a flat cut out from behind the disc while the shield arm holds its
+      // GUARD AND BLADE: the gun hand carves a flat cut out from behind the vambrace while the guard arm holds its
       // guard. hackA is the forehand (wound out right, ripped across to the left), hackB the backhand that answers it
       // the fist is IK'd round a flat arc at chest height (chest space: + x is his right, + z ahead), so the blade
       // springing past it carves level through the front rank; the arm reaches out straight through the middle
@@ -1198,7 +1198,7 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
       R.torso.position.z = dr(R.torso.position.z, ld * 0.18, snap);
       vis.position.y = dr(vis.position.y, -0.06 * ld, 26);
     } else if (kind === 'bash'){
-      // the shield arm drives the disc out into the front rank, the left shoulder and the body's weight behind it
+      // THE GAUNTLET BASH: the guard arm drives the vambrace out into the front rank, the left shoulder and the body's weight behind it
       R.armL.sh.rotation.x = dr(R.armL.sh.rotation.x, -1.5 - ld * 0.1, snap);
       R.armL.sh.rotation.y = dr(R.armL.sh.rotation.y, 0.25 - ld * 0.2, snap);
       R.armL.el.rotation.x = dr(R.armL.el.rotation.x, -1.6 + ld * 1.25 - ch * 0.15, snap);
@@ -1206,7 +1206,6 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
       R.torso.rotation.y = dr(R.torso.rotation.y, ld * 0.35 - ch * 0.2, snap);
       R.torso.rotation.x = dr(R.torso.rotation.x, ld * 0.1, 24);
       vis.position.y = dr(vis.position.y, -0.06 * ld, 26);
-      player.bashOut = ld;
     } else if (kind === 'hookL' || kind === 'hookR'){
       // HOLSTERED HOOK: the elbow up level with the fist, the arm bent like a bow, swung round in a flat arc from out
       // wide to across the front with the hips and shoulders whipping behind it (the other fist stays by the chin)
@@ -1286,46 +1285,30 @@ function animateMandoPose(dt, dr, vis, R, pp, f, r){
     R.armL.el.rotation.x = dr(R.armL.el.rotation.x, -1.85, rt);
     R.armL.wr.quaternion.slerp(_IDQ, Math.min(1, dt * rt));
   }
-  // === SINGLE-BLASTER GAUNTLET SHIELD — projected energy disc on the left forearm. Driven here (not in the
-  // grounded branch) so it holds whether you're standing OR flying. Flares on a catch; warns amber when stamina
-  // runs low (the shield can't deflect once it's dry).
-  const wasShielding = player.isShielding;
-  player.isShielding = mandoShielding();
-  if (player.isShielding && !wasShielding) player.shieldFlash = Math.max(player.shieldFlash || 0, 0.1);   // the disc pops up as it re-forms
-  player.shieldFlash = Math.max(0, (player.shieldFlash || 0) - dt * 3.2);
-  if (player.isShielding){
-    if (!player.shieldMesh){
-      const sg = new THREE.Group();
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(0.62, 40),
-        new THREE.MeshBasicMaterial({ color: 0x4bd2ff, transparent: true, opacity: 0.26, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-      const rim = new THREE.Mesh(new THREE.RingGeometry(0.58, 0.72, 40),
-        new THREE.MeshBasicMaterial({ color: 0x9fe6ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-      // concentric "deflector web" rings — the layered energy look from the lore
-      const r2 = new THREE.Mesh(new THREE.RingGeometry(0.36, 0.40, 36),
-        new THREE.MeshBasicMaterial({ color: 0x8fe0ff, transparent: true, opacity: 0.42, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-      const r3 = new THREE.Mesh(new THREE.RingGeometry(0.15, 0.18, 28),
-        new THREE.MeshBasicMaterial({ color: 0xcfefff, transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-      sg.add(disc, rim, r2, r3); sg.renderOrder = 6;
-      player.shieldMesh = sg; player.shieldDisc = disc; player.shieldRim = rim;
-      // ATTACH to the visual body (player.vis) so it tracks EVERY pose — including the flight lift/lean — instead of
-      // floating at a fixed world offset. vis-local +z is the way you face (group yaw), so the disc faces the threat.
-      player.vis.add(sg);
-      sg.position.set(-0.12, 1.5, 0.95);   // gauntlet side, out in front of the chest
-    }
-    const sg = player.shieldMesh;
-    sg.position.z = 0.95 + (player.bashOut || 0) * 0.45;   // the bash throws the disc out ahead of the arm
-    const flare = player.shieldFlash, shimmer = 0.05 * Math.sin(G.gt * 9);
-    sg.scale.setScalar(SHIELD_SIZE * (1 + flare * 1.5));
-    const lowStam = player.stam < maxStam() * 0.18;   // shield failing — out of juice to deflect
-    player.shieldDisc.material.color.setHex(lowStam ? 0xff8a4a : 0x4bd2ff);
-    player.shieldRim.material.color.setHex(lowStam ? 0xffb866 : 0x9fe6ff);
-    player.shieldDisc.material.opacity = (lowStam ? 0.16 : 0.26) + shimmer + flare * 2.0;
-    player.shieldRim.material.opacity  = (lowStam ? 0.4 : 0.7) + flare * 1.8;
-    sg.visible = true;
-  } else if (player.shieldMesh){
-    player.shieldMesh.visible = false;
+  // === THE BESKAR GUARD (data/mando.js BESKAR_GUARD) — the left forearm held up before the face, the vambrace square
+  // to what is coming. Laid over whatever the arm was doing (like the parry above, which snaps past it), so it holds
+  // standing, running or flying. A hit on it jolts the arm back; low on stamina it sags and shakes: about to give.
+  player.guardUp = mandoGuarding();
+  const gk = player.guardK = dr(player.guardK || 0, player.guardUp && !(player.meleeT > 0 && !GUARD_HOLDS[player.meleeKind]) && !player.slamming ? 1 : 0, 20);   // (it holds through the vibroblade's cuts from behind it; the bash and a catch pose the arm themselves)
+  player.guardJolt = Math.max(0, (player.guardJolt || 0) - dt * 7);
+  player.guardSag = dr(player.guardSag || 0, player.guardUp && player.stam < maxStam() * BESKAR_GUARD.low ? 1 : 0, 6);
+  if (gk > 0.01 && !(player.beskarPose > 0)){
+    const P = GUARD_POSE, j = player.guardJolt, sag = player.guardSag, shake = sag * Math.sin(G.gt * 34) * 0.012;
+    const A = R.armL;
+    _gq.copy(A.sh.quaternion); const el0 = A.el.rotation.x;
+    solveArm(A, _gt.set(P.hand[0] + shake, P.hand[1] - sag * P.sag - j * P.jolt[0], P.hand[2] - j * P.jolt[1]), P.pole);
+    _gq2.copy(A.sh.quaternion); A.sh.quaternion.copy(_gq).slerp(_gq2, gk);
+    A.el.rotation.x = el0 + (A.el.rotation.x - el0) * gk;
+    A.wr.quaternion.slerp(_IDQ, gk);
   }
 }
+// the held guard's arm, in the chest's space (+x his right, +y up, +z ahead): where the fist is held (before the brow,
+// so the forearm lies across the face with the vambrace out) and which way the elbow points (out to his left: the
+// arm shows past the body from behind) · sag: how far the fist drops when the stamina is nearly gone · jolt: how far
+// a hit on it knocks the fist down and back
+const GUARD_POSE = { hand: [0.05, 0.55, 0.33], pole: new THREE.Vector3(-1, 0.3, 0.1).normalize(), sag: 0.2, jolt: [0.05, 0.12] };
+const GUARD_HOLDS = { hackA: 1, hackB: 1 };   // the close-quarters beats thrown from behind the raised arm
+const _gq = new THREE.Quaternion(), _gq2 = new THREE.Quaternion(), _gt = new THREE.Vector3();
 
 /* CAPTURED UPPER BODY — with the motion-captured stride the chest twists against the pelvis and the head holds
    steady, laid on top of whatever pose the arms and torso are in. When the hands are busy (a swing, a block, a cast,

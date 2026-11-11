@@ -4,6 +4,7 @@
 import { rumble } from '../../engine/rumble.js';
 import * as THREE from 'three';
 import { hooks } from '../../net/run.js';
+import { duelHooks } from '../../game/duel-hooks.js';
 import { scene, camera } from '../../engine/renderer.js';
 import { sfx, S } from '../../audio/sfx.js';
 import { extendBlade } from '../../fx/trail.js';
@@ -219,7 +220,8 @@ export function spawnBlasterBolt(origin, dir, dmg, color, scale, W, opts){
     b.foMin = opts.foMin != null ? opts.foMin : W.foMin;   // for range damage falloff (bracing lifts the floor)
     b.playerShot = true;   // tag for accuracy tracking
     if (W.flinch != null) b.flinch = W.flinch;   // how hard it rocks the foe it hits (enemies/bolts.js)
-    if (hooks.pbolt && !opts.quiet) hooks.pbolt(b, color, scale); }   // (opts.quiet: the caller sends it, player/gunner-flow.js)   // co-op: the partner sees it fly
+    if (G.duel && duelHooks.shot && duelHooks.shot(b, color, scale)){}   // DUEL MODE: the other fighters fly it on their screens (net/pvp.js)
+    else if (hooks.pbolt && !opts.quiet) hooks.pbolt(b, color, scale); }   // (opts.quiet: the caller sends it, player/gunner-flow.js)   // co-op: the partner sees it fly
   if (b && opts.tag) Object.assign(b, opts.tag);   // the gun's signature move rides the bolt (player/gun-moves.js)
   if (G.stats) G.stats.shotsFired++;
   // muzzle flash fires every shot, drawn at the barrel of whichever gun is nearest the bolt's origin — pooled Ink
@@ -577,6 +579,7 @@ export function updateFlame(dt){
     if (!e.dead && !e.t.heavy) e.group.position.addScaledVector(TMP, A.knock*dt);   // gentle, steady shove
   }
   if (bossInAim(aim, range, cosLim, 0.12)) damageBoss(dmg, true);
+  if (G.duel && duelHooks.flame) duelHooks.flame(aim, range, cosLim, dmg, dt);   // DUEL MODE: a burn on the other fighters in the stream (net/pvp.js)
 }
 
 // Mando per-frame weapon upkeep: timers, free-aim drift + sway, reload, held auto-fire, flamethrower, darksaber.

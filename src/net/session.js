@@ -3,7 +3,9 @@
 // channel per player (PeerJS: its free broker only introduces the browsers, then they talk directly) carries small JSON
 // messages. The host is the middle of a star: every guest talks to the host, and the host passes on what the others
 // need to see of each other (RELAY). Slot 0 is the host; guests take slots 1 to 3. This file knows nothing about the
-// game: partner.js and coop-ui.js listen to it through on().
+// game: partner.js and coop-ui.js listen to it through on(). Invite links, their expiry and the host's lock: net/invite.js.
+
+import { clientId, room, resetRoom, roomRules, hearRules, admit, WHY } from './invite.js';
 
 const ID_PREFIX = 'swpt-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no 0/O/1/I: easy to read out over voice chat
@@ -12,7 +14,7 @@ export const MAX_GUESTS = 3;
 // what the host passes on from one guest to the rest, stamped with the sender's slot: poses, their shots and powers
 const RELAY = { s: 1, hello: 1, pb: 1, pw: 1, bx: 1, mark: 1, unmark: 1, tu: 1 };   // (mark / unmark: a player's ping marker going up / coming down, net/ping.js; tu: a team-up offer, game/teamup.js)
 // ...and a duel's (game/duel-mode.js, net/pvp.js): its challenge and answer, its state, the blows and their verdicts
-Object.assign(RELAY, { dch: 1, dans: 1, dst: 1, dpg: 1, drm: 1, dq: 1, dsw: 1, dhit: 1, dres: 1, dfp: 1 });
+Object.assign(RELAY, { dch: 1, dans: 1, dst: 1, dpg: 1, drm: 1, dq: 1, dsw: 1, dhit: 1, dres: 1, dfp: 1, dbl: 1, dfl: 1 });
 // a guest whose link to the host drops tries the same room again this many times, this far apart (ms), before giving up
 const REJOIN = { tries: 10, wait: 2500 };   // (25 s: room for a host handoff, below, when the server is slow to free the code)
 const LAST = 'sw_coop_last';   // the last room joined, offered again in the co-op panel (a reload, a crash)
@@ -71,7 +73,7 @@ async function makePeer(id){
 // keep: the room code to take over (a host handoff, above) instead of drawing a new one
 export async function host(attempt = 0, keep = ''){
   leave(true);
-  if (!keep) heir = false;
+  if (!keep){ heir = false; resetRoom(); }   // (a handoff keeps the room's rules, heard from the old host: invite.js)
   net.role = 'host'; net.slot = 0; net.code = keep || newCode(); setStatus(keep ? 'reconnecting' : 'hosting');
   try { peer = await makePeer(ID_PREFIX + net.code); } catch(e){ return keep ? claimLater(keep) : fail('Could not start the connection.'); }
   const mine = peer;
@@ -80,6 +82,8 @@ export async function host(attempt = 0, keep = ''){
     else emit('status', net);
   });
   peer.on('connection', (c) => {
+    const why = admit(c.metadata);   // an expired invite, or a locked room (invite.js)
+    if (why){ c.on('open', () => { try { c.send({ t: 'nope', why }); } catch(e){} setTimeout(() => c.close(), 300); }); return; }
     let slot = 1; while (conns.has(slot)) slot++;
     if (slot > MAX_GUESTS){   // the room is full: tell them, then turn them away
       c.on('open', () => { try { c.send({ t: 'full' }); } catch(e){} setTimeout(() => c.close(), 300); });
@@ -99,8 +103,11 @@ export async function host(attempt = 0, keep = ''){
 }
 
 // retry: a guest getting back into the room it dropped out of (rejoin below), which keeps saying 'reconnecting'
-export async function join(code, retry = false){
+// inv: the invite link's token, when it came from one (net/invite.js), which the host checks hasn't run out
+let joinInv = '';
+export async function join(code, retry = false, inv){
   code = cleanCode(code);
+  if (!retry) joinInv = inv || '';
   if (code.length !== CODE_LEN) return fail('Enter the 5-letter room code.');
   if (!retry) tries = 0;
   leave(true);
@@ -119,7 +126,7 @@ export async function join(code, retry = false){
   peer.on('open', () => {
     if (dialled) return;   // the server link came back (keepServer below): the game's own link to the host is still up
     dialled = true;
-    const c = peer.connect(ID_PREFIX + code, { serialization: 'json' });
+    const c = peer.connect(ID_PREFIX + code, { serialization: 'json', metadata: { cid: clientId(), inv: joinInv } });
     attach(c, 0);
     setTimeout(() => {
       if (mine !== peer) return;
@@ -174,6 +181,7 @@ function attach(c, slot){
       net.guests = conns.size;
       c.send({ t: 'welcome', slot });
       for (const [k, h] of hellos) if (k !== slot) c.send({ ...h, from: k });   // the guests already here
+      shareRules();   // (who is in now: every guest keeps the room's rules, for a handoff)
     }
     setStatus('connected');
     emit('open', slot);
@@ -186,6 +194,8 @@ function attach(c, slot){
     if (m.t === 'welcome'){ net.slot = m.slot; tries = 0; heir = false; seats.clear(); emit('welcome', m.slot); return; }
     if (net.role === 'guest'){ if (m.t === 'hello' && m.from) seats.add(m.from); if (m.t === 'bye') seats.delete(m.slot); }
     if (m.t === 'full') return void leave(false, 'That room is full (4 players).');
+    if (m.t === 'nope') return void leave(false, WHY[m.why] || 'The host turned the join away.');
+    if (m.t === 'rm'){ if (net.role === 'guest') hearRules(m); emit('rules', m); return; }
     if (net.role === 'host'){
       m.from = slot;   // never trust a guest to say who they are
       if (m.t === 'hello') hellos.set(slot, m);
@@ -218,6 +228,14 @@ function attach(c, slot){
   });
   c.on('error', () => {});
 }
+
+/* THE HOST'S LOCK (invite.js): no new players while it's on; those already in (and any who drop and come back) still are */
+export function setLocked(on){
+  if (net.role !== 'host') return;
+  room.locked = !!on; shareRules(); emit('status', net);
+}
+export const isLocked = () => room.locked;
+function shareRules(){ if (net.role === 'host') send(roomRules()); }
 
 // host: any guest is connected · guest: the host is
 export const connected = () => net.role === 'host' ? [...conns.values()].some(c => c.open) : !!conn && conn.open;

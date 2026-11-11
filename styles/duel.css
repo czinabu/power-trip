@@ -12,7 +12,10 @@ body.cutscene #duelp{opacity:0 !important}
 #duelpanel{position:fixed;inset:0;z-index:31;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,6,14,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
 #duelpanel.open{display:flex}
-.dl-box{width:min(520px,100%)}
+.dl-box{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto}
+/* the rule picker: three side by side, so the card with who may fight and the free-for-all still fits a short screen */
+.dl-rules.dl-pick{flex-direction:row}
+.dl-rules.dl-pick .dl-o{flex:1 1 0;min-width:0}
 .dl-rules{display:flex;flex-direction:column;gap:7px;margin-top:4px}
 .dl-o{cursor:pointer;user-select:none;-webkit-user-select:none}
 .dl-o span{font:500 13px/1.35 var(--font-ui);color:var(--ink-soft)}
@@ -29,6 +32,17 @@ body.cutscene #duelp{opacity:0 !important}
 .dl-link.poor,.dl-ms.poor{color:#ff8a6a}
 .dl-score{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0;font:700 15px/1.2 var(--font-ui);letter-spacing:2px;color:var(--ink-soft)}
 .dl-score b{font:700 40px/1 var(--font-display);color:var(--ink);letter-spacing:4px}
+/* who may fight and one on one or everyone: two side by side */
+.dl-kits,.dl-ffa{flex-direction:row}
+.dl-kits .dl-o,.dl-ffa .dl-o{flex:1 1 0;min-width:0}
+.dl-o.off{opacity:.45;cursor:default}
+/* a free-for-all's score card: everyone's rounds in a row */
+.dl-score.dl-many{gap:10px;flex-wrap:wrap}
+.dl-many span{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.05)}
+.dl-many span em{font-style:normal;font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-many span b{font-size:30px}
+.dl-many span.top{background:rgba(255,200,90,.16);color:#ffd27a}
+.dl-many span.gone{opacity:.45}
 .dl-hon{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
 .dl-hr{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;background:rgba(216,184,96,.08);border:1px solid rgba(216,184,96,.25);
   font:700 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft)}
@@ -47,13 +61,15 @@ body.compass-on #duelhud{top:50px}   /* (under the compass strip, as the boss ba
 .dl-pips,.dl-rd{display:flex;gap:5px}
 .dl-pips i{width:16px;height:7px;border-radius:2px;background:rgba(255,255,255,.14)}
 .dl-pips i.on{background:#ffd24a;box-shadow:0 0 8px rgba(255,210,74,.7)}
+.dl-pips i.part{background:linear-gradient(90deg,#ffd24a var(--f),rgba(255,255,255,.14) var(--f))}   /* a gun's part of a clean hit */
+.dl-side.out{opacity:.45}
 .dl-rd i{width:8px;height:8px;border-radius:50%;border:1px solid rgba(255,255,255,.4)}
 .dl-rd i.on{background:#fff;border-color:#fff}
 .dl-bar{width:130px;height:7px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;display:block}
 .dl-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff6a4a,#ffd24a);transition:width .15s}
 .dl-n{font:700 22px/1 var(--font-display)}
 .dl-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0 4px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
-.dl-mid b{font:700 16px/1 var(--font-display);letter-spacing:3px}
+.dl-mid b{font:700 16px/1 var(--font-display);letter-spacing:3px;white-space:nowrap}
 .dl-ms{font:600 10px/1 var(--font-ui);letter-spacing:1.6px}
 
 /* THE PHONE PASS: a narrow screen keeps the bar to one compact row, the cards' buttons big enough for a thumb */
@@ -65,6 +81,13 @@ body.compass-on #duelhud{top:50px}   /* (under the compass strip, as the boss ba
   .dl-pips i{width:11px;height:6px}
   .dl-bar{width:80px}
   .dl-mid b{font-size:12px}
+  #duelhud{max-width:calc(100vw - 16px);flex-wrap:nowrap}
+  .dl-many span{min-width:64px}
+  #duelhud.many{gap:4px}
+  #duelhud.many .dl-side{padding:4px 6px}
+  #duelhud.many .dl-side b{font-size:10px;max-width:58px;letter-spacing:1px}
+  #duelhud.many .dl-pips i{width:8px}
+  #duelhud.many .dl-bar{width:52px}
   #duelpanel{padding:10px}
   .dl-box{padding:14px 12px 12px}
   .dl-row .dl-o{min-height:52px}

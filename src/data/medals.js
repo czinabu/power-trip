@@ -129,6 +129,7 @@ export const PAR = {
   duel: [45, 22],                 // + this × its foe's hp multiplier
   breach: 40,                     // a door: stack, fuse, the room
   infiltrate: [1.0, 26, 15],      // per mark: × its time, + this (the sneaking up to it); + this once
+  walker: 80,                     // the walker takedown: three legs tangled, the neck charge, the fall
   round: 15,
   min: 60,
 };
@@ -148,6 +149,7 @@ function objCost(o, def, S){
     case 'duel': return PAR.duel[0] + PAR.duel[1] * (o.hp || 1);
     case 'breach': return PAR.breach;
     case 'infiltrate': return (o.marks || []).length * ((o.time || 3) * PAR.infiltrate[0] + PAR.infiltrate[1]) + PAR.infiltrate[2];
+    case 'walker': return PAR.walker;
   }
   return 30;
 }

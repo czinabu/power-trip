@@ -75,6 +75,8 @@ import { startTutorial, updateTutorial, skipStep, trainingProgress, lessonList, 
 import { startCampaign, campaignWon, startChapter, nextChapter, chapters } from './game/campaign.js';
 import { startMission, updateMission, skipObjective, missionState } from './game/mission.js';
 import { twistState } from './game/twists.js';
+import { walkerState, walkerSkipStep } from './game/walker.js';
+import { chaseState } from './game/zone-chase.js';
 import { startSandbox, updateSandbox, sandboxSpawn, sandboxClear, setSandboxKit, sandboxKitAll } from './game/sandbox.js';
 import {
   enemyDmgScale, genEndlessWave, spawnChampion, startEndless, startEndlessWave
@@ -329,6 +331,7 @@ Object.assign(window.GAME, { invite: { last: lastInvite, open: (link) => coopArr
 Object.assign(window.GAME, { APPRENTICE });   // the Padawan, the foundling, the trooper's second (allies/apprentice.js), for tests
 Object.assign(window.GAME, { bladeLook: BLADE_U });   // the lightsaber glow's live tuning (fx/blade-glow.js), for tests
 Object.assign(window.GAME.duel, { info: duelInfo, practice: startPractice, challenge: duelChallenge, answer: duelAnswer, rematch: duelRematch, leave: leaveDuel, balcony: toBalcony, honours: duelHonours, open: openChallenge, testBlow: pvpTestBlow, guardAgo: pvpGuardAgo, incoming: pvpIncoming, pvp: pvpInfo });   // duel mode (game/duel-mode.js), for tests
+Object.assign(window.GAME, { walker: { state: walkerState, skipStep: walkerSkipStep }, chase: { state: chaseState } });   // the walker takedown (game/walker.js) and the zone chase (game/zone-chase.js), for tests
 Object.assign(window.GAME, { startCampaign, startChapter, nextChapter, chapters, campaignWon });
 Object.assign(window.GAME, { gate: { start: startGate, open: gateOpen, veteranKit, finale: () => shared.finale } });   // ACT IV (game/gate.js), for tests
 import { BS as battleSim, placeAt as battlePlace, enterSetup as battleEnter, startBattle, replayBattle, saveSetup as battleSave, loadSetup as battleLoad, clearSetup as battleClear } from './game/battlesim.js';

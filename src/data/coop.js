@@ -13,7 +13,7 @@ export const NET = {
    hero). The squad stays rank and file only (data/allies.js FODDER), however many heroes there are. */
 export const SCALE = {
   bossHp: 0.6,    // a boss's, a Warbringer's and a duel champion's health, at spawn (the Warbringer's posture bar has its own: data/duel.js WARBRINGER.coop)
-  waves: 0.5,     // foes in a campaign or survival wave: half a wave more for each extra hero (game/flow.js partyWave; a champion's pack and the squad's fodder count as they are)
+  waves: 0.5,     // foes in a campaign or survival wave, and in each group a story mission sends: half again for each extra hero (game/flow.js partyWave; the squad's fodder, a boss's adds and a trickle's cap stay as they are)
   revives: 1,     // extra squad revives per wave or objective, for each extra hero
 };
 export const heroScale = (per, n) => 1 + per * (n - 1);

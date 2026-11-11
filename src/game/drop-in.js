@@ -31,6 +31,8 @@ export function stepDropIn(){
   const party = partnerStand();
   const host = party.find(s => s.slot === 0) || party[0];
   const me = playerPos();
+  if (!p.from) p.from = { x: me.x, z: me.z };
+  if (Math.hypot(me.x - p.from.x, me.z - p.from.z) > 4){ pending = null; return; }   // already on their way (or moved by the game): leave them be
   if (host){
     // (a partner's figure glides to where their screen says they are as it first shows: give it a moment to get there)
     if (!p.seen){ p.seen = performance.now(); return; }

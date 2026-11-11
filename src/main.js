@@ -419,3 +419,5 @@ import { wordUp, wordStats, clearWords, floater as sayWord, callout as sayBig } 
 import { CALL as CALLOUTS, rankOf as calloutRank } from './data/callouts.js';
 Object.assign(window.GAME, { raids: RAIDS_RT });   // the raids (data/raids.js): what the raid smoke suite (tools/smoke/raid.mjs) reads
 Object.assign(window.GAME, { words: { up: wordUp, stats: wordStats, clear: clearWords, say: sayWord, big: sayBig, rank: calloutRank, cfg: CALLOUTS } });   // one word at a time (fx/floaters.js, data/callouts.js), for tests
+import { SOFT_BODY, softBodyOn } from './data/soft-body.js';
+Object.assign(window.GAME, { softBody: { cfg: SOFT_BODY, on: softBodyOn } });   // the soft-body preview (data/soft-body.js), for tests

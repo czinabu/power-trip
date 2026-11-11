@@ -3,7 +3,7 @@
 // wing 'ship' of every hub). The Jedi flies a temple shuttle, the Mandalorian the Cinderwake (the gunship from their
 // story), the ARC trooper a dropship. You board it at the hub's landing pad or hangar (the station there that already
 // flies to Jedha: ui/hub-ui.js), and on board the GALAXY MAP (ui/galaxy-ui.js) shows every world, its story missions,
-// its side missions, the open zone and the raid, and launches any of them. A run launched from the ship comes back to it.
+// its side missions, the open zone and the raid, and plots a course to one; the HELM jumps there and launches it. A run launched from the ship comes back to it.
 //
 // CO-OP: the ship is the party's lobby. A party loads the HOST's hub (game/hub.js hubIdFor), so friends board the host's
 // ship; a guest who arrives while the host is aboard lands aboard too, and the host can call everyone aboard from the map.
@@ -14,7 +14,8 @@
 //
 // A SHIP: { name (what it's called), kind (what it is), board (the line on the hangar's station), exit (the hub wing its
 //   ramp lets you out into), outAt [x, z, yaw] (where you stand in that wing on walking down the ramp), wing (the wing) }
-// The wing is a hub wing like any other (data/hub.js), its stations reuse the hub's acts, plus 'galaxy' (the galaxy map).
+// The wing is a hub wing like any other (data/hub.js), its stations reuse the hub's acts, plus 'galaxy' (the galaxy map: plot a
+// course) and 'helm' (the helm or cockpit: fly it, and launch what's there). game/ship-nav.js says who does what.
 
 const PI = Math.PI;
 
@@ -24,13 +25,13 @@ const ARENA = 26;   // (a hold, not a hangar: wide enough for a party of four an
 const plan = (o) => ({
   name: o.wingName, short: o.short,
   blurb: o.blurb,
-  level: { name: o.levelName, sub: 'The galaxy map launches any world. Walk down the ramp to leave.', arena: ARENA, layout: o.layout, waves: [], hazards: {} },
+  level: { name: o.levelName, sub: 'Plot a course at the galaxy map, then fly it from the helm. Walk down the ramp to leave.', arena: ARENA, layout: o.layout, waves: [], hazards: {} },
   map: ['hull'],   // what the hub map draws the room with (ui/hub-map.js ART)
   doors: { s: o.exit },   // the ramp: walk down it into the hub
   spawn: [0, 8, PI],
   stations: [
     { id: 'galaxy', x: 0, z: -0.5, name: 'GALAXY MAP', act: 'galaxy', r: 4.6 },
-    { id: 'helm', x: 0, z: -9.4, name: o.helm, act: 'galaxy', r: 3 },
+    { id: 'helm', x: 0, z: -9.4, name: o.helm, act: 'helm', r: 3 },
     { id: 'locker', x: -9.6, z: 3, name: o.locker, act: 'forge', r: 3 },
     { id: 'comms', x: 9.6, z: 3, name: 'CALLS FOR AID', act: 'quests', r: 3 },
     { id: 'console', x: 8.6, z: 9.4, name: o.console, act: 'travel', r: 2.8 },
@@ -41,7 +42,7 @@ export const HERO_SHIPS = {
   // the Jedi's: a pale temple shuttle, its hold lined with meditation benches and a rack of training remotes
   temple: {
     name: 'THE DAWNREACH', kind: 'TEMPLE SHUTTLE', board: 'BOARD THE DAWNREACH',
-    boardLine: 'Your shuttle. On board, the galaxy map flies you to any world, mission or raid',
+    boardLine: 'Your shuttle. On board, plot a course at the galaxy map and fly it from the helm',
     exit: 'landing', outAt: [0, 9, PI],
     wing: plan({ wingName: 'THE DAWNREACH', short: 'SHUTTLE', layout: 'shJedi', exit: 'landing',
       blurb: 'Your shuttle: a quiet hold with a galaxy map at its heart. Every world the Order still reaches is a jump away.',
@@ -50,7 +51,7 @@ export const HERO_SHIPS = {
   // the trooper's: a white dropship, red unit stripes, jump seats and harnesses down both walls, a weapons rack
   kamino: {
     name: 'THE KESTREL', kind: 'DROPSHIP', board: 'BOARD THE KESTREL',
-    boardLine: 'Your dropship. On board, the galaxy map ships you and your squad to any op, world or raid',
+    boardLine: 'Your dropship. On board, plot the op at the galaxy map and ship out from the cockpit',
     exit: 'deck', outAt: [-21, -16, PI],
     wing: plan({ wingName: 'THE KESTREL', short: 'DROPSHIP', layout: 'shTrooper', exit: 'deck',
       blurb: 'Your dropship: jump seats down both walls and the galaxy map on the deck between them. Every op ships out from here.',
@@ -59,7 +60,7 @@ export const HERO_SHIPS = {
   // the Mando's: the Cinderwake, a blunt gunship, its hold full of crates, a weapons wall and the clan's band in gold
   covert: {
     name: 'THE CINDERWAKE', kind: 'GUNSHIP', board: 'BOARD THE CINDERWAKE',
-    boardLine: 'Your gunship. On board, the galaxy map takes you to any job, world or raid',
+    boardLine: 'Your gunship. On board, plot the job at the galaxy map and fly it from the cockpit',
     exit: 'hangar', outAt: [-5, -3, PI],
     wing: plan({ wingName: 'THE CINDERWAKE', short: 'CINDERWAKE', layout: 'shMando', exit: 'hangar',
       blurb: 'Your gunship: crates lashed down, the weapons wall, and the galaxy map that points at the next job.',
@@ -114,7 +115,7 @@ export const GALAXY = [
   { id: 'deep', name: 'DEEP SPACE', region: 'UNCHARTED', x: 6, y: 12, col: '#6a7488', size: 0.55, deep: true,
     line: 'Every other place the story has taken you.', missions: [], sides: [] },
 ];
-// hyperspace lanes drawn between worlds (just a picture: every world is one jump from the ship)
+// hyperspace lanes drawn between worlds (just a picture: every world is one jump from wherever the ship is: game/ship-nav.js)
 export const LANES = [
   ['tython', 'jedha'], ['tython', 'refuge'], ['tython', 'jakku'], ['tython', 'kheldar'], ['refuge', 'tessaril'], ['refuge', 'vorran'],
   ['lothal', 'tessaril'], ['lothal', 'hoth'], ['lothal', 'kamino'], ['jakku', 'hoth'], ['jakku', 'mustafar'], ['mustafar', 'thane'],

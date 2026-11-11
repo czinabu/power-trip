@@ -1131,7 +1131,7 @@ export function goTemple(auto){
   setModeSel('temple'); setOverlayState('menu');
   if (auto) launchNow(); else launch();
 }
-/* HOME BY ITSELF — a run started from the hub (the temple, the citadel, the covert, a ship's galaxy map) ends on its results
+/* HOME BY ITSELF — a run started from the hub (the temple, the citadel, the covert, a ship's helm) ends on its results
    screen with the way home as the main button, and goes home on its own after a short count unless the player does
    anything on the screen first (reads the readout, opens CHANGE, scrolls). A co-op guest follows the host instead */
 const homeBound = () => G.fromHub && !G.hub && !G.coopWasGuest && G.mode === 'victory';

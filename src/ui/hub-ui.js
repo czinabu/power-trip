@@ -43,7 +43,7 @@ import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
-import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
+import { galaxyPanel, helmPanel, galaxyPick } from './galaxy-ui.js';
 import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
 import { apprenticeOf } from '../game/profile.js';
 import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState, honours } from '../game/duel-mode.js';
@@ -240,7 +240,7 @@ function render(){
   if (station.act === 'raid') return renderRaid();
   if (station.act === 'deeds') return renderDeeds();
   if (station.act === 'travel') return renderMap();
-  if (station.act === 'galaxy') return renderGalaxy();
+  if (station.act === 'galaxy' || station.act === 'helm') return renderShip(station.act);
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
@@ -306,19 +306,25 @@ new MutationObserver((ms) => {
   for (const m of ms) if (m.target.classList && m.target.classList.contains('hm-wing') && m.target.classList.contains('padfocus')){ showWing(m.target.dataset.w); return; }
 }).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
-/* ---------------- THE GALAXY MAP (ui/galaxy-ui.js, data/hero-ships.js) ----------------
-   On board each hero's ship: every world on a drawn map, what can be played on the one picked, and the voyages (the
-   campaign, Act IV, NEW GAME+, a challenge, survival). In a party it's the lobby: who is aboard, CALL THE PARTY ABOARD
-   for the host, and the usual ready check on whatever the host launches; a guest sees the same map, and JOIN. */
-function renderGalaxy(again = false){
-  const r = galaxyPanel({ B, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
-    rerender: () => { if (isOpen() && station && station.act === 'galaxy') renderGalaxy(true); },
+/* ---------------- THE GALAXY MAP and THE HELM (ui/galaxy-ui.js, game/ship-nav.js, data/hero-ships.js) ----------------
+   On board each hero's ship. The GALAXY MAP is the chart: every world on a drawn map, what's on the one picked, your
+   story across them, and PLOT A COURSE. The HELM flies it: the course's world and what to launch there (the ship jumps
+   first), and the voyages (the campaign, Act IV, NEW GAME+, a challenge, survival). In a party the ship is the lobby: who
+   is aboard, CALL THE PARTY ABOARD for the host, and the usual ready check on whatever the host launches; a guest sees
+   the host's course on both, and JOIN. */
+function shipCtx(act, again){
+  return { B, again, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
+    rerender: () => { if (isOpen() && station && station.act === act) renderShip(act, true); },
+    openMap: () => open({ id: 'galaxy', name: 'GALAXY MAP', act: 'galaxy' }),
     joinButton: () => coopRun.on ? B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()) : null,
     everyMode: () => B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
     survival: survivalButton, campaign: () => campaignButton(),
     challenge: () => B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
     side: (id) => hubLaunch('mission', id), mission: (id) => hubLaunch('mission', id), zone: (k) => hubLaunchZone(k),
-    disembark: () => goWing(shipOf(G.hubId).exit) });
+    disembark: () => goWing(shipOf(G.hubId).exit) };
+}
+function renderShip(act, again = false){
+  const r = (act === 'helm' ? helmPanel : galaxyPanel)(shipCtx(act, again));
   panel.innerHTML = r.html;
   panel._list = r.list;
   if (again){ const box = panel.querySelector('.hb-box'); if (box) box.classList.add('gx-again'); }   // (a world picked: the card stays put, no second rise)

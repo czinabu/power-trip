@@ -17,7 +17,9 @@ const alive = t => !!t && (t === rival ? rivalUp() : t === shared.boss ? t.hp > 
    fought). One object, its position refreshed each frame, shaped enough like a foe for whoever reads the lock target. */
 const rival = { duelBody: true, dead: false, group: { position: V3(0, 0, 0) } };
 function rivalUp(){
-  const b = G.duel && duelHooks.bodies ? duelHooks.bodies()[0] : null;
+  // (a free-for-all: the nearest of them, the one you're squared up with)
+  const all = G.duel && duelHooks.bodies ? duelHooks.bodies() : [], pp = all.length > 1 ? playerPos() : null;
+  const b = all.length > 1 ? all.reduce((a, o) => Math.hypot(o.pos.x - pp.x, o.pos.z - pp.z) < Math.hypot(a.pos.x - pp.x, a.pos.z - pp.z) ? o : a) : all[0] || null;
   if (b) rival.group.position.copy(b.pos);
   return !!b;
 }

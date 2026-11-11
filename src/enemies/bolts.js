@@ -12,6 +12,7 @@ import { sfx, S } from '../audio/sfx.js';
 import { V3, clamp, TMP } from '../utils.js';
 import { floater, screenFlash } from '../fx/floaters.js';
 import { shared, G, enemies, bolts, player, isGunner, isTrooper } from '../state.js';
+import { duelHooks } from '../game/duel-hooks.js';
 import { heroHitBand, suppressHero } from '../player/trooper/cover.js';
 import { TROOPER } from '../data/trooper.js';
 import { suppressFoes, foeShotHit, champHeadMul } from './coverfight.js';
@@ -94,6 +95,29 @@ function redirect(b, parried){
   }
   b.mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), b.dir);
 }
+// a body this bolt's step (a → z) reaches before the wall it ends on: a foe (or a duel's other fighter, or the boss) for a
+// friendly bolt, which then stops at the wall's face (its body sweep runs up to there); the hero for a hostile one, which
+// is put at its nearest point to the hero so the guard and the hit below judge it there
+const _seg = new THREE.Vector3();
+function bodyBefore(b, a, z){
+  if (b.ghost) return false;
+  if (b.friendly){
+    for (const e of enemies) if (!e.dead && !e.converted && sweepHit(e, a, z, BOLT_R)) return true;
+    if (b.pvpOut && G.duel && duelHooks.bodies) for (const o of duelHooks.bodies()) if (segCylinder(a, z, o.pos, o.r + BOLT_R, o.pos.y, o.pos.y + o.h) >= 0) return true;
+    const B = shared.boss;
+    return !!(B && B.hp > 0 && !b.ally && segCylinder(a, z, B.group.position, 1.6, B.group.position.y, B.group.position.y + 3.4) >= 0);
+  }
+  const pp = playerPos(), hx = pp.x, hy = pp.y + 1.4, hz = pp.z;
+  _seg.subVectors(z, a);
+  const L2 = _seg.lengthSq();
+  if (L2 < 1e-6) return false;
+  const t = clamp(((hx - a.x) * _seg.x + (hy - a.y) * _seg.y + (hz - a.z) * _seg.z) / L2, 0, 1);
+  if (t <= 0.001 || t >= 1) return false;   // (the hero is behind this step, or the wall is nearer: the bolt is stopped there)
+  const cx = a.x + _seg.x * t, cy = a.y + _seg.y * t, cz = a.z + _seg.z * t;
+  if (Math.hypot(cx - hx, cz - hz) > 1.2 || Math.abs(cy - hy) > 1.7) return false;
+  z.set(cx, cy, cz);
+  return true;
+}
 export function updateBolts(dt){
   const pp = playerPos();
   const BG = boltGuard(), RD = 2.6 + BG.reach;   // the blade's front and reach against fire, this frame
@@ -110,12 +134,16 @@ export function updateBolts(dt){
     if (!kill){
       const p = b.mesh.position, c = sweepSolids(PREV.x, PREV.y, PREV.z, p.x, p.y, p.z, 0);
       if (c){
-        kill = true;
         p.lerpVectors(PREV, p, sweepT);
-        const at = V3(p.x, p.y, p.z);
-        spawnHitSpark(at, b.friendly ? 0x6fd0ff : 0xff5a3a, 0.8);
-        S.boltImpact(at);
-        scorchSolid(c, at);   // a burn on the cover it struck
+        // ...unless a body stands between the bolt and the wall on this same step (a fast bolt on a slow frame crosses both
+        // at once): then it stops where that body is, for the checks below, and meets the wall next frame if it misses
+        if (!bodyBefore(b, PREV, p)){
+          kill = true;
+          const at = V3(p.x, p.y, p.z);
+          spawnHitSpark(at, b.friendly ? 0x6fd0ff : 0xff5a3a, 0.8);
+          S.boltImpact(at);
+          scorchSolid(c, at);   // a burn on the cover it struck
+        }
       }
       const bx = b.mesh.position.x, bz = b.mesh.position.z, by = b.mesh.position.y;
       // a walled room (the sandbox rooms): a bolt stops on the wall it reaches, never flies on through it
@@ -202,7 +230,7 @@ export function updateBolts(dt){
       }
       if (d < abil('barrier').radius && near && player.barrierT > 0){
         // FORCE BARRIER auto-deflects bolts from any angle back into the crowd — no aim, no timing
-        b.friendly = true; b.deflected = true; b.speed *= 1.3; b.dmg = 20;
+        b.friendly = true; b.deflected = true; b.speed *= 1.3; b.dmg = 20; b.pvpRes = 'deflected';
         const tgt = nearestEnemyInCone(40, -1);
         if (tgt && tgt !== shared.boss) b.dir.subVectors(tgt.group.position, b.mesh.position).setY(0).normalize();
         else b.dir.negate();
@@ -217,6 +245,7 @@ export function updateBolts(dt){
         if (spinSend && !parried) tutEvent('spinSend');
         if (!parried && !spinSend && (guardSend || dsm)){ player.stam = Math.max(0, player.stam - (guardSend ? 7 * (stance().blockStamMul || 1) : 0) - 3 * dsm); player.stamDelay = stamDelay(); }
         b.friendly = true; b.deflected = true; b.speed *= 1.4; b.dmg = parried ? 42 : 22 * (stance().deflectDmg || 1);   // (Shien sends its deflects home harder)
+        b.pvpRes = parried ? 'parried' : 'deflected';
         // it leaves from the blade itself (it was caught a touch early, so the catch reads at the saber, not in the air)
         if (bladePointNear(b.mesh.position, HIT)) b.mesh.position.copy(HIT);
         redirect(b, parried);
@@ -233,7 +262,7 @@ export function updateBolts(dt){
         addFocus(parried ? FOCUS.gainParry : FOCUS.gainDeflect);   // deflecting fire feeds the flow
       } else if (d < 2.5 && beskar){
         b.friendly = true; b.speed *= BESKAR_PARRY.speed; b.dmg = Math.max(BESKAR_PARRY.min, Math.round(b.dmg * BESKAR_PARRY.dmg));
-        b.beskar = true; b.flinch = 1.2;   // a ricochet staggers whoever it hits
+        b.beskar = true; b.flinch = 1.2; b.pvpRes = 'parried';   // a ricochet staggers whoever it hits
         redirect(b, true);   // home to the shooter (or the nearest foe ahead)
         b.mesh.material.color.setHex(0xffd08a);
         beskarCatch(b);
@@ -245,7 +274,7 @@ export function updateBolts(dt){
         // stopped dead on the vambrace: gold sparks off the beskar, nothing sent back
         player.stam = Math.max(0, player.stam - BESKAR_GUARD.bolt * player.up.blockStam);
         player.stamDelay = stamDelay();
-        beskarBlock();
+        beskarBlock(); b.pvpRes = 'blocked';
         floater(pp, 'BLOCK', '#ffd08a'); noteDefense('blocks', null, { src: b.src });
         tutEvent('guardBlock');
         kill = true;
@@ -256,10 +285,10 @@ export function updateBolts(dt){
         player.stamDelay = stamDelay();
         spawnHitSpark(b.mesh.position.clone(), stance().blade, 0.8);
         G.shake = Math.max(G.shake, 0.12);
-        S.block(b.mesh.position); floater(pp, 'BLOCK', '#9cc8e8'); noteDefense('blocks', null, { src: b.src });
+        S.block(b.mesh.position); floater(pp, 'BLOCK', '#9cc8e8'); noteDefense('blocks', null, { src: b.src }); b.pvpRes = 'blocked';
         kill = true;
       } else if (d < 1.2 && inBand(b.mesh.position.y - pp.y) && !(player.slideT > 0 && b.mesh.position.y > pp.y + 0.8)){   // a slide ducks under fire · ducked behind low cover, it flies over (trooper/cover.js)
-        hurtPlayer(b.dmg, b.mesh.position, false, false, false, { src: b.src, arc: BG.arc }); kill = true;
+        b.pvpRes = hurtPlayer(b.dmg, b.mesh.position, false, false, false, { src: b.src, arc: BG.arc }); kill = true;
         boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
         if (isTrooper()){ suppressHero(SUPP.onHero.perHit); b.suppd = true; }
       }
@@ -270,16 +299,24 @@ export function updateBolts(dt){
     } else if (!kill && b.friendly && !b.ghost){   // (a ghost is the partner's shot, only drawn here: their browser does the damage)
       // the bolt hits the FIRST body along its flight this frame, exactly where that body is (bodyshape.js): legs, arms
       // and shoulders count, the gap beside a foe doesn't, and only the head itself is a headshot
-      let foe = null, hit = null;
+      let foe = null, hit = null, onBody = false;
+      // DUEL MODE: a shot sent to the other fighters stops on their body here (it only flies on this screen: theirs judges it)
+      if (b.pvpOut && G.duel && duelHooks.bodies){
+        for (const o of duelHooks.bodies()){
+          const t = segCylinder(PREV, b.mesh.position, o.pos, o.r + BOLT_R, o.pos.y, o.pos.y + o.h);
+          if (t >= 0){ b.mesh.position.lerpVectors(PREV, b.mesh.position, t); boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir); kill = onBody = true; break; }
+        }
+      }
       if (b.playerShot && isTrooper()) suppressFoes(b);   // the ARC trooper's fire pins what it tears past (enemies/coverfight.js)
       for (const e of enemies){
+        if (onBody) break;   // (stopped on a duel fighter's body, above)
         if (e.dead || e.converted) continue;
         if (b.ally && !isFodder(e) && b.mark !== e) continue;
         if (b.hitSet && b.hitSet.has(e)) continue;   // a piercing shot is already through this one (player/gun-moves.js)   // a squadmate's fire leaves the duellists to you, unless you ordered it on one (data/allies.js)
         const h = sweepHit(e, PREV, b.mesh.position, BOLT_R);
         if (h && (!hit || h.t < hit.t)){ hit = h; foe = e; }
       }
-      const bp = shared.boss && shared.boss.hp > 0 && !b.ally ? shared.boss.group.position : null;
+      const bp = shared.boss && shared.boss.hp > 0 && !b.ally && !onBody ? shared.boss.group.position : null;
       const bossT = bp ? segCylinder(PREV, b.mesh.position, bp, 1.6, bp.y, bp.y + 3.4) : -1;
       if (foe && !(bossT >= 0 && bossT < hit.t)){
         const e = foe;
@@ -321,6 +358,7 @@ export function updateBolts(dt){
       }
     }
     if (b.bid && !b.bxd && (kill || b.friendly) && hooks.bx) hooks.bx(b);   // co-op: spent or turned here, so the other copy goes
+    if (b.pvp && b.pvpRes && duelHooks.boltDone) duelHooks.boltDone(b, b.pvpRes);   // DUEL MODE: a foe's bolt, judged here (net/pvp.js)
     if (kill){ scene.remove(b.mesh); bolts.splice(i,1); }
   }
 }

@@ -6,4 +6,7 @@
 //   swingHit(body, b)   the blade reached the other fighter (combat.js applySwingDamage): sent for them to judge
 //   power(kind, aim, A) a push or a pull was cast (player/jedi/force.js): does it catch the other fighter
 //   taken(dmg, opts, chip) a blow landed on this hero (player/damage.js hurtPlayer), whoever struck it
-export const duelHooks = { bodies: null, swingStart: null, swingHit: null, power: null, taken: null };
+//   shot(b, color, scale) a gunner's bolt left the barrel (player/mando/weapons.js spawnBlasterBolt): true if it was sent
+//   boltDone(b, res)    a foe's bolt (b.pvp) was spent or turned on this screen (enemies/bolts.js): hit, blocked, deflected...
+//   flame(aim, range, cosLim, dmg, dt) the flamer's stream this frame (player/mando/weapons.js updateFlame)
+export const duelHooks = { bodies: null, swingStart: null, swingHit: null, power: null, taken: null, shot: null, boltDone: null, flame: null };

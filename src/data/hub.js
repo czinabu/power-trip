@@ -129,15 +129,15 @@ const TEMPLE_WINGS = {
 
 const HUB_LIST = {
   temple: { name: 'THE HIDDEN TEMPLE', place: 'TYTHON', home: 'THE TEMPLE', room: 'WING',
-    tile: 'Walk the temple on Tython, gather your party and pick a mission together',
+    tile: 'Your hub on Tython: gather your party, pick a mission',
     travel: 'Travel to any wing of the temple.',
     start: 'hall', order: ['hall', 'council', 'landing', 'training', 'archives', 'trophies', 'forge'], wings: TEMPLE_WINGS },
   kamino: { name: 'THE CLONE CITADEL', place: 'KAMINO', home: 'THE CITADEL', room: 'DECK',
-    tile: 'Walk the cloning citadel on Kamino, gather your squad and pick a mission together',
+    tile: 'Your hub on Kamino: gather your squad, pick a mission',
     travel: 'Travel to any deck of the citadel.',
     start: 'deck', order: ['deck', 'warroom', 'range', 'halls', 'armory'], wings: KAMINO_WINGS },
   covert: { name: 'THE HIDDEN COVERT', place: 'UNDER THE RUINS', home: 'THE COVERT', room: 'HALL',
-    tile: 'Walk the clan\'s covert round its great forge, gather your party and pick a job together',
+    tile: 'Your clan\'s hub: gather your party, pick a job',
     travel: 'Travel to any hall of the covert.',
     start: 'forge', order: COVERT_ORDER, wings: COVERT_WINGS },
 };

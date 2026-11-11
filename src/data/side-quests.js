@@ -135,8 +135,8 @@ export const SIDE_QUESTS = [
     ask: 'Something walks the burned temple on Jedha at night: a Jedi who fell there, they say, still guarding the seals with a blade. Break the seals and see what comes for you.',
     take: [
       { i: 0, title: 'BREAK THE SEALS',
-        say: all('Three seals round the dais, and a garrison camped on them. Stand at each until it breaks.'),
-        task: all('Stand at each seal to break it') },
+        say: all('Three seals round the dais, and a garrison walking the courtyard. Break each seal before they see you.'),
+        task: all('Break each seal without being seen') },
       { i: 2, title: 'FACE THE GRAVE KNIGHT', name: 'THE GRAVE KNIGHT', form: 'makashi', kicker: 'A FALLEN JEDI', tint: 0x3a6a5a, hp: 4.5,
         enter: all('A figure in a burned robe walks down the steps, its blade already lit.'),
         line: all('You came to the seals. So did I, once.'),

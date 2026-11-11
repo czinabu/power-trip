@@ -117,8 +117,8 @@
 #hubpanel .hm-side .hb-ic .ic{width:19px;height:19px}
 
 /* the station prompt under the crosshair: a small plate in the hero's paint */
-:is(#hubp,#zonep,#zoneqp,#secp,#mercyp){border-radius:0;background:var(--hx-paper);color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
-:is(#hubp,#zonep,#zoneqp,#secp,#mercyp) kbd{border-radius:0;border:0;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
+:is(#hubp,#zonep,#zoneqp,#secp,#sneakp,#mercyp){border-radius:0;background:var(--hx-paper);color:var(--hx-text);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+:is(#hubp,#zonep,#zoneqp,#secp,#sneakp,#mercyp) kbd{border-radius:0;border:0;color:var(--hx-on-accent);background:var(--hx-accent);box-shadow:0 0 0 2px var(--hx-ink)}
 
 /* ---------- THE JEDI: a holocron page. Night blue, a gold double hairline, diamond studs, Cinzel ---------- */
 [data-hero="jedi"] :is(#hubpanel,#zonepanel) .hb-box{box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 4px var(--hx-paper-solid),inset 0 0 0 5px rgba(217,178,94,.4),0 0 0 2px var(--hx-ink),0 24px 60px rgba(0,0,0,.6);

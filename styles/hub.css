@@ -1,12 +1,12 @@
 /* POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE. */
 /* THE HIDDEN TEMPLE (game/hub.js, ui/hub-ui.js): the station prompt under the crosshair, and the station panel */
-#hubp,#zonep,#zoneqp,#secp,#mercyp{position:fixed;left:50%;top:calc(50% + 46px);transform:translate(-50%,4px);display:flex;align-items:center;gap:9px;
+#hubp,#zonep,#zoneqp,#secp,#sneakp,#mercyp{position:fixed;left:50%;top:calc(50% + 46px);transform:translate(-50%,4px);display:flex;align-items:center;gap:9px;
   padding:6px 14px 6px 7px;border-radius:var(--r-lg);background:rgba(4,14,26,.66);box-shadow:0 4px 16px rgba(0,0,0,.3);
   font:700 13px/1 var(--font-ui);letter-spacing:2.4px;color:var(--ink);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:4;white-space:nowrap}
-#hubp.on,#zonep.on,#zoneqp.on,#secp.on,#mercyp.on{opacity:1;transform:translate(-50%,0)}
-#hubp kbd,#zonep kbd,#zoneqp kbd,#secp kbd,#mercyp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+#hubp.on,#zonep.on,#zoneqp.on,#secp.on,#sneakp.on,#mercyp.on{opacity:1;transform:translate(-50%,0)}
+#hubp kbd,#zonep kbd,#zoneqp kbd,#secp kbd,#sneakp kbd,#mercyp kbd{font:700 12px/1 var(--font-ui);min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
   border:1px solid rgba(120,214,255,.75);border-radius:5px;color:#9ae4ff;background:rgba(90,210,255,.1)}
-body.cutscene :is(#hubp,#zonep,#zoneqp,#secp,#mercyp){opacity:0 !important}
+body.cutscene :is(#hubp,#zonep,#zoneqp,#secp,#sneakp,#mercyp){opacity:0 !important}
 
 /* a meditation's progress, under its prompt */
 #secp{position:fixed;overflow:hidden}

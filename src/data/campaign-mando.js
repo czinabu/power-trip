@@ -93,7 +93,7 @@ export const MANDO_CHAPTERS = {
               [ROOK, 'I can help. I know where all the jammers are, I watched them put them up—'],
               [A, 'Rook. The ship.']] },
     brief: ['The last ship is loading in the hangar mouth, and the Magistrate has jammers on the canyon walls to keep it from calling for the rest of the clan.',
-            'Hold the ramp. Then kill the jammers. Then deal with the droid.'],
+            'Hold the ramp. Then get down to the jammers quietly and rig them. Then deal with the droid.'],
     opening: { lines: [[A, 'Eleven foundlings and one ship. That ship lifts.']] },
     lines: {
       duel: [{ who: VX, rival: true, say: 'Foundling count aboard: ten. One unaccounted for. Searching.' }, 'One unaccounted for. Where is Rook?'],

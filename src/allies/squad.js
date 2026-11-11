@@ -48,6 +48,7 @@ import { ALLY_COLOR, ALLY_DOWN, addFriendRing, updateFriendRing, makeFriendTag }
 import { meetAlly } from '../game/codex.js';
 import { buildHeroAlly, attachHeroAlly, dropHeroAlly, stepHeroAlly, stepHeroPuppet, heroCut, heroDeflect, heroHurt, heroShot, heroMuzzle } from './hero-ally.js';
 import { heroAllyDef } from '../data/hero-allies.js';
+import { unaware } from '../enemies/patrol.js';
 
 export const allies = [];
 /* CO-OP (net/squad.js fills this in; null in solo): the host's browser runs the squad and the guest's draws it as puppets
@@ -74,7 +75,7 @@ const FOLLOW = { kind: 'follow' }, FOLLOW_PARTNER = { kind: 'follow', partner: t
 const steer = { x: 0, z: 0 };
 const diffKey = () => (G.diff in SQUAD.dmg ? G.diff : 'knight');
 const standing = a => a.state !== 'down';
-export const isFodder = e => !!FODDER[e.type] && !e.champion && !e.warbringer;
+export const isFodder = e => !!FODDER[e.type] && !e.champion && !e.warbringer && !unaware(e);   // (a guard on his beat who hasn't seen anyone is left be: enemies/patrol.js)
 export const squadSize = () => allies.length;
 export const squadStanding = () => allies.filter(standing).length;
 // squadmates standing inside a zone (a mission's hold or capture post counts them)
@@ -482,7 +483,7 @@ export const squadDown = () => allies.filter(a => !standing(a)).length;
    ============================================================ */
 // duel: the hero it would go after is in a 1v1 (enemies/bubble.js), so the squad is the fight it looks for first
 export function foeAllyTarget(e, pp, duel){
-  if (!allies.length || e.converted || e.dummy || e.dead || !isFodder(e) || e.t.bomber){ e.allyTgt = null; e.onAlly = false; return null; }
+  if (!allies.length || e.converted || e.dummy || e.dead || !isFodder(e) || e.t.bomber || unaware(e)){ e.allyTgt = null; e.onAlly = false; return null; }
   if (e.icBy){   // INTERCEPTED (updateIntercept): it's on the squadmate who stepped into its path, for as long as that holds
     if (standing(e.icBy) && allies.includes(e.icBy) && G.gt < e.icT){ e.allyTgt = e.icBy; e.onAlly = true; return e.icBy; }
     e.icBy = null; e.allyCheck = 0;
@@ -887,7 +888,7 @@ function outOfDuel(w){
    with a shot. It keeps the spot while it's still good and the fight hasn't moved off, and regroups once it's calm
    ============================================================ */
 // a foe of the rank and file that's in the fight: on its feet, not a training dummy, near the hero (or on the squad)
-const aggroFoe = (e, lp) => !e.dead && !e.converted && e.state !== 'spawn' && !e.dummy && isFodder(e) &&
+const aggroFoe = (e, lp) => !e.dead && !e.converted && e.state !== 'spawn' && !e.dummy && !unaware(e) && isFodder(e) &&
   (e.onAlly || Math.hypot(e.group.position.x - lp.x, e.group.position.z - lp.z) < ENGAGE.aggro);
 // the fight as the hero sees it: the middle of the nearest few foes in it, or null with none
 const _near = [];
@@ -1537,3 +1538,12 @@ export function updateSquadHud(){
 
 // the hero can only go down (rather than fall) with someone standing to come for them (game/revive.js)
 addHeroReviver(() => allies.some(standing));
+// THE SQUAD HOLDS BACK while the hero goes in quietly (the infiltrate objective: game/infiltrate.js), and follows again
+// after. No order is given (no points spent, no banner): they just wait where they stand
+export function squadHoldBack(on){
+  for (const a of allies){
+    if (a.net) continue;
+    if (on){ a.ord = { kind: 'hold', at: V3(a.group.position.x, 0, a.group.position.z), back: true }; a.prevOrd = null; a.mark = null; }
+    else if (a.ord && a.ord.back){ a.ord = FOLLOW; a.prevOrd = null; }
+  }
+}

@@ -25,7 +25,7 @@ export function medalsBegin(def, retry){
   Object.assign(T, { on: showsMedals(def), id: def && def.id, def, hero: G.hero, t0: G.gt, missed: new Set(), host: [], wasDown: false });
 }
 export function medalsEnd(){ T.on = false; }
-// something that counts against a goal (data/medals.js MISSED_BY): fell · evacuees · escort · chase · slice · squad · duel
+// something that counts against a goal (data/medals.js MISSED_BY): fell · evacuees · escort · chase · slice · squad · duel · seen
 export function medalNote(what){ if (T.on) T.missed.add(what); }
 // every frame of a mission (host and guest): the hero's own falls, a duel's health, the squad, the escort's health
 export function medalsTick(o, vip){

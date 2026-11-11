@@ -31,6 +31,7 @@ export const MEDAL_COL = { clear: '#c8d2dc', par: '#7fd4ff', bonus: '#ffd24a' };
      slice     a hit knocked slicing progress off a console
      squad     a squadmate went down
      duel      the hero dropped below half health in a duel
+     seen      a guard, a camera or a light saw a hero on an infiltrate (game/infiltrate.js: the meter passed SPOT)
    A goal that is never missed is kept. */
 export const BONUS = {
   deathless: { line: 'Win without falling once', fits: () => true },
@@ -41,9 +42,10 @@ export const BONUS = {
   squad:    { line: { jedi: 'No squadmate goes down', mando: 'No one at your side goes down', trooper: 'Bring the whole squad home: no one goes down' },
               fits: (d) => !!d.squad || d.objectives.some(o => o.squad) },
   duel:     { line: 'Win every duel above half health', fits: (d) => d.objectives.some(o => o.kind === 'duel') },
+  unseen:   { line: 'Never be seen', fits: (d) => d.objectives.some(o => o.kind === 'infiltrate') },
 };
 // what each goal is missed by (game/medals.js note): the events that count against it
-export const MISSED_BY = { deathless: ['fell'], evacuees: ['evacuees'], escort: ['escort'], chase: ['chase'], slice: ['slice'], squad: ['squad'], duel: ['duel'] };
+export const MISSED_BY = { deathless: ['fell'], evacuees: ['evacuees'], escort: ['escort'], chase: ['chase'], slice: ['slice'], squad: ['squad'], duel: ['duel'], unseen: ['seen'] };
 export const DUEL_HP = 0.5;     // the duel goal: never below this share of your health while a duel is on
 export const ESCORT_HP = 0.5;   // the escort goal: never below this share of its health
 
@@ -66,12 +68,12 @@ export const MISSION_MEDALS = {
   graveyard:     { bonus: 'escort' },
   forge:         { bonus: 'deathless' },
   pursuit:       { bonus: 'chase' },
-  'jedha-night': { bonus: 'duel' },
+  'jedha-night': { bonus: 'unseen' },
   strike:        { bonus: 'squad' },
   chains:        { bonus: 'evacuees' },
   // the Mandalorian's
   salthollow:    { bonus: 'slice' },
-  covert:        { bonus: 'evacuees' },
+  covert:        { bonus: 'unseen' },
   gallows:       { bonus: 'duel' },
   holdfast:      { bonus: 'duel' },
   // the ARC trooper's
@@ -83,7 +85,7 @@ export const MISSION_MEDALS = {
   oldkillhouse:  { bonus: 'duel' },
   chipworks:     { bonus: 'slice' },
   warcamp:       { bonus: 'squad' },
-  hunt:          { bonus: 'duel' },
+  hunt:          { bonus: 'unseen' },
   lastassault:   { bonus: 'squad' },
   broadcast:     { bonus: 'deathless' },
   // Act IV, the Sith gate
@@ -102,7 +104,7 @@ export const MISSION_MEDALS = {
 export const SIDE_MEDALS = {};
 
 // the order a mission with no goal of its own tries them in
-const DEFAULT_ORDER = ['evacuees', 'escort', 'chase', 'slice', 'duel', 'deathless'];
+const DEFAULT_ORDER = ['unseen', 'evacuees', 'escort', 'chase', 'slice', 'duel', 'deathless'];
 export function defaultBonus(def){ return DEFAULT_ORDER.find(k => BONUS[k].fits(def)) || 'deathless'; }
 const pick = (v, hero) => v && typeof v === 'object' ? (v[hero] || v.jedi || v.mando || v.trooper) : v;
 // the bonus goal's key for a mission as this hero plays it (one that doesn't fit the mission falls back to one that does)
@@ -126,6 +128,7 @@ export const PAR = {
   pursuit: { speed: 8, standoff: 30, add: 20 },   // the route at this m/s, each standoff, + this
   duel: [45, 22],                 // + this × its foe's hp multiplier
   breach: 40,                     // a door: stack, fuse, the room
+  infiltrate: [1.0, 26, 15],      // per mark: × its time, + this (the sneaking up to it); + this once
   walker: 80,                     // the walker takedown: three legs tangled, the neck charge, the fall
   round: 15,
   min: 60,
@@ -145,6 +148,7 @@ function objCost(o, def, S){
     case 'pursuit': { const leg = (def.route || [])[o.leg || 0]; return len(leg) * S / PAR.pursuit.speed + (o.standoff || []).length * PAR.pursuit.standoff + PAR.pursuit.add; }
     case 'duel': return PAR.duel[0] + PAR.duel[1] * (o.hp || 1);
     case 'breach': return PAR.breach;
+    case 'infiltrate': return (o.marks || []).length * ((o.time || 3) * PAR.infiltrate[0] + PAR.infiltrate[1]) + PAR.infiltrate[2];
     case 'walker': return PAR.walker;
   }
   return 30;

@@ -41,10 +41,10 @@ export function chainWeights(t, at, blend){
 
 /* the chain's geometry in its first joint's frame: rings at y = dir·t (dir -1 down a limb, +1 up a spine), with
    extra rings packed round each joint so the bend has edges to curve with */
-export function chainGeo(rings, at, blend, profile, dir, caps){
+export function chainGeo(rings, at, blend, profile, dir, caps, pack = 3){   // pack: the extra rings either side of a joint (a crowd's body packs fewer: enemies/kit.js)
   const src = [...rings].sort((a, b) => a.t - b.t);
   const ts = src.map(r => r.t);
-  for (const j of at) for (let k = -3; k <= 3; k++) ts.push(j + k * blend / 2);
+  for (const j of at) for (let k = -pack; k <= pack; k++) ts.push(j + k * blend * 1.5 / pack);
   ts.sort((a, b) => a - b);
   const lo = src[0].t, hi = src[src.length - 1].t;
   const keep = [];

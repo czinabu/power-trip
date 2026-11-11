@@ -34,7 +34,7 @@ import { buildNav } from '../enemies/nav.js';
 import { setDoorsOpen, doorsOpen, doorAt } from '../world/doors.js';
 import { makeEvacuee } from '../world/arenas/refuge.js';
 import { animateCivilian } from '../enemies/civilian.js';
-import { startLevel, queueSpawn, checkUnlocks } from './flow.js';
+import { startLevel, queueSpawn, checkUnlocks, partyWave } from './flow.js';
 import { endRun } from './summary.js';
 import { showBanner, bannerTap } from '../ui/banners.js';
 import { storyBeat, comms, commsBusy } from './story.js';
@@ -201,8 +201,11 @@ function fieldSpawn(type, x, z, opts){
 }
 // a story chapter played late (the Act II world left for second: a chapter's `harder`, data/campaign-jedi.js) has its foes dug in:
 // one more of each group's first kind
+// (a party gets half a group more for each extra hero, from the same kinds: game/flow.js partyWave)
 function queueGroup(g, opts){
-  for (const t in g) for (let n = 0; n < g[t]; n++) queueSpawn(t, opts);
+  const list = [];
+  for (const t in g) for (let n = 0; n < g[t]; n++) list.push(t);
+  for (const t of partyWave(list)) queueSpawn(t, opts);
   const first = Object.keys(g)[0];
   if (M.chapter && M.chapter.harder && first) queueSpawn(first, opts);
 }

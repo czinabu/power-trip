@@ -290,6 +290,10 @@ html.desktop-app #exitBtn{display:inline-flex}
 #overlay.st-menu .ov-foot kbd{font-size:12px;min-width:2.1em;height:2.1em;margin:0 2px}
 /* the main menu's quiet fullscreen toggle: an icon + word at the end of the hint row (the pause screen's hint row has it too,
    SETTINGS keeps its pill). fullscreen.js hides it where the browser can't go fullscreen (iPhone Safari) */
+/* the title screen keeps only the fullscreen toggle (and, on a pad, A select · B back): Tab, Enter, M and P are play's keys,
+   shown on the pause screen */
+#overlay.st-menu .ov-foot{display:flow-root}
+#overlay.st-menu .ov-foot :is(.kbonly,.ingame){display:none}
 .fsmini{display:none;align-items:center;gap:5px;float:right;margin:-3px -6px 0 12px;padding:3px 6px;border-radius:var(--r-chip);
   color:var(--ink-faint);cursor:pointer;pointer-events:auto;transition:color .15s,background .15s}
 #overlay:is(.st-menu,.st-pause) .fsmini{display:inline-flex}
@@ -780,13 +784,33 @@ html.desktop-app #overlay.st-pause #exitBtn{grid-column:span 3;order:10;margin-t
 #autosave.on{opacity:1;transform:none}
 #autosave.bad{color:#ff9a8a}
 #saves .howto-panel{width:min(620px,100%)}
-/* SAVE FILES (ui/files-ui.js): the line under the title, and its panel (the save slots' cards) */
+/* THE HERO CARD (ui/files-ui.js): under the title, who you're playing (the hero, their rank and how far up the ranks), in
+   which save file, with SWITCH on it. The whole card opens the files panel; its panel is the save slots' cards */
 #fileline{display:none}
-#overlay.st-menu #fileline{display:inline-flex;align-items:center;gap:10px;margin-top:12px;padding:5px 10px 5px 0;cursor:pointer;pointer-events:auto;
-  font:600 12px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-soft);border-radius:var(--r-lg);transition:color .15s}
-#fileline .fl-k{padding:3px 7px;border:1px solid var(--edge);background:rgba(6,14,26,.85);border-radius:6px;font-size:10px;letter-spacing:1.6px;color:var(--ink-dim);transition:color .15s,border-color .15s}
-#fileline:hover{color:var(--ink)}
-#fileline:hover .fl-k{color:var(--ink);border-color:var(--edge-lit)}
+#overlay.st-menu #fileline{display:flex;align-items:center;gap:16px;box-sizing:border-box;width:100%;margin-top:18px;padding:12px 16px 12px 12px;
+  cursor:pointer;pointer-events:auto;color:var(--ink-soft);border:1px solid var(--edge);border-radius:var(--r-lg);background:rgba(6,14,26,.72);transition:border-color .15s}
+#fileline .fl-emb{flex:none;display:flex;width:58px;height:58px;box-sizing:border-box;padding:7px;border:1px solid var(--edge);border-radius:var(--r);background:rgba(255,255,255,.04)}
+#fileline .fl-emb svg{width:100%;height:100%}
+#fileline .fl-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+#fileline .fl-file{font:600 11px/1 var(--font-ui);letter-spacing:2px;color:var(--ink-faint)}
+#fileline .fl-t{font:700 28px/1 var(--font-display);letter-spacing:2px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fileline .fl-r{display:flex;align-items:center;gap:10px;font:600 12.5px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-dim);white-space:nowrap}
+#fileline .fl-rank{color:var(--accent)}
+#fileline .fl-rank:empty{display:none}
+#fileline .fl-pips{display:flex;gap:3px}
+#fileline .fl-pips i{width:16px;height:5px;background:var(--edge)}
+#fileline .fl-pips i.on{background:var(--accent)}
+#fileline .fl-k{flex:none;align-self:center;padding:9px 14px;border:1px solid var(--edge);background:rgba(6,14,26,.85);border-radius:6px;font:600 12px/1 var(--font-ui);letter-spacing:1.6px;color:var(--ink-dim);transition:color .15s,border-color .15s}
+#fileline:is(:hover,.padfocus){border-color:var(--edge-lit)}
+#fileline:is(:hover,.padfocus) .fl-k{color:var(--ink);border-color:var(--edge-lit)}
+@media (max-width:520px),(max-height:500px){
+  #overlay.st-menu #fileline{margin-top:10px;padding:7px 10px;gap:10px}
+  #fileline .fl-emb{width:40px;height:40px;padding:5px}
+  #fileline .fl-t{font-size:20px}
+  #fileline .fl-pips i{width:12px;height:4px}
+  #fileline .fl-k{padding:7px 10px;font-size:11px}
+  #fileline .fl-lv{display:none}
+}
 #files{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,4,10,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);cursor:default}
 #files.open{display:flex}
@@ -1487,27 +1511,23 @@ body.wb-open #overlay{background:none}
 /* ---------- THE TITLE SCREEN'S MODE GROUPS (ui/menus.js openGroup): the temple on top, STORY / QUICK PLAY / FREEPLAY /
    ONLINE under it; the first three swap their short list in for the temple and the four while open ---------- */
 #overlay:is(.st-menu,.vpicking) #modeselect{display:flex;flex-direction:column;gap:10px}
-#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{min-height:112px;padding:22px 40px 22px 22px}
-#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple .mt{font-size:30px;letter-spacing:3px}
 .mgroups,.msub{display:flex;flex-direction:column;gap:6px}
 .msub{display:none;animation:rise .2s var(--ease)}
 #overlay.mgrp .mgroups{display:none}
-/* an open group is what you came for: the hub tile steps aside so its list sits right under the title, and rises back
-   in on ‹ BACK */
-#overlay.mgrp #modeselect .modeopt.temple{display:none}
-#overlay:is(.st-menu,.vpicking):not(.mgrp) #modeselect .modeopt.temple{animation:rise .2s var(--ease)}
+/* the temple is a row of the list (it steps aside while CONTINUE already goes there: ui/menus.js refreshContinue) */
+#modeselect .modeopt[hidden]{display:none!important}
 #overlay.grp-story #sub-story,#overlay.grp-arcade #sub-arcade,#overlay.grp-freeplay #sub-freeplay{display:flex}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt{min-height:58px;padding:12px 36px 12px 18px}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .mt{font:700 19px/1 var(--font-display);letter-spacing:2.5px}
 #overlay:is(.st-menu,.vpicking) #modeselect :is(.mgroups,.msub) .modeopt .md{margin-top:5px}
 /* a group reads as a list, not a wall of tiles: quiet plates, the picked one's gold edge on the left */
 #modeselect .mgroups .modeopt{background:rgba(8,18,33,.5)}
-/* the top level marks no pick: the temple alone wears the gold brackets, as the way in; the lists under the groups
-   still mark the mode last picked */
+/* the top level marks no pick: CONTINUE wears the gold, or the temple's brackets while there is nothing to continue; the
+   lists under the groups still mark the mode last picked */
 #modeselect .mgroups .modeopt.sel{background:rgba(8,18,33,.5);border-color:var(--edge)}
 #modeselect .mgroups .modeopt.sel::before,#modeselect .mgroups .modeopt.sel::after{opacity:0}
-#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{border-color:rgba(255,210,74,.7)}
-#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple::before,#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple::after{opacity:1;border-color:var(--gold)}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin{border-color:rgba(255,210,74,.7)}
+#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin::before,#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin::after{opacity:1;border-color:var(--gold)}
 .msub-head{display:flex;align-items:center;gap:14px;margin-bottom:2px}
 .msub-head .msub-back{padding:7px 12px;font-size:12px;letter-spacing:2px;background:rgba(8,18,33,.7)}
 .msub-t{font:700 20px/1 var(--font-display);letter-spacing:2.5px;color:var(--gold)}
@@ -1534,12 +1554,11 @@ body.wb-open #overlay{background:none}
 .mp-arcade.open-always>.mp-fold .mp-arrow{display:none}
 
 /* ---------- CONTINUE (ui/menus.js refreshContinue): the first tile when this save file has somewhere to go back to.
-   It wears the gold as the quickest way in; the temple under it steps down to the plain frame ---------- */
+   It wears the gold as the quickest way in, the one big tile; the rows under it are the list ---------- */
 #modeselect .modeopt.continue[hidden]{display:none!important}
 #overlay.mgrp #modeselect .modeopt.continue,#overlay.vpicking #modeselect .modeopt.continue{display:none!important}
 #overlay:is(.st-menu) #modeselect .modeopt.continue{min-height:84px;padding:16px 40px 16px 22px;border-color:rgba(255,210,74,.85);
   background:linear-gradient(90deg,rgba(255,210,74,.16),rgba(8,18,33,.55) 70%)}
 #overlay:is(.st-menu) #modeselect .modeopt.continue .mt{font-size:28px;letter-spacing:3px;color:var(--gold)}
 #overlay:is(.st-menu) #modeselect .modeopt.continue::before,#overlay:is(.st-menu) #modeselect .modeopt.continue::after{opacity:1;border-color:var(--gold)}
-#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple{min-height:84px;border-color:var(--edge)}
-#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple::before,#overlay.st-menu:has(#mode-continue:not([hidden])) #modeselect .modeopt.temple::after{opacity:0}
+

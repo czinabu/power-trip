@@ -59,7 +59,7 @@ for (const hero of HEROES){
     await page.goto(url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-' + hero, el => el.click());
-    await page.click('#mode-temple'); await page.click('#goText');
+    await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
     await settle();
     check(await inHub(), `${hero}: into the hub`);
     await page.evaluate((w) => GAME.hub.goWing(w), POST[hero]);

@@ -52,7 +52,7 @@ for (const hero of HEROES){
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-' + hero, el => el.click());
-    await page.click('#mode-temple');
+    await page.$eval('#mode-temple', el => el.click());
     await page.click('#goText');
     check(await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused), `${hero}: into the hub`);
     const hubId = await page.evaluate(() => GAME.G.hubId), council = COUNCIL[hubId] || 'council';

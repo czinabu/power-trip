@@ -1,12 +1,13 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// THE SAVE FILES on the title screen (engine/save-files.js keeps them apart): one small line under the title names the file
-// being played and the hero's rank in it ("SAVE FILE 1 · JEDI KNIGHT"); clicking it opens the files panel, with a card per
+// THE SAVE FILES on the title screen (engine/save-files.js keeps them apart): the hero card under the title names the file
+// being played, the hero and their rank in it (JEDI · KNIGHT, rank 2 of 4); clicking it opens the files panel, with a card per
 // file to switch to, start fresh in, or delete. Switching happens in place, so every mode (campaign, missions, survival,
 // sandbox, training, the temple, co-op) reads that file's ranks, cards, crafting, choices and wins from then on.
 
 import { G } from '../state.js';
 import { FILES, activeFile, fileExists, fileInfo, fileGet, noteActive, switchFile, deleteFile } from '../engine/save-files.js';
 import { profileOf } from '../game/profile.js';
+import { heroName } from '../game/wardrobe.js';
 import { TRACKS } from '../data/profile.js';
 import { connected } from '../net/session.js';
 import { clearParked } from '../game/saves.js';
@@ -33,13 +34,26 @@ function ranksOf(n){
 const when = (t) => { const d = new Date(t);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };
 
-/* ---------- the line under the title ---------- */
+/* ---------- the hero card under the title ---------- */
 let shown = '';
 function refreshLine(){
   if (!line) return;
   const hero = HEROES.includes(G.hero) ? G.hero : 'jedi';
-  const text = 'SAVE FILE ' + activeFile() + ' · ' + rankLabel(hero, profileOf(hero).rank);
-  if (text !== shown){ shown = text; line.querySelector('.fl-t').textContent = text; noteActive({ hero }); }
+  const R = (TRACKS[hero] || TRACKS.jedi).ranks, r = Math.min(profileOf(hero).rank | 0, R.length - 1);
+  const name = heroName(hero), rank = R[r].nm, key = [activeFile(), name, rank, r].join('|');
+  if (key === shown) return;
+  shown = key;
+  const q = (c) => line.querySelector(c);
+  q('.fl-file').textContent = 'SAVE FILE ' + activeFile();
+  q('.fl-t').textContent = name;
+  q('.fl-rank').textContent = rank === name ? '' : rank;   // (the trooper's first rank is TROOPER: said once)
+  q('.fl-pips').innerHTML = R.map((_, i) => '<i' + (i <= r ? ' class="on"' : '') + '></i>').join('');
+  q('.fl-lv').textContent = 'RANK ' + (r + 1) + ' OF ' + R.length;
+  const pic = document.querySelector('#hero-' + hero + ' .hi');   // the hero's own emblem from its card on the hero step
+  const emb = pic && pic.cloneNode(true); if (emb) emb.removeAttribute('class');
+  q('.fl-emb').replaceChildren(...(emb ? [emb] : []));
+  line.title = 'Save file ' + activeFile() + ': switch save file or start a new one';
+  noteActive({ hero });
 }
 // it follows the hero picked and every return to the menu (the overlay's state, the body's hero classes)
 if (line){

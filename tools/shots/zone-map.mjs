@@ -28,7 +28,7 @@ for (const hero of HEROES){
   await page.goto(url);
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
   await page.$eval('#hero-' + hero, el => el.click());
-  await page.click('#mode-temple'); await page.click('#goText');
+  await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
   await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused);
   await page.evaluate((z) => GAME.zone.startZone(z), ZONE);
   await until((z) => GAME.G.mode === 'play' && GAME.G.zone === z && !GAME.G.paused, ZONE);

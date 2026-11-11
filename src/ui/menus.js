@@ -242,36 +242,76 @@ function fitMenu(){
 window.addEventListener('resize', queueFit);
 new MutationObserver(queueFit).observe(overlay, { attributes: true, attributeFilter: ['class'] });   // customizing on and off
 
-/* CONTINUE — the title screen's first tile, when this save file has somewhere to go back to: one click puts you where you
-   left off. What was last played from the title (the campaign, Act IV or the hub; a run started from the hub counts as
-   the hub, since that is where it comes back to) is kept per save file. It skips the Forms page and the training offer:
-   the run's own loadout is already saved, as RESUME and a retry do. */
+/* CONTINUE — the title screen's first tile, when this save file has somewhere to go back to: one click puts you back in
+   the last thing you were playing. That is the run itself, wherever it was started from: a story chapter picked at the
+   hub's holotable continues that chapter, not the hub. The hub (or an open zone, reached through it) counts when it was
+   the last stop. The training grounds and a co-op guest's runs leave the note as it was (practice, and the host's run).
+   Kept per save file (engine/save-files.js). It skips the Forms page and the training offer: the run's own loadout is
+   already saved, as RESUME and a retry do. */
 const LAST_PLAY = 'sw_last_play';
+const CONTINUES = ['campaign', 'gate', 'mission', 'endless', 'sandbox', 'temple'];
 function noteLastPlay(){
-  const m = G.fromHub || G.modeSel === 'temple' ? 'temple' : G.modeSel === 'campaign' || G.modeSel === 'gate' ? G.modeSel : null;
-  if (m) try { localStorage.setItem(LAST_PLAY, m); } catch(e){}
+  const m = G.modeSel === 'zone' ? 'temple' : G.modeSel;
+  if (!CONTINUES.includes(m)) return;
+  const rec = m === 'mission' ? { m, id: G.missionId } : { m };
+  try { localStorage.setItem(LAST_PLAY, JSON.stringify(rec)); } catch(e){}
 }
+function lastPlay(){
+  let raw = null; try { raw = localStorage.getItem(LAST_PLAY); } catch(e){}
+  if (!raw) return null;
+  // a note from before: just the mode. Its 'temple' also stood for any run started from the hub, so a saved story run wins
+  if (/^[a-z]+$/.test(raw)) return raw === 'temple' && canResume() ? { m: 'campaign' } : CONTINUES.includes(raw) ? { m: raw } : null;
+  try { const r = JSON.parse(raw); return r && CONTINUES.includes(r.m) ? r : null; } catch(e){ return null; }
+}
+// the mission a noted one plays now: a challenge is a fresh random contract, a raid is today's rotation of it
+function continueMission(id){
+  if (!id) return null;
+  if (isArcadeId(id)) return randomArcadeId();
+  if (isRaidId(id)){ const r = parseRaidId(id); return r ? raidIdFor(r.raid) : null; }
+  return missionOpen(id) ? id : null;
+}
+// where CONTINUE goes: { m, id? }, or null. The noted stop if it can still be played, else the hero's saved story run
 function continueTarget(){
-  let last = null; try { last = localStorage.getItem(LAST_PLAY); } catch(e){}
-  if (last === 'gate' && gateOpen() && gateRun()) return 'gate';
-  if (last === 'temple') return 'temple';
-  if (canResume()) return 'campaign';
+  const last = lastPlay();
+  if (last){
+    if (last.m === 'campaign' && canResume()) return last;
+    if (last.m === 'gate' && gateOpen() && gateRun()) return last;
+    if (last.m === 'temple') return last;
+    if (last.m === 'endless' && survivalUnlocked()) return last;
+    if (last.m === 'sandbox' && sandboxUnlocked()) return last;
+    if (last.m === 'mission'){ const id = continueMission(last.id); if (id) return { m: 'mission', id, arcade: isArcadeId(last.id) }; }
+  }
+  if (canResume()) return { m: 'campaign' };
   return null;
+}
+const dedupe = (s) => s.split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
+function continueLine(to){
+  const who = heroName(G.hero);
+  switch (to.m){
+    case 'temple':  return 'Back to ' + nextHub().name + ' · ' + who;
+    case 'gate':    return 'Act IV · ' + resumeProgressOf(gateRun());
+    case 'mission': return to.arcade ? 'Challenges · a new random contract · ' + who : 'Mission · ' + missionTitle(to.id) + ' · ' + who;
+    case 'endless': return 'Survival · ' + who;
+    case 'sandbox': return 'Sandbox · ' + who;
+    default:        return dedupe('Story · ' + resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + who);
+  }
 }
 function refreshContinue(state = _ovState){
   const el = document.getElementById('mode-continue'); if (!el) return;
   const to = state === 'menu' && G.mode === 'menu' && !G.coopJoin ? continueTarget() : null;
   el.hidden = !to;
-  if (!to) return;
-  document.getElementById('contMd').textContent = to === 'temple' ? 'Back to ' + nextHub().name + ' · ' + heroName(G.hero)
-    : to === 'gate' ? 'Act IV · ' + resumeProgressOf(gateRun())
-    : (resumeProgress() + ' · ' + resumeLabel().replace(/^CHAPTER \d+ · /, '') + ' · ' + heroName(G.hero)).split(' · ').filter((w, i, a) => w !== a[i - 1]).join(' · ');   // ('PROLOGUE · PROLOGUE' said once)
+  // the temple row steps aside while CONTINUE already goes there, and is the marked way in while there's no CONTINUE
+  const temple = document.getElementById('mode-temple');
+  temple.hidden = !!to && to.m === 'temple';
+  temple.classList.toggle('wayin', !to);
+  if (to) document.getElementById('contMd').textContent = continueLine(to);
 }
 document.getElementById('mode-continue').addEventListener('click', (e) => {
   e.stopPropagation(); audioInit();
   const to = continueTarget(); if (!to) return refreshContinue();
-  if (to === 'campaign') pickUpSavedRun();
-  if (!setModeSel(to)) return;
+  if (to.m === 'campaign') pickUpSavedRun();
+  if (to.m === 'mission') setMission(to.id);
+  if (!setModeSel(to.m)) return;
   G.missionKit = null;
   launch();
 });

@@ -108,6 +108,16 @@ Reverse-grip rules (Shien always; Niman when the grip preference is reverse):
   back to the guard. The form's block decides the hands (see the lore grip above: Makashi and Shien one-handed, most others two-handed). Blocked
   melee blows use the same catches. A swing in flight keeps the blade (the cut already deflects).
 
+## Changes of move
+
+- **Pose inertia** (`src/player/anim/inertia.js`, tuned by `INERTIA`): the pose code may put a joint anywhere it likes
+  when the hero changes what he is doing (lands, stops a sprint, starts a cut, comes out of a dash, raises a gun). The
+  last step of `animatePlayer` blends it: a joint that jumped carries on from where it was and closes on the new pose
+  over a beat. So a new pose never needs its own hand-made blend in, and nothing should add a one-frame snap on purpose
+  except the catches and a shot's recoil (left out of the move key there). The blade's sweep for hits runs on the pose's
+  own joints, before the blend, so timing is the pose code's.
+- A new state that changes the hero's pose belongs in `moveKey` in that file.
+
 ## Mandalorian
 
 - **Blasters:** gunslinger stances (Din Djarin). Quick draw, one-handed hip shots with the pistol, and a two-handed brace for the rifle.

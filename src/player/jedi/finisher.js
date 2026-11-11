@@ -19,7 +19,7 @@ import { spawnHitSpark, spawnGroundShock } from '../../fx/vfx.js';
 import { sparks, clashFlash, clashSparks } from '../../fx/ink.js';
 import { shared, G, enemies, player, isGunner } from '../../state.js';
 import { fwd, playerPos, stance, maxStam } from '../helpers.js';
-import { damageEnemy, staggerEnemy, hitReact, flinchEnemy } from '../../enemies/damage.js';
+import { damageEnemy, staggerEnemy, hitReact, flinchEnemy, nudgeFoe } from '../../enemies/damage.js';
 import { damageBoss } from '../../boss/boss.js';
 import { bodyRadius } from '../../enemies/bodyshape.js';
 import { scarBody, severLimbs } from '../../enemies/scars.js';
@@ -264,7 +264,7 @@ function edge(b, sw, target, st){
       if (d - bodyRadius(o) > E.r) continue;
       const dir = V3(dx / d, 0, dz / d);
       if (o.t.heavy){ flinchEnemy(o, dir, 0.6); continue; }
-      if (!o.net){ o.group.position.addScaledVector(dir, E.push * 0.4); staggerEnemy(o, dir.x, dir.z, 'STAGGERED'); }
+      if (!o.net){ nudgeFoe(o, dir, E.push * 0.4); staggerEnemy(o, dir.x, dir.z, 'STAGGERED'); }
       else damageEnemy(o, 1, dir, 18);   // (a co-op guest: a shove the host applies)
     }
     spawnGroundShock(V3(at.x, 0.1, at.z), st.blade || 0x9fd8ff, E.r + 1.5, 0.34, 0.6);

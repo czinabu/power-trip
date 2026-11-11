@@ -4,6 +4,8 @@
 // parry all have answers, in the shared tell colours (fx/tells.js):
 //   SUPPRESSING FIRE (I-II) a red lane on the floor at you, then both pistols down it: break line of sight, or get
 //                           off the lane (it follows you, slowly). Cover stops the bolts.
+//   DEAD-EYE         (I-II) stand planted in the open and he marks you: a laser sight on you, then a hard double tap
+//                           down it. Get behind cover (it stops the bolts) or get moving before it locks.
 //   DETONATORS       (I-II) lobbed onto amber marks round you: move.
 //   COMBAT ROLL      (I-II) crowd him and he rolls away to a new angle, and snaps a shot off as he comes up.
 //   CALL IN          (I-II) "purge squad, on me": his troopers (and in phase II, his jet troopers) come in.
@@ -25,6 +27,7 @@ import { paintLungeLine, dropLungeLine } from '../enemies/tactics.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { throwGrenade } from '../enemies/grenades.js';
 import { tellFx, TELLS } from '../fx/tells.js';
+import { updateAimLine } from '../enemies/specials.js';
 import { burst } from '../fx/particles.js';
 import { sparks } from '../fx/ink.js';
 import { floater } from '../fx/floaters.js';
@@ -142,6 +145,54 @@ const suppress = {
     return s > c.dur + 0.5;
   },
   end(e){ hideLane(); net('lane', e, { on: 0 }); e.group.rotation.z = 0; },
+};
+
+/* ---------------- I-II: DEAD-EYE (a hero planted in the open gets marked) ---------------- */
+// how long each hero has stood in the open on about one spot (look.frame keeps it): cover or real movement resets it
+const planted = new Map();
+function trackPlanted(dt){
+  for (const p of players){
+    let k = planted.get(p);
+    if (!k){ k = { x: p.pos.x, z: p.pos.z, t: 0 }; planted.set(p, k); }
+    if (!p.here || p.down || p.cover || Math.hypot(p.pos.x - k.x, p.pos.z - k.z) > MV.deadeye.still){ k.x = p.pos.x; k.z = p.pos.z; k.t = 0; continue; }
+    k.t += dt;
+  }
+}
+const plantedFor = (p) => (planted.get(p) || { t: 0 }).t;
+const deadeye = {
+  id: 'deadeye', urgent: true,
+  can: (e, C) => mar(e).guns && C.dist < MV.deadeye.maxDist && plantedFor(C.hero) > MV.deadeye.after && !C.hero.down,
+  start(e, C, M){
+    M.n = 0; M.aim = V3(C.pp.x, C.pp.y + 1.1, C.pp.z); e.hyper = true;
+    floater(above(e, 2.6), 'DEAD-EYE', '#ff6a5a');
+    S.windup(e.group.position, true);
+  },
+  update(e, C, M, dt){
+    const c = MV.deadeye, g = e.group, t = M.t;
+    // the sight follows the hero till it locks, then holds on where they were: move off it, or put cover between
+    if (t < c.windup * c.lockAt) M.aim.set(C.pp.x, C.pp.y + 1.1, C.pp.z);
+    const yaw = Math.atan2(M.aim.x - g.position.x, M.aim.z - g.position.z);
+    g.rotation.y += Math.atan2(Math.sin(yaw - g.rotation.y), Math.cos(yaw - g.rotation.y)) * (1 - Math.exp(-16 * dt));
+    rightArm(e, -1.45, dt, 16); leftArm(e, 1, dt, 16);
+    const from = muzzle(e, true);
+    if (t < c.windup){
+      updateAimLine(e, from, M.aim, clamp(t / c.windup, 0, 1));
+      if (t + dt >= c.windup * c.lockAt && !M.told){ M.told = true; tellFx('dodge', g.position, 1.4, c.windup * (1 - c.lockAt)); }
+      return false;
+    }
+    if (e.aimLine) e.aimLine.visible = false;
+    const s = t - c.windup;
+    if (M.n < c.n && s >= M.n * c.gap){
+      const right = M.n % 2 === 0, f = muzzle(e, right); M.n++;
+      fireBolt(f, V3(M.aim.x - f.x, M.aim.y - f.y, M.aim.z - f.z), DEF.over.boltSpeed * 1.3, c.dmg, false, false, e);
+      burst(f, DEF.boltColor, 3, 4, 0.6, 0.3);
+      g.rotation.z = (right ? -1 : 1) * 0.05;
+    }
+    if (M.n < c.n) return false;
+    M.open = true; g.rotation.z = 0;
+    return s > c.n * c.gap + 0.35;
+  },
+  end(e){ if (e.aimLine) e.aimLine.visible = false; e.group.rotation.z = 0; },
 };
 
 /* ---------------- I-II: DETONATORS ---------------- */
@@ -514,14 +565,14 @@ const look = {
   defeatStart(e){ hideLane(); dropPulses(); dropTurned(); S.slam(e.group.position); },
   defeatPose(e, M, t){ signalGlow(e, Math.max(0, 0.6 - t * 0.3)); batonGlow(e, Math.max(0, 0.6 - t * 0.3)); rightArm(e, 0.5, 1 / 60, 4); },
   frame(e, dt){
-    tickPulses(dt); tickTurned();
+    tickPulses(dt); tickTurned(); trackPlanted(dt);
     const M = mar(e), F = e.fin;
     // how long the hero has crowded him (the roll answers it)
     const pp = playerPos(), close = Math.hypot(pp.x - e.group.position.x, pp.z - e.group.position.z) < MV.roll.crowd;
     M.closeT = !F.sig && M.guns && close ? M.closeT + dt : Math.max(0, M.closeT - dt * 2);
     if (!F.sig && !F.over){ signalGlow(e, F.phase >= 2 ? 0.35 : 0); if (!M.guns) batonGlow(e, 0.45); }
   },
-  teardown(){ hideLane(); dropPulses(); dropTurned(); for (const p of dropped) scene.remove(p); dropped.length = 0; guest.lane = null; },
+  teardown(){ planted.clear(); hideLane(); dropPulses(); dropTurned(); for (const p of dropped) scene.remove(p); dropped.length = 0; guest.lane = null; },
   // co-op guest: the host's move effects
   netFx(m, e){
     if (m.k === 'pulse') sendPulse(V3(m.x, 0, m.z), MV.signal, false, e);
@@ -536,4 +587,4 @@ const look = {
 };
 const guest = { lane: null };
 
-registerFinale(MARSHAL_BOSS, { suppress, grenade, roll, callIn, flight, signal, flurry, tackle, lastStand }, look);
+registerFinale(MARSHAL_BOSS, { suppress, deadeye, grenade, roll, callIn, flight, signal, flurry, tackle, lastStand }, look);

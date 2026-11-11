@@ -236,10 +236,10 @@ export const MARSHAL_BOSS = {
   dress: { model: 'commander', weapon: 'commander', color: 0x24262c, eye: 0xff3a2a, cloth: 0xc9a040, trim: 0xc9a040, rag: 0x5a3a12,
            bare: 'marshal', face: { scar: true, beard: 'stubble' } },
   over: { officer: false, range: 20, standoff: 12, windup: 0.5, recover: 0.75, boltSpeed: 34 },   // (no ORDERS of a line officer: his own moves are the calls)
-  hp: 2100, dmg: 1.8, scale: 1.3, speed: 1.0,   // hp (before difficulty and co-op), × the officer's damage, size, pace
+  hp: 2900, dmg: 1.8, scale: 1.3, speed: 1.0,   // hp (before difficulty and co-op), × the officer's damage, size, pace
   pace: [1, 1.05, 1.3],
-  phaseAt: [0.66, 0.33],
-  armour: 0.7, hitCap: 0.06, hitCapOpen: 0.12, phaseResist: [1, 0.9, 0.82], burstCap: 0.15, burstWin: 1.6,
+  phaseAt: [0.62, 0.26],
+  armour: 0.7, hitCap: 0.06, hitCapOpen: 0.12, phaseResist: [1, 0.9, 0.82], burstCap: 0.12, burstWin: 1.6,
   sigGap: [3.8, 3.4, 2.6], sigMin: 1.8,
   // phase III's body: the guns are gone, he closes in with the baton (a fast melee foe on the same legs)
   melee: { range: 2.8, windup: 0.42, recover: 0.5, swing: 0.15, dmgMul: 1.9 },
@@ -248,7 +248,10 @@ export const MARSHAL_BOSS = {
   moves: {
     // I+ SUPPRESSING FIRE: both pistols down a lane at you (a red lane on the floor as he plants): get behind cover,
     // or off the lane; it sweeps after you, slowly
-    suppress: { from: 1, to: 2, minDist: 5, maxDist: 30, windup: 0.7, dur: 2.2, every: 0.09, dmg: 7, spread: 0.045, track: 1.4, lane: 22, cd: 7 },
+    suppress: { from: 1, to: 2, minDist: 5, maxDist: 30, windup: 0.7, dur: 2.2, every: 0.09, dmg: 8, spread: 0.045, track: 1.4, lane: 22, cd: 7 },
+    // I+ DEAD-EYE: a hero planted (on about one spot, `still` m) in the open for `after` s is marked: a laser sight that
+    // tracks them, locks at `lockAt` of the windup, then a hard double tap down it. Cover stops it; so does moving
+    deadeye: { from: 1, to: 2, after: 1.6, still: 2.2, maxDist: 34, windup: 0.9, lockAt: 0.75, n: 3, gap: 0.12, dmg: 22, cd: 4 },
     // I+ DETONATORS: two (three in phase II) lobbed onto amber marks round you
     grenade: { from: 1, to: 2, minDist: 6, maxDist: 26, windup: 0.5, n: [2, 3], gap: 0.3, spread: 3.2, r: 3.4, fuse: 1.1, dmg: 24, cd: 9 },
     // I+ COMBAT ROLL: crowd him and he's gone, rolling away to a new angle (and a shot as he comes up)

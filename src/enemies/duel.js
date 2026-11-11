@@ -919,7 +919,7 @@ export function startLock(e, kind){
   G.hitstop = Math.max(G.hitstop, 0.12); G.shake = Math.max(G.shake, 0.6);
   G.slowmo = Math.min(G.slowmo, 0.35); G.slowmoT = Math.max(G.slowmoT, 0.25);
   if (!G.seenLock){ G.seenLock = true; showBanner('SABER LOCK', 'Mash LMB to drive through · E to kick out · F to Force-shove', 2.6); }
-  if (K.label) floater(V3(cp.x, cp.y + 0.45, cp.z), K.label, '#ffe9a8');
+  if (K.label) floater(V3(cp.x, cp.y + 0.45, cp.z), K.label, '#ffe9a8', 'key');
   lockBar(true);
   if (G.stats) G.stats.locks = (G.stats.locks || 0) + 1;
   return true;
@@ -1149,7 +1149,7 @@ function loseLock(){
   player.parryT = 0;
   hurtPlayer(DUEL.lock.loseDmg * enemyDmgScale(), g.position, false, true, false, { unblockable: true, noClash: true });
   player.flinchT = player.flinchMax = CFG.player.flinch.heavy; player.flinchHeavy = true;
-  floater(playerPos(), K.lose, '#ff6a3a');
+  floater(playerPos(), K.lose, '#ff6a3a', 'decisive');
 }
 function splitLock(){
   const e = LOCK.foe, pp = playerPos(), g = e.group;

@@ -482,6 +482,6 @@ export function staggerEnemy(e, awayX, awayZ, label){
   spawnHitSpark(cp, 0xffd24a, 1.3);
   G.hitstop = Math.max(G.hitstop, 0.08);
   G.shake = Math.max(G.shake, 0.4);
-  floater(g.position, label || (e.t.heavy ? 'STAGGERED!' : 'PARRIED!'), '#ffe27a');
+  floater(g.position, label || (e.t.heavy ? 'STAGGERED!' : 'PARRIED!'), '#ffe27a', 'key');
   S.parry(cp);
 }

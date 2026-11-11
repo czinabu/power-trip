@@ -3,7 +3,8 @@
 
 import { camera } from '../engine/renderer.js';
 import { rand, TMP } from '../utils.js';
-import { G } from '../state.js';
+import { G, isGunner } from '../state.js';
+import { CALL, TIER, rankOf } from '../data/callouts.js';
 
 /* ---------- floating damage text ---------- */
 // Damage numbers come from a fixed POOL of recycled divs (built once, lazily) rather
@@ -21,12 +22,76 @@ function initFloaters(){
     _floaters.push(d);
   }
 }
-export function floater(worldPos, text, color){
+/* ---------- one word at a time (data/callouts.js) ----------
+   Every WORD is ranked, and one shows at a time: a higher rank replaces the word that is up, the same rank takes over
+   once it has been read, a lower one waits briefly or is dropped. ROUTINE words are handed to the cue (fx/cues.js: a
+   glint on the blade, a chime) once they have been shown CALL.teach times. Numbers go straight through. */
+let _cur = null;    // the word that is up: { el, tier, t0, end } (ms, performance.now)
+let _next = null;   // the one word waiting its turn: { pos, text, color, big, r, at }
+let _nextTimer = 0;
+let _cue = null;
+const _taught = new Map();
+const _stats = { shown: 0, replaced: 0, waited: 0, dropped: 0, quiet: 0 };
+/* fx/cues.js registers what a quiet ROUTINE word does instead: fn(cue, worldPos, cssColor) */
+export function onQuietWord(fn){ _cue = fn; }
+export const wordUp = () => _cur && performance.now() < _cur.end ? _cur.el.textContent : '';
+export const wordStats = () => ({ ..._stats, up: wordUp(), waiting: _next ? _next.text : '' });
+export function clearWords(){ if (_cur){ _cur.el.style.transition = 'none'; _cur.el.style.opacity = '0'; } _cur = _next = null; clearTimeout(_nextTimer); _taught.clear(); }
+
+const isNumber = (t) => typeof t === 'number' || /^[+\-−]?\d+$/.test(t);
+function tierFor(r){ return isGunner() && r.tier < TIER.NOTICE ? TIER.NOTICE : r.tier; }   // (ROUTINE and MINOR only quiet the Jedi)
+
+function say(worldPos, text, color, big, kind){
+  const r = rankOf(text, kind), tier = tierFor(r), now = performance.now();
+  if (tier === TIER.ROUTINE && !G.training && (_taught.get(text) || 0) >= CALL.teach){
+    _stats.quiet++; if (_cue && r.cue) _cue(r.cue, worldPos, color);
+    return;
+  }
+  if (_cur && now < _cur.end){
+    const over = tier > _cur.tier || (tier === _cur.tier && tier >= CALL.waits && now - _cur.t0 >= CALL.minRead * 1000);
+    if (!over){
+      if (tier >= CALL.waits){   // it waits its turn (one waits at a time: the higher rank, then the newer)
+        if (!_next || tier >= _next.tier){ _next = { pos: TMP.clone().copy(worldPos), text, color, big, tier, at: now }; _stats.waited++; }
+        else _stats.dropped++;
+        clearTimeout(_nextTimer);
+        _nextTimer = setTimeout(sayNext, Math.max(16, (_next.tier === _cur.tier ? _cur.t0 + CALL.minRead * 1000 : _cur.end) - now));
+      } else { _stats.dropped++; if (_cue && r.cue) _cue(r.cue, worldPos, color); }
+      return;
+    }
+    cut();   // the new word has the floor
+  }
+  if (tier === TIER.ROUTINE) _taught.set(text, (_taught.get(text) || 0) + 1);
+  const el = big ? showBig(worldPos, text, color) : showWord(worldPos, text, color);
+  if (el){ _cur = { el, tier, t0: now, end: now + (big ? CALL.big : CALL.word) * 1000 }; _stats.shown++; }
+}
+// (the running fade's target is already 0, so only dropping the transition takes the old word off at once)
+function cut(){ _cur.el.style.transition = 'none'; _cur.el.style.opacity = '0'; _stats.replaced++; }
+function sayNext(){
+  const n = _next, now = performance.now();
+  if (!n) return;
+  if (now - n.at > CALL.stale * 1000){ _next = null; _stats.dropped++; return; }
+  if (_cur && now < _cur.end && n.tier < _cur.tier){ _nextTimer = setTimeout(sayNext, _cur.end - now + 4); return; }   // (a timer can fire a hair early, or something bigger took the floor: wait it out)
+  _next = null;
+  if (_cur && now < _cur.end) cut();
+  const el = n.big ? showBig(n.pos, n.text, n.color) : showWord(n.pos, n.text, n.color);
+  if (el){ _cur = { el, tier: n.tier, t0: now, end: now + (n.big ? CALL.big : CALL.word) * 1000 }; _stats.shown++; }
+}
+
+function take(){
+  if (!_floaters.length) initFloaters();
+  let d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX;
+  if (_cur && d === _cur.el && performance.now() < _cur.end){ d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX; }   // (a burst of numbers never recycles the word that is up)
+  return d;
+}
+
+/* floater(pos, text, color[, kind]): a number rises and fades as ever; a word goes through the ranking above.
+   `kind` (optional) is the call site's own rank for a label built from data: see data/callouts.js KINDS */
+export function floater(worldPos, text, color, kind){
+  if (!isNumber(text)) return say(worldPos, String(text), color, false, kind);
   TMP.copy(worldPos); TMP.y += 2.2;
   TMP.project(camera);
   if (TMP.z > 1) return;
-  if (!_floaters.length) initFloaters();
-  const d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX;
+  const d = take();
   // snap back to the start pose WITHOUT animating, then let the CSS transition carry it up
   d.style.transition = 'none'; d.className = 'fl';
   d.textContent = text;
@@ -42,14 +107,37 @@ export function floater(worldPos, text, color){
     d.style.opacity = '0';
   });
 }
+// a small word: it is the only one up, so it is held bright long enough to read, then fades as it rises
+function showWord(worldPos, text, color){
+  TMP.copy(worldPos); TMP.y += 2.2;
+  TMP.project(camera);
+  if (TMP.z > 1) return null;
+  const d = take();
+  d.style.transition = 'none'; d.className = 'fl word';
+  d.textContent = text;
+  d.style.color = color || '#fff';
+  d.style.left = (Math.min(0.94, Math.max(0.06, TMP.x*0.5+0.5)) * innerWidth) + 'px';
+  d.style.top  = (Math.min(0.9, Math.max(0.08, -TMP.y*0.5+0.5)) * innerHeight) + 'px';
+  d.style.transform = 'translate(-50%,-50%)';
+  d.style.opacity = '1';
+  void d.offsetWidth;
+  requestAnimationFrame(()=>{
+    if (d.textContent !== text) return;
+    d.style.transition = 'transform ' + CALL.word + 's ease-out, opacity ' + (CALL.word - CALL.wordHold) + 's ease-in ' + CALL.wordHold + 's';
+    d.style.transform = 'translate(-50%,-150%)';
+    d.style.opacity = '0';
+  });
+  return d;
+}
 
 /* A CALLOUT: the result of an exchange (CLEAN BLOCK, WRONG SIDE, PARRY, BLOCKED), where the eye already is: at
-   `worldPos` itself (between the two blades), big and bright, popping in over-size, held a beat, then gone */
-export function callout(worldPos, text, color){
+   `worldPos` itself (between the two blades), big and bright, popping in over-size, held a beat, then gone.
+   It is ranked like every other word (data/callouts.js) */
+export function callout(worldPos, text, color, kind){ say(worldPos, String(text), color, true, kind); }
+function showBig(worldPos, text, color){
   TMP.copy(worldPos).project(camera);
-  if (TMP.z > 1) return;
-  if (!_floaters.length) initFloaters();
-  const d = _floaters[_flHead]; _flHead = (_flHead + 1) % FLOATER_MAX;
+  if (TMP.z > 1) return null;
+  const d = take();
   d.style.transition = 'none'; d.className = 'fl call';
   d.textContent = text;
   d.style.color = color || '#fff';
@@ -59,10 +147,12 @@ export function callout(worldPos, text, color){
   d.style.opacity = '1';
   void d.offsetWidth;
   requestAnimationFrame(()=>{
+    if (d.textContent !== text) return;
     d.style.transition = 'transform .12s ease-out, opacity .3s ease-in .45s';
     d.style.transform = 'translate(-50%,-70%) scale(1)';
     d.style.opacity = '0';
   });
+  return d;
 }
 
 /* ---------- full-screen clash flash (parries, ripostes, big beats) ---------- */

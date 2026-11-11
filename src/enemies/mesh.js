@@ -1159,6 +1159,7 @@ export function buildEnemyMesh(t, o = {}){
   const u = g.userData = vis.userData;
   u.armSwing = ARM_SWING[t.model] || null;
   u.model = t.model;   // its stance (enemies/upper.js STANCE)
+  u.soft = soft;       // one continuous body: the trunk can bend further without opening a seam (enemies/upper.js BEND)
   u.look = look;       // a saber wielder's look (data/saber-cast.js): its blade colour, its side
   if (look && u.bladeGlow) u.bladeGlow.material.color.setHex(lookBlade(look));
   if (u.lids) u.lids.scale.y = LID_OPEN;   // a face's eyes rest open (enemies/upper.js faceLife blinks them)

@@ -527,13 +527,13 @@ function setAimHint(on){
 { let v; try { v = localStorage.getItem('sw_aimhint'); } catch(e){} setAimHint(v !== '0'); }
 document.getElementById('aimhintctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setAimHint(!G.aimHint); });
 // FOE BODIES — a preview (data/soft-body.js): the foes named there on one continuous body that bends at the joints
-// (enemies/softbody.js), or the rigid pieces every other foe still has. Off by default; foes built from then on wear it
+// (enemies/softbody.js), or the rigid pieces they had before. On by default; foes built from then on wear it
 function setSoftBody(on){
   SOFT_BODY.on = !!on; try { localStorage.setItem('sw_softbody', on ? '1' : '0'); } catch(e){}
   if (SOFT_BODY.forced != null) SOFT_BODY.forced = !!on;   // (a ?softbody= in the address: the switch still wins once it is pressed)
   const v = document.getElementById('softbodyval'); if (v) v.textContent = softBodyOn() ? 'SOFT' : 'RIGID';
 }
-{ let v; try { v = localStorage.getItem('sw_softbody'); } catch(e){} const f = SOFT_BODY.forced; setSoftBody(v === '1'); SOFT_BODY.forced = f;
+{ let v; try { v = localStorage.getItem('sw_softbody'); } catch(e){} const f = SOFT_BODY.forced; setSoftBody(v !== '0'); SOFT_BODY.forced = f;
   const el = document.getElementById('softbodyval'); if (el) el.textContent = softBodyOn() ? 'SOFT' : 'RIGID'; }
 document.getElementById('softbodyctl')?.addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setSoftBody(!softBodyOn()); });
 // GUARD RINGS — a duellist's guard crescent: fading as you learn to read the blade, always, or off (enemies/guardcue.js)
@@ -801,7 +801,7 @@ function resetSettings(){
   setShakeScale(1); setRumble(1); setFlashScale(1); setCamSway(0.8); setFov(CFG.camera.fov);
   setFinToggle('finSlow', true); setFinToggle('finCam', true); setFinToggle('killCam', true); setSkywar('auto'); setCompass(true); setMinimap(true);
   setStrafeMode('toggle'); setCutMouse(false); setSaberAssist('low'); setGuardRings('fading');
-  setAimHint(true); setSwingMirror(false); setSaberGrip('regular'); setSoftBody(false);
+  setAimHint(true); setSwingMirror(false); setSaberGrip('regular'); setSoftBody(true);
   resetQuality();
 }
 document.getElementById('setresetbtn').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); S.uiClick(); setResetConfirm(true); });

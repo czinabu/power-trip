@@ -64,7 +64,8 @@ export const CHEST_KIT = [
 
 // JETPACK: the standard pack, or the standard pack with more forged onto it
 export const JETPACKS = [
-  { id: 'standard', name: 'Standard', line: 'Twin tanks, bell nozzles and the missile mount.' },
+  { id: 'standard', name: 'Standard', line: 'Slim and close to the back: twin tanks, small nozzles and the missile mount.' },
+  { id: 'boba',     name: 'Boba-style', line: 'Bigger and boxier: fat domed tanks, wide nozzles and an antenna.' },
   { id: 'winged',   name: 'Winged',   earn: { chapter: 'trial-acrobat' }, line: 'Swept beskar wings out past the tanks.' },
   { id: 'heavy',    name: 'Reserve tanks', earn: { waves: 15 }, line: 'Two reserve canisters slung outboard.' },
 ];

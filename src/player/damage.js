@@ -14,7 +14,7 @@ import { floater, callout, screenFlash } from '../fx/floaters.js';
 import { shared, G, enemies, player, isGunner } from '../state.js';
 import { trooperHurtMul } from './trooper/cover.js';
 import { MANDO, BESKAR_GUARD } from '../data/mando.js';
-import { fwd, playerPos, stance, maxHp } from './helpers.js';
+import { fwd, playerPos, stance, maxHp, maxStam } from './helpers.js';
 import { flinchEnemy, staggerEnemy } from '../enemies/damage.js';
 import { FOCUS, addFocus, riposteWindow } from './jedi/focus.js';
 import { addFury } from './jedi/fury.js';
@@ -45,6 +45,14 @@ import { duelHooks } from '../game/duel-hooks.js';
 import { guardMeets, guardFlash } from './jedi/guardline.js';
 import { GUARD_TURN } from '../data/duel-guard.js';
 
+/* SHIEN — pressed by several blades (STANCES crowdRiposte { n, r }): at least n duellists within r m of you, so a blow
+   taken on the held guard readies its wheeling riposte, as Djem So's guard always does */
+function pressed(cr){
+  if (!cr) return false;
+  const pp = playerPos(); let n = 0;
+  for (const e of enemies) if (!e.dead && !e.converted && e.dp && Math.hypot(e.group.position.x - pp.x, e.group.position.z - pp.z) < cr.r && ++n >= cr.n) return true;
+  return false;
+}
 const MELEE_REACH_UP = 1.7;   // a melee foe can't strike you if you're perched higher than this above their feet
 const AWAY_GRACE = 800;   // ms (wall clock) after a co-op menu closes before a blow can land (the fight ran on while it was open)
 /* PERFECT DODGE — a blow that arrives in the first instant of a dash: time slows, the dash is refunded and (Jedi)
@@ -256,6 +264,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         player.cancelRiposte = (G.gt - (player.cancelT || -9)) < 0.45;   // parried straight out of a swing-cancel → a stronger answer
         player.ripLine = (opts && opts.line) || null;   // a duellist's strike: the riposte cuts back on the line it left open (jedi/guardline.js)
         player.force = clamp(player.force + 12 + player.up.parryForce + (stance().parryRefund || 0), 0, CFG.player.maxForce);   // skillful defense feeds the Force (NIMAN refunds extra)
+        if (!isGunner() && stance().parryBreath) player.stam = Math.min(maxStam(), player.stam + stance().parryBreath);   // NIMAN: a clean parry steadies the breath too
         if (player.up.parryHeal) player.hp = clamp(player.hp + player.up.parryHeal, 0, maxHp());   // the light path's THE LIGHT ENDURES (data/alignment.js)
         G.hitstop = Math.max(G.hitstop, 0.1);
         G.shake = Math.max(G.shake, 0.35);
@@ -305,11 +314,11 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         S.deflect(contact || V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8));   // the one blade-contact sound (clash + pyew), whatever weapon it was
         noteDefense('blocks', fromPos, opts);
         // a block is not a parry: some of a melee blow still gets through the guard
-        // DJEM SO — FLUID RIPOSTE: a blow taken square on the held guard readies a counter (a lighter one than a parry's)
-        if (melee && !isGunner() && stance().blockRiposte && !(player.riposteT > 0)){
+        // DJEM SO (and SHIEN) — FLUID RIPOSTE: a blow taken square on the held guard readies a counter (a lighter one than a parry's)
+        if (melee && !isGunner() && (stance().blockRiposte || pressed(stance().crowdRiposte)) && !(player.riposteT > 0)){
           player.riposteT = riposteWindow(CFG.player.riposteTime * 0.7); player.fluidRip = true;
           player.ripLine = (opts && opts.line) || null;
-          floater(pp, 'FLUID RIPOSTE', '#c9a0ff');
+          floater(pp, stance().riposteSweep ? 'WHEELING RIPOSTE' : 'FLUID RIPOSTE', '#c9a0ff');   // (SHIEN's wheels round: jedi/combat.js)
         }
         const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets only a sliver through)
         if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush * (GT ? GT.chip : 1), null, true, false, true);

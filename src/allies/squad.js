@@ -24,7 +24,7 @@ import { buildEnemyMesh } from '../enemies/mesh.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { sweepHit, bodyRadius } from '../enemies/bodyshape.js';
-import { damageEnemy, staggerEnemy } from '../enemies/damage.js';
+import { damageEnemy } from '../enemies/damage.js';
 import { fireBolt } from '../enemies/bolts.js';
 import { segBlockedBySolids, segBlockedTall, clampToArena, collideSolids, findClearSpawn, blastCovered } from '../world/collision.js';
 import { navSteer, navClearance, navLineClear, navRoute, navNearestOpen, navOpenAt } from '../enemies/nav.js';
@@ -529,7 +529,8 @@ function pickTarget(a){
   if (m && Math.hypot(m.group.position.x - g.x, m.group.position.z - g.z) < a.role.range * 1.3 &&
       !segBlockedBySolids(g.x, g.z, m.group.position.x, m.group.position.z)) return m;
   const rs = a.rush && !a.rush.dead && enemies.includes(a.rush) ? a.rush : null;   // the rusher it stepped out to take
-  if (rs && !segBlockedBySolids(g.x, g.z, rs.group.position.x, rs.group.position.z)) return rs;
+  if (rs && Math.hypot(rs.group.position.x - g.x, rs.group.position.z - g.z) < a.role.range * 1.3 &&
+      !segBlockedBySolids(g.x, g.z, rs.group.position.x, rs.group.position.z)) return rs;
   const focus = G.squadFocus && G.gt - (G.squadFocusT || -99) < SQUAD.focusFor ? G.squadFocus : null;
   const sup = G.suppress && G.suppress.until > G.gt ? G.suppress : null;   // SUPPRESS: the foes in the zone first
   let best = null, bs = 1e9;
@@ -1138,15 +1139,20 @@ function updateIntercept(dt, pp){
     if (G.gt - SQ.saidRush > I.sayEvery){ SQ.saidRush = G.gt; say(best, isTrooper() ? 'RUSHER! I\'VE GOT HIM, SIR!' : 'RUSHER! I\'VE GOT HIM!', 'RUSHER. MINE.'); }
   }
 }
-// the rifle butt: a squadmate close on its rusher knocks it back and staggers it (a saboteur's fuse is broken too)
+// the rifle butt: a squadmate close on its rusher knocks it back, a short stagger. Only one still running in or winding
+// up a blow (a saboteur with its fuse lit is past shoving: it's shot). A squadmate's shove, not the hero's parry: no
+// hitstop, no camera shake
 function rushShove(a){
-  const e = a.rush, p = a.group.position, q = e.group.position;
-  if (!e || G.gt < (a.shoveT || 0) || e.state === 'stagger') return;
-  const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz) || 1;
+  const e = a.rush;
+  if (G.gt < (a.shoveT || 0) || e.hyper || (e.state !== 'chase' && e.state !== 'windup')) return;
+  const p = a.group.position, q = e.group.position, dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz) || 1;
   if (d - bodyRadius(e) > INTERCEPT.shove) return;
   a.shoveT = G.gt + INTERCEPT.shoveCd; a.kick = 1;
-  q.x += dx / d * 0.9; q.z += dz / d * 0.9;
-  staggerEnemy(e, dx / d, dz / d, 'SHOVED');
+  e.state = 'stagger'; e.st = INTERCEPT.stagger; e.stumble = 0.28; e.flash = 0.1;   // (it stumbles back off its target: enemies/ai.js stagger)
+  const at = V3(q.x - dx / d * 0.4, 1.3 * (e.t.scale || 1), q.z - dz / d * 0.4);
+  burst(at, 0xcfd6e0, 8, 5, 3, 0.5);
+  sfx(140, 0.08, 'square', 0.05, 70);
+  floater(e.group.position, 'SHOVED', '#bfe8ff');
 }
 // ATTACK TARGET: a gold diamond spins over the foe the squad was ordered onto, while anyone still has it marked
 let markTag = null;

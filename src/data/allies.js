@@ -96,8 +96,8 @@ export const SQUAD = {
 
 /* INTERCEPTING RUSHERS (allies/squad.js updateIntercept): a plain melee trooper (or a saboteur) running at the ARC
    trooper is called out ("RUSHER!") and a squadmate steps into its path to take it: the rusher turns on that squadmate
-   (a saboteur can't be turned, so it's shot and shoved instead), the squadmate shoots it first and shoves it back with
-   a rifle butt (a stagger) when it arrives. The hero's own rifle bash stays his. One squadmate per rusher, one rusher per
+   (a saboteur can't be turned, so it's shot first and shoved back before it can light its fuse), the squadmate shoots it
+   first and shoves it back with a rifle butt (a short stagger) when it arrives. The hero's own rifle bash stays his. One squadmate per rusher, one rusher per
    squadmate, only on a follow order (HOLD / MOVE / COVER stand), never in a boss duel, never the medic */
 export const INTERCEPT = {
   heroes: { trooper: true },  // whose squads do it (by G.hero)
@@ -110,6 +110,7 @@ export const INTERCEPT = {
   hold: 4,                    // a squadmate keeps a rusher this long before it's looked at again (s)
   shove: 2.3,                 // the rifle butt lands within this of the rusher (m)
   shoveCd: 3.5,               // ...and a squadmate shoves again no sooner than this (s)
+  stagger: 0.8,               // how long a shoved rusher reels (s; a parried foe's is 1.3)
   sayEvery: 6,                // the callout, at most this often (s)
 };
 

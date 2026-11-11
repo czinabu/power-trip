@@ -328,10 +328,35 @@ function training(L, K, pal, R){
     live(K.deco(new THREE.CircleGeometry(r, 48), mat, x, 0.03, z, -PI / 2)).receiveShadow = true;
     live(K.deco(new THREE.RingGeometry(r, r + 0.3, 48), matHi, x, 0.04, z, -PI / 2));
   }
-  // REMOTES hovering over the sparring hall's ring, turning
+  // REMOTES hovering over the sparring hall's ring, turning: small training droids after the classic remote. A pale grey
+  // shell; round EMITTER PORTS, each a dark rust rim round a glass lens with a cross bracket over it (the one facing the
+  // ring's middle lit red: the one that fires); small raised panel plates and vent grilles between. (Low metalness on
+  // purpose: with no environment map a metallic sphere renders as a black ball, which is what these used to be.)
+  const shellM = std(0xdcd6d8, 0.6, 0.05, 0.3), plateM = std(0xb4aeb2, 0.7, 0.05, 0.2), rimM = std(0x7a3a2e, 0.6, 0.05, 0.15),
+    lensM = std(0xdfe8f0, 0.15, 0.1, 0.35), ventM = std(0x7a7478, 0.8, 0.05, 0.15), eyeM = glowM(0xff5a44);
+  const R0 = 0.28, Z = new THREE.Vector3(0, 0, 1);
+  const onShell = (m, obj, dir, lift = 0) => { const d = dir.clone().normalize(); obj.position.copy(d).multiplyScalar(R0 + lift); obj.quaternion.setFromUnitVectors(Z, d); m.add(live(obj)); return obj; };
+  const sph = (th, ph) => new THREE.Vector3(Math.sin(th) * Math.cos(ph), Math.sin(ph), Math.cos(th) * Math.cos(ph));
   for (let i = 0; i < 4; i++){
-    const a = i / 4 * PI * 2, m = live(K.deco(new THREE.SphereGeometry(0.45, 12, 8), std(0x3a3e44, 0.4, 0.6), 14 + Math.cos(a) * 5, 3.4, Math.sin(a) * 5));
-    const eye = live(new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 4), glowM(0xff4a3a))); eye.position.set(0, 0, 0.42); m.add(eye);
+    const a = i / 4 * PI * 2;
+    const m = live(K.deco(new THREE.SphereGeometry(R0, 20, 14), shellM, 14 + Math.cos(a) * 5, 3.4, Math.sin(a) * 5));
+    // the ports: one dead ahead (it fires), and a ring of four round the sides and back
+    const ports = [[0, 0.1], [1.25, 0.35], [-1.25, 0.35], [2.4, -0.3], [-2.4, -0.3], [PI, 0.5]];
+    ports.forEach(([th, ph], k) => {
+      const d = sph(th, ph);
+      onShell(m, new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), plateM), d, 0.004);   // the sunk dish round the port
+      onShell(m, new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.016, 6, 16), rimM), d, 0.01);
+      onShell(m, new THREE.Mesh(new THREE.CircleGeometry(0.045, 14), k === 0 ? eyeM : lensM), d, 0.012);
+      const br = onShell(m, new THREE.Group(), d, 0.014);
+      for (const r of [0, PI / 2]){ const bar = live(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.018, 0.012), rimM)); bar.rotation.z = r; br.add(bar); }
+    });
+    // panel plates and vent grilles between the ports
+    for (const [th, ph, w, h] of [[0.62, -0.5, 0.13, 0.07], [-0.62, -0.5, 0.13, 0.07], [0.7, 0.7, 0.1, 0.06], [-0.7, 0.7, 0.1, 0.06], [PI / 2, -0.9, 0.12, 0.06], [-PI / 2, -0.9, 0.12, 0.06], [2.0, 0.95, 0.1, 0.05]])
+      onShell(m, new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.02), plateM), sph(th, ph), 0.002);
+    for (const [th, ph] of [[0, -0.75], [0, 0.85], [PI, -0.6]]){
+      const v = onShell(m, new THREE.Group(), sph(th, ph), 0.004);
+      for (let k = -1; k <= 1; k++){ const g = live(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.02), ventM)); g.position.x = k * 0.037; v.add(g); }
+    }
     anim(m, (o, t, b) => { const k = t * 0.5 + i; o.position.set(14 + Math.cos(k) * 5, b.y + Math.sin(t * 1.4 + i) * 0.4, Math.sin(k) * 5); o.lookAt(14, 1.8, 0); });
   }
   // PRACTICE POSTS in two rows: wooden pylons to cut at, padded

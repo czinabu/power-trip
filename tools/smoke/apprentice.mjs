@@ -79,7 +79,7 @@ for (const hero of HEROES){
     check(await page.evaluate(() => GAME.APPRENTICE.apprenticeMet() && !!GAME.APPRENTICE.apprenticeNow().fig), `${hero}: met: they stand at their post in the hub`);
     // stand in front of them and tap F
     await page.evaluate((h) => {
-      const P = { jedi: [12, -14], mando: [12, -14], trooper: [12, -14] }[h], { G, player } = GAME;
+      const P = { jedi: [3, -11], mando: [12, -14], trooper: [12, -14] }[h], { G, player } = GAME;
       player.group.position.set(P[0], 0.6, P[1] + 2.4); player.vel.set(0, 0, 0); player.moveVel.set(0, 0, 0);
       G.yaw = player.faceYaw = Math.PI; G.pitch = 0.05;
     }, hero);

@@ -28,6 +28,7 @@ const ORDER_OPENS = [[VOICE.trooper, 'Midnight. The comms lit up, and every viso
                      [VOICE.trooper, 'Whatever that order was, brother, we are not following it.']];
 const MARSHAL = { foe: 'officer', dress: MARSHAL_DRESS, name: 'THE MARSHAL', tint: 0xc9a040, scale: 1.12 };   // in his own black-and-gold armour (data/allies.js MARSHAL)
 const CANTOR = { foe: 'acolyte', name: 'THE CANTOR', tint: 0x6a3a8a, scale: 1.04 };   // (its look: data/saber-cast.js CAST)
+const OVERSEER = { foe: 'brute', name: 'THE OVERSEER', tint: 0xff7a1e, scale: 1.35 };   // the Ember Academy's (data/missions.js academy)
 const CANTOR_LEAVES = [['THE CANTOR', 'The door is open now. He has waited a long time to meet whoever opened it.']];
 const MARSHAL_LEAVES = [['THE MARSHAL', 'Run, then. Hide your General. I will find you both, brother. It is what we were made for.']];
 
@@ -149,6 +150,10 @@ export const SCENES = {
   // ACT IV: the Cantor backs into the gate at Jedha (data/missions-gate.js gate-wake), the same figure you just fought
   'cantor-escape': { shots: 'mark', actor: { jedi: CANTOR, mando: CANTOR },
     jedi: CANTOR_LEAVES, mando: CANTOR_LEAVES },
+  // THE EMBER ACADEMY: its overseer breaks off into the smoke with the children gone (data/missions.js academy)
+  'overseer-escape': { shots: 'mark', actor: { jedi: OVERSEER, mando: OVERSEER },
+    jedi:  [['THE OVERSEER', 'Keep the little ones, Jedi. The master already has the one he wanted.']],
+    mando: [['THE OVERSEER', 'Keep the little ones, hunter. The master already has the one he wanted.']] },
   // (the epilogue's card says the rest: game/campaign.js showEpilogue)
   epilogue: { shots: 'hero',
     jedi:  [[VOICE.jedi, 'It is over.']],

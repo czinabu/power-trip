@@ -292,9 +292,11 @@ const KINDS = {
       if (s.escort) followLine(o, s, dt);
       const officers = enemies.some(e => !e.dead && !e.converted && e.type === 'officer');
       const alive = hostilesAlive() + G.spawnQueue.length + s.inc.reduce((n, w) => n + w.n, 0);
+      // climb: the pressure rises as the clock runs (the waves come quicker, and more of them are let on at once)
+      const climbF = o.climb ? o.climb * Math.min(1, s.prog / o.time) : 0;
       if ((s.pulseT -= dt) <= 0){
-        s.pulseT = o.every[officers ? 0 : 1];
-        if (alive < o.cap && s.lanes.length){
+        s.pulseT = o.every[officers ? 0 : 1] * (1 - climbF * 0.55);
+        if (alive < o.cap + Math.round(climbF * 4) && s.lanes.length){
           // the wave is called in: its lane lights up first, and the troops step out of it LANE.warn seconds later
           const wave = ++s.pulse, g = o.pulses[(wave - 1) % o.pulses.length];
           const pick = s.lanes.length > 1 ? s.lanes.filter(l => l.i !== s.lastLane) : s.lanes, lane = pick[Math.floor(Math.random() * pick.length)];
@@ -331,6 +333,16 @@ const KINDS = {
       // one of the line is down (shot, or caught in a blast): nobody gets aboard until they're up again
       const hurt = s.kids ? s.kids.filter(k => k.down > 0).length : 0;
       if (hurt) rate = 0;
+      // boss: someone comes for the zone in person this far in, and it can't be finished while they're standing
+      const B = o.boss;
+      if (B && !s.boss && s.prog >= o.time * (B.frac ?? 0.75)){
+        const [bx, bz] = B.from || o.at;
+        s.boss = spawnInquisitor(B, [bx, bz], { line: heroText(B.line), kicker: B.kicker });
+        storyBeat('duel', { name: B.name, quarry: false });   // (a chapter's rival line for him, as a duel's would be)
+        if (s.boss) s.boss.goal = { pos: V3(o.at[0], 0, o.at[1]), aggro: o.aggro || 8 };
+      }
+      const bossUp = s.boss && !s.boss.dead && enemies.includes(s.boss);
+      if (bossUp && s.prog + dt * rate >= o.time * 0.97) rate = 0;   // (the last of it waits on him)
       s.prog += dt * rate; s.rate = rate; s.inZone = inZone;
       if (s.kids) updateEvacuees(evac(o), s, dt, Math.min(1, s.prog / o.time), rate);
       setMarkerColor(s.zone, rate === 0 ? RED : heroKey(MISSION_COLOR));
@@ -339,7 +351,7 @@ const KINDS = {
       const total = alive ? ' · ' + alive + ' HOSTILE' + (alive === 1 ? '' : 'S') : '';
       const who = o.evacuees ? heroKey(evac(o).name) + ' ' + (evac(o).verb || 'ABOARD') + ' ' + s.aboard + ' / ' + evac(o).count : (o.holding || 'HOLDING');
       setObjectiveHud({ kicker: M.kick, title: o.title, frac: s.prog / o.time,
-        status: (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || (s.escort ? 'CLEAR THEM OFF THE LINE' : 'RETAKE THE RAMP')) : inZone ? who + ' · ' + mmss(o.time - s.prog)
+        status: bossUp && s.prog >= o.time * 0.96 ? (B.status || 'PUT ' + B.name + ' DOWN') + total : (hurt ? hurtStatus(evac(o), hurt) : gate && gate.status ? gate.status : rate === 0 ? 'OVERRUN: ' + (o.overrun || (s.escort ? 'CLEAR THEM OFF THE LINE' : 'RETAKE THE RAMP')) : inZone ? who + ' · ' + mmss(o.time - s.prog)
                : byLine ? 'GUARDING THE LINE · ' + who + ' · ' + mmss(o.time - s.prog)
                : mates ? 'SQUAD HOLDING ' + mmss(o.time - s.prog) : (o.unguarded || (s.escort ? (heroKey(evac(o).name) || 'LINE') + ' UNGUARDED' : 'RAMP UNGUARDED')) + ' ' + mmss(o.time - s.prog)) + total,
         warn: rate === 0 || !!(gate && gate.warn) });
@@ -1263,11 +1275,49 @@ function leadHero(P){
   return best || players[0];
 }
 function buildVip(d){
-  const g = buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.person ? { person: d.person } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
+  const g = d.vehicle ? buildCrawler(d) : d.kids ? buildKids(d)
+          : buildEnemyMesh({ model: d.model, color: d.color, eye: d.eye, cloth: d.cloth, scale: d.scale || 1 }, d.person ? { person: d.person } : { seed: 3 });   // (a named escort wears its own look: data/foe-looks.js)
   const tag = makeFriendTag(1.2); addFriendRing(g);
   if (d.ward) carryWard(g, d.ward);
   scene.add(g, tag); M.props.push(g, tag);
   return M.vip = { g, tag, def: d, hp: d.hp, maxHp: d.hp };
+}
+// an escort that isn't a person (escort `vehicle`): a salvage crawler, a squat hauler on two treads with its cab up
+// front and the load lashed on the back. It has no legs to walk: animVip rolls its treads instead
+function buildCrawler(d){
+  const g = new THREE.Group(), s = d.scale || 1, col = d.color ?? 0x9a7a4e;
+  const body = new THREE.MeshStandardMaterial({ color: col, roughness: 0.8, metalness: 0.35 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2e2a26, roughness: 0.9, metalness: 0.3 });
+  const glow = new THREE.MeshBasicMaterial({ color: d.eye ?? 0xffa040, toneMapped: false });
+  const box = (w, h, l, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), m); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; g.add(b); return b; };
+  const treads = [-1, 1].map(sx => box(0.5, 0.6, 2.6, dark, sx * 0.85, 0.3, 0));
+  box(1.6, 0.7, 2.4, body, 0, 0.85, -0.1);                 // the bed
+  box(1.3, 0.75, 0.8, body, 0, 1.55, 0.75);                // the cab
+  box(1.1, 0.22, 0.04, glow, 0, 1.62, 1.16);               // its lit window
+  const load = box(1.2, 0.6, 1.1, dark, 0, 1.5, -0.6);     // the cores, lashed down
+  box(0.18, 0.18, 0.18, glow, 0.45, 1.86, -0.6); box(0.18, 0.18, 0.18, glow, -0.45, 1.86, -0.6);
+  g.scale.setScalar(s);
+  g.userData.treads = treads; g.userData.load = load;
+  return g;
+}
+// an escort that is a few children together (escort `kids`: how many, of what kind): the eldest leads, the others close
+// behind. They're the stragglers, so they walk as one
+function buildKids(d){
+  const g = new THREE.Group(), n = d.kids || 3, kind = heroKey(d.kind) || (isMando() ? 'foundling' : 'youngling');
+  const at = [[0, 0.35], [-0.55, -0.35], [0.55, -0.4], [0, -0.95]];
+  g.userData.kids = [];
+  for (let i = 0; i < n; i++){
+    const m = makeEvacuee(kind, i); m.position.set(at[i % at.length][0], 0, at[i % at.length][1]);
+    g.add(m); g.userData.kids.push(m);
+  }
+  if (d.scale) g.scale.setScalar(d.scale);
+  return g;
+}
+// the escort's walk, each frame: a person's legs, a crawler's treads, the children's bob
+function animVip(v, g, dt, moving){
+  if (g.userData.treads){ for (const t of g.userData.treads) t.position.y = 0.3 + (moving ? Math.sin(G.gt * 22) * 0.02 : 0); g.userData.load.rotation.z = moving ? Math.sin(G.gt * 3) * 0.03 : 0; return; }
+  if (g.userData.kids){ g.userData.kids.forEach((k, i) => { k.position.y = moving ? Math.abs(Math.sin(G.gt * 9 + i * 1.7)) * 0.08 : 0; }); return; }
+  updateLegs(v, g, dt, 'ground'); updateUpper(v, g, dt, null);
 }
 // what an escort carries on its back (escort `ward`: its colour): a glowing stone in a soft halo, turning, so the one
 // you are walking reads at a glance from the squad round it
@@ -1303,7 +1353,7 @@ function walkVip(s, dt, spd = 0, rdt = dt){
   const dir = Math.atan2(b[0] - a[0], b[1] - a[1]);
   g.position.set(want.x, 0, want.z);
   g.rotation.y += Math.atan2(Math.sin(dir - g.rotation.y), Math.cos(dir - g.rotation.y)) * Math.min(1, (rdt || 1) * 8);
-  updateLegs(v, g, rdt, 'ground'); updateUpper(v, g, rdt, null);
+  animVip(v, g, rdt, spd > 0);
   v.tag.position.set(g.position.x, 2.3 * (v.def.scale || 1) + Math.sin(G.gt * 5) * 0.1, g.position.z);
 }
 function vipDown(){
@@ -1763,7 +1813,7 @@ function updateMissionGuest(dt){
     const v = M.vip, g = v.g, w = ms.v;
     g.position.x += (w[0] - g.position.x) * k; g.position.z += (w[1] - g.position.z) * k; g.rotation.y += ang(g.rotation.y, w[2]) * k;
     v.tag.position.set(g.position.x, 2.3 * (v.def.scale || 1) + Math.sin(G.gt * 5) * 0.1, g.position.z);
-    updateLegs(v, g, dt, 'ground'); updateUpper(v, g, dt, null);
+    animVip(v, g, dt, true);
   }
 }
 // the host finished the mission: this browser's ends too

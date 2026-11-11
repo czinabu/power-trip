@@ -125,8 +125,8 @@ export const MANDO_CHAPTERS = {
               ['YOU', 'Then she flies off it.'],
               [A, 'Rook used to sit on her ship\'s wing and call out targets. She will want to know.']] },
     brief: ['Skye, the clan\'s ace, is in a cell on the Gallows, a prison barge riding out a storm on the sea of Vell. Her gunship is impounded on its deck.',
-            'Open the cells, get every prisoner onto her ship, and deal with the warden. Skye flew over the Magistrate\'s yards. She knows where his ships go.'],
-    opening: { lines: [[A, 'Three locks hold every cell on that barge. Open them, and the barge is ours.'], ['YOU', 'And the warden?'], [A, 'The warden will come to you.']] },
+            'Breach the cell blocks, get Skye out of hers, and deal with the warden. Skye flew over the Magistrate\'s yards. She knows where his ships go.'],
+    opening: { lines: [[A, 'Two cell blocks on that barge, a blast door on each. Blow them, and the barge is ours.'], ['YOU', 'And the warden?'], [A, 'The warden will come to you.']] },
     lines: {
       chapter: ['The guard is spread thin in this weather. Move fast.'],
       duel: ['The warden. Put it down and the Gallows is empty.'],
@@ -192,7 +192,7 @@ export const MANDO_CHAPTERS = {
               [A, 'Helmets. He is making helmets for children.'],
               ['SKYE', 'Out of our beskar.']] },
     brief: ['The Magistrate\'s meltworks is cut into the ice of Caldus, and the covert\'s beskar is being poured there into armour sized for foundlings.',
-            'Break the meltworks. If Rook is there, bring him out.'],
+            'Flood its moulds from the moon\'s own ice, then break the meltworks. If Rook is there, bring him out.'],
     lines: {
       chapter: ['Every mould in this place has a child\'s face on it. Burn it down.'],
       duel: [{ who: VX, rival: true, say: 'Designate: the Mandalorian. Bounty revised. Value: doubled.' }, 'Let it count. Finish the forgemaster.'],
@@ -221,9 +221,9 @@ export const MANDO_CHAPTERS = {
               ['KAEL VARR', 'Every hunter who ever left this clan is in the air behind us. All of them came back.'],
               ['BRAKKA', 'Then let us knock.']] },
     brief: ['The whole clan rides together for the first time since the covert fell, and Ossik Vane is flying the dropship.',
-            'The Magistrate\'s last army holds the iron road to his citadel. Take their line, take their gate. He is behind it, and so is Rook.'],
+            'The Magistrate\'s last convoy is running the iron road to his citadel, the Iron Warden riding its rear. Run it down before the gate shuts. He is behind it, and so is Rook.'],
     lines: {
-      clear: ['The gate is down. The clan rides in together.'],
+      clear: ['The convoy is burning on the road and the gate is down. The clan rides in together.'],
     } },
   exegol: {
     title: 'THE IRON THRONE', world: 'THE IRON CITADEL, DUREN',

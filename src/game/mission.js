@@ -679,8 +679,36 @@ const KINDS = {
         return;
       }
       s.left = s.foes.filter(e => !e.dead && enemies.includes(e)).length;
-      setObjectiveHud({ kicker: M.kick, title: o.title, frac: 1 - s.left / Math.max(1, s.n), status: 'CLEAR THE ROOM · ' + s.left + ' LEFT', warn: s.left > 0 });
-      if (!s.left){
+      const al = o.alarm, gr = o.grab;
+      // an ALARM: the room's on the comm the moment the door goes. Clear it before the count runs out, or more come in
+      // through its back hatches (once)
+      if (al && !s.rang && s.left){
+        if (s.alarmT == null){ s.alarmT = al.time; showBanner('', al.startLine || 'THEY\'RE CALLING IT IN', 1.6); }
+        if (Math.ceil(s.alarmT) !== Math.ceil(s.alarmT - dt) && s.alarmT < 5) sfx(880, 0.06, 'square', 0.04, 880);
+        if ((s.alarmT -= dt) <= 0){
+          s.rang = true; let k = 0;
+          for (const t in al.group) for (let n = 0; n < al.group[t]; n++){
+            const [x, z] = al.at[k++ % al.at.length];
+            const e = fieldSpawn(t, x + (Math.random() - 0.5) * 0.8, z + (Math.random() - 0.5) * 0.8);
+            if (e){ e.state = 'chase'; s.foes.push(e); s.n++; s.left++; }
+          }
+          showBanner('ALARM', al.line || 'More of them, through the back.', 2.0, { kicker: 'TOO SLOW' });
+        }
+      }
+      // a GRAB: something in the room to get to while they're still fighting for it (the contract on the vault's
+      // terminal). Stand at it to pull it; it slips back while you're away, and goes slower with foes on top of it
+      if (gr && !s.got){
+        if (!s.grab){ s.gp = 0; M.markers.push(s.grab = makeBeacon(gr.at[0], gr.at[1], 0, heroKey(MISSION_COLOR), gr.r ?? 1.3)); }
+        const on = heroIn(gr.at[0], gr.at[1], (gr.r ?? 1.3) + 0.4), pressed = on && hostilesIn(gr.at[0], gr.at[1], 3.5) > 0;
+        s.gp = on ? s.gp + dt * (pressed ? 0.45 : 1) : Math.max(0, s.gp - dt * 0.35);
+        pulseMarker(s.grab, dt, G.gt); s.grab.userData.beam.visible = !on;
+        if (s.gp >= gr.time){ s.got = true; s.grab.visible = false; showBanner('', gr.line || 'GOT IT', 1.6); S.reward(1); }
+      }
+      const pull = gr && !s.got;
+      setObjectiveHud({ kicker: M.kick, title: o.title, frac: pull ? s.gp / gr.time : 1 - s.left / Math.max(1, s.n),
+        status: (pull ? (gr.status || 'GET TO THE TERMINAL') + (s.left ? ' · ' + s.left + ' LEFT' : '') : 'CLEAR THE ROOM · ' + s.left + ' LEFT')
+              + (al && !s.rang && s.left && s.alarmT != null ? ' · ALARM ' + Math.max(0, Math.ceil(s.alarmT)) : ''), warn: s.left > 0 });
+      if (!s.left && !pull){
         if (o.opens != null) setDoorsOpen(o.opens);   // (the last room can open more: a cell, the way back out)
         if (o.joins){   // someone freed in there takes their place in the squad
           G.squadCap = Math.min(SQUAD.max, Math.max(G.squadCap || 0, allies.length + o.joins));

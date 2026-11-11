@@ -35,6 +35,8 @@ export const KAMINO_SPOTS = {
       { at: [-4, 25], spots: [[-7, 22.5], [-4, 26.5], [-8, 29], [-1.5, 28.8], [-5, 23.5]] },              // the records room
       { at: [6, 25], spots: [[5, 22.5], [8, 23], [5, 26], [7, 27.5], [5, 29], [8.2, 29.2]] },            // the vault
     ],
+    hatch: [[-8.6, 28.6], [-8.8, 22.4]],   // the records room's back hatches, where its alarm brings more in
+    contract: [8.0, 27.4],                 // the vault's terminal, where the contract is being wiped
   },
 };
 const PODS = [[-22, -4], [-22, 4], [-22, 12], [-10, -4], [-10, 4], [-10, 14], [10, -4], [10, 4], [10, 14], [22, -4], [22, 4], [22, 12]];
@@ -150,4 +152,8 @@ function buildSealedArchive(K, wall, wallD, metalD, red){
     shared.arenaGroup.add(g); addDoor(g, solid, [x, z]);
   };
   blastDoor(0, 16); blastDoor(-6, 20.5); blastDoor(2.5, 26.5, false);
+  // the vault's terminal (the contract's on it), against the east wall; and a hatch low in each of the records room's back corners
+  K.box(9.2, 27.4, 0.35, 0.7, 1.15, metalD);
+  const scr = K.deco(new THREE.PlaneGeometry(1.2, 0.6), stripe, 8.84, 1.45, 27.4, 0, -Math.PI / 2, 0); scr.userData.passThrough = true;
+  for (const [x, z] of [[-9.7, 28.6], [-9.7, 22.4]]) K.deco(new THREE.BoxGeometry(0.1, 1.1, 1.2), metalD, x, 0.55, z);
 }

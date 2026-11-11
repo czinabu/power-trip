@@ -4,7 +4,8 @@
 // in the way), instead of skipping them:
 //   · THE GATE WAKES: the seals, then the Cantor's chase round the hall (hidden until it starts, two standoffs), then its duel;
 //   · THE VOICE UNDER THE THRONE: the stones, then the ward walked to the throne in three legs, the singers on the second;
-//   · WHO GAVE THE ORDER: Kamino's sealed archive breached a door at a time (its three doors open in turn), then the Cantor;
+//   · WHO GAVE THE ORDER: Kamino's sealed archive breached a door at a time (its three doors open in turn; the records
+//     room's alarm rings, the vault's contract is pulled), then the Cantor;
 //   · RETURN TO JEDHA: the courtyard's posts taken, the dais held, the echo.
 // Each must reach the win with the right objectives in the right order. Fails on any page or console error.
 // HEROES=jedi,trooper picks who plays the gate's three (each one plays every gate mission; Return to Jedha is the Jedi's).
@@ -78,8 +79,12 @@ const STEP = () => {
     case 'breach': {
       info.doors = (GAME.shared.doors || []).filter(d => d.open).length;
       if (s.phase === 'stack') put(o.stack[0], o.stack[1]);
-      else if (s.phase === 'clear') kill(0);
-      info.phase = s.phase;
+      else if (s.phase === 'clear'){
+        if (o.alarm && !s.rang){ if (s.alarmT != null) s.alarmT = Math.min(s.alarmT, 0.05); }   // (let the alarm ring: headless is too slow to wait it out)
+        else if (o.grab && !s.got) put(o.grab.at[0], o.grab.at[1]);                                 // (pull the contract with the room still fighting)
+        else kill(0);
+      }
+      info.phase = s.phase; info.rang = !!s.rang; info.got = !!s.got; info.gp = s.gp;
       break;
     }
     case 'duel': {
@@ -122,6 +127,7 @@ try {
         if (process.env.DEBUG){ const g0 = await page.evaluate(() => GAME.G.gt); await page.waitForTimeout(3000); console.log('pace', info.i, info.kind, (await page.evaluate(() => GAME.G.gt)) - g0, await page.evaluate(() => ({ foes: GAME.enemies.length, live: GAME.enemies.filter(e => !e.dead).length, q: GAME.G.spawnQueue.length, kids: GAME.camera.parent ? GAME.camera.parent.children.length : -1 }))); }
         if (info.kind === 'pursuit') notes.hiddenBefore = await page.evaluate(() => { const M = GAME.missionState(); return M.quarry ? !M.quarry.g.visible || M.quarry.hidden === false : null; });
       }
+      if (info.kind === 'breach'){ if (info.rang) notes.rang = true; if (info.got) notes.got = true; if (info.gp > 0 && !info.got) notes.pulling = true; }
       if (info.kind === 'pursuit'){ notes.chaseVisible = notes.chaseVisible || info.visible; if (info.stand && !notes.inStand) notes.standoffs = (notes.standoffs || 0) + 1; notes.inStand = info.stand; if (info.clash) notes.clash = true; }
       if (info.kind === 'escort' && info.tw) notes.twist = info.tw;
       if (info.kind === 'breach') notes.doors = Math.max(notes.doors || 0, info.doors);
@@ -143,6 +149,7 @@ try {
     if (id === 'gate-wake') check(notes.chaseVisible && notes.standoffs === 2, `${h}: the Cantor steps out for the chase and stops twice to hold you off (${JSON.stringify(notes)})`);
     if (id === 'gate-vault') check(notes.twist === 'marked', `${h}: the singers mark the ward-bearer on the second leg (${notes.twist})`);
     if (id === 'gate-order') check(doors >= 3, `${h}: all three of the archive's doors are breached (${doors} open)`);
+    if (id === 'gate-order') check(notes.rang && notes.got && notes.pulling, `${h}: the records room's alarm brings more in, and the contract is pulled off the vault's terminal under fire (${JSON.stringify(notes)})`);
     await page.evaluate(() => { const pick = document.querySelector('#chapcard.open .cc-opt'); if (pick) pick.click(); GAME.G.mode = 'menu'; });
   }
   // the quarry waits out of sight while the seals are held: start the Gate Wakes and look before the chase

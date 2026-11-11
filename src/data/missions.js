@@ -72,6 +72,9 @@
 //               at spots: [[x, z]…], caught reeling for `stun` seconds as the world slows for `slow` · opens: doors
 //               open once the room is clear (a cell, the way back out) · joins / joinAt: squadmates freed in there
 //               breachLine / breachSub: the blast's banner; lines.breach in a chapter (one entry per door) on the comms
+//               alarm: { time, at: [[x, z]…], group, startLine, line } the room calls it in: clear it inside `time`
+//               seconds or `group` comes in at `at` (once) · grab: { at: [x, z], time, r, status, line } something in
+//               the room to stand at and pull while they fight for it (slower with foes on it); the room isn't done till it's got
 // Any objective can set `doors`: how many of the arena's doors are open when it begins (a retry rebuilds them
 // shut), and `squad`: the squad's size by then (someone freed on the way joined it).
 // Any objective can set `twist`: its one signature hook, taught then tested ({ kind: 'blackout' | 'sandstorm' | 'heat' |

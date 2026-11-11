@@ -113,20 +113,20 @@ export const ARMORY_PATH = [
 // THE ARMORY CODEX — what each gun is for, shown on the armory page (ui/armory-ui.js). Keep in step with MANDO_WEAPONS.
 export const ARMORY_CODEX = {
   single:   { tag: 'PRECISION', best: 'Single targets, headshots, and holding a line', lore: 'A Mandalorian\'s first gun: a heavy blaster pistol in one hand, and the other arm free to guard with.',
-              pros: ['Pinpoint, with the longest reach of the blasters', 'The beskar guard: hold RMB and the vambrace stops fire and blows from the front', 'Headshots hit 2.4×'],
+              pros: ['Pinpoint, with the longest reach of the blasters', 'The only gun with the held beskar guard: hold RMB and the vambrace stops fire and blows from the front', 'Headshots hit 2.4×'],
               cons: ['One bolt at a time', 'Firing lowers the guard for half a second'] },
   dual:     { tag: 'CLOSE WORK', best: 'Rushing troopers and anything within ten metres', lore: 'Two pistols, one in each hand. Fire poured out up close, and nothing behind it.',
               pros: ['Hold the trigger: they pour fire', 'The fastest kill up close', 'Bracing (RMB) tightens them into real damage'],
-              cons: ['Harsh falloff past ten metres', 'No guard: bracing is offence only'] },
+              cons: ['Harsh falloff past ten metres', 'No held guard: bracing is offence only, so the timed parry (tap RMB) is the defence'] },
   carbine:  { tag: 'MID RANGE', best: 'Troopers at mid range, officers, jet troopers', lore: 'A shouldered pulse carbine. Three bolts a pull, steady from the hip.',
               pros: ['Three-round bursts, accurate even moving', 'Long reach before damage drops off', 'A quick vent'],
-              cons: ['Each burst kicks up: land the first bolt where you want it', 'No guard behind it'] },
+              cons: ['Each burst kicks up: land the first bolt where you want it', 'No held guard behind it, only the timed parry (tap RMB)'] },
   repeater: { tag: 'SUPPRESSION', best: 'Crowds, brutes and shields', lore: 'A heavy repeating blaster off a dead gunner\'s emplacement. It has to wind up, and then it does not stop.',
               pros: ['Spins up to the highest fire rate of any gun', 'Every bolt rocks the foe it hits', 'Holds a crowd back on its own'],
-              cons: ['Slow to wind up, wide cone, heavy recoil', 'You walk slower while it fires', 'Cooks fast, and an overheat or a vent costs a long beat'] },
+              cons: ['Slow to wind up, wide cone, heavy recoil', 'You walk slower while it fires', 'Cooks fast, and an overheat or a vent costs a long beat', 'No held guard, only the timed parry (tap RMB)'] },
   disruptor: { tag: 'SIGNATURE', best: 'Far targets, elites, and a line of them', lore: 'A disruptor rifle the Armorer forges for him. In the scope it ends a fight from afar; from the hip its prongs are a spear.',
               pros: ['One heavy shot in the scope (hold RMB)', 'Unscoped, an electric spear that stuns', 'Overcharged, it tears through a whole line'],
-              cons: ['Slow to fire again', 'Cooks after a couple of shots'] },
+              cons: ['Slow to fire again', 'Cooks after a couple of shots', 'No held guard: a tap of RMB parries, a hold scopes'] },
 };
 const _gunOwned = { single: () => true, dual: () => !!G.unlocked.dual, carbine: () => !!G.unlocked.carbine, repeater: () => !!G.unlocked.repeater,
   disruptor: () => !!G.unlocked.disruptor, darksaber: () => !!player.up.darksaber, fists: () => true };
@@ -159,8 +159,12 @@ export function carriedOrder(){ const kit = kitOf(); return [kit.sidearm, kit.pr
 // air too — it's armour, not footwork). window: how long a press stays live (s; difficulty adds its window) · lock: a
 // press that catches nothing can't be pressed again for this long, so mashing RMB doesn't work · dmg: the ricochet's
 // damage, × the bolt's (at least min) · speed: × the bolt's speed · vent: share of the gun's heat it bleeds off ·
-// stam: stamina handed back · pose: how long the vambrace stays up after a catch (the left arm's block pose)
-export const BESKAR_PARRY = { window: 0.2, lock: 0.4, dmg: 2.4, min: 34, speed: 1.6, vent: 0.35, stam: 10, pose: 0.22 };
+// stam: stamina handed back · pose: how long the vambrace stays up after a catch (the left arm's block pose) ·
+// scope: a press that opens the window must be HELD this long before a scoped gun's sight comes up, so a tap parries
+// without throwing the view down the scope (a press inside the lockout opens no window and scopes at once)
+// THE TAP IS THE HERO'S, NOT THE GUN'S: every blaster and his bare hands have it. Only the HELD guard below is the
+// pistol's. The reticle says which is live (ui/hud.js guardCue).
+export const BESKAR_PARRY = { window: 0.2, lock: 0.4, dmg: 2.4, min: 34, speed: 1.6, vent: 0.35, stam: 10, pose: 0.22, scope: 0.12 };
 /* THE BESKAR GUARD — HOLD RMB with the single blaster (or holstered, with his fists): the left vambrace comes up before
    the face and what meets it STOPS there. A bolt is blocked, not sent back (the ricochet is the timed tap above); a
    blow is soaked (MANDO.braceDR), a lightsaber's too, since beskar turns a blade. Hold blocks, tap answers: the same

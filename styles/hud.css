@@ -318,6 +318,27 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
 #reticle.blocked .blk{display:block}
 #reticle.blocked .dot{opacity:0}
 #reticle.blocked .rl,#reticle.blocked .ring{opacity:.35}
+/* THE GUARD CUE (ui/hud.js guardCueHud) — is the Mando covered? Two beskar-gold brackets close on the reticle while the
+   vambrace is UP; they hang open and broken while RMB is held but a shot has lowered it; they burn red when the arm
+   is about to give. The thin ring is the PARRY's window, on every gun: gold while the tap is live, grey while a miss
+   has it locked out. */
+#guardcue{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:7;--gc:255,208,138;display:none}
+body.mando #guardcue{display:block}
+#guardcue span{position:absolute;box-sizing:border-box;border-radius:50%;opacity:0}
+#guardcue .gc-arc{left:-34px;top:-34px;width:68px;height:68px;border:3px solid transparent;border-left-color:rgba(var(--gc),.95);border-right-color:rgba(var(--gc),.95);
+  transform:scale(1.55);transition:opacity .08s linear,transform .12s cubic-bezier(.2,1.5,.4,1);filter:drop-shadow(0 0 4px rgba(var(--gc),.75))}
+#guardcue.up .gc-arc{opacity:1;transform:scale(1)}
+#guardcue.down .gc-arc{opacity:.5;transform:scale(1.38);border-style:dashed;border-width:2px;transition-timing-function:ease-out}
+#guardcue.low{--gc:255,112,64}
+#guardcue.low.up .gc-arc{animation:gcLow .24s steps(2,end) infinite}
+#guardcue.hit .gc-arc{transform:scale(.9);filter:brightness(1.7) drop-shadow(0 0 7px rgba(var(--gc),1));transition-duration:0s}
+#guardcue .gc-tap{left:-27px;top:-27px;width:54px;height:54px;border:2px solid rgba(255,226,170,.95);transform:scale(1.5);transition:opacity .16s linear,transform .16s ease-out;
+  box-shadow:0 0 8px rgba(255,208,138,.55),inset 0 0 6px rgba(255,208,138,.35)}
+#guardcue.tap .gc-tap{opacity:1;transform:scale(1);transition:opacity .03s linear,transform .2s linear}
+#guardcue.caught .gc-tap{opacity:0;transform:scale(2.1);border-width:4px;transition:opacity .22s ease-out,transform .22s ease-out}
+#guardcue.lock .gc-tap{opacity:.4;transform:scale(1);border:1px dashed rgba(150,160,172,.9);box-shadow:none;transition:opacity .05s linear}
+@keyframes gcLow{50%{opacity:.35}}
+.ab.hint.live{color:#ffd08a}.ab.hint.live .key{border-color:rgba(255,208,138,.9);color:#ffe2aa}
 /* stamina (saber) / heat (blaster) gauge beside the crosshair */
 #energymeter{position:fixed;top:50%;left:50%;margin:-26px 0 0 46px;width:5px;height:52px;display:none;
   background:rgba(8,18,30,.6);border:1px solid rgba(120,180,220,.5);border-radius:3px;overflow:hidden;

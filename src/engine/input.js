@@ -11,7 +11,7 @@ import { MUSIC } from '../audio/music.js';
 import { V3, clamp } from '../utils.js';
 import { floater } from '../fx/floaters.js';
 import { shared, G, keys, player, isGunner, isTrooper } from '../state.js';
-import { keyWeapon, carriedOrder } from '../data/mando.js';
+import { keyWeapon, carriedOrder, BESKAR_PARRY } from '../data/mando.js';
 import { fwd, rightV, playerPos, stance, heldGrip } from '../player/helpers.js';
 import { switchSlot, cycleSlot, swapVariant } from '../player/jedi/stance.js';
 import { FORMS, isDual, DUAL_GRIPS, dualGripIndex, setDualGrip } from '../data/forms.js';
@@ -94,7 +94,9 @@ document.addEventListener('mousedown', (e) => {
     }
     if (e.button === 2){
       beskarPress();   // a fresh press opens the BESKAR PARRY window (any gun but the Darksaber: mando/weapons.js)
-      if (mandoWeapon().scope) player.zoom = true;  // disruptor: raise the scope (only then is it a rifle)
+      // disruptor: raise the scope (only then is it a rifle). A press that opened the parry's window waits a beat
+      // first (BESKAR_PARRY.scope), so a TAP parries without the view jumping down the sight: mando/weapons.js updateBeskar
+      if (mandoWeapon().scope){ if (player.beskarT > 0) player.scopeT = BESKAR_PARRY.scope; else player.zoom = true; }
       else if (player.weapon === 'darksaber'){
         if (player.gbT > 0) return;   // guard broken: nothing guards for a beat
         if (shared.darkProj) return;   // the blade is out on the line: nothing in hand to guard with
@@ -159,7 +161,7 @@ document.addEventListener('mousedown', (e) => {
 });
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0){ atkRelease(); player.firing = false; player.trigHeld = false; if (player.palmHold) strikeRelease(); }
-  if (e.button === 2){ player.blockHeld = false; player.zoom = false; player.guardKey = false; player.guardBack = false; }
+  if (e.button === 2){ player.blockHeld = false; player.zoom = false; player.scopeT = 0; player.guardKey = false; player.guardBack = false; }
   if (e.button === 1) wheelKeyUp();   // middle mouse let go: the order (allies/wheel.js)
   if (e.button === 3 || e.button === 4) e.preventDefault();   // (a side button is the browser's Back: never leave the game on a swap)
 });

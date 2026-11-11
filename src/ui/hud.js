@@ -12,7 +12,7 @@ import { CFG } from '../data/config.js';
 import { LEVELS } from '../data/levels.js';
 import { clamp } from '../utils.js';
 import { shared, G, enemies, player, isGunner, isTrooper, isMando, hasPack, bossUp } from '../state.js';
-import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon } from '../data/mando.js';
+import { MANDO, MANDO_WEAPONS, weaponUnlocked, kitOf, signatureWeapon, BESKAR_GUARD } from '../data/mando.js';
 import { abil } from '../data/mastery.js';
 import { maxHp, maxStam } from '../player/helpers.js';
 import { FOCUS, focusTier } from '../player/jedi/focus.js';
@@ -350,10 +350,16 @@ export function updateHud(){
     // offensive brace; the Darksaber GUARDS; the Disruptor SCOPES. Flag the guard when it's out of stamina to hold.
     const braceEl = document.getElementById('ab-brace');
     if (braceEl){
-      setText(braceEl.querySelector('.an'), W.fire === 'fists' || W.melee ? 'GUARD' : W.scope ? 'SCOPE' : player.weapon === 'single' ? 'GUARD' : 'BRACE');
+      // (the Mando's tap of RMB is the BESKAR PARRY on every gun and on his fists, so the chip says so on all of them;
+      // the Darksaber parries like a lightsaber and the trooper has none)
+      const hold = W.fire === 'fists' || W.melee ? 'GUARD' : W.scope ? 'SCOPE' : player.weapon === 'single' ? 'GUARD' : 'BRACE';
+      const taps = isMando() && player.weapon !== 'darksaber';
+      setText(braceEl.querySelector('.an'), taps ? 'PARRY · ' + hold : hold);
+      braceEl.classList.toggle('live', taps && player.beskarT > 0);   // the parry's window is open
       braceEl.classList.toggle('nofp', (player.weapon === 'single' || player.weapon === 'fists') && player.blockHeld && player.stam <= 0);
       braceEl.classList.toggle('cool', player.beskarLockT > 0);   // a whiffed beskar parry: no new window for a beat
     }
+    guardCueHud();
     // E chip: behind the raised guard, E cuts with the vibroblade instead of punching
     const meleeEl = document.getElementById('ab-melee');
     if (meleeEl) setText(meleeEl.querySelector('.an'), player.guardUp ? 'BLADE' : 'PUNCH');
@@ -426,6 +432,26 @@ export function updateHud(){
 
 /* MANDO SHIFT: what it does right now (DIVE on the ground, AIR DODGE in the air), with
    pips for the air-dodge jet charges. */
+/* THE GUARD CUE — the Mando's answer to "am I covered?", drawn round the reticle (styles/hud.css #guardcue) from what
+   mando/weapons.js already knows: player.guardCue (1 the vambrace is up · 2 RMB is held on the pistol but a shot has
+   lowered it), the stamina behind it, a hit just taken on it, and the parry tap's window and lockout (any gun). */
+function guardCueHud(){
+  const gc = document.getElementById('guardcue');
+  if (!gc) return;
+  const live = G.mode === 'play' && isMando() && player.weapon !== 'darksaber';
+  const cue = live ? player.guardCue || 0 : 0, dry = player.stam <= 0;
+  const cl = gc.classList;
+  cl.toggle('up', cue === 1 && !dry);
+  cl.toggle('down', cue === 2 || (cue === 1 && dry));
+  cl.toggle('low', cue > 0 && player.stam < maxStam() * BESKAR_GUARD.low);
+  cl.toggle('hit', cue === 1 && (player.guardJolt || 0) > 0.35);
+  const tap = live && player.beskarT > 0, caught = live && !tap && player.beskarHit && player.beskarPose > 0;
+  cl.toggle('tap', tap);
+  cl.toggle('caught', caught);
+  cl.toggle('lock', live && !tap && !caught && cue !== 1 && player.beskarLockT > 0);   // (behind a raised guard the brackets already say he is covered)
+  const tf = 'translate(' + player.aimOff.x.toFixed(1) + 'px,' + player.aimOff.y.toFixed(1) + 'px)';
+  if (gc._tf !== tf){ gc._tf = tf; gc.style.transform = tf; }
+}
 function mandoShiftSlot(){
   const el = $('ab-boost'); if (!el) return;
   const A = MANDO_MOBILITY.airDodge, n = player.jetCharges ?? A.charges, fight = inCombat(), air = !player.grounded;

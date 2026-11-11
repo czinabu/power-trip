@@ -96,7 +96,7 @@ export function perfectDodge(fromPos){
 function guardBreak(fromPos){
   const GB = CFG.player.guardBreak, pp = playerPos();
   player.gbT = GB.window;
-  player.blockHeld = false; player.parryT = 0; player.zoom = false;
+  player.blockHeld = false; player.parryT = 0; player.zoom = false; player.scopeT = 0;
   player.flinchT = player.flinchMax = Math.max(player.flinchT || 0, GB.stagger * formWeight());   // a heavy form reels a little longer
   player.flinchAt = G.gt; player.flinchHeavy = true;
   cancelSwing();

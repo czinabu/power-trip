@@ -149,7 +149,7 @@ export function startLevel(idx, opts){
   player.firing = false; player.trigHeld = false; player.guardDropT = 0; player.fireCd = 0; player.flaming = false; player.jetActive = false; player.boosting = false; player.meleeT = 0; player.lockOn = false;
   catchDarksaber(true);   // a thrown Darksaber goes back in the hand before the next fight
   player.darkT = 0; player.darkApplied = false; if (player.darksaberMesh) player.darksaberMesh.visible = false;
-  player.zoom = false; player.aiming = 0; player.recoilKick = 0; player.stabT = 0; player.stabQ = false; player.stabCdT = 0; player.missileT = 0; player.heat = 0; player.overheat = false; player.ventT = 0;
+  player.zoom = false; player.scopeT = 0; player.aiming = 0; player.recoilKick = 0; player.stabT = 0; player.stabQ = false; player.stabCdT = 0; player.missileT = 0; player.heat = 0; player.overheat = false; player.ventT = 0;
   player.spin = 0; player.burstLeft = 0; player.burstQ = false; player.gunSlow = 1; player.beskarT = 0; player.beskarLockT = 0; player.beskarPose = 0;   // the repeater's spin, a carbine burst, the beskar parry
   resetGunMoves();   // the guns' signature moves: a plant, a held breath, a charge, the tags (player/gun-moves.js)
   player.jet = player.jetMax;

@@ -36,7 +36,7 @@ const when = (t) => { const d = new Date(t);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };
 
 /* ---------- the hero card under the title ---------- */
-const num = (n) => Number(n || 0).toLocaleString('en-US');
+const num = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
 const chapterName = (id, h) => { const c = chapterOrder(null, h).find(x => x.id === id) || chapterOrder(null, 'jedi').find(x => x.id === id); return c ? forHero(c.title, h) : id.toUpperCase(); };
 // how far to the next rank: its name, a 0..1 fill (as the profile page's rank track: each of its asks counts the same) and
 // the first ask still open, in words ('340 / 1,500 RANK XP', '2 / 3 TRIALS', 'Clear THE PENS', 'Beat the campaign')

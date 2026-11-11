@@ -19,7 +19,7 @@ import { rounded } from '../player/model/skin.js';
 import { lookPool, lookKey, FOE_LOOKS } from '../data/foe-looks.js';
 import { buildSaberist, lookPalette } from './saberist.js';
 import { ACOLYTES, lookById, lookBlade } from '../data/saber-cast.js';
-import { face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling, strap } from './detail.js';
+import { FRAME, face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling, strap } from './detail.js';
 
 const PI = Math.PI;
 const shade = (hex, k) => new THREE.Color(hex).multiplyScalar(k).getHex();
@@ -72,6 +72,7 @@ export function legs(k, w, o = {}){
 
 export function hips(k, w, o = {}){
   if (k.fem) w *= 1.12;   // a woman's build: the frame is narrower (k.bw), the hips stay near full width
+  w *= FRAME.hips;
   k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
   k.add(loft([{ y:1.0, w:0.47*w, d:0.31 }, { y:1.1, w:0.46*w, d:0.305 }], SOFT_BODY), 'armor2');
   k.add(plate([[-0.06,-0.04],[0.06,-0.04],[0.06,0.04],[-0.06,0.04]], 0.02, 0.006), 'metal', k.root, [0, 1.05, 0.16], [0,0,0], { outline: false });
@@ -84,6 +85,8 @@ export function hips(k, w, o = {}){
 
 export function torso(k, w, o = {}){
   const f = !!k.fem;
+  // the shell and everything on it, in the FRAME's proportions (a static group: it bakes into the chest's mesh)
+  { const T = k.group(k.root); T.scale.set(FRAME.chest, 1, FRAME.depth); k = k.within(T); }
   // a woman's build: a nipped waist, and a cuirass contoured over the bust (deeper at the chest, drawn in under it)
   k.add(loft(f ? [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.2, w:0.33*w, d:0.225 }, { y:1.33, w:0.35*w, d:0.24 }]
                : [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.33, w:0.38*w, d:0.25 }], SOFT_BODY), 'suit');
@@ -97,7 +100,7 @@ export function torso(k, w, o = {}){
                            : [{ y:1.3, w:0.4*w, d:0.26 }, { y:1.5, w:0.5*w, d:0.275 }, { y:1.72, w:0.58*w, d:0.28 }, { y:1.82, w:0.5*w, d:0.27 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
   else k.add(loft(f ? [{ y:1.3, w:0.4*w, d:0.27 }, { y:1.44, w:0.56*w, d:0.35 }, { y:1.55, w:0.64*w, d:0.425, z:0.026 }, { y:1.65, w:0.66*w, d:0.41, z:0.018 },
                  { y:1.76, w:0.6*w, d:0.34 }, { y:1.84, w:0.46*w, d:0.29 }, { y:1.88, w:0.26, d:0.21 }]
-               : [{ y:1.3, w:0.42*w, d:0.28 }, { y:1.48, w:0.6*w, d:0.36 }, { y:1.7, w:0.64*w, d:0.36 }, { y:1.82, w:0.48*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');
+               : [{ y:1.3, w:0.42*w, d:0.27 }, { y:1.48, w:0.53*w, d:0.32 }, { y:1.7, w:0.64*w, d:0.34 }, { y:1.82, w:0.5*w, d:0.3 }, { y:1.88, w:0.28, d:0.22 }], SOFT_BODY), 'armor');   // (tapering from the shoulders to the waist: a V, not a keg)
   // the chest plate's lower lip, a darker rim the plate sits on, so the cuirass reads as a separate layer over the suit
   k.add(loft([{ y:1.28, w:0.44*w, d:0.29 }, { y:1.33, w:0.47*w, d:0.305 }], SOFT_BODY), 'armor2', k.root, [0,0,0], [0,0,0], { outline: false });
   // chest detail: a centre seam, a control box, and the backpack
@@ -115,9 +118,10 @@ export function torso(k, w, o = {}){
 }
 
 export function pauldrons(k, w, key = 'armor', size = 1){
+  size *= FRAME.pad;   // (the FRAME's shoulder pads: a touch under the old size, so they cap the shoulder rather than wing out)
   for (const s of [-1, 1]){
-    k.add(loft(cap(0.24*w*size, 0.24*size), SOFT),
-      k.v === 1 && s < 0 ? 'mark' : key, k.root, [0.39*w*s, 1.8, 0], [0, 0, -0.32*s]);
+    k.add(loft(cap(0.22*w*size, 0.22*size), SOFT),
+      k.v === 1 && s < 0 ? 'mark' : key, k.root, [(FRAME.shx - 0.03)*w*s, 1.8, 0], [0, 0, -0.32*s]);
   }
   pauldronRims(k, w, size);
   if (k.badge) shoulderBadge(k, w, size, k.v === 1 ? 'mark' : 'armor2');
@@ -132,6 +136,7 @@ export function pauldrons(k, w, key = 'armor', size = 1){
    at it (enemies/scars.js) */
 const foreName = parent => 'fore:' + (parent.userData.slot || parent.userData.bone || 'arm');
 export function arm(k, parent, w, o = {}){
+  w *= FRAME.arm;   // (the FRAME's arm: thickness only, the reach is the same)
   /* a robed saber wielder's arms are sleeves (k.sleeve, enemies/saberist.js): one soft tube from the shoulder that runs
      on past the elbow, a round elbow that fills the joint at any bend, and a forearm sleeve that bells at the wrist
      (k.bell). Everyone else: an upper arm, an elbow cop and a forearm plate */
@@ -162,7 +167,7 @@ export function arm(k, parent, w, o = {}){
 // (negative = across the body)], mirrored for the side
 export function sideArm(k, w, s, rot = [0, 0, 0], o){
   // a slot of its own so a killing saber cut can take it off (enemies/scars.js severLimbs): 'offArm' on the left, 'offArmR' the right
-  const sh = k.slot(s < 0 ? 'offArm' : 'offArmR', k.root, [0.42*w*s, 1.74, 0], [rot[0], rot[1]*s, (0.12 + rot[2])*s]);
+  const sh = k.slot(s < 0 ? 'offArm' : 'offArmR', k.root, [FRAME.shx*w*s, 1.74, 0], [rot[0], rot[1]*s, (0.12 + rot[2])*s]);
   return arm(k, sh, w, o);
 }
 
@@ -170,7 +175,7 @@ export function sideArm(k, w, s, rot = [0, 0, 0], o){
 // elbow hanging down. o.slot makes the shoulder a slot of its own (so a saber cut can take the arm off)
 const UPPER = 0.41, FORE = 0.38;
 function reachArm(k, w, s, target, o = {}){
-  const sp = new THREE.Vector3(0.42*w*s, 1.74, 0);
+  const sp = new THREE.Vector3(FRAME.shx*w*s, 1.74, 0);
   // (an arm with no slot of its own, a rifleman's, hangs from a shoulder bone: a cut can still take it off)
   const sh = o.slot ? k.slot(o.slot, k.root, sp.toArray()) : k.bone('arm:' + (s < 0 ? 'L' : 'R'), k.root, sp.toArray());
   sh.quaternion.copy(reachPose(sp, new THREE.Vector3(...target), (o.twist || 0) * s, _rb));
@@ -196,7 +201,7 @@ export function reachPose(sp, target, twist, out, q = new THREE.Quaternion()){
    (o.live: [tag, elbowBone, handBone]: enemies/holds.js), when what it holds swings on its own (a staff) */
 function holdArm(k, w, s, held, p, axis, o = {}){
   const rx = o.rx ?? 0.025, rz = o.rz ?? rx, c = rz + 0.05;
-  const sp = new THREE.Vector3(0.42*w*s, 1.74, 0);
+  const sp = new THREE.Vector3(FRAME.shx*w*s, 1.74, 0);
   k.root.updateWorldMatrix(true, true); held.updateWorldMatrix(true, false);
   const P = new THREE.Vector3(...p), Y = new THREE.Vector3(...axis).normalize();
   const toS = held.worldToLocal(k.root.localToWorld(sp.clone())).sub(P);
@@ -585,7 +590,7 @@ function cheekMarks(k, h){
 
 // melee weapon arm: pivots at the +x shoulder, carried at the ready (rotation.x = -0.35)
 export function weaponArm(k, t, w){
-  const a = k.slot('weaponArm', k.root, [0.42*w, 1.74, 0.04], [-0.35, 0, 0]);
+  const a = k.slot('weaponArm', k.root, [FRAME.shx*w, 1.74, 0.04], [-0.35, 0, 0]);
   const GR = { sword: 0.024, saber: 0.028, pistol: 0.026, pike: 0.026, spear: 0.03 };   // the handle each fist closes round (a maul's haft: 0.034)
   const grip = arm(k, a, w, { bend: -0.15, ...(t.weapon === 'deto' ? {} : { hand: 'grip', fist: t.weapon === 'saber', gr: GR[t.weapon] || 0.034, gripRot: t.weapon === 'pike' || t.weapon === 'spear' ? [-1.1, 0, 0] : null }) });
   if (t.weapon === 'sword'){
@@ -749,7 +754,7 @@ export const MODELS = {
     cape(k, torn
       ? [[-0.3,0],[0.3,0],[0.36,-0.95],[0.26,-1.18],[0.14,-0.98],[0.02,-1.28],[-0.1,-1.02],[-0.22,-1.22],[-0.36,-1.0]]
       : [[-0.3,0],[0.3,0],[0.36,-1.2],[0.12,-1.32],[-0.12,-1.32],[-0.36,-1.2]], [0, 1.86, -0.21], 0.1, 0.014, torn ? 'rag' : 'cloth');
-    if (!torn) k.add(loft([{ y:1.62, w:0.66, d:0.44 }, { y:1.82, w:0.52, d:0.36 }, { y:1.9, w:0.3, d:0.26 }], SOFT_COLLAR), 'cloth');
+    if (!torn) k.add(loft([{ y:1.62, w:0.58, d:0.38 }, { y:1.82, w:0.46, d:0.32 }, { y:1.9, w:0.28, d:0.24 }], SOFT_COLLAR), 'cloth');   // (the mantle sized to the FRAME's chest)
     const staff = k.slot('staff', k.root, [0.55, 1.5, 0.2], [0.3, 0, 0.5]);
     // both hands on the grips, re-aimed every frame as the staff guards, spins and strikes (enemies/holds.js)
     holdArm(k, w, 1, staff, [0, -0.3, 0], [0, -1, 0], { rx: 0.033, slot: 'offArmR', fore: 'metal', twist: 0.2, live: ['gripR', 'elbowR', 'handR'] });
@@ -953,8 +958,8 @@ export const MODELS = {
     k = upper(k); torso(k, w);
     pauldrons(k, w, 'armor', 0.95);
     // the commander's pauldron: a broad gold bell over the left shoulder, a dark rim, and the half-cape under it
-    k.add(loft(cap(0.4, 0.38), SOFT), 'gold', k.root, [-0.42*w, 1.84, 0], [0, 0, 0.38]);
-    k.add(loft([{ y:-0.11, w:0.415, d:0.395 }, { y:-0.085, w:0.41, d:0.39 }], SOFT), 'armor2', k.root, [-0.42*w, 1.84, 0], [0, 0, 0.38]);
+    k.add(loft(cap(0.4, 0.38), SOFT), 'gold', k.root, [-(FRAME.shx + 0.01)*w, 1.84, 0], [0, 0, 0.38]);
+    k.add(loft([{ y:-0.11, w:0.415, d:0.395 }, { y:-0.085, w:0.41, d:0.39 }], SOFT), 'armor2', k.root, [-(FRAME.shx + 0.01)*w, 1.84, 0], [0, 0, 0.38]);
     k.add(plate([[-0.2,0],[0.16,0],[0.2,-0.5],[0.04,-0.62],[-0.12,-0.56],[-0.22,-0.4]], 0.016, 0.004), 'rag', k.root, [-0.34*w, 1.86, -0.16], [0.18, 0.5, 0.12], { outline: false });
     // rank: gold chevrons, the stripe down the chest, and the scars of the war across the plate
     for (let i = 0; i < 3; i++) k.add(block(0.17, 0.03, 0.03, 0.3), 'gold', k.root, [0.11*w, 1.74 - i*0.065, 0.2], [0, 0, 0.5], { outline: false });

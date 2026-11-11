@@ -16,6 +16,12 @@ import { KEEL } from './shapes.js';
 import { mountLoadout, WEAPON_MODELS } from './weapons.js';
 import { heroWear } from './wear.js';
 
+/* THE HEROES' FRAME, under every look's build (appearance.js): the outfits were drawn with arms as thick as legs and a
+   chest as wide and deep as a barrel, so the figure read as one block. arms and legs thin the limbs (the arms the more),
+   chest narrows the torso and everything on it, waist takes the belt line in further under it (a V, not a column),
+   depth takes it in front to back. Joints never move, so poses, hitboxes and holds are unchanged. */
+export const HERO_FRAME = { arms: 0.8, legs: 0.9, chest: 0.88, waist: 0.88, depth: 0.92 };
+
 export function buildHeroModel(target, lookIn = {}){
   const look = resolveLook(lookIn);
   const S = makeStyle(look.style, { ...look.jedi.palette, ...look.mando.palette });
@@ -50,14 +56,18 @@ export function buildHeroModel(target, lookIn = {}){
 // mesh, applies the build proportions and records it as one of that hero's parts
 function dress(R, S, hero, PARTS, player){
   const parts = [];
-  const B = hero.build;
-  const limbJoints = new Set([R.legL.hip, R.legL.knee, R.armL.sh, R.armL.el, R.legR.hip, R.legR.knee, R.armR.sh, R.armR.el]);
+  // the look's build on top of the heroes' FRAME (natural proportions: no barrel chest, no stovepipe arms)
+  const B = { ...hero.build, bulk: hero.build.bulk ?? 1, shoulders: (hero.build.shoulders ?? 1) * HERO_FRAME.chest };
+  const armJoints = new Set([R.armL.sh, R.armL.el, R.armR.sh, R.armR.el]);
+  const limbJoints = new Set([R.legL.hip, R.legL.knee, R.legR.hip, R.legR.knee, ...armJoints]);
+  const limb = j => B.bulk * (armJoints.has(j) ? HERO_FRAME.arms : HERO_FRAME.legs);   // a limb's thickness
+  const wide = j => B.shoulders * (j === R.torso ? HERO_FRAME.waist : 1);               // the torso's width at a joint
   // each hero gets its own head root so the head-size knob never touches the other hero
   const headRoot = new THREE.Group(); headRoot.scale.setScalar(B.head); R.head.add(headRoot); parts.push(headRoot);
   const HR = { ...R, head: headRoot };
   const shape = (m, parent) => {
-    if (limbJoints.has(parent)){ m.scale.x *= B.bulk; m.scale.z *= B.bulk; }
-    else if (parent === R.chest || parent === R.torso){ m.scale.x *= B.shoulders; m.position.x *= B.shoulders; }
+    if (limbJoints.has(parent)){ const t = limb(parent); m.scale.x *= t; m.scale.z *= t; }
+    else if (parent === R.chest || parent === R.torso){ const x = wide(parent); m.scale.x *= x; m.position.x *= x; m.scale.z *= HERO_FRAME.depth; m.position.z *= HERO_FRAME.depth; }
   };
   const k = {
     style: S,
@@ -76,7 +86,7 @@ function dress(R, S, hero, PARTS, player){
         const p = geo.attributes.position, v = new THREE.Vector3();
         for (let i = 0; i < p.count; i++){ warp(v.fromBufferAttribute(p, i)); p.setXYZ(i, v.x, v.y, v.z); }
       }
-      const fit = bones.map(b => limbJoints.has(b) ? [B.bulk, B.bulk] : (b === R.chest || b === R.torso) ? [B.shoulders, 1] : [1, 1]);
+      const fit = bones.map(b => limbJoints.has(b) ? [limb(b), limb(b)] : (b === R.chest || b === R.torso) ? [wide(b), HERO_FRAME.depth] : [1, 1]);
       const weigh = (x, y) => chainWeights(dir * y, at, blend);
       const p = geo.attributes.position;
       for (let i = 0; i < p.count; i++){

@@ -4,7 +4,7 @@ A Star Wars-inspired third-person action game that runs in the browser, built wi
 Play as a **Jedi**, a **Mandalorian** or a clone **ARC trooper**, each with a three-act story of their own, then team up
 online with up to three friends. There are no asset files: every mesh is procedural and every sound is synthesized.
 
-**Play it:** [sw-power-trip.vercel.app](https://sw-power-trip.vercel.app) · or get the Windows app from
+**Play it:** [power-trip.vercel.app](https://power-trip.vercel.app) · or get the Windows app from
 [Releases](https://github.com/czinabu/power-trip/releases)
 
 ![Title screen](docs/screenshots/title.jpg)
@@ -116,7 +116,7 @@ The same game ships as a Windows `.exe`: an [Electron](https://www.electronjs.or
 
 ### Deploys
 
-`main` deploys to [sw-power-trip.vercel.app](https://sw-power-trip.vercel.app) on Vercel. Pull request branches only
+`main` deploys to [power-trip.vercel.app](https://power-trip.vercel.app) on Vercel. Pull request branches only
 build a Vercel preview when the commit message contains `[preview]` (`tools/vercel-ignore.sh`), so put it on the
 final push of a PR that's ready to look at.
 

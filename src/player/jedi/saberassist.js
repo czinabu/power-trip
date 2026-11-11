@@ -20,9 +20,13 @@ const live = t => !!t && t.group && (t === shared.boss ? t.hp > 0 : !t.dead && !
 export function assistTarget(range){
   const pp = playerPos();
   const lt = player.lockTarget;
-  if (live(lt) && Math.hypot(lt.group.position.x - pp.x, lt.group.position.z - pp.z) <= range + 1) return lt;
+  const reach = live(lt) && Math.hypot(lt.group.position.x - pp.x, lt.group.position.z - pp.z) <= range + 1;
+  if (reach && !player.lockLoose) return lt;
+  // (a loose focus, player/lockon.js: the cut goes to whoever the crosshair is on; with nobody there, to the marked foe
+  // if it is in front of you)
+  const fallback = reach && Math.abs(wrapAngle(Math.atan2(lt.group.position.x - pp.x, lt.group.position.z - pp.z) - G.yaw)) < 1.2 ? lt : null;
   const L = level();
-  if (!L) return null;
+  if (!L) return fallback;
   const cone = (L.cone + (padOn() ? SABER_ASSIST.pad : 0)) * D2R;
   let best = null, bs = 1e9;
   const consider = (t, r) => {
@@ -37,7 +41,7 @@ export function assistTarget(range){
   };
   for (const e of enemies) consider(e, bodyRadius(e));
   if (shared.boss) consider(shared.boss, 0.75);
-  return best;
+  return best || fallback;
 }
 
 /* the body's heading for a cut aimed at `t`: the view's heading, turned toward the foe by at most the setting's `turn`
@@ -46,7 +50,7 @@ export function assistFace(t){
   if (!live(t)) return null;
   const pp = playerPos(), p = t.group.position;
   const want = Math.atan2(p.x - pp.x, p.z - pp.z);
-  if (t === player.lockTarget) return want;
+  if (t === player.lockTarget && !player.lockLoose) return want;
   const L = level();
   if (!L) return null;
   const lim = L.turn * D2R;

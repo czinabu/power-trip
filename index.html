@@ -50,9 +50,11 @@
 <!-- the loading screen: painted first, over everything, until the title screen's 3D stage has drawn (styles/boot.css, src/ui/boot.js),
      and again whenever a mode builds its level (src/ui/loading.js) -->
 <div id="boot" role="status" aria-live="polite">
-  <h1 class="bt-title">POWER TRIP</h1>
-  <div class="bt-saber"><div class="bt-hilt"></div><div class="bt-blade"></div></div>
-  <div class="bt-status">Loading</div>
+  <div class="bt-stack">
+    <h1 class="bt-title">POWER TRIP</h1>
+    <div class="bt-saber"><div class="bt-hilt"></div><div class="bt-blade"></div></div>
+    <div class="bt-status">Loading</div>
+  </div>
   <div class="bt-fan">Fan-made, free, non-commercial. Not affiliated with Lucasfilm or Disney.</div>
 </div>
 <script>

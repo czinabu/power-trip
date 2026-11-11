@@ -37,7 +37,7 @@ for (const hero of HEROES){
   await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
   await page.$eval('#hero-' + hero, el => el.click());
   // THE HUB
-  await page.click('#mode-temple'); await page.click('#goText');
+  await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
   await until(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused);
   await page.waitForTimeout(4000);
   await shot('hub'); await fullMap('hub');

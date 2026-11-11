@@ -23,7 +23,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.goto(pathToFileURL(path.join(root, 'dist/index.html')).href);
 await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-await page.click('#mode-temple');
+await page.$eval('#mode-temple', el => el.click());
 await page.$eval('#hero-' + hero, el => el.click());
 await page.click('#goText');
 await page.waitForFunction(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused, null, { timeout: 90000 });

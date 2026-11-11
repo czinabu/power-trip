@@ -19,7 +19,7 @@ const check = (ok, what) => { if (!ok){ console.error('FAIL: ' + what); process.
 const shot = async (n) => { if (!shots) return; await page.waitForTimeout(700); await page.screenshot({ path: path.join(shots, n + '.png') }); };
 const booted = () => page.waitForFunction(() => window.GAME && window.GAME.G && document.body.classList.contains('in-menu'), null, { timeout: 30000 });
 // the loading screen has faded in and out again, on file n
-const switched = (n) => page.waitForFunction((n) => document.getElementById('boot').hidden && document.querySelector('#fileline .fl-t').textContent.startsWith('SAVE FILE ' + n + ' '), n, { timeout: 30000, polling: 200 }).then(() => page.waitForTimeout(500));
+const switched = (n) => page.waitForFunction((n) => document.getElementById('boot').hidden && document.querySelector('#fileline .fl-file').textContent === 'SAVE FILE ' + n, n, { timeout: 30000, polling: 200 }).then(() => page.waitForTimeout(500));
 const url = pathToFileURL(path.join(root, 'dist/index.html')).href;
 
 // an old player: progress and settings in the plain keys, as before save files
@@ -33,7 +33,7 @@ await page.evaluate(() => {
 });
 await page.reload(); await booted(); await page.waitForTimeout(1500);
 await shot('01-menu-file1');
-check(await page.evaluate(() => /^SAVE FILE 1 · JEDI KNIGHT$/.test(document.querySelector('#fileline .fl-t').textContent)), 'the old progress is save file 1, with its rank on the title line');
+check(await page.evaluate(() => /^SAVE FILE 1 JEDI KNIGHT\b/.test(document.querySelector('#fileline').innerText.replace(/\s+/g, ' ').trim())), 'the old progress is save file 1, with its rank on the hero card');
 check(await page.evaluate(() => { const r = document.querySelector('.ov-inner').getBoundingClientRect(); return r.bottom <= innerHeight + 1; }), 'menu still fits the window');
 
 await page.click('#fileline'); await shot('02-files-panel');
@@ -41,7 +41,7 @@ check(await page.evaluate(() => document.querySelectorAll('#fllist .sv-slot').le
 await page.evaluate(() => { window.__sameDoc = true; });
 await page.click('[data-act="use"][data-n="2"]'); await switched(2);
 check(await page.evaluate(() => window.__sameDoc === true), 'switching files happens in place (no reload, so fullscreen stays)');
-check(await page.evaluate(() => /^SAVE FILE 2 · JEDI PADAWAN$/.test(document.querySelector('#fileline .fl-t').textContent)), 'NEW FILE switched to file 2, a fresh Padawan');
+check(await page.evaluate(() => /^SAVE FILE 2 JEDI PADAWAN\b/.test(document.querySelector('#fileline').innerText.replace(/\s+/g, ' ').trim())), 'NEW FILE switched to file 2, a fresh Padawan');
 check(await page.evaluate(() => localStorage.getItem('sw_camp_jedi') === null && localStorage.getItem('sw_asktrain') === null && GAME.PROFILE.profileOf('jedi').xp === 0), 'file 2 starts with no wins and a fresh profile');
 check(await page.evaluate(() => !document.querySelector('#mode-campaign .md').textContent.includes('beaten')), 'the menu\'s campaign tile follows file 2 (no beaten tick from file 1)');
 check(await page.evaluate(() => localStorage.getItem('sw_sens') === '1.7' && GAME.G.mouseSens === 1.7), 'settings are shared across files');

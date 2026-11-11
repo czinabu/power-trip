@@ -360,7 +360,7 @@ body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent
 #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,#herobio){--bc:var(--hx-accent-hi);border:0;border-radius:0;background:var(--hx-paper);
   box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink);backdrop-filter:none;-webkit-backdrop-filter:none;transition:none}
 #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold):hover{box-shadow:inset 0 0 0 1px var(--hx-soft),0 0 0 2px var(--hx-ink)}
-#overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+#overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),#overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin{
   background:var(--hx-paper-2);box-shadow:inset 0 0 0 2px var(--hx-accent),0 0 0 2px var(--hx-ink)}
 #overlay:is(.st-menu,.vpicking) #modeselect .mgroups .modeopt.sel{background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
 #overlay:is(.st-menu,.vpicking) .modeopt.locked{background:transparent;background-image:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.025) 6px 8px)}
@@ -385,10 +385,20 @@ body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent
 #overlay:is(.st-menu,.vpicking) .cz-tabs span.on{color:var(--hx-on-accent);background:var(--hx-accent)}
 #overlay.st-menu .ov-foot{font-family:var(--font-body)}
 #overlay.st-menu .ov-foot kbd,#overlay.st-menu #fileline .fl-k{border:0;border-radius:0;color:var(--hx-text);background:var(--hx-paper-2);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 1.5px var(--hx-ink)}
-#overlay.st-menu #fileline{font-family:var(--hx-label);letter-spacing:.1em}
+#overlay.st-menu #fileline{border:0;border-radius:0;background:var(--hx-paper);box-shadow:inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
+#overlay.st-menu #fileline:is(:hover,.padfocus){box-shadow:inset 0 0 0 1px var(--hx-accent),0 0 0 2px var(--hx-ink)}
+#overlay.st-menu #fileline :is(.fl-file,.fl-r,.fl-k){font-family:var(--hx-label);letter-spacing:var(--hx-label-ls)}
+#overlay.st-menu #fileline .fl-t{font-family:var(--hx-display);font-weight:var(--hx-display-w);letter-spacing:var(--hx-display-ls);text-shadow:0 2px 0 var(--hx-ink)}
+#overlay.st-menu #fileline .fl-rank{color:var(--hx-accent-hi)}
+#overlay.st-menu #fileline .fl-emb{border:0;border-radius:0;background:var(--hx-ink);box-shadow:inset 0 0 0 1px var(--hx-line)}
+#overlay.st-menu #fileline .fl-pips i{background:var(--hx-line)}
+#overlay.st-menu #fileline .fl-pips i.on{background:var(--hx-accent)}
+[data-hero="mando"] #overlay.st-menu #fileline{background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
+[data-hero="mando"] #overlay.st-menu #fileline:is(:hover,.padfocus){box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
+[data-hero="trooper"] #overlay.st-menu #fileline{background:rgba(16,19,21,.9);box-shadow:inset 4px 0 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line),0 0 0 2px var(--hx-ink)}
 #overlay.st-menu .fsmini{border-radius:0}
 /* the Jedi: Cinzel names, the picked tile in a gold double hairline, diamond studs */
-[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="jedi"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin{
   background:linear-gradient(180deg,#171c44,#0e1230);box-shadow:inset 0 0 0 1px var(--hx-accent),inset 0 0 0 3px var(--hx-paper-solid),inset 0 0 0 4px var(--hx-line),0 0 0 2px var(--hx-ink)}
 [data-hero="jedi"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn){letter-spacing:.06em}
 [data-hero="jedi"] #overlay:is(.st-menu,.vpicking) .btn{font-family:'Cinzel',Georgia,serif;font-weight:700;letter-spacing:.06em}
@@ -396,7 +406,7 @@ body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent
 /* the Mandalorian: chamfered plates, stencil titles and angular labels, an ember strip on the picked one */
 [data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,#herobio,.btn){background:var(--hx-plate);clip-path:var(--hx-chamfer);box-shadow:inset 0 0 0 1px var(--hx-line),inset 0 0 0 2px var(--hx-ink)}
 [data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold,.btn):hover{box-shadow:inset 0 -3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-line)}
-[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="mando"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+[data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="mando"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin{
   box-shadow:inset 0 3px 0 var(--hx-accent),inset 0 0 0 1px var(--hx-accent),inset 0 0 0 2px var(--hx-ink)}
 [data-hero="mando"] #overlay:is(.st-menu,.vpicking) .brk::before,[data-hero="mando"] #overlay:is(.st-menu,.vpicking) .brk::after{display:none}
 [data-hero="mando"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn,.msub-t,#stepMode){text-transform:uppercase;letter-spacing:.14em}
@@ -406,7 +416,7 @@ body.fovpreview[data-hero="mando"] #settings .howto-panel{background:transparent
 [data-hero="mando"] #overlay:is(.st-menu,.vpicking) .cz-tabs span{font-family:var(--hx-label);font-weight:600;letter-spacing:.12em}
 /* the trooper: the readout, white plates for what is picked and what acts, a hazard tab on BEGIN */
 [data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt,.herocard,.mp-fold){background:rgba(16,19,21,.9)}
-[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple{
+[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt.sel,.herocard.sel,.mp-sec.open>.mp-fold),[data-hero="trooper"] #overlay:is(.st-menu,.vpicking) #modeselect .modeopt.temple.wayin{
   background:#101315;box-shadow:inset 4px 0 0 var(--hx-accent),inset 0 0 0 1px var(--hx-plate-white),0 0 0 2px var(--hx-ink)}
 [data-hero="trooper"] #overlay:is(.st-menu,.vpicking) :is(.modeopt .mt,.herocard .hn){letter-spacing:0}
 [data-hero="trooper"] #overlay:is(.st-menu,.vpicking) .btn{font-weight:600;letter-spacing:.06em}

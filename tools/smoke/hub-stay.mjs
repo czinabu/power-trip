@@ -59,7 +59,7 @@ for (const hero of HEROES){
     await page.goto(page_url);
     await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
     await page.$eval('#hero-' + hero, el => el.click());
-    await page.click('#mode-temple'); await page.click('#goText');
+    await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
     check(await inHub(), `${hero}: into the hub`);
     await frames(1.2);
 
@@ -84,7 +84,7 @@ for (const hero of HEROES){
     if (at){
       check(await pick('EVERY MODE'), `${hero}: EVERY MODE`);
       await page.waitForFunction(() => GAME.G.mode === 'menu', null, { timeout: 10000 }).catch(() => {});
-      await page.click('#mode-temple');   // (its tile picks the hub, then the hero step's ENTER: the title screen's way back)
+      await page.$eval('#mode-temple', el => el.click());   // (its tile picks the hub, then the hero step's ENTER: the title screen's way back)
       if (await page.isVisible('#stepTemple')) check(true, `${hero}: the hero step offers the way back to the hub`);
       await page.click('#goText');
       check(await inHub(at.wing), `${hero}: the title screen's way back goes into the hub`);
@@ -101,7 +101,7 @@ for (const hero of HEROES){
     check(same(at, paused), `${hero}: the pause screen never moves you`);
     await page.$eval('#homeBtn', el => el.click());   // (a click with no mouse travel: the unlocked cursor sliding to the button would turn the view)
     await page.waitForFunction(() => GAME.G.mode === 'menu', null, { timeout: 10000 }).catch(() => {});
-    await page.click('#mode-temple'); await page.click('#goText');
+    await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
     check(await inHub(at.wing), `${hero}: the hub tile goes back in`);
 
     await frames(0.5);

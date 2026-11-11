@@ -59,7 +59,7 @@ for (const hero of HEROES){
   // the table is shut until Act IV is beaten, as any hero
   check(await page.evaluate(() => { localStorage.removeItem('sw_camp_gate_jedi'); const shut = !GAME.raids.raidsOpen(); localStorage.setItem('sw_camp_gate_trooper', '1'); const open = GAME.raids.raidsOpen(); localStorage.removeItem('sw_camp_gate_trooper'); localStorage.setItem('sw_camp_gate_jedi', '1'); return shut && open; }), `${hero}: the raids open once any hero has beaten Act IV`);
 
-  await page.click('#mode-temple');
+  await page.$eval('#mode-temple', el => el.click());
   await page.click('#goText');
   await page.waitForFunction(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused, null, poll);
 

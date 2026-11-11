@@ -51,7 +51,7 @@ for (const hero of HEROES){
   const frames = async (n = 0.3) => { const gt = await page.evaluate(() => GAME.G.gt); await page.waitForFunction(([gt, n]) => GAME.G.gt > gt + n, [gt, n], { timeout: 20000 }).catch(() => {}); };
   const enter = async () => {
     await page.$eval('#hero-' + hero, el => el.click());
-    await page.click('#mode-temple'); await page.click('#goText');
+    await page.$eval('#mode-temple', el => el.click()); await page.click('#goText');
     return inHub();
   };
   try {

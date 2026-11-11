@@ -16,7 +16,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(pathToFileURL(path.join(root, 'dist/index.html')).href);
 await page.waitForFunction(() => window.GAME && window.GAME.G, null, { timeout: 30000 });
-await page.click('#mode-temple');
+await page.$eval('#mode-temple', el => el.click());
 await page.$eval('#hero-mando', el => el.click());
 await page.click('#goText');
 await page.waitForFunction(() => GAME.G.mode === 'play' && GAME.G.hub && !GAME.G.paused, null, { timeout: 90000 });

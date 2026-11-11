@@ -118,7 +118,7 @@ export const APPRENTICES = {
 
 // where each hub keeps its apprentice (data/hub.js adds the station): the wing, the spot, and which way they face
 export const APPRENTICE_POST = {
-  temple: { wing: 'training', x: 12, z: -14, face: [-6, -18] },
+  temple: { wing: 'training', x: 3, z: -11, face: [-6, -18] },   // (clear of the DUEL RING marker at 14,-11.6: their signs overlapped)
   covert: { wing: 'pit', x: 12, z: -14, face: [-4, -22] },
   kamino: { wing: 'range', x: 12, z: -14, face: [-6, -18] },
 };

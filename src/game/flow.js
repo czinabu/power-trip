@@ -13,6 +13,8 @@ import { clearGrenades } from '../enemies/grenades.js';
 import { resetMandoMelee } from '../player/mando/melee.js';
 import { startAtEase } from '../player/holster.js';
 import { CFG } from '../data/config.js';
+import { SCALE, heroScale } from '../data/coop.js';
+import { heroesHere } from '../player/players.js';
 import { LEVELS } from '../data/levels.js';
 import { scene } from '../engine/renderer.js';
 import { S } from '../audio/sfx.js';
@@ -463,12 +465,21 @@ export function splitWaveWithLull(fromIdx){
   q.splice(at, 0, { type: '__lull', barrier: true, t: 0, hold: LULL });
 }
 
+// A wave for a party: about half a wave more foes for each extra hero, drawn from the same mix (so the types stay as authored).
+// Solo (one hero here) returns the list as it is. The host runs every wave, so a guest's browser never gets here.
+export function partyWave(list){
+  const extra = Math.round(list.length * (heroScale(SCALE.waves, heroesHere()) - 1));
+  for (let i = 0; i < extra && list.length; i++) list.push(list[(Math.random() * list.length) | 0]);
+  return list;
+}
+
 export function startWave(){
   const L = LEVELS[G.levelIdx];
   const w = L.waves[G.wave];
   // flatten the wave into a list, then SHUFFLE so each surge is a mix of types (not all grunts, then all blasters)
   const list = [];
   for (const tn in w) for (let i = 0; i < w[tn]; i++) list.push(tn);
+  partyWave(list);
   for (let i = list.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; const t = list[i]; list[i] = list[j]; list[j] = t; }
   // deal them out in PULSES — the wave arrives as ~3 reinforcing surges instead of one front-loaded rush,
   // so pressure stays even across the wave. A surge that's cleared fast simply lets the next one arrive.

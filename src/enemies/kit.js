@@ -10,6 +10,10 @@
 //      skinned to it, so it bends without costing a draw call of its own. A bone given a blend radius bends SMOOTHLY:
 //      the skin within that reach of the joint is shared with the bone across it, so a knee, a hip, the waist and the
 //      neck fold like one body instead of hinging as separate parts.
+//      A SKIN (k.skin: the soft body under the plates, enemies/softbody.js) is one continuous surface along a run of
+//      joints, as the heroes have (player/model/skin.js). It merges into the body's own mesh whichever slots its
+//      joints belong to (an arm's shoulder and elbow are another slot's), so the body under the armour is one piece
+//      from the neck to the wrists and the ankles, at no draw call of its own.
 //   3. instantiate() builds a fresh group from the cached bake: shared geometry and materials, except the armour
 //      material ('armor' key), which every unit gets its own copy of so hit flashes and elite tints stay per unit.
 //
@@ -19,6 +23,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { bladeGlowMat } from '../fx/blade-glow.js';
 import { makeStyle } from '../player/model/styles.js';
+import { chainGeo, chainWeights } from '../player/model/skin.js';
+import { DETAIL } from '../player/model/shapes.js';
 
 let _S = null;
 const style = () => _S || (_S = makeStyle('ink'));
@@ -67,8 +73,20 @@ function makeBuilder(colors){
   };
   // methods default their parent to this.root, so k.within(group) gives a builder that dresses that group instead
   const k = {
-    root,
+    root, body: root,
     within(g){ return { ...this, root: g }; },
+    /* a SKINNED CHAIN: one continuous surface along `bones` (design joints: bones, or slot groups), as the heroes'
+       (player/model/skin.js). rings [{t, w, d, x?, z?}] run along it (t in model units from its start; dir -1 down a
+       limb, +1 up the spine) and it bends at the distances `at`, one per bone after the first, where that bone's joint
+       sits on the chain's line. It is drawn STRAIGHT in the space of bones[frame] (whose joint sits at at[frame-1], or
+       at `origin` in that bone's space when frame is 0), and then laid into the design's rest pose by its own weights,
+       so a chain over an elbow that rests bent is built bent. It bakes into the BODY slot's mesh for `key`. */
+    skin(key, rings, { bones, at, frame = 0, origin = [0, 0, 0], blend = 0.06, profile, dir = -1, outline = true }){
+      const o = new THREE.Object3D();
+      o.userData.chain = { key, mat: mat(key), rings, bones, at, frame, origin, blend, profile, dir, outline };
+      this.body.add(o);
+      return o;
+    },
     /* place a styled mesh: k.add(geo, 'armor', parent, [x,y,z], [rx,ry,rz], {outline, scale}) */
     add(geo, key, parent = this.root, p, r, o){
       const m = S.add(geo, mat(key), parent, p, r, o);
@@ -180,6 +198,50 @@ function bake(root){
     return g;
   };
   let hullMat = null;
+  /* a skin chain (k.skin): the straight chain, weighted along its length, laid into the rest pose and into the body
+     slot's space. A joint of another slot (an arm's shoulder, its elbow) joins the body's skeleton as an EXTRA bone,
+     named by its slot and bone, and is found again on every unit (instantiate) */
+  const chain = (C, so, s) => {
+    const extra = s.extra || (s.extra = []);
+    const bi = C.bones.map(b => {
+      if (s.boneIdx.has(b)) return s.boneIdx.get(b);
+      const slot = slotOf(b).userData.slot, bone = b.userData.bone || null;
+      let i = extra.findIndex(x => x.slot === slot && x.bone === bone);
+      if (i < 0) i = extra.push({ slot, bone }) - 1;
+      return 1 + s.bones.length + i;
+    });
+    // (a crowd's body: two rings either side of a joint, and one ring at most where the shape bows between its rings)
+    const rings = DETAIL.rings; DETAIL.rings = Math.min(rings, 1);
+    let geo; try { geo = chainGeo(C.rings, C.at, C.blend, C.profile, C.dir, undefined, 2); } finally { DETAIL.rings = rings; }
+    const toSlot = _inv.copy(so.matrixWorld).invert();
+    const M = C.bones.map(b => new THREE.Matrix4().multiplyMatrices(toSlot, b.matrixWorld));
+    const anchor = i => i ? C.at[i - 1] : 0;
+    const pos = geo.attributes.position, n = pos.count, idx = new Uint16Array(n * 4), wt = new Float32Array(n * 4);
+    const v = new THREE.Vector3(), acc = new THREE.Vector3();
+    for (let i = 0; i < n; i++){
+      const x = pos.getX(i), t = C.dir * pos.getY(i), z = pos.getZ(i);
+      acc.set(0, 0, 0);
+      chainWeights(t, C.at, C.blend).slice(0, 4).forEach(([b, w], j) => {
+        idx[i*4+j] = bi[b]; wt[i*4+j] = w;
+        // where this bone holds the point at rest: a bone at or above the frame, in the frame's space; one below it, in its own
+        if (b <= C.frame) v.set(C.origin[0] + x, C.origin[1] + C.dir * (t - anchor(C.frame)), C.origin[2] + z).applyMatrix4(M[C.frame]);
+        else v.set(x, C.dir * (t - anchor(b)), z).applyMatrix4(M[b]);
+        acc.addScaledVector(v, w);
+      });
+      pos.setXYZ(i, acc.x, acc.y, acc.z);
+    }
+    geo.computeVertexNormals();   // smooth: it is a body, not a plate
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+    geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wt, 4));
+    return geo.toNonIndexed();
+  };
+  root.traverse(o => {
+    if (!o.userData.chain) return;
+    const C = o.userData.chain, s = index.get(root), g = chain(C, root, s);
+    if (!s.byKey.has(C.key)) s.byKey.set(C.key, { mat: C.mat, geos: [] });
+    s.byKey.get(C.key).geos.push(g);
+    if (C.outline) s.hulls.push(g);   // (its ink hull: the same smooth surface, pushed out along its normals)
+  });
   root.traverse(o => {
     if (o.userData.slot || insideLive(o)) return;   // slot groups are rebuilt; a live object's children travel with it
     const so = slotOf(o.parent), s = index.get(so);
@@ -332,6 +394,7 @@ export function instantiate(baked, o = {}){
   let bodyMat = null, plateMat = null, W = null;
   const wear = () => W || (W = makeWear(o));
   const ud = {}, binds = [], joints = new Map();   // joints: 'slot/bone' → its group
+  const extras = [];   // [a slot's bone list, the other slots' joints its skin also follows (bake: a skin chain)]
   for (const s of baked.slots){
     const g = new THREE.Group();
     g.position.copy(s.position); g.rotation.copy(s.rotation); g.scale.copy(s.scale);
@@ -347,6 +410,7 @@ export function instantiate(baked, o = {}){
         j.position.copy(b.position); j.rotation.copy(b.rotation); j.scale.copy(b.scale); j.name = b.name;
         bones[b.parent].add(j); bones.push(j); ud[b.name] = j; joints.set(s.name + '/' + b.name, j);
       }
+      if (s.extra && s.extra.length) extras.push([bones, s.extra]);
     }
     const Mesh = (geo, m) => {
       if (!bones) return new THREE.Mesh(geo, m);
@@ -391,6 +455,7 @@ export function instantiate(baked, o = {}){
     }
   }
   const root = groups.get('body');
+  for (const [bones, list] of extras) for (const x of list) bones.push(x.bone ? joints.get(x.slot + '/' + x.bone) : groups.get(x.slot));
   // bind the skinned meshes in the rest pose, one skeleton per slot
   root.updateMatrixWorld(true);
   const skels = new Map();

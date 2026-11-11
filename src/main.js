@@ -66,7 +66,7 @@ import './world/arena.js';
 import './world/textures.js';
 import { updateAmbient } from './fx/ambient.js';
 import { updateScorch } from './fx/scorch.js';
-import { updateSevered, scarBody, severLimbs } from './enemies/scars.js';
+import { updateSevered, scarBody, severLimbs, applyCuts } from './enemies/scars.js';
 import './world/arenas/temple.js';
 import './world/arenas/foundry.js';
 import './world/arenas/plains.js';
@@ -301,7 +301,7 @@ window.GAME = { run: RUN_STATE, PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => ran
   hitMarker, spawnBlasterBolt, mandoWeapon, updateBolts, updateHud,
   hazardZones, updateHazardZones, hazardContains, setOverlayState, nav: { NAV, buildNav, updateNav, navSteer, navDist },
   duel: { DUEL, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint, bladeSegment, lockPush },
-  scars: { scarBody, severLimbs },
+  scars: { scarBody, severLimbs, applyCuts },
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn, squadStance, setSquadStance, engageCode },
   aim: { heroAim, aimFrom, crosshairPoint, inAim, bossInAim, lastAim },

@@ -19,6 +19,8 @@ import { rounded } from '../player/model/skin.js';
 import { lookPool, lookKey, FOE_LOOKS } from '../data/foe-looks.js';
 import { buildSaberist, lookPalette } from './saberist.js';
 import { ACOLYTES, lookById, lookBlade } from '../data/saber-cast.js';
+import { softBody, newRig } from './softbody.js';
+import { isSoft } from '../data/soft-body.js';
 import { FRAME, face, FACES, LID_OPEN, CLONE_FACE, belt, chestDetail, thighDetail, pauldronRims, shoulderBadge, hazard, packTallies, rifleSling, strap } from './detail.js';
 
 const PI = Math.PI;
@@ -54,14 +56,16 @@ export function legBones(k, x){
   const thigh = k.bone('thigh' + n, k.root, [x, LEG_E.hipY, 0], [0,0,0], { blend: 0.12, reach: 0.15 });
   const shin = k.bone('shin' + n, thigh, [0, LEG_E.kneeY - LEG_E.hipY, 0], [0,0,0], { blend: 0.09, reach: 0.16 });
   const foot = k.bone('foot' + n, shin, [0, LEG_E.ankY - LEG_E.kneeY, 0], [0,0,0], { blend: 0.06, reach: 0.14 });
+  if (k.rig) k.rig.legs.push({ thigh, shin, foot });   // (the soft body runs down them: enemies/softbody.js)
   return { thigh, shin, foot };
 }
 
 export function legs(k, w, o = {}){
   const shin = o.shin || 'armor';
+  if (k.rig) k.rig.w = w;
   for (const s of [-1, 1]){
     const L = legBones(k, 0.16 * s);
-    k.add(limb(0.5, [[-0.04,0.21*w,0.22],[0.2,0.2*w,0.2],[0.8,0.15*w,0.16],[1,0.14*w,0.15]], KEEL), 'suit', L.thigh);
+    if (!k.soft) k.add(limb(0.5, [[-0.04,0.21*w,0.22],[0.2,0.2*w,0.2],[0.8,0.15*w,0.16],[1,0.14*w,0.15]], KEEL), 'suit', L.thigh);   // (soft: the leg is one skin, hip to ankle)
     k.add(plate([[-0.08,0],[0.08,0],[0.085,-0.22],[0,-0.27],[-0.085,-0.22]], 0.03, 0.01), 'armor', L.thigh, [0, -0.04, 0.1], [-0.06, 0, 0], { scale: [w, 1, 1] });
     thighDetail(k, L, w);
     k.add(block(0.15*w, 0.1, 0.15, 0.4), 'armor2', L.shin, [0, 0, 0.035]);
@@ -73,7 +77,7 @@ export function legs(k, w, o = {}){
 export function hips(k, w, o = {}){
   if (k.fem) w *= 1.12;   // a woman's build: the frame is narrower (k.bw), the hips stay near full width
   w *= FRAME.hips;
-  k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
+  if (!k.soft) k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');   // (soft: the spine's own pelvis)
   k.add(loft([{ y:1.0, w:0.47*w, d:0.31 }, { y:1.1, w:0.46*w, d:0.305 }], SOFT_BODY), 'armor2');
   k.add(plate([[-0.06,-0.04],[0.06,-0.04],[0.06,0.04],[-0.06,0.04]], 0.02, 0.006), 'metal', k.root, [0, 1.05, 0.16], [0,0,0], { outline: false });
   k.add(plate([[-0.08,0],[0.08,0],[0.05,-0.15],[-0.05,-0.15]], 0.025, 0.008), 'armor', k.root, [0, 0.98, 0.14], [-0.1, 0, 0]);
@@ -88,7 +92,7 @@ export function torso(k, w, o = {}){
   // the shell and everything on it, in the FRAME's proportions (a static group: it bakes into the chest's mesh)
   { const T = k.group(k.root); T.scale.set(FRAME.chest, 1, FRAME.depth); k = k.within(T); }
   // a woman's build: a nipped waist, and a cuirass contoured over the bust (deeper at the chest, drawn in under it)
-  k.add(loft(f ? [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.2, w:0.33*w, d:0.225 }, { y:1.33, w:0.35*w, d:0.24 }]
+  if (!k.soft) k.add(loft(f ? [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.2, w:0.33*w, d:0.225 }, { y:1.33, w:0.35*w, d:0.24 }]
                : [{ y:1.07, w:0.36*w, d:0.24 }, { y:1.33, w:0.38*w, d:0.25 }], SOFT_BODY), 'suit');
   const ab = plate([[-0.12,-0.035],[0.12,-0.035],[0.13,0.03],[-0.13,0.03]], 0.026, 0.008);
   k.add(ab, 'armor2', k.root, [0, 1.17, 0.125], [0.04, 0, 0], { scale: [w, 1, 1] });
@@ -114,7 +118,7 @@ export function torso(k, w, o = {}){
     k.add(loft([{ y:0, w:0.018, d:0.018 }, { y:0.62, w:0.012, d:0.012 }], ngon(6)), 'metal', k.root, [0.12*w, 1.84, -0.26], [-0.12, 0, 0], { outline: false });
     k.add(block(0.03, 0.03, 0.03, 0.3), 'mark', k.root, [0.12*w, 2.45, -0.33], [0,0,0], { outline: false });
   }
-  k.add(loft(f ? [{ y:1.83, w:0.25, d:0.2 }, { y:1.98, w:0.16, d:0.145 }] : [{ y:1.83, w:0.28, d:0.22 }, { y:1.98, w:0.18, d:0.16 }], SOFT_COLLAR), 'suit');   // gorget
+  if (!k.soft) k.add(loft(f ? [{ y:1.83, w:0.25, d:0.2 }, { y:1.98, w:0.16, d:0.145 }] : [{ y:1.83, w:0.28, d:0.22 }, { y:1.98, w:0.18, d:0.16 }], SOFT_COLLAR), 'suit');   // gorget (soft: the spine's neck)
 }
 
 export function pauldrons(k, w, key = 'armor', size = 1){
@@ -149,8 +153,9 @@ export function arm(k, parent, w, o = {}){
     k.add(loft([{ y:-0.35, w:(0.15 + 0.06*bell)*w, d:0.15 + 0.055*bell }, { y:-0.28, w:(0.145 + 0.035*bell)*w, d:0.145 + 0.035*bell },
                 { y:-0.14, w:(0.14 + 0.01*bell)*w, d:0.14 + 0.01*bell }, { y:0.02, w:0.14*w, d:0.14 }], ngon(12)), o.fore || 'armor', el);
   } else {
-    k.add(limb(0.4, [[-0.06,0.15*w,0.15],[0.1,0.15*w,0.15],[1,0.115*w,0.115]], SOFT_LIMB), 'suit', parent);
+    if (!k.soft) k.add(limb(0.4, [[-0.06,0.15*w,0.15],[0.1,0.15*w,0.15],[1,0.115*w,0.115]], SOFT_LIMB), 'suit', parent);   // (soft: the arm is one skin, shoulder to wrist)
     el = k.bone(o.elbow || foreName(parent), parent, [0, -UPPER, 0], [o.bend || 0, 0, 0]);
+    if (k.rig) k.rig.arms.push({ sh: parent, el, w, upper: UPPER });
     k.add(loft([{ y:-0.05, w:0.125*w, d:0.13 }, { y:0.0, w:0.135*w, d:0.145 }, { y:0.05, w:0.12*w, d:0.13 }], SOFT_LIMB), 'armor2', el, [0, 0, 0.01]);   // elbow cop
     k.add(limb(0.3, [[0,0.13*w,0.13],[0.6,0.135*w,0.13],[1,0.105*w,0.1]], KEEL), o.fore || 'armor', el, [0, -0.02, 0.005]);
   }
@@ -227,6 +232,7 @@ const WAIST = 1.06;
 export const NECK = { blend: 0.07, reach: 0.1 };   // the neck bends; the helmet and the gorget stay hard
 export function upper(k){
   const c = k.bone('chest', k.root, [0, WAIST, 0], [0,0,0], { blend: 0.12, reach: 0.6 });
+  if (k.rig) k.rig.chest = c;
   return k.within(k.group(c, [0, -WAIST, 0]));
 }
 
@@ -414,6 +420,7 @@ const HELMETS = {
 // the helmet rides a HEAD bone at the neck (enemies/upper.js turns it to look)
 function helmet(k, name, t, y = 1.96){
   const hb = k.bone('head', k.root, [0, y, 0], [0,0,0], NECK);
+  if (k.rig){ k.rig.head = hb; k.rig.neck = y; }
   // a bare face reads small on an armoured frame from the game's camera: the head a size up (in a group inside the
   // head bone, so it still turns with the look), and a woman's bun or tail fuller
   const faced = k.bare || name === 'officer';
@@ -1111,13 +1118,15 @@ export function buildEnemyMesh(t, o = {}){
   const carry = L.bare && ((t.bare && typeof t.bare === 'string' && t.bare) || (FOE_LOOKS[t.model] && FOE_LOOKS[t.model].carry) || BARE[t.model]);
   const id = look ? 'saber:' + (o.look && lookById(o.look) ? o.look : 'acolyte' + fi) + ':' + t.color.toString(16) + ':' + t.eye.toString(16)
     : t.model + ':' + t.color.toString(16) + ':' + t.eye.toString(16) + (t.cloth != null ? ':' + t.cloth.toString(16) : '') + lookKey(L);
+  const soft = !look && isSoft(t.model);   // one continuous body under the plates (data/soft-body.js)
   const pal = look ? lookPalette(look) : null;
   if (pal && !(o.look && lookById(o.look))){   // the rank and file keep their type's colours (deeper: black robes, not grey plate), unless their face's look names its own
     const own = look.colors || {};
     if (own.tunic == null) pal.armor = { ...pal.armor, c: shade(t.color, 0.6) };
     if (own.cloak == null) pal.cloth = t.cloth ?? pal.cloth;
   }
-  const baked = bakeDesign(id, k => {
+  const baked = bakeDesign(soft ? id + ':soft' : id, k => {
+    if (soft){ k.soft = true; k.rig = newRig({ ...LEG_E, waist: WAIST }); }
     k.v = L.v || 0; k.dv = L.dv || 0; k.face = F; k.badge = IMPERIAL.has(t.model); k.look = look;
     k.fem = !!L.fem; k.bw = L.fem ? 0.86 : 1; k.hv = L.hv || 0; k.kit = L.kit || 0; k.hat = L.hat || null; k.cap = L.cap;
     if (carry){
@@ -1126,6 +1135,7 @@ export function buildEnemyMesh(t, o = {}){
       k.bareHelmet = g => HELMETS[carry]({ ...k, root: g, glow: () => new THREE.Object3D(), live: o => o }, g, t);
     }
     MODELS[t.model](k, t);
+    if (soft) softBody(k);
   }, {
     armor: t.color, armor2: shade(t.color, 0.62), shield: shade(t.color, 1.15), cloth: t.cloth ?? 0x3f382e, mark: markColor(t.color),
     kitcloth: kitCloth(t.color), rag: t.rag ?? 0x5a2c22, gold: { c: t.trim ?? 0xc9a040, r: 0.35, m: 0.8 },

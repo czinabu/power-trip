@@ -536,7 +536,7 @@ document.getElementById('guardringctl').addEventListener('click', (e) => { e.sto
 // STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
 setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');
 document.getElementById('strafectl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setStrafeMode(G.strafeMode === 'hold' ? 'toggle' : 'hold'); });
-// DUEL FOCUS — AUTO (the default): a saber duel locks on by itself and holds the fight in place; MANUAL: the lock button alone; OFF (player/lockon.js)
+// DUEL FOCUS — AUTO (the default): a strictly one-on-one duel locks on by itself and holds the fight in place; MANUAL: the lock button alone; OFF (player/lockon.js)
 function setDuelFocus(m){
   G.duelFocus = m === 'manual' || m === 'off' ? m : 'auto'; try { localStorage.setItem('sw_duelfocus', G.duelFocus); } catch(e){}
   const v = document.getElementById('duelfocusval'); if (v) v.textContent = G.duelFocus.toUpperCase();

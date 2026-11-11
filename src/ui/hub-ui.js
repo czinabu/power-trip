@@ -32,8 +32,8 @@ import { partnerWorlds } from '../net/partner.js';
 import { savedName } from '../net/names.js';
 import { SIDE_QUESTS, SIDE_PREFIX } from '../data/side-quests.js';
 import { ZONES } from '../data/zones.js';
-import { zoneLock, zoneLate } from '../game/zone-gate.js';
-import { sideWon, sideLock, ngNextTier } from '../game/profile.js';
+import { zoneLock, zoneLate, sideLockLine } from '../game/zone-gate.js';
+import { sideWon, ngNextTier } from '../game/profile.js';
 import { tierName, NG_TIERS } from '../data/ngplus.js';
 import { mapHTML, mapLayout } from './hub-map.js';
 import { optHTML, listHTML, headHTML } from './hub-cards.js';
@@ -138,7 +138,7 @@ function options(s){
     case 'quests': {
       // the side missions (data/side-quests.js): each waits for a rank, and a won one keeps its tick
       return SIDE_QUESTS.map(q => {
-        const id = SIDE_PREFIX + q.slug, won = sideWon(id), need = sideLock(q), lock = !need ? null : need.startsWith('REACH ') ? 'Reach ' + need.slice(6) : 'Beat the campaign';
+        const id = SIDE_PREFIX + q.slug, won = sideWon(id), lock = sideLockLine(q);
         const d = q.blurb.charAt(0).toUpperCase() + q.blurb.slice(1) + '. ' + q.place + ' · ' + (won ? 'DONE · ' : '') + q.reward;
         return B(q.title + (won ? '  ✓' : ''), lock ? q.place : d, guest() ? null : () => hubLaunch('mission', id), lock);
       }).concat(guest() ? [B('THE HOST CHOOSES', 'In a party the host picks the side mission, and everyone in the temple goes with them.', null)] : []);

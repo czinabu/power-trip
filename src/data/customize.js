@@ -115,7 +115,7 @@ export const CUSTOMIZE = {
     ...benchRows(),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
-      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.9, shoulders: 0.94 } } },
+      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.94, shoulders: 0.96 } } },
       { id: 'broad',    name: 'Broad',    set: { build: { bulk: 1.1, shoulders: 1.07 } } },
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
@@ -182,7 +182,7 @@ export const CUSTOMIZE = {
     ...kitRows(FORGE),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
-      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.92, shoulders: 0.95 } } },
+      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.95, shoulders: 0.97 } } },
       { id: 'heavy',    name: 'Heavy',    set: { build: { bulk: 1.12, shoulders: 1.08 } } },
     ] },
     // how worn the hero starts each fight: dust, scuffs and chipped paint (player/model/wear.js); hits add soot as it goes
@@ -246,7 +246,7 @@ export const CUSTOMIZE = {
     ...kitRows(LOCKER),
     { id: 'build', label: 'BUILD', kind: 'part', options: [
       { id: 'standard', name: 'Standard', set: { build: { bulk: 1, shoulders: 1 } } },
-      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.92, shoulders: 0.95 } } },
+      { id: 'lean',     name: 'Lean',     set: { build: { bulk: 0.95, shoulders: 0.97 } } },
       { id: 'heavy',    name: 'Heavy',    set: { build: { bulk: 1.12, shoulders: 1.08 } } },
     ] },
     { id: 'wear', label: 'BATTLE WEAR', kind: 'part', options: [

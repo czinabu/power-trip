@@ -32,8 +32,8 @@ import { ZONES } from '../data/zones.js';
 import { RAIDS, raidsOpen } from '../data/raids.js';
 import { missionOpen } from './missions-ui.js';
 import { missionDone, missionTitle } from '../game/mission.js';
-import { sideWon, sideLock } from '../game/profile.js';
-import { zoneLock } from '../game/zone-gate.js';
+import { sideWon } from '../game/profile.js';
+import { zoneLock, sideLockLine } from '../game/zone-gate.js';
 import { missionChapterNo } from '../game/sandbox-unlocks.js';
 import { optHTML } from './hub-cards.js';
 import { savedName } from '../net/names.js';
@@ -79,7 +79,7 @@ function worldEntries(w, ctx, play){
       go(title, () => ctx.mission(id)), open ? null : (ch ? 'Clear ' + String(ch).toLowerCase().replace(/^c/, 'C') : 'Clear it in the campaign')) });
   }
   for (const q of sidesOn(w)){
-    const id = SIDE_PREFIX + q.slug, won = sideWon(id), need = sideLock(q), lock = !need ? null : need.startsWith('REACH ') ? 'Reach ' + need.slice(6) : 'Beat the campaign';
+    const id = SIDE_PREFIX + q.slug, won = sideWon(id), lock = sideLockLine(q);
     out.push({ kind: 'side', b: ctx.B('SIDE · ' + q.title + (won ? '  ✓' : ''), lock ? q.place : cap(q.blurb) + ' · ' + q.reward, go(q.title, () => ctx.side(id)), lock) });
   }
   if (play.plots) for (const e of out) if (e.b.go) e.b.stay = true;   // (the map: a pick plots the course, and the map stays up)

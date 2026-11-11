@@ -1,7 +1,7 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // DUEL SIM — scripted, headless saber duels on the BUILT game (dist/index.html), the real combat code end to end, run as
 // fast as the CPU allows (tools/duel-sim/bot.js drives the clock and the hero). Prints JSON lines, one per fight.
-//   npm run build && node tools/duel-sim/sim.mjs <plan> [--workers 3] [--reps 4] [--out file.jsonl]
+//   npm run build && node tools/duel-sim/sim.mjs <plan> [--workers 3] [--reps 4] [--upgrades none|early|mid|full|auto] [--out file.jsonl]
 // plans:
 //   matrix   every hero form against every foe form, ranks I to IV (acolytes in that form at that rank)
 //   adapt    masters that switch form, against a hero who answers back (3-form loadout) or stays put
@@ -9,7 +9,7 @@
 //   early    the first waves' acolytes (Shii-Cho adepts) against the forms a run has then
 //   one      a single fight: --form ataru --foe djemso --rank knight
 //   crystals every kyber crystal's attunement (data/saber-parts.js fx) in a few forms against the Jedi story's champions, so no crystal turns out a must-have (narrow with --crystals white,red and --forms)
-import { chromium } from 'playwright';
+import { launchSimBrowser } from '../sim-browser.mjs';
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
@@ -32,6 +32,18 @@ const WORKERS = +opt('workers', 3), REPS = +opt('reps', 4), OUT = opt('out', nul
 // the hero's skill (tools/duel-sim/bot.js): good = reads most guards and lands most parries; average = mashes more, reads less
 const PRESETS = { good: null, average: { parry: 0.35, sigma: 0.1, read: 0.5, mash: 0.5, gap: 0.65, bite: 0.5, see: 0.3 } };
 const SK = opt('skill', 'good'), SKILL = SK in PRESETS ? PRESETS[SK] : JSON.parse(SK);
+// the run's skill cards the hero carries (data/skills.js ids, laid on by bot.js begin): about what a run has spent by
+// then. early ≈ 3 points (the first act's), mid ≈ 6 (into the second), full ≈ 12 (the last act, a capstone). auto picks
+// by the fight's depth, so a story duel is met with the cards a run has by then. Default none (the forms' own numbers).
+const KITS = {
+  none: [],
+  early: ['edge', 'focus', 'vit'],
+  mid: ['edge', 'edge', 'focus', 'vit', 'endure', 'rip'],
+  full: ['edge', 'edge', 'edge', 'focus', 'focus', 'vit', 'vit', 'endure', 'endure', 'rip', 'bulw', 'storm'],
+};
+const UPG = opt('upgrades', 'none');
+if (UPG !== 'auto' && !KITS[UPG]){ console.error('--upgrades: none, early, mid, full or auto'); process.exit(1); }
+const kitName = (depth) => UPG !== 'auto' ? UPG : depth <= 2 ? 'none' : depth <= 6 ? 'early' : depth <= 12 ? 'mid' : 'full';
 
 const FORMS = ['shiicho', 'makashi', 'soresu', 'ataru', 'djemso', 'shien', 'niman', 'juyo', 'vaapad', 'staff', 'jarkai'];
 const RANKS = ['initiate', 'adept', 'knight', 'master'];
@@ -90,6 +102,7 @@ function jobs(){
     for (let r = 0; r < REPS; r++) J.push({ tag: 'one', form, foe, rank, cfg: { form, loadout: loadoutFor(form), foes: [{ type: 'acolyte', form: foe, rank, hpMul: HPM(DEPTH[rank] || 9) }], depth: DEPTH[rank] || 9, seed: 17 + r, tmax: 90 } });
   }
   if (SKILL) for (const j of J) j.cfg.skill = SKILL;
+  for (const j of J){ j.kit = kitName(j.cfg.depth || 0); j.cfg.kit = KITS[j.kit]; }
   return J;
 }
 
@@ -134,7 +147,7 @@ async function worker(browser, queue, onDone){
       }, j.cfg);
     } catch(e){ r = { end: 'error', err: e.message.split('\n')[0] }; }
     if (errs.length){ r.errors = errs.splice(0).slice(0, 3); }
-    onDone({ skill: SK, tag: j.tag, form: j.form, foe: j.foe, rank: j.rank, adaptive: j.adaptive, ...r });
+    onDone({ skill: SK, upgrades: UPG === 'auto' ? 'auto:' + j.kit : UPG, tag: j.tag, form: j.form, foe: j.foe, rank: j.rank, adaptive: j.adaptive, ...r });
   }
   await page.close();
 }
@@ -145,7 +158,7 @@ console.error(`${PLAN}: ${total} fights on ${WORKERS} workers`);
 if (OUT) writeFileSync(OUT, '');
 let done = 0;
 const t0 = Date.now();
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined), args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+const browser = await launchSimBrowser();
 await Promise.all(Array.from({ length: Math.min(WORKERS, total) }, () => worker(browser, queue, (r) => {
   done++;
   const line = JSON.stringify(r);

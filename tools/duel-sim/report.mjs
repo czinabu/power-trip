@@ -29,7 +29,7 @@ function table(title, head, body){
 }
 const groups = (rs, key) => { const m = new Map(); for (const r of rs){ const k = key(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); } return m; };
 
-for (const [skill, rs0] of groups(rows, r => (r.skill || 'good') + ' / ' + r.tag)){
+for (const [skill, rs0] of groups(rows, r => (r.skill || 'good') + (r.upgrades && r.upgrades !== 'none' ? ' · cards ' + r.upgrades : '') + ' / ' + r.tag)){
   const rs = rs0.filter(r => r.end !== 'error');
   if (rs0[0].tag === 'matrix'){
     const ranks = [...new Set(rs.map(r => r.rank))];
@@ -53,7 +53,8 @@ for (const [skill, rs0] of groups(rows, r => (r.skill || 'good') + ' / ' + r.tag
                 ...foes.map(f => { const b = agg(v.filter(r => r.foe === f)); return `${(b.win*100).toFixed(0)}% ${b.ttk.toFixed(1)}s`; })]; }));
   } else {
     const keys = [...groups(rs, r => r.form + ' vs ' + r.foe + (r.adaptive != null ? (r.adaptive ? ' (answers)' : ' (stays)') : '')).entries()];
-    table(`${skill}`, ['fight', 'win', 'ttk', 'dmg', 'stam/s', 'kills', 'switches'],
-      keys.map(([k, v]) => [k, ...fmt(agg(v)), mean(v.map(r => r.kills / r.of)).toFixed(2), mean(v.map(r => r.foeSwitch)).toFixed(1) + '/' + mean(v.map(r => r.switches)).toFixed(1)]));
+    table(`${skill}`, ['fight', 'win', 'ttk', 'dmg', 'stam/s', 'kills', 'switches', 'rolled tells'],
+      keys.map(([k, v]) => [k, ...fmt(agg(v)), mean(v.map(r => r.kills / r.of)).toFixed(2), mean(v.map(r => r.foeSwitch)).toFixed(1) + '/' + mean(v.map(r => r.switches)).toFixed(1),
+                           mean(v.map(r => r.dodges || 0)).toFixed(1) + '/' + mean(v.map(r => r.dodgeTells || 0)).toFixed(1)]));
   }
 }

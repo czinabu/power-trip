@@ -7,6 +7,10 @@
 //   cover   fights from cover: picks the face between him and the foes, walks (or rolls) to it, takes it (C), leans out
 //           for a volley, ducks back when the fire gets heavy or the gun runs hot, and moves on when he's flanked or a
 //           detonator lands by him. A rough, fair player, not a perfect one: his aim wobbles and he's slow to react.
+//   move    (the Mandalorian sim, tools/mando-sim) keeps his feet going: strafes, backs off a melee rush, and dives
+//           (SHIFT) out of a red DODGE tell or a blow about to land, shooting all the while.
+// cfg.weapon puts a gun in his hands (data/mando.js MANDO_WEAPONS id): an automatic is held down, the rest clicked as
+// fast as each allows. Every blow on a foe is tallied, his or his squad's (game/sim-watch.js: R.squadShare).
 (() => {
   // ---------- the clock ----------
   let vt = 0, pump = null;
@@ -97,7 +101,11 @@
     player.up = { ...player.up, hpMax: 0, dmg: 1, dr: 0, move: 1, fireRate: 1 }; player.hp = 100; player.downed = false;
     for (const k of ['openArmor', 'coverArmor', 'coverDmg', 'suppRes', 'squadExtra', 'squadDmg', 'squadDr', 'brothers', 'reviveMul', 'heatCool', 'heatMul', 'fragExtra']) delete player.up[k];
     for (const k of ['artillery', 'launcher', 'strafe', 'medic', 'bshield']) delete G.unlocked[k];
-    if (player.weapon !== 'rifle') GAME.cover && document.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+    if (cfg.weapon){
+      // the gun in hand, as switchWeapon (player/mando/weapons.js) leaves it (no mesh: nothing is drawn)
+      Object.assign(player, { weapon: cfg.weapon, zoom: false, heat: 0, overheat: false, ventT: 0, fireCd: 0, fireCdL: 0, spin: 0, burstLeft: 0, burstQ: false, gunSlow: 1, unlit: false, stowed: false });
+    } else if (player.weapon !== 'rifle') GAME.cover && document.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+    const GUN = GAME.MANDO_WEAPONS[player.weapon] || {}, AUTO = GUN.fire === 'auto', GAP = Math.max(0.11, (GUN.fireCd || 0.11) * 1.05);
     if (cfg.setup) (new Function('GAME', cfg.setup))(GAME);
     // the cover course: the same few walls and pillars every fight (no drawing: they only need to be solid)
     if (!window.__course && cfg.course){ window.__course = true; for (const c of cfg.course) GAME.solids.push({ ...c, box: true, sim: true }); GAME.nav.buildNav && GAME.nav.buildNav(); }
@@ -110,6 +118,9 @@
     G.yaw = cfg.yaw || 0; G.pitch = 0.05;
     steps(0.3);
     if (cfg.squad) GAME.squad.spawnSquad(cfg.squad);
+    // who does the work: every blow on a foe, his or a squadmate's (game/sim-watch.js)
+    const W = GAME.simWatch; R.dmgHero = 0; R.dmgSquad = 0;
+    if (W) W.hit = (e, d, o) => { if (o && o.ally) R.dmgSquad += d; else R.dmgHero += d; };
     for (const f of cfg.foes){
       if (f.boss){ GAME.spawnBoss(); }
       else for (let i = 0; i < (f.n || 1); i++){
@@ -123,7 +134,13 @@
     steps(0.5);
     const bossFoe = () => GAME.enemies.find(e => (e.fin || e.champion) && !e.dead);
     let hpPrev = player.hp, aimT = 0, peekPlan = 0, duckPlan = 0, target = null, goal = null, goalT = 0, lastFlank = -9, wob = { x: 0, y: 0 }, wobT = 0;
-    let rmb = false, lastClick = 0, nade = null, recN = 0;
+    let rmb = false, lastClick = 0, nade = null, recN = 0, lmb = false, strafe = 1, strafeT = 0, lastRoll = -9;
+    const setLmb = (on) => { if (on && !lmb){ mouse('mousedown', 0); lmb = true; } else if (!on && lmb){ mouse('mouseup', 0); lmb = false; } };
+    // the move bot's read of the red DODGE tells (game/sim-watch.js)
+    const tells = []; if (W) W.tell = (kind, pos, r, dur) => { if (kind !== 'area') tells.push({ kind, t: G.gt, x: pos.x, z: pos.z, r: r || 2, dur: dur ?? 0.45 }); };
+    // pull the trigger: an automatic held down, the rest clicked at the gun's own pace
+    const shoot = (t, on) => { if (AUTO){ setLmb(on && !player.overheat); if (on && !player.overheat) R.shots += 0.05 / (GUN.fireCd || 0.1); return; }
+      if (on && !player.overheat && t - lastClick > GAP){ lastClick = t; mouse('mousedown', 0); mouse('mouseup', 0); R.shots++; } };
     const setRmb = (on) => { if (on && !rmb){ mouse('mousedown', 2); rmb = true; } else if (!on && rmb){ mouse('mouseup', 2); rmb = false; } };
     const t0 = G.gt, k0 = (G.stats && G.stats.kills) || 0;
     while (G.gt - t0 < cfg.tmax){
@@ -138,7 +155,7 @@
       hpPrev = player.hp;
       if (cfg.trace && Math.round(t * 20) % 10 === 0) R.trace = (R.trace || []).concat([[+t.toFixed(1), +player.group.position.x.toFixed(1), +player.group.position.z.toFixed(1), Math.round(player.hp), !!player.cover, goal ? [+goal.x.toFixed(1), +goal.z.toFixed(1)] : null, +(player.supp || 0).toFixed(2)]]);
       if (player.downed || realHp() <= 0){ R.downs++; break; }
-      if (G.mode !== 'play'){ break; }
+      if (G.mode !== 'play'){ R.endMode = G.mode; break; }
       R.maxSupp = Math.max(R.maxSupp, player.supp || 0);
       const foes = alive(GAME);
       if (!foes.length && !GAME.G.spawnQueue.length && !bossFoe() && !GAME.enemies.some(e => !e.dead && !e.converted)){ R.win = true; break; }
@@ -153,7 +170,31 @@
       if (cfg.bot === 'stand'){
         R.openT += 0.05;
         setRmb(true);
-        if (target && !player.overheat && t - lastClick > 0.11){ lastClick = t; mouse('mousedown', 0); mouse('mouseup', 0); R.shots++; }
+        if (cfg.weapon) shoot(t, !!target);
+        else if (target && !player.overheat && t - lastClick > 0.11){ lastClick = t; mouse('mousedown', 0); mouse('mouseup', 0); R.shots++; }
+        continue;
+      }
+      if (cfg.bot === 'move'){
+        R.openT += 0.05;
+        setRmb(!!GUN.scope ? false : true);   // (braced: tighter and harder; a scope would blind him at close range)
+        shoot(t, !!target);
+        // a blow about to land: a red tell on or round him, or a melee foe winding up beside him
+        let dodge = null;
+        for (const T of tells){ const left = T.t + T.dur - G.gt; if (left < 0.25 && left > -0.1 && Math.hypot(p.x - T.x, p.z - T.z) < T.r * 2 + 3) dodge = T; }
+        for (let i = tells.length - 1; i >= 0; i--) if (G.gt - tells[i].t > tells[i].dur + 0.5) tells.splice(i, 1);
+        const near = foes.filter(e => !e.t.ranged && e.group.position.distanceTo(p) < 7).sort((a, b) => a.group.position.distanceTo(p) - b.group.position.distanceTo(p));
+        const swing = near.find(e => e.group.position.distanceTo(p) < (e.t.range || 3) + 1 && e.state === 'windup' && e.st < 0.22);
+        for (const k of ['w', 'a', 's', 'd']) keys[k] = false;
+        if ((dodge || swing) && t - lastRoll > 0.9 && rnd() < (cfg.dodge ?? 0.8)){
+          // dive off the line: sideways off a tell, back and away from a blade
+          lastRoll = t; if (dodge) tells.splice(tells.indexOf(dodge), 1);
+          keys[strafe > 0 ? 'd' : 'a'] = true; if (swing) keys.s = true;
+          press('shift'); R.dives = (R.dives || 0) + 1;
+          continue;
+        }
+        if ((strafeT -= 0.05) <= 0){ strafeT = 0.8 + rnd() * 1.2; strafe = -strafe; }
+        keys[strafe > 0 ? 'd' : 'a'] = true;
+        if (near.length && near[0].group.position.distanceTo(p) < 6) keys.s = true;   // back off a rush, still shooting
         continue;
       }
       // ---- the cover bot ----
@@ -212,7 +253,9 @@
       if (!rmb){ setRmb(true); peekPlan = t + 1.0 + rnd() * 0.9; }
       if (target && v.peek > 0.9 && t - lastClick > 0.12){ lastClick = t; mouse('mousedown', 0); mouse('mouseup', 0); R.shots++; }
     }
-    setRmb(false);
+    setRmb(false); setLmb(false);
+    if (W){ W.hit = null; W.tell = null; }
+    R.squadShare = +(R.dmgSquad / Math.max(1, R.dmgHero + R.dmgSquad)).toFixed(3); R.dmgHero = Math.round(R.dmgHero); R.dmgSquad = Math.round(R.dmgSquad);
     for (const k of ['w', 'a', 's', 'd']) keys[k] = false;
     R.t = +(G.gt - t0).toFixed(1);
     R.hpLost = Math.round(R.hpLost);

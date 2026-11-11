@@ -15,8 +15,17 @@ Plans: `matrix` (every hero form × every foe form × ranks I–IV; narrow with 
 champions as their missions scale them: `tools/duel-sim/bosses.mjs`; narrow with `--foes vexis,warden`; `--adaptive`
 answers a counter by switching form). Skills: `good`, `average`, or a JSON object of bot keys.
 
-What it does not model: Force powers, kicks, dashes, deliberate bolt blocking, crowd positioning and upgrades. Five
-duels a cell is noisy; read rows and columns, not single cells. About 2 fights a second on 4 workers.
+What it does not model: Force powers, kicks, deliberate bolt blocking and crowd positioning. Five duels a cell is noisy;
+read rows and columns, not single cells. About 2 fights a second on 4 workers.
+
+Dodging: the bot rolls through a red DODGE tell (a choke ring, a repulse, Vexis's Last Stand charge as it arrives), and
+against a final boss it parries or rolls his white PARRY-OR-DODGE moves (the guard breaker, the blink cuts). It sees the
+tells through `GAME.simWatch` (`src/game/sim-watch.js`). Bot keys `dodge`, `dodgeLead`, `dodgeReact`; the report's
+`rolled tells` column is rolls / red tells seen. A final boss's damage is split by his move in each line's `src`.
+
+Upgrades: `--upgrades none|early|mid|full|auto` lays a run's skill cards on the hero first (`KITS` in `sim.mjs`: about 3,
+6 and 12 points' worth). `auto` picks by the fight's depth, so a story duel is met with the cards a run has by then. The
+default is `none`, the forms' own numbers.
 
 Against Vexis the bot also catches his lightning on the guard (`catch`) and jumps his nova rings (`jump`); against the
 warbringer it parries off the tell it flares as the hold lets go. Bot keys `heavy` (share of cuts held into heavies)

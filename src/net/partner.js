@@ -31,6 +31,7 @@ import { on, send, sendEvery, connected, net } from './session.js';
 import { savedName, hasName, setName, forgetName, forgetAll, nameOf } from './names.js';
 import { fxOut, makePartnerFx, updatePartnerFx } from './partner-fx.js';
 import { profileCard, cleanCard } from '../game/profile.js';
+import { setDevice, myDevice } from './invite.js';
 
 const partners = new Map();   // slot -> that player's puppet, pose track and entry in the players list
 const keyOf = (picks) => JSON.stringify(picks || {});
@@ -101,7 +102,7 @@ function coopRevives(){
   if (G.reviveLeft == null || key !== reviveWave){ reviveWave = key; refill(); }
 }
 
-on('hello', (m) => { setName(m.from || 0, m.name); const P = partnerOf(m.from || 0); P.mate.name = nameOf(P.slot); hearCard(P, m.rk); build(P, m.picks, m.hero); addPlayer(P.mate); });
+on('hello', (m) => { setName(m.from || 0, m.name); setDevice(m.from || 0, m.dv); const P = partnerOf(m.from || 0); P.mate.name = nameOf(P.slot); hearCard(P, m.rk); build(P, m.picks, m.hero); addPlayer(P.mate); });
 // each player's PROFILE CARD (game/profile.js profileCard: hero, rank, lean), with their hello and now and then after:
 // shown on their name tag, and kept on their entry for whatever reads the room (the hub, partnerCards)
 function hearCard(P, c){ if (c !== undefined) P.mate.card = cleanCard(c); }
@@ -137,7 +138,7 @@ on('s', (m) => {
   P.fx.cur = m.fx || null; P.fx.curAt = performance.now();
 });
 // a player came in: say hello to them (the host's hello reaches every guest, and each guest's reaches the host and, through it, the rest)
-on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: packPicks(wornPicks(loadPicks())), name: savedName(), rk: profileCard() }); });
+on('open', () => { sent = 0; send({ t: 'hello', hero: G.hero, picks: packPicks(wornPicks(loadPicks())), name: savedName(), rk: profileCard(), dv: myDevice() }); });
 function leaves(slot){
   const P = partners.get(slot);
   if (!P) return;

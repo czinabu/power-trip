@@ -43,6 +43,7 @@ import { V3 } from '../utils.js';
 import { MUSIC } from '../audio/music.js';
 import { startZoneFights, updateZoneFights, zoneTier } from './zone-fights.js';
 import { startZoneQuests, updateZoneQuests, zoneQuestMarks } from './zone-quests.js';
+import { armDropIn } from './drop-in.js';
 
 // what a zone hands out up front: what this hero's own story has handed out so far (game/zone-gate.js), no more
 function storyKit(){
@@ -94,7 +95,12 @@ export function startZone(key = 'jedha', opts = {}){
   const at = opts.at && Z.waystones.find(w => w.id === opts.at);
   land(at ? [at.x, at.z + 3, Math.PI] : Z.spawn);
   ZN.arrived = performance.now();
-  if (opts.guest){ G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false; }
+  if (opts.guest){
+    const fresh = G.coopJoin;   // (joining from the menu, not back in after a dropped link)
+    G.coopGuest = true; G.coopWasGuest = true; G.coopJoin = false;
+    // the host is out in the streets already: land at the waystone by them, or beside them (game/drop-in.js)
+    if (!at && fresh) armDropIn('zone', { stones: () => ZN.Z ? ZN.Z.waystones : [], land: (w) => { noteZone(ZN.key, 'stones', w.id); land([w.x, w.z + 3, Math.PI]); } });
+  }
   startZoneFights(Z); startZoneQuests(key, Z);   // its patrols and its people (game/zone-fights.js, game/zone-quests.js)
   MUSIC.setCue && MUSIC.setCue(null);
   return true;

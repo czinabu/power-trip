@@ -32,6 +32,7 @@
     "smoke:evacuees": "node tools/smoke/evacuees.mjs",
     "smoke:holds": "node tools/smoke/holds.mjs",
     "smoke:coop-mission": "node tools/smoke/coop-mission.mjs",
+    "smoke:coop-invite": "node tools/smoke/coop-invite.mjs",
     "smoke:cutscenes": "node tools/smoke/cutscenes.mjs",
     "smoke:training": "node tools/smoke/training.mjs",
     "smoke:saber-cast": "node tools/smoke/saber-cast.mjs",

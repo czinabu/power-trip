@@ -49,6 +49,7 @@ import { meetFoe, meetWarbringer } from '../game/codex.js';
 import { duelWon } from '../enemies/guardcue.js';
 import { bossDown } from '../game/autosave.js';
 import { noteTrophy } from '../game/hub-growth.js';
+import { stepDropIn } from '../game/drop-in.js';
 
 const DEAD = 1, WALKING = 2, WARBRINGER = 4;
 let sentAt = 0, hitsAt = 0, hostSent = false, runListeners = [];
@@ -283,6 +284,7 @@ on('e', (m) => {
     showBanner('', 'BACK IN THE HOST\'S FIGHT', 2.0);
   }
   if (!G.coopGuest || G.mode === 'menu') return;
+  stepDropIn();   // a newcomer to a mission or zone the host is well into: set down with the party (game/drop-in.js)
   if (m.st) G.story = m.st;   // the host's story choices (game/choices.js): the guest's words follow them
   calmSync(m.af);   // the calm after a chapter (game/aftermath.js): the host's rally point
 

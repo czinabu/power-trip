@@ -173,6 +173,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (G.mode !== 'play') return 'none';
   if (player.downed){ hitDownedHero(); return 'none'; }   // down: a blow drains the time left instead (game/revive.js)
   if (G.gt < (player.reviveGuardT || 0)) return 'none';   // just got up: a moment's grace
+  if (G.duel && G.duel.fighting && G.duel.phase !== 'fight') return 'none';   // a duel: nothing lands before the FIGHT or after a round is called (game/duel-mode.js)
   if (G.zoneFallT > 0) return 'none';   // fallen in an open zone: on the way back to a waystone (game/zone.js)
   // co-op: the fight runs on while you're in a menu (paused, picking upgrades). Nothing lands while it's open, nor for a
   // moment after (net/foes.js stamps awayAt); foes leave you be meanwhile (player/players.js huntable)

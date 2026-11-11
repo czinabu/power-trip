@@ -78,6 +78,7 @@ const CORPSE = 1.4;   // seconds a body lies (the last 0.6 of them sinking away)
 const NO_REACT = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, lock: 1, lunge: 1, grasped: 1, yield: 1, spared: 1 };   // states that own the whole body
 const NO_SKID = { ragdoll: 1, knockdown: 1, fade: 1, spawn: 1, lock: 1, grasped: 1, stasis: 1, yield: 1, spared: 1 };   // states a shove's skid stops in (they place the body themselves)
 const LUNGING = { lungewind: 1, lunge: 1 };
+const HOLD_DROP = { windup: 1, strike: 1, lungewind: 1, leapwind: 1, order: 1 };   // what a held foe (e.aiHold) lets go of
 const NO_FEET = { ragdoll: 1, knockdown: 1, getup: 1, fade: 1, spawn: 1, grasped: 1, yield: 1, spared: 1 };   // (yield, spared: on its knees, game/alignment.js)   // states the legs don't stand in (enemies/gait.js)
 // turn toward a heading at a capped rate (the hero's turning weight, data/movement.js MOVE.turnRate)
 function turnToward(g, want, rate, dt){
@@ -113,6 +114,12 @@ export function updateEnemies(dtAll){
     if (e.hitCd > 0) e.hitCd -= dt;
     if (e.t.officer || e.t.lancer) tickTactics(e, dt);   // order / lunge cooldowns (tactics.js)
     if (e.stunT > 0) e.stunT -= dt;
+    // HELD (e.aiHold: a duel's mirror on its mark through the count and between rounds, game/duel-mode.js): a blow it had
+    // started is let go, and in the chase it stands its post (e.home) like a training dummy until it's let loose
+    if (e.aiHold && !e.dead && HOLD_DROP[e.state]){
+      e.state = 'recover'; e.st = Math.min(e.st, 0.2); e.plan = null; e.troop = null; e.counterQueued = false; e.feintAgain = false;
+      if (e.aimLine) e.aimLine.visible = false;
+    }
     if (e.aimLine && e.state !== 'windup') e.aimLine.visible = false;   // the marksman's beam only shows while charging
 
     // pick a target: a hero (solo, always this browser's; in co-op, whichever one this foe picked: targets.js),
@@ -166,7 +173,7 @@ export function updateEnemies(dtAll){
       case 'chase': {
         if (tgtPos) turnToward(g, Math.atan2(tx, tz), dist < t.range + ENGAGE.ringPad + 3 ? MOVE.combatTurnRate : MOVE.turnRate, dt);
         if (e.stunT > 0) break;   // reeling from a saber hit — no step, no swing this beat
-        if (e.dummy){             // TRAINING target: it stands and takes it, and walks back to its post when knocked off it
+        if (e.dummy || e.aiHold){   // TRAINING target (or a held foe: e.aiHold above): it stands and takes it, and walks back to its post when knocked off it
           const hx = e.home.x - g.position.x, hz = e.home.z - g.position.z, hd = Math.hypot(hx, hz);
           if (hd > 0.5){ g.position.x += hx / hd * e.spd * 0.7 * dt; g.position.z += hz / hd * e.spd * 0.7 * dt; g.rotation.y = Math.atan2(hx, hz); }
           break;

@@ -137,6 +137,7 @@ function spawnMirror(){
   const e = spawnEnemy(D.mirror.type, at) || enemies[enemies.length - 1];
   if (!e) return;
   e.duelMirror = true;
+  e.home = { x: at.x, z: at.z }; e.aiHold = true;   // it stands its mark until the FIGHT lets it loose (updateDuel)
   setFoeForm(e, G.stance, D.mirror.rank);   // a mirror: it fights in the form you hold
   e.maxHp = e.hp = Math.max(e.hp, maxHp());
   // its blows are scored by the match, not its health: a clean saber cut on it is a point; in HEALTH rules it can't die,
@@ -413,6 +414,7 @@ export function updateDuel(){
   if (G.duel){ G.duel.widen = M.lk > D.lag.poor ? D.lag.parryWiden : 0; }
   // on the marks and through the count, the fighters hold still; in the fight, the ring holds them in
   if (M.ph === 'enter' || M.ph === 'count'){ holdMark(); countBeat(); }
+  if (mirror) mirror.aiHold = M.ph !== 'fight';   // the mirror waits for the FIGHT too, and stands down once a round is called
   else if (M.ph === 'fight') keepInRing();
   if (M.rule !== 'health' && M.ph === 'fight' && player.hp < maxHp()) player.hp = maxHp();   // (clean hits: the bar is not the score)
   if (!M.ref) return;

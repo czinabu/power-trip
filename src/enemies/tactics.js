@@ -5,6 +5,7 @@
 import { sweepAllies } from '../allies/squad.js';
 import * as THREE from 'three';
 import { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, LUNGE } from '../data/tactics.js';
+import { DUEL } from '../data/duel.js';
 import { scene } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { V3, rand, clamp, dampToward } from '../utils.js';
@@ -39,8 +40,11 @@ export function planTroopMelee(e){
   e.troop = null;
   if (!p || e.converted) return;
   const tr = { hold: 0, feint: false };
-  tr.feint = roll(p.feint);
-  if (!tr.feint && roll(p.hold)) tr.hold = rand(p.holdT[0], p.holdT[1]);
+  // ONE TRICK AT A TIME (data/duel.js DUEL.tricks): the swing after a held or faked one is honest (not the Warbringer's own maul)
+  const honest = !e.swing && !!e.tricked && DUEL.tricks.honestAfter[G.diff] !== false;
+  tr.feint = !honest && roll(p.feint);
+  if (!honest && !tr.feint && roll(p.hold)) tr.hold = rand(p.holdT[0], p.holdT[1]);
+  e.tricked = tr.feint || tr.hold > 0;
   if (!tr.feint && !tr.hold) return;
   e.troop = tr;
   e.wuBase = e.wu;

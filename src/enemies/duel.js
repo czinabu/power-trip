@@ -488,11 +488,14 @@ export function planAttack(e, quick){
   spend(e, quick ? DUEL.breath.counter : DUEL.breath.swing);   // (it swings on an empty tank too, but the tank shows it)
   if (!quick){
     e.measT = null;   // its next turn measures the distance afresh (FOOTWORK)
-    plan.thrust = Math.random() < p.thrust * m;
+    // ONE TRICK AT A TIME (data/duel.js DUEL.tricks): after a tricked swing the next one is honest, and tricks never stack
+    const honest = !!e.tricked && DUEL.tricks.honestAfter[G.diff] !== false;
+    plan.thrust = !honest && Math.random() < p.thrust * m;
     const r = p.ramp ? tacticsRamp() : 1;   // the rank and file pick up their tricks as the run deepens (tactics.js)
     const rd = (!isGunner() ? stance().readMul || 1 : 1) * matchup(e).tricks;   // Makashi reads intent: fewer feints and held strikes get through; so does a form that counters its own (enemies/foeform.js)
-    plan.feint = !plan.thrust && Math.random() < p.feint * m * r * rd;
-    plan.hold = Math.random() < p.delay * m * r * rd ? rand(DUEL.delayHold[0], DUEL.delayHold[1]) : 0;
+    plan.feint = !honest && !plan.thrust && Math.random() < p.feint * m * r * rd;
+    plan.hold = !honest && !plan.feint && !plan.thrust && Math.random() < p.delay * m * r * rd ? rand(DUEL.delayHold[0], DUEL.delayHold[1]) : 0;
+    e.tricked = plan.feint || plan.hold > 0 || plan.thrust;
     plan.chain = stringLen(e);
     if (e.winded) plan.chain = 0;
   }

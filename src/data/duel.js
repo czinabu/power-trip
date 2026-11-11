@@ -129,8 +129,13 @@ export const DUEL = {
   /* (the three quick wind-ups below are × the difficulty's tell, data/difficulty.js: longer on Padawan, shorter on
      Master. They are set so a line that shows up late still leaves time to see it and answer: about half a second from
      a feint's switch to the blow on Knight.) */
+  /* ONE TRICK AT A TIME — a wind-up carries at most one trick (a feint, a held strike or a thrust, never a feint that
+     then hangs), and where `honestAfter` is on for the difficulty, the swing after a trick is always an honest one: no
+     fake, no hold, a cut you can block on the line it shows. So the tricks are the exception you learn to read, and a
+     foe that has just fooled you gives you a clean look at its next blow. (Brutes and lancers too: enemies/tactics.js) */
+  tricks: { honestAfter: { padawan: true, knight: true, master: false } },
   feintAt: 0.7,           // a feint breaks off this far into its wind-up...
-  feintRewind: 0.45,      // ...and the real strike winds up this fast from the other side (it calls FEINT as it switches)
+  feintRewind: 0.5,      // ...and the real strike winds up this fast from the other side (it calls FEINT as it switches)
   delayHold: [0.22, 0.42],// extra seconds a delayed strike hangs at the apex
   chainWindup: 0.4,       // wind-up of each follow-on cut in a string
   counterWindup: 0.34,    // wind-up of a riposte after a block

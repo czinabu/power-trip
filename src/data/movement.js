@@ -9,6 +9,10 @@ export const MOVE = {
   accel: 22,            // m/s² toward the input direction (was CFG.player.accel 34, near-instant)
   brake: 46,            // m/s² when stopping or reversing against your momentum
   gunnerAccel: 70, gunnerBrake: 95,   // GUNNERS (Mando, trooper), on the ground: a quick wind-up and a firm plant, so aiming feet answer the stick (was the floaty 22/46)
+  // weight on the ground (every hero): past `from` of top speed the push tapers to `accel` of itself, so the last of the
+  // speed builds over a few more frames; letting go, the last `stopBelow` of top speed bleeds off at `brake` of the brake,
+  // a short settle instead of a dead stop. The first frames of a start and a turn back are as quick as ever.
+  ease: { from: 0.55, accel: 0.3, stopBelow: 0.4, brake: 0.4 },
   swingMove: 0.55,      // footwork while a saber swing is in flight (Ataru's moveAtk multiplies on top)
   cutTravel: [0.08, 0.5],   // span of a grounded cut (0–1) its forward drive is laid over; the strike lands at ~0.37
   // air: a jump keeps its takeoff momentum; WASD only nudges it
@@ -17,6 +21,9 @@ export const MOVE = {
   maxFall: 30,          // terminal fall speed
   coyote: 0.1,          // seconds after running off a ledge that a jump still counts as a ground jump
   jumpBuffer: 0.13,     // a jump pressed this close before landing fires on touchdown
+  // a saber cut or a roll pressed while it can't go yet (the tail of a roll, a finisher's recovery, reeling from a blow,
+  // the gap between rolls) is held this long (s) and goes the moment it can, instead of being dropped
+  buffer: 0.22,
   // landings: past `staggerImpact` (m/s) the knees buckle; a roll (Q just before touchdown) converts it to speed
   staggerImpact: 22.5,  // a plain jump lands ~12, a full double jump ~21; a drop past ~6 m buckles
   staggerMin: 0.16, staggerMax: 0.5, staggerSpan: 12,   // stagger seconds, ramped over `staggerSpan` m/s past the threshold

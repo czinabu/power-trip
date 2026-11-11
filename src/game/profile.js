@@ -223,14 +223,6 @@ export function noteSideWon(id){
   deed('side');
   settle(G.hero);
 }
-// what a side mission (data/side-quests.js) still waits for, in words ('REACH KNIGHT', 'BEAT THE CAMPAIGN'), or null: open.
-// The temple's CALLS FOR AID stone and the Missions page both ask this
-export function sideLock(q, hero = G.hero){
-  if (!q) return 'UNKNOWN';
-  if (q.post && !(profileOf(hero).won > 0)) return 'BEAT THE CAMPAIGN';
-  const T = track(hero);
-  return rankIndex(hero) < q.rank ? 'REACH ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
-}
 export const sidesWon = (hero = G.hero) => Object.keys(profileOf(hero).sides || {}).length;
 export const sideWon = (id, hero = G.hero) => !!(profileOf(hero).sides || {})[id];
 // a secret on a story map (data/secrets.js) found: its rank XP once, and true the first time

@@ -11,6 +11,10 @@
 //   slug, title, place (shown under the title), blurb, threat (1-5 pips)
 //   rank      the hero's rank index it waits for (game/profile.js: 0 from the first day, 1 Knight / Verd / Sergeant,
 //             2 Master / Alor / Lieutenant): the Council trusts you with more as you rise
+//   after     the campaign chapter (its slot id, data/campaign.js: every hero's story has it) THIS hero must have cleared
+//             first (game/zone-gate.js heroCleared). Nothing is handed out before the story starts, and a side mission
+//             hands over only the kit the hero's story has earned (game/flow.js checkUnlocks), so this keeps each one
+//             where its kit makes sense
 //   from      the story mission whose map and objectives it uses (data/missions.js)
 //   take      the objectives it plays, in order: { i: the source objective's index, ...anything laid over it }. A field
 //             set here replaces the source's (title / say / task, a duel's name and foe, a console's name...). `say` and
@@ -35,7 +39,7 @@ export const isSideId = (id) => typeof id === 'string' && id.startsWith(SIDE_PRE
 const all = (v) => ({ jedi: v, mando: v, trooper: v });
 
 export const SIDE_QUESTS = [
-  { slug: 'forest-shrine', title: 'THE FOREST SHRINE', place: 'THE OLD HOLDFAST', threat: 2, rank: 0, from: 'holdfast',
+  { slug: 'forest-shrine', title: 'THE FOREST SHRINE', place: 'THE OLD HOLDFAST', threat: 2, rank: 0, after: 'trial-first', from: 'holdfast',
     blurb: 'hold the shrine gate, then light its two braziers',
     ask: 'An old shrine in the forest, older than the holdfast built round it. Hunters are camped at its gate, and its braziers have gone out. Hold the gate and light them again.',
     take: [
@@ -52,7 +56,7 @@ export const SIDE_QUESTS = [
                  { key: 'example', side: 'dark', label: 'MAKE AN EXAMPLE', line: 'Nobody hunts near this shrine again. Everyone will know why.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, from: 'pens',
+  { slug: 'ledger-child', title: 'A NAME IN THE LEDGER', place: 'THE PENS ON TESSARIL', threat: 3, rank: 0, after: 'trial-knight', from: 'pens',   // (a Knight takes a Padawan: TRIAL OF GENERAL KAST knights you)
     blurb: 'open one cell block and walk a child from the Ledger out',
     ask: 'One name in the Ledger was never brought out: Tavi, eight years old, in the last cell block on Tessaril. The Inquisitors moved the child there after the breakout. Bring Tavi home.',
     take: [
@@ -72,7 +76,7 @@ export const SIDE_QUESTS = [
                  { key: 'leave', side: 'dark', label: 'LEAVE HIM IN TAVI\'S CELL', line: 'Locked in, for the Inquisitors to find. Let him learn what Tavi learned.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'temple-droid', title: 'THE KEEPER\'S DROID', place: 'THE EAST FLANK OF LOTHAL', threat: 3, rank: 1, from: 'grassland',
+  { slug: 'temple-droid', title: 'THE KEEPER\'S DROID', place: 'THE EAST FLANK OF LOTHAL', threat: 3, rank: 1, after: 'hoth', from: 'grassland',
     blurb: 'walk the temple\'s droid across a sown field',
     ask: 'One of the temple\'s droids went looking for an old Jedi cache on Lothal and found the war instead. It has the cache\'s map in its head. Walk it out to the landing field.',
     escort: all({ model: 'b1', name: 'K-1', kicker: 'TEMPLE DROID', color: 0xc8b88a, eye: 0x7bffae, scale: 0.9, hp: 320 }),
@@ -90,7 +94,7 @@ export const SIDE_QUESTS = [
                  { key: 'listen', side: 'dark', label: 'KEEP IT FOR YOURSELF', line: 'Know your enemy. It whispers to you on the flight home.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'relic-thief', title: 'THE RELIC THIEF', place: 'THE SPACEPORT AT KHEL DAR', threat: 4, rank: 1, from: 'pursuit',
+  { slug: 'relic-thief', title: 'THE RELIC THIEF', place: 'THE SPACEPORT AT KHEL DAR', threat: 4, rank: 1, after: 'chase', from: 'pursuit',
     blurb: 'run down the droid that robbed the temple',
     ask: 'A droid broke into the archives last night and took a crystal off the forge\'s shelf. It is in Khel Dar, running for a ship. Do not let it reach one.',
     legs: 1,   // (the chase is the first leg only: the Magpie turns to fight where it ends)
@@ -109,7 +113,7 @@ export const SIDE_QUESTS = [
                  { key: 'scrap', side: 'dark', label: 'SCRAP IT', line: 'It stole from the temple. Nobody will steal with it again.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'drowned-holocron', title: 'THE DROWNED HOLOCRON', place: 'TIPOCA CITY ON KAMINO', threat: 4, rank: 2, from: 'drowned',
+  { slug: 'drowned-holocron', title: 'THE DROWNED HOLOCRON', place: 'TIPOCA CITY ON KAMINO', threat: 4, rank: 2, after: 'mustafar', from: 'drowned',
     blurb: 'pull a Jedi holocron out of a flooded archive, then hold the pad',
     ask: 'A Jedi holocron was left in Tipoca City\'s archive at the start of the war, and the sea is in the archive now. Its pieces are in three stacks. Get them out before the water does.',
     take: [
@@ -126,7 +130,7 @@ export const SIDE_QUESTS = [
                  { key: 'force', side: 'dark', label: 'FORCE IT OPEN', line: 'It breaks, and what it knew pours into you. The archive gets an empty shell.' } ] },
     reward: 'Rank XP · counts toward the Seeker emitter' },
 
-  { slug: 'grave-knight', title: 'THE GRAVE KNIGHT', place: 'THE BURNED TEMPLE ON JEDHA', threat: 5, rank: 2, from: 'jedha-night',
+  { slug: 'grave-knight', title: 'THE GRAVE KNIGHT', place: 'THE BURNED TEMPLE ON JEDHA', threat: 5, rank: 2, after: 'spearhead', from: 'jedha-night',
     blurb: 'break the seals, then face a fallen Jedi\'s blade',
     ask: 'Something walks the burned temple on Jedha at night: a Jedi who fell there, they say, still guarding the seals with a blade. Break the seals and see what comes for you.',
     take: [

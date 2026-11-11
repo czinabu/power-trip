@@ -46,7 +46,7 @@ function chapterName(id, h){
   const c = chapterOrder(null, h).find(x => x.id === id) || chapterOrder(null, 'jedi').find(x => x.id === id);
   return c ? forHero(c.title, h) : id.toUpperCase();
 }
-const num = (n) => Number(n || 0).toLocaleString('en-US');
+const num = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
 // a card's effects, one per line ('A · B' in the data), so each reads on its own
 const dsHtml = (ds) => { const parts = String(ds).split(' · '); return parts.length < 2 ? '<p>' + ds + '</p>' : '<ul class="pf-ds">' + parts.map(x => '<li>' + x + '</li>').join('') + '</ul>'; };
 

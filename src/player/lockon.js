@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// Soft lock-on (Jedi): T (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
+// Soft lock-on (Jedi): the middle mouse button (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
 // the mouse or the right stick to one side moves the lock to the next foe that way (unless CUT AIM is MOUSE: the flick aims cuts,
 // or the guard is up: the flick steers the guard, player/jedi/guardline.js).
 
@@ -10,6 +10,7 @@ import { shared, G, enemies, player, isGunner } from '../state.js';
 import { camera } from '../engine/renderer.js';
 import { playerPos, fwd } from './helpers.js';
 import { duelHooks } from '../game/duel-hooks.js';
+import { outsideThreat, LOCK_YIELD } from './lock-yield.js';
 
 const alive = t => !!t && (t === rival ? rivalUp() : t === shared.boss ? t.hp > 0 : !t.dead && !t.converted && t.state !== 'spawn');
 /* DUEL MODE: the other fighter, as something to lock onto (game/duel-hooks.js bodies: there only while a round is being
@@ -46,20 +47,27 @@ function pickTarget(exclude){
      · a quick tap of a direction (to pick a cut: jedi/cutaim.js) doesn't move the feet; hold it and you step
      · the mouse and the right stick barely turn the view, so a flick places the guard or aims a cut (jedi/guardline.js,
        jedi/cutaim.js) and the fight stays framed
-   It lets go when the foe falls or the gap opens, when a crowd closes in, on T, or when you sweep the view away on
-   purpose. MANUAL: the lock is T's alone and behaves as it always has. OFF: no lock at all.
+   It lets go when the foe falls or the gap opens, on the lock button, when you sweep the view away on purpose, or when you leave:
+   a direction held AWAY from the foe for `leave.t` s with no guard or cut going walks you out of the duel (a dodge
+   back is shorter than that), and it stays off `leave.hold` s.
+   THE LOOSE GRIP — a fight bigger than the duel doesn't end the focus, it loosens it: while a crowd is in on you, or
+   something outside the duel comes for you or someone beside you (fire from off to the side, a live detonator, a foe
+   on an evacuee: player/lock-yield.js), the foe stays marked (the marker dims) but the view, the aim and the feet are
+   yours: turn and block, push the detonator back, cut whoever the crosshair is on. Once it has been quiet `hold` s and
+   you square up with the marked foe again, it tightens by itself. MANUAL: the lock is the button's alone and behaves as it always has. OFF: no lock at all.
      on / off   the gap (m) it takes hold inside, and lets go beyond
      cone       how squarely in front the foe must be (cos) to take hold; settle: for how long (s)
      crowd/max  with more than `max` foes inside `crowd` m it won't take hold (a melee, not a duel); past `drop` it lets go
      look/pitch how much of a look still turns the view (pitch: only while the guard is up)
      tap/reach  a direction held under `tap` s inside `reach` m of the foe is a cut's aim, not a step
      away       a sweep of `px` mouse pixels inside `win` s (or the stick held hard over for `stick` s) with no guard
-                or cut going breaks an auto focus, and it stays off `hold` s; T keeps it off `toggle` s */
+                or cut going breaks an auto focus, and it stays off `hold` s; the lock button keeps it off `toggle` s
+     leave      t: how long (s) a direction held away from the foe (past `cos` of straight away) walks you out */
 export const FOCUS = { on: 5.5, off: 8.5, cone: 0.25, settle: 0.2, crowd: 10, max: 2, drop: 4, look: 0.15, pitch: 0.45,
-  tap: 0.16, reach: 5, away: { px: 650, win: 0.4, stick: 0.5, hold: 2.5, toggle: 6 } };
+  tap: 0.16, reach: 5, away: { px: 650, win: 0.4, stick: 0.5, hold: 2.5, toggle: 6 }, leave: { t: 0.55, cos: -0.6, hold: 3 } };
 const auto = () => G.duelFocus === 'auto' && !isGunner() && G.mode === 'play' && !G.cutscene;
 function dropLock(holdOff = 0){
-  player.lockTarget = null; player.lockAuto = false; player.focusOn = false;
+  player.lockTarget = null; player.lockAuto = false; player.focusOn = false; player.lockLoose = false; leaveT = 0;
   if (holdOff) player.focusOffUntil = G.gt + holdOff;
 }
 // the lone duellist close in front (not one of a crowd), or null
@@ -80,7 +88,7 @@ function duelPick(){
   return near <= FOCUS.max ? best : null;
 }
 const crowded = (pp) => { let n = 0; for (const e of enemies){ if (alive(e) && Math.hypot(posOf(e).x - pp.x, posOf(e).z - pp.z) < FOCUS.crowd) n++; } return n > FOCUS.drop; };
-let seenPick = null, seenT = 0, awayAcc = 0, awayAt = -9, stickT = 0;
+let seenPick = null, seenT = 0, awayAcc = 0, awayAt = -9, stickT = 0, leaveT = 0, looseUntil = 0;
 // a look of dx mouse pixels: how much of it turns the view (engine/input.js), and whether it was a sweep away
 export function focusLook(dx){
   if (!player.focusOn) return 1;
@@ -113,6 +121,15 @@ export function focusMove(want, dt){
   if (d < FOCUS.reach && player.focusHeld < FOCUS.tap && player.grounded && !(player.dashT > 0)){ want.set(0, 0, 0); return; }
   const dl = wrapAngle(Math.atan2(p.x - pp.x, p.z - pp.z) - G.yaw), c = Math.cos(dl), s = Math.sin(dl), x = want.x, z = want.z;
   want.x = x * c + z * s; want.z = z * c - x * s;
+  // LEAVING — headed away from the foe on purpose (no guard up, no cut going: backing off behind the blade is still the
+  // duel, and a dodge back is over before the count is): held a moment, and the focus lets you go
+  if (player.lockAuto && d > 0.01){
+    const wl = Math.hypot(want.x, want.z) || 1, away = (want.x * (p.x - pp.x) + want.z * (p.z - pp.z)) / (wl * d) < FOCUS.leave.cos;
+    if (away && !player.blockHeld && !(player.atkT > 0) && !player.saberLock){
+      leaveT += dt;
+      if (leaveT >= FOCUS.leave.t){ dropLock(FOCUS.leave.hold); sfx(420, 0.05, 'triangle', 0.02, 300); }
+    } else leaveT = 0;
+  }
 }
 
 export function toggleLock(){
@@ -140,12 +157,24 @@ export function updateLockOn(dt){
   if (t && player.lockAuto){
     // a focus the duel took by itself: gone with the foe, the gap or the duel (a crowd), and with the setting
     const pp = playerPos();
-    if (!auto() || !alive(t) || Math.hypot(posOf(t).x - pp.x, posOf(t).z - pp.z) > FOCUS.off + (t === rival ? 1.5 : 0) || crowded(pp)) t = player.lockTarget = null;
+    const q = posOf(t), gap = Math.hypot(q.x - pp.x, q.z - pp.z);
+    if (!auto() || !alive(t) || gap > FOCUS.off + (t === rival ? 1.5 : 0)) t = player.lockTarget = null;
+    else if (t !== rival){
+      // THE LOOSE GRIP: a crowd in on you, or something outside the duel coming for you or someone beside you (a duel
+      // with another player is only ever the two of you). It tightens once that has been quiet a beat and the foe is
+      // in front of you again (so the view is never yanked back round to it)
+      if (crowded(pp) || outsideThreat(t)) looseUntil = G.gt + LOCK_YIELD.hold;
+      const f = fwd(), front = gap < 0.01 || ((q.x - pp.x) * f.x + (q.z - pp.z) * f.z) / gap >= FOCUS.cone;
+      const loose = G.gt < looseUntil || (player.lockLoose && !front);
+      if (loose !== !!player.lockLoose){ player.lockLoose = loose; sfx(loose ? 520 : 760, 0.05, 'triangle', 0.02, loose ? 380 : 1100); }
+    } else player.lockLoose = false;
   } else if (t){
     const pp = playerPos();
     // the foe fell or ran out of reach: hand the lock to the next foe in view, or let it go
     if (!alive(t) || Math.hypot(posOf(t).x - pp.x, posOf(t).z - pp.z) > L.keep) t = player.lockTarget = pickTarget(t);
+    player.lockLoose = false;   // (a lock taken by hand is the player's own: it never loosens)
   }
+  if (!t) player.lockLoose = false;
   if (!t){
     player.lockAuto = false;
     // DUEL FOCUS: squared up with a lone duellist a moment, the lock takes hold by itself
@@ -153,20 +182,24 @@ export function updateLockOn(dt){
     if (c && c === seenPick){ seenT += dt; if (seenT >= FOCUS.settle){ t = player.lockTarget = c; player.lockAuto = true; seenT = 0; sfx(760, 0.05, 'triangle', 0.02, 1100); } }
     else { seenPick = c; seenT = 0; }
   }
-  player.focusOn = !!t && G.duelFocus === 'auto';
+  const loose = !!t && !!player.lockLoose;
+  player.focusOn = !!t && !loose && G.duelFocus === 'auto';
   const m = marker();
   if (!t){ if (m) m.style.opacity = '0'; return; }
   const pp = playerPos(), p = posOf(t);
-  const want = Math.atan2(p.x - pp.x, p.z - pp.z);
-  G.yaw += wrapAngle(want - G.yaw) * Math.min(1, L.yawPull * dt);
-  // the view is held level only past `pitchFree` of it: inside that you still aim your cuts high or low (jedi/cutaim.js)
-  const po = G.pitch - L.pitch;
-  if (Math.abs(po) > L.pitchFree) G.pitch -= (po - Math.sign(po) * L.pitchFree) * Math.min(1, L.pitchPull * dt);
+  if (!loose){   // (a loose grip only marks the foe: the view is the player's)
+    const want = Math.atan2(p.x - pp.x, p.z - pp.z);
+    G.yaw += wrapAngle(want - G.yaw) * Math.min(1, L.yawPull * dt);
+    // the view is held level only past `pitchFree` of it: inside that you still aim your cuts high or low (jedi/cutaim.js)
+    const po = G.pitch - L.pitch;
+    if (Math.abs(po) > L.pitchFree) G.pitch -= (po - Math.sign(po) * L.pitchFree) * Math.min(1, L.pitchPull * dt);
+  }
   if (m){
+    m.classList.toggle('loose', loose);
     const big = t === shared.boss ? 2.6 : (t.t && t.t.scale ? 1.2 * t.t.scale : 1.2);
     const v = V3(p.x, p.y + big, p.z).project(camera);
     const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
-    m.style.opacity = on ? '1' : '0';
+    m.style.opacity = on ? (loose ? '0.45' : '1') : '0';
     m.style.transform = `translate(${((v.x + 1) / 2 * innerWidth).toFixed(1)}px, ${((1 - v.y) / 2 * innerHeight).toFixed(1)}px)`;
   }
 }
@@ -198,7 +231,7 @@ function switchLock(side){   // side: +1 the next foe to the right on screen, -1
 }
 // the mouse's sideways travel, from engine/input.js
 export function lockMouseFlick(dx){
-  if (!player.lockTarget || G.cutMouse || player.blockHeld) return;   // (with the guard up a flick steers the guard: jedi/guardline.js)
+  if (!player.lockTarget || player.lockLoose || G.cutMouse || player.blockHeld) return;   // (with the guard up a flick steers the guard: jedi/guardline.js)
   const now = performance.now() / 1000;
   if (now - flickT > LOCK_SWITCH.win) flickAcc = 0;
   flickT = now; flickAcc += dx;
@@ -206,7 +239,7 @@ export function lockMouseFlick(dx){
 }
 // the right stick's x, every pad frame (engine/gamepad.js)
 export function lockStickFlick(rx){
-  if (!player.lockTarget || G.cutMouse || Math.abs(rx) < LOCK_SWITCH.rearm){ stickArmed = true; return; }
+  if (!player.lockTarget || player.lockLoose || G.cutMouse || Math.abs(rx) < LOCK_SWITCH.rearm){ stickArmed = true; return; }
   if (player.blockHeld){ stickArmed = false; return; }   // with the guard up a flick steers the guard (jedi/guardline.js), never the lock
   if (stickArmed && Math.abs(rx) > LOCK_SWITCH.stick){ stickArmed = false; switchLock(Math.sign(rx)); }
 }

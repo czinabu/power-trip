@@ -395,6 +395,7 @@ body.mando #guardcue{display:block}
 #lockmark{position:absolute;left:0;top:0;width:0;height:0;opacity:0;transition:opacity .12s;pointer-events:none}
 #lockmark::before{content:'';position:absolute;left:-7px;top:-7px;width:10px;height:10px;border:2px solid rgba(255,226,122,.9);
   transform:rotate(45deg);box-shadow:0 0 6px rgba(255,210,90,.6)}
+#lockmark.loose::before{border-style:dashed;box-shadow:none}   /* the loose grip: marked, not held (player/lockon.js) */
 
 /* ---------- centre: SABER LOCK — the bind's balance, yours on the right ---------- */
 #lockbar{position:fixed;left:50%;top:70%;transform:translate(-50%,6px);width:min(360px,80vw);text-align:center;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}

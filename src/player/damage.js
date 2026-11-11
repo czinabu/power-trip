@@ -252,7 +252,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     TMP.subVectors(fromPos, playerPos()); TMP.y = 0;
     const guard = player.blockHeld && !airGuardLost();
     const contact = opts && opts.by ? parryContact(opts.by) : null;   // where the foe's blade really is: our blade goes to meet it there
-    if (TMP.lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > 0.1){
+    if (TMP.lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > (opts && opts.arc != null ? opts.arc : 0.1)){   // (a bolt: the front the Jedi's blade covers at his Force Level, enemies/bolts.js)
       const pp = playerPos();
       // the form counter (data/foe-forms.js MATCHUP): a blade whose form beats yours leaves a narrower parry window and
       // bears down harder on the block. A click that would have parried anything else is too early for it: blocked or hit

@@ -5,7 +5,7 @@
    range; if there is one, the body turns up to `turn` degrees toward it for that cut (and keeps turning with it while
    the cut lasts, so a sidestep doesn't slip out of the arc), and the cut's lunge closes on THAT foe instead of the
    nearest one in a wide cone. The cut's angle and height stay yours, and guards and parries still stop it.
-   Aim somewhere else and the next cut goes there. A soft lock-on (T) overrides it: the locked foe is the target.
+   Aim somewhere else and the next cut goes there. A soft lock-on (middle mouse) overrides it: the locked foe is the target.
      modes  the setting's values, in the order the pill cycles; 'low' is the default
      pad    extra cone degrees on a controller (a stick aims coarser than a mouse) */
 export const SABER_ASSIST = {

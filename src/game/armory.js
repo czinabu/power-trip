@@ -6,7 +6,8 @@
 // loadout themselves and never stop to ask.
 
 import { G, player } from '../state.js';
-import { MANDO_WEAPONS, KIT_SLOTS, cleanKit, kitOf, bestKit } from '../data/mando.js';
+import { MANDO_WEAPONS, KIT_SLOTS, ARMORY_PATH, cleanKit, kitOf, bestKit } from '../data/mando.js';
+import { zoneReached } from './zone-gate.js';
 import { switchWeapon } from '../player/mando/weapons.js';
 
 // a run that stops to choose: the campaign and survival (not the training grounds, a lone mission or the sandbox)
@@ -43,6 +44,9 @@ export function grantGun(id){
 
 // a lone mission (and a co-op guest, who skips the page before the fight): the kit picked before the fight, else the best
 export function missionKit(){
-  if (G.missionKit) for (const s of KIT_SLOTS){ const id = G.missionKit[s]; if (id) G.unlocked[id] = true; }   // the mission hands over what was picked
-  setKit(G.missionKit || bestKit());
+  // the mission hands over what was picked, if this hero's own story has handed it out (game/zone-gate.js loneMission)
+  const earned = (id) => { const p = ARMORY_PATH.find(q => q.weapon === id); return !p || zoneReached(p); };
+  const kit = G.missionKit && Object.fromEntries(KIT_SLOTS.map(s => [s, earned(G.missionKit[s]) ? G.missionKit[s] : null]));
+  if (kit) for (const s of KIT_SLOTS){ const id = kit[s]; if (id) G.unlocked[id] = true; }
+  setKit(kit ? { ...kit, sidearm: kit.sidearm || 'single' } : bestKit());
 }

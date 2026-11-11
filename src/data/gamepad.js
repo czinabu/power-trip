@@ -58,7 +58,7 @@ export const PAD_BINDS = {
       LT: { mouse: 2, label: 'Block · tap to parry', note: 'Hold LT and pull RT to throw the saber' },
       LB: { key: 'alt', label: 'Strafe', note: 'Hold: face the crosshair while you move and open the LB powers · tap: strafe on / off (Settings · STRAFE)' },
       L3: { key: 'control', label: 'Force slide', note: 'Out of a run' },
-      R3: { key: 't', label: 'Lock on', note: 'Again to release · flick the right stick to move it to the next foe' },
+      R3: { key: 'lockon', label: 'Lock on', note: 'Again to release · flick the right stick to move it to the next foe' },
       ...SLOTS,
       DOWN: { key: '4', label: 'Holster saber', note: 'With a TEAM-UP prompt up: the team-up', teamup: 'u' },
       VIEW: { key: 'h', label: 'Squad orders', note: 'Tap for the smart order · hold for the command wheel: the right stick picks, the D-pad picks one squadmate, let go to give it · in the sandbox, opens the sandbox panel (LB + VIEW gives orders there)', sandbox: 'b' },

@@ -32,6 +32,7 @@ import { mandoWeapon, mandoGuarding, beskarBlock, boltDamage, hitMarker, beskarC
 import { BESKAR_PARRY, BESKAR_GUARD } from '../data/mando.js';
 import { hurtPlayer } from '../player/damage.js';
 import { deflectAnim, anticipateDeflect } from '../player/jedi/combat.js';
+import { boltGuard } from '../data/force-level.js';
 import { deflectPlayerBolt } from './duel.js';
 import { bladePointNear } from '../player/jedi/clash.js';
 import { sweepHit, headPos } from './bodyshape.js';
@@ -95,6 +96,7 @@ function redirect(b, parried){
 }
 export function updateBolts(dt){
   const pp = playerPos();
+  const BG = boltGuard(), RD = 2.6 + BG.reach;   // the blade's front and reach against fire, this frame
   for (let i = bolts.length-1; i >= 0; i--){
     const b = bolts[i];
     b.life -= dt;
@@ -165,7 +167,9 @@ export function updateBolts(dt){
       // must NOT touch you up top (and you can't block/deflect one that isn't at your height).
       const dy = Math.abs(b.mesh.position.y - (pp.y + 1.4));
       const near = dy < 1.7;
-      const facing = TMP.subVectors(b.mesh.position, pp).setY(0).lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > 0.1;
+      // (the Jedi's front against fire widens, and his blade reaches further out, with his Force Level and the form's
+      // mastery: data/force-level.js GUARD_GROWTH)
+      const facing = TMP.subVectors(b.mesh.position, pp).setY(0).lengthSq() > 0.001 && TMP.normalize().dot(fwd()) > BG.arc;
       // DEFLECT requires either an active swing (the blade is moving) or a freshly-timed parry click.
       // Holding block only ABSORBS the bolt — it does not send it back.
       // MID-AIR in a fight the guard can't hold a bolt (Ataru keeps its timed parry): player/mobility.js
@@ -189,11 +193,11 @@ export function updateBolts(dt){
       // bracing is offensive-only and lets bolts straight through.
       const blocking = near && facing && player.blockHeld && !airGuardLost() && player.stam > 0 && (!isGunner() || player.weapon === 'darksaber');
       // a certain catch is about to land: let the blade start its flourish early (jedi/combat.js anticipateDeflect)
-      if (!b.anticip && near && facing && d > 2.6 && d < 2.6 + b.speed * 0.14){ b.anticip = true; anticipateDeflect(b.mesh.position, (d - 2.5) / b.speed); }
+      if (!b.anticip && near && facing && d > RD && d < RD + b.speed * 0.14){ b.anticip = true; anticipateDeflect(b.mesh.position, (d - RD + 0.1) / b.speed); }
       // a perfect parry is about to land (the window will still be open when it arrives): the reward's implosion rises
       // into the hit so it peaks on the exact frame (audio/saber.js parryRise)
-      if (!b.rise && near && facing && airOk && d > 2.6 && d < 2.6 + b.speed * 0.2){
-        const eta = (d - 2.6) / b.speed;
+      if (!b.rise && near && facing && airOk && d > RD && d < RD + b.speed * 0.2){
+        const eta = (d - RD) / b.speed;
         if (eta > 0.04 && (player.parryT >= eta || (G.hero === 'mando' && player.beskarT >= eta))){ b.rise = true; S.parryRise(b.mesh.position, eta); }
       }
       if (d < abil('barrier').radius && near && player.barrierT > 0){
@@ -205,7 +209,7 @@ export function updateBolts(dt){
         b.mesh.material.color.setHex(0x6fd0ff);
         spawnHitSpark(b.mesh.position.clone(), 0x6fd0ff, 0.7);
         S.deflect(b.mesh.position);
-      } else if (d < 2.6 && deflecting){
+      } else if (d < RD && deflecting){
         deflectAnim(b.mesh.position);   // the blade moves to meet it (skipped mid-swing: the cut is already there)
         if (parried) player.parryT = 0;
         // the guard pays for the catch: Soresu's held guard a little, Makashi (no answer to blasters) dearly
@@ -245,7 +249,7 @@ export function updateBolts(dt){
         floater(pp, 'BLOCK', '#ffd08a'); noteDefense('blocks', null, { src: b.src });
         tutEvent('guardBlock');
         kill = true;
-      } else if (d < 2.2 && blocking){
+      } else if (d < 2.2 + BG.reach && blocking){
         // absorbed on the guard — costs stamina, no reflection
         deflectAnim(b.mesh.position);
         player.stam = Math.max(0, player.stam - 7 * player.up.blockStam * (stance().blockStamMul || 1) * (stance().deflectStamMul || 1));
@@ -255,7 +259,7 @@ export function updateBolts(dt){
         S.block(b.mesh.position); floater(pp, 'BLOCK', '#9cc8e8'); noteDefense('blocks', null, { src: b.src });
         kill = true;
       } else if (d < 1.2 && inBand(b.mesh.position.y - pp.y) && !(player.slideT > 0 && b.mesh.position.y > pp.y + 0.8)){   // a slide ducks under fire · ducked behind low cover, it flies over (trooper/cover.js)
-        hurtPlayer(b.dmg, b.mesh.position, false, false, false, { src: b.src }); kill = true;
+        hurtPlayer(b.dmg, b.mesh.position, false, false, false, { src: b.src, arc: BG.arc }); kill = true;
         boltImpact(b.mesh.position, b.mesh.material.color.getHex(), b.dir);
         if (isTrooper()){ suppressHero(SUPP.onHero.perHit); b.suppd = true; }
       }

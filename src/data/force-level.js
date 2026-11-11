@@ -142,6 +142,22 @@ export function formRank(id){
 export const shareAt = (id, rank) => Math.min(1, (FORCE_SHARE[id] || 0.6) + (rank || 0) * FORM_RANK_SHARE);
 export const forceShare = (id = G.stance) => shareAt(id, formRank(id));
 
+/* THE GUARD AGAINST FIRE GROWS — a Padawan's blade answers the bolts in front of it; a Master's covers the flanks and
+   whoever stands beside them. Per step of growth (levels above 1 × the form's share, as a power's):
+     arc    the front the blade catches a bolt in, as the cos of its half-angle: `from` at Force Level 1, less `step`
+            a step, down to `min` (0.3 is about 72° either side, 0.1 about 84°, -0.2 about 102°)
+     reach  how many metres further out the blade meets a bolt, a step (so one passing beside you, on its way to someone
+            you're standing by, is caught)
+   The Mandalorian's Darksaber and a duel between players keep the old fixed guard (arc `flat`, no extra reach).
+   Read by enemies/bolts.js for the held guard, the deflect off a swing and the timed parry. */
+export const GUARD_GROWTH = { arc: { from: 0.3, step: 0.055, min: -0.2 }, reach: 0.09, flat: 0.1 };
+export function boltGuard(lv = forceLevel(), share = forceShare()){
+  const g = GUARD_GROWTH;
+  if (!lv || isGunner() || G.duel) return { arc: g.flat, reach: 0 };
+  const steps = Math.max(0, lv - 1) * share;
+  return { arc: Math.max(g.arc.min, g.arc.from - g.arc.step * steps), reach: g.reach * steps };
+}
+
 const COST_KEYS = ['cost', 'drain'];
 export const costMulFor = (steps) => Math.max(COST_FLOOR, 1 - COST_RATE * Math.max(0, steps));
 // what a power's (or a Force move's: MOVE_ARRIVE) Force cost is multiplied by at this level, in the form in hand

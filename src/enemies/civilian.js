@@ -19,7 +19,7 @@ import { loft, limb, plate, block, chamfer, ngon, KEEL } from '../player/model/s
 import { rounded } from '../player/model/skin.js';
 import { bakeDesign, instantiate } from './kit.js';
 import { legBones, upper, sideArm, cape, NECK } from './mesh.js';
-import { face, LID_OPEN } from './detail.js';
+import { face, LID_OPEN, FRAME } from './detail.js';
 import { hood, cowl } from './saberist.js';
 import { updateLegs } from './gait.js';
 import { updateUpper } from './upper.js';
@@ -84,6 +84,7 @@ function legs(k, w){
 // hips and belt; a robe's long skirt (front panels riding the thighs so the stride opens them, the back hanging full),
 // or a tunic's short one
 function hips(k, w, thighs, len, o = {}){
+  w *= FRAME.hips;   // (the troopers' frame: enemies/detail.js FRAME)
   k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), o.suit ? 'armor' : 'suit');
   k.add(loft([{ y:0.96, w:0.46*w, d:0.31 }, { y:1.12, w:0.45*w, d:0.3 }], SOFT_BODY), 'armor');
   if (o.sash) k.add(loft([{ y:1.04, w:0.49*w, d:0.325 }, { y:1.11, w:0.485*w, d:0.322 }], SOFT_BODY), 'trim', k.root, [0,0,0], [0,0,0], NO_INK);
@@ -106,10 +107,12 @@ function hips(k, w, thighs, len, o = {}){
 // the body: a soft tunic or jumpsuit, round shoulders (no plate), a collar; crossed lapels (a tabard) or a zip and patch
 function chest(k, w, f, o = {}){
   const b = f ? 1.05 : 1;
+  // the round shoulders sit on the troopers' shoulder line; the body itself in the troopers' FRAME (enemies/detail.js)
+  for (const s of [-1, 1]) k.add(loft([{ y:-0.07, w:0.16*w, d:0.17 }, { y:0.01, w:0.16*w, d:0.17 }, { y:0.06, w:0.12*w, d:0.13 }, { y:0.085, w:0.065*w, d:0.08 }], ngon(12)), 'armor', k.root, [FRAME.shx*w*s, 1.74, 0], [0, 0, -0.42*s]);
+  { const T = k.group(k.root); T.scale.set(FRAME.chest, 1, FRAME.depth); k = k.within(T); }
   k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.86 : 1), d:0.25 }], ROBE), 'armor');
-  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.53*w, d:0.31*b, z:0.01*b }, { y:1.58, w:0.58*w, d:0.33*b, z:0.014*b }, { y:1.7, w:0.6*w, d:0.31 },
-              { y:1.79, w:0.52*w, d:0.27 }, { y:1.86, w:0.37*w, d:0.22 }, { y:1.92, w:0.23, d:0.18 }], ROBE), 'armor');
-  for (const s of [-1, 1]) k.add(loft([{ y:-0.07, w:0.18*w, d:0.19 }, { y:0.01, w:0.18*w, d:0.19 }, { y:0.06, w:0.13*w, d:0.15 }, { y:0.085, w:0.07*w, d:0.09 }], ngon(12)), 'armor', k.root, [0.38*w*s, 1.74, 0], [0, 0, -0.42*s]);
+  k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.47*w, d:0.29*b, z:0.01*b }, { y:1.58, w:0.53*w, d:0.31*b, z:0.014*b }, { y:1.72, w:0.58*w, d:0.3 },
+              { y:1.81, w:0.54*w, d:0.26 }, { y:1.87, w:0.4*w, d:0.21 }, { y:1.92, w:0.23, d:0.18 }], ROBE), 'armor');
   if (o.suit){
     k.add(loft([{ y:1.84, w:0.25, d:0.2 }, { y:1.95, w:0.2, d:0.17 }], SOFT), 'armor2');   // the jumpsuit's collar
     k.add(block(0.018, 0.6, 0.015, 0.3), 'armor2', k.root, [0, 1.56, 0.163*b], [-0.05, 0, 0], NO_INK);   // its zip

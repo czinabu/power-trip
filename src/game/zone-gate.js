@@ -18,8 +18,10 @@ import { ZONES } from '../data/zones.js';
 import { CHAPTERS, chapterOrder, chapterNo } from '../data/campaign.js';
 import { GATE_CHAPTERS } from '../data/campaign-gate.js';
 import { FORM_PATH, FORMS } from '../data/forms.js';
-import { profileOf } from './profile.js';
+import { profileOf, track, rankIndex } from './profile.js';
 import { chapterEarned, campaignBeaten } from './wardrobe.js';
+import { JEDI_STORE, MANDO_STORE } from '../data/store.js';
+import { TROOPER_STORE } from '../data/trooper-progression.js';
 
 const heroOf = (h) => h || G.hero;
 // has this hero closed chapter `id` (a chapter slot's id: every story lays its own chapter over the same slots)?
@@ -53,20 +55,36 @@ export function zoneLock(key, hero){
     const at = GATE_CHAPTERS.findIndex(c => c.id === id), c = GATE_CHAPTERS[at];
     return 'Clear chapter ' + (at + 1) + ' of Act IV, ' + (typeof c.title === 'object' ? (c.title[hero] || c.title.jedi) : c.title);
   }
+  return chapterLock(id, hero);
+}
+// the words for a story chapter still to clear: 'Finish Act I of your campaign (chapter 5, TRIAL OF THE WALL)' or 'Clear
+// chapter 9 of your campaign, TRIAL OF GENERAL KAST' (a zone's gate above, a side mission's: game/profile.js sideLock)
+export function chapterLock(id, hero){
+  hero = heroOf(hero);
   const list = chapterOrder(null, hero), at = list.findIndex(c => c.id === id), c = list[at];
   if (!c) return 'Play further into your campaign';
   const last = !list.some((d, i) => i > at && d.act === c.act);   // the act's last chapter: say the act
-  const title = typeof c.title === 'object' ? (c.title[hero] || c.title.jedi) : c.title;
-  const no = chapterNo(at, list).toLowerCase() + (title ? ', ' + title : '');
+  const no = chapterNo(at, list).toLowerCase() + (chapterTitle(id, hero) ? ', ' + chapterTitle(id, hero) : '');
   return last ? 'Finish Act ' + ['I', 'II', 'III', 'IV'][c.act] + ' of your campaign (' + no + ')' : 'Clear ' + no + ' of your campaign';
+}
+// a chapter slot's title in this hero's own story ('THE PENS' for the Jedi, 'THE GALLOWS' for the Mando), '' if it has none
+export function chapterTitle(id, hero){
+  hero = heroOf(hero);
+  const c = chapterOrder(null, hero).find(d => d.id === id);
+  return !c ? '' : typeof c.title === 'object' ? (c.title[hero] || c.title.jedi) : c.title || '';
 }
 
 /* ---------- the kit (game/flow.js checkUnlocks asks this in a zone, for every auto-unlock and Force Level) ---------- */
 // THE SAVE CARRIES INTO EVERY MODE: away from the campaign (whose run keeps its own build) and a zone (which hands out this
 // and nothing else), a mode that hands out a kit of its own also hands over everything this hero's story has earned, by
-// the same rule as a zone: a lone mission, an arcade contract, a raid and a side mission (on top of their stage's kit),
+// the same rule as a zone: a lone mission, an arcade contract, a raid and a side mission (that and no more: loneMission),
 // survival (from its first wave, and it still climbs from there) and the hub. The training grounds and the sandbox
 // already follow the story (game/sandbox-unlocks.js). Co-op: each screen carries its own hero's save, never the host's.
+// A LONE MISSION (a story mission off the Missions page, a side mission, an arcade contract, a raid) hands out what this
+// hero's story has earned and nothing more, like a zone: a mission's own stage kit and `grant` stop at the story, so a
+// power the campaign hasn't given yet (Force Pull before the siege, the Jump Attack before Sera Quill's trial) is never in
+// hand there (game/flow.js checkUnlocks, game/mission.js). Co-op: each screen goes by its own hero's save
+export const loneMission = () => !!G.mission && G.chapter < 0 && !G.zone && !G.training && !G.sandbox;
 export const storyCarries = () => G.chapter < 0 && !G.zone && !G.training && !G.sandbox && (!!G.mission || !!G.endless || !!G.hub);
 // a form a chapter of another story stands in for (FORM_PATH `alt`): counts only when this hero reached it that way,
 // i.e. they have none of their own story's chapters of that act (a Jedi guest in a Mando or trooper story)
@@ -98,4 +116,33 @@ export function zoneDepth(hero){
   hero = heroOf(hero);
   return chapterOrder(null, hero).filter(c => heroCleared(c.id, hero))
     .reduce((n, c) => n + (c.kind === 'waves' ? c.waves[1] - c.waves[0] : c.steps ?? 1), 0);
+}
+// a mission's `grant` (data/missions.js: 'throw', 'slam', 'grapple', 'birds'), by the story chapter that hands its power
+// out (data/store.js): a lone mission gives it only once this hero's story has (Jump Attack after Sera Quill's trial)
+const GRANT_NODE = { slam: { jedi: 'jslam', mando: 'mslam' } };
+export function grantEarned(key, hero){
+  hero = heroOf(hero);
+  const id = (GRANT_NODE[key] && GRANT_NODE[key][hero]) || key;
+  const n = (hero === 'jedi' ? JEDI_STORE : hero === 'trooper' ? TROOPER_STORE : MANDO_STORE).find(s => s.id === id);
+  return n ? zoneReached(n, hero) : beaten(hero);
+}
+
+/* ---------- a side mission's gate (data/side-quests.js) ---------- */
+// what a side mission (data/side-quests.js) still waits for, in words ('CLEAR TRIAL OF GENERAL KAST', 'REACH KNIGHT', 'BEAT THE
+// CAMPAIGN'), or null: open. The story comes first: its `after` chapter, cleared in this hero's own campaign, then its rank.
+// The temple's CALLS FOR AID stone, the galaxy map and the Missions page all ask this
+export function sideLock(q, hero = G.hero){
+  if (!q) return 'UNKNOWN';
+  if (q.post && !(profileOf(hero).won > 0)) return 'BEAT THE CAMPAIGN';
+  if (q.after && !heroCleared(q.after, hero)) return 'CLEAR ' + (chapterTitle(q.after, hero) || 'MORE OF THE CAMPAIGN');
+  const T = track(hero);
+  return rankIndex(hero) < q.rank ? 'REACH ' + T.ranks[Math.min(q.rank, T.ranks.length - 1)].nm : null;
+}
+// the same, as a line for a locked button: 'Clear chapter 9 of your campaign, TRIAL OF GENERAL KAST', 'Reach KNIGHT', 'Beat the campaign'
+export function sideLockLine(q, hero = G.hero){
+  const need = sideLock(q, hero);
+  if (!need) return null;
+  if (need.startsWith('REACH ')) return 'Reach ' + need.slice(6);
+  if (need.startsWith('CLEAR ')) return chapterLock(q.after, hero);
+  return 'Beat the campaign';
 }

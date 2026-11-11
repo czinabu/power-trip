@@ -43,8 +43,8 @@ import { TROOPER_AUTO } from '../data/trooper-progression.js';
 import { DEFAULT_LOADOUT, RUN_LOADOUT, STARTING_FORMS, FORM_PATH } from '../data/forms.js';
 import { FORCE_LEVELS, FORCE_MAX, growthLine, forceShare, forceReady, FORM_MASTERY, bestRanks } from '../data/force-level.js';
 import { storyForceLevel } from './sandbox-unlocks.js';
-import { zoneReached, storyCarries } from './zone-gate.js';
-import { STANCES } from '../data/stances.js';
+import { zoneReached, storyCarries, loneMission } from './zone-gate.js';
+import { STANCES, stanceUnlocked } from '../data/stances.js';
 import { queueAbilityCards, tickAbilityCards, clearAbilityCards, hasAbilityCard, abilityChoicePending, abilityCardsPending } from '../ui/ability-card.js';
 import { queueForceToast, tickForceToast, clearForceToast, forceToastHolds } from '../ui/force-toast.js';
 import { queueMeditation, formsTaught, autoLoadout, tickMeditation, clearMeditation, openFormsWindow, tickFormsWindow, meditationPending } from './meditation.js';
@@ -312,9 +312,11 @@ export function checkUnlocks(bannerDelay, closing){
   // YOUR SAVE COMES WITH YOU (game/zone-gate.js storyCarries): a lone mission, an arcade contract, a raid, survival and the
   // hub hand over everything this hero's own story has earned on top of what the mode itself hands out
   const carry = storyCarries(), story = (u) => carry && zoneReached(u);
+  // a zone and a lone mission (game/zone-gate.js loneMission): the story's kit and nothing past it, whatever the mode's stage
+  const storyOnly = !!G.zone || loneMission();
   if (isTrooper()){
     for (const u of TROOPER_AUTO){
-      const reached = G.zone ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage) || story(u);   // (an open zone: what this hero's story has handed out, game/zone-gate.js)
+      const reached = storyOnly ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : (G.waveTotal || 0) >= u.stage) || story(u);   // (an open zone: what this hero's story has handed out, game/zone-gate.js)
       if (!reached || u.has()) continue;
       u.grant();
       // a rank's order, at its chapter's close: it rides the promotion's ceremony (game/promotion.js), not a banner
@@ -327,7 +329,7 @@ export function checkUnlocks(bannerDelay, closing){
       // (`always`, the jetpack: in hand from the start outside the story, but the hub and the training grounds go by the
       // story, and the sandbox by its own panel: game/sandbox.js)
       const outside = (u) => u.always ? !G.hub && !G.training && !G.sandbox : (G.waveTotal || 0) >= u.stage;
-      const reached = G.zone ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : outside(u)) || story(u);   // the campaign: the chapter that hands it over (data/store.js)
+      const reached = storyOnly ? zoneReached(u) : ((u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter) : outside(u)) || story(u);   // the campaign: the chapter that hands it over (data/store.js)
       if (reached && !u.has()){
         u.grant();
         if (!u.always || (u.chapter && G.chapter >= 0)) announce.push(u);   // (on his back from the start outside the story: no card for it)
@@ -341,12 +343,12 @@ export function checkUnlocks(bannerDelay, closing){
     const modeReached = (u) => (G.endless || (G.mission && G.chapter < 0)) ? ((G.waveTotal || 0) >= u.stage)   // (a campaign chapter keeps the campaign's level/wave gates)
                                 : (u.chapter && G.chapter >= 0) ? chapterClosed(u.chapter)           // a form or a power: the chapter that teaches it, at its close
                                 : (G.levelIdx > u.level || (G.levelIdx === u.level && G.wave >= u.wave));
-    const jediReached = (u) => G.zone ? zoneReached(u) : modeReached(u) || story(u);   // (an open zone: what this Jedi's story has handed out, game/zone-gate.js)
+    const jediReached = (u) => storyOnly ? zoneReached(u) : modeReached(u) || story(u);   // (an open zone: what this Jedi's story has handed out, game/zone-gate.js)
     // THE FORCE LEVEL rides the same gates (data/force-level.js): a run only climbs; the training grounds and the sandbox
     // fight at the level the story has reached (the sandbox's slider overrides it). Set first: a power waits for its level
     // (a level the save carries in is in hand from the start, no rise to show for it: only the mode's own climb past it)
     const was = Math.max(G.forceLevel || 1, carry ? 1 + FORCE_LEVELS.filter(story).length : 1);
-    G.forceLevel = G.zone ? 1 + FORCE_LEVELS.filter(jediReached).length : (G.sandbox || G.training) ? storyForceLevel() : G.hub ? Math.max(was, storyForceLevel()) : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
+    G.forceLevel = storyOnly ? 1 + FORCE_LEVELS.filter(jediReached).length : (G.sandbox || G.training) ? storyForceLevel() : G.hub ? Math.max(was, storyForceLevel()) : Math.max(was, 1 + FORCE_LEVELS.filter(jediReached).length);
     if (G.forceLevel > was && !G.sandbox && !G.training && !G.hub){ forceUp = G.forceLevel; forceWas = was; }
     for (const u of JEDI_AUTO){
       const reached = jediReached(u);
@@ -364,8 +366,9 @@ export function checkUnlocks(bannerDelay, closing){
   if (!isGunner() && G.mission && G.chapter < 0){
     if (G.missionForms){   // chosen before the fight (ui/forms-ui.js): the mission hands them over
       G.stanceUnlocked = G.stanceUnlocked || {};
-      for (const id of G.missionForms) if (id) G.stanceUnlocked[id] = true;
-      setLoadout(G.missionForms);
+      // (picked from what the story has opened: a form this hero's own story hasn't taught stays out, game/zone-gate.js)
+      const picked = G.missionForms.map(id => id && stanceUnlocked(id) ? id : null);
+      setLoadout(picked.some(Boolean) ? picked : autoLoadout());
     } else setLoadout(autoLoadout());
   }
   if (G.training || (G.mission && G.chapter < 0) || G.sandbox || G.hub || G.kitQuiet) return;   // (and a veteran's kit, handed over at once in Act IV: game/gate.js)   // (the temple: no fanfare either) the training grounds teach the starting kit, a mission and the sandbox hand out their kit up front: no fanfare
@@ -422,6 +425,7 @@ const SHORT = { push: 'Push', palm: 'Strikes', pull: 'Pull', grasp: 'Grasp', thr
 function forceRise(lv, was){
   const grew = Object.keys(FORCE_OWNED).filter(id => (!FORCE_OWNED[id] || (G.unlocked && G.unlocked[FORCE_OWNED[id]])) && growthLine(id, lv)).map(id => SHORT[id]);
   if (growthLine('jump', lv)) grew.push('Jump & Dash');
+  if (lv > 1) grew.push('Guard');   // the blade's front and reach against fire (data/force-level.js GUARD_GROWTH)
   const form = STANCES[G.stance];
   return { lv, max: lv >= FORCE_MAX, first: was <= 1, grew,
            form: form ? form.name.split(' —')[0] : '', blade: form ? form.blade : 0x5cc0ff, share: Math.round(forceShare() * 100) };

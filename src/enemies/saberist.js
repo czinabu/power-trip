@@ -45,6 +45,7 @@ export function buildSaberist(k, t, L, H){
   k.sleeve = robed ? 'cloth' : 'armor';   // the arms are sleeves (mesh.js arm), belled at the wrist unless armoured
   k.bell = !inq;
   const thighs = legs(k, hw, jedi, H.legBones);
+  if (k.rig){ k.rig.w = hw; k.rig.wc = w; k.rig.spine = 'armor'; }   // (soft: the trunk is the tunic's cloth, hips to collar: enemies/softbody.js)
   hipsAndSkirt(k, hw, L, thighs, robed ? 'cloth' : 'armor');
   k = H.upper(k);
   // the tunic and any plate over it in the troopers' FRAME (enemies/detail.js): a fighter's chest, not a barrel. A static
@@ -83,7 +84,7 @@ function legs(k, w, jedi, legBones){
   for (const s of [-1, 1]){
     const L = legBones(k, 0.16 * s);
     thighs.push(L.thigh);
-    k.add(limb(0.5, [[-0.04,0.2*w,0.21],[0.2,0.19*w,0.2],[0.8,0.15*w,0.155],[1,0.14*w,0.145]], KEEL), 'suit', L.thigh);
+    if (!k.soft) k.add(limb(0.5, [[-0.04,0.2*w,0.21],[0.2,0.19*w,0.2],[0.8,0.15*w,0.155],[1,0.14*w,0.145]], KEEL), 'suit', L.thigh);
     k.add(limb(0.38, [[0,0.15*w,0.16],[0.12,0.16*w,0.17],[0.85,0.13*w,0.14],[1,0.125*w,0.135]], KEEL), 'boot', L.shin, [0, 0, 0.005]);
     k.add(loft([{ y:-0.03, w:0.165*w, d:0.175 }, { y:0.02, w:0.17*w, d:0.18 }], SOFT_LIMB), jedi ? 'leather' : 'boot', L.shin, [0, -0.01, 0.005]);   // the boot's cuff
     k.add(plate([[-0.075,0.035],[-0.09,-0.075],[0.16,-0.085],[0.21,-0.05],[0.1,0.0],[0.03,0.04]].map(([x, y]) => [x * 1.12, y * 1.12]), 0.13*w, 0.014), 'boot', L.foot, [0, 0, 0], [0, -PI/2, 0]);
@@ -93,7 +94,7 @@ function legs(k, w, jedi, legBones){
 
 // the hips, a wide belt and sash, and the tunic's skirts front and back (a Jedi's tabard runs down over them)
 function hipsAndSkirt(k, w, L, thighs, skirt = 'armor'){
-  k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
+  if (!k.soft) k.add(loft([{ y:0.84, w:0.38*w, d:0.26 }, { y:0.98, w:0.44*w, d:0.29 }, { y:1.08, w:0.4*w, d:0.27 }], SOFT_BODY), 'suit');
   k.add(loft([{ y:0.98, w:0.47*w, d:0.31 }, { y:1.12, w:0.45*w, d:0.3 }], SOFT_BODY), 'armor');   // the tunic's hem over the hips
   k.add(loft([{ y:1.04, w:0.49*w, d:0.325 }, { y:1.11, w:0.485*w, d:0.322 }], SOFT_BODY), 'trim', k.root, [0,0,0], [0,0,0], NO_INK);   // sash
   k.add(loft([{ y:1.0, w:0.5*w, d:0.33 }, { y:1.05, w:0.5*w, d:0.33 }], SOFT_BODY), 'leather', k.root, [0,0,0], [0,0,0], NO_INK);       // belt
@@ -126,7 +127,7 @@ function hipsAndSkirt(k, w, L, thighs, skirt = 'armor'){
 // the torso: the tunic, shaped by the build; crossed lapels (the Jedi's tabard over both shoulders)
 function chest(k, w, f, L){
   const b = f ? 1.05 : 1;   // the chest stands out a touch on a woman's frame; the waist pulls in
-  k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.86 : 1), d:0.25 }], ROBE), 'armor');
+  if (!k.soft) k.add(loft([{ y:1.07, w:0.36*w*(f ? 0.9 : 1), d:0.24 }, { y:1.28, w:0.38*w*(f ? 0.86 : 1), d:0.25 }], ROBE), 'armor');
   // the chest rounds over into sloping shoulders (no plate's square shelf)
   k.add(loft([{ y:1.26, w:0.4*w*(f ? 0.88 : 1), d:0.27 }, { y:1.44, w:0.54*w, d:0.32*b, z:0.012*b }, { y:1.58, w:0.6*w, d:0.34*b, z:0.016*b }, { y:1.7, w:0.62*w, d:0.32 },
               { y:1.79, w:0.54*w, d:0.28 }, { y:1.86, w:0.38*w, d:0.23 }, { y:1.92, w:0.24, d:0.19 }], ROBE), 'armor');

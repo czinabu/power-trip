@@ -100,9 +100,14 @@ export function updateUpper(o, g, dt, aim, mode = 'on'){
   U.st = ease(U.st ?? 0, on, dt, 3);
   const shift = Math.sin(U.t * ST.sw) * ST.sa * U.st, talk = on * talking(U, u, o, dt);
   const kick = U.kick * U.kick;
-  ch.rotation.set(U.pitch + breath - kick * 0.16 + U.fl * 0.3 + ST.cp * U.st + (on ? o.stanceLean || 0 : 0), U.yaw + U.twist, -U.fr * 0.25 + shift);
+  // BEND (a soft body, enemies/softbody.js: one skin across the waist and the shoulders, so nothing gaps): a blow folds
+  // the trunk further and turns it off the side it landed on, a wind-up coils the shoulders round and drops the weapon
+  // shoulder, and the strike throws them through and over the front foot
+  const B = u.soft ? 1 : 0, tw = U.twist * (1 + 0.55 * B), drive = Math.max(0, -U.twist) * B;
+  ch.rotation.set(U.pitch + breath - kick * 0.16 + U.fl * (0.3 + 0.26 * B) + drive * 0.5 + ST.cp * U.st + (on ? o.stanceLean || 0 : 0),
+    U.yaw + tw - U.fr * 0.3 * B, -U.fr * (0.25 + 0.2 * B) + shift - U.twist * 0.3 * B);
   if (hd) hd.rotation.set(U.hx0 + U.hp - breath * 0.6 + kick * 0.05 + U.fl * 0.2 - snap * 0.55 + ST.hp * U.st + talk * Math.sin(U.t * 7.3) * 0.04,
-    U.hy - U.twist * 0.6 - snap * (U.snapSide || 0) * 0.4, -U.fr * 0.15 + snap * (U.snapSide || 0) * 0.35 + U.ht - shift * 0.6);
+    U.hy - tw * 0.6 + U.fr * 0.2 * B - snap * (U.snapSide || 0) * 0.4, -U.fr * 0.15 + snap * (U.snapSide || 0) * 0.35 + U.ht - shift * 0.6);
   if (u.lids || u.jaw) faceLife(U, o, u, dt, mode, talk);
   if (u.gearL || u.gearR || u.gearB) gearSwing(U, o, g, u, dt, mode);
   if (u.cape0) capeSwing(U, g, u, dt, mode);
@@ -114,7 +119,7 @@ export function updateUpper(o, g, dt, aim, mode = 'on'){
   if (mode === 'off'){
     const f = fallOf(g);
     if (f){
-      ch.rotation.x += f * 0.24;   // curled in over the belly, whichever way it falls
+      ch.rotation.x += f * (u.soft ? 0.5 : 0.24);   // curled in over the belly, whichever way it falls (a soft body folds: BEND above)
       if (hd){ hd.rotation.x += -Math.sign(g.rotation.x || 1) * f * 0.35; hd.rotation.z += (U.lollSide || (U.lollSide = Math.random() < 0.5 ? -1 : 1)) * f * 0.3; }
     }
   }

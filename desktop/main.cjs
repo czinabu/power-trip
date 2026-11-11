@@ -12,7 +12,7 @@ const { pathToFileURL } = require('node:url');
 const { startUpdateCheck } = require('./updates.cjs');
 
 const GAME_DIR = path.join(__dirname, 'game');
-const WEB_URL = (process.env.POWER_TRIP_WEB_URL || 'https://sw-power-trip.vercel.app').replace(/\/+$/, '');
+const WEB_URL = (process.env.POWER_TRIP_WEB_URL || 'https://power-trip.vercel.app').replace(/\/+$/, '');
 
 // a standard + secure scheme: a real origin for storage, a secure context for WebRTC, fetch() allowed
 protocol.registerSchemesAsPrivileged([

@@ -25,6 +25,10 @@ import { mutatorById } from '../data/ngplus.js';
 import { isRaidId, raidsOpen } from '../data/raids.js';
 import { medalsOf } from '../game/profile.js';
 import { medalPips, medalGoalsHtml } from './medals-ui.js';
+import { isRemixId, parseRemixId, remixIdFor, weeklyRemixId, REMIX_POOL } from '../data/remixes.js';
+import { DECK } from '../data/twist-deck.js';
+// a mission's signature twists (data/twist-deck.js: the arcade's, a remix's, a veteran call's), as tags on its card
+const sigTags = (names) => (names || []).map(n => '<span class="msn-tag tw">' + n + '</span>').join('');
 // a veteran side mission's mutators, as small coloured tags on its card
 const mutTags = (ids) => (ids || []).map(id => { const m = mutatorById(id); return m ? `<span class="msn-tag mut" style="color:${m.col}">${m.name}</span>` : ''; }).join('');
 import { overlay, isPickingState, refreshPicks, beginFromMenu, panelOpen, DIFF_NAME } from './menus.js';
@@ -40,8 +44,10 @@ const trialSeen = (id) => !MISSIONS[id] || !MISSIONS[id].trial || HEROES().some(
 // a mission stays locked and unspoiled until the campaign has cleared it (game/sandbox-unlocks.js)
 // a side mission (data/side-quests.js) opens at its rank, the same as at the temple's CALLS FOR AID stone
 const sideOpen = (id) => !!SIDE_BY_ID[id] && !sideLock(SIDE_BY_ID[id]);   // (its chapter, its rank, or a veteran's beaten campaign: game/zone-gate.js sideLock)
-export const missionOpen = (id) => isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : isRaidId(id) ? !!missionById(id) && raidsOpen() : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open; a raid once Act IV is beaten (data/raids.js)
-const shown = (id) => isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) || isRaidId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
+// a remix opens once this hero has cleared its mission; the remix of the week, once the mission is unlocked at all (no spoilers)
+const remixOpen = (id) => { const p = parseRemixId(id), m = p && missionById(id); return !!m && (p.week != null ? missionUnlocked(p.mid) : missionDone(p.mid, G.hero)); };
+export const missionOpen = (id) => isRemixId(id) ? remixOpen(id) : isSideId(id) ? sideOpen(id) : isArcadeId(id) ? !!missionById(id) : isRaidId(id) ? !!missionById(id) && raidsOpen() : !!MISSIONS[id] && trialSeen(id) && missionUnlocked(id);   // the arcade is always open; a raid once Act IV is beaten (data/raids.js)
+const shown = (id) => isRemixId(id) ? (() => { const m = missionById(id); return !!m && missionForHero(MISSIONS[m.source], G.hero); })() : isSideId(id) ? !!SIDE_BY_ID[id] : isArcadeId(id) || isRaidId(id) ? !!missionById(id) : MISSIONS[id] && missionForHero(MISSIONS[id], G.hero) && trialSeen(id);
 export const missionPageOpen = () => overlay.classList.contains('mpage');
 
 /* the page has two faces: the title screen's MISSIONS (side missions and the story's acts) and its ARCADE (the board
@@ -76,7 +82,7 @@ const kindTags = (c) => [...new Set(c.kinds)].map(k => '<span class="msn-tag">' 
 const twistTag = (c) => c.twist ? '<span class="msn-tag tw">' + TWISTS[c.twist].name + '</span>' : '';
 function arcCard(c){
   return `<div class="msn arc brk${c.id === G.missionId ? ' sel' : ''}" id="msn-${c.id.replace(':', '-')}" data-mission="${c.id}">
-    <span class="mt"><span class="mtn">${c.title}</span>${twistTag(c)}</span>
+    <span class="mt"><span class="mtn">${c.title}</span>${twistTag(c)}${sigTags(c.sig)}</span>
     <span class="mw">${c.place}</span><span class="mk">${kindTags(c)}</span>${pips(c.threat)}
   </div>`;
 }
@@ -88,13 +94,48 @@ function arcadeShelf(){
     <div class="mp-grid">${(picked ? [picked, ...board.slice(0, -1)] : board).map(arcCard).join('')}</div>`);
 }
 
+// what each signature twist on a mission does, for its details: the twist's own banner line
+function sigLine(def){
+  if (!def) return '';
+  const tws = (def.objectives || []).map(o => o.twist).filter(tw => tw && DECK[tw.kind] && (def.sig || []).includes(DECK[tw.kind].name));
+  return tws.map(tw => { const l = tw.line && (tw.line[G.hero] || tw.line.jedi); return ' <b>' + DECK[tw.kind].name + ':</b> ' + (l || ''); }).join('');
+}
+
+/* ---------- the REMIXES shelf: cleared missions again, with a new twist and new foes, and the remix of the week ---------- */
+function remixCard(id){
+  const m = missionById(id); if (!m) return '';
+  const open = missionOpen(id), won = missionDone(id, G.hero), wk = m.weekly;
+  return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${id === G.missionId ? ' sel' : ''}" id="msn-${id.replace(/:/g, '-')}" data-mission="${id}">
+    <span class="mt"><span class="mtn">${open ? missionTitle(m.source) : '???'}</span><span class="msn-tag">${wk ? 'WEEKLY' : 'REMIX'}</span>${open ? sigTags(m.sig) : ''}<span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
+    <span class="mw">${open ? 'VS ' + m.faction : 'UNLOCK ITS MISSION FIRST'}</span>${open ? pips(missionRank(MISSIONS[m.source], G.hero)) + medalPips(medalsOf(id).m) : ''}
+  </div>`;
+}
+function remixShelf(){
+  const weekly = weeklyRemixId(), pool = REMIX_POOL().filter(m => missionForHero(m, G.hero));
+  const open = pool.filter(m => missionDone(m.id, G.hero)).map(m => remixIdFor(m.id));
+  const won = open.filter(id => missionDone(id, G.hero)).length;
+  const cards = [weekly, ...open].filter(id => id && shown(id));
+  const body = cards.length ? cards.map(remixCard).join('') : '';
+  return fold('remix', isRemixId(G.missionId), 'mp-act', `REMIXES<span class="mp-sub">a cleared mission again: a new twist, new foes, medals of its own</span>`, won + '/' + pool.length,
+    `<div class="mp-grid">${body}</div>${open.length < pool.length ? `<div class="mpi-b mp-note">Clear a mission to open its remix. ${pool.length - open.length} still to open.</div>` : ''}`);
+}
+function remixInfo(id){
+  const m = missionById(id); if (!m || !infoEl) return;
+  if (!missionOpen(id)){ infoEl.innerHTML = `<div class="mpi-t">REMIX<span class="msn-tag">LOCKED</span></div><div class="mpi-b">Unlock this mission in the campaign first.</div>`; return; }
+  const src = MISSIONS[m.source], marks = HEROES().map(h => HERO_NAME[h] + ' ' + (missionDone(id, h) ? '<span class="ok">✓</span>' : '<span class="no">–</span>')).join(' &nbsp;');
+  infoEl.innerHTML = `<div class="mpi-t">${missionTitle(m.source)}<span class="msn-tag">${m.weekly ? 'REMIX OF THE WEEK' : 'REMIX'}</span>${sigTags(m.sig)}</div>
+    <div class="mpi-w">${placeOf(src)} · VS ${m.faction}</div>
+    <div class="mpi-b">${src.blurb.charAt(0).toUpperCase() + src.blurb.slice(1)}, against ${m.faction.toLowerCase()}.${sigLine(m)}${m.weekly ? ' Featured this week for every hero: a new one each Monday.' : ''}</div>${medalGoalsHtml(m, medalsOf(id))}
+    <div class="mpi-meta"><span>THREAT ${pips(missionRank(src, G.hero))}</span><span>${m.objectives.length} OBJECTIVE${m.objectives.length === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">${marks}</span></div>`;
+}
+
 /* ---------- the SIDE MISSIONS shelf: what the temple's CALLS FOR AID stone hands out ---------- */
 function sideCard(q){
   const id = SIDE_PREFIX + q.slug, open = sideOpen(id), won = missionDone(id, G.hero);
   const need = sideLock(q);
   return `<div class="msn brk${open ? '' : ' locked'}${won && open ? ' won' : ''}${id === G.missionId ? ' sel' : ''}" id="msn-${id.replace(':', '-')}" data-mission="${id}">
     <span class="mt"><span class="mtn">${q.title}</span><span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span><span class="won">${open ? (won ? '✓' : '') : '🔒'}</span></span>
-    <span class="mw">${open ? q.place : need + ' TO UNLOCK'}</span>${open ? pips(q.threat) + medalPips(medalsOf(id).m) + mutTags(q.muts) : ''}
+    <span class="mw">${open ? q.place : need + ' TO UNLOCK'}</span>${open ? pips(q.threat) + medalPips(medalsOf(id).m) + mutTags(q.muts) + sigTags(q.sig && DECK[q.sig[1]] ? [DECK[q.sig[1]].name] : []) : ''}
   </div>`;
 }
 function sideShelf(){
@@ -114,7 +155,7 @@ function sideInfo(id){
   const marks = HEROES().map(h => HERO_NAME[h] + ' ' + (missionDone(id, h) ? '<span class="ok">✓</span>' : '<span class="no">–</span>')).join(' &nbsp;');
   infoEl.innerHTML = `<div class="mpi-t">${q.title}<span class="msn-tag">${q.post ? 'VETERAN' : 'SIDE'}</span></div>
     <div class="mpi-w">${q.place}</div>
-    <div class="mpi-b">${q.ask}</div>${medalGoalsHtml(missionById(id), medalsOf(id))}${q.muts && q.muts.length ? `<div class="mpi-b">MUTATORS: ${q.muts.map(id => { const m = mutatorById(id); return m ? `<b style="color:${m.col}">${m.name}</b> (${m.tip})` : ''; }).join(' · ')}</div>` : ''}
+    <div class="mpi-b">${q.ask}${sigLine(missionById(id))}</div>${medalGoalsHtml(missionById(id), medalsOf(id))}${q.muts && q.muts.length ? `<div class="mpi-b">MUTATORS: ${q.muts.map(id => { const m = mutatorById(id); return m ? `<b style="color:${m.col}">${m.name}</b> (${m.tip})` : ''; }).join(' · ')}</div>` : ''}
     <div class="mpi-meta"><span>THREAT ${pips(q.threat)}</span><span>${q.take.length} OBJECTIVE${q.take.length === 1 ? '' : 'S'}</span><span>${q.reward.toUpperCase()}</span><span class="mpi-won">${marks}</span></div>`;
 }
 
@@ -155,7 +196,7 @@ function render(){
   }
   const shelves = missionShelves(G.hero);
   if (_arcade){ listEl.innerHTML = arcadeShelf(); if (!shown(G.missionId)) setMission(G.missionId); else refreshInfo(); return; }
-  listEl.innerHTML = sideShelf() + shelves.map((s, si) => {
+  listEl.innerHTML = remixShelf() + sideShelf() + shelves.map((s, si) => {
     const acts = s.groups.map((g, ai) => {
       const ms = g.missions.filter(m => trialSeen(m.id));
       const open = ms.filter(m => missionOpen(m.id)), won = open.filter(m => missionDone(m.id, G.hero)).length;
@@ -177,6 +218,7 @@ function render(){
   if (!shown(G.missionId)) setMission(G.missionId); else refreshInfo();
 }
 function refreshInfo(){
+  if (isRemixId(G.missionId)) return remixInfo(G.missionId);
   if (isSideId(G.missionId)) return sideInfo(G.missionId);
   if (isArcadeId(G.missionId)) return arcadeInfo(missionById(G.missionId));
   if (isRaidId(G.missionId)){ const r = missionById(G.missionId); if (r && infoEl) infoEl.innerHTML = `<div class="mpi-t">${r.title}<span class="msn-tag">RAID</span></div><div class="mpi-w">${r.place}</div><div class="mpi-b">Played from the raid table at the temple, the citadel or the covert.</div>`; return; }
@@ -198,9 +240,9 @@ function refreshInfo(){
 function arcadeInfo(c){
   if (!c || !infoEl) return;
   const steps = c.objectives.map(o => { const t = typeof o.title === 'object' ? (o.title[G.hero] || o.title.mando || o.title.jedi) : o.title; return kindName(o.kind) + ': ' + t.toLowerCase().replace(/(^|\s)\S/g, ch => ch.toUpperCase()); });
-  infoEl.innerHTML = `<div class="mpi-t">${c.title}<span class="msn-tag">CHALLENGE</span>${twistTag(c)}</div>
+  infoEl.innerHTML = `<div class="mpi-t">${c.title}<span class="msn-tag">CHALLENGE</span>${twistTag(c)}${sigTags(c.sig)}</div>
     <div class="mpi-w">${c.place}</div>
-    <div class="mpi-b">${steps.join(' &nbsp;›&nbsp; ')}.${c.twist ? ' <b>' + TWISTS[c.twist].name + ':</b> ' + TWISTS[c.twist].line : ''}</div>
+    <div class="mpi-b">${steps.join(' &nbsp;›&nbsp; ')}.${c.twist ? ' <b>' + TWISTS[c.twist].name + ':</b> ' + TWISTS[c.twist].line : ''}${sigLine(c)}</div>
     <div class="mpi-meta"><span>THREAT ${pips(c.threat)}</span><span>${c.objectives.length} OBJECTIVE${c.objectives.length === 1 ? '' : 'S'}</span><span>ON ${DIFF_NAME[G.diff] || 'STANDARD'}</span><span class="mpi-won">No story · any hero</span></div>`;
 }
 // the menu's MISSIONS tile: how many this hero has won, or the one picked

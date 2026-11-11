@@ -11,6 +11,7 @@
 // Par times are worked out from the mission's own objectives (parTime: each kind's PAR cost, the map's spread) unless
 // MISSION_MEDALS gives one (`par`, seconds). A bonus goal is MISSION_MEDALS' `bonus`, else the first that fits the
 // mission (defaultBonus). Either can differ per hero: { jedi, mando, trooper }.
+// A remix (data/remixes.js) keeps its source mission's goals and par time, with medals of its own.
 // An arcade contract shows its three on the results screen too, but keeps nothing (each one is dealt once). Raids,
 // survival and the sandbox have none.
 
@@ -107,7 +108,7 @@ const pick = (v, hero) => v && typeof v === 'object' ? (v[hero] || v.jedi || v.m
 // the bonus goal's key for a mission as this hero plays it (one that doesn't fit the mission falls back to one that does)
 export function bonusOf(def, hero){
   if (!def) return 'deathless';
-  const own = def.side ? SIDE_MEDALS[def.id] : MISSION_MEDALS[def.id];
+  const own = def.side ? SIDE_MEDALS[def.id] : MISSION_MEDALS[def.remix ? def.source : def.id];
   const k = pick(own && own.bonus, hero);
   return k && BONUS[k] && BONUS[k].fits(def) ? k : defaultBonus(def);
 }
@@ -148,7 +149,7 @@ function objCost(o, def, S){
 }
 export function parTime(def, hero){
   if (!def) return 0;
-  const own = def.side ? SIDE_MEDALS[def.id] : MISSION_MEDALS[def.id], set = pick(own && own.par, hero);
+  const own = def.side ? SIDE_MEDALS[def.id] : MISSION_MEDALS[def.remix ? def.source : def.id], set = pick(own && own.par, hero);
   if (set) return set;
   const S = spreadOf(def);
   let t = 0;

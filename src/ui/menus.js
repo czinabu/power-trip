@@ -21,6 +21,7 @@ import { startMission, startCoopMission, retryMission, missionTitle } from '../g
 import { isArcadeId, randomArcadeId } from '../data/arcade.js';
 import { isRaidId, parseRaidId, raidIdFor, today } from '../data/raids.js';
 import { isSideId } from '../data/side-quests.js';
+import { isRemixId, parseRemixId, weeklyRemixId } from '../data/remixes.js';
 import { startSandbox, sandboxUnlocked } from '../game/sandbox.js';
 import { battleArmed, leaveSetup } from '../game/battlesim.js';
 import { sandboxFull, sandboxProgress } from '../game/sandbox-unlocks.js';
@@ -90,7 +91,7 @@ function setPicking(on){
 export const DIFF_NAME = { padawan: 'GENTLE', knight: 'STANDARD', master: 'BRUTAL' };
 function refreshNextRun(){
   const el = document.getElementById('nrWhat'); if (!el) return;
-  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : isRaidId(G.missionId) ? 'RAID · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
+  const mode = G.modeSel === 'mission' ? (isArcadeId(G.missionId) ? 'CHALLENGE · ' : isRemixId(G.missionId) ? 'REMIX · ' : isSideId(G.missionId) ? 'SIDE MISSION · ' : isRaidId(G.missionId) ? 'RAID · ' : 'MISSION · ') + missionTitle(G.missionId) : STEP_NAME[G.modeSel] || 'CAMPAIGN';
   el.textContent = [mode, heroName(G.hero), DIFF_NAME[G.diff] || 'STANDARD'].join(' · ');
 }
 // the title screen's BEGIN label for the picked mode (its second step and the Missions page)
@@ -270,6 +271,7 @@ function continueMission(id){
   if (!id) return null;
   if (isArcadeId(id)) return randomArcadeId();
   if (isRaidId(id)){ const r = parseRaidId(id); return r ? raidIdFor(r.raid) : null; }
+  if (isRemixId(id) && parseRemixId(id).week != null) id = weeklyRemixId() || id;   // (last week's remix of the week: this week's)
   return missionOpen(id) ? id : null;
 }
 // where CONTINUE goes: { m, id?, run? }, or null. The furthest story run first, then Act IV's, then the last stop if it can

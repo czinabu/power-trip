@@ -1,5 +1,5 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// Soft lock-on (Jedi): T (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
+// Soft lock-on (Jedi): the middle mouse button (a pad: R3) keeps one foe framed so cuts and parries are aimed at it. While locked, a quick flick of
 // the mouse or the right stick to one side moves the lock to the next foe that way (unless CUT AIM is MOUSE: the flick aims cuts,
 // or the guard is up: the flick steers the guard, player/jedi/guardline.js).
 
@@ -47,21 +47,21 @@ function pickTarget(exclude){
      · a quick tap of a direction (to pick a cut: jedi/cutaim.js) doesn't move the feet; hold it and you step
      · the mouse and the right stick barely turn the view, so a flick places the guard or aims a cut (jedi/guardline.js,
        jedi/cutaim.js) and the fight stays framed
-   It lets go when the foe falls or the gap opens, on T, when you sweep the view away on purpose, or when you leave:
+   It lets go when the foe falls or the gap opens, on the lock button, when you sweep the view away on purpose, or when you leave:
    a direction held AWAY from the foe for `leave.t` s with no guard or cut going walks you out of the duel (a dodge
    back is shorter than that), and it stays off `leave.hold` s.
    THE LOOSE GRIP — a fight bigger than the duel doesn't end the focus, it loosens it: while a crowd is in on you, or
    something outside the duel comes for you or someone beside you (fire from off to the side, a live detonator, a foe
    on an evacuee: player/lock-yield.js), the foe stays marked (the marker dims) but the view, the aim and the feet are
    yours: turn and block, push the detonator back, cut whoever the crosshair is on. Once it has been quiet `hold` s and
-   you square up with the marked foe again, it tightens by itself. MANUAL: the lock is T's alone and behaves as it always has. OFF: no lock at all.
+   you square up with the marked foe again, it tightens by itself. MANUAL: the lock is the button's alone and behaves as it always has. OFF: no lock at all.
      on / off   the gap (m) it takes hold inside, and lets go beyond
      cone       how squarely in front the foe must be (cos) to take hold; settle: for how long (s)
      crowd/max  with more than `max` foes inside `crowd` m it won't take hold (a melee, not a duel); past `drop` it lets go
      look/pitch how much of a look still turns the view (pitch: only while the guard is up)
      tap/reach  a direction held under `tap` s inside `reach` m of the foe is a cut's aim, not a step
      away       a sweep of `px` mouse pixels inside `win` s (or the stick held hard over for `stick` s) with no guard
-                or cut going breaks an auto focus, and it stays off `hold` s; T keeps it off `toggle` s
+                or cut going breaks an auto focus, and it stays off `hold` s; the lock button keeps it off `toggle` s
      leave      t: how long (s) a direction held away from the foe (past `cos` of straight away) walks you out */
 export const FOCUS = { on: 5.5, off: 8.5, cone: 0.25, settle: 0.2, crowd: 10, max: 2, drop: 4, look: 0.15, pitch: 0.45,
   tap: 0.16, reach: 5, away: { px: 650, win: 0.4, stick: 0.5, hold: 2.5, toggle: 6 }, leave: { t: 0.55, cos: -0.6, hold: 3 } };
@@ -172,7 +172,7 @@ export function updateLockOn(dt){
     const pp = playerPos();
     // the foe fell or ran out of reach: hand the lock to the next foe in view, or let it go
     if (!alive(t) || Math.hypot(posOf(t).x - pp.x, posOf(t).z - pp.z) > L.keep) t = player.lockTarget = pickTarget(t);
-    player.lockLoose = false;   // (a lock taken on T is the player's own: it never loosens)
+    player.lockLoose = false;   // (a lock taken by hand is the player's own: it never loosens)
   }
   if (!t) player.lockLoose = false;
   if (!t){

@@ -36,7 +36,7 @@ export const PAD_CONTROLS = {
       ['IN THE AIR', 'A leap is a commitment', 'Mid-fight you steer less, can\'t hold a guard, and a blow that lands hits harder and drops you', 1],
       ['{w} + AIR + {lmb}', 'Aerial cut', 'Leaping forward: a short lunge and a cut at the foe ahead · costs Force, 3s cooldown · a standing jump just swings', 1],
       ['{lmb}', 'Saber lock', 'Blades bound: mash to drive through · {e} kicks out · {f} shoves', 1],
-      ['{t}', 'Lock on', 'Keeps one foe framed; press again to release', 1],
+      ['{lockon}', 'Lock on', 'Keeps one foe framed; press again to release', 1],
       ['{1} / {2} / {3}', 'Saber form', 'The three forms in your loadout'],
       ['{g}', 'Switch grip', 'In Niman, regular or reverse (swings hit the same either way) · in Djem So or Shien (Form V) it swaps to the other one if you know it · Shien always holds a reverse grip, every other form a forward one', 1, ['niman', 'djemso', 'shien']],
       ['{4}', 'Holster saber', 'Fight with the Force alone, both hands free: {rmb} wards, Force powers hit 20% harder, Force refills faster and every blow you land gives a little back · {4} again draws', 1],

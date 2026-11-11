@@ -1521,7 +1521,7 @@ export function updateSquadHud(){
   const key = allies.map(a => a.name + orderLabel(a)).join() + SQ.formation + squadStance() + G.reviveLeft + Math.ceil(gl) + cp;
   if (key !== lastKey){
     lastKey = key;
-    hud.innerHTML = '<div class="sq-head"><span>SQUAD · ' + (squadStance() === 'free' ? 'FREE ENGAGE' : 'FOLLOW ME') + (SQ.formation === 'wide' ? '' : ' · STACKED') + '</span><span class="sq-ord">ORDERS <kbd>MMB</kbd></span></div>' +
+    hud.innerHTML = '<div class="sq-head"><span>SQUAD · ' + (squadStance() === 'free' ? 'FREE ENGAGE' : 'FOLLOW ME') + (SQ.formation === 'wide' ? '' : ' · STACKED') + '</span><span class="sq-ord">ORDERS <kbd>' + (isGunner() ? 'MMB' : 'T') + '</kbd></span></div>' +
       (cp >= 0 ? '<div class="sq-cp"><span>CP ' + cp + '</span><span class="sq-cpbar"><i style="width:' + cp + '%"></i></span><span class="sq-ord">CALL <kbd>T</kbd></span></div>' : '') +
       allies.map(a => '<div class="sq-row"><span class="sq-n">' + (allyTag(a) ? '<b class="sq-tag">' + allyTag(a) + '</b>' : '') + a.name + '</span><span class="sq-o">' + orderLabel(a) + '</span><span class="sq-bar"><i></i></span></div>').join('') +
       '<div class="sq-gr' + (gl > 0 ? '' : ' ready') + '">GRENADE ' + (gl > 0 ? Math.ceil(gl) + 'S' : 'READY') + '</div>' +

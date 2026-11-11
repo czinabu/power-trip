@@ -6,7 +6,7 @@
        (a squadmate, an evacuee, a co-op partner): you need to turn and put the blade in its path
      · a live thermal detonator on the ground near you or them: you need to turn and push it back
    outsideThreat() says whether one of those is happening right now; DUEL FOCUS goes LOOSE while it is (and for a beat
-   after: player/lockon.js), so the view, the aim and the feet are yours again. A lock taken on T is the player's own choice and stays, but a Push thrown while
+   after: player/lockon.js), so the view, the aim and the feet are yours again. A lock taken by hand is the player's own choice and stays, but a Push thrown while
    locked goes for the nearest live detonator before the locked foe (pushGrenade, read by jedi/force.js).
      bolt     a hostile bolt within `range` m whose line passes within `pass` m of you (or `ally` m of someone you
               protect, who stands within `guard` m of you), and that comes from outside the front `arc` (cos) of the view:

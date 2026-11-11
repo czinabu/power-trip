@@ -73,7 +73,8 @@ document.addEventListener('mousedown', (e) => {
   if (!inputActive()) return;
   if (player.downed) return;   // down: nothing to fight with until you're back up (game/revive.js)
   if (teamupBusy() && e.button !== 1) return;   // committed to a team-up: it plays out first (game/teamup.js)
-  if (e.button === 1){ e.preventDefault(); wheelKeyDown(); return; }   // middle mouse: SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
+  // middle mouse: the Jedi's LOCK-ON (player/lockon.js; his squad orders are T and H) · the gunners' SQUAD ORDERS, as H (tap: the smart order · hold: the wheel)
+  if (e.button === 1){ e.preventDefault(); if (isGunner()) wheelKeyDown(); else if (!teamupBusy() && !wheelOpen()) toggleLock(); return; }
   if (e.button === 3 || e.button === 4){ e.preventDefault(); swapShoulder(); return; }   // a mouse side button: SHOULDER SWAP, as K (engine/camera.js)
   if (wheelOpen()){ if (e.button === 2) wheelCancel(); else if (e.button === 0) wheelKeyUp(); return; }   // the command wheel: click gives the order, right click puts it away
   if (player.saberLock){ if (e.button === 0) lockPress(); return; }   // blades bound: LMB drives (enemies/duel.js)
@@ -248,7 +249,8 @@ document.addEventListener('keydown', (e) => {
     }
     if (k === 'z' && !e.repeat && !graspDrop()) toggleBlade();   // IGNITE / RETRACT (as 5); holding a foe in the Force, Z drops them
     if (k === 'control' && !e.repeat) trySlide();   // the FORCE SLIDE out of a sprint (parkour.js), on Left Ctrl
-    if (k === 't' && !e.repeat) toggleLock();          // soft lock-on
+    if (k === 't' && !e.repeat) wheelKeyDown();        // SQUAD ORDERS, as H (the lock-on is the middle mouse button)
+    if (k === 'lockon' && !e.repeat) toggleLock();     // soft lock-on from a pad (R3: data/gamepad.js)
     if (k === 'f'){ if (!(player.saberLock && lockPush()) && !graspThrow()) forcePush(); }   // in a saber lock: a point-blank shove that breaks it
     if (k === 'c' && !e.repeat) pullPress();   // tap = Force Pull on release; hold = Force GRASP (grasp.js)
     if (k === 'e' && !e.repeat){ if (player.saberLock) lockKick(); else if (!(player.holstered && holsteredKick())) forceKick(); }   // holstered: mid-string a spin kick, in the air a stomp   // FRONT KICK — always-available melee, shares 'E' with the Mando's punch
@@ -282,7 +284,7 @@ document.addEventListener('keydown', (e) => {
   }
   // (R on the fallen screen retries: ui/menus.js, through the same quick way back in as its RETRY button)
 });
-document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'f') fInteract = false; if (e.key.toLowerCase() === 'h') wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
+document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if (e.key.toLowerCase() === 'f') fInteract = false; if (e.key.toLowerCase() === 'h' || (e.key.toLowerCase() === 't' && !isGunner())) wheelKeyUp(); if (e.key.toLowerCase() === 'c' && !isGunner()) pullRelease(); if (e.key === 'Alt') e.preventDefault(); });
 // A held key whose keyup never arrives (ALT-TAB, ALT+click, a browser menu, focus lost) would stay down forever: strafe stuck
 // on, and no sprint or slide. Losing focus releases everything; any key event that says ALT is up releases ALT.
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; fInteract = false; atkRelease(); player.guardKey = false; player.guardBack = false; });

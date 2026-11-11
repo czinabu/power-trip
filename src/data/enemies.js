@@ -111,4 +111,16 @@ export const ENGAGE = {
   poise: 1.4,               // a saber hit knocks a light foe out of its wind-up at most once per this many seconds
   reach: 1.05,              // a melee blow lands only within this much of the foe's range (after its lunge): back off and it whiffs
   thrustReach: 0.9,         // a duellist's thrust reaches this much further
+  /* COMMITTED SWINGS — a plain melee foe (by type; a duellist's planned cuts and the Warbringer aren't in this yet) turns
+     with its target through the wind-up at `turn` rad/s, then LOCKS its facing `lock` s before the swing starts
+     (× the difficulty's tell, so Padawan locks earlier) and swings where it was aimed: the lunge goes down that line and
+     the blow lands only within `arc` degrees either side of it (plus `pad` m of the target's body). A brute's slow
+     overhead can be read and stepped out of, even at a walk; a trooper's quick cut misses a hero already running to
+     the side (or off the mark within ~0.1 s of the tell), not one who walks or reacts late. A swing dodged this
+     way leaves it `whiff` s longer in its recovery, facing where you were. */
+  commit: {
+    grunt: { lock: 0.26, arc: 30, turn: 7,   whiff: 0.15 },
+    brute: { lock: 0.4,  arc: 26, turn: 3.5, whiff: 0.35 },
+    pad: 0.4,
+  },
 };

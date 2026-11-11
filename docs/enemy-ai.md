@@ -48,6 +48,12 @@ Troopers move with the hero's ground handling and legs, so they read as people r
   toward the more open side for 0.6s, then re-routes.
 - **No swings through walls:** a melee foe won't wind up on the far side of cover taller than 1.3; it keeps walking
   around. Low cover can still be struck over.
+- **Committed swings:** purge troopers and brutes (`ENGAGE.commit` in `src/data/enemies.js`) turn with you through the
+  wind-up at a capped rate, then lock their facing a beat before the swing and cut down that line. The blow lands only
+  inside a front arc of it, so a brute's slow overhead can be read and stepped out of, even at a walk, and a
+  trooper's quick cut misses a hero already running to the side (`SIDESTEPPED`). The miss leaves the foe facing where you were, a little longer in its recovery. Standing still,
+  walking off a trooper's line, or moving too late still gets you hit; backing out of reach works as before. Duellists,
+  lancers, sentinels, the Warbringer and bosses still track all the way.
 - **Ranged troopers:** out of range they advance along the field. In range with no shot they hide behind cover and
   peek; after 3s they flank for 4s to find a clear shot instead of firing into the wall.
 

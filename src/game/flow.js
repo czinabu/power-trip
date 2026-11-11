@@ -422,6 +422,7 @@ const SHORT = { push: 'Push', palm: 'Strikes', pull: 'Pull', grasp: 'Grasp', thr
 function forceRise(lv, was){
   const grew = Object.keys(FORCE_OWNED).filter(id => (!FORCE_OWNED[id] || (G.unlocked && G.unlocked[FORCE_OWNED[id]])) && growthLine(id, lv)).map(id => SHORT[id]);
   if (growthLine('jump', lv)) grew.push('Jump & Dash');
+  if (lv > 1) grew.push('Guard');   // the blade's front and reach against fire (data/force-level.js GUARD_GROWTH)
   const form = STANCES[G.stance];
   return { lv, max: lv >= FORCE_MAX, first: was <= 1, grew,
            form: form ? form.name.split(' —')[0] : '', blade: form ? form.blade : 0x5cc0ff, share: Math.round(forceShare() * 100) };

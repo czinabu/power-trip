@@ -137,7 +137,7 @@ export const CFG = {
     // chase their ideal spot on their own damping, which is what gives JA its soft swing when you turn
     ja: {
       eye: 2.5,               // focus: the hero's eye (JA: origin + viewheight, 60 of 64 units up)
-      vertOffset: 0.7,        // cg_thirdPersonVertOffset (16 in JA = 0.67 m): the aim point rides over the head, so the hero sits low in the frame and the
+      vertOffset: 0.67,       // cg_thirdPersonVertOffset (16 in JA = 0.67 m, matched exactly): the aim point rides over the head, so the hero sits low in the frame and the
                               // crosshair (traced from his eye, player/aim.js heroCrosshair) floats just above him at rest. Raised from 0.4 (Caleb's
                               // call) so a foe straight ahead shows over the Jedi's head instead of behind it...
       range: 3.8,             // cg_thirdPersonRange 80 is 3.4 m: ...the lens sits this far behind it, along the line of sight

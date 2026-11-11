@@ -58,11 +58,11 @@ export const MISSION_MEDALS = {
   'trial-sera':  { bonus: 'duel' },
   vault:         { bonus: 'evacuees' },
   pens:          { bonus: 'escort' },
-  academy:       { bonus: 'evacuees' },
+  academy:       { bonus: 'escort' },
   breakout:      { bonus: 'escort' },
   grassland:     { bonus: 'escort' },
   icefront:      { bonus: 'squad' },
-  graveyard:     { bonus: 'slice' },
+  graveyard:     { bonus: 'escort' },
   forge:         { bonus: 'deathless' },
   pursuit:       { bonus: 'chase' },
   'jedha-night': { bonus: 'duel' },
@@ -71,12 +71,12 @@ export const MISSION_MEDALS = {
   // the Mandalorian's
   salthollow:    { bonus: 'slice' },
   covert:        { bonus: 'evacuees' },
-  gallows:       { bonus: 'evacuees' },
+  gallows:       { bonus: 'duel' },
   holdfast:      { bonus: 'duel' },
   // the ARC trooper's
   order66:       { bonus: 'escort' },
   killhouse:     { bonus: 'squad' },
-  chipfiles:     { bonus: 'slice' },
+  chipfiles:     { bonus: 'squad' },
   drill:         { bonus: 'deathless' },
   drowned:       { bonus: 'squad' },
   oldkillhouse:  { bonus: 'duel' },
@@ -95,7 +95,7 @@ export const MISSION_MEDALS = {
   'strike-exegol': { bonus: 'squad' },
   'chains-alone': { bonus: 'duel' },
   meltworks:     { bonus: 'slice' },
-  'iron-road':   { bonus: 'deathless' },
+  'iron-road':   { bonus: 'chase' },
 };
 // a side mission's (data/side-quests.js, ids 'side:<slug>'): its own here, else the first that fits what it plays
 export const SIDE_MEDALS = {};

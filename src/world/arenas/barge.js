@@ -8,6 +8,8 @@ import { shared } from '../../state.js';
 import { spawnBarrel } from '../hazards.js';
 import { arenaKit, seeded } from './kit.js';
 import { buildGunship } from './outpost.js';
+import { solids } from '../../state.js';
+import { addDoor } from '../doors.js';
 
 /* THE GALLOWS (half-size 30). The top deck of a prison barge riding out a storm at night:
      · the LANDING PAD in the north (+z): Skye's impounded gunship, chained down, its ramp toward the deck. The ground
@@ -24,6 +26,16 @@ export const BARGE_SPOTS = {
   path: [[-15.6, 6], [-11, 9.4], [-5, 11.6], [-1.2, 13.4]],           // block door → foot of the ramp
   hold: [0, 10],
   locks: [[-13.6, -4], [13.6, -4], [0, -17.4]],
+  // a level with `cells` (THE GALLOWS breached): both blocks are hollow, a blast door in the middle of each front.
+  // Door 0 is Block A's (west), door 1 Block B's (east), where Skye is held
+  cells: {
+    stack: [[-14.6, -4], [14.6, -4]],
+    rooms: [
+      { spots: [[-18.6, -9.5], [-21.5, -6], [-23.6, -1], [-19, 2.5], [-22.5, 5.5], [-19.5, -2]] },
+      { spots: [[18.6, -1.5], [21.5, 2], [23.6, 5.5], [19, -6], [22.5, -10], [20, 6]] },
+    ],
+    skye: [23.4, -9.6],   // her cell, at the back of Block B
+  },
 };
 
 export function buildBargeArena(L){
@@ -65,10 +77,14 @@ export function buildBargeArena(L){
   // ---- the CELL BLOCKS, west and east: barred fronts on the deck, a lock console in each one's middle ----
   for (const sx of [-1, 1]){
     const cx = sx * 20.8, front = sx * 16.4, hx = 4.4, hz = 10, h = 4.6;
-    K.box(cx, -2, hx, hz, h, steel);
-    K.deco(new THREE.BoxGeometry(hx*2 + 0.3, 0.4, hz*2 + 0.3), steelD, cx, h + 0.2, -2);
+    if (L.cells) cellBlock(K, sx, cx, front, hx, hz, h, steel, steelD, stripe, bar, dark, red);
+    else {
+      K.box(cx, -2, hx, hz, h, steel);
+      K.deco(new THREE.BoxGeometry(hx*2 + 0.3, 0.4, hz*2 + 0.3), steelD, cx, h + 0.2, -2);
+    }
     for (let z = -11; z <= 7; z += 3){
       if (sx < 0 && Math.abs(z - (BARGE_SPOTS.door[1])) < 1.6) continue;
+      if (L.cells && Math.abs(z + 4) < 2) continue;   // (the blast door's place)
       K.deco(new THREE.PlaneGeometry(2.4, 3.2), dark, front + sx*0.02*-1, 1.7, z, 0, sx < 0 ? Math.PI/2 : -Math.PI/2, 0);
       for (let b = -1; b <= 1; b += 0.4) K.deco(new THREE.CylinderGeometry(0.05, 0.05, 3.2, 5), bar, front - sx*0.06, 1.7, z + b);
       K.deco(new THREE.BoxGeometry(0.1, 0.12, 0.5), cell, front - sx*0.04, 3.6, z);
@@ -132,4 +148,33 @@ export function buildBargeArena(L){
   // ---- fuel drums the guard keep on deck ----
   for (const [x, z] of [[-18, 13], [17, -9], [-9, -27], [20, 6]]) spawnBarrel(V3(x, 0, z));
   void R;
+}
+
+// a cell block you can get into (a level with `cells`): four walls round the block's footprint, no roof, the cells barred
+// along its back wall inside, and a blast door in the middle of its front (world/doors.js) for the breach
+function cellBlock(K, sx, cx, front, hx, hz, h, steel, steelD, stripe, bar, dark, red){
+  const T = 0.25, z0 = -2 - hz, z1 = -2 + hz, back = cx + sx * hx, fx = front + sx * T;
+  const dz = -4, dw = 1.3, dh = 3.3;
+  K.box(back - sx * T, -2, T, hz, h, steel);                                   // the back wall
+  K.box(cx, z0 + T, hx, T, h, steel); K.box(cx, z1 - T, hx, T, h, steel);       // the ends
+  K.box(fx, (z0 + dz - dw) / 2, T, (dz - dw - z0) / 2, h, steel);              // the front, either side of the door
+  K.box(fx, (dz + dw + z1) / 2, T, (z1 - dz - dw) / 2, h, steel);
+  for (const [a, b] of [[z0, dz - dw], [dz + dw, z1]]) K.deco(new THREE.BoxGeometry(T * 2 + 0.3, 0.3, b - a), steelD, fx, h + 0.15, (a + b) / 2);
+  // the cells inside, barred, along the back wall
+  for (let z = z0 + 2; z <= z1 - 2; z += 2.6){
+    K.deco(new THREE.PlaneGeometry(2.0, 3.0), dark, back - sx * (T * 2 + 0.02), 1.5, z, 0, sx < 0 ? Math.PI/2 : -Math.PI/2, 0);
+    for (let b = -0.8; b <= 0.8; b += 0.4) K.deco(new THREE.CylinderGeometry(0.05, 0.05, 3.0, 5), bar, back - sx * (T * 2 + 0.12), 1.5, z + b);
+  }
+  // the blast door
+  const g = new THREE.Group();
+  const door = new THREE.MeshStandardMaterial({ color: 0x6a727c, roughness: 0.5, metalness: 0.6 });
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.44, dh, dw * 2), door); leaf.position.y = dh / 2; g.add(leaf);
+  const band = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.22, dw * 2), stripe); band.position.y = 1.6; g.add(band);
+  g.position.set(fx, 0, dz); g.traverse(m => { if (m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
+  K.deco(new THREE.BoxGeometry(T * 2, h - dh, dw * 2), steel, fx, dh + (h - dh) / 2, dz);   // the lintel
+  K.slab(fx, dz, T, dw, dh, h);
+  const solid = { x: fx, z: dz, hx: 0.22, hz: dw, h: dh, box: true };
+  solids.push(solid);
+  K.deco(new THREE.BoxGeometry(0.06, 0.25, 0.6), red, fx - sx * 0.34, dh + 0.25, dz).userData.passThrough = true;
+  shared.arenaGroup.add(g); addDoor(g, solid, [fx, dz]);
 }

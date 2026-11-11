@@ -32,6 +32,12 @@ const errors = [];
 const RUNS = [];
 for (const h of HEROES) for (const [id, kinds] of [['gate-wake', 'sabotage,pursuit,duel'], ['gate-vault', 'sabotage,escort,escort,escort'], ['gate-order', 'breach,breach,breach,duel']]) RUNS.push([h, id, kinds]);
 if (HEROES.includes('jedi')) RUNS.push(['jedi', 'jedha-night', 'capture,hold,duel']);
+// PR 4's six: each played as the hero whose story it is (the Missions page ones as both the Jedi and the Mando)
+for (const [h, id, kinds] of [['jedi', 'academy', 'sabotage,escort,escort,duel'], ['mando', 'academy', 'sabotage,escort,escort,duel'],
+                              ['jedi', 'graveyard', 'sabotage,escort,escort,duel'], ['mando', 'graveyard', 'sabotage,escort,escort,duel'],
+                              ['mando', 'gallows', 'breach,breach,duel'], ['mando', 'meltworks', 'capture,sabotage,duel'],
+                              ['mando', 'iron-road', 'pursuit,duel'], ['trooper', 'chipfiles', 'capture,hold']])
+  if (HEROES.includes(h)) RUNS.push([h, id, kinds]);
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;   // ONLY=gate-vault plays just those
 if (ONLY) RUNS.splice(0, RUNS.length, ...RUNS.filter(r => ONLY.includes(r[1])));
 
@@ -48,7 +54,15 @@ const STEP = () => {
   const info = { i: M.i, kind: o.kind };
   switch (o.kind){
     case 'sabotage': GAME.skipObjective(); break;   // (the seals and stones are the gate's styled locks, unchanged: smoke:gate plays them)
-    case 'hold': GAME.skipObjective(); break;        // (Return to Jedha's dais, unchanged)
+    case 'hold': {
+      if (!o.boss){ GAME.skipObjective(); break; }   // (Return to Jedha's dais, unchanged)
+      // a hold with someone coming for it in person (the chip files): stand on it, wind the clock on, and put him down
+      put(o.at[0] + 0.5, o.at[1] + 0.5);
+      const b = s.boss; info.boss = !!b; info.prog = Math.round(100 * s.prog / o.time);
+      if (b && !b.dead && GAME.enemies.includes(b)){ info.bossUp = true; info.capped = s.prog >= o.time * 0.96; if (s.prog >= o.time * 0.96) GAME.damageEnemy(b, Math.max(40, b.maxHp * 0.1), null, 0, false, false); else s.prog += 1.5; }
+      else { kill(o.r + 4, { x: o.at[0], z: o.at[1] }); s.prog = Math.min(o.time * (b ? 1 : 0.995), s.prog + 1.5); }
+      break;
+    }
     case 'capture': {
       const c = s.cur; if (c){ put(c.x + 0.5, c.z + 0.5); kill(o.r + 6, c); }
       info.posts = s.k; break;
@@ -88,7 +102,8 @@ const STEP = () => {
       break;
     }
     case 'duel': {
-      const f = s.foe; if (f && !f.dead){ put(f.group.position.x + 2.5, f.group.position.z + 2.5); GAME.damageEnemy(f, Math.max(40, f.maxHp * 0.08), null, 0, false, false); }
+      const f = s.foe; if (f) window.__duelFoe = { e: f, name: o.name };
+      if (f && !f.dead){ put(f.group.position.x + 2.5, f.group.position.z + 2.5); GAME.damageEnemy(f, Math.max(40, f.maxHp * 0.08), null, 0, false, false); }
       kill(0, P); info.foe = f ? f.name || true : null;
       break;
     }
@@ -130,6 +145,8 @@ try {
       if (info.kind === 'breach'){ if (info.rang) notes.rang = true; if (info.got) notes.got = true; if (info.gp > 0 && !info.got) notes.pulling = true; }
       if (info.kind === 'pursuit'){ notes.chaseVisible = notes.chaseVisible || info.visible; if (info.stand && !notes.inStand) notes.standoffs = (notes.standoffs || 0) + 1; notes.inStand = info.stand; if (info.clash) notes.clash = true; }
       if (info.kind === 'escort' && info.tw) notes.twist = info.tw;
+      if (info.kind === 'hold' && info.bossUp){ notes.boss = true; if (info.capped) notes.waited = true; }
+      if (info.kind === 'duel' && info.escaped) notes.escaped = true;
       if (info.kind === 'breach') notes.doors = Math.max(notes.doors || 0, info.doors);
       if (SHOTS && info.kind && info.kind !== 'sabotage' && info.kind !== 'hold' && shot !== info.i && ((info.d || 0) > 12 || info.kind === 'breach' || info.kind === 'capture' || info.kind === 'duel')){
         shot = info.i; await page.waitForTimeout(600); await page.screenshot({ path: path.join(SHOTS, `${id}-${h}-${info.i}-${info.kind}.png`) });
@@ -143,11 +160,16 @@ try {
       await page.waitForTimeout(120);
     }
     const won = await page.evaluate(() => GAME.G.mode === 'victory');
+    const escapedName = await page.evaluate(() => { const d = window.__duelFoe; window.__duelFoe = null; return d && !d.e.dead && d.e.hp > 0 ? d.name : null; });
     const doors = await page.evaluate(() => (GAME.shared.doors || []).filter(d => d.open).length);
     check(won, `${h}: ${id} is won${won ? '' : ' (stuck at ' + lastInfo + ')'}`);
     check(seen.join() === kinds, `${h}: ${id} plays ${kinds} (${seen.join()})`);
     if (id === 'gate-wake') check(notes.chaseVisible && notes.standoffs === 2, `${h}: the Cantor steps out for the chase and stops twice to hold you off (${JSON.stringify(notes)})`);
     if (id === 'gate-vault') check(notes.twist === 'marked', `${h}: the singers mark the ward-bearer on the second leg (${notes.twist})`);
+    if (id === 'chipfiles') check(notes.boss && notes.waited, `${h}: Vorn comes for the core near the end, and the download waits on him (${JSON.stringify(notes)})`);
+    if (id === 'gallows') check(doors >= 2 && notes.got && notes.rang, `${h}: both blocks are breached, Skye's cell opened, Block B's alarm rang (${JSON.stringify(notes)})`);
+    if (id === 'iron-road') check(notes.chaseVisible && notes.standoffs === 2, `${h}: the convoy's warden is chased down with two standoffs (${JSON.stringify(notes)})`);
+    if (id === 'academy') check(escapedName === 'THE OVERSEER', `${h}: the overseer escapes (${escapedName})`);
     if (id === 'gate-order') check(doors >= 3, `${h}: all three of the archive's doors are breached (${doors} open)`);
     if (id === 'gate-order') check(notes.rang && notes.got && notes.pulling, `${h}: the records room's alarm brings more in, and the contract is pulled off the vault's terminal under fire (${JSON.stringify(notes)})`);
     await page.evaluate(() => { const pick = document.querySelector('#chapcard.open .cc-opt'); if (pick) pick.click(); GAME.G.mode = 'menu'; });

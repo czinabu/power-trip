@@ -1,16 +1,43 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// DUEL MODE: one player against another, Jedi against Jedi, in the temple's training-wing ring (or the sandbox's practice
-// ring). The rules a challenger can pick, the ring itself, how the link's lag is hidden, and what a duel levels so skill
+// DUEL MODE: players against each other in the temple's training-wing ring (or the sandbox's practice ring): two of them,
+// or three or four in a FREE-FOR-ALL; sabers only (Jedi against Jedi), or ANY HERO on the challenger's rule. The rules a challenger can pick, the ring itself, how the link's lag is hidden, and what a duel levels so skill
 // decides it rather than rank or gear. game/duel-mode.js runs a match, net/pvp.js carries the blows, ui/duel-ui.js draws it.
 
 export const DUEL_MODE = {
   // THE RULES the challenger picks on the challenge card. Every rule is best of `rounds` (first to win `toWin` rounds).
   rules: {
-    hits:   { name: 'CLEAN HITS', line: 'First to 3 clean saber hits takes the round', hits: 3 },
+    hits:   { name: 'CLEAN HITS', line: 'First to 3 clean hits takes the round', hits: 3 },
     health: { name: 'HEALTH',     line: 'A full health bar each. Run it down to take the round' },
     timed:  { name: 'TIMED',      line: '90 seconds. The most clean hits takes the round', time: 90 },
   },
   defaultRule: 'hits',
+  // WHO MAY FIGHT, the challenger's other pick: SABERS ONLY (the default, Jedi against Jedi) or ANY HERO (the Mandalorian
+  // and the ARC trooper too). A party that isn't all Jedi can only be challenged under ANY HERO.
+  kits: {
+    sabers: { name: 'SABERS ONLY', line: 'Jedi against Jedi, blade to blade' },
+    any:    { name: 'ANY HERO',    line: 'Blasters and flame against the blade, jetpacks, and cover in the ring' },
+  },
+  defaultKit: 'sabers',
+  // ANY HERO: what each kind of blow is worth under CLEAN HITS and TIMED (a saber cut is one clean hit; a gun's single bolt
+  // is a part of one, so a blaster has to land a few to match a cut), and how often a flamer's burn is told (s)
+  points: { cut: 1, bolt: 1 / 3, flamePerS: 1 / 1.5 },
+  flameEvery: 0.2,
+  // each gunner's levelled kit in an ANY HERO match (data/duel-mode.js FAIRNESS): the guns it may draw and the powers it
+  // keeps. Everything else (rockets, missiles, detonators, the darksaber, the long guns, the trooper's calls) stays off
+  gunKit: {
+    mando:   { guns: ['single', 'dual'], powers: { flame: true, dual: true } },
+    trooper: { guns: ['rifle', 'pistols'], powers: {} },
+  },
+  // THE RING'S COVER under ANY HERO: low walls (crouch behind, rise to shoot over, vault on the run) and a tall block or two
+  // to lean round, set out from the ring's middle (x, z, half-widths hx, hz, height h), so the gun has somewhere to hide
+  cover: [
+    { x: 0, z: -5.4, hx: 1.3, hz: 0.35, h: 1.25 }, { x: 0, z: 5.4, hx: 1.3, hz: 0.35, h: 1.25 },
+    { x: -6.4, z: 0, hx: 0.35, hz: 1.1, h: 1.25 }, { x: 6.4, z: 0, hx: 0.35, hz: 1.1, h: 1.25 },
+    { x: -3.2, z: -2.9, hx: 0.45, hz: 0.45, h: 2.4 }, { x: 3.2, z: 2.9, hx: 0.45, hz: 0.45, h: 2.4 },
+  ],
+  // FREE-FOR-ALL: a challenge to everyone here (up to `max` fighters). The marks stand round the ring, and every rule
+  // plays as it does one on one: first to the clean hits, the last one standing on HEALTH, the most hits when TIMED
+  ffa: { max: 4 },
   toWin: 2,             // rounds to win the match (best of 3)
   // the beats of a match (s): the fighters on their marks with the hilts on the belt, the countdown, the pause after a
   // round, and how long a trade has to land (a second blow this soon after a round-winning one counts too, the way a
@@ -45,8 +72,8 @@ export const DUEL_MODE = {
   force: { push: { knock: 13, lift: 2.5, stagger: 0.3 }, pull: { knock: 11, stagger: 0.25, near: 2 } },
   // a blow's damage, as the defender takes it, is clamped to this (a sanity bound on what arrives over the wire)
   maxBlow: 60,
-  // THE MIRROR (the sandbox's practice ring): a duellist that fights in your own form
-  mirror: { type: 'acolyte', rank: 1 },
+  // THE MIRROR (the sandbox's practice ring): a duellist that fights in your own form (a gunner faces a gunman)
+  mirror: { type: 'acolyte', rank: 1, gunner: 'blaster' },
 };
 
 /* FAIRNESS — what a duel levels, from the duel plan's table. game/duel-mode.js applies it for the length of a match and
@@ -58,5 +85,6 @@ export const DUEL_MODE = {
      alignment powers, finishers on a player off in clean hits (they are perks in player.up)
      looks ................................. on: your saber is yours
      squad, apprentices, allies ............ never in the ring
+     ANY HERO: gunners ..................... their base guns (gunKit) and the flamer; no explosives, no darksaber
      difficulty ............................ Knight for both */
 export const DUEL_POWERS = { push: true, pull: true, dash: true };

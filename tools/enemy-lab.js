@@ -2,7 +2,7 @@
 // Enemy lab (dev only: `npm run dev`, then open /tools/enemy-lab.html).
 // Lines up every enemy type (or both bosses) under the game's own lights, so enemy model changes can be judged
 // without playing. URL params: ?set=troops|bosses|squad  &pose=idle|windup|guardL|guardR|guardH|guardLo|blockL|blockR|blockH|blockLo|windL|windR|windH|windT (a duellist's guards, blocks and wind-ups)  &elite=swift|vital|volatile  &view=front|back  &z=<camera distance>
-// &orbit=1 (slow turntable). &pair=1 (with &only=grunt): the rigid body beside the soft one (data/soft-body.js), &seed=N the look.
+// &orbit=1 (slow turntable). &seed=N the look.
 // ?set=looks&type=blaster (or several, comma-separated, or all; &per=N caps each; &faces=1 only faces) lines up a
 // type's pool of looks (data/foe-looks.js). &variant=0..4 (4: bare-headed) &face=0..4 force a marking and a face; &talk=1 has them talk;
 // &cam=x,y,z,lookY places the lens for a close-up. &cut=diagR|all plays a duellist's cut on a loop (data/duel.js FOE_CUTS; all: every cut in
@@ -29,7 +29,6 @@ import { CAST_IDS, ACOLYTES } from '../src/data/saber-cast.js';
 import { STANCES } from '../src/data/stances.js';
 import { guardArm, updateStance, stanceArms } from '../src/enemies/foestance.js';
 import { FOE_STANCE } from '../src/data/foe-stances.js';
-import { SOFT_BODY } from '../src/data/soft-body.js';
 
 const q = new URLSearchParams(location.search);
 { const d = new URLSearchParams(location.search); if (d.has('rings')) DETAIL.rings = +d.get('rings'); if (d.has('round')) DETAIL.round = +d.get('round'); if (d.has('detail')) surfaceDetail.value = +d.get('detail'); }   // detail dial (player/model/shapes.js DETAIL)
@@ -168,13 +167,9 @@ if (SET === 'bosses'){
   const ONLY = q.get('only');   // &only=grunt,brute — a subset, for close-ups
   for (const [name, t] of Object.entries(ENEMY_TYPES)){
     if (ONLY && !ONLY.split(',').includes(name)) continue;
-    // &pair=1: each type twice, the rigid body then the soft one (data/soft-body.js), the same look (&seed=N picks it)
-    const PAIR = q.get('pair') === '1' && SOFT_BODY.models.includes(t.model);
-    for (const soft of PAIR ? [false, true] : [null]){
-      if (soft != null) SOFT_BODY.forced = soft;
+    {
       const g = buildEnemyMesh(t, { variant: q.get('variant') != null ? +q.get('variant') : undefined, face: q.get('face') != null ? +q.get('face') : undefined,
-        seed: q.get('seed') != null ? +q.get('seed') : PAIR ? 3 : undefined, wear: PAIR ? 0.2 : undefined });
-      if (PAIR) g.userData.vis.scale.setScalar(1);
+        seed: q.get('seed') != null ? +q.get('seed') : undefined });
       if (q.get('talk')) g.userData.talk = true;
       if (ELITE && ELITES[ELITE]){
         const m = ELITES[ELITE];
@@ -183,7 +178,7 @@ if (SET === 'bosses'){
       }
       if (t.fly) g.position.y = 0.6;
       pose(g, !!t.heavy);
-      figs.push({ g, label: name + (soft == null ? '' : soft ? ' · soft body' : ' · rigid pieces'), w: 1.15 + t.scale * 0.95 });
+      figs.push({ g, label: name, w: 1.15 + t.scale * 0.95 });
     }
   }
 }

@@ -32,6 +32,7 @@
     "smoke:evacuees": "node tools/smoke/evacuees.mjs",
     "smoke:holds": "node tools/smoke/holds.mjs",
     "smoke:coop-mission": "node tools/smoke/coop-mission.mjs",
+    "smoke:coop-invite": "node tools/smoke/coop-invite.mjs",
     "smoke:cutscenes": "node tools/smoke/cutscenes.mjs",
     "smoke:training": "node tools/smoke/training.mjs",
     "smoke:saber-cast": "node tools/smoke/saber-cast.mjs",
@@ -70,7 +71,8 @@
     "smoke:raid": "node tools/smoke/raid.mjs",
     "smoke:coop-raid": "node tools/smoke/coop-raid.mjs",
     "smoke:coop-teamup": "node tools/smoke/coop-teamup.mjs",
-    "smoke:coop-duel": "node tools/smoke/coop-duel.mjs"
+    "smoke:coop-duel": "node tools/smoke/coop-duel.mjs",
+    "smoke:coop-duel-ffa": "node tools/smoke/coop-duel-ffa.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

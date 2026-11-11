@@ -74,7 +74,7 @@ const LATER = 'Later in the campaign';
 const HIDDEN = '? ? ?';   // anything the story hasn't reached yet shows no name, so the menu spoils nothing
 function render(){
   const full = sandboxIsFull(), prog = sandboxProgress();
-  $('sbduelrow').style.display = isGunner() ? 'none' : '';
+  $('sbduelrow').style.display = '';   // (a gunner practises too: a gunman for a mirror, cover in the ring)
   $('sbduelstop').style.display = duelState() ? '' : 'none';
   $('sbstory').style.display = full ? 'none' : '';
   $('sbstory').textContent = 'THE STORY SO FAR · ' + prog.n + ' OF ' + prog.of + ' CHAPTERS · beat the campaign to open everything';

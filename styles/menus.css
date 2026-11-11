@@ -742,6 +742,14 @@ body.pad .bs-aim{display:block}
 #coopleave,#coopjoinrun{display:none}
 #coopjoinrun{margin-bottom:8px}
 @media (max-width:640px){.coop-grid{grid-template-columns:1fr}}
+/* the host's invite link and lock (net/invite.js) */
+.coop-invite{display:none;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:0 0 10px}
+.coop-invite.on{display:flex}
+#coopcopied{flex-basis:100%;min-height:16px;font:600 12px/1.3 var(--font-ui);letter-spacing:1px;color:var(--ink-dim)}
+#cooplock.on{border-color:var(--gold);color:var(--gold)}
+.coop-app{display:none;margin:0 0 10px;font:600 12px/1.3 var(--font-ui);letter-spacing:1px;color:var(--ink-soft)}
+.coop-app.on{display:block}
+#cooproster span b{font-weight:600;color:var(--ink-dim);margin-left:6px;font-size:10px}
 
 /* ---------- PAUSE: same left column as the main menu so the cinematic cuts keep the hero in view; RESUME on top, the rest in a tidy grid ---------- */
 #ovctx{display:none}
@@ -1575,3 +1583,5 @@ body.wb-open #overlay{background:none}
 #overlay:is(.st-menu) #modeselect .modeopt.continue .mt{font-size:28px;letter-spacing:3px;color:var(--gold)}
 #overlay:is(.st-menu) #modeselect .modeopt.continue::before,#overlay:is(.st-menu) #modeselect .modeopt.continue::after{opacity:1;border-color:var(--gold)}
 
+#coopjoinrun.pulse,#coopjointemple.pulse{animation:coopGo 1.2s ease-in-out infinite}
+@keyframes coopGo{50%{box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(255,200,90,.5)}}

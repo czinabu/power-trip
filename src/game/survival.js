@@ -22,7 +22,7 @@ import { initWarbringer } from '../enemies/duel.js';
 import { clearGrenades } from '../enemies/grenades.js';
 import { findClearSpawn, edgeSpawn } from '../world/collision.js';
 import { buildArena } from '../world/arena.js';
-import { startLevel, checkUnlocks, splitWaveWithLull } from './flow.js';
+import { startLevel, checkUnlocks, splitWaveWithLull, partyWave } from './flow.js';
 import { carryStoryKit } from './carry.js';
 import { MUTATORS } from '../data/mutators.js';
 import { mutOn, NG_FRENZY } from '../data/ngplus.js';
@@ -154,6 +154,7 @@ export function startEndlessWave(){
   const milestone = (n % 5 === 0);
   let list = genEndlessWave(n);
   if (milestone) list = applyMilestone(n, list);
+  partyWave(list);   // half a wave more for each extra hero
   for (let i = list.length-1; i>0; i--){ const j=(Math.random()*(i+1))|0; const t=list[i]; list[i]=list[j]; list[j]=t; }
   const pulse = Math.max(4, Math.ceil(list.length/3));
   const surgeGap = Math.max(1.3, 2.6 - n*0.05);   // surges arrive faster as the run deepens — relentless late pressure

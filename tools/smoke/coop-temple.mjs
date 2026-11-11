@@ -1,7 +1,8 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // CO-OP TEMPLE SMOKE TEST — the hidden temple as the party's lobby (game/hub.js): two browsers on the BUILT game. The host
 // walks into the temple; the guest joins them there from the co-op panel and sees them only while they share a wing.
-// The host picks Survival at the council table, the guest answers its ready check, and follows them into it; the host goes back to the
+// The host boards their ship, plots a course at the galaxy map and calls the party aboard; the guest is brought aboard and
+// the cockpit / helm shows them the host's course (game/ship-nav.js). The host picks Survival at the council table, the guest answers its ready check, and follows them into it; the host goes back to the
 // temple and the guest is called back with them.
 // The lobby is the HOST's hero's hub for everyone: HOST=trooper walks it as the clone citadel on Kamino, with a Jedi
 // guest who arrives there, not in their own temple.
@@ -67,6 +68,32 @@ try {
   await guest.waitForFunction(() => !GAME.partnerShown(), null, poll);
   await host.waitForFunction(() => !GAME.partnerShown(), null, poll);
   step('apart in different wings');
+  await guest.evaluate((w) => GAME.hub.goWing(w), W.hall); await inHub(guest, W.hall);
+
+  // THE SHIP: the host plots a course at the galaxy map and calls the party aboard; the guest's helm shows the host's course
+  const station = async (page, x, z) => {
+    await page.evaluate(([x, z]) => { const { G, player } = GAME; player.group.position.set(x, 0.6, z); player.vel.set(0, 0, 0); G.yaw = player.faceYaw = Math.PI; }, [x, z]);
+    const t0 = await page.evaluate(() => GAME.G.gt);
+    await page.waitForFunction((t0) => GAME.G.gt > t0 + 0.15 && document.getElementById('hubp').classList.contains('on'), t0, poll);
+    await page.keyboard.press('f');
+    await page.waitForFunction(() => document.getElementById('hubpanel').classList.contains('open'), null, poll);
+  };
+  await host.evaluate(() => GAME.hub.goWing('ship')); await inHub(host, 'ship');
+  await station(host, 0, 3);
+  // (this suite's windows are tiny, 480×270, so the chart's nodes sit under the card's other parts: click them as the panel hears it)
+  await host.locator('#hubpanel .gx-w[data-w="jedha"]').dispatchEvent('click');
+  await host.locator('#hubpanel .hb-o', { hasText: 'PLOT A COURSE' }).first().dispatchEvent('click');
+  await host.waitForFunction(() => document.querySelector('#hubpanel .gx-w.aim[data-w="jedha"]'), null, poll);
+  await host.locator('#hubpanel .hb-o', { hasText: 'CALL THE PARTY ABOARD' }).first().dispatchEvent('click');
+  await inHub(guest, 'ship');
+  step('the host plots a course to Jedha and calls the guest aboard');
+  await host.locator('#hubpanel [data-x]').dispatchEvent('click');
+  await station(guest, 0, -6.8);
+  await guest.waitForFunction(() => /COURSE PLOTTED FOR\s*JEDHA/.test((document.querySelector('#hubpanel .hl-route') || {}).textContent || ''), null, poll);
+  await guest.waitForFunction(() => /THE HOST CHOOSES/.test(document.getElementById('hubpanel').textContent) && !document.querySelector('#hubpanel .gx-list :is(.gx-zone,.gx-mission,.gx-side):not(.off)'), null, poll);
+  step('the guest\'s helm shows the host\'s course, and leaves the launching to the host');   // (the raid still opens its own page, which is the host's to begin)
+  await guest.locator('#hubpanel [data-x]').dispatchEvent('click');
+  await guest.waitForFunction(() => !document.getElementById('hubpanel').classList.contains('open') && !GAME.G.skillSelect, null, poll);
   await guest.evaluate((w) => GAME.hub.goWing(w), W.hall); await inHub(guest, W.hall);
 
   // the host launches Survival from the council table; the guest goes with them

@@ -43,7 +43,9 @@ import { pad } from '../engine/gamepad.js';
 import { playerPos } from '../player/helpers.js';
 import { welcomeCard, answerWelcome, guideTo, replayWelcome, replayTour, welcomeStation, setWelcomeOpener } from '../game/hub-welcome.js';
 import { SHIP_WING, shipOf } from '../data/hero-ships.js';
-import { galaxyPanel, galaxyPick } from './galaxy-ui.js';
+import { galaxyPanel, helmPanel, galaxyPick } from './galaxy-ui.js';
+import { takeRaidJump, arriveAt } from '../game/ship-nav.js';
+import { hyperjump } from './hyperspace.js';
 import { apprenticeDef, apprenticeName, apprenticeStage, nextStageNeeds, apprenticeLearned, apprenticeLines, takeApprentice, setApprenticeHome } from '../allies/apprentice.js';
 import { apprenticeOf } from '../game/profile.js';
 import { challengeable, duelOnHere, toBalcony, practiceOnArrive, duelState, honours } from '../game/duel-mode.js';
@@ -240,7 +242,7 @@ function render(){
   if (station.act === 'raid') return renderRaid();
   if (station.act === 'deeds') return renderDeeds();
   if (station.act === 'travel') return renderMap();
-  if (station.act === 'galaxy') return renderGalaxy();
+  if (station.act === 'galaxy' || station.act === 'helm') return renderShip(station.act);
   const W = hubWing(), list = options(station);
   const partyLine = party() ? '<div class="hb-party">' + (net.role === 'host' ? 'YOU ARE THE HOST · your party follows what you launch here' : 'IN A PARTY · ' + (savedName() || 'YOU')) + '</div>' : '';
   panel.innerHTML = '<div class="hb-box hb-a-' + station.act + '">' + headHTML(W.name, station.name,
@@ -253,6 +255,7 @@ function render(){
 function open(s){
   if (!G.hub || G.mode !== 'play' || G.paused || G.skillSelect) return false;
   station = s;
+  if (s.act !== 'raid' && s.act !== 'ready') takeRaidJump();   // (a raid picked at the helm jumps only from its own page)
   welcomeStation(s);   // (the welcome tour's stop reached, or the hero off on their own: game/hub-welcome.js)
   G.skillSelect = true; G.sbMenu = true;   // holds the temple still and keeps the pause screen away while the cursor is free
   render(); panel.classList.add('open');
@@ -306,19 +309,27 @@ new MutationObserver((ms) => {
   for (const m of ms) if (m.target.classList && m.target.classList.contains('hm-wing') && m.target.classList.contains('padfocus')){ showWing(m.target.dataset.w); return; }
 }).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
-/* ---------------- THE GALAXY MAP (ui/galaxy-ui.js, data/hero-ships.js) ----------------
-   On board each hero's ship: every world on a drawn map, what can be played on the one picked, and the voyages (the
-   campaign, Act IV, NEW GAME+, a challenge, survival). In a party it's the lobby: who is aboard, CALL THE PARTY ABOARD
-   for the host, and the usual ready check on whatever the host launches; a guest sees the same map, and JOIN. */
-function renderGalaxy(again = false){
-  const r = galaxyPanel({ B, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
-    rerender: () => { if (isOpen() && station && station.act === 'galaxy') renderGalaxy(true); },
+/* ---------------- THE GALAXY MAP and THE HELM (ui/galaxy-ui.js, game/ship-nav.js, data/hero-ships.js) ----------------
+   On board each hero's ship. The GALAXY MAP is the chart: every world on a drawn map, what's on the one picked, your
+   story across them, and PLOT A COURSE. The HELM flies it: the course's world and what to launch there (the ship jumps
+   first), and the voyages (the campaign, Act IV, NEW GAME+, a challenge, survival). In a party the ship is the lobby: who
+   is aboard, CALL THE PARTY ABOARD for the host, and the usual ready check on whatever the host launches; a guest sees
+   the host's course on both, and JOIN. */
+function shipCtx(act, again){
+  return { B, again, guest: guest(), party: party(), askParty, gateButton, raidButton, ngButton, zoneButtons, foldLater,
+    rerender: () => { if (isOpen() && station && station.act === act) renderShip(act, true); },
+    openMap: () => open({ id: 'galaxy', name: 'GALAXY MAP', act: 'galaxy' }),
+    openHelm: () => { const h = shipOf(G.hubId).wing.stations.find(x => x.id === 'helm'); open({ id: 'helm', name: h ? h.name : 'THE HELM', act: 'helm' }); },
+    launchCampaign: () => hubLaunch('campaign'),
     joinButton: () => coopRun.on ? B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()) : null,
     everyMode: () => B('EVERY MODE', 'The full list on the title screen', () => hubToMenu('mode')),
     survival: survivalButton, campaign: () => campaignButton(),
     challenge: () => B('CHALLENGE', 'A random mission, dealt fresh', () => askParty('A CHALLENGE', () => hubLaunch('mission', randomArcadeId()))),
     side: (id) => hubLaunch('mission', id), mission: (id) => hubLaunch('mission', id), zone: (k) => hubLaunchZone(k),
-    disembark: () => goWing(shipOf(G.hubId).exit) });
+    disembark: () => goWing(shipOf(G.hubId).exit) };
+}
+function renderShip(act, again = false){
+  const r = (act === 'helm' ? helmPanel : galaxyPanel)(shipCtx(act, again));
   panel.innerHTML = r.html;
   panel._list = r.list;
   if (again){ const box = panel.querySelector('.hb-box'); if (box) box.classList.add('gx-again'); }   // (a world picked: the card stays put, no second rise)
@@ -342,7 +353,10 @@ function renderRaid(){
   if (guest()){
     if (coopRun.on) list.push(B('JOIN THE PARTY', 'The host is on ' + runLabel() + '. Go in after them.', () => joinHostRun()));
     list.push(B('THE HOST BEGINS IT', 'In a party the host starts the raid, and everyone in ' + curHub().home.toLowerCase() + ' goes in together.', null));
-  } else list.push(B('BEGIN THE RAID', heroes > 1 ? heroes + ' heroes · the party goes in together' : 'Alone, with ' + mates + ' of the squad beside you', () => askParty('THE RAID', () => hubLaunch('mission', raidIdFor(R.id, day))), open_ ? null : 'Beat Act IV to open the raid table'));
+  } else list.push(B('BEGIN THE RAID', heroes > 1 ? heroes + ' heroes · the party goes in together' : 'Alone, with ' + mates + ' of the squad beside you', () => askParty('THE RAID', () => {
+    const go = () => hubLaunch('mission', raidIdFor(R.id, day)), w = takeRaidJump();   // (picked at the ship's helm with a course plotted: the jump first)
+    if (w){ arriveAt(w.id); hyperjump(w, go); } else go();
+  }), open_ ? null : 'Beat Act IV to open the raid table'));
   const role = (h) => { const r = R.roles[h]; return '<div class="rd-role rd-' + h + (h === hero ? ' you' : '') + '"><i>' + HERO_TAG[h] + (h === hero ? ' · YOU' : '') + '</i><b>' + r.job + '</b><span>' + escH(r.line) + '</span></div>'; };
   const part = (x) => { const got = x.e.have >= x.e.need;
     return '<div class="rd-part' + (got ? ' got' : '') + '"><i>' + escH(x.row) + '</i><b>' + escH(x.p.name) + '</b><span>' + (got ? 'YOURS' : 'WIN ' + x.e.need + ' RAID' + (x.e.need === 1 ? '' : 'S') + ' · ' + Math.min(x.e.have, x.e.need) + '/' + x.e.need) + '</span>' +

@@ -16,7 +16,8 @@ import { shared } from '../../state.js';
 import { arenaKit, seeded } from './kit.js';
 import { PI, std, glowM, holoM, live, anim, spinner, hubStations, hubDoorSigns } from './hub-kit.js';
 import { HUBS, wingByLayout } from '../../data/hub.js';
-import { SHIP_WING, homeWorld } from '../../data/hero-ships.js';
+import { SHIP_WING } from '../../data/hero-ships.js';
+import { shipAt } from '../../game/ship-nav.js';
 import { qualityLevel } from '../../engine/quality.js';
 import { camera } from '../../engine/renderer.js';
 
@@ -48,7 +49,7 @@ export function buildHeroShip(L){
   galaxyTable(o);
   ({ jedi: jediHold, trooper: trooperHold, mando: mandoHold })[C.kind](o);
   ramp(o);
-  outside(o, homeWorld(hubId));
+  outside(o, shipAt(hubId));   // (the world the ship last jumped to)
   // every station's rings and sign, the console by the ramp a small lit post, the sign over the ramp
   hubStations(W, K, { ring: C.holo, tall: [], beacon: (x, z) => console_(o, x, z), sign: { ink: '#eaf6ff', edge: css(C.holo, 0.85) } });
   hubDoorSigns(W, Hb.wings, K, { signY: 4.6, runner: C.holo, sign: { ink: '#eaf6ff', edge: css(C.holo, 0.85) } });

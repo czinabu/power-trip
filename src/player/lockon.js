@@ -11,6 +11,7 @@ import { camera } from '../engine/renderer.js';
 import { playerPos, fwd } from './helpers.js';
 import { duelHooks } from '../game/duel-hooks.js';
 import { outsideThreat, LOCK_YIELD } from './lock-yield.js';
+import { missionState } from '../game/mission.js';
 
 const alive = t => !!t && (t === rival ? rivalUp() : t === shared.boss ? t.hp > 0 : !t.dead && !t.converted && t.state !== 'spawn');
 /* DUEL MODE: the other fighter, as something to lock onto (game/duel-hooks.js bodies: there only while a round is being
@@ -43,53 +44,70 @@ function pickTarget(exclude){
   return best;
 }
 
-/* DUEL FOCUS (Settings · DUEL FOCUS). AUTO: squaring up with a saber duellist locks onto it by itself, and while any
+/* DUEL FOCUS (Settings · DUEL FOCUS). AUTO: squaring up with your opponent in a strictly ONE-ON-ONE duel locks onto it
+   by itself (see soloDuel below: duel mode, a trial or story duel, a boss, a training partner, with no other foe near).
+   Anywhere else (a lone acolyte in a mission, a free-for-all, a boss with adds) it never takes hold: the lock is the
+   button's alone. While any
    lock is held the fight stays put around you:
      · you strafe (player/strafe.js): moving circles and steps round the foe, squared to it, never turning away
      · a quick tap of a direction (to pick a cut: jedi/cutaim.js) doesn't move the feet; hold it and you step
      · the mouse and the right stick barely turn the view, so a flick places the guard or aims a cut (jedi/guardline.js,
        jedi/cutaim.js) and the fight stays framed
-   It lets go when the foe falls or the gap opens, on the lock button, when you sweep the view away on purpose, or when you leave:
+   It lets go when the foe falls or the gap opens, when another foe comes into it, on the lock button, when you sweep the view away on purpose, or when you leave:
    a direction held AWAY from the foe for `leave.t` s with no guard or cut going walks you out of the duel (a dodge
    back is shorter than that), and it stays off `leave.hold` s.
-   THE LOOSE GRIP — a fight bigger than the duel doesn't end the focus, it loosens it: while a crowd is in on you, or
-   something outside the duel comes for you or someone beside you (fire from off to the side, a live detonator, a foe
+   THE LOOSE GRIP — while something outside the duel comes for you or someone beside you (fire from off to the side, a live detonator, a foe
    on an evacuee: player/lock-yield.js), the foe stays marked (the marker dims) but the view, the aim and the feet are
    yours: turn and block, push the detonator back, cut whoever the crosshair is on. Once it has been quiet `hold` s and
    you square up with the marked foe again, it tightens by itself. MANUAL: the lock is the button's alone and behaves as it always has. OFF: no lock at all.
      on / off   the gap (m) it takes hold inside, and lets go beyond
      cone       how squarely in front the foe must be (cos) to take hold; settle: for how long (s)
-     crowd/max  with more than `max` foes inside `crowd` m it won't take hold (a melee, not a duel); past `drop` it lets go
+     solo       one on one: no foe but the opponent within `solo` m of you, or an auto focus won't take hold (and lets go)
      look/pitch how much of a look still turns the view (pitch: only while the guard is up)
      tap/reach  a direction held under `tap` s inside `reach` m of the foe is a cut's aim, not a step
      away       a sweep of `px` mouse pixels inside `win` s (or the stick held hard over for `stick` s) with no guard
                 or cut going breaks an auto focus, and it stays off `hold` s; the lock button keeps it off `toggle` s
      leave      t: how long (s) a direction held away from the foe (past `cos` of straight away) walks you out */
-export const FOCUS = { on: 5.5, off: 8.5, cone: 0.25, settle: 0.2, crowd: 10, max: 2, drop: 4, look: 0.15, pitch: 0.45,
+export const FOCUS = { on: 5.5, off: 8.5, cone: 0.25, settle: 0.2, solo: 20, look: 0.15, pitch: 0.45,
   tap: 0.16, reach: 5, away: { px: 650, win: 0.4, stick: 0.5, hold: 2.5, toggle: 6 }, leave: { t: 0.55, cos: -0.6, hold: 3 } };
 const auto = () => G.duelFocus === 'auto' && !isGunner() && G.mode === 'play' && !G.cutscene;
 function dropLock(holdOff = 0){
   player.lockTarget = null; player.lockAuto = false; player.focusOn = false; player.lockLoose = false; leaveT = 0;
   if (holdOff) player.focusOffUntil = G.gt + holdOff;
 }
-// the lone duellist close in front (not one of a crowd), or null
+/* STRICTLY ONE ON ONE — the only fights an auto focus belongs in. The foe must be a duel's own opponent:
+     · duel mode: the one other fighter (a player, or the practice mirror); never a free-for-all
+     · a duel objective's foe (the trials, the story's named duels: a champion; a co-op guest goes by the objective)
+     · a boss, a training partner (the tutorial's sparring foe), or survival's Warbringer once it stands alone
+   and no other foe may be within `solo` m of you. A lone acolyte in a mission, the last of a wave, never counts. */
+const duelObjective = () => { const M = missionState(); return !!(M && M.on && M.o && M.o.kind === 'duel'); };
+const duelFoe = e => e === shared.boss || !!(e.champion || e.duelMirror || e.sparring) || ((e.dp || e.ng) && duelObjective());
+function soloDuel(t){
+  if (t === rival) return !!(G.duel && duelHooks.bodies && duelHooks.bodies().length === 1);
+  if (!alive(t) || !duelFoe(t)) return false;
+  const pp = playerPos(), R = FOCUS.solo, near = (o) => o !== t && alive(o) && Math.hypot(posOf(o).x - pp.x, posOf(o).z - pp.z) < R;
+  if (shared.boss && near(shared.boss)) return false;
+  for (const e of enemies) if (near(e)) return false;
+  return true;
+}
+// the one-on-one opponent close in front, or null
 function duelPick(){
   const pp = playerPos(), f = fwd();
   if (rivalUp()){   // a duel against another player: there is only the one, wherever in the ring they are
     const p = rival.group.position;
-    return Math.hypot(p.x - pp.x, p.z - pp.z) < FOCUS.off ? rival : null;
+    return Math.hypot(p.x - pp.x, p.z - pp.z) < FOCUS.off && soloDuel(rival) ? rival : null;
   }
-  let best = null, bd = FOCUS.on, near = 0;
-  for (const e of enemies){
-    if (!alive(e)) continue;
+  let best = null, bd = FOCUS.on;
+  const consider = (e, reach) => {
+    if (!alive(e) || !duelFoe(e)) return;
     const p = posOf(e), dx = p.x - pp.x, dz = p.z - pp.z, d = Math.hypot(dx, dz);
-    if (d < FOCUS.crowd) near++;
-    if (!(e.dp || e.ng) || d >= bd || d < 0.01 || (dx * f.x + dz * f.z) / d < FOCUS.cone) continue;
-    bd = d; best = e;
-  }
-  return near <= FOCUS.max ? best : null;
+    if (d >= bd + reach || d < 0.01 || (dx * f.x + dz * f.z) / d < FOCUS.cone) return;
+    bd = d - reach; best = e;
+  };
+  for (const e of enemies) if (e.dp || e.ng) consider(e, 0);
+  if (shared.boss) consider(shared.boss, 1.5);   // (a boss is bigger: squared up from a little further out)
+  return best && soloDuel(best) ? best : null;
 }
-const crowded = (pp) => { let n = 0; for (const e of enemies){ if (alive(e) && Math.hypot(posOf(e).x - pp.x, posOf(e).z - pp.z) < FOCUS.crowd) n++; } return n > FOCUS.drop; };
 let seenPick = null, seenT = 0, awayAcc = 0, awayAt = -9, stickT = 0, leaveT = 0, looseUntil = 0;
 // a look of dx mouse pixels: how much of it turns the view (engine/input.js), and whether it was a sweep away
 export function focusLook(dx){
@@ -160,12 +178,14 @@ export function updateLockOn(dt){
     // a focus the duel took by itself: gone with the foe, the gap or the duel (a crowd), and with the setting
     const pp = playerPos();
     const q = posOf(t), gap = Math.hypot(q.x - pp.x, q.z - pp.z);
-    if (!auto() || !alive(t) || gap > FOCUS.off + (t === rival ? 1.5 : 0)) t = player.lockTarget = null;
+    // ...or with the duel itself: another foe in on it makes it a fight, not a one-on-one, and the lock lets go
+    // (it takes hold again once the duel is one on one and the foe is in front of you again: duelPick's cone)
+    if (!auto() || !alive(t) || gap > FOCUS.off + (t === rival || t === shared.boss ? 1.5 : 0) || !soloDuel(t)){ t = player.lockTarget = null; player.lockAuto = false; }
     else if (t !== rival){
-      // THE LOOSE GRIP: a crowd in on you, or something outside the duel coming for you or someone beside you (a duel
+      // THE LOOSE GRIP: something outside the duel coming for you or someone beside you (a duel
       // with another player is only ever the two of you). It tightens once that has been quiet a beat and the foe is
       // in front of you again (so the view is never yanked back round to it)
-      if (crowded(pp) || outsideThreat(t)) looseUntil = G.gt + LOCK_YIELD.hold;
+      if (outsideThreat(t)) looseUntil = G.gt + LOCK_YIELD.hold;
       const f = fwd(), front = gap < 0.01 || ((q.x - pp.x) * f.x + (q.z - pp.z) * f.z) / gap >= FOCUS.cone;
       const loose = G.gt < looseUntil || (player.lockLoose && !front);
       if (loose !== !!player.lockLoose){ player.lockLoose = loose; sfx(loose ? 520 : 760, 0.05, 'triangle', 0.02, loose ? 380 : 1100); }
@@ -179,7 +199,7 @@ export function updateLockOn(dt){
   if (!t) player.lockLoose = false;
   if (!t){
     player.lockAuto = false;
-    // DUEL FOCUS: squared up with a lone duellist a moment, the lock takes hold by itself
+    // DUEL FOCUS: squared up a moment with the opponent of a one-on-one duel, the lock takes hold by itself
     const c = auto() && player.grounded && G.gt >= (player.focusOffUntil || 0) ? duelPick() : null;
     if (c && c === seenPick){ seenT += dt; if (seenT >= FOCUS.settle){ t = player.lockTarget = c; player.lockAuto = true; seenT = 0; sfx(760, 0.05, 'triangle', 0.02, 1100); } }
     else { seenPick = c; seenT = 0; }

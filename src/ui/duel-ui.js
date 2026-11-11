@@ -53,7 +53,7 @@ function render(){
     const sabers = sabersOk(party), kit = sabers ? kitPick : 'any';
     const who = ffa ? 'EVERYONE HERE (' + (party.length + 1) + ')' : data.name;
     h = head('DUEL', 'CHALLENGE ' + who, 'Best of 3 rounds. Everyone is levelled: same base numbers, push and pull only, a gunner its base guns and the flamer. Your forms and your looks stay yours.') +
-      '<div class="dl-rules">' + Object.entries(RULES).map(([id, R]) => btn(R.name, R.line, 'rule:' + id, id === pick ? 'on' : '')).join('') + '</div>' +
+      '<div class="dl-rules dl-pick">' + Object.entries(RULES).map(([id, R]) => btn(R.name, R.line, 'rule:' + id, id === pick ? 'on' : '')).join('') + '</div>' +
       '<div class="dl-rules dl-kits">' + Object.entries(KITS).map(([id, K]) => btn(K.name, id === 'sabers' && !sabers ? 'Everyone must be a Jedi' : K.line, 'kit:' + id, (id === kit ? 'on' : '') + (id === 'sabers' && !sabers ? ' off' : ''))).join('') + '</div>' +
       (many ? '<div class="dl-rules dl-ffa">' + btn('ONE ON ONE', 'Just ' + data.name, 'ffa:0', ffa ? '' : 'on') +
         btn('FREE-FOR-ALL', 'Everyone here: ' + [data.name, ...data.others.map(o => o.name)].join(', '), 'ffa:1', ffa ? 'on' : '') + '</div>' : '') +

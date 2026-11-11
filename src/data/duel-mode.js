@@ -6,7 +6,7 @@
 export const DUEL_MODE = {
   // THE RULES the challenger picks on the challenge card. Every rule is best of `rounds` (first to win `toWin` rounds).
   rules: {
-    hits:   { name: 'CLEAN HITS', line: 'First to 3 clean saber hits takes the round', hits: 3 },
+    hits:   { name: 'CLEAN HITS', line: 'First to 3 clean hits takes the round', hits: 3 },
     health: { name: 'HEALTH',     line: 'A full health bar each. Run it down to take the round' },
     timed:  { name: 'TIMED',      line: '90 seconds. The most clean hits takes the round', time: 90 },
   },

@@ -12,7 +12,10 @@ body.cutscene #duelp{opacity:0 !important}
 #duelpanel{position:fixed;inset:0;z-index:31;display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
   background:rgba(1,6,14,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:default}
 #duelpanel.open{display:flex}
-.dl-box{width:min(520px,100%)}
+.dl-box{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto}
+/* the rule picker: three side by side, so the card with who may fight and the free-for-all still fits a short screen */
+.dl-rules.dl-pick{flex-direction:row}
+.dl-rules.dl-pick .dl-o{flex:1 1 0;min-width:0}
 .dl-rules{display:flex;flex-direction:column;gap:7px;margin-top:4px}
 .dl-o{cursor:pointer;user-select:none;-webkit-user-select:none}
 .dl-o span{font:500 13px/1.35 var(--font-ui);color:var(--ink-soft)}
@@ -66,7 +69,7 @@ body.compass-on #duelhud{top:50px}   /* (under the compass strip, as the boss ba
 .dl-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff6a4a,#ffd24a);transition:width .15s}
 .dl-n{font:700 22px/1 var(--font-display)}
 .dl-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0 4px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
-.dl-mid b{font:700 16px/1 var(--font-display);letter-spacing:3px}
+.dl-mid b{font:700 16px/1 var(--font-display);letter-spacing:3px;white-space:nowrap}
 .dl-ms{font:600 10px/1 var(--font-ui);letter-spacing:1.6px}
 
 /* THE PHONE PASS: a narrow screen keeps the bar to one compact row, the cards' buttons big enough for a thumb */

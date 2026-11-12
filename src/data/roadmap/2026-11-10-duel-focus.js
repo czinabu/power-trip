@@ -4,8 +4,8 @@ export default {
   status: 'done',
   date: '2026-11-10',
   items: [
-    'In a one-on-one duel (duel mode, a trial, a boss) squaring up locks onto your opponent by itself, so you circle the fight instead of walking out of it',
-    'Aiming a cut or steering your guard no longer swings the view or moves your feet',
-    'Settings · DUEL FOCUS: AUTO, MANUAL or OFF',
+    'Locked on with the lock button, you circle the fight instead of walking out of it',
+    'Aiming a cut or steering your guard while locked no longer swings the view or moves your feet',
+    'Nothing locks on by itself: the lock is always your call',
   ],
 };

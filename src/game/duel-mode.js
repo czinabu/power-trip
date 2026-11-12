@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// DUEL MODE (the duel plan's steps 2 and 3): a match between players in the training wing's ring in the temple on Tython,
-// or in the sandbox's practice ring (against friends there, or a mirror duellist on your own).
+// DUEL MODE (the duel plan's steps 2 and 3): a match between players in the ring of the host's hub's training room (the
+// temple's sparring hall, the covert's sparring pit, the citadel's combat sim), or in the sandbox's practice ring (against friends there, or a mirror duellist on your own).
 //
 // THE CHALLENGE: walk up to a friend (or pick them at the DUEL RING station), pick the rule, and they get a card to accept.
 //   WHO MAY FIGHT is the challenger's other pick: SABERS ONLY (Jedi against Jedi, the default) or ANY HERO, where the
@@ -55,11 +55,12 @@ const mySeat = () => M && !M.pvp ? 'me' : net.slot;
 const syncChips = () => G.hero === 'jedi' ? syncJediChips() : syncMandoChips();
 
 /* ---------------- where a duel can be fought ---------------- */
-// the temple's training wing (its ring), or the sandbox (its floor), as any hero (a gunner fights under ANY HERO)
+// the training room of the hub you are in (the temple's, the covert's or the citadel's ring: data/duel-mode.js ring), or
+// the sandbox (its floor), as any hero (a gunner fights under ANY HERO)
+const HUB_RINGS = ['temple', 'covert', 'kamino'];
 export const duelPlace = () => {
   if (G.mode !== 'play' || G.cutscene) return null;
-  const T = D.ring.temple;
-  if (G.hub && G.hubId === T.hub && G.hubWing === T.wing) return 'temple';
+  if (G.hub){ const k = HUB_RINGS.find(h => D.ring[h].hub === G.hubId && D.ring[h].wing === G.hubWing); if (k) return k; }
   if (G.sandbox) return 'sandbox';
   return null;
 };
@@ -93,10 +94,12 @@ let lastBeat = 0, phaseEnds = 0, decideAt = 0, lastSent = 0, lastPing = 0, lostF
 const ui = { card: null, close: null };   // ui/duel-ui.js draws the cards
 export function setDuelUi(card, close){ ui.card = card; ui.close = close; }
 
-const ringFor = (place) => {
-  if (place === 'temple'){ const T = D.ring.temple; return { x: T.x, z: T.z, r: T.r }; }
-  const S0 = D.ring.sandbox; return { x: S0.x, z: S0.z, r: S0.r };
+// a hub's ring: the big one under ANY HERO or in a free-for-all (n fighters)
+const ringFor = (place, kit, n) => {
+  const T = D.ring[place] && place !== 'sandbox' ? D.ring[place] : D.ring.sandbox;
+  return { x: T.x, z: T.z, r: T.big && (kit === 'any' || n > 2) ? T.big : T.r, ...(T.lowCover ? { low: 1 } : {}) };
 };
+const spread = () => Math.max(1, M.ring.r / 10);   // the marks and the cover stand further out in a bigger ring
 const seatIdx = (k) => !M || !M.s ? -1 : M.s.indexOf(k);
 const fill = (n, v) => Array.from({ length: n }, () => v);
 function newMatch(o){   // a match's record, with an entry per seat
@@ -107,7 +110,7 @@ function newMatch(o){   // a match's record, with an entry per seat
 // where seat i of n stands: round the ring, the challenger on the west, facing the middle (two: west and east)
 function markOf(i, n){
   const R = M.ring, ang = Math.PI + i * Math.PI * 2 / n;
-  const x = R.x + Math.cos(ang) * D.ring.marks, z = R.z + Math.sin(ang) * D.ring.marks;
+  const x = R.x + Math.cos(ang) * D.ring.marks * spread(), z = R.z + Math.sin(ang) * D.ring.marks * spread();
   return { x, z, yaw: Math.atan2(R.x - x, R.z - z) };
 }
 const linkOf = (m) => Object.values(m.pgs || {}).reduce((a, b) => a + (+b || 0), 0);
@@ -144,7 +147,7 @@ export function answer(ok){
   if (!ok) return;
   // the challenger referees: wait for their first word ('dst'), which puts this fighter on their mark (a free-for-all
   // waits for everyone asked to answer first)
-  M = newMatch({ id: c.id, s: [c.from, net.slot], rule: c.rule, kit: c.kit, place: c.place, ring: ringFor(c.place), ref: false, me: 1, pvp: true, lk: c.pg + pvpLinkMs() });
+  M = newMatch({ id: c.id, s: [c.from, net.slot], rule: c.rule, kit: c.kit, place: c.place, ring: ringFor(c.place, c.kit, (c.all || []).length + 1), ref: false, me: 1, pvp: true, lk: c.pg + pvpLinkMs() });
   if (c.all.length > 1) showBanner('', 'WAITING FOR THE OTHERS TO ANSWER', 2.4);
 }
 on('dans', (m) => {
@@ -168,7 +171,7 @@ function launch(){
   const yes = p.to.filter(k => p.ok.has(k));
   if (!yes.length){ if (p.to.length > 1 || !p.no.size) showBanner('', p.no.size ? 'NOBODY TOOK IT UP' : 'NO ANSWER', 1.8); return; }
   if (M || !duelPlace()){ for (const k of yes) send({ t: 'dq', id: p.id, to: k }); return; }
-  M = newMatch({ id: p.id, s: [net.slot, ...yes], rule: p.rule, kit: p.kit, place: duelPlace(), ring: ringFor(duelPlace()), ref: true, me: 0, pvp: true,
+  M = newMatch({ id: p.id, s: [net.slot, ...yes], rule: p.rule, kit: p.kit, place: duelPlace(), ring: ringFor(duelPlace(), p.kit, yes.length + 1), ref: true, me: 0, pvp: true,
     pgs: { [net.slot]: pvpLinkMs(), ...(p.pgs || {}) } });
   if (M.place === 'sandbox'){ const pp = playerPos(); M.ring = { x: Math.round(pp.x), z: Math.round(pp.z), r: D.ring.sandbox.r }; }   // (the challenger's sandbox floor: everyone fights on the same spot)
   M.lk = linkOf(M);
@@ -344,6 +347,7 @@ function apply(ph){
       if (!M.pvp) spawnMirror();
       if (M.place === 'sandbox') showRing(true);
     }
+    if (M.place !== 'sandbox' && D.ring[M.place]) showRing(M.ring.r > D.ring[M.place].r);
     showCover(M.kit === 'any');
     const vs = M.s.length > 2 ? 'FREE-FOR-ALL · ' + M.s.length + ' FIGHTERS' : seatName(M.s[0]) + '  vs  ' + seatName(M.s[1]);
     showBanner('ROUND ' + M.round, vs, D.beats.enter + 0.6, { kicker: RULES[M.rule].name + (M.kit === 'any' ? ' · ANY HERO' : '') });
@@ -360,8 +364,8 @@ function apply(ph){
   } else if (ph === 'over'){
     const won = M.me >= 0 && M.champ === M.me;
     // the trophy hall: a win counts against everyone in the ring, a loss against whoever took it
-    if (fighter){ if (M.pvp){ if (won) M.s.forEach((k, i) => i !== M.me && record(k, true)); else if (M.champ >= 0) record(M.s[M.champ], false); } dropMirror(); showRing(false); }
-    showCover(false);
+    if (fighter){ if (M.pvp){ if (won) M.s.forEach((k, i) => i !== M.me && record(k, true)); else if (M.champ >= 0) record(M.s[M.champ], false); } dropMirror(); }
+    showRing(false); showCover(false);
     showBanner(M.me < 0 ? seatName(M.s[M.champ]) + ' WINS' : won ? 'VICTORY' : 'DEFEAT', 'ROUNDS ' + M.rounds.join(' – '), 2.4);
     if (fighter && ui.card) ui.card('over', scoreView());
   }
@@ -389,19 +393,22 @@ function syncOuts(){
 
 /* ---------------- ANY HERO: cover in the ring (data/duel-mode.js cover) ---------------- */
 let cover = null;   // { meshes, solids }
+const coverKey = () => M.id + ':' + M.ring.x + ':' + M.ring.z + ':' + M.ring.r;
 const coverMat = new THREE.MeshStandardMaterial({ color: 0x8a8070, roughness: 0.9, metalness: 0.05 });
 const coverCap = new THREE.MeshStandardMaterial({ color: 0x5f574c, roughness: 0.9, metalness: 0.05 });
 function showCover(on){
-  if (cover && (!on || !M || cover.key !== M.id + ':' + M.ring.x + ':' + M.ring.z)){
+  if (cover && (!on || !M || cover.key !== coverKey())){
     for (const m of cover.meshes){ scene.remove(m); m.geometry.dispose(); }
     for (const c of cover.solids){ const i = solids.indexOf(c); if (i >= 0) solids.splice(i, 1); }
     cover = null;
     if (!M || !M.pvp) buildNav();   // (the mirror finds its way round it)
   }
   if (!on || !M || cover) return;
-  cover = { key: M.id + ':' + M.ring.x + ':' + M.ring.z, meshes: [], solids: [] };
+  cover = { key: coverKey(), meshes: [], solids: [] };
+  const k = spread();
   for (const c of D.cover){
-    const x = M.ring.x + c.x, z = M.ring.z + c.z;
+    if (M.ring.low && c.h >= 2) continue;   // (the room's own tall cover stands there already)
+    const x = M.ring.x + c.x * k, z = M.ring.z + c.z * k;
     const m = new THREE.Mesh(new THREE.BoxGeometry(c.hx * 2, c.h, c.hz * 2), coverMat);
     m.position.set(x, c.h / 2, z); m.castShadow = m.receiveShadow = true;
     const cap = new THREE.Mesh(new THREE.BoxGeometry(c.hx * 2 + 0.08, 0.1, c.hz * 2 + 0.08), coverCap);
@@ -415,7 +422,7 @@ function showCover(on){
 }
 export const duelCover = () => cover ? cover.solids.length : 0;
 
-/* ---------------- the ring on the sandbox floor ---------------- */
+/* ---------------- the ring's edge drawn on the floor: the sandbox's, and a hub's big ring (wider than its painted mat) ---------------- */
 let ringMesh = null;
 function showRing(on){
   if (ringMesh){ scene.remove(ringMesh); ringMesh.geometry.dispose(); ringMesh = null; }
@@ -434,7 +441,7 @@ on('dst', (m) => {
   if (!mine){
     // watching: only a duel in the same wing (or sandbox) as this screen
     if (m.w !== worldKey() || (M && M.me >= 0)) return;
-    if (!M || M.id !== m.id){ if (M) showCover(false); M = newMatch({ id: m.id, s, me: -1, ref: false, pvp: true }); }
+    if (!M || M.id !== m.id){ if (M){ showCover(false); showRing(false); } M = newMatch({ id: m.id, s, me: -1, ref: false, pvp: true }); }
   } else if (!M || M.id !== m.id) return;
   if (m.ph === 'gone') return void (M.ph = 'gone');
   Object.assign(M, { s, a: s[0], b: s[1], me: s.indexOf(net.slot), rule: m.rule, kit: KITS[m.kit] ? m.kit : D.defaultKit, place: m.place, ring: m.ring, hits: m.hits, hp: m.hp,
@@ -528,10 +535,10 @@ function record(seat, won){
   try { localStorage.setItem(HONOURS, JSON.stringify(h)); } catch(e){}
 }
 
-/* ---------------- the spectators' balcony (the temple's ring) ---------------- */
+/* ---------------- where spectators watch from (each hub's ring has a spot: data/duel-mode.js balcony) ---------------- */
 export function toBalcony(){
-  if (duelPlace() !== 'temple' || (M && M.me >= 0)) return false;
-  const B = D.balcony;
+  const B = D.balcony[duelPlace()];
+  if (!B || (M && M.me >= 0)) return false;
   playerPos().set(B.x, B.y, B.z); player.vel.set(0, 0, 0); player.moveVel.set(0, 0, 0); player.vy = 0;
   G.yaw = player.faceYaw = B.yaw; player.group.rotation.y = B.yaw;
   return true;
@@ -548,7 +555,7 @@ export function updateDuel(){
   if (practiceNext && G.sandbox && G.mode === 'play' && !G.paused && !G.skillSelect && !M){ const r = practiceNext.rule; practiceNext = null; startPractice(r); }
   if (!M) return;
   // the match goes away: the other fighter left (the room, the wing), this one left the place, or a spectator's view went quiet
-  if (M.me < 0){ if (t - M.seen > 6000 || M.ph === 'gone' || (M.ph === 'over' && t - M.seen > 4000)){ showCover(false); M = null; } return; }
+  if (M.me < 0){ if (t - M.seen > 6000 || M.ph === 'gone' || (M.ph === 'over' && t - M.seen > 4000)){ showCover(false); showRing(false); M = null; } return; }
   if (M.ph === 'gone' || !duelPlace() || (M.pvp && !connected())){ endDuel(false); return; }
   if (M.pvp && M.ph !== 'wait'){
     // someone gone from the ring: one on one, the duel is off; a free-for-all goes on without them (the referee drops them)

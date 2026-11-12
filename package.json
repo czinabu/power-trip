@@ -74,7 +74,8 @@
     "smoke:coop-raid": "node tools/smoke/coop-raid.mjs",
     "smoke:coop-teamup": "node tools/smoke/coop-teamup.mjs",
     "smoke:coop-duel": "node tools/smoke/coop-duel.mjs",
-    "smoke:coop-duel-ffa": "node tools/smoke/coop-duel-ffa.mjs"
+    "smoke:coop-duel-ffa": "node tools/smoke/coop-duel-ffa.mjs",
+    "smoke:coop-duel-rooms": "node tools/smoke/coop-duel-rooms.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

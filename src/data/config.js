@@ -145,9 +145,9 @@ export const CFG = {
       cameraDamp: 0.3,        // cg_thirdPersonCameraDamp: the same for the lens; JA stiffens it toward 1 as the view
                               // tips toward straight up/down ((pitch / 115°)²) and on fast turns (over 1° per ms)
       horz: 0,                // cg_thirdPersonHorzOffset 0, as in JA: square behind the hero; only moving (the lag) puts him off to a side
-      duel: 0.7,              // ON TOP OF JA: squared up with one foe (the lock-on target, the boss, a lone duellist close in;
+      duel: 0,                // ON TOP OF JA: squared up with one foe (the lock-on target, the boss, a lone duellist close in;
                               // engine/camera.js duelFoe), the lens and its aim point slide this share of `duelSide` sideways
-                              // together, so the foe's wind-up shows beside the hero instead of behind his back (0 = JA's square-on)
+                              // together, so the foe's wind-up shows beside the hero instead of behind his back (0 = JA's square-on: Caleb wants the duel camera regular, centred like the rest)
       frame: 0.2,             // ON TOP OF JA: share of the crowd / calm / lock-on framing added to the range (JA's never
                               // moves); a boss still gets its full pull-back
     },

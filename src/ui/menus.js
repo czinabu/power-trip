@@ -536,13 +536,14 @@ document.getElementById('guardringctl').addEventListener('click', (e) => { e.sto
 // STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
 setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');
 document.getElementById('strafectl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setStrafeMode(G.strafeMode === 'hold' ? 'toggle' : 'hold'); });
-// DUEL FOCUS — AUTO (the default): a strictly one-on-one duel locks on by itself and holds the fight in place; MANUAL: the lock button alone; OFF (player/lockon.js)
+// LOCK-ON — ON (the default): the lock button locks on and holds the fight in place; OFF: no lock-on. Nothing ever locks on
+// by itself (player/lockon.js); an old AUTO or MANUAL choice reads as ON
 function setDuelFocus(m){
-  G.duelFocus = m === 'manual' || m === 'off' ? m : 'auto'; try { localStorage.setItem('sw_duelfocus', G.duelFocus); } catch(e){}
+  G.duelFocus = m === 'off' ? 'off' : 'on'; try { localStorage.setItem('sw_duelfocus', G.duelFocus); } catch(e){}
   const v = document.getElementById('duelfocusval'); if (v) v.textContent = G.duelFocus.toUpperCase();
 }
 { let v; try { v = localStorage.getItem('sw_duelfocus'); } catch(e){} setDuelFocus(v); }
-document.getElementById('duelfocusctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); const M = ['auto', 'manual', 'off']; setDuelFocus(M[(M.indexOf(G.duelFocus) + 1) % M.length]); });
+document.getElementById('duelfocusctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setDuelFocus(G.duelFocus === 'off' ? 'on' : 'off'); });
 // CUT AIM — the keys pick the cut's angle (the default), or a mouse flick just before the press does (player/jedi/cutaim.js).
 // (sw_cutaim, not the old sw_cutmouse: that one was saved as MOUSE on every load while mouse was the default.)
 function setCutMouse(on){

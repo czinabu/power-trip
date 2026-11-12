@@ -10,6 +10,8 @@ export const SPREAD = {
   jungle: 76, shipyard: 64, garrison: 60, frigate: 56, kamino: 60, chipworks: 60, warcamp: 64, canyon: 64, relay: 64,
   // the Mandalorian's story maps, grown the same way (see GROW)
   outpost: 60, covert: 60, barge: 60, holdfast: 60, citadel: 64,
+  // Act IV's warship (built at its own width alone; a bigger co-op room pulls it apart like the rest)
+  destroyer: 64,
 };
 
 /* GROW — layout: the width (m) it is always built at, at the least, whatever width the level or chapter asks for (world/arena.js
@@ -33,6 +35,7 @@ export const COVER_FILL = {
   shipyard:  { style: 'crates',    hole: 4.5, max: 24 },
   garrison:  { style: 'barricade', hole: 4.5, max: 22 },
   frigate:   { style: 'crates',    hole: 4.5, max: 22 },
+  destroyer: { style: 'crates',    hole: 5,   max: 14 },
   kamino:    { style: 'barricade', hole: 4.5, max: 22 },
   chipworks: { style: 'crates',    hole: 4.5, max: 22 },
   warcamp:   { style: 'sandbags',  hole: 4.5, max: 24 },

@@ -123,6 +123,7 @@ import { OUTPOST_SPOTS } from '../world/arenas/outpost.js';
 import { TURNED, PURGE, DRILL, MARSHAL } from './allies.js';
 import { MARSHAL_BOSS } from './bosses.js';
 import { GATE_MISSIONS } from './missions-gate.js';
+import { BOARDING_MISSIONS } from './missions-boarding.js';
 
 export const MISSION_VOICE = { jedi: 'MASTER VAEL', mando: 'THE ARMORER', trooper: 'THE CAPTAIN' };
 export const MISSION_COLOR = { jedi: 0x5ad2ff, mando: 0xffa040, trooper: 0x4aa8ff };
@@ -1677,6 +1678,8 @@ export const MISSIONS = {
 
 // ACT IV · THE SITH GATE: its five missions (data/missions-gate.js), on their own shelf (data/mission-groups.js)
 Object.assign(MISSIONS, GATE_MISSIONS);
+// ...and boarding the Buyer's warship over Jedha (data/missions-boarding.js), on the same shelf
+Object.assign(MISSIONS, BOARDING_MISSIONS);
 
 // SPEARHEAD ON THE ROAD TO THE CITADEL (the campaign's chapter 12): the Grass Sea battle's plan and fight, laid on
 // Exegol's ash (BATTLE_WORLDS.approach) and told in the last act's words. Campaign only: the Missions list keeps the

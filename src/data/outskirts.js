@@ -12,7 +12,7 @@
    whose outside is open sea or grassland that the backdrop already shows). A layout that changes planet with the world
    (data/worlds.js WORLD_DIRECTIONS) can give one per world: { siege, worlds, frozen }. */
 export const OUTSKIRTS_STYLE = {
-  archive: 'none', dojo: 'none', hangar: 'none', throne: 'none', frigate: 'none', jedhaNight: 'none',
+  archive: 'none', dojo: 'none', hangar: 'none', throne: 'none', frigate: 'none', destroyer: 'none', jedhaNight: 'none',
   // the hubs' wings are halls under a roof (the temple's, the cloning citadel's, the covert's), and the crystal cave
   tyHall: 'none', tyCouncil: 'none', tyTraining: 'none', tyArchive: 'none', tyTrophy: 'none', tyForge: 'none',
   kmDeck: 'none', kmWar: 'none', kmRange: 'none', kmHalls: 'none', kmArmory: 'none',

@@ -49,6 +49,7 @@ import { buildJungleArena } from './arenas/jungle.js';
 import { buildShipyardArena } from './arenas/shipyard.js';
 import { buildGarrisonArena } from './arenas/garrison.js';
 import { buildFrigateArena } from './arenas/frigate.js';
+import { buildDestroyerArena } from './arenas/destroyer.js';
 import { buildKaminoArena } from './arenas/kamino.js';
 import { buildChipworksArena } from './arenas/chipworks.js';
 import { buildWarcampArena } from './arenas/warcamp.js';
@@ -233,6 +234,7 @@ export function buildArena(L){
   else if (L.layout === 'shipyard'){ buildShipyardArena(LP); }
   else if (L.layout === 'garrison'){ buildGarrisonArena(LP); }
   else if (L.layout === 'frigate'){ buildFrigateArena(LP); }
+  else if (L.layout === 'destroyer'){ buildDestroyerArena(LP); }   // Act IV: the warship's hangar and reactor deck (data/missions-boarding.js)
   else if (L.layout === 'kamino'){ buildKaminoArena(LP); }
   else if (L.layout === 'chipworks'){ buildChipworksArena(LP); }
   else if (L.layout === 'warcamp'){ buildWarcampArena(LP); }

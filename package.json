@@ -37,6 +37,7 @@
     "smoke:training": "node tools/smoke/training.mjs",
     "smoke:saber-cast": "node tools/smoke/saber-cast.mjs",
     "smoke:twists": "node tools/smoke/twists.mjs",
+    "smoke:boarding": "node tools/smoke/boarding.mjs",
     "smoke:walker": "node tools/smoke/walker.mjs",
     "smoke:chase": "node tools/smoke/chase.mjs",
     "smoke:words": "node tools/smoke/words.mjs",

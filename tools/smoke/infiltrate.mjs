@@ -28,7 +28,7 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const want = (k) => !ONLY || ONLY.includes(k);
 // [hero, mission, the infiltrate objective's index]
-const RUNS = [['jedi', 'jedha-night', 0], ['mando', 'covert', 1], ['trooper', 'hunt', 0]].filter(r => want(r[0]));
+const RUNS = [['jedi', 'jedha-night', 0], ['mando', 'covert', 1], ['trooper', 'hunt', 0], ['trooper', 'gate-warship', 0, 'warship']].filter(r => want(r[3] || r[0]));   // (ONLY=warship: Act IV's boarding)
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 let failed = false;

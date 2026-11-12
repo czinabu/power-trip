@@ -411,6 +411,22 @@ export const MISSION_WORLDS = {
     hazards: { barrel: 0x8a5a2a },
     sound: 'plains',
   },
+  destroyer: {   // THE WARSHIP over Jedha: grey decks under hard white light, the stars and the planet past the hangar's shield
+    sky: { top: 0x020308, horizon: 0x0a1020, below: 0x04060c, bands: 4, stars: 220,
+      sun: { el: 0.18, color: 0xe8d8b0, size: 16, kind: 'moon' } },
+    fog: 0x1a1e26, fogStart: 0.8, fogEnd: 3.0,
+    light: { sun: 0xe8f0ff, sunI: 1.4, dir: [-12, 44, -20], hemiSky: 0xb8c4d8, hemiGround: 0x2a2e36, fill: 1.05, rim: 0x6aa8ff, rimI: 0.5 },
+    floor: { kind: 'deck', base: 0x6a7078, stripe: 0x3a3e46, seed: 71 },
+    outer: 0x22262e,
+    backdrop: [
+      { kind: 'gantry', axis: 'x', at: [-0.7, -0.25, 0.2, 0.65], y: [26, 30], depth: 4, color: 0x5a6068, color2: 0x3a3e46, stripe: 0x3a3e46, lamp: 0xe8f0ff },
+    ],
+    pal: { wall: 0x9aa0a8, wallD: 0x5a6068, metal: 0x7a8088, metalD: 0x32363e, crate: 0x4a4e54, lamp: 0xe8f0ff, screen: 0x6ac8ff, warn: 0xff4a3a, shield: 0x6aa8ff, core: 0x9ad8ff },
+    ambient: { kind: 'dust', color: 0xd8e0e8, count: 60, size: 0.14, opacity: 0.3 },
+    beats: { fog: 0x1e2230, fill: 1.1, tint: 0xa8c0ff },
+    hazards: { barrel: 0x5a6068 },
+    sound: 'hall',
+  },
   frigate: {   // the HALCYON: a dead Republic medical frigate, white decks in red emergency light, stars past the hangar's mouth
     sky: { top: 0x020308, horizon: 0x0a1020, below: 0x04060c, bands: 4, stars: 160,
       sun: { el: 0.3, color: 0xd8e0ff, size: 10, kind: 'moon' } },

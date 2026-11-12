@@ -43,16 +43,26 @@ export const DUEL_MODE = {
   // round, and how long a trade has to land (a second blow this soon after a round-winning one counts too, the way a
   // double hit does in fencing)
   beats: { enter: 1.2, count: 3, roundEnd: 2.6 },
-  // THE RING: where it is (the training wing's sparring ring, data/hub.js; the sandbox room's floor), its radius, and how
-  // far apart the fighters stand on their marks
+  // THE RING: in the HOST's hub (a guest always comes to it), in its training room: the temple's sparring hall (data/hub.js),
+  // the covert's sparring pit (data/hub-covert.js), the citadel's combat sim (data/hub-kamino.js); or the sandbox room's
+  // floor. r: its radius one on one with sabers; big: under ANY HERO or in a FREE-FOR-ALL, where guns and more fighters
+  // want the room (the marks and the cover spread out with it). lowCover: the room has tall cover of its own in the ring
+  // (the sim's walls), so only the low walls are added. marks: m from the middle each fighter starts (at r 10)
   ring: {
-    temple: { hub: 'temple', wing: 'training', x: 14, z: 0, r: 10 },
+    temple: { hub: 'temple', wing: 'training', x: 14, z: 0, r: 10, big: 15.5 },
+    covert: { hub: 'covert', wing: 'pit', x: 12, z: 0, r: 10, big: 15.5 },
+    kamino: { hub: 'kamino', wing: 'range', x: 14, z: 0, r: 10, big: 15.5, lowCover: true },
     sandbox: { x: 0, z: 0, r: 9 },
     marks: 3.6,          // m from the middle each fighter starts
     edge: 0.5,           // m inside the ring's edge a fighter is held at
   },
-  // THE BALCONY over the ring (world/arenas/tython.js training): spectators stand here, facing the ring
-  balcony: { x: 15, z: 17.2, y: 2.4, yaw: Math.PI },
+  // WHERE SPECTATORS STAND, facing the ring: the temple's balcony (world/arenas/tython.js training), the top of the pit's
+  // tiers (world/arenas/covert-hub.js pit), the instructor's tower over the killhouse (world/arenas/clone-citadel.js range)
+  balcony: {
+    temple: { x: 15, z: 21.2, y: 2.4, yaw: Math.PI },
+    covert: { x: 35, z: 0, y: 1.35, yaw: -Math.PI / 2 },
+    kamino: { x: 5.5, z: 24.6, y: 5.5, yaw: Math.atan2(14 - 5.5, 0 - 24.6) },
+  },
   // the challenge: how near (m) you must be to someone to challenge them by walking up, and how long a card waits
   reach: 3.4,
   answerWait: 25,

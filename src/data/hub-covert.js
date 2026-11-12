@@ -42,6 +42,9 @@ export const COVERT_WINGS = {
       { id: 'ring', x: 12, z: 0, name: 'SPARRING PIT', act: 'sparring', r: 4 },
       { id: 'gauntlet', x: -4, z: 22, name: 'THE GAUNTLET', act: 'proving' },
       { id: 'console', x: -31, z: 10, name: 'COVERT MAP', act: 'travel' },
+      // DUEL MODE (game/duel-mode.js): the pit is the duel ring; spectators watch from the top of its tiers
+      { id: 'duelring', x: 12, z: -17, name: 'DUEL RING', act: 'duel' },
+      { id: 'honours', x: 28, z: -20, name: 'DUEL HONOURS', act: 'honours' },
     ],
   },
   vault: {

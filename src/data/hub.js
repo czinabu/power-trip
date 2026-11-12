@@ -81,7 +81,7 @@ const TEMPLE_WINGS = {
       { id: 'proving', x: -6, z: 18, name: 'PROVING GROUND', act: 'proving' },
       { id: 'waystone', x: -30, z: 9, name: 'WAYSTONE', act: 'travel' },
       // DUEL MODE (game/duel-mode.js): the sparring hall's ring is the duel ring; its spectators' balcony and the trophy case
-      { id: 'duelring', x: 14, z: -11.6, name: 'DUEL RING', act: 'duel' },
+      { id: 'duelring', x: 14, z: -17, name: 'DUEL RING', act: 'duel' },
       { id: 'honours', x: 24.6, z: 16.6, name: 'DUEL HONOURS', act: 'honours' },
     ],
   },

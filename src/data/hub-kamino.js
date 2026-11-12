@@ -41,6 +41,9 @@ export const KAMINO_WINGS = {
       { id: 'sparring', x: 14, z: 0, name: 'COMBAT SIM', act: 'sparring' },
       { id: 'proving', x: -6, z: 18, name: 'KILLHOUSE', act: 'proving' },
       { id: 'beacon', x: -30, z: 9, name: 'TRANSIT BEACON', act: 'travel' },
+      // DUEL MODE (game/duel-mode.js): the combat sim is the duel ring; spectators watch from the instructor's tower
+      { id: 'duelring', x: 14, z: -17, name: 'DUEL RING', act: 'duel' },
+      { id: 'honours', x: 26, z: -20, name: 'DUEL HONOURS', act: 'honours' },
     ],
   },
   halls: {

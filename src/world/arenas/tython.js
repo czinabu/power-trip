@@ -375,14 +375,15 @@ function training(L, K, pal, R){
   // DUEL MODE (game/duel-mode.js, data/duel-mode.js): the sparring hall's ring is the duel ring. Its marker stone on the
   // north edge, the SPECTATORS' BALCONY on the south (two steps up to a stone deck facing the ring), and the TROPHY CASE
   // in the corner where the duel honours are kept
-  K.box(14, -12.7, 0.7, 0.35, 1.1, stoneD);
-  K.deco(new THREE.BoxGeometry(1.6, 0.12, 0.9), trim, 14, 1.16, -12.7);
-  live(K.deco(new THREE.RingGeometry(0.22, 0.3, 24), glowM(0xffb84a, 0.8), 14, 1.24, -12.7, -PI / 2));
-  K.box(15, 13.2, 2, 0.8, 0.8, stoneD, { climbable: true });
-  K.box(15, 14.7, 2, 0.7, 1.6, stoneD, { climbable: true });
-  K.box(15, 16.9, 6, 1.5, 2.4, stone, { climbable: true });
-  K.deco(new THREE.BoxGeometry(12.2, 0.16, 0.3), trim, 15, 2.46, 15.45);
-  for (const x of [9.4, 20.6]) K.column(x, 17.9, 0.22, 3.6, stoneD, { seg: 8, taper: 1 });
+  K.box(14, -18.1, 0.7, 0.35, 1.1, stoneD);
+  K.deco(new THREE.BoxGeometry(1.6, 0.12, 0.9), trim, 14, 1.16, -18.1);
+  live(K.deco(new THREE.RingGeometry(0.22, 0.3, 24), glowM(0xffb84a, 0.8), 14, 1.24, -18.1, -PI / 2));
+  // (the balcony and the marker stand back from the mat: a duel with guns, or a free-for-all, fights in a wider ring)
+  K.box(15, 17.2, 2, 0.8, 0.8, stoneD, { climbable: true });
+  K.box(15, 18.7, 2, 0.7, 1.6, stoneD, { climbable: true });
+  K.box(15, 20.9, 6, 1.5, 2.4, stone, { climbable: true });
+  K.deco(new THREE.BoxGeometry(12.2, 0.16, 0.3), trim, 15, 2.46, 19.45);
+  for (const x of [9.4, 20.6]) K.column(x, 21.9, 0.22, 3.6, stoneD, { seg: 8, taper: 1 });
   K.box(26.4, 16.6, 0.7, 1.6, 2.2, woodD);
   for (let k = -1; k <= 1; k++){
     K.deco(new THREE.CylinderGeometry(0.16, 0.08, 0.34, 10), trim, 26.4, 2.42, 16.6 + k * 0.9);

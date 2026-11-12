@@ -1,5 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// DUEL MODE: players against each other in the temple's training-wing ring (or the sandbox's practice ring): two of them,
+// DUEL MODE: players against each other in the ring of the host's hub's training room (the temple's sparring hall, the
+// covert's sparring pit, the citadel's combat sim) or the sandbox's practice ring: two of them,
 // or three or four in a FREE-FOR-ALL; sabers only (Jedi against Jedi), or ANY HERO on the challenger's rule. The rules a challenger can pick, the ring itself, how the link's lag is hidden, and what a duel levels so skill
 // decides it rather than rank or gear. game/duel-mode.js runs a match, net/pvp.js carries the blows, ui/duel-ui.js draws it.
 

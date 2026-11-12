@@ -1,6 +1,6 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
-// DUEL MODE (the duel plan's steps 2 and 3): a match between players in the training wing's ring in the temple on Tython,
-// or in the sandbox's practice ring (against friends there, or a mirror duellist on your own).
+// DUEL MODE (the duel plan's steps 2 and 3): a match between players in the ring of the host's hub's training room (the
+// temple's sparring hall, the covert's sparring pit, the citadel's combat sim), or in the sandbox's practice ring (against friends there, or a mirror duellist on your own).
 //
 // THE CHALLENGE: walk up to a friend (or pick them at the DUEL RING station), pick the rule, and they get a card to accept.
 //   WHO MAY FIGHT is the challenger's other pick: SABERS ONLY (Jedi against Jedi, the default) or ANY HERO, where the

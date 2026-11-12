@@ -45,6 +45,7 @@ import { renderCompass } from './compass.js';
 import { MOBILITY, MANDO_MOBILITY } from '../data/mobility.js';
 import { maxCharges, inCombat, formMob } from '../player/mobility.js';
 import { pickCut } from '../player/jedi/cutaim.js';
+import { guardDial } from '../player/jedi/guardline.js';
 import { aimPoint, lastAim, dynamicCrosshair } from '../player/aim.js';
 import { floorCost, baseCost } from '../data/force-level.js';
 let gaugeFullAt = -9;   // when the crosshair-side gauge last stood below full (it hides once it's been full a moment)
@@ -80,6 +81,8 @@ const $ = (id) => document.getElementById(id);
 
 const FIGHT_LINGER = 2.5;   // s of quiet before the checklist opens out again
 let fightT = -99;
+const GUARD_DIAL_DEG = { H: 0, L: 90, Lo: 180, R: -90 };   // where the guard dial's arc sits for each line (R: its right, your left)
+let guardDeg = 0;
 // top-right objectives checklist (training lessons, mission objectives): a window of up to 7 rows around the current one
 const CHECKLIST_SETTLE = 8;   // s an objective stays up before its list folds down to it
 function renderChecklist(c){
@@ -316,9 +319,22 @@ export function updateHud(){
     const cd = $('cutdial');
     if (cd){
       cd.style.transform = dynamicCrosshair() ? jx.tf : '';
-      const nx = on && player.atkT <= 0 ? pickCut(0, false) : null, ang = nx && nx.pat.ang;
+      // THE GUARD DIAL (player/jedi/guardline.js): with the guard up against a duellist the same keys and flicks place
+      // the guard, so the dial shows that instead: an arc on the side it covers (gold: placed by hand; dim: still turning)
+      const gd = on && G.guardRings !== 'off' ? guardDial() : null, gl = $('guarddial');
+      const nx = on && !gd && player.atkT <= 0 ? pickCut(0, false) : null, ang = nx && nx.pat.ang;
       cd.style.display = ang != null ? '' : 'none';
       if (ang != null){ cd.firstChild.style.transform = 'rotate(' + (90 - ang).toFixed(0) + 'deg)'; cd.classList.toggle('live', !!nx.flick); }
+      if (gl){
+        gl.style.display = gd ? '' : 'none';
+        if (gd){
+          gl.style.transform = cd.style.transform;
+          const want = GUARD_DIAL_DEG[gd.line];
+          guardDeg += ((want - guardDeg) % 360 + 540) % 360 - 180;   // (the short way round)
+          gl.firstChild.style.transform = 'rotate(' + guardDeg + 'deg)';
+          gl.classList.toggle('placed', gd.placed); gl.classList.toggle('turning', gd.turning); gl.classList.toggle('hit', gd.flash > 0.35);
+        }
+      }
     } }
   if (!isGunner()){   // holstered (4): LMB is a Force strike and RMB a ward instead of saber and block
     setText($('ab-atk').querySelector('.an'), player.holstered ? 'FORCE STRIKE' : 'SABER');

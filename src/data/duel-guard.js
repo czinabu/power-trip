@@ -11,8 +11,9 @@
               so an honest string is always covered (it used to be a coin flip on the frame it landed)
      fooled   a FEINT (the line switches in the middle of a wind-up): the guard went for the fake and is this slow to come
               back. On Knight and Master that is too late: steer it yourself. On Padawan it still gets there.
-   Steer the guard yourself (a flick of the mouse or the right stick toward the side the blow comes from, while you hold
-   the guard) and it gets there at once. A guard placed by hand answers the strike that was showing when you placed it;
+   Steer the guard yourself with the controls that aim a cut (while you hold the guard: a flick of the mouse or the
+   right stick toward the side the blow comes from, or that direction pressed on the movement keys or the left stick:
+   A left, D right, W overhead, S the legs) and it gets there at once. A guard placed by hand answers the strike that was showing when you placed it;
    the next strike (or a switch of line) hands it back to the automatic guard, so a clean block never costs you the cut
    that follows it.
      turn     s the guard takes to swing over to the new line once it starts (auto)
@@ -20,6 +21,7 @@
      catchAt  how far through a turn the guard already covers the new line
      hold     s a guard you placed by hand stays where you put it before the automatic guard takes over again
      flick    how hard a flick must be to steer it (× the cut flick's own threshold: data/stances.js CUT_ANGLE.flick)
+     keyLead  a direction pressed this long (s) before the guard goes up still places it (one held longer is only you moving)
      range    a duellist this close and in front is the one the guard watches (m)
    What a blow on each kind of guard costs (× the usual block stamina and chip: data/config.js blockStamCost, blockChip):
      clean    on the line you placed it on by hand: the cheapest block in the game
@@ -28,11 +30,12 @@ export const GUARD_TURN = {
   react: { padawan: 0.1, knight: 0.22, master: 0.26 },
   string: 0.04,
   fooled: { padawan: 0.12, knight: 0.5, master: 0.56 },
-  turn: 0.2, manual: 0.09, catchAt: 0.75, hold: 0.9, flick: 1.25, range: 4.6,
+  turn: 0.2, manual: 0.09, catchAt: 0.75, hold: 0.9, flick: 1.25, keyLead: 0.3, range: 4.6,
   clean:  { stam: 0.6, chip: 0.4 },
   beaten: { stam: 2.2, chip: 2.3, push: 1.6 },
-  // the crescent on your own guard: how far in front of the chest it sits (m), and its colours
-  ring: { faint: 0.2, fwd: 0.55, up: 1.3, colour: 0xdff4ff, turning: 0x8aa6c0, clean: 0xffe08a, beaten: 0xff6a3a },
+  // the crescent on your own guard: how far in front of the chest it sits (m), and its colours (placed: how bright it
+  // pulses, 0 … 1, as you send it somewhere by hand)
+  ring: { faint: 0.2, placed: 0.75, fwd: 0.55, up: 1.3, colour: 0xdff4ff, turning: 0x8aa6c0, clean: 0xffe08a, beaten: 0xff6a3a },
   /* THE STRIKE MARK — where the next blow is coming from, and when. A wedge outside your guard's crescent on the side a
      duellist is winding up on (whether or not your guard is up), closing in on the crescent as the blow nears and
      meeting it as it lands: the side to guard, and the beat to parry on. Orange while that side is open, pale once your

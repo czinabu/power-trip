@@ -281,6 +281,12 @@ body.mando.dynxh #xh{display:block!important}body.dynxh #reticle{display:none!im
 #cutdial.live{opacity:1}
 #cutdial i{position:absolute;left:-1px;top:-24px;width:2px;height:48px;border-radius:1px;background:linear-gradient(to bottom,rgba(210,242,255,.95),rgba(210,242,255,0) 70%);transform-origin:1px 24px}
 #cutdial.live i{box-shadow:0 0 6px var(--accent)}
+/* the guard dial: an arc round the crosshair on the side the held guard covers (ui/hud.js) */
+#guarddial{position:fixed;top:50%;left:50%;width:0;height:0;pointer-events:none;z-index:7}
+#guarddial i{position:absolute;left:-27px;top:-27px;width:54px;height:54px;box-sizing:border-box;border-radius:50%;border:3px solid transparent;border-top-color:rgba(223,244,255,.85);filter:drop-shadow(0 0 2px rgba(0,0,0,.6));transition:transform .09s ease-out,border-top-color .12s,opacity .12s}
+#guarddial.turning i{opacity:.45}
+#guarddial.placed i{border-top-color:#ffe08a}
+#guarddial.hit i{border-top-width:5px}
 /* floaters */
 /* barks: a mid-fight line over the speaker's head (fx/barks.js) */
 #barks{position:fixed;inset:0;pointer-events:none;z-index:6}

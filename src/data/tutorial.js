@@ -221,8 +221,8 @@ export const LESSONS = {
       steps: [
         { sec: 'YOUR GUARD', say: 'Hold your guard and watch. The orange mark shows the side each blow is coming from, and closes in as it falls. Your blade goes to meet it on its own. The pale arc shows where your guard is.',
           keys: 'HOLD RMB', do: 'Block 3 of your partner\'s strikes on your guard', ev: 'lineBlock', alt: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
-        { say: 'Your guard follows a string of cuts by itself. A feint is the one that beats it: the mark jumps sides and your guard is still on the lie. Do not wait for it. Send your guard to the mark yourself.',
-          keys: 'HOLD RMB + FLICK MOUSE / RIGHT STICK', do: 'Make 3 clean blocks: while guarding, flick toward the orange mark (left, right, up for overhead, down for low)',
+        { say: 'Your guard follows a string of cuts by itself. A feint is the one that beats it: the mark jumps sides and your guard is still on the lie. Do not wait for it. Send your guard to the mark yourself, with the same hand that aims your cuts.',
+          keys: 'HOLD RMB + A / D / W / S / FLICK MOUSE', do: 'Make 3 clean blocks: while guarding, press toward the orange mark as you would aim a cut (A left, D right, W overhead, S low), or flick the mouse or right stick that way',
           ev: 'cleanBlock', need: 3, spawn: partner('duelist', [0, -5]) },
         { say: 'Better than any block is to meet the blow as it lands.',
           keys: 'TAP RMB', do: 'Parry 2 strikes', ev: 'parry', need: 2, spawn: partner('duelist', [0, -5]) },

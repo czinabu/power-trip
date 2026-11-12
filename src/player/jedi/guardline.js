@@ -5,9 +5,9 @@
 // THE GUARD TURNS (data/duel-guard.js GUARD_TURN) — the soft directional block. The guard covers one line at a time.
 // Held, it goes on its own to the line of the soonest strike winding up at you, a beat late on the first strike of an
 // attack (`react`, then `turn`), at once on the cuts that follow it in a string, and too late on a FEINT (the line
-// switches mid wind-up: `fooled`): that blow is BEATEN (it still holds, at a heavy cost). Flick the mouse or the right
-// stick toward the side the blow comes from while you hold the guard and it goes there at once, and a blow on a guard you
-// placed is a CLEAN block. THE STRIKE MARK (GUARD_TURN.mark) shows which side that is and when the blow lands. A blow
+// switches mid wind-up: `fooled`): that blow is BEATEN (it still holds, at a heavy cost). Steer it the way you aim a cut:
+// flick the mouse or the right stick toward the side the blow comes from, or press that direction (A / D / W / S, the
+// left stick) while you hold the guard, and it goes there at once; a blow on a guard you placed is a CLEAN block. THE STRIKE MARK (GUARD_TURN.mark) shows which side that is and when the blow lands. A blow
 // with no line (a trooper's chop, a brute, a bolt) and a guard that has seen nothing coming are judged as before: the
 // guard holds whatever the side. Run on every screen for its own hero; the guard's state rides in the pose (net/pose.js).
 
@@ -15,7 +15,7 @@ import * as THREE from 'three';
 import { GUARD_LINE } from '../../data/duel.js';
 import { GUARD_TURN, DUEL_PVP } from '../../data/duel-guard.js';
 import { CUT_ANGLE, SWING_PATTERNS } from '../../data/stances.js';
-import { G, enemies, player, isGunner } from '../../state.js';
+import { G, enemies, keys, player, isGunner } from '../../state.js';
 import { scene } from '../../engine/renderer.js';
 import { playerPos, fwd } from '../helpers.js';
 import { localPlayer } from '../players.js';
@@ -50,7 +50,10 @@ function turnK(){
 function startTurn(to, manual, delay = reactOf()){
   if (!to) return;
   // (placed by hand: it answers the strike showing now; the next one hands it back to the automatic guard)
-  if (manual){ GD.manual = true; GD.until = now() + GUARD_TURN.hold; GD.mRec = TH && TH.rec || null; GD.mSeq = TH && TH.rec ? TH.rec.seq : 0; }
+  if (manual){
+    GD.manual = true; GD.until = now() + GUARD_TURN.hold; GD.mRec = TH && TH.rec || null; GD.mSeq = TH && TH.rec ? TH.rec.seq : 0;
+    GD.flash = Math.max(GD.flash, GUARD_TURN.ring.placed); GD.flashCol = GUARD_TURN.ring.clean;   // the crescent answers your hand: a gold pulse as it goes
+  }
   if (!GD.line && !GD.to){ GD.line = to; return; }   // a guard that was waiting on nothing is simply there
   if (GD.to === to){   // already on its way there: a hand on it hurries it
     if (manual){ GD.goT = Math.min(GD.goT, now()); GD.dur = Math.min(GD.dur, GUARD_TURN.manual); }
@@ -146,7 +149,26 @@ export function noteGuardFlick(dx, dy){
   FL.x = FL.y = 0;
   startTurn(line, true);
 }
-// a duellist (or a sparring partner) close in front: only then does a flick steer the guard
+/* THE SAME KEYS AS A CUT — a direction pressed while the guard is held (or just as it goes up: within `keyLead` s)
+   places it the way a flick does: A your left, D your right, W overhead, S the legs. The left stick does the same on
+   a pad (engine/gamepad.js feeds it as these keys). A direction already held as the guard goes up is only you
+   moving: the guard stays automatic until you press one. */
+const KEY_LINE = { w: 'H', s: 'Lo', a: 'R', d: 'L' };   // (a pad's diagonal presses two at once: the side wins)
+const KD = { w: false, s: false, a: false, d: false, last: null, at: -9, wasUp: false };
+function keySteer(up){
+  let fresh = null;
+  for (const k in KEY_LINE){
+    const on = !!keys[k];
+    if (on && !KD[k]){ fresh = k; KD.last = k; KD.at = now(); }
+    KD[k] = on;
+  }
+  const raised = up && !KD.wasUp;
+  KD.wasUp = up;
+  if (!up || G.mode !== 'play') return;
+  const k = fresh || (raised && KD.last && keys[KD.last] && now() - KD.at < GUARD_TURN.keyLead ? KD.last : null);
+  if (k && duellistNear()) startTurn(KEY_LINE[k], true);
+}
+// a duellist (or a sparring partner) close in front: only then does a flick or a key steer the guard
 function duellistNear(){
   const pp = playerPos(), f = fwd(), R = GUARD_TURN.range + 1;
   for (const e of enemies){
@@ -179,6 +201,15 @@ export function guardFlash(kind){
   GD.quietT = 0;
 }
 
+/* the guard as the HUD's dial draws it round the crosshair (ui/hud.js, beside the cut dial): the line the blade is on or
+   going to, whether it is still turning, whether you placed it by hand, and the pulse as it is placed or struck. Null:
+   no guard up, or no duellist near to guard against. */
+export function guardDial(){
+  if (!GD.shown || !player.blockHeld) return null;
+  const line = GD.to && now() >= GD.goT ? GD.to : GD.line || GD.to;
+  return line ? { line, turning: !!GD.to && turnK() < 1, placed: GD.manual, flash: GD.flash } : null;
+}
+
 /* the guard's state for the pose sync (net/pose.js): [line (0 R · 1 L · 2 H · 3 Lo, −1 none), turning to (the same, −1
    none), turn progress 0 … 100, placed by hand 0 / 1]. Null: no guard up. */
 export function guardState(){
@@ -202,6 +233,7 @@ export function updateGuardLine(dt = 0){
   const up = !isGunner() && player.blockHeld && player.atkT <= 0 && !player.saberLock;
   const th = TH = isGunner() ? null : threat();
   if (!up){
+    keySteer(false);
     if (held) player.deflectAnim = null;
     // let go a moment (a re-press for a parry) and the guard is still where it was: it doesn't snap to the new line
     if (!player.blockHeld && (GD.downT = (GD.downT || 0) + dt) > 0.5) dropGuard();
@@ -209,6 +241,7 @@ export function updateGuardLine(dt = 0){
   }
   GD.downT = 0;
   GD.heldFor += dt; GD.quietT += dt;
+  keySteer(true);
   const want = th && th.line;
   // (a guard placed by hand stays put for the strike it was placed against; a new strike or a switch of line is the automatic guard's again)
   const placed = GD.manual && now() < GD.until && th && GD.mRec === th.rec && GD.mSeq === (th.rec ? th.rec.seq : 0);
@@ -259,6 +292,7 @@ const _c = new THREE.Color();
 function drawRing(dt, up, th){
   GD.flash = Math.max(0, GD.flash - dt * 3);
   const show = up && !player.holstered && (GD.line || GD.to) && duellistNear();
+  GD.shown = !!show;
   const marked = !!th && markOn() && G.mode === 'play' && !player.downed && !player.saberLock && !G.cutscene;
   if (!ring){ if (!show && !marked) return; ring = makeRing(); }
   const arc = ring.userData.arc, mat = arc.material, mark = ring.userData.mark, pip = ring.userData.pip;

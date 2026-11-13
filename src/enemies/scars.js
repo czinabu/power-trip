@@ -176,7 +176,8 @@ function makePiece(e, R, kind){
       if (c.isMesh){
         const m = new THREE.Mesh(c.geometry, c.material);
         m.position.copy(c.position); m.quaternion.copy(c.quaternion); m.scale.copy(c.scale);
-        m.castShadow = c.castShadow; m.visible = c.visible; m.renderOrder = c.renderOrder;
+        m.castShadow = c.userData.cs ?? c.castShadow; m.visible = c.visible;   // (cs: its own setting, if a far foe's shadow was off: engine/far-shadow.js)
+        m.renderOrder = c.renderOrder;
         dst.add(m);
         if (c.children.length) copy(c, m);
       } else if (c.isGroup || c.type === 'Object3D' || c.isBone){
@@ -196,7 +197,7 @@ function makePiece(e, R, kind){
     if (!bones.some(b => map.has(b))) return;
     const sm = new THREE.SkinnedMesh(o.geometry, o.material);
     sm.bind(new THREE.Skeleton(bones.map(b => map.get(b) || zero), o.skeleton.boneInverses), o.bindMatrix);
-    sm.castShadow = o.castShadow; sm.frustumCulled = false;
+    sm.castShadow = o.userData.cs ?? o.castShadow; sm.frustumCulled = false;
     inner.add(sm);
   });
   scene.add(piece);

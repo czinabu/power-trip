@@ -10,6 +10,7 @@ import { G, player, enemies } from '../state.js';
 import { NET } from '../data/coop.js';
 import { buildHeroModel } from '../player/model/index.js';
 import { slim } from '../player/model/slim.js';
+import { farShadow } from '../engine/far-shadow.js';
 import { qualityLevel } from '../engine/quality.js';
 import { stepCloth } from '../player/model/cloth.js';
 import { blink } from '../player/model/life.js';
@@ -206,8 +207,8 @@ function stepPartner(P, dt){
   g.position.z = damp(g.position.z, want.pos.z, 14, dt);
   g.rotation.y += angDiff(g.rotation.y, want.yaw) * (1 - Math.exp(-14 * dt));
   stepPose(track, puppet, performance.now());
-  farShadow(P);
-  stepCloth(puppet, dt, g.position.y + 0.02, camera);   // their robe and cape swing here too, after the pose (less of it far off)
+  farShadow(P, P.puppet.group);   // far off, no shadow (each one is some eighty more draws in the shadow pass: engine/far-shadow.js)
+  stepCloth(puppet, dt, g.position.y + 0.02, camera, qualityLevel() === 'low');   // their robe and cape swing here too, after the pose (less of it far off, and on LOW, the tier weak machines end up on)
   blink(puppet, dt);   // and they blink (model/life.js); their hands keep the grip they were built with
   partnerSteps(P, dt);   // and their feet kick up dust at a run (fx/footdust.js)
   // the name tag follows the head on screen
@@ -223,16 +224,6 @@ function stepPartner(P, dt){
   if (t.style.top !== top) t.style.top = top;
 }
 const _tagAt = new THREE.Vector3();
-/* a partner far from the camera stops casting a shadow (each one is some eighty more draws in the shadow pass): sooner on
-   the lower tiers, which phones sit on. Switched only as they cross the line, never a frame at a time */
-const SHADOW_NEAR = { low: 12, medium: 20, high: 35 };
-function farShadow(P){
-  const g = P.puppet.group, far = g.position.distanceTo(camera.position) > (SHADOW_NEAR[qualityLevel()] || 20) + (P.farShadow ? -2 : 2);
-  if (far === !!P.farShadow) return;
-  P.farShadow = far;
-  g.traverse(o => { if (!o.isMesh) return; if (o.userData.cs === undefined) o.userData.cs = o.castShadow; o.castShadow = !far && o.userData.cs; });
-}
-
 /* A PARTNER DOWN — the moment they drop, a banner and a sound; while they wait to be got up, the revive ring under them
    fills as someone gets them up, and a chip over them (pinned to the screen edge with an arrow when they're off-screen
    or behind you) says how long they have left and how far it is to them */

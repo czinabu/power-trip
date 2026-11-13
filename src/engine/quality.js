@@ -204,7 +204,8 @@ export function frameStart(){
      refresh, so one step may not show); still no quicker and the frame isn't waiting on pixels (the CPU is the limit:
      many foes, many draws), so the steps are taken back and it isn't tried again for a while (30 s, doubling)
    - four windows on target: one step back up. If that drops it short again, it's taken back and tried later (8 s, doubling)
-   - five windows under 40 fps with the resolution already as low as it goes (or not the limit): one GRAPHICS tier down,
+   - five windows under 40 fps with the resolution already as low as it goes (or not the limit, or the frame's own work
+     takes the whole frame so pixels can't help): one GRAPHICS tier down,
      never back up and never once a tier was picked by hand; remembered (jpt_quality_auto) for the next visit */
 const WINDOW_MS = 1000, GRACE_MS = 4000, SLOW_FPS = 40, SETTLE_MS = 600;
 let winStart = 0, winFrames = 0, lastFrame = 0, graceUntil = performance.now() + GRACE_MS;
@@ -265,7 +266,10 @@ export function qualityGovernor(playing){
   // last resort: a whole tier down
   slowWins = fps < SLOW_FPS ? slowWins + 1 : 0;
   if (slowWins < 5 || manualQuality || qualityIdx === 0) return;
-  if (autoRes && resStep < lastStep && now >= downLockUntil) return;   // resolution can still give
+  // resolution can still give... unless the frame's own work already takes all of it (a co-op fight's crowd: every body's
+  // draws and their shadows, engine/far-shadow.js). Fewer pixels can't help that, so the governor never tried them, and
+  // until now that also kept it off the tier step below, which can (it draws fewer shadows), for good
+  if (autoRes && resStep < lastStep && now >= downLockUntil && jsMs < 900 / target) return;
   slowWins = 0; qualityIdx--; graceUntil = now + GRACE_MS;
   try { localStorage.setItem('jpt_quality_auto', QUALITY_LEVELS[qualityIdx]); } catch(e){}
   pendingApply = true;

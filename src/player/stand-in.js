@@ -47,9 +47,12 @@ function poseCopy(from, to){
 const _pose = {};
 
 /* swap every field of the stand-in's state with yours (both ways: a field either side has picked up while posed goes too) */
+// (two plain passes, no key lists built: it runs twice a frame for every hero the game plays itself, and the union of
+// both states' keys made fresh each time was a good share of a co-op frame's garbage)
 function swapState(S){
   const P = S.state;
-  for (const k of new Set([...Object.keys(player), ...Object.keys(P)])){ const v = player[k]; player[k] = P[k]; P[k] = v; }
+  for (const k in player){ const v = player[k]; player[k] = P[k]; P[k] = v; }
+  for (const k in P) if (!(k in player)){ player[k] = P[k]; P[k] = undefined; }
   for (const k of G_KEYS){ const v = G[k]; G[k] = S.g[k]; S.g[k] = v; }
 }
 

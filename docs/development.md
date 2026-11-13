@@ -84,6 +84,11 @@ room code (`src/net/session.js`).
   (`src/net/foes.js`, `run.js`, `squad.js`). Each foe picks which hero to go after (`src/enemies/targets.js`), and
   attack turns are per hero. Co-op tuning lives in `src/data/coop.js`; the revive rules in `src/game/revive.js` work
   the same for squadmates and partners.
+- **Frame rate.** A co-op screen draws more bodies than a solo one: waves grow by half for each extra hero, and every
+  partner and squad is drawn too. Each foe costs about two dozen draw calls, half of them in the shadow pass, so far
+  foes, squadmates and partners stop casting shadows (`src/engine/far-shadow.js`, closer on lower tiers), and the
+  frame-rate governor in `src/engine/quality.js` steps the tier down when the crowd, not the pixels, is what is slow.
+  The network side is small: a 70-foe snapshot is about 7 KB.
 - `?peerhost=host&peerport=9000` in the page URL uses your own PeerServer (`npx peerjs --port 9000`) instead of the
   cloud broker.
 - `api/turn.js` is a Vercel function that hands out Cloudflare TURN relay credentials for strict networks. Set

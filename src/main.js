@@ -121,6 +121,7 @@ import { foeBlade, bossBlade, contactPoint } from './player/jedi/clash.js';
 import { bladeSegment } from './player/jedi/bladehit.js';
 import { updateCoop, partnerShown, partnerInfo, partnerMate } from './net/partner.js';
 import { updateApprentice } from './allies/apprentice.js';
+import { farShadows } from './engine/far-shadow.js';
 import { allies, updateSquad, updateSquadHud, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, duelRingOn, squadStance, setSquadStance, engageCode } from './allies/squad.js';
 import { updateWheel, wheelOpen } from './allies/wheel.js';
 import { downed } from './game/revive.js';
@@ -192,6 +193,7 @@ continueOnLaunch();   // a saved campaign run: the title screen opens on CONTINU
    not from a clock read when the script happens to start: that read wobbles by a millisecond or two with whatever ran
    before it, and every move in the game, the camera's most of all, stuttered with the wobble */
 let lastFrameT = -1;
+const bossLike = (e) => !!(e.champion || e.fin || e.warbringer || (e.t && e.t.boss));   // (always cast: few, and the fight is about them)
 function tick(ts){
   requestAnimationFrame(tick);
   if (!frameStart()) return;   // the FRAME RATE cap holds this one back (engine/quality.js)
@@ -289,6 +291,8 @@ function tick(ts){
   // lags the blade the eye sees (fx/trail.js)
   updateTrail(fxDt);
   // the title screen draws its own stage (painted backdrop + the hero on a turntable) instead of the arena
+  // far foes and squadmates stop casting shadows (engine/far-shadow.js): most of what a co-op fight's bigger waves cost
+  if (!showcaseActive() && G.mode !== 'menu'){ farShadows(enemies, bossLike); farShadows(allies); }
   if (showcaseActive()) renderShowcase(rawDt); else { leaveShowcase(); drawFrame(); }
   bootFrame();   // the loading screen lifts once the first frames are drawn (ui/boot.js)
   qualityGovernor(!showcaseActive() && !G.paused && !G.skillSelect && !G.cutscene && G.mode === 'play');

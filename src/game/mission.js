@@ -59,7 +59,7 @@ import { players, targetable } from '../player/players.js';
 import { LOCK, lockRate } from './locks.js';
 import { diffDmgMul, diffBossCheckpoint } from '../data/difficulty.js';
 import { startBattleFx, stopBattleFx, updateBattleFx } from '../fx/battle.js';
-import { playDuelIntro, resetScenes, playScene, sceneOn } from './cutscene.js';
+import { playDuelIntro, resetScenes, playScene, sceneOn, guestsAnswering } from './cutscene.js';
 import { spawnFinale, dropFinale } from '../boss/finale.js';
 import { beginTwist, updateTwist, endTwist, twistGate, twistTarget, twistSnap, twistSync } from './twists.js';
 import { TAUNTS, SCARRED, SCARS, scarOf, pickLine } from '../data/duel-taunts.js';
@@ -263,13 +263,14 @@ function patchUp(){
    playDuelIntro), and the real foe takes its place when the scene ends. In a shared fight this objective keeps running under
    a scene (the world only holds), so without this the real one stepped in on the next frame, beside the stand-in, on the
    host's screen and the guests' alike: two bosses in the entrance, one in the fight. So it waits while this screen's scene
-   plays, while any guest's copy of it still plays (coopRun.guestScene), and a moment after for a guest whose copy started
-   late; never longer than INTRO_HOLD.max (a word lost on the link can't hold the fight off for good) */
+   plays, while any guest's copy of it still plays (coopRun.guestScene), until every guest has answered the word to play it
+   (game/cutscene.js guestsAnswering: on a slow link the answer can take longer than the grace), and a moment after for a
+   guest whose copy started late; never longer than INTRO_HOLD.max (a word lost on the link can't hold the fight off for good) */
 const INTRO_HOLD = { grace: 1.2, max: 45 };   // (s, on the wall clock: a background tab's frames come slow and capped)
 function introHeld(s){
   if (!(s.sceneHold > 0)) return false;
   const now = performance.now() / 1000;
-  if (sceneOn() || coopRun.guestScene){ s.graceAt = now + INTRO_HOLD.grace; s.holdAt = s.holdAt || now; return true; }
+  if (sceneOn() || coopRun.guestScene || guestsAnswering()){ s.graceAt = now + INTRO_HOLD.grace; s.holdAt = s.holdAt || now; return true; }
   if (!coopRun.live || now - (s.holdAt || now) > INTRO_HOLD.max || now >= (s.graceAt || 0)){ s.sceneHold = 0; return false; }
   return true;
 }

@@ -208,11 +208,12 @@ function capsules(C){
 /* DETAIL BY DISTANCE, for figures other than the player's own hero (the temple's people, a cutscene's cast, co-op
    partners: pass the camera as `view`). A crowded hall steps a dozen robes at 120 Hz, a good part of a phone's frame, so:
    off screen or past FAR, a cloth rests (and drapes afresh when it comes back); past NEAR, half the constraint passes
-   (the swing reads the same at that size). Up close, and for the player, every pass as before. */
+   (the swing reads the same at that size). `lean`: half of them up close too (a co-op partner on the LOW tier, which
+   weak machines end up on: net/partner.js). For the player's own hero, every pass as before. */
 const NEAR = 16, FAR = 45;
 const _frustum = new THREE.Frustum(), _pv = new THREE.Matrix4(), _sphere = new THREE.Sphere(new THREE.Vector3(), 2.2), _w = new THREE.Vector3();
 let _fCam = null, _fAt = -1;
-function viewDetail(target, view){
+function viewDetail(target, view, lean){
   if (!view) return ITER;
   const now = performance.now();
   if (_fCam !== view || now - _fAt > 8){ _fCam = view; _fAt = now; _frustum.setFromProjectionMatrix(_pv.multiplyMatrices(view.projectionMatrix, view.matrixWorldInverse)); }
@@ -222,15 +223,15 @@ function viewDetail(target, view){
   if (d > FAR) return 0;
   _sphere.center.copy(_w);
   if (!_frustum.intersectsSphere(_sphere)) return 0;
-  return d > NEAR ? ITER >> 1 : ITER;
+  return d > NEAR || lean ? ITER >> 1 : ITER;
 }
 
 /* advance every visible cloth on `target` (player) by dt; `floor` = world height the hem can't sink under; `view`: the
-   camera, for detail by distance (above) */
-export function stepCloth(target, dt, floor = -Infinity, view = null){
+   camera, for detail by distance (above), and `lean` for fewer passes up close */
+export function stepCloth(target, dt, floor = -Infinity, view = null, lean = false){
   if (!target.cloth) return;
   let updated = false;
-  const iters = target.vis ? viewDetail(target, view) : ITER;
+  const iters = target.vis ? viewDetail(target, view, lean) : ITER;
   for (const C of target.cloth){
     if (!shown(C) || !iters){ C.live = false; continue; }
     if (!updated){ target.vis.updateWorldMatrix(true, true); updated = true; }

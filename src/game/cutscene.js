@@ -1090,10 +1090,24 @@ on('csp', (m) => {
   // the host, and a foe breaking off stands where the host's copy of it does: game/blocking.js)
   const st = m.st && Array.isArray(m.st.lead) && Array.isArray(m.st.at) ? m.st : null;
   if (s.k === 'duel'){ playDuelIntro(s.spec, false, st); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
-  else if (s.k === 'boss') setTimeout(() => playBossIntro(false, st), 120);   // (the boss's puppet lands with the host's next snapshot)
+  else if (s.k === 'boss') bossIntroWhenHere(st);
   else if (s.k === 'scene') playScene(s.id, { mark: st && s.mark && SCENES[s.id] && SCENES[s.id].actor ? st.at : s.mark, share: false, stage: st });
 });
-on('csk', (m) => { if (C.on && (!m.k || m.k === C.key)) finish(false); });
+// the host's final boss entrance on a guest: his puppet lands with one of the host's next snapshots, which on a slow link
+// (or a slow machine) can be a second or more after the word to play it. Waiting a fixed beat missed him, and the guest
+// stood in the fight with no entrance at all while the host's played: it waits for him (a few seconds at most) instead
+const BOSS_WAIT = 4000;
+let bossWait = 0;   // (the host skipped his entrance meanwhile: csk below, no late one here)
+function bossIntroWhenHere(st){
+  const t0 = performance.now(), tok = ++bossWait;
+  const go = () => {
+    if (tok !== bossWait || C.on || G.mode !== 'play' || seen.has('boss:' + G.chapter)) return;
+    if (binders.boss()) return void playBossIntro(false, st);
+    if (performance.now() - t0 < BOSS_WAIT) setTimeout(go, 100);
+  };
+  setTimeout(go, 60);
+}
+on('csk', (m) => { bossWait++; if (C.on && (!m.k || m.k === C.key)) finish(false); });
 const watching = new Set();   // the guests whose cutscene is playing
 on('cso', (m) => {
   if (net.role !== 'host') return;

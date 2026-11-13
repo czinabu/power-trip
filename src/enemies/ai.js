@@ -24,10 +24,10 @@ import { enemyDmgScale } from '../game/survival.js';
 import { ENGAGE } from '../data/enemies.js';
 import { updateDirector, usesToken, dropToken, claimToken, rangedSlotFree, behindCamera, noteGrenade } from './director.js';
 import { updateNav, navSteer, navClass, navClearance } from './nav.js';
-import { DUEL, FOOTWORK } from '../data/duel.js';
+import { DUEL, FOOTWORK, PERFECT } from '../data/duel.js';
 import { diffTellMul } from '../data/difficulty.js';
 import { updateDuel, planAttack, quickStrike, windupPose, strikePose, maybeFeint, chainNext, updateSaberLock, drainBreath, addPosture, rallyOnParry,
-  startCut, cutStep, cutLands, measuring, footReach, stringDone } from './duel.js';
+  startCut, cutStep, cutLands, measuring, footReach, stringDone, skilled, parriedBlade } from './duel.js';
 import { TROOP_MELEE, TROOP_FIRE, GRENADE } from '../data/tactics.js';
 import { tickTactics, planTroopMelee, troopFeint, holdTremble, planShot, approachSteer, tryOrder, updateOrder, tryLunge, updateLungeWind,
   updateLunge, dropLungeLine } from './tactics.js';
@@ -566,7 +566,11 @@ export function updateEnemies(dtAll){
                 if (!isGunner() && stance().shatter){ e.shatterUntil = G.gt + 4; burst(V3(g.position.x, 1.6, g.position.z), 0xd08bff, 10, 3, 2); }
                 // MAKASHI binds a duellist's blade: no exchange, and the riposte off the bind disarms it (disarm.js)
                 // (held there, open, rather than reeling: the answer is the riposte, not a finisher)
-                const bound = !isGunner() && !!stance().bind && bindBlade(e);
+                // (a skilled blade is bound only once its guard is worn: data/duel.js PERFECT.bindAt)
+                const sk = skilled(e), worn = !sk || e.sparring || e.posture >= e.dp.posture * PERFECT.bindAt;   // (a training partner is always bound: the lesson is the move)
+                const bound = !isGunner() && !!stance().bind && worn && bindBlade(e);
+                // A SKILLED BLADE: the parry strains its guard and the duel goes on; only a guard it breaks is thrown open (duel.js)
+                if (!bound && sk){ parriedBlade(e, -tx, -tz); break; }
                 if (!bound && rallyOnParry(e)) break;
                 if (bound){ e.state = 'recover'; e.st = BIND.window; e.openUntil = G.gt + BIND.window; }
                 else if (!(e.dp && e.dp.brace && addPosture(e, DUEL.posture.parry, -tx, -tz))) staggerEnemy(e, -tx, -tz);

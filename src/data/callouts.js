@@ -96,6 +96,18 @@ export const PREFIXES = {
 export const PATTERNS = [[/ · | — /, KINDS.key]];
 
 const _prefixes = Object.keys(PREFIXES).sort((a, b) => b.length - a.length);
+/* DUEL CUES · MINIMAL (data/guard-rings.js) — the words for routine blade work are left to the sparks and the sound, so
+   the eye stays on the blades: how a cut was met, what the foe just did, an answer made ready. What ends a duel still
+   gets its word (GUARD BROKEN, WINDED, PERFECT STRIKE, DISARMED, GUARD PIERCED). Training shows them all. */
+const DUEL_QUIET = new Set([
+  'CLEAN BLOCK', 'BLOCKED', 'BLOCK', 'SAME SIDE', 'READ YOU', 'WRONG SIDE',
+  'FEINT', 'RIPOSTE', 'PARRIED', 'PARRIED!', 'RE-PARRIED', 'BIND', 'BAITED', 'FEINTED', 'NOT FOOLED',
+  'CLASH', 'CLASH!', 'SLIPPED', 'SIDESTEP', 'FLIPPED CLEAR', 'SIDESTEPPED', 'MET IT',
+  'FLUID RIPOSTE', 'WHEELING RIPOSTE', 'RIPOSTE!', 'COUNTER-RIPOSTE!',
+]);
+const DUEL_QUIET_PRE = ['PARRY! ', 'EXCHANGE ×'];
+export const duelQuiet = (text) => DUEL_QUIET.has(text) || DUEL_QUIET_PRE.some(p => text.startsWith(p));
+
 const _cache = new Map();
 /* the rank of a word: { tier, cue }. `kind` is a call site's own say (a KINDS name) and wins over the table */
 export function rankOf(text, kind){

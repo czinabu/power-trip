@@ -525,13 +525,14 @@ function setAimHint(on){
 }
 { let v; try { v = localStorage.getItem('sw_aimhint'); } catch(e){} setAimHint(v !== '0'); }
 document.getElementById('aimhintctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); setAimHint(!G.aimHint); });
-// GUARD RINGS — a duellist's guard crescent: fading as you learn to read the blade, always, or off (enemies/guardcue.js)
+// DUEL CUES — how much is drawn over a duel: MINIMAL (the blades alone, the default), GUIDED (the guard ring fading as
+// you learn, the strike mark, the bars and the words) or FULL (data/guard-rings.js). A new key: everyone starts on MINIMAL
 function setGuardRings(m){
-  G.guardRings = GUARD_RINGS.modes.includes(m) ? m : 'fading';
-  try { localStorage.setItem('sw_guardrings', G.guardRings); } catch(e){}
-  const v = document.getElementById('guardringval'); if (v) v.textContent = G.guardRings.toUpperCase();
+  G.guardRings = GUARD_RINGS.modes.includes(m) ? m : 'minimal';
+  try { localStorage.setItem('sw_duelcues', G.guardRings); } catch(e){}
+  const v = document.getElementById('guardringval'); if (v) v.textContent = GUARD_RINGS.names[G.guardRings];
 }
-{ let v; try { v = localStorage.getItem('sw_guardrings'); } catch(e){} setGuardRings(v); }
+{ let v; try { v = localStorage.getItem('sw_duelcues'); } catch(e){} setGuardRings(v); }
 document.getElementById('guardringctl').addEventListener('click', (e) => { e.stopPropagation(); audioInit(); const M = GUARD_RINGS.modes; setGuardRings(M[(M.indexOf(G.guardRings) + 1) % M.length]); });
 // STRAFE — ALT toggles strafe on and off (the default), or strafes only while held (player/strafe.js)
 setStrafeMode(localStorage.getItem('sw_strafemode') || 'toggle');

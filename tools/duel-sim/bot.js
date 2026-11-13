@@ -128,6 +128,7 @@
       const e = enemies[enemies.length - 1];
       if (enemies.length === before || !e) return;
       e.group.position.copy(at);
+      e.group.rotation.y = Math.atan2(-at.x, -at.z);   // squared up to the hero from the start (a cut in its back is a perfect strike: data/duel.js PERFECT)
       e.dummy = false;
       if (f.hpMul){ e.maxHp *= f.hpMul; e.hp = e.maxHp; }
       if (f.champ){

@@ -113,7 +113,7 @@ import { updateBarks } from './fx/barks.js';
 import { SEE } from './world/ink.js';
 import { NAV, buildNav, updateNav, navSteer, navDist, navRoute } from './enemies/nav.js';
 import { foeType } from './enemies/look.js';
-import { DUEL, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
+import { DUEL, PERFECT, DUEL_PROFILES, MANDO_MELEE } from './data/duel.js';
 import { LOCK, startLock, endLock, duelDefend, eliteRamp, lockPush, baitGuards } from './enemies/duel.js';
 import { guardMeets, guardState } from './player/jedi/guardline.js';
 import { pvpOn } from './game/pvp-rules.js';
@@ -308,7 +308,7 @@ window.GAME = { run: RUN_STATE, PROFILE, MEDALS, MEDAL_DATA, arcadeId: () => ran
   FOCUS, focusTier, focusDmgMul, focusRegenMul, addFocus, updateFocus, enemyDmgScale, applySwingDamage,
   hitMarker, spawnBlasterBolt, mandoWeapon, updateBolts, updateHud,
   hazardZones, updateHazardZones, hazardContains, setOverlayState, nav: { NAV, buildNav, updateNav, navSteer, navDist },
-  duel: { DUEL, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint, bladeSegment, lockPush },
+  duel: { DUEL, PERFECT, DUEL_PROFILES, MANDO_MELEE, LOCK, startLock, endLock, duelDefend, eliteRamp, foeBlade, bossBlade, contactPoint, bladeSegment, lockPush },
   scars: { scarBody, severLimbs, applyCuts },
   tactics: { RAMP, TROOP_MELEE, TROOP_FIRE, PINCER, ORDERS, GRENADE, LUNGE, tacticsRamp, grenades, pushGrenades },
   squad: { allies, spawnSquad, addSquadmate, squadOrder, hurtAlly, giveOrder, squadOrderName, squadFormation, grenadeLeft, wheelOpen, downed, duelRingOn, squadStance, setSquadStance, engageCode },

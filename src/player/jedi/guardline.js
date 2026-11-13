@@ -24,6 +24,7 @@ import { pvpOn } from '../../game/pvp-rules.js';
 import { stamDelay } from '../stamina.js';
 import { clamp, dampToward } from '../../utils.js';
 import { sfx } from '../../audio/sfx.js';
+import { minimalCues } from '../../enemies/guardcue.js';
 
 const LINES = ['R', 'L', 'H', 'Lo'];   // the lines the guard covers (a thrust, T, is parry-or-dodge: no guard holds it)
 const RING_ANG = { R: 0, L: Math.PI, H: Math.PI / 2, Lo: -Math.PI / 2 };   // where the crescent sits for each (its right comes in on your left)
@@ -280,8 +281,8 @@ function makeRing(){
   scene.add(grp);
   return grp;
 }
-// the strike mark follows the GUARD RINGS setting (data/guard-rings.js): Master reads the blade unless it is on ALWAYS
-const markOn = () => (G.guardRings || 'fading') !== 'off' && (G.diff !== 'master' || G.guardRings === 'always');
+// the strike mark follows the DUEL CUES setting (data/guard-rings.js): none on MINIMAL; Master reads the blade unless it is on FULL
+const markOn = () => !minimalCues() && (G.diff !== 'master' || G.guardRings === 'always');
 // is the guard on `line` right now (as guardMeets would judge a blow landing this instant)?
 function covers(line){
   if (!player.blockHeld || player.atkT > 0) return false;
@@ -291,7 +292,7 @@ function covers(line){
 const _c = new THREE.Color();
 function drawRing(dt, up, th){
   GD.flash = Math.max(0, GD.flash - dt * 3);
-  const show = up && !player.holstered && (GD.line || GD.to) && duellistNear();
+  const show = up && !player.holstered && (GD.line || GD.to) && duellistNear() && !minimalCues();   // (MINIMAL: your blade is the guard's only sign)
   GD.shown = !!show;
   const marked = !!th && markOn() && G.mode === 'play' && !player.downed && !player.saberLock && !G.cutscene;
   if (!ring){ if (!show && !marked) return; ring = makeRing(); }

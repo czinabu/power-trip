@@ -4,7 +4,8 @@
 //   · one word is up at a time: a higher rank takes the floor at once, the same rank once the first has been read,
 //     a lower one waits its turn, a MINOR one is dropped; damage numbers go through untouched;
 //   · a ROUTINE word is shown CALL.teach times, then left to the blade (and still shown in training);
-//   · the ranking only quiets the Jedi: for a gunner a ROUTINE word still shows.
+//   · the ranking only quiets the Jedi: for a gunner a ROUTINE word still shows;
+//   · DUEL CUES on MINIMAL (the default) leaves routine blade work unsaid, and still says what ends a duel.
 // Fails on any page or console error.   npm run build && npm run smoke:words
 
 import { chromium } from 'playwright';
@@ -21,15 +22,16 @@ let failed = false;
 const check = (ok, what) => { console.log((ok ? 'ok: ' : 'FAIL: ') + what); if (!ok) failed = true; };
 const errors = [];
 
-async function boot(hero, training){
+async function boot(hero, training, cues = 'always'){
   const page = await browser.newPage({ viewport: { width: 640, height: 360 } });
-  await page.addInitScript(() => {
+  await page.addInitScript((cues) => {
     try {
+      if (cues) localStorage.setItem('sw_duelcues', cues);   // (the ranking is checked with every word on: DUEL CUES · FULL)
       localStorage.setItem('jpt_quality', 'low'); localStorage.setItem('sw_fullscreen', '0'); localStorage.setItem('sw_asktrain', '1');
       for (const h of ['jedi', 'mando', 'trooper']){ localStorage.setItem('sw_camp_' + h, '1'); localStorage.setItem('sw_trained_' + h, '1'); }
     } catch(e){}
     Element.prototype.requestPointerLock = function(){ return Promise.reject(new DOMException('smoke test', 'NotSupportedError')); };
-  });
+  }, cues);
   page.on('pageerror', e => errors.push('page error: ' + (e.stack || e.message)));
   page.on('console', m => { if (m.type() === 'error') errors.push('console error: ' + m.text()); });
   await page.goto(page_url);
@@ -102,6 +104,15 @@ try {
   check(await page.evaluate(() => GAME.words.stats().quiet) === 2, 'the quiet ones are counted, and their cue raised no error');
   check(await page.evaluate(() => say('HIGH BIND', 'key')) === 'HIGH BIND', 'a call site can rank a label built from data');
   await page.close();
+
+  /* ---- DUEL CUES · MINIMAL, the default: the blades speak for themselves ---- */
+  const min = await boot('jedi', false, null);
+  check(await min.evaluate(() => GAME.G.guardRings) === 'minimal', 'a fresh profile starts on DUEL CUES · MINIMAL');
+  const hush = [];
+  for (const w of ['CLEAN BLOCK', 'FEINT', 'PARRY! ⟲ RIPOSTE READY', 'EXCHANGE ×3', 'WRONG SIDE']) hush.push(await min.evaluate(w => say(w), w));
+  check(hush.every(s => s === ''), 'on MINIMAL routine blade work goes unsaid (' + hush.map(s => s || '·').join(' ') + ')');
+  check(await min.evaluate(() => big('PERFECT STRIKE')) === 'PERFECT STRIKE', 'but what ends a duel still gets its word');
+  await min.close();
 
   /* ---- training keeps the names ---- */
   const tr = await boot('jedi', true);

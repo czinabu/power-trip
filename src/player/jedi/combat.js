@@ -19,8 +19,8 @@ import { FOCUS, focusTier, focusDmgMul, addFocus, freeRiposte } from './focus.js
 import { spawnHitSpark, spawnGroundShock } from '../../fx/vfx.js';
 import { inkSprite, sparks, clashFlash, clashSparks } from '../../fx/ink.js';
 import { scorchGround } from '../../fx/scorch.js';
-import { DUEL } from '../../data/duel.js';
-import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry, baitGuards, canBait } from '../../enemies/duel.js';
+import { DUEL, PERFECT as DUEL_PERFECT } from '../../data/duel.js';
+import { cutLine, duelDefend, isGuarding, guardImpact, rallyParry, baitGuards, canBait, skilled, perfectStrike } from '../../enemies/duel.js';
 import { FEINT } from '../../data/duel-guard.js';
 import { bodyRadius } from './bladehit.js';
 import { bounceOff, contactPoint } from './clash.js';
@@ -449,14 +449,17 @@ export function applySwingDamage(step, only){
       if (riposte && !sw0.stomp && rallyParry(e, sw0, sw0 && sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at)){
         turned++; if (!blocker){ blocker = e; blockAt = sw0.hitAt && sw0.hitAt.get(e) && sw0.hitAt.get(e).at; } return false;
       }
-      if (!riposte && !back && mom !== 'overflip'){
+      // (a SKILLED BLADE meets even a riposte: its guard gets there late, at a heavy cost to it. data/duel.js PERFECT)
+      if ((!riposte || skilled(e)) && !back && mom !== 'overflip'){
         const pre = sw0 && sw0.duel && sw0.duel.get(e);
         const at = pre === undefined && only && only.length ? contactPoint(e) : undefined;
-        const dres = pre !== undefined ? pre : duelDefend(e, line, finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
+        const dres = pre !== undefined ? pre : duelDefend(e, line, riposte ? 'riposte' : finisher ? 'finisher' : 'cut', G.stance === 'djemso' || isDark, at);
         if (dres === 'block' || dres === 'dodge'){
           if (dres === 'block' && perfect) addPosture(e, DUEL.posture.finisher * (PERFECT.posture - 1), f.x, f.z);   // a perfect finisher strains the guard that turns it
           // DJEM SO — THE SUNDERING OVERHEAD: a heavy overhead (W, held) caught on a guard still caves in most of it
           if (dres === 'block' && st.sunder && sw0 && sw0.heavy && sw0.dir === 'forward' && e.dp && !e.dp.brace) addPosture(e, e.dp.posture * st.sunder, f.x, f.z);
+          // DJEM SO — THE FORWARD STOMP on a skilled blade: the guard that turns it loses half of itself (data/duel.js PERFECT.lock)
+          if (dres === 'block' && riposte && sw0.stomp && e.dp && !e.net) addPosture(e, e.dp.posture * DUEL_PERFECT.lock, f.x, f.z);
           turned++; if (dres === 'block' && !blocker){ blocker = e; blockAt = at; } return false;
         }
       }
@@ -471,7 +474,8 @@ export function applySwingDamage(step, only){
         spawnGroundShock(V3(sp.x, 0.05, sp.z), 0xb04dff, 2.2, 0.35, 0.6);
         G.shake = Math.max(G.shake, 0.7);
       }
-      damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
+      // a blade that lands on a SKILLED BLADE got past its guard: the PERFECT STRIKE (enemies/duel.js)
+      damageEnemy(e, perfectStrike(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * backLineMul(st, e) * swordMul(st, e) * edgeMul(e) * (shat ? st.shatter : 1), f.x, f.z), f.clone(), knock, finisher, false, bladeOpts(sw0 && sw0.hitAt && sw0.hitAt.get(e)));   // (where the blade met it: bladehit.js; the shove's cap)
       foesHit++;
       trainForm(e.dead ? 'kill' : 'hit', { finisher, air: !player.grounded, backLine: backLineMul(st, e) > 1, heavy: !!e.t.heavy, blade: swordMul(st, e) > 1 });   // FORM MASTERY (game/upgrades.js)
       addFury(st.furyHit);   // JUYO (and a little VAAPAD): every cut that lands feeds the fury
@@ -585,15 +589,15 @@ export function applyOffBladeHit(only){
       continue;
     }
     if (e.dead || e.converted || e === finFoe) continue;
-    if (!sw0.riposte && !sw0.back){
+    if ((!sw0.riposte || skilled(e)) && !sw0.back){
       const n = e.rhyN, a = e.rhyAt;
       const at = sw0.offAt && sw0.offAt.get(e);
-      const dres = duelDefend(e, line, finisher ? 'finisher' : 'cut', false, at && at.at);
+      const dres = duelDefend(e, line, sw0.riposte ? 'riposte' : finisher ? 'finisher' : 'cut', false, at && at.at);
       if (e.rhyN !== undefined){ e.rhyN = n; e.rhyAt = a; }   // (not part of a mash: see above)
       if (dres === 'block' || dres === 'dodge'){ turned++; if (!blocker) blocker = e; continue; }
     }
     const at = sw0.offAt && sw0.offAt.get(e);
-    damageEnemy(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * edgeMul(e), f.clone(), knock, false, false, bladeOpts(at));
+    damageEnemy(e, perfectStrike(e, dmg * (e.t.heavy ? st.heavyDmg : 1) * edgeMul(e), f.x, f.z), f.clone(), knock, false, false, bladeOpts(at));
     scarBody(e.group, f, sw0.dir === 'left' ? 'right' : sw0.dir === 'right' ? 'left' : sw0.dir, false, at);
     if (e.dead) severLimbs(e, f, 0.35, at);
     else interruptEnemy(e, f, false);   // the second blade gets inside the wind-up

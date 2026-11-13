@@ -15,7 +15,7 @@ import { fwd, playerPos } from '../helpers.js';
 import { noteDefense } from '../../game/readout.js';
 import { damageEnemy, flinchEnemy, staggerEnemy } from '../../enemies/damage.js';
 import { markHit } from '../../enemies/marks.js';
-import { duelDefend, guardImpact, isGuarding, lockKick } from '../../enemies/duel.js';
+import { duelDefend, guardImpact, isGuarding, lockKick, perfectStrike } from '../../enemies/duel.js';
 import { bodyRadius } from '../jedi/bladehit.js';
 import { damageBoss } from '../../boss/boss.js';
 import { spawnHitSpark, spawnGroundShock } from '../../fx/vfx.js';
@@ -160,7 +160,7 @@ function landStrike(B){
     if (B.name === 'bash' && isGuarding(e)) guardImpact(e, M.guard.posture);
     const dres = duelDefend(e, B.line, cut ? 'cut' : B.heavy ? 'punchHeavy' : 'punch', B.heavy);
     if (dres === 'block' || dres === 'dodge'){ turned++; continue; }
-    damageEnemy(e, dmg, away, B.knock, B.heavy, false, blowOpts(B, e, f));   // fists rock a foe, they don't launch it
+    damageEnemy(e, perfectStrike(e, dmg, away.x, away.z), away, B.knock, B.heavy, false, blowOpts(B, e, f));   // (past a skilled blade's guard: the perfect strike, enemies/duel.js)   // fists rock a foe, they don't launch it
     if (!cut) markHit(e.group, contactAt(e, B.zone), f, 'dent', { heavy: B.heavy });   // the fist dents the plate, a heavy blow can tear it off (enemies/scars.js)
     if (!e.dead){
       // the bash staggers light foes for a takedown; a brute only gets rocked

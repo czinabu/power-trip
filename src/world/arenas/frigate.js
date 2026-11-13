@@ -54,7 +54,9 @@ export function buildFrigateArena(L){
   { const sx = -16, sz = -19;   // the shuttle: a squat hull nose-in, its ramp down toward the deck
     K.box(sx, sz, 4, 3, 3.0, metal);
     K.deco(new THREE.BoxGeometry(8.2, 0.4, 6.2), metalD, sx, 3.2, sz); solids[solids.length - 1].h = 3.4;
-    for (const s of [-1, 1]) picture(K.deco(new THREE.BoxGeometry(2.6, 0.25, 5), metalD, sx + s * 5.2, 2.0, sz, 0, 0, s * -0.4));   // folded wings
+    // folded wings: hinged at the roof's edge and swung up, clear over the heads of whoever stands by the ramp (they
+    // used to droop to chest height right over the spawn, slicing through the squad and the opening's camera)
+    for (const s of [-1, 1]) picture(K.deco(new THREE.BoxGeometry(2.6, 0.25, 5), metalD, sx + s * 5.2, 3.75, sz, 0, 0, s * 0.4));
     K.box(sx + 4.9, sz - 1.5, 0.9, 1.0, 0.5, metalD, { climbable: true });   // the ramp's foot
     picture(K.deco(new THREE.PlaneGeometry(2.2, 0.8), screen, sx + 4.02, 2.2, sz, 0, Math.PI / 2, 0)); }
   for (const [x, z, f] of [[20, -22, -1], [4, -25, 1], [24, -14, -1]]) { K.box(x, z, 0.9, 0.9, 2.2, crate); K.box(x + 1.7 * f, z + 0.2, 0.8, 0.8, 1.1, crate); }

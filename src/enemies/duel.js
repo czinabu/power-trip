@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { CFG } from '../data/config.js';
 import { stamDelay } from '../player/stamina.js';
-import { DUEL, DUEL_PROFILES, WARBRINGER, WARBRINGER_PROFILE, GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS, FOE_STRINGS, FOOTWORK, STRING_DIFF } from '../data/duel.js';
+import { PERFECT, DUEL, DUEL_PROFILES, WARBRINGER, WARBRINGER_PROFILE, GUARD_POSE, BLOCK_POSE, WIND, FOE_CUTS, FOE_STRINGS, FOOTWORK, STRING_DIFF } from '../data/duel.js';
 import { scene, camera } from '../engine/renderer.js';
 import { sfx, S } from '../audio/sfx.js';
 import { BLADE_AUDIO } from '../audio/saber.js';
@@ -28,9 +28,9 @@ import { heroesHere } from '../player/players.js';
 import { hooks } from '../net/run.js';
 import { matchup, sealOf, updateFormTag, updateFormSwitch, arcColor } from './foeform.js';
 import { pushKnock } from '../player/jedi/force.js';
-import { foeBlade } from '../player/jedi/clash.js';
+import { foeBlade, knockWeapon } from '../player/jedi/clash.js';
 import { guardArm, windAdd, gripKey, updateStance } from './foestance.js';
-import { ringOpacity, bladeCue } from './guardcue.js';
+import { ringOpacity, bladeCue, minimalCues } from './guardcue.js';
 import { cutMul } from '../player/jedi/weight.js';
 import { forceCostMul } from '../data/force-level.js';
 import { updateDisarm, endDisarm } from './disarm.js';
@@ -69,9 +69,12 @@ export function eliteRamp(){
 const skill = e => (e.dp && e.dp.elite ? eliteRamp() : 1);
 
 /* ---------------- breath (DUEL.breath): a duellist's own stamina ---------------- */
+// a skilled blade's breath is paced for a long duel: everything costs it less (data/duel.js PERFECT.breath)
+const breathMul = e => (e.dp && !e.dp.brace && e.dp.block >= PERFECT.guard ? PERFECT.breath : 1);
 // spend `amt` if it has it (true), or come up short (false). A foe without a breath pool always has it.
 function spend(e, amt){
   if (e.breath == null) return true;
+  amt *= breathMul(e);
   if (e.winded || e.breath < amt) return false;
   e.breath -= amt; e.breathAt = G.gt;
   if (e.breath < e.breathMax * DUEL.breath.winded) wind(e);
@@ -88,7 +91,7 @@ function wind(e){
 // your pressure drains it: a parried swing, a lock lost (no-op on foes without breath)
 export function drainBreath(e, amt){
   if (e.breath == null || e.dead) return;
-  e.breath = Math.max(0, e.breath - amt); e.breathAt = G.gt;
+  e.breath = Math.max(0, e.breath - amt * breathMul(e)); e.breathAt = G.gt;
   if (e.breath < e.breathMax * DUEL.breath.winded) wind(e);
 }
 
@@ -172,6 +175,11 @@ export function initWarbringer(e){
   e.swing = WARBRINGER.swing;
 }
 const showsGuard = e => e.dp && e.dp.block >= 0.4;
+/* A SKILLED BLADE (data/duel.js PERFECT): a duellist that holds a guard, on the host's screen or a guest's (the puppet's
+   profile comes with the snapshot). Its duels are fought on the blades and end on a perfect strike. */
+export const skilled = e => !!e && !!e.dp && !e.dp.brace && e.dp.block >= PERFECT.guard && !e.converted;
+const named = e => !!(e.champion || e.boss || e.warbringer);
+const strainOf = e => e.net ? (e.ng ? e.ng[NG.posture] / 100 : 0) : clamp((e.posture || 0) / ((e.dp && e.dp.posture) || 1), 0, 1);
 
 /* ---------------- per-frame (called from ai.js for every living duelling foe) ---------------- */
 export function updateDuel(e, dt, dist){
@@ -224,6 +232,15 @@ export function updateDuel(e, dt, dist){
       g.position.x += ax / al * v * dt; g.position.z += az / al * v * dt;
     } else e.skipT = 0;
   }
+  // a named duellist that took a perfect strike is thrown clear and comes back on guard: one opening, one wound
+  if (e.woundT != null && !e.dead){
+    if (G.gt > e.woundT){
+      e.woundT = null; e.posture = 0; e.openUntil = 0; e.counterQueued = false; e.plan = null;
+      e.state = 'recover'; e.st = PERFECT.reset; e.skipT = FOOTWORK.backT * 1.6;
+      g.userData.bodyMat.emissiveIntensity = 0;
+      if (e.token) dropToken(e, true);
+    }
+  }
   const guarding = !p.brace && GUARDING[e.state] && dist < DUEL.guardRange && !e.converted && !e.disarm;   // (a bracing foe holds no guard: no pose, no arc; nor a disarmed one, empty-handed)
   // hold the weapon on the guarded line (the readable tell), back to the carry otherwise
   if (guarding && !(e.dodgeT > 0)){
@@ -253,10 +270,12 @@ export function updateDuel(e, dt, dist){
   const spent = e.breath != null && e.breath < e.breathMax - 0.5;
   // (and always over the duellist you are locked on to, or one squared up to you with its guard: its meters are the duel)
   const watched = player.lockTarget === e || (showsGuard(e) && dist < DUEL.guardRange);
-  if ((e.posture > 0.5 || spent || p.brace || watched) && !e.dead && (p.brace || dist < DUEL.guardRange * 2)){   // the Warbringer's bar is always up, like its health bar
+  // DUEL CUES · MINIMAL (data/guard-rings.js): one thin line, and only while its guard is under strain
+  const lean = minimalCues() && !p.brace;
+  if ((lean ? e.posture > 0.5 : e.posture > 0.5 || spent || p.brace || watched) && !e.dead && (p.brace || dist < DUEL.guardRange * 2)){   // the Warbringer's bar is always up, like its health bar
     if (!e.postBar) makePostureBar(e);
     const b = e.postBar, k = clamp(e.posture / p.posture, 0, 1);
-    b.visible = true;
+    b.visible = true; barLook(b, lean);
     // the Warbringer's bar hangs just under its health bar, a little wider so it reads from across the arena
     if (p.brace) b.position.set(g.position.x, g.position.y + 2.7 * g.scale.x - 0.38, g.position.z);
     else b.position.set(g.position.x, g.position.y + 2.55 * g.scale.x, g.position.z);   // (the group's scale: a champion's and an elite's growth too)
@@ -266,7 +285,7 @@ export function updateDuel(e, dt, dist){
     b.userData.fill.position.x = -(1 - k) * 0.55;
     b.userData.fill.material.color.setHex(e.state === 'stagger' && p.brace ? 0xffffff : k > 0.75 ? 0xff6a3a : 0xffd24a);   // broken: the bar flashes white, the opening to punish
     const br = b.userData.breath;
-    br.visible = e.breath != null;
+    br.visible = e.breath != null && !lean;
     if (br.visible){
       const kb = clamp(e.breath / e.breathMax, 0, 1);
       br.scale.x = Math.max(0.001, kb);
@@ -304,8 +323,18 @@ function makePostureBar(e, hasBreath = !!e.dp.stam){
   const breath = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.03), new THREE.MeshBasicMaterial({ color: 0x9fd8ff, depthTest: false, toneMapped: false }));
   breath.position.set(0, -0.1, 0.01);
   grp.add(bg, fill, bbg, breath); grp.renderOrder = 998; grp.userData.fill = fill; grp.userData.breath = breath;
+  grp.userData.bg = bg; grp.userData.bbg = bbg; grp.userData.hasBreath = hasBreath;
   bbg.visible = hasBreath;
   scene.add(grp); e.postBar = grp;
+}
+
+// the bar's dress: the full meter (posture over breath, on their plates), or MINIMAL's one thin line with nothing behind it
+function barLook(b, lean){
+  const u = b.userData;
+  if (u.lean === lean) return;
+  u.lean = lean;
+  u.bg.visible = !lean; u.bbg.visible = !lean && u.hasBreath;
+  u.fill.scale.y = lean ? 0.4 : 1;
 }
 
 /* ---------------- weapon poses ---------------- */
@@ -615,14 +644,23 @@ export function stringDone(e){
 export function duelDefend(e, line, kind, heavy, at){
   if (e.net) return netDefend(e, line, kind, heavy, at);   // a co-op guest's blow on the host's duellist (below)
   const p = e.dp;
-  if (!p || e.dead || e.converted || !GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0 || e.disarm) return null;
+  if (!p || e.dead || e.converted) return null;
   const g = e.group, pp = playerPos();
   const efx = Math.sin(g.rotation.y), efz = Math.cos(g.rotation.y);
   const dx = pp.x - g.position.x, dz = pp.z - g.position.z, dl = Math.hypot(dx, dz) || 1;
+  const sk = skilled(e), front = (efx * dx + efz * dz) / dl >= (sk ? PERFECT.flank : 0.35);
+  // A SKILLED BLADE (data/duel.js PERFECT) can't be cut out of its own attack from the front: its blade beats yours
+  // aside and its strike comes on. Slipping clear of a cut, it is simply gone
+  if (sk && e.boundUntil > G.gt) return null;   // MAKASHI holds its blade: the riposte off the bind lands (enemies/disarm.js)
+  if (sk && front && !e.disarm && !(e.stunT > 0)){
+    if (e.dodgeT > 0) return 'dodge';
+    if (e.state === 'windup' || (e.state === 'strike' && !e.struck)) return beatAside(e, at, dx / dl, dz / dl);
+  }
+  if (!GUARDING[e.state] || e.stunT > 0 || e.dodgeT > 0 || e.disarm) return null;
   // RHYTHM — how quickly this blow follows your last one at it (DUEL.rhythm): a mash builds a streak it can read
   const R = DUEL.rhythm;
   e.rhyN = G.gt - e.rhyAt < R.gap ? e.rhyN + 1 : 1; e.rhyAt = G.gt;
-  if ((efx * dx + efz * dz) / dl < 0.35) return null;   // a blow from the flank or behind always lands
+  if (!front) return null;   // a blow from the flank or behind always lands
   // BRACING (the Warbringer): it turns nothing, the blow lands, but the strain builds: light cuts a little, a finisher,
   // heavy punch or Djem So cut in full (the stance's own multiplier), and every blow takes a little breath
   if (p.brace){
@@ -632,13 +670,15 @@ export function duelDefend(e, line, kind, heavy, at){
     addPosture(e, base * (light ? W.cut : 1) * (!isGunner() ? formPostureMul() : heavy ? P.heavyMul : 1) * weighed(kind), dx / dl, dz / dl);
     return null;
   }
-  if (G.gt < (e.openUntil || 0)) return null;           // caught recovering from its own swing: the guard isn't up yet
   if (e.winded) return null;                             // out of breath: nothing left to guard with
+  // caught recovering from its own swing: the guard isn't up yet (a skilled blade still gets its weapon there, late)
+  if (G.gt < (e.openUntil || 0)) return sk ? lateBlock(e, line, kind, heavy, at, dx / dl, dz / dl, PERFECT.open) : null;
   const m = diffMul() * skill(e);
   // what it does with this blow: the call it made when it read the cut in the chamber (readCut), else made now
   const sw = player.swing, rd = sw && sw.reads && sw.reads.get(e);
   const fooled = fooledBy(e, line);   // the real cut after your feint: in on the side it left open
-  const dec = fooled ? null : rd && rd.line === line ? rd.dec : decide(e, line, kind, e.rhyN);
+  // (your riposte: no reading it, the guard only just gets there)
+  const dec = fooled || kind === 'riposte' ? null : rd && rd.line === line ? rd.dec : decide(e, line, kind, e.rhyN);
   if (rd) sw.reads.set(e, { line: null, dec: null });   // spent: a second contact on the same swing rolls afresh
   if (fooled){ e.lineStreak = 0; return null; }
   // a light cut seen coming: the agile ones slip it with a backstep
@@ -662,6 +702,7 @@ export function duelDefend(e, line, kind, heavy, at){
     return 'block';
   }
   const ang = kind === 'cut' || kind === 'finisher' ? arrival(sw) : null;
+  if (sk && dec !== 'block') return lateBlock(e, line, kind, heavy, at, dx / dl, dz / dl, kind === 'riposte' ? PERFECT.riposte : PERFECT.beaten);
   if (dec !== 'block' || !spend(e, DUEL.breath.block)){
     // it lands: the guard swings over to cover that line next time
     if (Math.random() < 0.6){ e.guard = line; e.guardT = rand(DUEL.guardShift[0], DUEL.guardShift[1]); }
@@ -674,7 +715,7 @@ export function duelDefend(e, line, kind, heavy, at){
   e.lineStreak = same ? e.lineStreak + 1 : 1;
   e.lastLine = line; e.lastAng = ang; e.guard = line;
   const P = DUEL.posture;
-  const cost = (kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut) * (!isGunner() ? formPostureMul() : heavy ? P.heavyMul : 1) * weighed(kind) * matchup(e).posture;   // (× the form counter: a form that beats its own breaks it faster)   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
+  const cost = strainFor(e, kind, heavy);   // (× the form counter: a form that beats its own breaks it faster)   // saber forms set their own strain (Ataru 0.8, Niman 1, Djem So 1.5); fists and the darksaber keep the heavy multiplier
   // the flash goes where the blades cross (`at`, from player/jedi/clash.js), else just in front of the foe
   const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
   if (addPosture(e, cost, dx / dl, dz / dl)) return 'break';
@@ -691,6 +732,73 @@ export function duelDefend(e, line, kind, heavy, at){
   if (G.gt - e.counterAt > DUEL.counterCd && Math.random() < p.counter * m * (e.lineStreak >= DUEL.adaptAfter ? 1.5 : 1)
       && (e.breath == null || e.breath >= DUEL.breath.counter)){ e.counterQueued = true; if (p.riposte) e.riposteNext = true; }   // DJEM SO: the answer lands harder
   return 'block';
+}
+
+// what a blow costs the guard that turns it (DUEL.posture), by its kind, your form's weight and the form counter
+function strainFor(e, kind, heavy){
+  const P = DUEL.posture;
+  const k = kind === 'riposte' ? 'cut' : kind;
+  return (k === 'finisher' ? P.finisher : k === 'punchHeavy' ? P.punchHeavy : k === 'punch' ? P.punch : P.cut) * (!isGunner() ? formPostureMul() : heavy ? P.heavyMul : 1) * weighed(k) * matchup(e).posture * (skilled(e) ? PERFECT.strain : 1);
+}
+/* A LATE BLOCK (data/duel.js PERFECT) — a skilled blade's guard was not on this cut (the open side, a riposte, a cut into
+   its recovery), but it still gets its weapon across: the blades meet and nothing lands, at `mul` × the strain of a cut
+   it had covered. Out of breath it can't: the cut lands (null). A guard this breaks is 'break': the perfect strike. */
+function lateBlock(e, line, kind, heavy, at, ax, az, mul){
+  if (!spend(e, DUEL.breath.block)){ drainBreath(e, DUEL.breath.block); return null; }
+  const g = e.group;
+  e.lineStreak = 0; e.lastLine = line; e.lastAng = null;
+  if (LINES.includes(line)){ e.guard = line; e.guardT = rand(DUEL.guardShift[0], DUEL.guardShift[1]); }
+  e.blockLine = line; e.blockAt = G.gt;   // its weapon whips over onto the line (guardPose)
+  const cp = at || V3(g.position.x + ax * 0.7, g.position.y + 1.5, g.position.z + az * 0.7);
+  if (addPosture(e, strainFor(e, kind, heavy) * mul, ax, az)) return 'break';
+  e.arcFlash = 0.6;
+  clashFlash(cp, isGunner() ? 0xffd28a : stance().blade, true);
+  clashSparks(cp, 0xffe9b0, 6);
+  S.clash(cp, true, e.form);
+  G.hitstop = Math.max(G.hitstop, 0.06); G.shake = Math.max(G.shake, 0.28);
+  if (e.dp.tire && !isGunner()){ player.stam = Math.max(0, player.stam - e.dp.tire); player.stamDelay = stamDelay(); }
+  return 'block';
+}
+// a cut into a skilled blade's own attack: beaten aside, its strike comes on (no strain: this is not how a guard breaks)
+function beatAside(e, at, ax, az){
+  const g = e.group, cp = at || V3(g.position.x + ax * 0.7, g.position.y + 1.5, g.position.z + az * 0.7);
+  clashFlash(cp, isGunner() ? 0xffd28a : stance().blade, false);
+  clashSparks(cp, 0xffe9b0, 3);
+  S.clash(cp, false, e.form);
+  G.hitstop = Math.max(G.hitstop, 0.04);
+  return 'block';
+}
+/* YOU PARRIED A SKILLED BLADE'S STRIKE (enemies/ai.js) — the parry strains its guard hard; it does not floor it. A guard
+   the parry breaks is thrown open (true). Otherwise the duel goes on: it keeps the exchange going if it can (meets your
+   riposte and comes back at you), or gives a step and is back on guard. Returns true once it has been dealt with. */
+export function parriedBlade(e, ax, az){
+  if (!skilled(e)) return false;
+  drainBreath(e, DUEL.breath.parried);
+  if (addPosture(e, DUEL.posture.parry * PERFECT.parry * matchup(e).posture, ax, az)) return true;
+  if (e.winded){ staggerEnemy(e, ax, az); return true; }   // nothing left: the parry lays it open
+  if (rallyOnParry(e)) return true;
+  e.state = 'recover'; e.st = PERFECT.reset; e.plan = null; e.counterQueued = false; e.openUntil = 0;
+  e.group.userData.bodyMat.emissiveIntensity = 0;
+  knockWeapon(e, 0.6);
+  return true;
+}
+/* THE PERFECT STRIKE (data/duel.js PERFECT) — a blade (or a fist) has landed on a skilled blade: its guard was broken,
+   winded, fooled, disarmed or got round. Returns the damage the blow should do: the duel for a duellist, a third of it
+   for a named one, who is then thrown clear and back on guard (so one opening is one wound). */
+export function perfectStrike(e, dmg, ax, az){
+  if (!skilled(e) || e.dead || e.dmgRule || !(dmg > 0)) return dmg;
+  const W = PERFECT.wound, big = named(e), max = e.maxHp || e.hp || dmg;
+  // (a staggered or frozen foe already takes × 1.5: enemies/damage.js)
+  const need = max * (big ? W.named : W.rank) / (e.state === 'stagger' || e.state === 'stasis' ? 1.5 : 1);
+  const g = e.group, cp = V3(g.position.x, g.position.y + 1.5, g.position.z);
+  floater(V3(g.position.x, g.position.y + 1.9, g.position.z), 'PERFECT STRIKE', '#fff2b0', 'decisive');
+  clashFlash(cp, 0xfff2b0, true);
+  screenFlash('radial-gradient(ellipse at center, rgba(255,244,200,.18), transparent 45%)', 0.45, 0.2);
+  G.hitstop = Math.max(G.hitstop, 0.14); G.slowmo = Math.min(G.slowmo, 0.35); G.slowmoT = Math.max(G.slowmoT, 0.3);
+  tutEvent('perfectStrike', e);
+  if (G.stats) G.stats.perfectStrikes = (G.stats.perfectStrikes || 0) + 1;
+  if (big && !e.net){ e.woundT = G.gt; e.woundX = ax || 0; e.woundZ = az || 0; }   // (updateDuel throws it clear once the blow has landed)
+  return Math.max(dmg, need);
 }
 
 /* the roll behind a guard's answer to a blow on `line` ('dodge' | 'parry' | 'block' | null), with no side effects: the
@@ -740,7 +848,9 @@ export function baitGuards(line){
     const sharp = diffMul() * (e.net ? (e.dp && e.dp.elite ? eliteRamp() : 1) : skill(e));
     const at = V3(g.position.x, g.position.y + 1.45, g.position.z);
     // (a training partner always bites: the lesson is the move, not the dice. A feint it saw through doesn't make it warier)
-    if (!e.sparring && !(Math.random() < F.bite * Math.pow(F.wary, recent) / Math.max(0.5, sharp))){ floater(at, 'NOT FOOLED', '#c8d4e0'); continue; }
+    // (a skilled blade with a fresh guard sees through it; the more its guard is strained, the more it bites: PERFECT.composed)
+    const calm = skilled(e) ? PERFECT.composed + (1 - PERFECT.composed) * strainOf(e) : 1;
+    if (!e.sparring && !(Math.random() < F.bite * calm * Math.pow(F.wary, recent) / Math.max(0.5, sharp))){ floater(at, 'NOT FOOLED', '#c8d4e0'); continue; }
     e.feintN = recent + 1; e.feintAt = G.gt;
     e.baitLine = line; e.baitUntil = G.gt + F.bait;
     if (!e.net){
@@ -783,7 +893,7 @@ function canGuard(e){
   if (G.gt < (e.openUntil || 0) || e.winded) return false;
   const g = e.group, pp = playerPos();
   const dx = pp.x - g.position.x, dz = pp.z - g.position.z, dl = Math.hypot(dx, dz) || 1;
-  return (Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl >= 0.35;
+  return (Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl >= (skilled(e) ? PERFECT.flank : 0.35);
 }
 
 // your mashed cut is parried: the swing is thrown wide, the arm jars and the breath goes out of you
@@ -1129,13 +1239,22 @@ function winLock(label, knock, exact){
   // a low bind won throws it aside, off its feet's line, with its knees giving; the others drive it straight back
   const sd = K.side ? (Math.random() < 0.5 ? 1 : -1) : 0;
   const sx = dx / dl - dz / dl * sd * 0.9, sz = dz / dl + dx / dl * sd * 0.9, sl = Math.hypot(sx, sz) || 1;
-  staggerEnemy(e, sx / sl, sz / sl, label);
-  if (exact) e.stumble = 0;   // (the stagger's own stumble back would carry it past where the push leaves it)
-  if (K.side && !e.t.heavy) e.buckle = 0.4;
-  if (!exact) knock = Math.max(knock || 0, K.knock || 0);
-  e.st += 0.4 + (K.open || 0); e.posture = 0;
   drainBreath(e, DUEL.breath.lock);   // a bind lost takes the wind out of it
-  tutEvent('guardBreak', e);   // winning the bind breaks its guard too
+  // A SKILLED BLADE (data/duel.js PERFECT): the bind it loses strains its guard hard, and only breaks one already worn
+  // down. Otherwise it is shoved off and back on guard: the duel goes on
+  const held = skilled(e) && !e.net && !e.winded && !addPosture(e, e.dp.posture * PERFECT.lock, sx / sl, sz / sl);
+  if (held){
+    e.st = PERFECT.reset; e.openUntil = 0;
+    flinchEnemy(e, V3(sx / sl, 0, sz / sl), 1.4);
+    floater(V3(g.position.x, g.position.y + 1.7, g.position.z), label, '#ffe27a', 'key');
+  } else {
+    if (e.state !== 'stagger') staggerEnemy(e, sx / sl, sz / sl, label);
+    if (exact) e.stumble = 0;   // (the stagger's own stumble back would carry it past where the push leaves it)
+    if (K.side && !e.t.heavy) e.buckle = 0.4;
+    e.st += 0.4 + (K.open || 0); e.posture = 0;
+    tutEvent('guardBreak', e);   // winning the bind breaks its guard too
+  }
+  if (!exact) knock = Math.max(knock || 0, K.knock || 0);
   if (knock) damageEnemy(e, 8, V3(dx / dl, 0, dz / dl), knock, false, false, exact ? { slide: true } : undefined);   // (a Force shove too light to floor it still skids it back, as a push's does)
   player.riposteT = CFG.player.riposteTime + 0.3; player.ripLine = null;
   clashFlash(cp, 0xffd24a, true);
@@ -1221,13 +1340,26 @@ function netDefend(e, line, kind, heavy, at){
   const dx = pp.x - g.position.x, dz = pp.z - g.position.z, dl = Math.hypot(dx, dz) || 1;
   const R = DUEL.rhythm;   // your rhythm at it, kept here: a mash builds a streak it can read
   e.rhyN = G.gt - (e.rhyAt ?? -9) < R.gap ? (e.rhyN || 0) + 1 : 1; e.rhyAt = G.gt;
-  if ((Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl < 0.35) return null;   // the flank or the back always lands
+  if ((Math.sin(g.rotation.y) * dx + Math.cos(g.rotation.y) * dz) / dl < (skilled(e) ? PERFECT.flank : 0.35)) return null;   // the flank or the back always lands
   if (!n[NG.brace] && fooledBy(e, line)) return null;   // it bit on your feint (baitGuards): the real cut gets through
   const P = DUEL.posture;
   const M = matchup(e);   // the form counter (enemies/foeform.js), from the puppet's form
   const mul = (!isGunner() ? formPostureMul() : heavy ? P.heavyMul : 1) * weighed(kind) * (n[NG.brace] ? 1 : M.posture);
   if (n[NG.brace]){ if (hooks.guard) hooks.guard(e, kind, mul, line); return null; }   // the Warbringer braces: the strain builds on the host
-  if (!n[NG.up]) return null;
+  // A SKILLED BLADE (data/duel.js PERFECT), as duelDefend judges it on the host: a cut into its attack is beaten aside,
+  // and a cut its guard was not on is turned late (the host puts the heavier strain on the real foe)
+  const sk = skilled(e);
+  const late = (k) => {
+    if (hooks.guard) hooks.guard(e, kind, mul * k, line);
+    e.arcFlash = 0.6;
+    const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
+    clashFlash(cp, isGunner() ? 0xffd28a : stance().blade, true); clashSparks(cp, 0xffe9b0, 6); S.clash(cp, true, e.form);
+    G.hitstop = Math.max(G.hitstop, 0.06); G.shake = Math.max(G.shake, 0.28);
+    return 'block';
+  };
+  if (sk && (e.state === 'windup' || e.state === 'strike')) return beatAside(e, at, dx / dl, dz / dl);
+  if (!n[NG.up]) return sk && GUARDING[e.state] && !n[NG.winded] && n[NG.posture] < 100 ? late(PERFECT.open) : null;
+  if (sk && kind === 'riposte') return late(PERFECT.riposte);
   const p = e.dp || {}, m = diffMul() * (p.elite ? eliteRamp() : 1), fresh = !n[NG.winded];
   // a light blow seen coming: the agile ones slip it (the host moves the foe: the next snapshot shows the step or the flip)
   if (p.dodge && (kind === 'cut' || kind === 'punch') && fresh && Math.random() < p.dodge * m){
@@ -1252,7 +1384,7 @@ function netDefend(e, line, kind, heavy, at){
   let chance = n[NG.block] / 100 * (DUEL.offLine + (1 - DUEL.offLine) * cover) * m * M.block;
   if (kind === 'finisher') chance *= 0.75;
   if (!isGunner()) chance *= stance().duelBlockMul || 1;
-  if (onLine ? !(Math.random() < sealOf(e)) : !(Math.random() < Math.min(0.95, chance))) return null;
+  if (onLine ? !(Math.random() < sealOf(e)) : !(Math.random() < Math.min(0.95, chance))) return sk ? late(PERFECT.beaten) : null;
   if (hooks.guard) hooks.guard(e, kind, mul, line);
   e.arcFlash = 0.6;
   const cp = at || V3(g.position.x + dx / dl * 0.7, g.position.y + 1.5, g.position.z + dz / dl * 0.7);
@@ -1281,7 +1413,11 @@ export function netGuardHit(e, kind, amt, line, ax, az){
     return;
   }
   if (kind === 'parry'){ if (spend(e, DUEL.breath.block)){ e.rhyN = 0; e.counterQueued = true; if (LINES.includes(line)) e.guard = line; } return; }
-  if (kind === 'lockwin'){ e.posture = 0; drainBreath(e, DUEL.breath.lock); e.flourishNext = G.gt + DUEL.flourish.after + 0.6; return; }
+  if (kind === 'lockwin'){
+    drainBreath(e, DUEL.breath.lock); e.flourishNext = G.gt + DUEL.flourish.after + 0.6;
+    if (skilled(e) && !e.winded) addPosture(e, p.posture * PERFECT.lock, ax, az); else e.posture = 0;   // (a skilled blade: strained, not thrown open: PERFECT.lock)
+    return;
+  }
   if (kind === 'lockloss'){ e.counterQueued = true; e.flourishNext = G.gt + DUEL.flourish.after + 0.6; return; }
   const base = kind === 'finisher' ? P.finisher : kind === 'punchHeavy' ? P.punchHeavy : kind === 'punch' ? P.punch : P.cut;
   if (p.brace){
@@ -1318,10 +1454,11 @@ export function updatePuppetDuel(e, dt){
   if (e.ff) updateStance(e, dt, !!n[NG.up] && !e.dead && !n[NG.winded], LINES[n[NG.line]] || 'H');   // its form's stance, as the host's (enemies/foestance.js)
   const brace = !!n[NG.brace], hasBreath = n[NG.breath] >= 0, spent = hasBreath && n[NG.breath] < 99;
   const watched = player.lockTarget === e || (n[NG.block] >= 40 && dist < DUEL.guardRange);   // (as the host's: updateDuel)
-  if ((n[NG.posture] > 0 || spent || brace || watched) && !e.dead && (brace || dist < DUEL.guardRange * 2)){
+  const lean = minimalCues() && !brace;   // (as updateDuel: MINIMAL's one thin line)
+  if ((lean ? n[NG.posture] > 0 : n[NG.posture] > 0 || spent || brace || watched) && !e.dead && (brace || dist < DUEL.guardRange * 2)){
     if (!e.postBar) makePostureBar(e, hasBreath);
     const b = e.postBar, k = n[NG.posture] / 100;
-    b.visible = true;
+    b.visible = true; barLook(b, lean);
     if (brace){ b.position.set(g.position.x, g.position.y + 2.7 * g.scale.x - 0.38, g.position.z); b.scale.set(1.9, 1.9, 1); }
     else b.position.set(g.position.x, g.position.y + 2.55 * g.scale.x, g.position.z);   // (the group's scale: a champion's and an elite's growth too)
     b.quaternion.copy(camera.quaternion);
@@ -1329,7 +1466,7 @@ export function updatePuppetDuel(e, dt){
     b.userData.fill.position.x = -(1 - k) * 0.55;
     b.userData.fill.material.color.setHex(e.state === 'stagger' && brace ? 0xffffff : k > 0.75 ? 0xff6a3a : 0xffd24a);
     const br = b.userData.breath;
-    br.visible = hasBreath;
+    br.visible = hasBreath && !lean;
     if (hasBreath){
       const kb = n[NG.breath] / 100;
       br.scale.x = Math.max(0.001, kb);

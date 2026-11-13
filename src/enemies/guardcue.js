@@ -16,6 +16,8 @@ let wins = 0;
 const readWins = () => { try { wins = parseInt(localStorage.getItem(KEY), 10) || 0; } catch(e){ wins = 0; } };
 readWins(); onFileSwitch(readWins);   // (another save file's count: engine/save-files.js)
 export const duelWins = () => wins;
+// DUEL CUES on MINIMAL (data/guard-rings.js): the blades alone. Training keeps the cues it teaches with
+export const minimalCues = () => (G.guardRings || 'minimal') === 'minimal' && !G.training;
 
 // a guarding duellist went down: one more duel won (the ring fades with these on Knight)
 export function duelWon(e){
@@ -29,8 +31,8 @@ export function duelWon(e){
 
 // the ring's share of its full brightness right now: 0 hidden, 1 full
 export function ringMul(){
-  const m = G.guardRings || 'fading';
-  if (m === 'off') return 0;
+  const m = G.guardRings || 'minimal';
+  if (m === 'minimal' && !G.training) return 0;   // DUEL CUES · MINIMAL: read the blade (training still teaches with the ring)
   if (m === 'always' || G.diff === 'padawan') return 1;
   if (G.diff === 'master') return 0;
   const L = GUARD_RINGS.learn, k = clamp((wins - L.after) / Math.max(1, L.by - L.after), 0, 1);

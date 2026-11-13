@@ -321,7 +321,7 @@ export function updateHud(){
       cd.style.transform = dynamicCrosshair() ? jx.tf : '';
       // THE GUARD DIAL (player/jedi/guardline.js): with the guard up against a duellist the same keys and flicks place
       // the guard, so the dial shows that instead: an arc on the side it covers (gold: placed by hand; dim: still turning)
-      const gd = on && G.guardRings !== 'off' ? guardDial() : null, gl = $('guarddial');
+      const gd = on ? guardDial() : null, gl = $('guarddial');
       const nx = on && !gd && player.atkT <= 0 ? pickCut(0, false) : null, ang = nx && nx.pat.ang;
       cd.style.display = ang != null ? '' : 'none';
       if (ang != null){ cd.firstChild.style.transform = 'rotate(' + (90 - ang).toFixed(0) + 'deg)'; cd.classList.toggle('live', !!nx.flick); }

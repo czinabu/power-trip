@@ -72,8 +72,43 @@ export const WARBRINGER = {
 // the duel profile it carries (enemies/duel.js initDuel): `brace` = no guard and no duellist's plan, just posture and breath
 export const WARBRINGER_PROFILE = { block: 0, brace: true, posture: WARBRINGER.posture, feint: 0, delay: 0, chain: 0, counter: 0, thrust: 0, dodge: 0, stam: WARBRINGER.stam };
 
+/* THE PERFECT STRIKE — a duel with a SKILLED BLADE is fought on the blades, and ends on one clean cut.
+   A skilled blade is a duellist that holds a guard (profile block ≥ `guard`: the magnaguards, the acolytes, every form
+   fighter and named duellist) or another player. The rank and file (grunts, the phalanx, troopers, brutes, the
+   Warbringer's brace) are not: they fight and fall as they always have.
+
+   While a skilled blade's guard is up, no cut gets through it from the front. A cut it would have missed before is
+   turned LATE instead, and a late block costs its guard far more. Everything you do well strains its guard (its posture):
+     `strain`   × DUEL.posture for every blow a skilled guard turns: its guard is built to last a duel, not three cuts
+     `beaten`   × a cut on a line it was not covering (read the blade, cut to the open side)
+     `open`     × a cut while it is still recovering from its own swing
+     `riposte`  × your answer after a parry or a perfect dodge
+     `parry`    × DUEL.posture.parry for each strike of its you parry (a parry no longer floors it on its own)
+     `lock`     share of its whole posture a saber lock you win takes
+   Its BREATH is paced the same way: every act costs it × `breath` (DUEL.breath), so it is winded by a long, unbroken
+   press, not by the first exchange.
+   Cutting into its attack from the front does nothing: its blade beats yours aside (`beat`: no strain), so its strikes
+   have to be parried, blocked or slipped. When the guard BREAKS (posture full), or it is WINDED, FOOLED by a feint,
+   disarmed, held by the Force or taken from the side or behind, the cut that lands is the PERFECT STRIKE: it takes
+   `wound.rank` of a duellist's health (all of it: the duel is over) and `wound.named` of a named duellist's or a
+   champion's (three of them), who is thrown clear and comes back on guard (`reset` s). A final boss keeps its own rules.
+     composed  a fresh guard sees through a feint: the chance it bites runs from × `composed` (no strain) to × 1 (about to break)
+     flank     how far round it you must be for a cut to count as past its guard (the dot of its facing and the way to
+               you: under this lands; the rank and file's is 0.35, so a skilled blade covers its own shoulders)
+     bindAt    Makashi's bind takes a skilled blade only once its guard is this strained (share of its posture)
+   AND YOURS — a skilled blade's blow on your held guard takes no health (no chip), only breath: × `guardStam` the usual
+   stamina. Out of breath the guard gives nothing. A blow that lands clean is its perfect strike on you: at least
+   `hurt` of your full health (× the difficulty's damage), so a handful decide it. */
+export const PERFECT = {
+  guard: 0.4,
+  strain: 0.3, beaten: 1.6, open: 1.6, riposte: 2, parry: 0.33, lock: 0.5, breath: 0.22, flank: -0.1,
+  wound: { rank: 1, named: 0.34 }, reset: 0.55,
+  composed: 0.35, bindAt: 0.5,
+  guardStam: 1.1, hurt: 0.2,
+};
+
 export const DUEL = {
-  offLine: 0.22,          // a guard still turns this fraction of its block chance on the lines it ISN'T covering
+  offLine: 0.22,         // a guard still turns this fraction of its block chance on the lines it ISN'T covering
   guardShift: [0.9, 1.8], // seconds a guard holds a line before shifting (it also shifts to cover a line it was just hit on)
   adaptAfter: 2,          // blocks on the SAME line in a row before it locks that line down (block → 0.95)
   guardRange: 7,          // the guard arc only shows on foes this close

@@ -15,7 +15,7 @@ import { throwGrenade, grenades, grenadeHurt, grenadeKnock } from '../enemies/gr
 import { staggerEnemy } from '../enemies/damage.js';
 import { endLunge, paintLungeLine } from '../enemies/tactics.js';
 import { updateAimLine } from '../enemies/specials.js';
-import { addPosture, drainBreath, netGuardHit } from '../enemies/duel.js';
+import { addPosture, drainBreath, netGuardHit, skilled, parriedBlade } from '../enemies/duel.js';
 import { DUEL } from '../data/duel.js';
 import { squadKillPerks } from '../game/creed.js';
 import { gainXp } from '../game/progression.js';
@@ -94,6 +94,8 @@ on('hres', (m) => {
   if (m.r === 'parried' || m.r === 'clashed'){
     if (m.k === 'lunge') endLunge(e);
     // the Warbringer's posture takes the parry; a full bar breaks it open (duel.js), otherwise it reels as any brute does
+    // a SKILLED BLADE: the parry (or the clash) strains its guard and the duel goes on (enemies/duel.js parriedBlade)
+    if (skilled(e)){ if (m.r === 'parried') parriedBlade(e, ax, az); else if (!addPosture(e, DUEL.posture.parry, ax, az)){ e.state = 'recover'; e.st = 0.5; } return; }
     if (!(m.k === 'brace' && e.dp && e.dp.brace && addPosture(e, DUEL.posture.parry, ax, az))) staggerEnemy(e, ax, az);
     if (m.r === 'parried') drainBreath(e, DUEL.breath.parried);
   } else if (m.r === 'blocked' && m.k !== 'lunge') blockedOnBlade(e);

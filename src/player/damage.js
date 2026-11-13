@@ -29,8 +29,8 @@ import { showBanner } from '../ui/banners.js';
 import { overlay, setOverlayState } from '../ui/menus.js';
 import { diffDmgMul, diffWindow } from '../data/difficulty.js';
 import { masteryXp } from '../game/progression.js';
-import { DUEL } from '../data/duel.js';
-import { startLock, lockKindAt } from '../enemies/duel.js';
+import { DUEL, PERFECT } from '../data/duel.js';
+import { startLock, lockKindAt, skilled, addPosture } from '../enemies/duel.js';
 import { contactPoint, parryContact, recoilSwing, knockWeapon, formWeight, theirSparks } from './jedi/clash.js';
 import { mandoCatch } from './mando/melee.js';
 import { tutEvent } from '../game/tutor-bus.js';
@@ -44,6 +44,7 @@ import { flowHurt } from './gunner-flow.js';
 import { duelHooks } from '../game/duel-hooks.js';
 import { guardMeets, guardFlash } from './jedi/guardline.js';
 import { GUARD_TURN } from '../data/duel-guard.js';
+import { minimalCues } from '../enemies/guardcue.js';
 
 /* SHIEN — pressed by several blades (STANCES crowdRiposte { n, r }): at least n duellists within r m of you, so a blow
    taken on the held guard readies its wheeling riposte, as Djem So's guard always does */
@@ -150,7 +151,9 @@ export function bladeClash(fromPos, foe, at){
   player.vel.addScaledVector(dir, -C.push * (boss ? 1.4 : 1) / formWeight());   // a heavy form gives less ground
   jarStamina(C.stam);
   const heavy = !!foe && ((!isGunner() && G.stance === 'djemso') || isGunner());
-  if (heavy) staggerEnemy(foe, dir.x, dir.z, 'CLASH!');
+  // (a SKILLED BLADE isn't floored by a clash: it strains its guard, and only a worn one breaks. data/duel.js PERFECT)
+  if (heavy && skilled(foe) && !foe.net){ if (!addPosture(foe, DUEL.posture.parry, dir.x, dir.z)){ flinchEnemy(foe, dir, C.knock * 0.12); knockWeapon(foe, 0.7); floater(playerPos(), 'CLASH!', '#ffe9b0'); } }
+  else if (heavy) staggerEnemy(foe, dir.x, dir.z, 'CLASH!');
   else {
     if (foe){ flinchEnemy(foe, dir, C.knock * 0.12); knockWeapon(foe, 0.7); }
     floater(playerPos(), 'CLASH', '#ffe9b0');
@@ -182,6 +185,10 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
   if (player.dashT > 0){ if (!silent) perfectDodge(fromPos); return 'none'; }
   if (melee && opts && opts.by && opts.by.ff) dmg *= matchup(opts.by).hurt;   // the form counter: a blade whose form beats yours cuts deeper (enemies/foeform.js)
   const raw = dmg;
+  // A SKILLED BLADE's blow (a guard-holding duellist's, or another player's in a duel): the duel is fought on the blades
+  // (data/duel.js PERFECT). A held guard takes it on breath alone, and one that lands clean is its perfect strike
+  const pvpBlow = !!(opts && opts.pvp);
+  const duelBlow = !!(melee && !silent && !chip && opts && (pvpBlow || skilled(opts.by)) && (!isGunner() || player.weapon === 'darksaber'));   // (blade against blade: the gunners keep their beskar and their cover)
   const open = player.gbT > 0;   // guard just broken: no soak, catch, block or parry until it passes
   // an empty guard (dry, or already shattered by running dry) meets a heavy melee blow from the front
   let broke = false;
@@ -300,7 +307,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         // steered it to by hand it's a CLEAN block (cheaper); on a side it hasn't reached yet it is BEATEN (it holds, barely)
         const meet = melee && !player.holstered ? guardMeets(opts && opts.line) : 'covered';
         const GT = meet === 'clean' ? GUARD_TURN.clean : meet === 'beaten' ? GUARD_TURN.beaten : null;
-        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * crush * (!isGunner() && player.holstered ? CFG.holster.ward.stamMul : 1) * (GT ? GT.stam : 1));   // (a Force ward breathes harder than a blade's guard)
+        player.stam = Math.max(0, player.stam - CFG.player.blockStamCost * heavy * player.up.blockStam * (stance().blockStamMul || 1) * crush * (!isGunner() && player.holstered ? CFG.holster.ward.stamMul : 1) * (GT ? GT.stam : 1) * (duelBlow && !pvpBlow ? PERFECT.guardStam : 1));   // (a Force ward breathes harder than a blade's guard)
         player.stamDelay = stamDelay();
         clashFlash(V3(pp.x + fwd().x * 0.8, 1.5, pp.z + fwd().z * 0.8), meet === 'beaten' ? 0xff6a3a : stance().blade, meet === 'beaten');   // the blow meets the blade
         G.shake = Math.max(G.shake, 0.15 * heavy * (meet === 'beaten' ? 2 : 1));
@@ -308,7 +315,7 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
         if (melee && opts && opts.line) guardFlash(meet);
         if (meet === 'beaten'){
           callout(between(pp, fromPos), 'WRONG SIDE', '#ff6a3a'); sfx(150, 0.1, 'square', 0.05, 80); tutEvent('wrongSide');
-          if (!G.seenWrongSide){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'A feint beat your guard. When the orange mark jumps sides, flick toward it to send your guard there yourself.', 3.2); }
+          if (!G.seenWrongSide && !minimalCues()){ G.seenWrongSide = true; showBanner('WRONG SIDE', 'A feint beat your guard. When the orange mark jumps sides, flick toward it to send your guard there yourself.', 3.2); }
         }
         else if (meet === 'clean'){ callout(between(pp, fromPos), 'CLEAN BLOCK', '#ffe08a'); tutEvent('cleanBlock'); }
         else if (melee && opts && opts.line) tutEvent('lineBlock');
@@ -322,13 +329,13 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
           floater(pp, stance().riposteSweep ? 'WHEELING RIPOSTE' : 'FLUID RIPOSTE', '#c9a0ff');   // (SHIEN's wheels round: jedi/combat.js)
         }
         const chipMul = !isGunner() ? stance().chipMul ?? 1 : 1;   // (Soresu's guard lets only a sliver through)
-        if (melee && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush * (GT ? GT.chip : 1), null, true, false, true);
+        if (melee && !duelBlow && CFG.player.blockChip > 0 && chipMul > 0) hurtPlayer(dmg * CFG.player.blockChip * chipMul * crush * (GT ? GT.chip : 1), null, true, false, true);
         addFury(stance().furyBlock);
         if (meet === 'beaten' && player.stam <= 0 && player.hp > 0 && !broke){ guardBreak(fromPos); broke = true; }   // beaten on an empty tank: the guard gives way
         return 'blocked';
       }
       else if (guard){
-        dmg *= 0.5;   // guard crushed (out of stamina) — half damage bleeds through
+        if (!duelBlow) dmg *= 0.5;   // guard crushed (out of stamina) — half damage bleeds through (a skilled blade's lands in full)
         if (heavyMelee){ guardBreak(fromPos); broke = true; }
       }
     }
@@ -339,6 +346,8 @@ export function hurtPlayer(dmg, fromPos, silent, melee, chip, opts){
     if (TMP.lengthSq() < 0.001 || TMP.normalize().dot(fwd()) > 0.1){ guardBreak(fromPos); broke = true; }
   }
   if (open && !silent && !chip){ player.gbT = 0; }   // the next hit lands in full: the window closes on it
+  // THE PERFECT STRIKE on you: a skilled duellist's blade got past your guard (not a sparring partner's: the duel mode scores those)
+  if (duelBlow && !pvpBlow && !G.duel) dmg = Math.max(dmg, maxHp() * PERFECT.hurt);
   dmg *= (1 - (player.up.dr || 0));   // UNSTOPPABLE damage reduction
   if (!chip) dmg *= trooperHurtMul(fromPos, melee);   // THE ARC TROOPER: thin plate in the open, the face soaking it in cover (trooper/cover.js)
   if (player.boon && player.boon.adrenal && player.hp < maxHp()*0.35) dmg *= 0.75;   // ADRENALINE boon — tougher when cornered

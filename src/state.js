@@ -49,7 +49,7 @@ export const G = {
   missionForms: null,    // the three forms chosen before a mission (ui/forms-ui.js)
   duelFocus: 'on',       // player preference: the lock button locks on ('on') or does nothing ('off'); nothing locks on by itself (player/lockon.js)
   strafeMode: 'toggle',  // player preference: ALT strafe is a 'toggle' (press on, press off) or a 'hold' (player/strafe.js)
-  guardRings: 'fading', // player preference: a duellist's guard ring, 'fading' | 'always' | 'off' (enemies/guardcue.js)
+  guardRings: 'minimal', // player preference, DUEL CUES: 'minimal' (the blades alone) | 'fading' (guided) | 'always' (full) (data/guard-rings.js)
   aimHint: true,        // player preference: the Jedi's crosshair turns red on a foe (ui/hud.js); off for a challenge
   swingMirror: false,   // player preference: flips which way strafe-L/R directional cuts sweep
   saberAssist: 'low',   // player preference: the per-cut saber aim assist, 'low' | 'normal' | 'off' (data/saber-assist.js)

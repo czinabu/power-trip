@@ -4,7 +4,7 @@
 import { camera } from '../engine/renderer.js';
 import { rand, TMP } from '../utils.js';
 import { G, isGunner } from '../state.js';
-import { CALL, TIER, rankOf } from '../data/callouts.js';
+import { CALL, TIER, rankOf, duelQuiet } from '../data/callouts.js';
 
 /* ---------- floating damage text ---------- */
 // Damage numbers come from a fixed POOL of recycled divs (built once, lazily) rather
@@ -44,6 +44,8 @@ const tidy = (t) => typeof t === 'number' ? Math.round(t) : String(t).replace(/\
 function tierFor(r){ return isGunner() && r.tier < TIER.NOTICE ? TIER.NOTICE : r.tier; }   // (ROUTINE and MINOR only quiet the Jedi)
 
 function say(worldPos, text, color, big, kind){
+  // DUEL CUES · MINIMAL: routine blade work goes unsaid (data/callouts.js DUEL_QUIET)
+  if ((G.guardRings || 'minimal') === 'minimal' && !G.training && duelQuiet(text)){ _stats.quiet++; return; }
   const r = rankOf(text, kind), tier = tierFor(r), now = performance.now();
   if (tier === TIER.ROUTINE && !G.training && (_taught.get(text) || 0) >= CALL.teach){
     _stats.quiet++; if (_cue && r.cue) _cue(r.cue, worldPos, color);

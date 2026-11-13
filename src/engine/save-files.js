@@ -12,7 +12,7 @@
 
 export const FILES = 3;
 const META = 'sw_files';   // { active, files: { 1: { at, hero, ranks }, 2: null… } } (global, raw)
-const GLOBAL = /^sw_(vol|musvol|sfxvol|music|sens|adssens|padsens|padinv|fov|fov_v|shake|sway|sway_v|flash|strafemode|swingmirror|sabergrip|saberassist|dualgrip|cutaim|guardrings|readout|aimhint|fullscreen|skywar|finSlow|finCam|killCam|mp_folds|fm_numbers|coop_last|files)$/;
+const GLOBAL = /^sw_(vol|musvol|sfxvol|music|sens|adssens|padsens|padinv|fov|fov_v|shake|sway|sway_v|flash|strafemode|swingmirror|sabergrip|saberassist|dualgrip|cutaim|guardrings|duelcues|readout|aimhint|fullscreen|skywar|finSlow|finCam|killCam|mp_folds|fm_numbers|coop_last|files)$/;
 const PRE = /^sw_f(\d):/;
 const prefix = (n) => n === 1 ? '' : 'sw_f' + n + ':';
 // is this key a save file's? (only the game's own sw_ keys; graphics' jpt_ keys and anything else stay as they are)

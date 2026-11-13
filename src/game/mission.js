@@ -1646,9 +1646,30 @@ function updateMissionHost(dt){
     return;
   }
   if (!M.o) return;
+  escortFocus(dt);
   const K = KINDS[M.o.kind];
   if (K.update(M.o, M.s, dt)) completeObjective();
   else MUSIC.setCue(M.o.music || K.cue || 'battle', K.music && K.music(M.o, M.s));   // the score follows the objective
+}
+/* ESCORT FOCUS: an escort points you at the one you're walking first, not at where they're going. Until this screen's
+   hero has reached them, and whenever you fall back past their leash after, the HUD arrow, the compass and the objective
+   view point at them, and the destination's beam stays faint. Once you're with them the way on takes over. Each screen
+   works out its own (a co-op guest is pointed at the escort by its own distance, not the host's). */
+const ESC_MEET = 8, ESC_BEAM = 0.16, ESC_BEAM_FAINT = 0.03;   // m to count as having reached them · the beam's opacity, lit and faint
+function escortDest(o){
+  if (M.s && M.s.dest) return M.s.dest;   // (the host's own)
+  const e = o.path && o.path[o.path.length - 1];   // a guest: the synced beacon standing at the leg's end
+  return e ? M.markers.find(m => m && m.userData.beam && Math.hypot(m.position.x - e[0], m.position.z - e[1]) < 0.2) : null;
+}
+function escortFocus(dt){
+  const o = M.o, v = M.vip;
+  if (!o || o.kind !== 'escort' || !v){ M.esc = null; return; }
+  if (!M.esc || M.esc.o !== o) M.esc = { o, met: false, with: false };
+  const E = M.esc, pp = playerPos(), vp = v.g.position, d = Math.hypot(pp.x - vp.x, pp.z - vp.z);
+  if (d < Math.min(ESC_MEET, o.leash || ESC_MEET)) E.met = true;
+  E.with = E.met && d < (o.leash || ESC_MEET);
+  const m = escortDest(o), mat = m && m.userData.beam.material;
+  if (mat) mat.opacity += ((E.with ? ESC_BEAM : ESC_BEAM_FAINT) - mat.opacity) * (1 - Math.exp(-4 * dt));
 }
 // dev console / smoke test: count the current objective as done
 export function skipObjective(){
@@ -1697,6 +1718,7 @@ export function objectiveTarget(){
   }
   const tt = twistTarget();   // the twist needs you somewhere first (game/twists.js)
   if (tt) return tt;
+  if (M.o.kind === 'escort' && M.vip && !(M.esc && M.esc.with)) return M.vip.g.position;   // an escort: the one you walk, until you're with them
   const pp = playerPos();
   let best = null, bd = Infinity;
   for (const k of M.markers){
@@ -1840,6 +1862,7 @@ function updateMissionGuest(dt){
   if (M.o && M.o.kind === 'infiltrate') infiltrateGuestFrame(ms && ms.inf, dt);
   updateWalkerGuest(dt);
   updateLanes(dt, G.gt);
+  escortFocus(dt);
   if (!ms) return;
   for (const m of M.markers) if (m.visible) pulseMarker(m, dt, G.gt);
   const k = 1 - Math.exp(-14 * dt), ang = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));

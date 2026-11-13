@@ -1,8 +1,9 @@
 // POWER TRIP © 2026 Caleb Zinabu. All rights reserved. See LICENSE.
 // FOLEY: footsteps and the small cloth / armour sounds of movement, which the combat sounds never covered.
 //   - the hero's footfalls, timed by distance walked (so they match any gait), voiced by the arena's floor
-//     (stone and sand in the temple, ringing grating in the forge, loose ash and grit on the plains), lighter for the
-//     Jedi's robes and boots, with a plate clink for the Mandalorian and trooper
+//     (stone and sand in the temple, dull metal grating in the forge, loose ash and grit on the plains), lighter for the
+//     Jedi's robes and boots, with a soft armour rattle for the Mandalorian and trooper
+//     (no pitched FM tones on steps: they rang like little bells on every footfall)
 //   - the nearest few foes' footfalls, placed in the world, so you hear a squad closing in before you see it
 // Everything is quiet, throttled and skipped past a short range: it should add presence, never clutter the fight.
 
@@ -20,9 +21,9 @@ const FLOORS = {
     N({ pos, g: 0.022 * w, a: 0.002, d: 0.05, filt: { type: 'bandpass', f: rand(2400, 3600), q: 1.1 } });
     T({ pos, type: 'sine', f: 120 / Math.sqrt(w), f2: 60, g: 0.05 * w, d: 0.07 });
   },
-  foundry(w, pos){  // metal grating: a dull tread and a short ring
+  foundry(w, pos){  // metal grating: a dull tread and a short gritty scuff (no ring)
     N({ pos, color: 'brown', g: 0.06 * w, a: 0.002, d: 0.06, filt: { type: 'lowpass', f: 900 } });
-    T({ pos, type: 'sine', f: rand(780, 940), fm: { r: 1.41, i: 2, i2: 0.05 }, g: 0.018 * w, a: 0.002, d: 0.16, verb: 0.2 });
+    N({ pos, g: 0.02 * w, a: 0.002, d: 0.04, filt: { type: 'bandpass', f: rand(1600, 2200), q: 0.9 } });
     T({ pos, type: 'sine', f: 100 / Math.sqrt(w), f2: 55, g: 0.05 * w, d: 0.07 });
   },
   plains(w, pos){   // loose ash and grit that crunches under the heel
@@ -36,7 +37,7 @@ const floor = () => FLOORS[shared.arenaLayout] || FLOORS.temple;
 /* the hero's plate or cloth, over the footfall */
 function gear(w, run){
   if (isGunner()){   // beskar / armour plates knocking together at a run
-    if (run) T({ type: 'sine', f: rand(1900, 2500), fm: { r: 2.76, i: 1.2, i2: 0.05 }, g: 0.012, a: 0.001, d: 0.09 });
+    if (run) N({ g: 0.01, a: 0.001, d: 0.04, filt: { type: 'bandpass', f: rand(2600, 3200), q: 1.2 } });
     N({ color: 'pink', g: 0.012 * w, a: 0.004, d: 0.1, filt: { type: 'bandpass', f: 4200, q: 1.5 } });
   } else {           // robe and cloak: a soft fabric swish
     N({ color: 'pink', g: 0.016 * (run ? 1.3 : 0.8), a: 0.02, d: 0.14, filt: { type: 'bandpass', f: 1400, q: 0.6 } });

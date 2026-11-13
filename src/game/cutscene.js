@@ -32,7 +32,7 @@ import { castId, masterBlade } from '../data/saber-cast.js';
 import { updateLegs } from '../enemies/gait.js';
 import { updateUpper } from '../enemies/upper.js';
 import { resetCameraRig, updateCamera } from '../engine/camera.js';
-import { net, on, send, connected } from '../net/session.js';
+import { net, on, send, connected, guestSlots } from '../net/session.js';
 import { nameOf } from '../net/names.js';
 import { coopRun } from '../net/run.js';
 import { allies } from '../allies/squad.js';
@@ -261,6 +261,14 @@ function hideDouble(){
   }
 }
 
+// a guest's copy of an entrance that arrives after the host's real foe has already stepped in on this screen (a slow link,
+// a stalled tab): a stand-in walking up to it would be its double, so that copy doesn't play. The real one is a named foe
+// (a duellist in its own look, or a final boss) standing on or by the entrance's mark
+function realFoeAt(at){
+  if (!Array.isArray(at)) return false;
+  return enemies.some(e => !e.dead && e.group && e.group.visible && (e.champion || e.look || e.group.userData.look) && Math.hypot(e.group.position.x - at[0], e.group.position.z - at[1]) < 7);
+}
+
 /* ---------- starting and ending ---------- */
 // opts: key (seen once a visit) · shots · actors · mark {x, z} · face [x, z] (the hero turns to it) · onDone · share (sent to a co-op partner)
 // the sim stands still but the gait reads player.moveVel/vel: a hero caught mid-run would keep striding in place, so stop them dead
@@ -350,7 +358,7 @@ function start(opts){
   holdSkip(false, true);
   voted = false; lastTally = null; showVote(null);
   if (net.role === 'host' && connected()) tally();   // (a guest may already be asking to skip what they're watching)
-  if (opts.share && net.role === 'host' && connected()) send({ t: 'csp', s: opts.share, st: marks });   // (st: where the host stands and the speaker is: each guest's mark beside it)
+  if (opts.share && net.role === 'host' && connected()){ send({ t: 'csp', s: opts.share, st: marks }); askGuests(); }   // (st: where the host stands and the speaker is: each guest's mark beside it)
   if (net.role === 'guest' && connected()) send({ t: 'cso', o: 1 });
   showShot();
   return true;
@@ -952,6 +960,7 @@ export function playOpening(id, title, own){
 // stage: on a guest, the host's marks for this scene (game/blocking.js)
 export function playDuelIntro(spec, share = true, stage = null){
   if (!canStart('duel:' + spec.mid)) return false;   // (a retry: seen already, so no stand-in is built for it)
+  if (!share && !spec.quarry && realFoeAt(spec.at)) return false;   // (a guest's copy that reached it too late: the real one is here already)
   prepScene(stage);   // (the hero on their feet, a guest on its mark beside the host, before anyone is placed round them)
   const jedi = G.chapter >= 0 && storyHero() === 'jedi' && JEDI_DUELS[spec.mid];   // (the Jedi's story has its own words for some)
   const lines = ((jedi && storyWords(jedi)) || (DUELS[spec.mid] && pick(DUELS[spec.mid])) || (spec.line ? [[null, spec.line]] : [])).slice();
@@ -1084,17 +1093,43 @@ window.addEventListener('keyup', (e) => { if (e.key === 'Enter' || e.key === ' '
 
 /* ---------- co-op: the host's scenes play for the guest too; either side's skip ends both; foes hold while either watches ---------- */
 on('csp', (m) => {
-  if (net.role !== 'guest' || !m.s || C.on || G.cardUp || G.mode !== 'play') return;
+  if (net.role !== 'guest' || !m.s) return;
+  try { guestCopy(m); } finally { if (connected()) send({ t: 'csa' }); }   // (played or not, the host hears back: askGuests)
+});
+function guestCopy(m){
+  if (C.on || G.cardUp || G.mode !== 'play') return;
   const s = m.s;
   // (st: where the host's hero stands and the speaker is, after the host gave them room: this guest takes its mark beside
   // the host, and a foe breaking off stands where the host's copy of it does: game/blocking.js)
   const st = m.st && Array.isArray(m.st.lead) && Array.isArray(m.st.at) ? m.st : null;
   if (s.k === 'duel'){ playDuelIntro(s.spec, false, st); meetNamed(s.spec.name, s.spec.foe, s.spec.mid); }   // (the guest's codex: game/codex.js)
-  else if (s.k === 'boss') setTimeout(() => playBossIntro(false, st), 120);   // (the boss's puppet lands with the host's next snapshot)
+  else if (s.k === 'boss') bossWhenHere(st, performance.now());
   else if (s.k === 'scene') playScene(s.id, { mark: st && s.mark && SCENES[s.id] && SCENES[s.id].actor ? st.at : s.mark, share: false, stage: st });
-});
+}
+// the boss's entrance on a guest frames his puppet, which lands with one of the host's next snapshots: on a slow link that
+// is well after the word to play it, so it waits for him (a fixed beat used to miss him, and the guest got no entrance)
+const BOSS_WAIT = 4000;   // (ms) longer and the host's copy is over: the fight is on
+function bossWhenHere(st, t0){
+  if (C.on || G.mode !== 'play' || performance.now() - t0 > BOSS_WAIT) return;
+  if (binders.boss()) setTimeout(() => playBossIntro(false, st), 60);   // (a frame for his pose to land)
+  else setTimeout(() => bossWhenHere(st, t0), 100);
+}
 on('csk', (m) => { if (C.on && (!m.k || m.k === C.key)) finish(false); });
 const watching = new Set();   // the guests whose cutscene is playing
+/* Every guest answers the host's word to play a scene (csa), whether its copy plays or not. Until each has, a duel's foe
+   doesn't step in (game/mission.js introHeld): a guest whose copy starts late on a slow link would otherwise see the real
+   foe already standing there and a stand-in walking up to it. A guest that never answers (a dropped or older client) is
+   let go after ASK_MAX */
+const asked = new Map();   // host: guest seat → when the word went out
+const ASK_MAX = 6000;      // (ms)
+function askGuests(){ const now = performance.now(); for (const s of guestSlots()) asked.set(s, now); }
+export function guestsAnswering(){
+  if (net.role !== 'host' || !asked.size) return false;
+  const now = performance.now(), here = guestSlots();
+  for (const [s, at] of asked) if (now - at > ASK_MAX || !here.includes(s)) asked.delete(s);
+  return asked.size > 0;
+}
+on('csa', (m) => { if (net.role === 'host' && m.from != null) asked.delete(m.from); });
 on('cso', (m) => {
   if (net.role !== 'host') return;
   if (m.o) watching.add(m.from); else { watching.delete(m.from); votes.delete(m.from); }
@@ -1102,13 +1137,13 @@ on('cso', (m) => {
   tally();
 });
 on('closed', (slot) => {
-  if (slot < 0){ watching.clear(); votes.clear(); } else { watching.delete(slot); votes.delete(slot); }
+  if (slot < 0){ watching.clear(); votes.clear(); asked.clear(); } else { watching.delete(slot); votes.delete(slot); asked.delete(slot); }
   coopRun.guestScene = watching.size > 0;
   if (net.role === 'host') tally();
 });
 on('status', (n) => {
   if (n.status === 'connected') return;
-  watching.clear(); votes.clear(); coopRun.guestScene = false;
+  watching.clear(); votes.clear(); asked.clear(); coopRun.guestScene = false;
   voted = false; lastTally = null; showVote(null);   // alone again: the next press just skips
 });
 

@@ -64,6 +64,9 @@ function makeIR(secs, damp, pre){
 
 /* ROOMS — the reverb each arena sits in. Stone halls ring long, the forge is tight and metallic, the open
    battlefield is a wide dark wash. */
+/* how loud and how bright every lightsaber sound sits in the mix (the saber bus, initEngine) */
+export const SABER_MIX = { level: 0.6, shelfHz: 2800, shelfDb: -7 };
+
 export const ROOMS = {
   menu:    { secs: 2.4, damp: 0.7, wet: 0.32 },
   temple:  { secs: 2.8, damp: 0.55, wet: 0.36 },
@@ -109,13 +112,24 @@ export function initEngine(){
   AE.clashComp = A.createDynamicsCompressor();
   AE.clashComp.threshold.value = -20; AE.clashComp.knee.value = 8; AE.clashComp.ratio.value = 3.5;
   AE.clashComp.attack.value = 0.012;   // slow enough to let a hit's front through (the punch) AE.clashComp.release.value = 0.14;
+  // the SABER bus: every lightsaber sound (the hum loops, swings, ignite / retract, clashes, deflects, wall scrapes, the
+  // lock grind) runs through here, so the whole blade sits under the rest of the mix: a lower level and a high shelf that
+  // takes the fizz and sizzle off the top (Caleb, 2026-11-14: "more subtle"). Still on the sfx bus, so the SFX slider
+  // and the pause muffle apply. Tune SABER_MIX to move every blade sound at once.
+  AE.saberTone = A.createBiquadFilter(); AE.saberTone.type = 'highshelf';
+  AE.saberTone.frequency.value = SABER_MIX.shelfHz; AE.saberTone.gain.value = SABER_MIX.shelfDb;
+  AE.saberTone.connect(AE.bus.sfx);
+  AE.bus.saber = mk(AE.saberTone, SABER_MIX.level);
   AE.bus.clash = A.createGain(); AE.bus.clash.gain.value = 1;
-  AE.bus.clash.connect(AE.clashComp); AE.clashComp.connect(mk(AE.bus.sfx, 0.9));
+  AE.bus.clash.connect(AE.clashComp); AE.clashComp.connect(mk(AE.bus.saber, 0.9));
 
   AE.room = A.createConvolver();
   AE.roomOut = mk(AE.muffle, 0.3);
   AE.room.connect(AE.roomOut);
   AE.roomIn = A.createGain(); AE.roomIn.connect(AE.room);
+  // a blade's reverb send is pulled down with it, so its tail doesn't stay loud after the dry sound was quieted
+  AE.send = AE.send || {};
+  AE.send.saber = AE.send.clash = mk(AE.roomIn, SABER_MIX.level);
 
   for (const k of ['white', 'pink', 'brown']) AE.noise[k] = makeNoise(k);
   AE.ready = true;
@@ -188,7 +202,7 @@ export function place(pos){
      vib   { r, d }             vibrato rate (Hz) and depth (cents)
      drive  waveshaper amount (0..1) — grit for explosions, buzz for the darksaber
      verb   reverb send (0..1)  pos  world position (pan + distance)  pan  fixed pan  at  start delay (s)
-     bus    'sfx' (default) | 'ui' | 'amb' | 'music' | 'clash'   jit  random pitch spread (fraction, default 0.03)
+     bus    'sfx' (default) | 'ui' | 'amb' | 'music' | 'clash' | 'saber'   jit  random pitch spread (fraction, default 0.03)
      trem   { r, d, type }      tremolo: the level wobbled at r Hz by depth d (0..1), for a chaotic, vibrating texture
      panK   scales a placed voice's pan (0 = dead centre: keep the low end in the middle)
      pdrift the pan slides this far (±) over the voice's life (a moving source: doppler-ish spatial weight)
@@ -299,7 +313,7 @@ export function loop(spec){
     head.connect(tg); head = tg;
   }
   head.connect(g); g.connect(pan); pan.connect(AE.bus[spec.bus || 'sfx']);
-  if (spec.verb){ const r = A.createGain(); r.gain.value = spec.verb; pan.connect(r); r.connect(AE.roomIn); }
+  if (spec.verb){ const r = A.createGain(); r.gain.value = spec.verb; pan.connect(r); r.connect((AE.send && AE.send[spec.bus]) || AE.roomIn); }
   const oscs = [];
   for (const L of spec.layers){
     let s;

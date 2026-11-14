@@ -15,8 +15,9 @@ import { G, isGunner, shared } from '../state.js';
 import { rand } from '../utils.js';
 import { FORM_FAMILY } from '../data/foe-forms.js';
 
-const N = o => play(Object.assign({ src: 'noise' }, o));
-const T = o => play(o);
+// every blade sound plays on the saber bus (engine.js) unless it asks for the clash bus, which feeds the saber bus too
+const T = o => play(Object.assign({}, o, { bus: o.bus || 'saber' }));
+const N = o => T(Object.assign({ src: 'noise' }, o));
 
 /* the hum's pitch by form: lighter forms ride higher; the Darksaber sits far under all of them */
 /* every lightsaber sounds this much lower than its recipe (Caleb, 2026-11-04: "too high"): about 3 semitones down. It

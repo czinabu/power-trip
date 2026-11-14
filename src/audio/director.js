@@ -42,29 +42,31 @@ const HUM = () => ({ base: 90, layers: [{ f: 90 }, { f: 90.33, det: 6, g: 0.8 },
 // a narrow band up near 2 kHz whined like a mosquito), its band drifting slowly
 const BUZZ = () => ({ base: 90, layers: [{ type: 'square', f: 90 }, { type: 'sawtooth', f: 180.4, g: 0.45 }],
                       filt: { type: 'bandpass', f: 600, q: 0.8 }, lfo: { r: 0.43, d: 90 }, drive: 0.4, verb: 0.05 });
+// every blade loop (the hums, the sizzle, the charge riser, the lock grind) plays on the saber bus (engine.js SABER_MIX)
+const sloop = spec => loop(Object.assign({ bus: 'saber' }, spec));
 function ensureLoops(){
   if (L.hum) return;
-  L.hum = loop(HUM());
-  L.buzz = loop(BUZZ());   // the hero's blade's TV buzz, over its motor hum
-  L.hum2 = loop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
+  L.hum = sloop(HUM());
+  L.buzz = sloop(BUZZ());   // the hero's blade's TV buzz, over its motor hum
+  L.hum2 = sloop(Object.assign(HUM(), { lfo: { r: 4.3, d: 50 } }));   // the saber staff's far blade, a hair sharp of the near one
   // the heavy cut's riser: a saw and its octave climbing as the charge builds, and a thin hiss of energy over it
-  L.riser = loop({ base: 110, layers: [{ f: 110 }, { f: 110.6, det: 9, g: 0.7 }, { type: 'sine', f: 220, g: 0.5 }], filt: { type: 'bandpass', f: 800, q: 1.4 }, verb: 0.1 });
-  L.riserHiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 3000, q: 2 }, lfo: { r: 19, d: 900 } });
+  L.riser = sloop({ base: 110, layers: [{ f: 110 }, { f: 110.6, det: 9, g: 0.7 }, { type: 'sine', f: 220, g: 0.5 }], filt: { type: 'bandpass', f: 800, q: 1.4 }, verb: 0.1 });
+  L.riserHiss = sloop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 3000, q: 2 }, lfo: { r: 19, d: 900 } });
   // the blade's electric sizzle: a narrow band of noise, flickering, that only really comes up as the blade moves
-  L.hiss = loop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 2600, q: 1.6 }, lfo: { r: 13, d: 700 }, verb: 0.05 });
-  L.dark = loop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
+  L.hiss = sloop({ base: 1, layers: [{ noise: 'white' }], filt: { type: 'bandpass', f: 2600, q: 1.6 }, lfo: { r: 13, d: 700 }, verb: 0.05 });
+  L.dark = sloop({ base: 62, layers: [{ type: 'square', f: 62, g: 0.6 }, { f: 62.6, g: 0.8 }, { type: 'sine', f: 124, g: 0.5 }],
                   filt: { f: 380, q: 2 }, lfo: { r: 5.3, d: 60 }, drive: 0.35, verb: 0.08 });
   // two placed hums for the nearest other lit blades (foes, the boss, a co-op partner, an ally)
   // (the same projector-motor hum as your own blade, with a little of its TV buzz mixed straight in)
-  for (let i = 0; i < 2; i++) L.near.push({ h: loop(Object.assign(HUM(), { layers: HUM().layers.concat([{ type: 'square', f: 90, g: 0.14 }]), lfo: { r: 3.3 + i, d: 35 } })), wob: rand(0, 6) });
+  for (let i = 0; i < 2; i++) L.near.push({ h: sloop(Object.assign(HUM(), { layers: HUM().layers.concat([{ type: 'square', f: 90, g: 0.14 }]), lfo: { r: 3.3 + i, d: 35 } })), wob: rand(0, 6) });
   // LOCK_GRIND — two blades held against each other: the clash's own sound held for as long as the bind lasts (saber.js
   // clash; its blaster "pyew" is only on the moment the blades meet). The buzzing arc, driven noise chopped at a mains-like
   // rate so it buzzes rather than hisses, over the hum overdriven and thrown wide open (the surge), its TV buzz an octave
   // up. One-shot arcs and pops are thrown over it from enemies/duel.js. Silent until a bind; how hard it grinds follows
   // the struggle (BLADE_AUDIO.lock).
-  L.grind = loop({ base: 1, layers: [{ noise: 'white' }, { noise: 'pink', g: 0.6 }], filt: { type: 'bandpass', f: 2800, q: 0.8 },
+  L.grind = sloop({ base: 1, layers: [{ noise: 'white' }, { noise: 'pink', g: 0.6 }], filt: { type: 'bandpass', f: 2800, q: 0.8 },
                    lfo: { r: 5.3, d: 600 }, trem: { r: 68, d: 0.85 }, drive: 0.9, verb: 0.1 });
-  L.grindLow = loop({ base: 92, layers: [{ f: 92 }, { f: 92.4, det: -8, g: 0.7 }, { type: 'square', f: 184, g: 0.45 }, { type: 'square', f: 46, g: 0.3 }],
+  L.grindLow = sloop({ base: 92, layers: [{ f: 92 }, { f: 92.4, det: -8, g: 0.7 }, { type: 'square', f: 184, g: 0.45 }, { type: 'square', f: 46, g: 0.3 }],
                       filt: { f: 1600, q: 0.9 }, lfo: { r: 7.1, d: 300 }, trem: { r: 34, d: 0.35 }, drive: 1, verb: 0.08 });
   L.jet = loop({ base: 50, layers: [{ noise: 'brown', g: 1.6 }, { noise: 'pink', g: 0.5 }, { f: 50, g: 0.12 }],
                  filt: { f: 500, q: 0.6 }, lfo: { r: 11, d: 90 } });
